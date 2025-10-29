@@ -32,7 +32,7 @@ enum BillingCycle {
   YEARLY
   MONTHLY
   BIENNIALLY
-  CUSTOM  
+  CUSTOM
 }
 
 enum HostingStatus {
@@ -47,10 +47,10 @@ enum HostingStatus {
 }
 
 enum HostingType {
-  WEB_HOSTING      // Full web hosting with databases, FTP, etc.
-  EMAIL_HOSTING    // Email-only hosting without database access
+  WEB_HOSTING // Full web hosting with databases, FTP, etc.
+  EMAIL_HOSTING // Email-only hosting without database access
   RESELLER_HOSTING // Reseller hosting plans
-  VPS_HOSTING      // VPS hosting plans
+  VPS_HOSTING // VPS hosting plans
   DEDICATED_HOSTING // Dedicated server hosting
 }
 
@@ -65,53 +65,53 @@ enum HostingOperation {
 }
 
 enum ProvisioningMethod {
-  MANUAL      // Provisioned manually by admin
-  AUTOMATIC   // Provisioned automatically when customer orders
+  MANUAL // Provisioned manually by admin
+  AUTOMATIC // Provisioned automatically when customer orders
 }
 
 enum PromoType {
-  PERCENTAGE  // Percentage discount (e.g., 20% off)
-  FIXED       // Fixed amount discount (e.g., $50 off)
+  PERCENTAGE // Percentage discount (e.g., 20% off)
+  FIXED // Fixed amount discount (e.g., $50 off)
 }
 
 enum PromoScope {
-  PUBLIC      // Available to all customers
+  PUBLIC // Available to all customers
   USER_SPECIFIC // Only for specific users
 }
 
 enum PromoTarget {
-  HOSTING_PLAN      // Promo for hosting plans
+  HOSTING_PLAN // Promo for hosting plans
   DOMAIN_REGISTRATION // Promo for domain registration
-  DOMAIN_RENEWAL    // Promo for domain renewal
-  DOMAIN_TRANSFER   // Promo for domain transfer
+  DOMAIN_RENEWAL // Promo for domain renewal
+  DOMAIN_TRANSFER // Promo for domain transfer
 }
 
 enum OrderStatus {
-  PENDING           // Order placed, awaiting processing
-  PROCESSING        // Order being processed
-  COMPLETED         // Order completed successfully
-  FAILED            // Order failed
-  CANCELLED         // Order cancelled
-  REFUNDED          // Order refunded
-  PARTIAL           // Order partially completed
+  PENDING // Order placed, awaiting processing
+  PROCESSING // Order being processed
+  COMPLETED // Order completed successfully
+  FAILED // Order failed
+  CANCELLED // Order cancelled
+  REFUNDED // Order refunded
+  PARTIAL // Order partially completed
 }
 
 enum OrderType {
   DOMAIN_REGISTRATION // Domain registration order
-  DOMAIN_RENEWAL     // Domain renewal order
-  DOMAIN_TRANSFER    // Domain transfer order
+  DOMAIN_RENEWAL // Domain renewal order
+  DOMAIN_TRANSFER // Domain transfer order
   HOSTING_SUBSCRIPTION // Hosting subscription order
-  HOSTING_RENEWAL    // Hosting renewal order
-  HOSTING_UPGRADE    // Hosting upgrade order
-  EMAIL_HOSTING      // Email hosting order
-  SSL_CERTIFICATE    // SSL certificate order
-  BACKUP_SERVICE     // Backup service order
-  CUSTOM_SERVICE     // Custom service order
+  HOSTING_RENEWAL // Hosting renewal order
+  HOSTING_UPGRADE // Hosting upgrade order
+  EMAIL_HOSTING // Email hosting order
+  SSL_CERTIFICATE // SSL certificate order
+  BACKUP_SERVICE // Backup service order
+  CUSTOM_SERVICE // Custom service order
 }
 
 enum CustomerPlatform {
-  PLESK         // Plesk hosting platform
-  OPENPROVIDER  // OpenProvider domain platform
+  PLESK // Plesk hosting platform
+  OPENPROVIDER // OpenProvider domain platform
 }
 
 enum MarginType {
@@ -121,34 +121,34 @@ enum MarginType {
 
 // Customer integration tracking for external platforms
 model CustomerIntegration {
-  id              String        @id @map("_id")
-  userId          String        // User who owns this customer account
-  platform        CustomerPlatform // Which platform (PLESK, OPENPROVIDER)
-  
+  id       String           @id @map("_id")
+  userId   String // User who owns this customer account
+  platform CustomerPlatform // Which platform (PLESK, OPENPROVIDER)
+
   // Platform-specific IDs
-  platformCustomerId String?    // Customer ID on the platform (Plesk owner ID, OpenProvider handle)
-  
+  platformCustomerId String? // Customer ID on the platform (Plesk owner ID, OpenProvider handle)
+
   // Account Status
-  isActive        Boolean       @default(true) // Whether account is active on platform
-  isCreated       Boolean       @default(false) // Whether account was successfully created
-  
+  isActive  Boolean @default(true) // Whether account is active on platform
+  isCreated Boolean @default(false) // Whether account was successfully created
+
   // Creation Tracking
-  createdBy       String?       // User who created the account on platform
-  createdAt       DateTime      // When account was created
-  lastSyncedAt    DateTime?     // When account was last synced
-  
+  createdBy    String? // User who created the account on platform
+  createdAt    DateTime // When account was created
+  lastSyncedAt DateTime? // When account was last synced
+
   // Additional Platform Data
-  platformData    Json?         // Additional platform-specific data (e.g., Plesk owner details, OpenProvider customer info)
-  
+  platformData Json? // Additional platform-specific data (e.g., Plesk owner details, OpenProvider customer info)
+
   // Timestamps
-  updatedAt       DateTime
-  
+  updatedAt DateTime
+
   // Relations
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  domainRegistrations DomainRegistration[]
+  user                 User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domainRegistrations  DomainRegistration[]
   hostingSubscriptions HostingSubscription[]
-  activityLogs    CustomerIntegrationActivityLog[]
-  
+  activityLogs         CustomerIntegrationActivityLog[]
+
   @@unique([userId, platform]) // One customer account per platform per user
   @@index([userId])
   @@index([platform])
@@ -160,22 +160,22 @@ model CustomerIntegration {
 
 // WordPress instances tracking for teams
 model WordPressInstance {
-  id                String        @id @map("_id")
-  teamId            String        // Team that owns this WordPress instance
-  hostingSubscriptionId String?   // Optional link to hosting subscription
-  
+  id                    String  @id @map("_id")
+  teamId                String // Team that owns this WordPress instance
+  hostingSubscriptionId String? // Optional link to hosting subscription
+
   // WordPress Toolkit Integration
-  installationId    Int           @unique // WordPress installation ID from WP Toolkit API
-  
+  installationId Int @unique // WordPress installation ID from WP Toolkit API
+
   // Timestamps
-  createdAt         DateTime
-  updatedAt         DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  team              Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  hostingSubscription HostingSubscription? @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
-  activityLogs      WordPressInstanceActivityLog[]
-  
+  team                Team                           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  hostingSubscription HostingSubscription?           @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
+  activityLogs        WordPressInstanceActivityLog[]
+
   @@index([teamId])
   @@index([installationId])
   @@map("wordpress_instance")
@@ -183,59 +183,59 @@ model WordPressInstance {
 
 // Order system for all services (domains, hosting, etc.)
 model Order {
-  id              String        @id @map("_id")
-  orderNumber     String        @unique // Unique order number (e.g., "ORD-2024-001")
-  teamId          String        // Team that placed the order
-  createdBy       String?       // User who created the order (admin or customer)
-  
+  id          String  @id @map("_id")
+  orderNumber String  @unique // Unique order number (e.g., "ORD-2024-001")
+  teamId      String // Team that placed the order
+  createdBy   String? // User who created the order (admin or customer)
+
   // Order Details
-  type            OrderType     // Type of service being ordered
-  status          OrderStatus   @default(PENDING)
-  description     String?       // Order description
-  
+  type        OrderType // Type of service being ordered
+  status      OrderStatus @default(PENDING)
+  description String? // Order description
+
   // Service References (flexible for different service types)
-  domainRegistrationId String? // Reference to domain registration
-  domainRenewalId      String? // Reference to domain renewal
-  domainTransferId     String? // Reference to domain transfer
+  domainRegistrationId  String? // Reference to domain registration
+  domainRenewalId       String? // Reference to domain renewal
+  domainTransferId      String? // Reference to domain transfer
   hostingSubscriptionId String? // Reference to hosting subscription
-  hostingRenewalId     String? // Reference to hosting renewal
-  
+  hostingRenewalId      String? // Reference to hosting renewal
+
   // Pricing Information
-  subtotal        String?       // Subtotal before discounts
-  discount        String?       // Discount amount applied
-  total           String?       // Final total amount
-  currency        String        @default("KES")
-  
+  subtotal String? // Subtotal before discounts
+  discount String? // Discount amount applied
+  total    String? // Final total amount
+  currency String  @default("KES")
+
   // Promo Information
-  promoCode       String?       // Promo code used
-  promoId         String?       // Reference to promo
-  
+  promoCode String? // Promo code used
+  promoId   String? // Reference to promo
+
   // Invoice Tracking
-  invoiceNumber   String?       // Invoice number for this order
-  
+  invoiceNumber String? // Invoice number for this order
+
   // Order Processing
-  processedBy     String?       // User who processed the order
-  processedAt     DateTime?     // When order was processed
-  completedAt     DateTime?     // When order was completed
-  
+  processedBy String? // User who processed the order
+  processedAt DateTime? // When order was processed
+  completedAt DateTime? // When order was completed
+
   // Additional Information
-  notes           String?       // Additional notes
-  metadata        Json?         // Flexible metadata for order-specific data
-  
+  notes    String? // Additional notes
+  metadata Json? // Flexible metadata for order-specific data
+
   // Timestamps
-  createdAt       DateTime
-  updatedAt       DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  team            Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  domainRegistration DomainRegistration? @relation(fields: [domainRegistrationId], references: [id], onDelete: SetNull)
-  domainRenewal   DomainRenewal? @relation(fields: [domainRenewalId], references: [id], onDelete: SetNull)
-  domainTransfer  DomainTransfer? @relation(fields: [domainTransferId], references: [id], onDelete: SetNull)
+  team                Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  domainRegistration  DomainRegistration?  @relation(fields: [domainRegistrationId], references: [id], onDelete: SetNull)
+  domainRenewal       DomainRenewal?       @relation(fields: [domainRenewalId], references: [id], onDelete: SetNull)
+  domainTransfer      DomainTransfer?      @relation(fields: [domainTransferId], references: [id], onDelete: SetNull)
   hostingSubscription HostingSubscription? @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
-  hostingRenewal  HostingRenewal? @relation(fields: [hostingRenewalId], references: [id], onDelete: SetNull)
-  promo           Promo?       @relation(fields: [promoId], references: [id], onDelete: SetNull)
-  activityLogs    OrderActivityLog[]
-  
+  hostingRenewal      HostingRenewal?      @relation(fields: [hostingRenewalId], references: [id], onDelete: SetNull)
+  promo               Promo?               @relation(fields: [promoId], references: [id], onDelete: SetNull)
+  activityLogs        OrderActivityLog[]
+
   @@index([orderNumber])
   @@index([teamId])
   @@index([type])
@@ -248,48 +248,48 @@ model Order {
 
 // Promo system for hosting plans and domains
 model Promo {
-  id              String        @id @map("_id")
-  code            String        @unique // Promo code (e.g., "SAVE20", "WELCOME50")
-  name            String        // Promo name (e.g., "Black Friday Sale", "New Customer Discount")
-  description     String?       // Promo description
-  
+  id          String  @id @map("_id")
+  code        String  @unique // Promo code (e.g., "SAVE20", "WELCOME50")
+  name        String // Promo name (e.g., "Black Friday Sale", "New Customer Discount")
+  description String? // Promo description
+
   // Promo Configuration
-  type            PromoType     // PERCENTAGE or FIXED
-  scope           PromoScope    // PUBLIC or USER_SPECIFIC
-  target          PromoTarget   // What this promo applies to
-  
+  type   PromoType // PERCENTAGE or FIXED
+  scope  PromoScope // PUBLIC or USER_SPECIFIC
+  target PromoTarget // What this promo applies to
+
   // Discount Details
-  discountValue   String        // Discount amount (percentage or fixed amount)
-  currency        String?       @default("KES") // Currency for fixed discounts
-  
+  discountValue String // Discount amount (percentage or fixed amount)
+  currency      String? @default("KES") // Currency for fixed discounts
+
   // Validity Period
-  startDate       DateTime      // When promo becomes active
-  endDate         DateTime?     // When promo expires (null = no expiry)
-  
+  startDate DateTime // When promo becomes active
+  endDate   DateTime? // When promo expires (null = no expiry)
+
   // Usage Limits
-  usageLimit      Int?          // Maximum number of uses (null = unlimited)
-  usageCount      Int           @default(0) // Current usage count
-  minOrderValue   String?       // Minimum order value to use promo
-  
+  usageLimit    Int? // Maximum number of uses (null = unlimited)
+  usageCount    Int     @default(0) // Current usage count
+  minOrderValue String? // Minimum order value to use promo
+
   // Targeting
-  hostingPlanId   String?       // Specific hosting plan (if target is HOSTING_PLAN)
-  userId          String?       // Specific user (if scope is USER_SPECIFIC)
-  teamId          String?       // Team that owns this promo
-  
+  hostingPlanId String? // Specific hosting plan (if target is HOSTING_PLAN)
+  userId        String? // Specific user (if scope is USER_SPECIFIC)
+  teamId        String? // Team that owns this promo
+
   // Status
-  isActive        Boolean       @default(true)
-  
+  isActive Boolean @default(true)
+
   // Tracking
-  createdBy       String        // User who created the promo
-  createdAt       DateTime
-  updatedAt       DateTime
-  
+  createdBy String // User who created the promo
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  hostingPlan     HostingPlan?  @relation(fields: [hostingPlanId], references: [id], onDelete: SetNull)
-  team            Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  orders          Order[]
-  activityLogs    PromoActivityLog[]
-  
+  hostingPlan  HostingPlan?       @relation(fields: [hostingPlanId], references: [id], onDelete: SetNull)
+  team         Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  orders       Order[]
+  activityLogs PromoActivityLog[]
+
   @@index([code])
   @@index([target])
   @@index([scope])
@@ -302,16 +302,16 @@ model Promo {
 }
 
 enum DomainStatus {
-    ACTIVE
-    PENDING
-    INACTIVE
-    PROCESSING
-    EXPIRED
-    TRANSFERRING
-    REQUESTED        // OpenProvider: domain registration requested, awaiting processing
-    FAILED           // OpenProvider: transfer failed
-    PENDING_TRANSFER  // OpenProvider: transfer initiated, awaiting approval
-    CLIENT_TRANSFER_PROHIBITED // OpenProvider: domain locked after transfer
+  ACTIVE
+  PENDING
+  INACTIVE
+  PROCESSING
+  EXPIRED
+  TRANSFERRING
+  REQUESTED // OpenProvider: domain registration requested, awaiting processing
+  FAILED // OpenProvider: transfer failed
+  PENDING_TRANSFER // OpenProvider: transfer initiated, awaiting approval
+  CLIENT_TRANSFER_PROHIBITED // OpenProvider: domain locked after transfer
 }
 
 enum DomainCycle {
@@ -327,30 +327,28 @@ enum DomainOperation {
   RESTORATION
 }
 
-
-
 model User {
-  id                  String        @id @map("_id")
-  name            String
-  email               String
-  emailVerified       Boolean      @default(false)
-  image               String?
-  role                UserRole     @default(CUSTOMER)
-  status              UserStatus   @default(ACTIVE)
-  lastAccessedTeamId  String?
-  lastLoginAt         DateTime?
-  createdAt           DateTime
-  updatedAt           DateTime
-  sessions            Session[]
-  accounts            Account[]
-  teamMemberships     TeamMember[]
-  profile             UserProfile?
+  id                   String                @id @map("_id")
+  name                 String
+  email                String
+  emailVerified        Boolean               @default(false)
+  image                String?
+  role                 UserRole              @default(CUSTOMER)
+  status               UserStatus            @default(ACTIVE)
+  lastAccessedTeamId   String?
+  lastLoginAt          DateTime?
+  createdAt            DateTime
+  updatedAt            DateTime
+  sessions             Session[]
+  accounts             Account[]
+  teamMemberships      TeamMember[]
+  profile              UserProfile?
   customerIntegrations CustomerIntegration[]
-  activityLogs        UserActivityLog[]
+  activityLogs         UserActivityLog[]
   // Email Marketing Relations
-  emailDomains        EmailDomain[]
+  emailDomains         EmailDomain[]
   emailCampaigns       EmailCampaign[]
-  audiences           Audience[]
+  audiences            Audience[]
 
   @@unique([email])
   @@index([role])
@@ -394,28 +392,28 @@ model Account {
 }
 
 model Team {
-  id           String        @id @map("_id")
-  name         String
-  slug         String        @unique
-  baseCurrency String        @default("KES")
-  logoUrl      String?
-  isActive     Boolean       @default(true)
-  createdAt    DateTime
-  updatedAt    DateTime
-  createdById  String
-  members      TeamMember[]
-  invites      TeamInvite[]
-  domainRegistrations DomainRegistration[]
+  id                   String                @id @map("_id")
+  name                 String
+  slug                 String                @unique
+  baseCurrency         String                @default("KES")
+  logoUrl              String?
+  isActive             Boolean               @default(true)
+  createdAt            DateTime
+  updatedAt            DateTime
+  createdById          String
+  members              TeamMember[]
+  invites              TeamInvite[]
+  domainRegistrations  DomainRegistration[]
   hostingSubscriptions HostingSubscription[]
-  wordpressInstances WordPressInstance[]
-  promos Promo[]
-  orders Order[]
+  wordpressInstances   WordPressInstance[]
+  promos               Promo[]
+  orders               Order[]
   // Email Marketing Relations
-  emailDomains EmailDomain[]
-  emailCampaigns EmailCampaign[]
-  audiences    Audience[]
+  emailDomains         EmailDomain[]
+  emailCampaigns       EmailCampaign[]
+  audiences            Audience[]
   // Creative Assets Relations
-  creativeAssets CreativeAsset[]
+  creativeAssets       CreativeAsset[]
 
   @@index([slug])
   @@index([createdById])
@@ -424,14 +422,14 @@ model Team {
 }
 
 model TeamMember {
-  id        String    @id @map("_id")
+  id        String   @id @map("_id")
   teamId    String
   userId    String
-  role      TeamRole  @default(MEMBER)
+  role      TeamRole @default(MEMBER)
   createdAt DateTime
   updatedAt DateTime
-  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@unique([teamId, userId])
   @@index([teamId])
@@ -444,7 +442,7 @@ model TeamInvite {
   code        String       @unique
   teamId      String
   email       String
-  role        TeamRole  @default(MEMBER)
+  role        TeamRole     @default(MEMBER)
   status      InviteStatus @default(PENDING)
   invitedById String
   expiresAt   DateTime
@@ -473,23 +471,21 @@ model Verification {
   @@map("verification")
 }
 
-
-
 // Extended user profile information
 model UserProfile {
-  id          String   @id @map("_id")
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  firstName   String?
-  lastName    String?
-  phone       String?
-  address     String?
-  city        String?
-  state       String?
-  country     String?
-  postalCode  String?
-  createdAt   DateTime
-  updatedAt   DateTime
+  id         String   @id @map("_id")
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName  String?
+  lastName   String?
+  phone      String?
+  address    String?
+  city       String?
+  state      String?
+  country    String?
+  postalCode String?
+  createdAt  DateTime
+  updatedAt  DateTime
 
   @@index([userId])
   @@map("user_profile")
@@ -497,12 +493,12 @@ model UserProfile {
 
 // Activity logging for user actions and status changes
 model UserActivityLog {
-  id          String     @id @map("_id")
+  id          String   @id @map("_id")
   userId      String
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action      String     // e.g., "LOGIN", "LOGOUT", "STATUS_CHANGE", "ROLE_CHANGE", "TEAM_JOIN", "TEAM_LEAVE"
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      String // e.g., "LOGIN", "LOGOUT", "STATUS_CHANGE", "ROLE_CHANGE", "TEAM_JOIN", "TEAM_LEAVE"
   description String?
-  metadata    Json?      // Additional data about the action
+  metadata    Json? // Additional data about the action
   ipAddress   String?
   userAgent   String?
   createdAt   DateTime
@@ -513,47 +509,45 @@ model UserActivityLog {
   @@map("user_activity_log")
 }
 
-
-
 // Hosting plan templates/definitions
 model HostingPlan {
-  id              String        @id @map("_id")
-  name            String        // Plan name (e.g., "Basic Web Hosting", "Email Only")
-  description     String?       // Plan description
-  hostingType     HostingType   // Type of hosting service
-  
+  id          String      @id @map("_id")
+  name        String // Plan name (e.g., "Basic Web Hosting", "Email Only")
+  description String? // Plan description
+  hostingType HostingType // Type of hosting service
+
   // Plesk Integration
-  pleskServicePlanId String?    // Plesk service plan ID
-  pleskFilterId      String?    // Plesk filter ID for provisioning
-  pleskIpAddress     String?    // IP address for this plan type
-  
+  pleskServicePlanId String? // Plesk service plan ID
+  pleskFilterId      String? // Plesk filter ID for provisioning
+  pleskIpAddress     String? // IP address for this plan type
+
   // Marketing Features (for landing pages)
-  features           String[]   // Array of marketing features (e.g., ["Unlimited Email", "SSL Certificate", "24/7 Support"])
-  highlights         String[]   // Array of key highlights (e.g., ["Best Value", "Most Popular", "Enterprise Grade"])
-  isPopular          Boolean    @default(false) // Mark as popular plan
-  isRecommended      Boolean    @default(false) // Mark as recommended plan
-  
+  features      String[] // Array of marketing features (e.g., ["Unlimited Email", "SSL Certificate", "24/7 Support"])
+  highlights    String[] // Array of key highlights (e.g., ["Best Value", "Most Popular", "Enterprise Grade"])
+  isPopular     Boolean  @default(false) // Mark as popular plan
+  isRecommended Boolean  @default(false) // Mark as recommended plan
+
   // Pricing
-  niscPrice       String?       // Our selling price
-  niscCurrency    String?       @default("KES")
-  
+  niscPrice    String? // Our selling price
+  niscCurrency String? @default("KES")
+
   // Billing
-  billingCycle    BillingCycle  @default(MONTHLY)
-  setupFee        String?       // One-time setup fee
-  
+  billingCycle BillingCycle @default(MONTHLY)
+  setupFee     String? // One-time setup fee
+
   // Status
-  isActive        Boolean       @default(true)
-  isDefault       Boolean       @default(false)
-  
+  isActive  Boolean @default(true)
+  isDefault Boolean @default(false)
+
   // Timestamps
-  createdAt       DateTime
-  updatedAt       DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  subscriptions   HostingSubscription[]
-  promos          Promo[]
-  activityLogs    HostingPlanActivityLog[]
-  
+  subscriptions HostingSubscription[]
+  promos        Promo[]
+  activityLogs  HostingPlanActivityLog[]
+
   @@index([hostingType])
   @@index([isActive])
   @@map("hosting_plan")
@@ -561,69 +555,69 @@ model HostingPlan {
 
 // Hosting subscription instances
 model HostingSubscription {
-  id                String        @id @map("_id")
-  hostingPlanId     String        // Reference to hosting plan
-  teamId            String?       // Team that owns this subscription
-  provisionedBy     String?       // User ID who provisioned this service
-  
+  id            String  @id @map("_id")
+  hostingPlanId String // Reference to hosting plan
+  teamId        String? // Team that owns this subscription
+  provisionedBy String? // User ID who provisioned this service
+
   // Plesk Integration
-  pleskFilterId     String        @unique // Critical for Plesk communication
-  pleskOwnerId      String?       // Plesk owner ID
-  pleskServiceId    String?       // Plesk service ID
-  
+  pleskFilterId  String  @unique // Critical for Plesk communication
+  pleskOwnerId   String? // Plesk owner ID
+  pleskServiceId String? // Plesk service ID
+
   // Plesk Subscription Fields (from API)
-  pleskName         String?       // Subscription name in Plesk
-  pleskStatus       Int?          // Plesk status (0=active, etc.)
-  pleskDescription  String?       // Description in Plesk
-  pleskAdminDescription String?   // Admin description
-  
+  pleskName             String? // Subscription name in Plesk
+  pleskStatus           Int? // Plesk status (0=active, etc.)
+  pleskDescription      String? // Description in Plesk
+  pleskAdminDescription String? // Admin description
+
   // Auto-generated Plesk credentials
-  pleskFtpLogin     String?       // Auto-generated FTP login
-  pleskFtpPassword  String?       // Auto-generated FTP password
-  
+  pleskFtpLogin    String? // Auto-generated FTP login
+  pleskFtpPassword String? // Auto-generated FTP password
+
   // Domain Integration
-  primaryDomain     String?       // Primary domain for this hosting
-  domainRegistrationId String?   // Reference to domain registration
-  
+  primaryDomain        String? // Primary domain for this hosting
+  domainRegistrationId String? // Reference to domain registration
+
   // Service Details
-  operation         HostingOperation @default(PROVISION)
+  operation          HostingOperation   @default(PROVISION)
   provisioningMethod ProvisioningMethod @default(AUTOMATIC) // How it was provisioned
-  status            HostingStatus   @default(PENDING)
-  hostingType       HostingType     // Type of hosting
-  
+  status             HostingStatus      @default(PENDING)
+  hostingType        HostingType // Type of hosting
+
   // Billing Information
-  billingCycle      BillingCycle   @default(MONTHLY)
-  nextRenewalDate   DateTime?       // When next renewal is due
-  expiryDate        DateTime?       // When subscription expires
-  
+  billingCycle    BillingCycle @default(MONTHLY)
+  nextRenewalDate DateTime? // When next renewal is due
+  expiryDate      DateTime? // When subscription expires
+
   // Pricing Information
-  niscPrice         String?         // Price we charged
-  niscCurrency      String?         @default("KES")
-  
+  niscPrice    String? // Price we charged
+  niscCurrency String? @default("KES")
+
   // Invoice tracking
-  invoiceNumber     String?         // Invoice number for this subscription
-  
+  invoiceNumber String? // Invoice number for this subscription
+
   // Customer Integration
-  customerIntegrationId String?     // Reference to customer integration (Plesk)
-  
+  customerIntegrationId String? // Reference to customer integration (Plesk)
+
   // Additional Info
-  notes             String?         // Additional notes
-  autoRenew         Boolean         @default(true)
-  
+  notes     String? // Additional notes
+  autoRenew Boolean @default(true)
+
   // Timestamps
-  createdAt         DateTime
-  updatedAt         DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  hostingPlan       HostingPlan     @relation(fields: [hostingPlanId], references: [id], onDelete: Restrict)
-  team              Team?           @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  domainRegistration DomainRegistration? @relation(fields: [domainRegistrationId], references: [id], onDelete: SetNull)
-  renewals          HostingRenewal[]
-  orders            Order[]
-  customerIntegration CustomerIntegration? @relation(fields: [customerIntegrationId], references: [id], onDelete: SetNull)
-  wordpressInstances WordPressInstance[]
-  activityLogs      HostingSubscriptionActivityLog[]
-  
+  hostingPlan         HostingPlan                      @relation(fields: [hostingPlanId], references: [id], onDelete: Restrict)
+  team                Team?                            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  domainRegistration  DomainRegistration?              @relation(fields: [domainRegistrationId], references: [id], onDelete: SetNull)
+  renewals            HostingRenewal[]
+  orders              Order[]
+  customerIntegration CustomerIntegration?             @relation(fields: [customerIntegrationId], references: [id], onDelete: SetNull)
+  wordpressInstances  WordPressInstance[]
+  activityLogs        HostingSubscriptionActivityLog[]
+
   @@index([hostingPlanId])
   @@index([teamId])
   @@index([pleskFilterId])
@@ -638,31 +632,31 @@ model HostingSubscription {
 model HostingRenewal {
   id                    String        @id @map("_id")
   hostingSubscriptionId String
-  renewedBy             String?       // User ID who renewed the hosting
-  renewalDate           DateTime      // When renewal was processed
-  expiryDate            DateTime      // New expiry date after renewal
-  billingCycle          BillingCycle  // Cycle for this renewal
+  renewedBy             String? // User ID who renewed the hosting
+  renewalDate           DateTime // When renewal was processed
+  expiryDate            DateTime // New expiry date after renewal
+  billingCycle          BillingCycle // Cycle for this renewal
   status                HostingStatus @default(ACTIVE)
-  
+
   // Pricing information
-  niscPrice             String?       // Price we charged for renewal
-  niscCurrency          String?       @default("KES")
-  
+  niscPrice    String? // Price we charged for renewal
+  niscCurrency String? @default("KES")
+
   // Invoice tracking
-  invoiceNumber         String?       // Invoice number for this renewal
-  
+  invoiceNumber String? // Invoice number for this renewal
+
   // Additional info
-  notes                 String?       // Additional notes
-  
+  notes String? // Additional notes
+
   // Timestamps
-  createdAt             DateTime
-  updatedAt             DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  hostingSubscription   HostingSubscription @relation(fields: [hostingSubscriptionId], references: [id], onDelete: Cascade)
-  orders               Order[]
-  activityLogs          HostingRenewalActivityLog[]
-  
+  hostingSubscription HostingSubscription         @relation(fields: [hostingSubscriptionId], references: [id], onDelete: Cascade)
+  orders              Order[]
+  activityLogs        HostingRenewalActivityLog[]
+
   @@index([hostingSubscriptionId])
   @@index([renewalDate])
   @@index([expiryDate])
@@ -672,17 +666,17 @@ model HostingRenewal {
 
 // Activity logging for hosting plan actions
 model HostingPlanActivityLog {
-  id                    String        @id @map("_id")
-  userId                String
-  hostingPlanId         String
-  hostingPlan           HostingPlan   @relation(fields: [hostingPlanId], references: [id], onDelete: Cascade)
-  action                String        // e.g., "CREATE", "UPDATE", "DELETE", "ACTIVATE", "DEACTIVATE"
-  description           String?
-  metadata              Json?         // Additional data about the action
-  ipAddress             String?
-  userAgent             String?
-  createdAt             DateTime
-  
+  id            String      @id @map("_id")
+  userId        String
+  hostingPlanId String
+  hostingPlan   HostingPlan @relation(fields: [hostingPlanId], references: [id], onDelete: Cascade)
+  action        String // e.g., "CREATE", "UPDATE", "DELETE", "ACTIVATE", "DEACTIVATE"
+  description   String?
+  metadata      Json? // Additional data about the action
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime
+
   @@index([userId])
   @@index([hostingPlanId])
   @@index([action])
@@ -692,13 +686,13 @@ model HostingPlanActivityLog {
 
 // Activity logging for hosting subscription actions
 model HostingSubscriptionActivityLog {
-  id                    String        @id @map("_id")
+  id                    String              @id @map("_id")
   userId                String
   hostingSubscriptionId String
   hostingSubscription   HostingSubscription @relation(fields: [hostingSubscriptionId], references: [id], onDelete: Cascade)
-  action                String        // e.g., "PROVISION", "SUSPEND", "UNSUSPEND", "UPGRADE", "TERMINATE"
+  action                String // e.g., "PROVISION", "SUSPEND", "UNSUSPEND", "UPGRADE", "TERMINATE"
   description           String?
-  metadata              Json?         // Additional data about the action
+  metadata              Json? // Additional data about the action
   ipAddress             String?
   userAgent             String?
   createdAt             DateTime
@@ -712,17 +706,17 @@ model HostingSubscriptionActivityLog {
 
 // Activity logging for hosting renewal actions
 model HostingRenewalActivityLog {
-  id                    String        @id @map("_id")
-  userId                String
-  hostingRenewalId      String
-  hostingRenewal        HostingRenewal @relation(fields: [hostingRenewalId], references: [id], onDelete: Cascade)
-  action                String        // e.g., "RENEW", "CANCEL", "REFUND", "UPDATE"
-  description           String?
-  metadata              Json?         // Additional data about the action
-  ipAddress             String?
-  userAgent             String?
-  createdAt             DateTime
-  
+  id               String         @id @map("_id")
+  userId           String
+  hostingRenewalId String
+  hostingRenewal   HostingRenewal @relation(fields: [hostingRenewalId], references: [id], onDelete: Cascade)
+  action           String // e.g., "RENEW", "CANCEL", "REFUND", "UPDATE"
+  description      String?
+  metadata         Json? // Additional data about the action
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime
+
   @@index([userId])
   @@index([hostingRenewalId])
   @@index([action])
@@ -732,17 +726,17 @@ model HostingRenewalActivityLog {
 
 // Activity logging for promo actions
 model PromoActivityLog {
-  id                    String        @id @map("_id")
-  userId                String
-  promoId               String
-  promo                 Promo         @relation(fields: [promoId], references: [id], onDelete: Cascade)
-  action                String        // e.g., "CREATE", "UPDATE", "DELETE", "ACTIVATE", "DEACTIVATE", "USE"
-  description           String?
-  metadata              Json?         // Additional data about the action
-  ipAddress             String?
-  userAgent             String?
-  createdAt             DateTime
-  
+  id          String   @id @map("_id")
+  userId      String
+  promoId     String
+  promo       Promo    @relation(fields: [promoId], references: [id], onDelete: Cascade)
+  action      String // e.g., "CREATE", "UPDATE", "DELETE", "ACTIVATE", "DEACTIVATE", "USE"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime
+
   @@index([userId])
   @@index([promoId])
   @@index([action])
@@ -752,17 +746,17 @@ model PromoActivityLog {
 
 // Activity logging for order actions
 model OrderActivityLog {
-  id                    String        @id @map("_id")
-  userId                String
-  orderId               String
-  order                 Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  action                String        // e.g., "CREATE", "UPDATE", "PROCESS", "COMPLETE", "CANCEL", "REFUND"
-  description           String?
-  metadata              Json?         // Additional data about the action
-  ipAddress             String?
-  userAgent             String?
-  createdAt             DateTime
-  
+  id          String   @id @map("_id")
+  userId      String
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  action      String // e.g., "CREATE", "UPDATE", "PROCESS", "COMPLETE", "CANCEL", "REFUND"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime
+
   @@index([userId])
   @@index([orderId])
   @@index([action])
@@ -772,17 +766,17 @@ model OrderActivityLog {
 
 // Activity logging for customer integration actions
 model CustomerIntegrationActivityLog {
-  id                    String        @id @map("_id")
+  id                    String              @id @map("_id")
   userId                String
   customerIntegrationId String
   customerIntegration   CustomerIntegration @relation(fields: [customerIntegrationId], references: [id], onDelete: Cascade)
-  action                String        // e.g., "CREATE", "UPDATE", "SYNC", "DEACTIVATE", "ACTIVATE"
+  action                String // e.g., "CREATE", "UPDATE", "SYNC", "DEACTIVATE", "ACTIVATE"
   description           String?
-  metadata              Json?         // Additional data about the action
+  metadata              Json? // Additional data about the action
   ipAddress             String?
   userAgent             String?
   createdAt             DateTime
-  
+
   @@index([userId])
   @@index([customerIntegrationId])
   @@index([action])
@@ -792,17 +786,17 @@ model CustomerIntegrationActivityLog {
 
 // Activity logging for WordPress instance actions
 model WordPressInstanceActivityLog {
-  id                    String        @id @map("_id")
-  userId                String
-  wordpressInstanceId   String
-  wordpressInstance     WordPressInstance @relation(fields: [wordpressInstanceId], references: [id], onDelete: Cascade)
-  action                String        // e.g., "CREATE", "UPDATE", "SYNC", "ACTIVATE", "DEACTIVATE", "UPDATE_WORDPRESS", "INSTALL_PLUGIN", "UPDATE_PLUGIN"
-  description           String?
-  metadata              Json?         // Additional data about the action
-  ipAddress             String?
-  userAgent             String?
-  createdAt             DateTime
-  
+  id                  String            @id @map("_id")
+  userId              String
+  wordpressInstanceId String
+  wordpressInstance   WordPressInstance @relation(fields: [wordpressInstanceId], references: [id], onDelete: Cascade)
+  action              String // e.g., "CREATE", "UPDATE", "SYNC", "ACTIVATE", "DEACTIVATE", "UPDATE_WORDPRESS", "INSTALL_PLUGIN", "UPDATE_PLUGIN"
+  description         String?
+  metadata            Json? // Additional data about the action
+  ipAddress           String?
+  userAgent           String?
+  createdAt           DateTime
+
   @@index([userId])
   @@index([wordpressInstanceId])
   @@index([action])
@@ -812,20 +806,20 @@ model WordPressInstanceActivityLog {
 
 // Nameserver entity with proper structure
 model Nameserver {
-  id                String        @id @map("_id")
-  nameserverGroupId String        // Reference to nameserver group
-  name              String        // Nameserver name (e.g., "ns1.example.com")
-  ipv4              String?       // IPv4 address (optional)
-  ipv6              String?       // IPv6 address (optional)
-  
+  id                String  @id @map("_id")
+  nameserverGroupId String // Reference to nameserver group
+  name              String // Nameserver name (e.g., "ns1.example.com")
+  ipv4              String? // IPv4 address (optional)
+  ipv6              String? // IPv6 address (optional)
+
   // Timestamps
-  createdAt         DateTime
-  updatedAt         DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  nameserverGroup   NameserverGroup @relation(fields: [nameserverGroupId], references: [id], onDelete: Cascade)
-  activityLogs      NameserverActivityLog[]
-  
+  nameserverGroup NameserverGroup         @relation(fields: [nameserverGroupId], references: [id], onDelete: Cascade)
+  activityLogs    NameserverActivityLog[]
+
   @@index([nameserverGroupId])
   @@index([name])
   @@map("nameserver")
@@ -833,30 +827,30 @@ model Nameserver {
 
 // Nameserver group for organizing TLD settings
 model NameserverGroup {
-  id          String        @id @map("_id")
-  name        String        // Group name (e.g., "Default Nameservers", "Custom DNS")
-  description String?       // Optional description
-  userId      String        // User who created the group
-  isDefault   Boolean       @default(false) // Whether this is the default group
-  
+  id          String  @id @map("_id")
+  name        String // Group name (e.g., "Default Nameservers", "Custom DNS")
+  description String? // Optional description
+  userId      String // User who created the group
+  isDefault   Boolean @default(false) // Whether this is the default group
+
   // Timestamps
-  createdAt   DateTime
-  updatedAt   DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  nameservers Nameserver[]  // Array of nameserver records
-  tldSettings TldSettings[]
+  nameservers         Nameserver[] // Array of nameserver records
+  tldSettings         TldSettings[]
   domainRegistrations DomainRegistration[]
-  domainTransfers DomainTransfer[]
-  activityLogs NameserverGroupActivityLog[]
-  
+  domainTransfers     DomainTransfer[]
+  activityLogs        NameserverGroupActivityLog[]
+
   @@index([userId])
   @@index([isDefault])
   @@map("nameserver_group")
 }
 
 model TldSettings {
-  id                String  @id @map("_id")
+  id                String      @id @map("_id")
   name              String
   userId            String
   nameserverGroupId String? // Reference to nameserver group
@@ -864,16 +858,16 @@ model TldSettings {
   percentageMargin  String? // Margin when type is PERCENTAGE
   fixedMargin       String? // Margin when type is FIXED
   roundOff          String?
-  isDefault         Boolean @default(false) // Whether this is the default TLD setting
-  
+  isDefault         Boolean     @default(false) // Whether this is the default TLD setting
+
   // Timestamps
-  createdAt         DateTime
-  updatedAt         DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  nameserverGroup   NameserverGroup? @relation(fields: [nameserverGroupId], references: [id], onDelete: SetNull)
-  activityLogs      TldSettingsActivityLog[]
-  
+  nameserverGroup NameserverGroup?         @relation(fields: [nameserverGroupId], references: [id], onDelete: SetNull)
+  activityLogs    TldSettingsActivityLog[]
+
   @@index([userId])
   @@index([nameserverGroupId])
   @@index([marginType])
@@ -882,16 +876,16 @@ model TldSettings {
 }
 
 model TldSettingsActivityLog {
-  id          String     @id @map("_id")
-  userId      String
+  id           String      @id @map("_id")
+  userId       String
   tldSettingId String
-  tldSettings TldSettings @relation(fields: [tldSettingId], references: [id], onDelete: Cascade)
-  action      String
-  description String?
-  metadata    Json?      // Additional data about the action
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime
+  tldSettings  TldSettings @relation(fields: [tldSettingId], references: [id], onDelete: Cascade)
+  action       String
+  description  String?
+  metadata     Json? // Additional data about the action
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime
 
   @@index([userId])
   @@index([tldSettingId])
@@ -902,16 +896,16 @@ model TldSettingsActivityLog {
 
 // Activity logging for nameserver actions
 model NameserverActivityLog {
-  id          String     @id @map("_id")
-  userId      String
+  id           String     @id @map("_id")
+  userId       String
   nameserverId String
-  nameserver  Nameserver @relation(fields: [nameserverId], references: [id], onDelete: Cascade)
-  action      String     // e.g., "CREATE", "UPDATE", "DELETE", "CHANGE_IP"
-  description String?
-  metadata    Json?      // Additional data about the action
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime
+  nameserver   Nameserver @relation(fields: [nameserverId], references: [id], onDelete: Cascade)
+  action       String // e.g., "CREATE", "UPDATE", "DELETE", "CHANGE_IP"
+  description  String?
+  metadata     Json? // Additional data about the action
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime
 
   @@index([userId])
   @@index([nameserverId])
@@ -922,16 +916,16 @@ model NameserverActivityLog {
 
 // Activity logging for nameserver group actions
 model NameserverGroupActivityLog {
-  id          String     @id @map("_id")
-  userId      String
+  id                String          @id @map("_id")
+  userId            String
   nameserverGroupId String
-  nameserverGroup NameserverGroup @relation(fields: [nameserverGroupId], references: [id], onDelete: Cascade)
-  action      String     // e.g., "CREATE", "UPDATE", "DELETE", "SET_DEFAULT"
-  description String?
-  metadata    Json?      // Additional data about the action
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime
+  nameserverGroup   NameserverGroup @relation(fields: [nameserverGroupId], references: [id], onDelete: Cascade)
+  action            String // e.g., "CREATE", "UPDATE", "DELETE", "SET_DEFAULT"
+  description       String?
+  metadata          Json? // Additional data about the action
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime
 
   @@index([userId])
   @@index([nameserverGroupId])
@@ -942,73 +936,73 @@ model NameserverGroupActivityLog {
 
 // Core domain registration information
 model DomainRegistration {
-  id                    String        @id @map("_id")
-  domainName            String        @unique
-  teamId                String?
-  registeredBy          String?       // User ID who registered the domain
-  
+  id           String  @id @map("_id")
+  domainName   String  @unique
+  teamId       String?
+  registeredBy String? // User ID who registered the domain
+
   // OpenProvider Integration Fields
-  openProviderId        Int?          // OpenProvider domain ID
-  operation             DomainOperation @default(REGISTRATION) // REGISTRATION, TRANSFER, etc.
-  authCode              String?       // Auth code for transfers
-  activationDate        DateTime?     // OpenProvider activation date
-  expirationDate        DateTime?     // OpenProvider expiration date
-  renewalDate           DateTime?     // OpenProvider renewal date
-  
+  openProviderId Int? // OpenProvider domain ID
+  operation      DomainOperation @default(REGISTRATION) // REGISTRATION, TRANSFER, etc.
+  authCode       String? // Auth code for transfers
+  activationDate DateTime? // OpenProvider activation date
+  expirationDate DateTime? // OpenProvider expiration date
+  renewalDate    DateTime? // OpenProvider renewal date
+
   // Contact Handles (OpenProvider)
-  ownerHandle           String?       // OpenProvider owner contact handle
-  adminHandle           String?       // OpenProvider admin contact handle
-  techHandle            String?       // OpenProvider tech contact handle
-  billingHandle         String?       // OpenProvider billing contact handle
-  resellerHandle        String?       // OpenProvider reseller contact handle
-  
+  ownerHandle    String? // OpenProvider owner contact handle
+  adminHandle    String? // OpenProvider admin contact handle
+  techHandle     String? // OpenProvider tech contact handle
+  billingHandle  String? // OpenProvider billing contact handle
+  resellerHandle String? // OpenProvider reseller contact handle
+
   // Domain Details
-  registrationDate      DateTime?     // When domain was first registered
-  expiryDate            DateTime?     // Current expiry date
-  nextRenewalDate       DateTime?     // When next renewal is due
-  renewalCycle          DomainCycle   @default(ANNUAL)
-  period                Int?          // Registration period (1 = 1 year, etc.)
-  status                DomainStatus  @default(PENDING)
-  
+  registrationDate DateTime? // When domain was first registered
+  expiryDate       DateTime? // Current expiry date
+  nextRenewalDate  DateTime? // When next renewal is due
+  renewalCycle     DomainCycle  @default(ANNUAL)
+  period           Int? // Registration period (1 = 1 year, etc.)
+  status           DomainStatus @default(PENDING)
+
   // Pricing information - OpenProvider (provider) vs NISC (selling) prices
-  openProviderPrice     String?       // Price from OpenProvider for registration
-  openProviderCurrency  String?       @default("USD") // OpenProvider currency
-  niscPrice             String?       // Price we sold it for
-  niscCurrency          String?       @default("KES") // Our selling currency
-  
+  openProviderPrice    String? // Price from OpenProvider for registration
+  openProviderCurrency String? @default("USD") // OpenProvider currency
+  niscPrice            String? // Price we sold it for
+  niscCurrency         String? @default("KES") // Our selling currency
+
   // Invoice tracking
-  invoiceNumber         String?       // Invoice number for this registration
-  
+  invoiceNumber String? // Invoice number for this registration
+
   // Customer Integration
-  customerIntegrationId String?       // Reference to customer integration (OpenProvider)
-  
+  customerIntegrationId String? // Reference to customer integration (OpenProvider)
+
   // TLD settings reference
-  tldSettingId         String?
-  
+  tldSettingId String?
+
   // Nameserver Management
-  nameserverGroupId String?       // Reference to nameserver group
-  dnsRecords        Json?         // DNS records as JSON
-  autoRenew         String?       // "on", "off", "default" - OpenProvider format
-  
+  nameserverGroupId String? // Reference to nameserver group
+  dnsRecords        Json? // DNS records as JSON
+  autoRenew         String? // "on", "off", "default" - OpenProvider format
+
   // Transfer specific fields
-  transferRequestedAt   DateTime?     // When transfer was requested
-  transferCompletedAt   DateTime?     // When transfer was completed
-  previousRegistrar     String?       // Previous registrar for transfers
-  
+  transferRequestedAt DateTime? // When transfer was requested
+  transferCompletedAt DateTime? // When transfer was completed
+  previousRegistrar   String? // Previous registrar for transfers
+
   // Timestamps
-  createdAt             DateTime
-  updatedAt             DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  team                  Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  nameserverGroup       NameserverGroup? @relation(fields: [nameserverGroupId], references: [id], onDelete: SetNull)
-  renewals              DomainRenewal[]
-  transfers             DomainTransfer[]
-  hostingSubscriptions  HostingSubscription[]
-  orders                Order[]
-  customerIntegration   CustomerIntegration? @relation(fields: [customerIntegrationId], references: [id], onDelete: SetNull)
-  activityLogs          DomainRegistrationActivityLog[]
-  
+  team                 Team?                           @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  nameserverGroup      NameserverGroup?                @relation(fields: [nameserverGroupId], references: [id], onDelete: SetNull)
+  renewals             DomainRenewal[]
+  transfers            DomainTransfer[]
+  hostingSubscriptions HostingSubscription[]
+  orders               Order[]
+  customerIntegration  CustomerIntegration?            @relation(fields: [customerIntegrationId], references: [id], onDelete: SetNull)
+  activityLogs         DomainRegistrationActivityLog[]
+
   @@index([domainName])
   @@index([teamId])
   @@index([nameserverGroupId])
@@ -1023,33 +1017,33 @@ model DomainRegistration {
 
 // Individual renewal records
 model DomainRenewal {
-  id                    String        @id @map("_id")
-  domainRegistrationId  String
-  renewedBy             String?       // User ID who renewed the domain
-  renewalDate           DateTime      // When renewal was processed
-  expiryDate            DateTime      // New expiry date after renewal
-  renewalCycle          DomainCycle   // Cycle for this renewal
-  status                DomainStatus  @default(ACTIVE)
-  
+  id                   String       @id @map("_id")
+  domainRegistrationId String
+  renewedBy            String? // User ID who renewed the domain
+  renewalDate          DateTime // When renewal was processed
+  expiryDate           DateTime // New expiry date after renewal
+  renewalCycle         DomainCycle // Cycle for this renewal
+  status               DomainStatus @default(ACTIVE)
+
   // Pricing information - OpenProvider (provider) vs NISC (selling) prices
-  openProviderPrice     String        // Price from OpenProvider for renewal
-  openProviderCurrency  String        @default("USD") // OpenProvider currency
-  niscPrice             String        // Price we sold renewal for
-  niscCurrency          String        @default("KES") // Our selling currency
-  
+  openProviderPrice    String // Price from OpenProvider for renewal
+  openProviderCurrency String @default("USD") // OpenProvider currency
+  niscPrice            String // Price we sold renewal for
+  niscCurrency         String @default("KES") // Our selling currency
+
   // Additional renewal info
-  invoiceNumber         String?       // Invoice number for this renewal
-  notes                 String?       // Additional notes
-  
+  invoiceNumber String? // Invoice number for this renewal
+  notes         String? // Additional notes
+
   // Timestamps
-  createdAt             DateTime
-  updatedAt             DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  domainRegistration    DomainRegistration @relation(fields: [domainRegistrationId], references: [id], onDelete: Cascade)
-  orders               Order[]
-  activityLogs          DomainRenewalActivityLog[]
-  
+  domainRegistration DomainRegistration         @relation(fields: [domainRegistrationId], references: [id], onDelete: Cascade)
+  orders             Order[]
+  activityLogs       DomainRenewalActivityLog[]
+
   @@index([domainRegistrationId])
   @@index([renewalDate])
   @@index([expiryDate])
@@ -1059,51 +1053,51 @@ model DomainRenewal {
 
 // Domain transfer tracking
 model DomainTransfer {
-  id                    String        @id @map("_id")
-  domainRegistrationId  String
-  transferredBy         String?       // User ID who initiated transfer
-  authCode              String        // Auth code for transfer
-  status                DomainStatus  @default(PENDING_TRANSFER)
-  
+  id                   String       @id @map("_id")
+  domainRegistrationId String
+  transferredBy        String? // User ID who initiated transfer
+  authCode             String // Auth code for transfer
+  status               DomainStatus @default(PENDING_TRANSFER)
+
   // Transfer details
-  transferRequestedAt   DateTime      // When transfer was requested
-  transferCompletedAt   DateTime?     // When transfer was completed
-  previousRegistrar     String?       // Previous registrar
-  previousExpiryDate     DateTime?    // Expiry date at previous registrar
-  
+  transferRequestedAt DateTime // When transfer was requested
+  transferCompletedAt DateTime? // When transfer was completed
+  previousRegistrar   String? // Previous registrar
+  previousExpiryDate  DateTime? // Expiry date at previous registrar
+
   // Contact handles for transfer
-  ownerHandle           String?       // Owner contact handle
-  adminHandle           String?       // Admin contact handle
-  techHandle            String?       // Tech contact handle
-  billingHandle         String?       // Billing contact handle
-  
+  ownerHandle   String? // Owner contact handle
+  adminHandle   String? // Admin contact handle
+  techHandle    String? // Tech contact handle
+  billingHandle String? // Billing contact handle
+
   // Nameservers for transfer
-  nameserverGroupId String?       // Reference to nameserver group
-  autoRenew         String?       // "on", "off", "default"
-  
+  nameserverGroupId String? // Reference to nameserver group
+  autoRenew         String? // "on", "off", "default"
+
   // Pricing information
-  openProviderPrice     String?       // Price from OpenProvider for transfer
-  openProviderCurrency  String?       @default("USD")
-  niscPrice             String?       // Price we charged for transfer
-  niscCurrency          String?       @default("KES")
-  
+  openProviderPrice    String? // Price from OpenProvider for transfer
+  openProviderCurrency String? @default("USD")
+  niscPrice            String? // Price we charged for transfer
+  niscCurrency         String? @default("KES")
+
   // Invoice tracking
-  invoiceNumber         String?       // Invoice number for this transfer
-  
+  invoiceNumber String? // Invoice number for this transfer
+
   // Additional info
-  notes                 String?       // Additional notes
-  failureReason         String?       // Reason if transfer failed
-  
+  notes         String? // Additional notes
+  failureReason String? // Reason if transfer failed
+
   // Timestamps
-  createdAt             DateTime
-  updatedAt             DateTime
-  
+  createdAt DateTime
+  updatedAt DateTime
+
   // Relations
-  domainRegistration    DomainRegistration @relation(fields: [domainRegistrationId], references: [id], onDelete: Cascade)
-  nameserverGroup       NameserverGroup? @relation(fields: [nameserverGroupId], references: [id], onDelete: SetNull)
-  orders               Order[]
-  activityLogs          DomainTransferActivityLog[]
-  
+  domainRegistration DomainRegistration          @relation(fields: [domainRegistrationId], references: [id], onDelete: Cascade)
+  nameserverGroup    NameserverGroup?            @relation(fields: [nameserverGroupId], references: [id], onDelete: SetNull)
+  orders             Order[]
+  activityLogs       DomainTransferActivityLog[]
+
   @@index([domainRegistrationId])
   @@index([nameserverGroupId])
   @@index([status])
@@ -1114,17 +1108,17 @@ model DomainTransfer {
 
 // Activity logging for domain registration actions
 model DomainRegistrationActivityLog {
-  id                    String        @id @map("_id")
-  userId                String
-  domainRegistrationId  String
-  domainRegistration    DomainRegistration @relation(fields: [domainRegistrationId], references: [id], onDelete: Cascade)
-  action                String        // e.g., "REGISTER", "UPDATE", "SUSPEND", "TRANSFER", "DELETE"
-  description           String?
-  metadata              Json?         // Additional data about the action
-  ipAddress             String?
-  userAgent             String?
-  createdAt             DateTime
-  
+  id                   String             @id @map("_id")
+  userId               String
+  domainRegistrationId String
+  domainRegistration   DomainRegistration @relation(fields: [domainRegistrationId], references: [id], onDelete: Cascade)
+  action               String // e.g., "REGISTER", "UPDATE", "SUSPEND", "TRANSFER", "DELETE"
+  description          String?
+  metadata             Json? // Additional data about the action
+  ipAddress            String?
+  userAgent            String?
+  createdAt            DateTime
+
   @@index([userId])
   @@index([domainRegistrationId])
   @@index([action])
@@ -1134,17 +1128,17 @@ model DomainRegistrationActivityLog {
 
 // Activity logging for domain renewal actions
 model DomainRenewalActivityLog {
-  id                    String        @id @map("_id")
-  userId                String
-  domainRenewalId       String
-  domainRenewal         DomainRenewal @relation(fields: [domainRenewalId], references: [id], onDelete: Cascade)
-  action                String        // e.g., "RENEW", "CANCEL", "REFUND", "UPDATE"
-  description           String?
-  metadata              Json?         // Additional data about the action
-  ipAddress             String?
-  userAgent             String?
-  createdAt             DateTime
-  
+  id              String        @id @map("_id")
+  userId          String
+  domainRenewalId String
+  domainRenewal   DomainRenewal @relation(fields: [domainRenewalId], references: [id], onDelete: Cascade)
+  action          String // e.g., "RENEW", "CANCEL", "REFUND", "UPDATE"
+  description     String?
+  metadata        Json? // Additional data about the action
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime
+
   @@index([userId])
   @@index([domainRenewalId])
   @@index([action])
@@ -1154,21 +1148,20 @@ model DomainRenewalActivityLog {
 
 // Activity logging for domain transfer actions
 model DomainTransferActivityLog {
-  id                    String        @id @map("_id")
-  userId                String
-  domainTransferId      String
-  domainTransfer        DomainTransfer @relation(fields: [domainTransferId], references: [id], onDelete: Cascade)
-  action                String        // e.g., "TRANSFER_INITIATE", "TRANSFER_COMPLETE", "TRANSFER_FAIL", "CANCEL"
-  description           String?
-  metadata              Json?         // Additional data about the action
-  ipAddress             String?
-  userAgent             String?
-  createdAt             DateTime
-  
+  id               String         @id @map("_id")
+  userId           String
+  domainTransferId String
+  domainTransfer   DomainTransfer @relation(fields: [domainTransferId], references: [id], onDelete: Cascade)
+  action           String // e.g., "TRANSFER_INITIATE", "TRANSFER_COMPLETE", "TRANSFER_FAIL", "CANCEL"
+  description      String?
+  metadata         Json? // Additional data about the action
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime
+
   @@index([userId])
   @@index([domainTransferId])
   @@index([action])
   @@index([createdAt])
   @@map("domain_transfer_activity_log")
 }
-
