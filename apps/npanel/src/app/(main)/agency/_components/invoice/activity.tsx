@@ -1,7 +1,7 @@
 "use client";
 
 import { useUserQuery } from "@/hooks/use-user";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@nPanel/api";
 import { cn } from "@nPanel/ui/cn";
 import { format } from "date-fns";
 import React from "react";
