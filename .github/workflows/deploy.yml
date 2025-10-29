@@ -40,6 +40,7 @@ jobs:
       - name: Generate Prisma Client
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL_STAGING }}
         run: pnpm run db:generate
 
       - name: Type check
@@ -68,6 +69,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Validate Prisma schema
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL_STAGING }}
         run: |
           cd packages/db
           pnpm exec prisma format --check
@@ -77,6 +81,7 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL_STAGING }}
         run: |
           cd packages/db
           pnpm exec prisma migrate diff \
@@ -110,6 +115,7 @@ jobs:
       - name: Generate Prisma Client
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL_STAGING }}
         run: pnpm run db:generate
 
       - name: Build all packages
@@ -144,6 +150,7 @@ jobs:
       - name: Run migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL_STAGING }}
         run: |
           cd packages/db
           pnpm exec prisma migrate deploy
@@ -235,6 +242,7 @@ jobs:
       - name: Run migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL_PRODUCTION }}
         run: |
           cd packages/db
           pnpm exec prisma migrate deploy
