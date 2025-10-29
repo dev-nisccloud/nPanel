@@ -189,7 +189,7 @@ export const openProviderDnsRouter = router({
           with_history: input.with_history,
         };
 
-        const response = await client.searchDnsZones(searchRequest);
+        const response = await client.listDnsZones(searchRequest);
 
         if (response.code !== 0) {
           throw new TRPCError({
@@ -267,7 +267,10 @@ export const openProviderDnsRouter = router({
           });
         }
 
-        const response = await client.getDnsZone(input.zoneName, input.withRecords, input.withHistory);
+        const response = await client.getDnsZone(input.zoneName, {
+          with_records: input.withRecords,
+          with_history: input.withHistory,
+        });
 
         if (response.code !== 0) {
           throw new TRPCError({
@@ -276,18 +279,9 @@ export const openProviderDnsRouter = router({
           });
         }
 
-        const zone = response.data.results.find((z: any) => z.name === input.zoneName);
-
-        if (!zone) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: `DNS zone ${input.zoneName} not found`,
-          });
-        }
-
         return {
           success: true,
-          data: zone,
+          data: response.data,
           meta: {
             retrieved_at: new Date().toISOString(),
             zone_name: input.zoneName,
@@ -729,7 +723,7 @@ export const openProviderDnsRouter = router({
           });
         }
 
-        const response = await client.searchDnsZones({
+        const response = await client.listDnsZones({
           limit: input.limit,
           offset: input.offset,
           with_records: input.withRecords,

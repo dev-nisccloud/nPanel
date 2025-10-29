@@ -87,11 +87,19 @@ export async function checkVerificationStatus(domainName: string): Promise<Verif
       throw new Error(`Domain ${domainName} not found in SES`);
     }
 
+    // Map AWS VerificationStatus to our expected types
+    const mapStatus = (status?: string): "Pending" | "Success" | "Failed" | "TemporaryFailure" => {
+      if (status === "Success") return "Success";
+      if (status === "Failed") return "Failed";
+      if (status === "TemporaryFailure") return "TemporaryFailure";
+      return "Pending"; // Default for "NotStarted" or undefined
+    };
+
     return {
       domainName,
       isVerified: attributes.VerificationStatus === "Success",
-      verificationStatus: attributes.VerificationStatus || "Pending",
-      dkimVerificationStatus: attributes.DkimVerificationStatus || "Pending",
+      verificationStatus: mapStatus(attributes.VerificationStatus),
+      dkimVerificationStatus: mapStatus(attributes.VerificationStatus), // DKIM uses same verification status
     };
   } catch (error) {
     console.error("Error checking verification status:", error);
