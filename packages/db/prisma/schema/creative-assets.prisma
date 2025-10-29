@@ -1,0 +1,226 @@
+// Creative Assets Management System Schema
+// Enables file management with internal/public version control, approval workflows, and comments
+
+// Enums for Creative Assets
+enum CreativeAssetStatus {
+  DRAFT           // Initial state
+  IN_REVIEW       // Under internal review
+  APPROVED        // Approved internally
+  ARCHIVED        // Archived/inactive
+}
+
+enum VersionApprovalStatus {
+  PENDING         // Awaiting approval
+  APPROVED        // Approved
+  REJECTED        // Rejected
+  NOT_APPLICABLE  // Not applicable (e.g., public approval before version is made public)
+}
+
+// Main Creative Asset Entity
+model CreativeAsset {
+  id                      String        @id @map("_id")
+  teamId                  String        // Customer team that owns this asset
+  name                    String        // Asset name/title
+  description             String?       // Optional description
+  fileType                String        // File MIME type (image/png, application/pdf, etc.)
+  category                String?       // Optional categorization (logo, banner, document, etc.)
+  status                  CreativeAssetStatus @default(DRAFT) // Overall asset status
+  currentInternalVersion  Int           @default(0) // Current internal version number
+  currentPublicVersion    Int?          // Current public version number (null if never published)
+  isPublic                Boolean       @default(false) // Whether any version is public
+  createdBy               String        // Agency user who created it
+  lastModifiedBy          String        // Last user who modified
+  
+  // Timestamps
+  createdAt               DateTime
+  updatedAt               DateTime
+  
+  // Relations
+  team                    Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  versions                CreativeAssetVersion[]
+  permissions             CreativeAssetPermission[]
+  activityLogs            CreativeAssetActivityLog[]
+  
+  @@index([teamId])
+  @@index([status])
+  @@index([createdBy])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@map("creative_asset")
+}
+
+// Individual Version of a Creative Asset
+model CreativeAssetVersion {
+  id                      String        @id @map("_id")
+  creativeAssetId         String        // Parent asset
+  
+  // Version Numbers
+  internalVersionNumber   Int           // Internal version (1, 2, 3, 4...)
+  publicVersionNumber     Int?          // Public version if published (1, 2, null...)
+  isPublic                Boolean       @default(false) // Whether this version is public to customer
+  
+  // Approval Status
+  internalApprovalStatus  VersionApprovalStatus @default(PENDING) // Internal agency approval status
+  publicApprovalStatus    VersionApprovalStatus @default(NOT_APPLICABLE) // Public customer approval status
+  
+  // File Storage (UploadThing)
+  fileUrl                 String        // UploadThing file URL
+  fileKey                 String        // UploadThing file key for deletion
+  fileName                String        // Original file name
+  fileSize                Int           // File size in bytes
+  mimeType                String        // File MIME type
+  fileMetadata            Json?         // Additional metadata (dimensions for images, duration for videos, etc.)
+  
+  // Version Details
+  versionNotes            String?       // Notes about this version
+  changesSummary          String?       // Summary of changes from previous version
+  previousVersionId       String?       // Reference to previous version
+  
+  // Internal Approval Tracking
+  internalApprovedBy      String?       // Agency user who approved internally
+  internalApprovedAt      DateTime?     // When approved internally
+  internalRejectedBy      String?       // Agency user who rejected internally
+  internalRejectedAt      DateTime?     // When rejected internally
+  internalRejectionReason String?       // Why it was rejected internally
+  
+  // Public Approval Tracking
+  publicApprovedBy        String?       // Customer user who approved publicly
+  publicApprovedAt        DateTime?     // When approved by customer
+  publicRejectedBy        String?       // Customer user who rejected publicly
+  publicRejectedAt        DateTime?     // When rejected by customer
+  publicRejectionReason   String?       // Why it was rejected by customer
+  madePublicBy            String?       // Agency user who made it public
+  madePublicAt            DateTime?     // When made public
+  
+  // Timestamps
+  createdBy               String        // User who created this version
+  createdAt               DateTime
+  updatedAt               DateTime
+  
+  // Relations
+  creativeAsset           CreativeAsset @relation(fields: [creativeAssetId], references: [id], onDelete: Cascade)
+  comments                CreativeAssetComment[]
+  activityLogs            CreativeAssetVersionActivityLog[]
+  
+  @@unique([creativeAssetId, internalVersionNumber])
+  @@index([creativeAssetId])
+  @@index([internalVersionNumber])
+  @@index([publicVersionNumber])
+  @@index([isPublic])
+  @@index([internalApprovalStatus])
+  @@index([publicApprovalStatus])
+  @@index([createdAt])
+  @@map("creative_asset_version")
+}
+
+// Individual Agency User Permissions per Asset
+model CreativeAssetPermission {
+  id                      String        @id @map("_id")
+  creativeAssetId         String        // Asset reference
+  userId                  String        // Agency user
+  
+  // Permissions
+  canView                 Boolean       @default(true) // Can view the asset
+  canEdit                 Boolean       @default(false) // Can upload new versions
+  canComment              Boolean       @default(true) // Can add internal comments
+  canApprove              Boolean       @default(false) // Can approve versions internally
+  canPublish              Boolean       @default(false) // Can make versions public
+  canDelete               Boolean       @default(false) // Can delete asset
+  
+  // Audit
+  grantedBy               String        // User who granted permissions
+  createdAt               DateTime
+  updatedAt               DateTime
+  
+  // Relations
+  creativeAsset           CreativeAsset @relation(fields: [creativeAssetId], references: [id], onDelete: Cascade)
+  
+  @@unique([creativeAssetId, userId])
+  @@index([creativeAssetId])
+  @@index([userId])
+  @@map("creative_asset_permission")
+}
+
+// Comments on Versions (Both Internal and Public)
+model CreativeAssetComment {
+  id                      String        @id @map("_id")
+  creativeAssetVersionId  String        // Version being commented on
+  userId                  String        // User who commented
+  content                 String        // Comment text
+  isInternal              Boolean       // True = internal (agency only), False = public (both see)
+  
+  // Resolution Tracking
+  isResolved              Boolean       @default(false) // For tracking if issue is resolved
+  resolvedBy              String?       // User who resolved
+  resolvedAt              DateTime?     // When resolved
+  
+  // Threading Support
+  parentCommentId         String?       // Parent comment for replies (null = top-level)
+  replyCount              Int           @default(0) // Number of replies
+  
+  // Mentions
+  mentions                String[]      // Array of mentioned user IDs
+  
+  // Timestamps
+  createdAt               DateTime
+  updatedAt               DateTime
+  editedAt                DateTime?     // If comment was edited
+  
+  // Relations
+  creativeAssetVersion    CreativeAssetVersion @relation(fields: [creativeAssetVersionId], references: [id], onDelete: Cascade)
+  parentComment           CreativeAssetComment? @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies                 CreativeAssetComment[] @relation("CommentReplies")
+  
+  @@index([creativeAssetVersionId])
+  @@index([userId])
+  @@index([isInternal])
+  @@index([parentCommentId])
+  @@index([isResolved])
+  @@index([createdAt])
+  @@map("creative_asset_comment")
+}
+
+// Activity Logging for Creative Assets
+model CreativeAssetActivityLog {
+  id                      String        @id @map("_id")
+  creativeAssetId         String        // Asset reference
+  userId                  String        // User who performed action
+  action                  String        // Action type: CREATE, UPLOAD_VERSION, APPROVE_VERSION, REJECT_VERSION, PUBLISH_VERSION, ADD_COMMENT, EDIT_PERMISSIONS, DELETE, ARCHIVE, etc.
+  description             String?       // Human-readable description
+  metadata                Json?         // Additional action details
+  ipAddress               String?
+  userAgent               String?
+  createdAt               DateTime
+  
+  // Relations
+  creativeAsset           CreativeAsset @relation(fields: [creativeAssetId], references: [id], onDelete: Cascade)
+  
+  @@index([creativeAssetId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("creative_asset_activity_log")
+}
+
+// Activity Logging for Creative Asset Versions
+model CreativeAssetVersionActivityLog {
+  id                      String        @id @map("_id")
+  creativeAssetVersionId  String        // Version reference
+  userId                  String        // User who performed action
+  action                  String        // Action type: CREATE, APPROVE_INTERNAL, REJECT_INTERNAL, APPROVE_PUBLIC, REJECT_PUBLIC, MAKE_PUBLIC, ADD_COMMENT, etc.
+  description             String?       // Human-readable description
+  metadata                Json?         // Additional action details
+  ipAddress               String?
+  userAgent               String?
+  createdAt               DateTime
+  
+  // Relations
+  creativeAssetVersion    CreativeAssetVersion @relation(fields: [creativeAssetVersionId], references: [id], onDelete: Cascade)
+  
+  @@index([creativeAssetVersionId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("creative_asset_version_activity_log")
+}
+

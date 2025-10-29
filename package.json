@@ -1,0 +1,32 @@
+{
+  "name": "nPanel",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "ruler:apply": "pnpm dlx @intellectronica/ruler@latest apply --local-only",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:native": "turbo -F native dev",
+    "dev:web": "turbo -F web dev",
+    "db:push": "turbo -F @nPanel/db db:push",
+    "db:studio": "turbo -F @nPanel/db db:studio",
+    "db:generate": "turbo -F @nPanel/db db:generate",
+    "db:migrate": "turbo -F @nPanel/db db:migrate"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "prettier": "^3.6.2",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.11",
+    "tsdown": "^0.15.5",
+    "turbo": "^2.5.4"
+  },
+  "packageManager": "pnpm@10.16.1"
+}

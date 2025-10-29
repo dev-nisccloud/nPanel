@@ -1,0 +1,286 @@
+// Email Marketing Service Schema
+// This schema handles domain management, campaigns, audiences, contacts, and email event logging
+
+// Enums for Email Marketing
+enum EmailDomainVerificationStatus {
+  PENDING
+  VERIFYING
+  VERIFIED
+  FAILED
+  TEMPORARY_FAILURE
+}
+
+enum EmailCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  PAUSED
+  FAILED
+  CANCELLED
+}
+
+enum AudienceContactStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+  BOUNCED
+  COMPLAINED
+}
+
+enum EmailEventType {
+  SEND
+  DELIVERY
+  BOUNCE
+  COMPLAINT
+  OPEN
+  CLICK
+  REJECT
+  RENDERING_FAILURE
+}
+
+// Email Domain Management
+model EmailDomain {
+  id                    String                        @id @map("_id")
+  teamId                String?                       // Nullable for agency-level domains
+  userId                String                        // User who owns this domain
+  
+  // Domain Information
+  domainName            String                        @unique
+  verificationStatus    EmailDomainVerificationStatus @default(PENDING)
+  dkimTokens            Json?                         // DKIM tokens from SES (3 tokens)
+  spfRecord             String?                       // SPF record to add
+  dmarcRecord           String?                       // DMARC record to add
+  sesIdentityArn        String?                       // SES identity ARN
+  
+  // Verification Tracking
+  isVerified            Boolean                       @default(false)
+  verificationAttempts  Int                          @default(0)
+  lastVerificationAt    DateTime?
+  
+  // Timestamps
+  createdAt             DateTime
+  updatedAt             DateTime
+  
+  // Relations
+  team                  Team?                         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  user                  User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns             EmailCampaign[]
+  activityLogs          EmailDomainActivityLog[]
+  
+  @@index([domainName])
+  @@index([teamId])
+  @@index([userId])
+  @@index([verificationStatus])
+  @@index([isVerified])
+  @@map("email_domain")
+}
+
+// Email Campaign Management
+model EmailCampaign {
+  id                    String                @id @map("_id")
+  name                  String
+  description           String?
+  teamId                String?               // Nullable for agency-level campaigns
+  userId                String                // User who created the campaign
+  emailDomainId         String                // Domain to send from
+  audienceId            String                // Audience to send to
+  
+  // Email Content
+  fromAddress           String                // e.g., "Campaigns <campaigns@domain.com>"
+  replyToAddress        String                // Reply-to address
+  subject               String
+  htmlContent           String
+  textContent           String?
+  
+  // Campaign Status and Timing
+  status                EmailCampaignStatus   @default(DRAFT)
+  scheduledAt           DateTime?
+  sentAt                DateTime?
+  totalRecipients       Int?                  // Calculated at send time
+  
+  // Timestamps
+  createdAt             DateTime
+  updatedAt             DateTime
+  
+  // Relations
+  team                  Team?                 @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailDomain           EmailDomain           @relation(fields: [emailDomainId], references: [id], onDelete: Restrict)
+  audience              Audience              @relation(fields: [audienceId], references: [id], onDelete: Restrict)
+  logs                  EmailLog[]
+  activityLogs          EmailCampaignActivityLog[]
+  
+  @@index([teamId])
+  @@index([userId])
+  @@index([emailDomainId])
+  @@index([audienceId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("email_campaign")
+}
+
+// Audience Management (Top-level)
+model Audience {
+  id                    String                @id @map("_id")
+  name                  String
+  description           String?
+  teamId                String?               // Nullable for agency-level audiences
+  userId                String                // User who created the audience
+  status                String?               // Nullable - ACTIVE, ARCHIVED, null
+  totalContacts         Int                   @default(0)
+  
+  // Timestamps
+  createdAt             DateTime
+  updatedAt             DateTime
+  
+  // Relations
+  team                  Team?                 @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contacts              AudienceContact[]
+  campaigns              EmailCampaign[]
+  activityLogs          AudienceActivityLog[]
+  
+  @@index([teamId])
+  @@index([userId])
+  @@index([status])
+  @@map("audience")
+}
+
+// Audience Contacts (Individual contacts linked to audiences)
+model AudienceContact {
+  id                    String                @id @map("_id")
+  audienceId            String
+  email                 String
+  firstName             String?
+  lastName              String?
+  customFields          Json?                 // Flexible custom fields
+  status                AudienceContactStatus @default(SUBSCRIBED)
+  subscribedAt          DateTime?
+  unsubscribedAt        DateTime?
+  
+  // Timestamps
+  createdAt             DateTime
+  updatedAt             DateTime
+  
+  // Relations
+  audience              Audience              @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+  logs                  EmailLog[]
+  
+  @@unique([audienceId, email])
+  @@index([audienceId])
+  @@index([email])
+  @@index([status])
+  @@map("audience_contact")
+}
+
+// Email Event Logging (Real-time events from SNS)
+model EmailLog {
+  id                    String                @id @map("_id")
+  campaignId            String
+  audienceContactId     String
+  messageId             String?               // SES message ID
+  eventType             EmailEventType
+  eventData             Json?                 // Raw SNS payload for debugging
+  timestamp             DateTime?
+  ipAddress             String?
+  userAgent             String?
+  linkUrl               String?               // For click events
+  bounceType            String?               // For bounce events
+  bounceSubType         String?               // For bounce events
+  complaintFeedbackType String?               // For complaint events
+  
+  // Timestamps
+  createdAt             DateTime
+  
+  // Relations
+  campaign              EmailCampaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  audienceContact       AudienceContact       @relation(fields: [audienceContactId], references: [id], onDelete: Cascade)
+  
+  @@index([campaignId])
+  @@index([audienceContactId])
+  @@index([messageId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@map("email_log")
+}
+
+// SES Configuration (Platform-level, not per-domain)
+model SESConfiguration {
+  id                    String                @id @map("_id")
+  configurationSetName  String                @unique
+  snsTopicArn          String
+  region                String
+  isActive              Boolean               @default(true)
+  dailySendingQuota     Int?
+  maxSendRate           Int?
+  reputationMetrics     Json?                 // SES reputation data
+  lastSyncedAt          DateTime?
+  
+  // Timestamps
+  createdAt             DateTime
+  updatedAt             DateTime
+  
+  @@index([isActive])
+  @@index([configurationSetName])
+  @@map("ses_configuration")
+}
+
+// Activity Logging for Email Domains
+model EmailDomainActivityLog {
+  id                    String                @id @map("_id")
+  userId                String
+  emailDomainId         String
+  emailDomain           EmailDomain           @relation(fields: [emailDomainId], references: [id], onDelete: Cascade)
+  action                String                // e.g., "CREATE", "VERIFY", "DELETE", "UPDATE"
+  description           String?
+  metadata              Json?                 // Additional data about the action
+  ipAddress             String?
+  userAgent             String?
+  createdAt             DateTime
+  
+  @@index([userId])
+  @@index([emailDomainId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("email_domain_activity_log")
+}
+
+// Activity Logging for Email Campaigns
+model EmailCampaignActivityLog {
+  id                    String                @id @map("_id")
+  userId                String
+  emailCampaignId       String
+  emailCampaign         EmailCampaign         @relation(fields: [emailCampaignId], references: [id], onDelete: Cascade)
+  action                String                // e.g., "CREATE", "SEND", "PAUSE", "DELETE", "UPDATE"
+  description           String?
+  metadata              Json?                 // Additional data about the action
+  ipAddress             String?
+  userAgent             String?
+  createdAt             DateTime
+  
+  @@index([userId])
+  @@index([emailCampaignId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("email_campaign_activity_log")
+}
+
+// Activity Logging for Audiences
+model AudienceActivityLog {
+  id                    String                @id @map("_id")
+  userId                String
+  audienceId            String
+  audience              Audience              @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+  action                String                // e.g., "CREATE", "UPDATE", "DELETE", "ADD_CONTACTS", "REMOVE_CONTACTS"
+  description           String?
+  metadata              Json?                 // Additional data about the action
+  ipAddress             String?
+  userAgent             String?
+  createdAt             DateTime
+  
+  @@index([userId])
+  @@index([audienceId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audience_activity_log")
+}

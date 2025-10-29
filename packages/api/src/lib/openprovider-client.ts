@@ -1,0 +1,626 @@
+import { request } from 'undici';
+import type {
+  OpenProviderConfig,
+  OpenProviderAuthRequest,
+  OpenProviderAuthResponse,
+  OpenProviderTldRequest,
+  OpenProviderTldResponse,
+  OpenProviderDomainCheckRequest,
+  OpenProviderDomainCheckResponse,
+  OpenProviderCustomerRequest,
+  OpenProviderCustomerResponse,
+  OpenProviderCustomerSearchRequest,
+  OpenProviderCustomerSearchResponse,
+  OpenProviderDomainRegistrationRequest,
+  OpenProviderDomainRegistrationResponse,
+  OpenProviderDomainTransferRequest,
+  OpenProviderDomainTransferResponse,
+  OpenProviderDomainSearchRequest,
+  OpenProviderDomainSearchResponse,
+  OpenProviderDomainUpdateRequest,
+  OpenProviderDomainUpdateResponse,
+  OpenProviderDomainRenewalRequest,
+  OpenProviderDomainRenewalResponse,
+  OpenProviderAuthCodeResponse,
+  OpenProviderAuthCodeResetRequest,
+  OpenProviderAuthCodeResetResponse,
+  OpenProviderDnsZoneRequest,
+  OpenProviderDnsZoneResponse,
+  OpenProviderDnsZoneSearchRequest,
+  OpenProviderDnsZoneSearchResponse,
+  OpenProviderDnsZoneUpdateRequest,
+  OpenProviderDnsZoneUpdateResponse,
+  OpenProviderDomainPricingRequest,
+  OpenProviderDomainPricingResponse,
+  OpenProviderAdditionalDataRequest,
+  OpenProviderAdditionalDataResponse,
+  OpenProviderCustomerAdditionalDataRequest,
+  OpenProviderCustomerAdditionalDataResponse,
+  OpenProviderError,
+} from '../types/openprovider';
+
+export class OpenProviderApiError extends Error {
+  constructor(
+    public code: number,
+    public description: string,
+    public originalError?: Error
+  ) {
+    super(`OpenProvider API Error ${code}: ${description}`);
+    this.name = 'OpenProviderApiError';
+  }
+}
+
+export class OpenProviderClient {
+  private token: string | null = null;
+  private baseUrl: string;
+
+  constructor(config: OpenProviderConfig) {
+    this.baseUrl = `${config.baseUrl}/${config.apiVersion}`;
+  }
+
+  /**
+   * Set authentication token
+   */
+  setToken(token: string): void {
+    this.token = token;
+  }
+
+  /**
+   * Check if client is authenticated
+   */
+  isAuthenticated(): boolean {
+    return this.token !== null;
+  }
+
+  /**
+   * Make HTTP request using undici
+   */
+  private async makeRequest<T>(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    endpoint: string,
+    data?: any,
+    options: any = {}
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    const requestOptions: any = {
+      method,
+      headers,
+      ...options,
+    };
+
+    if (data && (method === 'POST' || method === 'PUT')) {
+      requestOptions.body = JSON.stringify(data);
+    }
+
+    try {
+      const response = await request(url, requestOptions);
+      const responseData = await response.body.json() as any;
+
+      if (response.statusCode >= 400) {
+        const errorData = responseData as OpenProviderError;
+        throw new OpenProviderApiError(
+          errorData.code || response.statusCode,
+          errorData.desc || `HTTP ${response.statusCode}`,
+          new Error(`HTTP ${response.statusCode}`)
+        );
+      }
+
+      return responseData;
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(
+        0,
+        `Request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error : new Error('Unknown error')
+      );
+    }
+  }
+
+  /**
+   * Authenticate with OpenProvider API
+   */
+  async authenticate(credentials: OpenProviderAuthRequest): Promise<OpenProviderAuthResponse> {
+    try {
+      const response = await this.makeRequest<OpenProviderAuthResponse>('POST', '/auth/login', credentials);
+      
+      if (response.code === 0 && response.data?.token) {
+        this.token = response.data.token;
+      }
+      
+      return response;
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to authenticate', error as Error);
+    }
+  }
+
+  /**
+   * Get TLDs with pricing and configuration
+   */
+  async getTlds(params: OpenProviderTldRequest = {}): Promise<OpenProviderTldResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+      if (params.offset) queryParams.append('offset', params.offset.toString());
+      if (params.extensions) queryParams.append('extensions', params.extensions.join(','));
+      if (params.status) queryParams.append('status', params.status);
+      if (params.with_price !== undefined) queryParams.append('with_price', params.with_price.toString());
+      if (params.with_description !== undefined) queryParams.append('with_description', params.with_description.toString());
+      if (params.with_restrictions !== undefined) queryParams.append('with_restrictions', params.with_restrictions.toString());
+
+      const endpoint = `/tlds${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest<OpenProviderTldResponse>('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to get TLDs', error as Error);
+    }
+  }
+
+  /**
+   * Check domain availability and pricing
+   */
+  async checkDomains(params: OpenProviderDomainCheckRequest): Promise<OpenProviderDomainCheckResponse> {
+    try {
+      return await this.makeRequest<OpenProviderDomainCheckResponse>('POST', '/domains/check', params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to check domains', error as Error);
+    }
+  }
+
+  /**
+   * Create a new customer handle
+   */
+  async createCustomer(params: OpenProviderCustomerRequest): Promise<OpenProviderCustomerResponse> {
+    try {
+      return await this.makeRequest<OpenProviderCustomerResponse>('POST', '/customers', params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to create customer', error as Error);
+    }
+  }
+
+  /**
+   * Search existing customer handles
+   */
+  async searchCustomers(params: OpenProviderCustomerSearchRequest = {}): Promise<OpenProviderCustomerSearchResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.handle_pattern) queryParams.append('handle_pattern', params.handle_pattern);
+      if (params.email_pattern) queryParams.append('email_pattern', params.email_pattern);
+      if (params.first_name_pattern) queryParams.append('first_name_pattern', params.first_name_pattern);
+      if (params.last_name_pattern) queryParams.append('last_name_pattern', params.last_name_pattern);
+      if (params.company_name_pattern) queryParams.append('company_name_pattern', params.company_name_pattern);
+      if (params.comment_pattern) queryParams.append('comment_pattern', params.comment_pattern);
+      if (params.with_additional_data !== undefined) queryParams.append('with_additional_data', params.with_additional_data.toString());
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+      if (params.offset) queryParams.append('offset', params.offset.toString());
+
+      const endpoint = `/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest<OpenProviderCustomerSearchResponse>('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to search customers', error as Error);
+    }
+  }
+
+  /**
+   * Update an existing customer handle
+   */
+  async updateCustomer(handle: string, params: Partial<OpenProviderCustomerRequest>): Promise<OpenProviderCustomerResponse> {
+    try {
+      return await this.makeRequest<OpenProviderCustomerResponse>('PUT', `/customers/${handle}`, params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to update customer', error as Error);
+    }
+  }
+
+  /**
+   * Start email verification for gTLD
+   */
+  async startEmailVerification(params: { email: string; handle: string; language?: string }): Promise<{ code: number; desc: string; data: { id: string } }> {
+    try {
+      return await this.makeRequest('POST', '/customers/verifications/emails/start', params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to start email verification', error as Error);
+    }
+  }
+
+  /**
+   * Check email verification status
+   */
+  async checkEmailVerificationStatus(params: { domain?: string; handle?: string; email?: string; status?: string; is_suspended?: boolean; limit?: number; offset?: number }): Promise<any> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.domain) queryParams.append('domain', params.domain);
+      if (params.handle) queryParams.append('handle', params.handle);
+      if (params.email) queryParams.append('email', params.email);
+      if (params.status) queryParams.append('status', params.status);
+      if (params.is_suspended !== undefined) queryParams.append('is_suspended', params.is_suspended.toString());
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+      if (params.offset) queryParams.append('offset', params.offset.toString());
+
+      const endpoint = `/customers/verifications/emails/domains${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to check email verification status', error as Error);
+    }
+  }
+
+  /**
+   * Register a domain
+   */
+  async registerDomain(params: OpenProviderDomainRegistrationRequest): Promise<OpenProviderDomainRegistrationResponse> {
+    try {
+      return await this.makeRequest<OpenProviderDomainRegistrationResponse>('POST', '/domains', params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to register domain', error as Error);
+    }
+  }
+
+  /**
+   * Transfer a domain
+   */
+  async transferDomain(params: OpenProviderDomainTransferRequest): Promise<OpenProviderDomainTransferResponse> {
+    try {
+      return await this.makeRequest<OpenProviderDomainTransferResponse>('POST', '/domains/transfer', params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to transfer domain', error as Error);
+    }
+  }
+
+  /**
+   * Search domains
+   */
+  async searchDomains(params: OpenProviderDomainSearchRequest = {}): Promise<OpenProviderDomainSearchResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.domain_name_pattern) queryParams.append('domain_name_pattern', params.domain_name_pattern);
+      if (params.status) queryParams.append('status', params.status);
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+      if (params.offset) queryParams.append('offset', params.offset.toString());
+
+      const endpoint = `/domains${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest<OpenProviderDomainSearchResponse>('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to search domains', error as Error);
+    }
+  }
+
+  /**
+   * Update domain attributes
+   */
+  async updateDomain(id: number, params: OpenProviderDomainUpdateRequest): Promise<OpenProviderDomainUpdateResponse> {
+    try {
+      return await this.makeRequest<OpenProviderDomainUpdateResponse>('PUT', `/domains/${id}`, params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to update domain', error as Error);
+    }
+  }
+
+  /**
+   * Renew a domain
+   */
+  async renewDomain(id: number, params: OpenProviderDomainRenewalRequest): Promise<OpenProviderDomainRenewalResponse> {
+    try {
+      return await this.makeRequest<OpenProviderDomainRenewalResponse>('POST', `/domains/${id}/renew`, params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to renew domain', error as Error);
+    }
+  }
+
+  /**
+   * Get domain auth code
+   */
+  async getDomainAuthCode(id: number, params: { auth_code_type?: string } = {}): Promise<OpenProviderAuthCodeResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.auth_code_type) queryParams.append('auth_code_type', params.auth_code_type);
+
+      const endpoint = `/domains/${id}/authcode${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest<OpenProviderAuthCodeResponse>('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to get domain auth code', error as Error);
+    }
+  }
+
+  /**
+   * Reset domain auth code
+   */
+  async resetDomainAuthCode(id: number, params: OpenProviderAuthCodeResetRequest): Promise<OpenProviderAuthCodeResetResponse> {
+    try {
+      return await this.makeRequest<OpenProviderAuthCodeResetResponse>('POST', `/domains/${id}/authcode/reset`, params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to reset domain auth code', error as Error);
+    }
+  }
+
+  /**
+   * Delete a domain
+   */
+  async deleteDomain(id: number, params: { domain?: { name: string; extension: string } } = {}): Promise<{ code: number; desc: string }> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.domain?.name) queryParams.append('domain.name', params.domain.name);
+      if (params.domain?.extension) queryParams.append('domain.extension', params.domain.extension);
+
+      const endpoint = `/domains/${id}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest<{ code: number; desc: string }>('DELETE', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to delete domain', error as Error);
+    }
+  }
+
+  /**
+   * Restore a domain
+   */
+  async restoreDomain(id: number, params: any = {}): Promise<{ code: number; desc: string }> {
+    try {
+      return await this.makeRequest<{ code: number; desc: string }>('POST', `/domains/${id}/restore`, params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to restore domain', error as Error);
+    }
+  }
+
+  /**
+   * Get domain pricing
+   */
+  async getDomainPricing(params: OpenProviderDomainPricingRequest): Promise<OpenProviderDomainPricingResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.domain?.name) queryParams.append('domain.name', params.domain.name);
+      if (params.domain?.extension) queryParams.append('domain.extension', params.domain.extension);
+      if (params.operation) queryParams.append('operation', params.operation);
+      if (params.period) queryParams.append('period', params.period.toString());
+      if (params.additional_data?.idn_script) queryParams.append('additional_data.idn_script', params.additional_data.idn_script);
+
+      const endpoint = `/domains/prices${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest<OpenProviderDomainPricingResponse>('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to get domain pricing', error as Error);
+    }
+  }
+
+  /**
+   * Get additional data requirements for domain
+   */
+  async getAdditionalData(params: OpenProviderAdditionalDataRequest): Promise<OpenProviderAdditionalDataResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.domain?.extension) queryParams.append('domain.extension', params.domain.extension);
+
+      const endpoint = `/domains/additional-data${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest<OpenProviderAdditionalDataResponse>('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to get additional data', error as Error);
+    }
+  }
+
+  /**
+   * Get additional data requirements for customer
+   */
+  async getCustomerAdditionalData(params: OpenProviderCustomerAdditionalDataRequest): Promise<OpenProviderCustomerAdditionalDataResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.domain?.extension) queryParams.append('domain.extension', params.domain.extension);
+
+      const endpoint = `/domains/additional-data/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest<OpenProviderCustomerAdditionalDataResponse>('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to get customer additional data', error as Error);
+    }
+  }
+
+  /**
+   * Create DNS zone
+   */
+  async createDnsZone(params: OpenProviderDnsZoneRequest): Promise<OpenProviderDnsZoneResponse> {
+    try {
+      return await this.makeRequest<OpenProviderDnsZoneResponse>('POST', '/dns/zones', params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to create DNS zone', error as Error);
+    }
+  }
+
+  /**
+   * List DNS zones
+   */
+  async listDnsZones(params: OpenProviderDnsZoneSearchRequest = {}): Promise<OpenProviderDnsZoneSearchResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+      if (params.offset) queryParams.append('offset', params.offset.toString());
+      if (params.name_pattern) queryParams.append('name_pattern', params.name_pattern);
+      if (params.type) queryParams.append('type', params.type);
+      if (params.with_records !== undefined) queryParams.append('with_records', params.with_records.toString());
+      if (params.with_history !== undefined) queryParams.append('with_history', params.with_history.toString());
+
+      const endpoint = `/dns/zones${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest<OpenProviderDnsZoneSearchResponse>('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to list DNS zones', error as Error);
+    }
+  }
+
+  /**
+   * Get specific DNS zone
+   */
+  async getDnsZone(name: string, params: { with_records?: boolean; with_history?: boolean; with_dnskey?: boolean } = {}): Promise<OpenProviderDnsZoneResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.with_records !== undefined) queryParams.append('with_records', params.with_records.toString());
+      if (params.with_history !== undefined) queryParams.append('with_history', params.with_history.toString());
+      if (params.with_dnskey !== undefined) queryParams.append('with_dnskey', params.with_dnskey.toString());
+
+      const endpoint = `/dns/zones/${encodeURIComponent(name)}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest<OpenProviderDnsZoneResponse>('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to get DNS zone', error as Error);
+    }
+  }
+
+  /**
+   * Update DNS zone
+   */
+  async updateDnsZone(name: string, params: OpenProviderDnsZoneUpdateRequest): Promise<OpenProviderDnsZoneUpdateResponse> {
+    try {
+      return await this.makeRequest<OpenProviderDnsZoneUpdateResponse>('PUT', `/dns/zones/${encodeURIComponent(name)}`, params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to update DNS zone', error as Error);
+    }
+  }
+
+  /**
+   * Delete DNS zone
+   */
+  async deleteDnsZone(name: string): Promise<{ code: number; desc: string }> {
+    try {
+      return await this.makeRequest('DELETE', `/dns/zones/${encodeURIComponent(name)}`);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to delete DNS zone', error as Error);
+    }
+  }
+
+  /**
+   * Clear authentication token
+   */
+  clearAuth(): void {
+    this.token = null;
+  }
+}
+
+/**
+ * Create OpenProvider client instance
+ */
+// Singleton instance with token caching
+let clientInstance: OpenProviderClient | null = null;
+let tokenExpiry: number | null = null;
+
+export function createOpenProviderClient(): OpenProviderClient {
+  // Return existing instance if token is still valid
+  if (clientInstance && tokenExpiry && Date.now() < tokenExpiry) {
+    return clientInstance;
+  }
+
+  // Create new instance
+  clientInstance = new OpenProviderClient({
+    baseUrl: 'https://api.openprovider.eu',
+    apiVersion: 'v1beta',
+    timeout: 60000,
+  });
+
+  // Set token expiry to 47 hours (OpenProvider tokens last 48 hours, we refresh 1 hour early)
+  tokenExpiry = Date.now() + (47 * 60 * 60 * 1000);
+
+  return clientInstance;
+}
+
+// Function to clear cached client (useful for testing or forced re-auth)
+export function clearOpenProviderClient(): void {
+  clientInstance = null;
+  tokenExpiry = null;
+}

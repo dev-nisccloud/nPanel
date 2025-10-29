@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+	<packet version="1.6.9.1">
+		<system>
+			<status>error</status>
+			<errcode>1014</errcode>
+			<errtext>Parser error: Request is invalid. Error in line 6: Element &#039;filter&#039;: Missing child element(s). Expected is ( mailname ). Error in line 9: Element &#039;values&#039;: This element is not expected.</errtext>
+		</system>	</packet>

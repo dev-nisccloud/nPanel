@@ -1,0 +1,52 @@
+import { NextResponse, type NextRequest } from "next/server";
+
+/**
+ * Lightweight middleware for basic auth protection
+ * Only checks for session cookie existence (fast, no DB calls)
+ * Role-based redirects are handled by Server Components in layouts
+ */
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  
+  // Skip auth check for public routes
+  const publicRoutes = ["/auth", "/api", "/_next", "/accept-invite", "/create-team", "/account-status", "/unauthorized", "/update-role"];
+  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
+
+  // Skip for agency routes (they have their own matcher)
+  if (pathname.startsWith("/agency")) {
+    const sessionCookie = req.cookies.get("better-auth.session_token");
+    const isLoggedIn = !!sessionCookie;
+    
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/auth/login", req.url));
+    }
+    
+    return NextResponse.next();
+  }
+
+  // For all other routes (team slug routes), require authentication
+  // This covers /{team-slug}/... routes
+  const sessionCookie = req.cookies.get("better-auth.session_token");
+  const isLoggedIn = !!sessionCookie;
+
+  if (!isLoggedIn) {
+    return NextResponse.redirect(new URL("/auth/login", req.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
+};

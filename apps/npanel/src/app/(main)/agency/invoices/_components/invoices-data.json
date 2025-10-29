@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1,
+    "invoiceNumber": "INV-2024-001",
+    "clientName": "John Smith",
+    "clientEmail": "john.smith@example.com",
+    "amount": 1250.00,
+    "status": "paid",
+    "dueDate": "2024-01-15T00:00:00Z",
+    "createdAt": "2024-01-01T10:30:00Z",
+    "description": "Web development services"
+  },
+  {
+    "id": 2,
+    "invoiceNumber": "INV-2024-002",
+    "clientName": "Sarah Johnson",
+    "clientEmail": "sarah.j@digitalagency.com",
+    "amount": 850.50,
+    "status": "sent",
+    "dueDate": "2024-01-20T00:00:00Z",
+    "createdAt": "2024-01-05T09:15:00Z",
+    "description": "Digital marketing campaign"
+  },
+  {
+    "id": 3,
+    "invoiceNumber": "INV-2024-003",
+    "clientName": "Mike Chen",
+    "clientEmail": "mike.chen@startup.io",
+    "amount": 2100.00,
+    "status": "overdue",
+    "dueDate": "2024-01-10T00:00:00Z",
+    "createdAt": "2023-12-28T13:20:00Z",
+    "description": "Mobile app development"
+  },
+  {
+    "id": 4,
+    "invoiceNumber": "INV-2024-004",
+    "clientName": "Emily Rodriguez",
+    "clientEmail": "emily.r@freelance.com",
+    "amount": 450.00,
+    "status": "draft",
+    "dueDate": "2024-01-25T00:00:00Z",
+    "createdAt": "2024-01-08T16:45:00Z",
+    "description": "Logo design services"
+  },
+  {
+    "id": 5,
+    "invoiceNumber": "INV-2024-005",
+    "clientName": "David Wilson",
+    "clientEmail": "david.wilson@enterprise.com",
+    "amount": 3500.00,
+    "status": "paid",
+    "dueDate": "2024-01-12T00:00:00Z",
+    "createdAt": "2023-12-30T08:00:00Z",
+    "description": "Enterprise software solution"
+  },
+  {
+    "id": 6,
+    "invoiceNumber": "INV-2024-006",
+    "clientName": "Lisa Thompson",
+    "clientEmail": "lisa.t@smallbiz.com",
+    "amount": 675.25,
+    "status": "cancelled",
+    "dueDate": "2024-01-18T00:00:00Z",
+    "createdAt": "2024-01-03T12:30:00Z",
+    "description": "Website maintenance"
+  },
+  {
+    "id": 7,
+    "invoiceNumber": "INV-2024-007",
+    "clientName": "Alex Kumar",
+    "clientEmail": "alex.kumar@techstart.com",
+    "amount": 1800.00,
+    "status": "sent",
+    "dueDate": "2024-01-22T00:00:00Z",
+    "createdAt": "2024-01-06T15:45:00Z",
+    "description": "Cloud infrastructure setup"
+  },
+  {
+    "id": 8,
+    "invoiceNumber": "INV-2024-008",
+    "clientName": "Maria Garcia",
+    "clientEmail": "maria.garcia@localbiz.com",
+    "amount": 320.75,
+    "status": "paid",
+    "dueDate": "2024-01-14T00:00:00Z",
+    "createdAt": "2024-01-02T11:20:00Z",
+    "description": "Social media management"
+  },
+  {
+    "id": 9,
+    "invoiceNumber": "INV-2024-009",
+    "clientName": "Robert Brown",
+    "clientEmail": "robert.brown@consulting.com",
+    "amount": 950.00,
+    "status": "overdue",
+    "dueDate": "2024-01-08T00:00:00Z",
+    "createdAt": "2023-12-25T14:15:00Z",
+    "description": "Business consulting services"
+  },
+  {
+    "id": 10,
+    "invoiceNumber": "INV-2024-010",
+    "clientName": "Jennifer Lee",
+    "clientEmail": "jennifer.lee@ecommerce.com",
+    "amount": 2750.50,
+    "status": "sent",
+    "dueDate": "2024-01-28T00:00:00Z",
+    "createdAt": "2024-01-10T09:30:00Z",
+    "description": "E-commerce platform development"
+  }
+]

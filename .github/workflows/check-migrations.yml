@@ -1,0 +1,65 @@
+name: Check Migration Status
+
+# Manually check database migration status without running migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to check'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  PNPM_VERSION: '10.16.1'
+  NODE_VERSION: '20'
+
+jobs:
+  check-status:
+    name: Check Migration Status
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set database URL
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL_PRODUCTION }}" >> $GITHUB_ENV
+          else
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL_STAGING }}" >> $GITHUB_ENV
+          fi
+
+      - name: Check migration status
+        run: |
+          cd packages/db
+          echo "📊 Migration status for ${{ github.event.inputs.environment }}:"
+          pnpm exec prisma migrate status
+
+      - name: Show pending migrations
+        run: |
+          cd packages/db
+          echo "📋 Comparing local schema to database..."
+          pnpm exec prisma migrate diff \
+            --from-schema-datamodel prisma/schema \
+            --to-schema-datasource $DATABASE_URL \
+            --script || echo "✅ No pending migrations"
+
