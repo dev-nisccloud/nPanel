@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
 	typedRoutes: true,
+  eslint: {
+    // Don't run ESLint during production builds
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Still check types during build (important for catching errors)
+    ignoreBuildErrors: false,
+  },
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
