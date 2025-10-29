@@ -249,12 +249,13 @@ export function WordPressCard({
   );
 }
 
-interface WordPressCardsListProps extends React.HTMLAttributes<HTMLDivElement> {
+interface WordPressCardsListProps {
   data: z.infer<typeof wordpressInstallationSchema>[];
   onEdit?: (id: number | undefined) => void;
   onDelete?: (id: number | undefined) => void;
   onCopy?: (data: z.infer<typeof wordpressInstallationSchema>) => void;
   onSettings?: (id: number | undefined) => void;
+  className?: string;
   cols?: 1 | 2 | 3 | 4;
 }
 

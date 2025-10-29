@@ -200,7 +200,7 @@ export function WordPressOverview({ wpData }: WordPressOverviewProps) {
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold">{wpData.features?.updates?.amountOfPluginsWithUpdates || 0}</p>
-                <Badge variant={wpData.features?.updates?.amountOfPluginsWithUpdates ? "warning" : "default"}>
+                <Badge variant={wpData.features?.updates?.amountOfPluginsWithUpdates ? "destructive" : "default"}>
                   {wpData.features?.updates?.amountOfPluginsWithUpdates ? "Updates Available" : "Up to Date"}
                 </Badge>
               </div>
@@ -218,7 +218,7 @@ export function WordPressOverview({ wpData }: WordPressOverviewProps) {
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold">{wpData.features?.updates?.amountOfThemesWithUpdates || 0}</p>
-                <Badge variant={wpData.features?.updates?.amountOfThemesWithUpdates ? "warning" : "default"}>
+                <Badge variant={wpData.features?.updates?.amountOfThemesWithUpdates ? "destructive" : "default"}>
                   {wpData.features?.updates?.amountOfThemesWithUpdates ? "Updates Available" : "Up to Date"}
                 </Badge>
               </div>
@@ -274,7 +274,7 @@ export function WordPressOverview({ wpData }: WordPressOverviewProps) {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">Debug Mode:</span>
-            <Badge variant={wpData.features?.debug?.status ? "warning" : "default"}>
+            <Badge variant={wpData.features?.debug?.status ? "destructive" : "default"}>
               {wpData.features?.debug?.status ? "Enabled" : "Disabled"}
             </Badge>
           </div>

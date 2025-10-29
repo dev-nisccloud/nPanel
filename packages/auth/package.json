@@ -24,6 +24,7 @@
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:",
-    "@nPanel/db": "workspace:*"
+    "@nPanel/db": "workspace:*",
+    "@nPanel/api": "workspace:*"
   }
 }

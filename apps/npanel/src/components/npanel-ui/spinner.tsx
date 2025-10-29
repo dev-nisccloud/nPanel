@@ -17,7 +17,7 @@ export const Spinner = ({
   ...props
 }: SpinnerProps) => {
   return (
-    <svg
+    <svg ref={undefined as any}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"

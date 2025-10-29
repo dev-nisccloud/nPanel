@@ -6,17 +6,19 @@ export function SubmitButton({
   children,
   isSubmitting,
   disabled,
+  className,
   ...props
 }: {
   children: React.ReactNode;
   isSubmitting: boolean;
   disabled?: boolean;
-} & ButtonProps) {
+  className?: string;
+} & Omit<ButtonProps, 'className'>) {
   return (
     <Button
       disabled={isSubmitting || disabled}
       {...props}
-      className={cn("relative", props.className)}
+      className={cn("relative", className)}
     >
       <span className={cn(isSubmitting && "invisible")}>{children}</span>
       {isSubmitting && (

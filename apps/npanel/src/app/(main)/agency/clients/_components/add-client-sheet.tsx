@@ -188,7 +188,7 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
                       <FormItem>
                         <FormLabel>Company Name (Optional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="TechCorp Solutions" {...field} />
+                          <Input placeholder="TechCorp Solutions" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -220,7 +220,7 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
                       <FormItem>
                         <FormLabel>Phone Number (Optional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="+1 (555) 123-4567" {...field} />
+                          <Input placeholder="+1 (555) 123-4567" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -243,7 +243,7 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
                       <FormItem>
                         <FormLabel>Address (Optional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="123 Main Street" {...field} />
+                          <Input placeholder="123 Main Street" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -258,7 +258,7 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
                         <FormItem>
                           <FormLabel>City (Optional)</FormLabel>
                           <FormControl>
-                            <Input placeholder="New York" {...field} />
+                            <Input placeholder="New York" {...field} value={field.value ?? ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -272,7 +272,7 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
                         <FormItem>
                           <FormLabel>State/Region (Optional)</FormLabel>
                           <FormControl>
-                            <Input placeholder="NY" {...field} />
+                            <Input placeholder="NY" {...field} value={field.value ?? ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -288,7 +288,7 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
                         <FormItem>
                           <FormLabel>Post Code (Optional)</FormLabel>
                           <FormControl>
-                            <Input placeholder="10001" {...field} />
+                            <Input placeholder="10001" {...field} value={field.value ?? ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -302,7 +302,7 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
                         <FormItem>
                           <FormLabel>Country (Optional)</FormLabel>
                           <FormControl>
-                            <Input placeholder="United States" {...field} />
+                            <Input placeholder="United States" {...field} value={field.value ?? ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -325,7 +325,7 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>How did you find about us? (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select source" />
@@ -361,6 +361,7 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
                             placeholder="Any additional information about this client..."
                             className="resize-none"
                             {...field} 
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />

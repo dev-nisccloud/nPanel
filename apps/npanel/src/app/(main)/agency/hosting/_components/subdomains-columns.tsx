@@ -74,7 +74,7 @@ export const subdomainColumns: ColumnDef<Subdomain>[] = [
     ),
     cell: ({ row }) => {
       const subdomain = row.original;
-      const phpHandler = subdomain.properties.php_handler_id;
+      const phpHandler = subdomain.properties?.php_handler_id ?? "";
       const version = phpHandler.includes("php82") ? "8.2" : 
                      phpHandler.includes("php81") ? "8.1" : 
                      phpHandler.includes("php80") ? "8.0" : 
@@ -95,8 +95,8 @@ export const subdomainColumns: ColumnDef<Subdomain>[] = [
     cell: ({ row }) => {
       const subdomain = row.original;
       return (
-        <Badge variant={subdomain.properties.ssl ? "default" : "secondary"}>
-          {subdomain.properties.ssl ? "Enabled" : "Disabled"}
+        <Badge variant={subdomain.properties?.ssl ? "default" : "secondary"}>
+          {subdomain.properties?.ssl ? "Enabled" : "Disabled"}
         </Badge>
       );
     },
@@ -109,8 +109,8 @@ export const subdomainColumns: ColumnDef<Subdomain>[] = [
     cell: ({ row }) => {
       const subdomain = row.original;
       return (
-        <Badge variant={subdomain.properties.fastcgi ? "default" : "secondary"}>
-          {subdomain.properties.fastcgi ? "Enabled" : "Disabled"}
+        <Badge variant={subdomain.properties?.fastcgi ? "default" : "secondary"}>
+          {subdomain.properties?.fastcgi ? "Enabled" : "Disabled"}
         </Badge>
       );
     },

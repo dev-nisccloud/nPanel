@@ -25,3 +25,11 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 
 // Export the app router and its type
 export { appRouter, type AppRouter } from "./routers/index";
+
+// Export email utilities for use in auth package
+export { sendEmail } from "./lib/email";
+export { 
+  renderResetPasswordEmail, 
+  renderPasswordResetSuccessEmail, 
+  renderEmailVerificationEmail 
+} from "./lib/email-templates";

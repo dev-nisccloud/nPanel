@@ -18,13 +18,15 @@ function transformPleskSubdomainsToComponent(
       return {
         id: 0,
         name: "Unknown Subdomain",
+        parent: "",
         status: result.status ?? "unknown",
+        properties: undefined,
       };
     }
 
     // Extract properties from the property array
-    const properties = data.property || [];
-    const propertyMap = properties.reduce((acc, prop) => {
+    const propertyArray = data.property || [];
+    const propertyMap = propertyArray.reduce((acc, prop) => {
       if (prop.name && prop.value !== undefined) {
         acc[prop.name] = prop.value;
       }
@@ -36,25 +38,26 @@ function transformPleskSubdomainsToComponent(
       name: data.name ?? "Unknown Subdomain",
       parent: data.parent ?? "",
       status: result.status ?? "unknown",
-      filterId: result["filter-id"] ?? "",
-      // Technology properties
-      asp: propertyMap.asp === true,
-      ssi: propertyMap.ssi === true,
-      php: propertyMap.php === true,
-      phpHandlerId: typeof propertyMap.php_handler_id === "string" ? propertyMap.php_handler_id : "",
-      cgi: propertyMap.cgi === true,
-      perl: propertyMap.perl === true,
-      python: propertyMap.python === true,
-      fastcgi: propertyMap.fastcgi === true,
-      // Security properties
-      ssl: propertyMap.ssl === true,
-      sameSsl: propertyMap.same_ssl === true,
-      // Path properties
-      wwwRoot: typeof propertyMap.www_root === "string" ? propertyMap.www_root : "",
-      // Statistics properties
-      webstat: typeof propertyMap.webstat === "string" ? propertyMap.webstat : "",
-      webstatProtected: typeof propertyMap.webstat_protected === "string" ? propertyMap.webstat_protected : "",
-      emptyDocumentRoot: typeof propertyMap["empty-document-root"] === "string" ? propertyMap["empty-document-root"] : "",
+      properties: {
+        // Technology properties
+        asp: propertyMap.asp === true,
+        ssi: propertyMap.ssi === true,
+        php: propertyMap.php === true,
+        php_handler_id: typeof propertyMap.php_handler_id === "string" ? propertyMap.php_handler_id : undefined,
+        cgi: propertyMap.cgi === true,
+        perl: propertyMap.perl === true,
+        python: propertyMap.python === true,
+        fastcgi: propertyMap.fastcgi === true,
+        // Security properties
+        ssl: propertyMap.ssl === true,
+        same_ssl: propertyMap.same_ssl === true,
+        // Path properties
+        www_root: typeof propertyMap.www_root === "string" ? propertyMap.www_root : undefined,
+        // Statistics properties
+        webstat: typeof propertyMap.webstat === "string" ? propertyMap.webstat : undefined,
+        webstat_protected: typeof propertyMap.webstat_protected === "string" ? propertyMap.webstat_protected : undefined,
+        empty_document_root: typeof propertyMap["empty-document-root"] === "string" ? propertyMap["empty-document-root"] : undefined,
+      },
     };
   });
 }

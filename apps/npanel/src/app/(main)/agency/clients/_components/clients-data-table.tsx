@@ -53,7 +53,6 @@ export function ClientsDataTable({ data: initialData }: ClientsDataTableProps) {
 
   const columns = createClientColumns({
     onEditClient: handleEditClient,
-    onDeleteClient: handleDeleteClient,
   });
 
   const table = useDataTableInstance({ 

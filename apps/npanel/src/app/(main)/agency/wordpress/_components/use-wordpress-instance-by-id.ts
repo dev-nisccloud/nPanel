@@ -68,12 +68,14 @@ function transformWordPressInstanceToDetail(
         autoUpdatesAvailable: installation.features.updates.autoUpdatesAvailable,
         amountOfPluginsWithUpdates: installation.features.updates.amountOfPluginsWithUpdates,
         amountOfThemesWithUpdates: installation.features.updates.amountOfThemesWithUpdates,
-        availableVersion: installation.features.updates.availableVersion,
+        availableVersion: installation.features.updates.availableVersion ?? undefined,
       } : undefined,
       restorePoint: installation.features.restorePoint ? {
         available: installation.features.restorePoint.available,
-        restorePointTimestamp: installation.features.restorePoint.restorePointTimestamp,
-        displayTimestamp: installation.features.restorePoint.displayTimestamp,
+        restorePointTimestamp: typeof installation.features.restorePoint.restorePointTimestamp === 'number' 
+          ? String(installation.features.restorePoint.restorePointTimestamp) 
+          : installation.features.restorePoint.restorePointTimestamp ?? undefined,
+        displayTimestamp: installation.features.restorePoint.displayTimestamp ?? undefined,
       } : undefined,
       maintenance: installation.features.maintenance ? {
         status: installation.features.maintenance.status,

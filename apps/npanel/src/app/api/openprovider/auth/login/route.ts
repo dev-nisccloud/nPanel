@@ -7,7 +7,7 @@ import type { OpenproviderAuthRequest } from '@/types/openprovider';
 const LoginRequestSchema = z.object({
   username: z.string().min(1, 'Username is required').optional(),
   password: z.string().min(1, 'Password is required').optional(),
-  ip: z.string().ip().optional(),
+  ip: z.string().regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/).optional(),
   useEnvCredentials: z.boolean().optional().default(false),
 });
 
@@ -15,7 +15,7 @@ const LoginRequestSchema = z.object({
 const EnvCredentialsSchema = z.object({
   OPENPROVIDER_USERNAME: z.string().min(1, 'OPENPROVIDER_USERNAME is required'),
   OPENPROVIDER_PASSWORD: z.string().min(1, 'OPENPROVIDER_PASSWORD is required'),
-  OPENPROVIDER_IP: z.string().ip().optional(),
+  OPENPROVIDER_IP: z.string().regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
           error: {
             code: 400,
             message: 'Invalid request data',
-            details: error.errors.map(err => ({
+            details: error.issues.map((err: any) => ({
               field: err.path.join('.'),
               message: err.message,
             })),

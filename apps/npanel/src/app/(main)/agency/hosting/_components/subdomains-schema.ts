@@ -26,32 +26,39 @@ export const pleskSubdomainsResponseSchema = z.object({
   }),
 });
 
-// Schema for individual subdomain (used in components)
-export const subdomainSchema = z.object({
-  id: z.number().optional(),
-  name: z.string().optional(),
-  parent: z.string().optional(),
-  status: z.string().optional(),
-  filterId: z.string().optional(),
-  // Technology properties
+// Schema for subdomain properties
+export const subdomainPropertiesSchema = z.object({
   asp: z.boolean().optional(),
   ssi: z.boolean().optional(),
   php: z.boolean().optional(),
-  phpHandlerId: z.string().optional(),
+  php_handler_id: z.string().optional(),
   cgi: z.boolean().optional(),
   perl: z.boolean().optional(),
   python: z.boolean().optional(),
   fastcgi: z.boolean().optional(),
-  // Security properties
   ssl: z.boolean().optional(),
-  sameSsl: z.boolean().optional(),
-  // Path properties
-  wwwRoot: z.string().optional(),
-  // Statistics properties
+  same_ssl: z.boolean().optional(),
+  www_root: z.string().optional(),
   webstat: z.string().optional(),
-  webstatProtected: z.string().optional(),
-  emptyDocumentRoot: z.string().optional(),
+  webstat_protected: z.string().optional(),
+  empty_document_root: z.string().optional(),
+}).optional();
+
+// Schema for individual subdomain (used in components)
+export const subdomainSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  parent: z.string(),
+  status: z.string().optional(),
+  properties: subdomainPropertiesSchema,
+});
+
+// Schema for array of subdomains
+export const subdomainsDataSchema = z.object({
+  subdomains: z.array(subdomainSchema),
 });
 
 export type PleskSubdomainsResponse = z.infer<typeof pleskSubdomainsResponseSchema>;
+export type SubdomainProperties = z.infer<typeof subdomainPropertiesSchema>;
 export type Subdomain = z.infer<typeof subdomainSchema>;
+export type SubdomainsData = z.infer<typeof subdomainsDataSchema>;

@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
           error: {
             code: 400,
             message: 'Invalid request data',
-            details: error.errors.map(err => ({
+            details: error.issues.map((err: any) => ({
               field: err.path.join('.'),
               message: err.message,
             })),

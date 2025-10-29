@@ -384,35 +384,35 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Subdomains</p>
-              <p className="text-lg font-semibold">{hostingData.stat.subdom}</p>
+              <p className="text-lg font-semibold">{hostingData.stat?.subdom ?? 0}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Web Users</p>
-              <p className="text-lg font-semibold">{hostingData.stat.wu}</p>
+              <p className="text-lg font-semibold">{hostingData.stat?.wu ?? 0}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Redirects</p>
-              <p className="text-lg font-semibold">{hostingData.stat.redir}</p>
+              <p className="text-lg font-semibold">{hostingData.stat?.redir ?? 0}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Mail Groups</p>
-              <p className="text-lg font-semibold">{hostingData.stat.mg}</p>
+              <p className="text-lg font-semibold">{hostingData.stat?.mg ?? 0}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Responses</p>
-              <p className="text-lg font-semibold">{hostingData.stat.resp}</p>
+              <p className="text-lg font-semibold">{hostingData.stat?.resp ?? 0}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Mail Lists</p>
-              <p className="text-lg font-semibold">{hostingData.stat.maillists}</p>
+              <p className="text-lg font-semibold">{hostingData.stat?.maillists ?? 0}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">MSSQL Databases</p>
-              <p className="text-lg font-semibold">{hostingData.stat.mssql_db}</p>
+              <p className="text-lg font-semibold">{hostingData.stat?.mssql_db ?? 0}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Yesterday's Traffic</p>
-              <p className="text-lg font-semibold">{formatTraffic(hostingData.stat.traffic_prevday)}</p>
+              <p className="text-lg font-semibold">{formatTraffic(hostingData.stat?.traffic_prevday ?? 0)}</p>
             </div>
           </div>
         </CardContent>

@@ -76,8 +76,8 @@ export const wordpressColumns: ColumnDef<z.infer<typeof wordpressInstallationSch
     accessorKey: "status.alive",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
     cell: ({ row }) => {
-      const isAlive = row.original.status.alive;
-      const isInfected = row.original.status.infected;
+      const isAlive = row.original.status?.alive;
+      const isInfected = row.original.status?.infected;
       
       if (isInfected) {
         return <Badge variant="destructive">Infected</Badge>;
@@ -94,7 +94,7 @@ export const wordpressColumns: ColumnDef<z.infer<typeof wordpressInstallationSch
     accessorKey: "features.security.status",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Security" />,
     cell: ({ row }) => {
-      const securityStatus = row.original.features.security.status;
+      const securityStatus = row.original.features?.security?.status;
       
       if (securityStatus === "secureRecommended") {
         return <Badge variant="default">Secure</Badge>;

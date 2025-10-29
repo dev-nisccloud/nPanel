@@ -35,7 +35,6 @@ Return ONLY a JSON array of domain names (without extensions), like this:
 
 Do not include any other text or explanation.`,
       temperature: 0.8,
-      maxTokens: 500,
     });
 
     // Parse the AI response
@@ -80,7 +79,7 @@ Do not include any other text or explanation.`,
         { 
           success: false, 
           error: 'Invalid input', 
-          details: error.errors 
+          details: error.issues 
         },
         { status: 400 }
       );

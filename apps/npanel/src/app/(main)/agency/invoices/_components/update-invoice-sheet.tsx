@@ -270,7 +270,8 @@ export function UpdateInvoiceSheet({ open, onOpenChange, invoice, onUpdateInvoic
                           <Textarea 
                             placeholder="Invoice description..."
                             className="resize-none"
-                            {...field} 
+                            {...field}
+                            value={field.value ?? ""} 
                           />
                         </FormControl>
                         <FormMessage />

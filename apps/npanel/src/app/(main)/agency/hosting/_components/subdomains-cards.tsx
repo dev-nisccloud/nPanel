@@ -45,10 +45,10 @@ export function SubdomainCard({
   };
 
   const getPhpVersion = () => {
-    if (!data.phpHandlerId) return "N/A";
+    if (!data.properties?.php_handler_id) return "N/A";
     // Extract version from handler ID like "plesk-php83-fpm-dedicated"
-    const match = data.phpHandlerId.match(/php(\d+)/);
-    return match ? `PHP ${match[1]}` : data.phpHandlerId;
+    const match = data.properties.php_handler_id.match(/php(\d+)/);
+    return match ? `PHP ${match[1]}` : data.properties.php_handler_id;
   };
 
   return (
@@ -115,10 +115,10 @@ export function SubdomainCard({
             <div className="flex items-center gap-1">
               <Shield className="h-3 w-3 text-muted-foreground" />
               <Badge 
-                variant={data.ssl ? "default" : "secondary"}
+                variant={data.properties?.ssl ? "default" : "secondary"}
                 className="text-xs"
               >
-                {data.ssl ? "Enabled" : "Disabled"}
+                {data.properties?.ssl ? "Enabled" : "Disabled"}
               </Badge>
             </div>
           </div>
@@ -130,14 +130,14 @@ export function SubdomainCard({
             <div className="flex items-center gap-1">
               <FolderOpen className="h-3 w-3 text-muted-foreground" />
               <p className="text-sm font-medium truncate">
-                {data.wwwRoot ? data.wwwRoot.split('/').pop() : "N/A"}
+                {data.properties?.www_root ? data.properties.www_root.split('/').pop() : "N/A"}
               </p>
             </div>
           </div>
         </div>
 
         {/* Additional Information */}
-        {(data.webstat || data.fastcgi || data.cgi || data.perl || data.python) && (
+        {(data.properties?.webstat || data.properties?.fastcgi || data.properties?.cgi || data.properties?.perl || data.properties?.python) && (
           <div className="mt-4 pt-4 border-t space-y-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
@@ -145,7 +145,7 @@ export function SubdomainCard({
                   Web Statistics
                 </p>
                 <Badge variant="outline" className="text-xs">
-                  {data.webstat || "None"}
+                  {data.properties?.webstat || "None"}
                 </Badge>
               </div>
               
@@ -154,11 +154,11 @@ export function SubdomainCard({
                   Additional Features
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  {data.fastcgi && <Badge variant="secondary" className="text-xs">FastCGI</Badge>}
-                  {data.cgi && <Badge variant="secondary" className="text-xs">CGI</Badge>}
-                  {data.perl && <Badge variant="secondary" className="text-xs">Perl</Badge>}
-                  {data.python && <Badge variant="secondary" className="text-xs">Python</Badge>}
-                  {!data.fastcgi && !data.cgi && !data.perl && !data.python && (
+                  {data.properties?.fastcgi && <Badge variant="secondary" className="text-xs">FastCGI</Badge>}
+                  {data.properties?.cgi && <Badge variant="secondary" className="text-xs">CGI</Badge>}
+                  {data.properties?.perl && <Badge variant="secondary" className="text-xs">Perl</Badge>}
+                  {data.properties?.python && <Badge variant="secondary" className="text-xs">Python</Badge>}
+                  {!data.properties?.fastcgi && !data.properties?.cgi && !data.properties?.perl && !data.properties?.python && (
                     <Badge variant="outline" className="text-xs">None</Badge>
                   )}
                 </div>

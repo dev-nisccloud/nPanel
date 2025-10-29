@@ -2,8 +2,12 @@ import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { createAuthMiddleware, APIError } from "better-auth/api";
 import prisma from "@nPanel/db";
+import {  
+  renderResetPasswordEmail, 
+  renderPasswordResetSuccessEmail, 
+  renderEmailVerificationEmail 
+} from "@nPanel/api/lib/email-templates";
 import { sendEmail } from "@nPanel/api/lib/email";
-import { renderResetPasswordEmail, renderPasswordResetSuccessEmail, renderEmailVerificationEmail } from "@nPanel/api/lib/email-templates";
 
 export const auth = betterAuth<BetterAuthOptions>({
 	database: prismaAdapter(prisma, {

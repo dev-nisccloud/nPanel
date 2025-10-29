@@ -201,9 +201,9 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
       } else if (statusFilter === "inactive") {
         filtered = filtered.filter((item) => item.status !== "ok");
       } else if (statusFilter === "ssl_enabled") {
-        filtered = filtered.filter((item) => item.ssl);
+        filtered = filtered.filter((item) => item.properties?.ssl);
       } else if (statusFilter === "php_enabled") {
-        filtered = filtered.filter((item) => item.php);
+        filtered = filtered.filter((item) => item.properties?.php);
       }
     }
 
