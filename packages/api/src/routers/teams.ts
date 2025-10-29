@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../trpc";
 import prisma from "@nPanel/db";
-import { renderTeamInviteEmail } from "../lib/email-templates";
+import { renderTeamInviteEmail } from "react-email-starter/src/email-templates";
 
 // Zod schemas for API - independent from database schema
 const createTeamInputSchema = z.object({
@@ -225,7 +225,7 @@ export const teamsRouter = router({
         );
 
         // Send emails sequentially with rate limiting
-        const { sendEmailBatch } = await import("../lib/email");
+        const { sendEmailBatch } = await import("react-email-starter/src/email");
         const results = await sendEmailBatch(emailsToSend);
 
         // Log results for each email

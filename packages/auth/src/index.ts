@@ -6,8 +6,8 @@ import {
   renderResetPasswordEmail, 
   renderPasswordResetSuccessEmail, 
   renderEmailVerificationEmail 
-} from "@nPanel/api/lib/email-templates";
-import { sendEmail } from "@nPanel/api/lib/email";
+} from "react-email-starter/src/email-templates";
+import { sendEmail } from "react-email-starter/src/email";
 
 export const auth = betterAuth<BetterAuthOptions>({
 	database: prismaAdapter(prisma, {
