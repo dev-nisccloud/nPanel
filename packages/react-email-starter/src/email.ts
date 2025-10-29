@@ -1,11 +1,24 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /**
  * Helper function to delay execution
  */
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Get or create Resend client instance (lazy initialization)
+ */
+let resendClient: Resend | null = null;
+function getResendClient(): Resend {
+  if (!resendClient) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY environment variable is not set");
+    }
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
+}
 
 /**
  * Send an email with automatic retry on rate limit errors
@@ -48,6 +61,7 @@ export async function sendEmail({
         emailData.text = text;
       }
 
+      const resend = getResendClient();
       const { data, error } = await resend.emails.send({
         from: emailData.from,
         to: emailData.to,
