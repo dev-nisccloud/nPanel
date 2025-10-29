@@ -1,15 +1,5 @@
 import { render } from '@react-email/render';
-import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail } from '@nPanel/email/emails';
-
-// Polyfill for WritableStream if not available (needed for React 19 + @react-email/render)
-if (typeof (globalThis as any).WritableStream === 'undefined') {
-  try {
-    const { WritableStream } = require('node:stream/web');
-    (globalThis as any).WritableStream = WritableStream;
-  } catch (error) {
-    console.warn('Could not load WritableStream polyfill:', error);
-  }
-}
+import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail } from 'react-email-starter/emails';
 
 export async function renderResetPasswordEmail({
   userFirstname,
