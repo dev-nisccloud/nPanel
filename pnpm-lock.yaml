@@ -480,9 +480,6 @@ importers:
 
   packages/auth:
     dependencies:
-      '@nPanel/api':
-        specifier: workspace:*
-        version: link:../api
       '@nPanel/db':
         specifier: workspace:*
         version: link:../db
@@ -499,6 +496,9 @@ importers:
         specifier: 'catalog:'
         version: 4.1.12
     devDependencies:
+      '@nPanel/api':
+        specifier: workspace:*
+        version: link:../api
       tsdown:
         specifier: 'catalog:'
         version: 0.15.6(typescript@5.9.3)
