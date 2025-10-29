@@ -2,18 +2,34 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { Redis } from "@upstash/redis";
 
-// Initialize Redis client with Upstash
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+// Lazy-loaded Redis client instance
+let redisInstance: Redis | null = null;
 
-// Add del method if not available (for development)
-if (!redis.del) {
-  (redis as any).del = async (key: string) => {
-    console.log(`Mock Redis DEL: ${key}`);
-    return 1;
-  };
+/**
+ * Get or create Redis client (lazy initialization)
+ */
+function getRedisClient(): Redis {
+  if (!redisInstance) {
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    if (!url || !token) {
+      throw new Error(
+        "Missing required Upstash Redis environment variables: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN"
+      );
+    }
+
+    redisInstance = new Redis({ url, token });
+
+    // Add del method if not available (for development)
+    if (!redisInstance.del) {
+      (redisInstance as any).del = async (key: string) => {
+        console.log(`Mock Redis DEL: ${key}`);
+        return 1;
+      };
+    }
+  }
+  return redisInstance;
 }
 
 // Supported currencies
@@ -127,6 +143,7 @@ async function fetchExchangeRates(baseCurrency: string = 'USD') {
 // Helper function to track API usage
 async function trackApiUsage() {
   try {
+    const redis = getRedisClient();
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
     const usageKey = `${CACHE_KEYS.API_USAGE}:${currentMonth}`;
     
@@ -155,6 +172,7 @@ async function cleanupExpiredCache() {
 // Helper function to get cached rates
 async function getCachedRates(baseCurrency: string) {
   try {
+    const redis = getRedisClient();
     const ratesKey = `${CACHE_KEYS.EXCHANGE_RATES}:${baseCurrency}`;
     const lastFetchKey = `${CACHE_KEYS.LAST_FETCH_TIME}:${baseCurrency}`;
     
@@ -206,6 +224,7 @@ async function getCachedRates(baseCurrency: string) {
 // Helper function to cache rates
 async function cacheRates(baseCurrency: string, rates: Record<string, number>, timestamp: number) {
   try {
+    const redis = getRedisClient();
     const ratesKey = `${CACHE_KEYS.EXCHANGE_RATES}:${baseCurrency}`;
     const lastFetchKey = `${CACHE_KEYS.LAST_FETCH_TIME}:${baseCurrency}`;
     
@@ -382,6 +401,8 @@ export const currencyConversionRouter = router({
     }))
     .query(async () => {
       try {
+        const redis = getRedisClient();
+        
         // Test Redis connection
         await redis.ping();
         
@@ -421,6 +442,7 @@ export const currencyConversionRouter = router({
     }))
     .query(async () => {
       try {
+        const redis = getRedisClient();
         const currentMonth = new Date().toISOString().slice(0, 7);
         const usageKey = `${CACHE_KEYS.API_USAGE}:${currentMonth}`;
         

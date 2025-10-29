@@ -14,12 +14,14 @@ export const auth = betterAuth<BetterAuthOptions>({
 		provider: "postgresql",
 	}),
 	trustedOrigins: [
-		process.env.CORS_ORIGIN || "",
-		process.env.NEXT_PUBLIC_CORS_ORIGIN || "http://localhost:3002",
+		process.env.CORS_ORIGIN,
+		process.env.NEXT_PUBLIC_CORS_ORIGIN,
+		"http://localhost:3000",
 		"http://localhost:3002",
 		"http://localhost:3001"
-	],
+	].filter((origin): origin is string => !!origin && origin.length > 0),
 	baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001",
+	secret: process.env.BETTER_AUTH_SECRET || "125860536dd9a16949cb0ffd5eb2070043a51dfebc37503c2c9684b425707e1a",
 	session: {
 		// Default session duration: 2 hours
 		// Can be extended to 30 days if user checks "Remember me"

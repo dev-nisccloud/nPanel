@@ -4,7 +4,7 @@ import {
   GetIdentityVerificationAttributesCommand,
   DeleteIdentityCommand,
 } from "@aws-sdk/client-ses";
-import { sesClient } from "./client";
+import { getSESClient } from "./client";
 
 export interface DomainVerificationResult {
   domainName: string;
@@ -27,6 +27,8 @@ export interface VerificationStatus {
  */
 export async function verifyDomain(domainName: string): Promise<DomainVerificationResult> {
   try {
+    const sesClient = getSESClient();
+    
     // Verify domain identity (SPF)
     const verifyCommand = new VerifyDomainIdentityCommand({
       Domain: domainName,
@@ -76,6 +78,8 @@ export async function verifyDomain(domainName: string): Promise<DomainVerificati
  */
 export async function checkVerificationStatus(domainName: string): Promise<VerificationStatus> {
   try {
+    const sesClient = getSESClient();
+    
     const command = new GetIdentityVerificationAttributesCommand({
       Identities: [domainName],
     });
@@ -116,6 +120,8 @@ export async function getDomainDnsRecords(domainName: string): Promise<{
   dkimRecords: string[];
 }> {
   try {
+    const sesClient = getSESClient();
+    
     // Get DKIM tokens
     const dkimCommand = new VerifyDomainDkimCommand({
       Domain: domainName,
@@ -152,6 +158,8 @@ export async function getDomainDnsRecords(domainName: string): Promise<{
  */
 export async function deleteDomain(domainName: string): Promise<void> {
   try {
+    const sesClient = getSESClient();
+    
     const command = new DeleteIdentityCommand({
       Identity: domainName,
     });
