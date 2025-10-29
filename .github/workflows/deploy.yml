@@ -119,7 +119,7 @@ jobs:
         run: pnpm run db:generate
 
       - name: Build all packages
-        run: pnpm run build
+        run: NODE_OPTIONS="--max-old-space-size=6144" pnpm run build
 
   # Run database migrations for staging
   migrate-staging:
