@@ -37,7 +37,6 @@ import { openProviderRouter } from "./openprovider";
 import { nameserverGroupsRouter } from "./nameserver-groups";
 import { tldSettingsRouter } from "./tld-settings";
 import { currencyConversionRouter } from "./currency-conversion";
-import { emailMarketingRouter } from "./email-marketing";
 import { teamsRouter } from "./teams";
 import { userProfileRouter } from "./user-profile";
 import { creativeAssetsRouter } from "./creative-assets";
@@ -102,8 +101,6 @@ export const appRouter = router({
 	tldSettings: tldSettingsRouter,
 	// Currency Conversion
 	currency: currencyConversionRouter,
-	// Email Marketing
-	emailMarketing: emailMarketingRouter,
 	// Teams Management
 	teams: teamsRouter,
 	// User Profile Management
