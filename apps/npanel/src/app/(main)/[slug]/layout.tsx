@@ -22,6 +22,8 @@ import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { TeamSwitcher } from "./_components/sidebar/team-switcher";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 
+export const dynamic = "force-dynamic";
+
 export default async function TeamLayout({ 
   children, 
   params 

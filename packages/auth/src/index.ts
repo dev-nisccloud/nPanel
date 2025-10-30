@@ -13,9 +13,9 @@ export const auth = betterAuth<BetterAuthOptions>({
 	database: prismaAdapter(prisma, {
 		provider: "postgresql",
 	}),
-	trustedOrigins: [
-		process.env.CORS_ORIGIN,
-	].filter((origin): origin is string => !!origin && origin.length > 0),
+	trustedOrigins: process.env.BETTER_AUTH_URL
+			? [process.env.BETTER_AUTH_URL]
+			: undefined,
 	baseURL: process.env.BETTER_AUTH_URL,
 	secret: process.env.BETTER_AUTH_SECRET,
 	session: {
