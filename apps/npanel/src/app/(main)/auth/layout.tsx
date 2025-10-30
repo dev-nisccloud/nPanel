@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+export const dynamic = "force-dynamic";
 
 import { Command } from "lucide-react";
 
