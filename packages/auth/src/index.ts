@@ -16,7 +16,8 @@ export const auth = betterAuth<BetterAuthOptions>({
 	trustedOrigins: process.env.BETTER_AUTH_URL
 			? [process.env.BETTER_AUTH_URL]
 			: undefined,
-	baseURL: process.env.BETTER_AUTH_URL,
+	// Avoid absolute baseURL to ensure server-side session checks use same-origin and include cookies
+	baseURL: undefined,
 	secret: process.env.BETTER_AUTH_SECRET,
 	session: {
 		// Default session duration: 2 hours
