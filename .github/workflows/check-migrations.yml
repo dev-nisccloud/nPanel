@@ -22,6 +22,8 @@ jobs:
     name: Check Migration Status
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
+    env:
+      PRISMA_BINARY_TARGETS: ${{ secrets.PRISMA_BINARY_TARGETS }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

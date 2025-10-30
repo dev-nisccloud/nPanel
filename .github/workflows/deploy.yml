@@ -43,7 +43,8 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
           DIRECT_URL: ${{ secrets.DIRECT_URL_STAGING }}
-        run: pnpm run db:generate
+          PRISMA_BINARY_TARGETS: ${{ secrets.PRISMA_BINARY_TARGETS }}
+        run: pnpm -C packages/db exec prisma generate
 
       - name: Type check
         run: pnpm run check-types
@@ -122,7 +123,8 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
           DIRECT_URL: ${{ secrets.DIRECT_URL_STAGING }}
-        run: pnpm run db:generate
+          PRISMA_BINARY_TARGETS: ${{ secrets.PRISMA_BINARY_TARGETS }}
+        run: pnpm -C packages/db exec prisma generate
 
       - name: Build all packages
         run: NODE_OPTIONS="--max-old-space-size=6144" pnpm run build
@@ -159,6 +161,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
           DIRECT_URL: ${{ secrets.DIRECT_URL_STAGING }}
+          PRISMA_BINARY_TARGETS: ${{ secrets.PRISMA_BINARY_TARGETS }}
         run: |
           cd packages/db
           pnpm exec prisma migrate deploy
@@ -253,6 +256,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
           DIRECT_URL: ${{ secrets.DIRECT_URL_PRODUCTION }}
+          PRISMA_BINARY_TARGETS: ${{ secrets.PRISMA_BINARY_TARGETS }}
         run: |
           cd packages/db
           pnpm exec prisma migrate deploy
