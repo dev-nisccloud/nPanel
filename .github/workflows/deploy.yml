@@ -194,7 +194,7 @@ jobs:
 
       - name: Health check
         run: |
-          max_attempts=40
+          max_attempts=50
           attempt=0
           while [ $attempt -lt $max_attempts ]; do
             if curl -f -s -o /dev/null "${{ secrets.STAGING_URL }}/api/health"; then
