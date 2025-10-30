@@ -8,17 +8,22 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   
-  // If user hits auth pages while already authenticated, send them to resolver route
+  // Allow root to resolve auth server-side (prevents ping-pong at entry)
+  if (pathname === "/") {
+    return NextResponse.next();
+  }
+
+  // If user hits auth pages while already authenticated, send them to root (server decides)
   if (pathname.startsWith("/auth")) {
     const isLoggedIn = await isSessionValid(req);
-    if (isLoggedIn && pathname !== "/home") {
-      return NextResponse.redirect(new URL("/home", req.url), 302);
+    if (isLoggedIn && pathname !== "/") {
+      return NextResponse.redirect(new URL("/", req.url), 302);
     }
     return NextResponse.next();
   }
   
   // Skip auth check for public routes
-  const publicRoutes = ["/auth", "/home", "/api", "/_next", "/accept-invite", "/create-team", "/account-status", "/unauthorized", "/update-role"];
+  const publicRoutes = ["/auth", "/api", "/_next", "/accept-invite", "/create-team", "/account-status", "/unauthorized", "/update-role"];
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
@@ -74,7 +79,10 @@ async function isSessionValid(req: NextRequest): Promise<boolean> {
         cookie: req.headers.get("cookie") ?? "",
         host: req.headers.get("host") ?? url.host,
         "x-forwarded-host": req.headers.get("x-forwarded-host") ?? url.host,
-        "x-forwarded-proto": req.headers.get("x-forwarded-proto") ?? "https",
+        "x-forwarded-proto": (() => {
+          const xfProto = req.headers.get("x-forwarded-proto") || "";
+          return xfProto.includes("https") ? "https" : (xfProto.includes("http") ? "http" : "https");
+        })(),
         "x-real-ip": req.headers.get("x-real-ip") ?? "",
         "user-agent": req.headers.get("user-agent") ?? "",
         accept: req.headers.get("accept") ?? "application/json",

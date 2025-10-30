@@ -34,7 +34,8 @@ export const getSession = cache(async () => {
   const headers = await getHeaders();
   try {
     const host = headers.get("x-forwarded-host") || headers.get("host") || "";
-    const proto = headers.get("x-forwarded-proto") || "https";
+    const xfProto = headers.get("x-forwarded-proto") || "";
+    const proto = xfProto.includes("https") ? "https" : (xfProto.includes("http") ? "http" : "https");
     const origin = host ? `${proto}://${host}` : "";
     const res = await fetch(`${origin}/api/auth/get-session`, {
       method: "GET",
@@ -42,7 +43,7 @@ export const getSession = cache(async () => {
         cookie: headers.get("cookie") ?? "",
         host,
         "x-forwarded-host": headers.get("x-forwarded-host") ?? host,
-        "x-forwarded-proto": headers.get("x-forwarded-proto") ?? proto,
+        "x-forwarded-proto": proto,
         "user-agent": headers.get("user-agent") ?? "",
         accept: "application/json",
       },
@@ -64,7 +65,8 @@ async function signOutUser() {
   try {
     const headers = await getHeaders();
     const host = headers.get("x-forwarded-host") || headers.get("host") || "";
-    const proto = headers.get("x-forwarded-proto") || "https";
+    const xfProto = headers.get("x-forwarded-proto") || "";
+    const proto = xfProto.includes("https") ? "https" : (xfProto.includes("http") ? "http" : "https");
     const origin = host ? `${proto}://${host}` : "";
     await fetch(`${origin}/api/auth/sign-out`, {
       method: "POST",
@@ -72,7 +74,7 @@ async function signOutUser() {
         cookie: headers.get("cookie") ?? "",
         host,
         "x-forwarded-host": headers.get("x-forwarded-host") ?? host,
-        "x-forwarded-proto": headers.get("x-forwarded-proto") ?? proto,
+        "x-forwarded-proto": proto,
         "user-agent": headers.get("user-agent") ?? "",
         accept: "application/json",
       },
