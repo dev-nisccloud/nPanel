@@ -8,8 +8,17 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   
+  // If user hits auth pages while already authenticated, send them to resolver route
+  if (pathname.startsWith("/auth")) {
+    const isLoggedIn = await isSessionValid(req);
+    if (isLoggedIn && pathname !== "/home") {
+      return NextResponse.redirect(new URL("/home", req.url), 302);
+    }
+    return NextResponse.next();
+  }
+  
   // Skip auth check for public routes
-  const publicRoutes = ["/auth", "/api", "/_next", "/accept-invite", "/create-team", "/account-status", "/unauthorized", "/update-role"];
+  const publicRoutes = ["/auth", "/home", "/api", "/_next", "/accept-invite", "/create-team", "/account-status", "/unauthorized", "/update-role"];
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
