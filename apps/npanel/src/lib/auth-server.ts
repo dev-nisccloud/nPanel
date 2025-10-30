@@ -32,13 +32,25 @@ interface UserWithStatus {
  */
 export const getSession = cache(async () => {
   const headers = await getHeaders();
-  
   try {
-    const session = await auth.api.getSession({
-      headers,
+    const host = headers.get("x-forwarded-host") || headers.get("host") || "";
+    const proto = headers.get("x-forwarded-proto") || "https";
+    const origin = host ? `${proto}://${host}` : "";
+    const res = await fetch(`${origin}/api/auth/get-session`, {
+      method: "GET",
+      headers: {
+        cookie: headers.get("cookie") ?? "",
+        host,
+        "x-forwarded-host": headers.get("x-forwarded-host") ?? host,
+        "x-forwarded-proto": headers.get("x-forwarded-proto") ?? proto,
+        "user-agent": headers.get("user-agent") ?? "",
+        accept: "application/json",
+      },
+      cache: "no-store",
+      redirect: "manual",
     });
-    
-    return session;
+    if (!res.ok) return null;
+    return await res.json();
   } catch (error) {
     console.error("[Auth Server] Error fetching session:", error);
     return null;
@@ -51,8 +63,21 @@ export const getSession = cache(async () => {
 async function signOutUser() {
   try {
     const headers = await getHeaders();
-    await auth.api.signOut({
-      headers,
+    const host = headers.get("x-forwarded-host") || headers.get("host") || "";
+    const proto = headers.get("x-forwarded-proto") || "https";
+    const origin = host ? `${proto}://${host}` : "";
+    await fetch(`${origin}/api/auth/sign-out`, {
+      method: "POST",
+      headers: {
+        cookie: headers.get("cookie") ?? "",
+        host,
+        "x-forwarded-host": headers.get("x-forwarded-host") ?? host,
+        "x-forwarded-proto": headers.get("x-forwarded-proto") ?? proto,
+        "user-agent": headers.get("user-agent") ?? "",
+        accept: "application/json",
+      },
+      cache: "no-store",
+      redirect: "manual",
     });
   } catch (error) {
     console.error("[Auth Server] Error signing out user:", error);
