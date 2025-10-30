@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * Only checks for session cookie existence (fast, no DB calls)
  * Role-based redirects are handled by Server Components in layouts
  */
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   
   // Skip auth check for public routes
@@ -16,20 +16,16 @@ export function middleware(req: NextRequest) {
 
   // Skip for agency routes (they have their own matcher)
   if (pathname.startsWith("/agency")) {
-    const sessionCookie = req.cookies.get("better-auth.session_token");
-    const isLoggedIn = !!sessionCookie;
-    
+    const isLoggedIn = await isSessionValid(req);
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/auth/login", req.url));
     }
-    
     return NextResponse.next();
   }
 
   // For all other routes (team slug routes), require authentication
   // This covers /{team-slug}/... routes
-  const sessionCookie = req.cookies.get("better-auth.session_token");
-  const isLoggedIn = !!sessionCookie;
+  const isLoggedIn = await isSessionValid(req);
 
   if (!isLoggedIn) {
     return NextResponse.redirect(new URL("/auth/login", req.url));
@@ -50,3 +46,20 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
+
+async function isSessionValid(req: NextRequest): Promise<boolean> {
+  try {
+    const url = new URL("/api/auth/get-session", req.url);
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        cookie: req.headers.get("cookie") ?? "",
+      },
+    });
+    if (!res.ok) return false;
+    const data = await res.json().catch(() => null);
+    return Boolean(data?.user);
+  } catch {
+    return false;
+  }
+}

@@ -9,13 +9,19 @@ import {
 } from "react-email-starter/src/email-templates";
 import { sendEmail } from "react-email-starter/src/email";
 
+const resolvedTrustedOrigins = (() => {
+  const list = process.env.BETTER_AUTH_URLS
+    ? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
+    : undefined;
+  if (list && list.length > 0) return list;
+  return process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : undefined;
+})();
+
 export const auth = betterAuth<BetterAuthOptions>({
 	database: prismaAdapter(prisma, {
 		provider: "postgresql",
 	}),
-	trustedOrigins: process.env.BETTER_AUTH_URL
-			? [process.env.BETTER_AUTH_URL]
-			: undefined,
+	trustedOrigins: resolvedTrustedOrigins,
 	// Avoid absolute baseURL to ensure server-side session checks use same-origin and include cookies
 	baseURL: undefined,
 	secret: process.env.BETTER_AUTH_SECRET,
@@ -346,8 +352,9 @@ export const auth = betterAuth<BetterAuthOptions>({
 	},
 	advanced: {
 		defaultCookieAttributes: {
-			sameSite: "none",
-			secure: true,
+			// Lax is safer for same-origin apps and avoids odd cross-site handling in production
+			sameSite: (process.env.BETTER_AUTH_COOKIE_SAMESITE as "lax" | "strict" | "none") || "lax",
+			secure: process.env.NODE_ENV === "production",
 			httpOnly: true,
 		},
 	},
