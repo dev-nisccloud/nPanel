@@ -18,7 +18,11 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/agency")) {
     const isLoggedIn = await isSessionValid(req);
     if (!isLoggedIn) {
-      return NextResponse.redirect(new URL("/auth/login", req.url));
+      const target = new URL("/auth/login", req.url);
+      if (target.pathname !== pathname) {
+        return NextResponse.redirect(target, 302);
+      }
+      return NextResponse.next();
     }
     return NextResponse.next();
   }
@@ -28,7 +32,11 @@ export async function middleware(req: NextRequest) {
   const isLoggedIn = await isSessionValid(req);
 
   if (!isLoggedIn) {
-    return NextResponse.redirect(new URL("/auth/login", req.url));
+    const target = new URL("/auth/login", req.url);
+    if (target.pathname !== pathname) {
+      return NextResponse.redirect(target, 302);
+    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();
