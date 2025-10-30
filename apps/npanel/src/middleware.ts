@@ -52,8 +52,16 @@ async function isSessionValid(req: NextRequest): Promise<boolean> {
     const url = new URL("/api/auth/get-session", req.url);
     const res = await fetch(url, {
       method: "GET",
+      redirect: "manual",
       headers: {
         cookie: req.headers.get("cookie") ?? "",
+        host: req.headers.get("host") ?? url.host,
+        "x-forwarded-host": req.headers.get("x-forwarded-host") ?? url.host,
+        "x-forwarded-proto": req.headers.get("x-forwarded-proto") ?? "https",
+        "x-real-ip": req.headers.get("x-real-ip") ?? "",
+        "user-agent": req.headers.get("user-agent") ?? "",
+        accept: req.headers.get("accept") ?? "application/json",
+        "accept-language": req.headers.get("accept-language") ?? "en",
       },
     });
     if (!res.ok) return false;
