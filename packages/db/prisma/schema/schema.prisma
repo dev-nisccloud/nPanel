@@ -2,6 +2,7 @@ generator client {
   provider     = "prisma-client"
   output       = "../generated"
   moduleFormat = "esm"
+  binaryTargets = env("PRISMA_BINARY_TARGETS")
 }
 
 datasource db {
