@@ -112,6 +112,10 @@ export const ModelName = {
   InvoiceTransactionActivityLog: 'InvoiceTransactionActivityLog',
   CreditNoteActivityLog: 'CreditNoteActivityLog',
   InvoiceCounter: 'InvoiceCounter',
+  ServiceSubscription: 'ServiceSubscription',
+  ServiceSubscriptionRenewal: 'ServiceSubscriptionRenewal',
+  ServiceSubscriptionActivityLog: 'ServiceSubscriptionActivityLog',
+  ServiceSubscriptionRenewalActivityLog: 'ServiceSubscriptionRenewalActivityLog',
   SocialMediaIntegration: 'SocialMediaIntegration',
   SocialMediaPageToken: 'SocialMediaPageToken',
   SocialMediaIntegrationActivityLog: 'SocialMediaIntegrationActivityLog',
@@ -1332,6 +1336,74 @@ export const InvoiceCounterScalarFieldEnum = {
 } as const
 
 export type InvoiceCounterScalarFieldEnum = (typeof InvoiceCounterScalarFieldEnum)[keyof typeof InvoiceCounterScalarFieldEnum]
+
+
+export const ServiceSubscriptionScalarFieldEnum = {
+  id: 'id',
+  niscServicePlanId: 'niscServicePlanId',
+  teamId: 'teamId',
+  orderId: 'orderId',
+  subscribedBy: 'subscribedBy',
+  subscriptionDate: 'subscriptionDate',
+  billingCycle: 'billingCycle',
+  nextRenewalDate: 'nextRenewalDate',
+  status: 'status',
+  autoRenew: 'autoRenew',
+  hostingSubscriptionId: 'hostingSubscriptionId',
+  notes: 'notes',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ServiceSubscriptionScalarFieldEnum = (typeof ServiceSubscriptionScalarFieldEnum)[keyof typeof ServiceSubscriptionScalarFieldEnum]
+
+
+export const ServiceSubscriptionRenewalScalarFieldEnum = {
+  id: 'id',
+  serviceSubscriptionId: 'serviceSubscriptionId',
+  orderId: 'orderId',
+  renewedBy: 'renewedBy',
+  renewalDate: 'renewalDate',
+  billingCycle: 'billingCycle',
+  nextRenewalDate: 'nextRenewalDate',
+  status: 'status',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ServiceSubscriptionRenewalScalarFieldEnum = (typeof ServiceSubscriptionRenewalScalarFieldEnum)[keyof typeof ServiceSubscriptionRenewalScalarFieldEnum]
+
+
+export const ServiceSubscriptionActivityLogScalarFieldEnum = {
+  id: 'id',
+  serviceSubscriptionId: 'serviceSubscriptionId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ServiceSubscriptionActivityLogScalarFieldEnum = (typeof ServiceSubscriptionActivityLogScalarFieldEnum)[keyof typeof ServiceSubscriptionActivityLogScalarFieldEnum]
+
+
+export const ServiceSubscriptionRenewalActivityLogScalarFieldEnum = {
+  id: 'id',
+  serviceSubscriptionRenewalId: 'serviceSubscriptionRenewalId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ServiceSubscriptionRenewalActivityLogScalarFieldEnum = (typeof ServiceSubscriptionRenewalActivityLogScalarFieldEnum)[keyof typeof ServiceSubscriptionRenewalActivityLogScalarFieldEnum]
 
 
 export const SocialMediaIntegrationScalarFieldEnum = {

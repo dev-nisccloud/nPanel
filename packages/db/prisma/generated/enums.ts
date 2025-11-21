@@ -347,6 +347,19 @@ export const CreditNoteStatus = {
 export type CreditNoteStatus = (typeof CreditNoteStatus)[keyof typeof CreditNoteStatus]
 
 
+export const ServiceSubscriptionStatus = {
+  ACTIVE: 'ACTIVE',
+  PENDING: 'PENDING',
+  SUSPENDED: 'SUSPENDED',
+  CANCELLED: 'CANCELLED',
+  EXPIRED: 'EXPIRED',
+  PROCESSING: 'PROCESSING',
+  FAILED: 'FAILED'
+} as const
+
+export type ServiceSubscriptionStatus = (typeof ServiceSubscriptionStatus)[keyof typeof ServiceSubscriptionStatus]
+
+
 export const SocialMediaPlatform = {
   META_FACEBOOK: 'META_FACEBOOK',
   META_INSTAGRAM: 'META_INSTAGRAM',

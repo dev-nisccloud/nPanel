@@ -421,6 +421,8 @@ export type OrderWhereInput = {
   invoice?: Prisma.XOR<Prisma.InvoiceNullableScalarRelationFilter, Prisma.InvoiceWhereInput> | null
   orderItems?: Prisma.OrderItemListRelationFilter
   activityLogs?: Prisma.OrderActivityLogListRelationFilter
+  serviceSubscriptions?: Prisma.ServiceSubscriptionListRelationFilter
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalListRelationFilter
 }
 
 export type OrderOrderByWithRelationInput = {
@@ -464,6 +466,8 @@ export type OrderOrderByWithRelationInput = {
   invoice?: Prisma.InvoiceOrderByWithRelationInput
   orderItems?: Prisma.OrderItemOrderByRelationAggregateInput
   activityLogs?: Prisma.OrderActivityLogOrderByRelationAggregateInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionOrderByRelationAggregateInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalOrderByRelationAggregateInput
 }
 
 export type OrderWhereUniqueInput = Prisma.AtLeast<{
@@ -510,6 +514,8 @@ export type OrderWhereUniqueInput = Prisma.AtLeast<{
   invoice?: Prisma.XOR<Prisma.InvoiceNullableScalarRelationFilter, Prisma.InvoiceWhereInput> | null
   orderItems?: Prisma.OrderItemListRelationFilter
   activityLogs?: Prisma.OrderActivityLogListRelationFilter
+  serviceSubscriptions?: Prisma.ServiceSubscriptionListRelationFilter
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalListRelationFilter
 }, "id" | "orderNumber">
 
 export type OrderOrderByWithAggregationInput = {
@@ -619,6 +625,8 @@ export type OrderCreateInput = {
   invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateInput = {
@@ -654,6 +662,8 @@ export type OrderUncheckedCreateInput = {
   updatedAt: Date | string
   orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUpdateInput = {
@@ -689,6 +699,8 @@ export type OrderUpdateInput = {
   invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateInput = {
@@ -724,6 +736,8 @@ export type OrderUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderCreateManyInput = {
@@ -935,6 +949,11 @@ export type OrderListRelationFilter = {
 
 export type OrderOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type OrderNullableScalarRelationFilter = {
+  is?: Prisma.OrderWhereInput | null
+  isNot?: Prisma.OrderWhereInput | null
 }
 
 export type EnumOrderTypeFieldUpdateOperationsInput = {
@@ -1321,6 +1340,38 @@ export type OrderUncheckedUpdateManyWithoutInvoiceNestedInput = {
   deleteMany?: Prisma.OrderScalarWhereInput | Prisma.OrderScalarWhereInput[]
 }
 
+export type OrderCreateNestedOneWithoutServiceSubscriptionsInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutServiceSubscriptionsInput, Prisma.OrderUncheckedCreateWithoutServiceSubscriptionsInput>
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutServiceSubscriptionsInput
+  connect?: Prisma.OrderWhereUniqueInput
+}
+
+export type OrderUpdateOneWithoutServiceSubscriptionsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutServiceSubscriptionsInput, Prisma.OrderUncheckedCreateWithoutServiceSubscriptionsInput>
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutServiceSubscriptionsInput
+  upsert?: Prisma.OrderUpsertWithoutServiceSubscriptionsInput
+  disconnect?: Prisma.OrderWhereInput | boolean
+  delete?: Prisma.OrderWhereInput | boolean
+  connect?: Prisma.OrderWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrderUpdateToOneWithWhereWithoutServiceSubscriptionsInput, Prisma.OrderUpdateWithoutServiceSubscriptionsInput>, Prisma.OrderUncheckedUpdateWithoutServiceSubscriptionsInput>
+}
+
+export type OrderCreateNestedOneWithoutServiceSubscriptionRenewalInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutServiceSubscriptionRenewalInput, Prisma.OrderUncheckedCreateWithoutServiceSubscriptionRenewalInput>
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutServiceSubscriptionRenewalInput
+  connect?: Prisma.OrderWhereUniqueInput
+}
+
+export type OrderUpdateOneWithoutServiceSubscriptionRenewalNestedInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutServiceSubscriptionRenewalInput, Prisma.OrderUncheckedCreateWithoutServiceSubscriptionRenewalInput>
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutServiceSubscriptionRenewalInput
+  upsert?: Prisma.OrderUpsertWithoutServiceSubscriptionRenewalInput
+  disconnect?: Prisma.OrderWhereInput | boolean
+  delete?: Prisma.OrderWhereInput | boolean
+  connect?: Prisma.OrderWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrderUpdateToOneWithWhereWithoutServiceSubscriptionRenewalInput, Prisma.OrderUpdateWithoutServiceSubscriptionRenewalInput>, Prisma.OrderUncheckedUpdateWithoutServiceSubscriptionRenewalInput>
+}
+
 export type OrderCreateWithoutOrderItemsInput = {
   id: string
   orderNumber: string
@@ -1353,6 +1404,8 @@ export type OrderCreateWithoutOrderItemsInput = {
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
   invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutOrderItemsInput = {
@@ -1387,6 +1440,8 @@ export type OrderUncheckedCreateWithoutOrderItemsInput = {
   createdAt: Date | string
   updatedAt: Date | string
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutOrderItemsInput = {
@@ -1437,6 +1492,8 @@ export type OrderUpdateWithoutOrderItemsInput = {
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
   invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutOrderItemsInput = {
@@ -1471,6 +1528,8 @@ export type OrderUncheckedUpdateWithoutOrderItemsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderCreateWithoutPromoInput = {
@@ -1505,6 +1564,8 @@ export type OrderCreateWithoutPromoInput = {
   invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutPromoInput = {
@@ -1539,6 +1600,8 @@ export type OrderUncheckedCreateWithoutPromoInput = {
   updatedAt: Date | string
   orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutPromoInput = {
@@ -1635,6 +1698,8 @@ export type OrderCreateWithoutTeamInput = {
   invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutTeamInput = {
@@ -1669,6 +1734,8 @@ export type OrderUncheckedCreateWithoutTeamInput = {
   updatedAt: Date | string
   orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutTeamInput = {
@@ -1729,6 +1796,8 @@ export type OrderCreateWithoutHostingSubscriptionInput = {
   invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutHostingSubscriptionInput = {
@@ -1763,6 +1832,8 @@ export type OrderUncheckedCreateWithoutHostingSubscriptionInput = {
   updatedAt: Date | string
   orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutHostingSubscriptionInput = {
@@ -1823,6 +1894,8 @@ export type OrderCreateWithoutHostingRenewalInput = {
   invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutHostingRenewalInput = {
@@ -1857,6 +1930,8 @@ export type OrderUncheckedCreateWithoutHostingRenewalInput = {
   updatedAt: Date | string
   orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutHostingRenewalInput = {
@@ -1917,6 +1992,8 @@ export type OrderCreateWithoutActivityLogsInput = {
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
   invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutActivityLogsInput = {
@@ -1951,6 +2028,8 @@ export type OrderUncheckedCreateWithoutActivityLogsInput = {
   createdAt: Date | string
   updatedAt: Date | string
   orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutActivityLogsInput = {
@@ -2001,6 +2080,8 @@ export type OrderUpdateWithoutActivityLogsInput = {
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
   invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutActivityLogsInput = {
@@ -2035,6 +2116,8 @@ export type OrderUncheckedUpdateWithoutActivityLogsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderCreateWithoutDomainRegistrationInput = {
@@ -2069,6 +2152,8 @@ export type OrderCreateWithoutDomainRegistrationInput = {
   invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutDomainRegistrationInput = {
@@ -2103,6 +2188,8 @@ export type OrderUncheckedCreateWithoutDomainRegistrationInput = {
   updatedAt: Date | string
   orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutDomainRegistrationInput = {
@@ -2163,6 +2250,8 @@ export type OrderCreateWithoutDomainRenewalInput = {
   invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutDomainRenewalInput = {
@@ -2197,6 +2286,8 @@ export type OrderUncheckedCreateWithoutDomainRenewalInput = {
   updatedAt: Date | string
   orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutDomainRenewalInput = {
@@ -2257,6 +2348,8 @@ export type OrderCreateWithoutDomainTransferInput = {
   invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutDomainTransferInput = {
@@ -2291,6 +2384,8 @@ export type OrderUncheckedCreateWithoutDomainTransferInput = {
   updatedAt: Date | string
   orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutDomainTransferInput = {
@@ -2351,6 +2446,8 @@ export type OrderCreateWithoutInvoiceInput = {
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutInvoiceInput = {
@@ -2385,6 +2482,8 @@ export type OrderUncheckedCreateWithoutInvoiceInput = {
   updatedAt: Date | string
   orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutInvoiceInput = {
@@ -2411,6 +2510,326 @@ export type OrderUpdateWithWhereUniqueWithoutInvoiceInput = {
 export type OrderUpdateManyWithWhereWithoutInvoiceInput = {
   where: Prisma.OrderScalarWhereInput
   data: Prisma.XOR<Prisma.OrderUpdateManyMutationInput, Prisma.OrderUncheckedUpdateManyWithoutInvoiceInput>
+}
+
+export type OrderCreateWithoutServiceSubscriptionsInput = {
+  id: string
+  orderNumber: string
+  createdBy?: string | null
+  type: $Enums.OrderType
+  status?: $Enums.OrderStatus
+  description?: string | null
+  subtotal?: string | null
+  discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
+  total?: string | null
+  currency?: string
+  promoCode?: string | null
+  invoiceNumber?: string | null
+  processedBy?: string | null
+  processedAt?: Date | string | null
+  completedAt?: Date | string | null
+  notes?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  team: Prisma.TeamCreateNestedOneWithoutOrdersInput
+  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
+  domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
+  hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
+  hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
+  promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
+  activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
+}
+
+export type OrderUncheckedCreateWithoutServiceSubscriptionsInput = {
+  id: string
+  orderNumber: string
+  teamId: string
+  createdBy?: string | null
+  type: $Enums.OrderType
+  status?: $Enums.OrderStatus
+  description?: string | null
+  domainRegistrationId?: string | null
+  domainRenewalId?: string | null
+  domainTransferId?: string | null
+  hostingSubscriptionId?: string | null
+  hostingRenewalId?: string | null
+  subtotal?: string | null
+  discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
+  total?: string | null
+  currency?: string
+  promoCode?: string | null
+  promoId?: string | null
+  invoiceNumber?: string | null
+  invoiceId?: string | null
+  processedBy?: string | null
+  processedAt?: Date | string | null
+  completedAt?: Date | string | null
+  notes?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
+  activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
+}
+
+export type OrderCreateOrConnectWithoutServiceSubscriptionsInput = {
+  where: Prisma.OrderWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrderCreateWithoutServiceSubscriptionsInput, Prisma.OrderUncheckedCreateWithoutServiceSubscriptionsInput>
+}
+
+export type OrderUpsertWithoutServiceSubscriptionsInput = {
+  update: Prisma.XOR<Prisma.OrderUpdateWithoutServiceSubscriptionsInput, Prisma.OrderUncheckedUpdateWithoutServiceSubscriptionsInput>
+  create: Prisma.XOR<Prisma.OrderCreateWithoutServiceSubscriptionsInput, Prisma.OrderUncheckedCreateWithoutServiceSubscriptionsInput>
+  where?: Prisma.OrderWhereInput
+}
+
+export type OrderUpdateToOneWithWhereWithoutServiceSubscriptionsInput = {
+  where?: Prisma.OrderWhereInput
+  data: Prisma.XOR<Prisma.OrderUpdateWithoutServiceSubscriptionsInput, Prisma.OrderUncheckedUpdateWithoutServiceSubscriptionsInput>
+}
+
+export type OrderUpdateWithoutServiceSubscriptionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
+  status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
+  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
+  domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
+  hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
+  hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
+  promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
+  activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
+}
+
+export type OrderUncheckedUpdateWithoutServiceSubscriptionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
+  status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
+  activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
+}
+
+export type OrderCreateWithoutServiceSubscriptionRenewalInput = {
+  id: string
+  orderNumber: string
+  createdBy?: string | null
+  type: $Enums.OrderType
+  status?: $Enums.OrderStatus
+  description?: string | null
+  subtotal?: string | null
+  discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
+  total?: string | null
+  currency?: string
+  promoCode?: string | null
+  invoiceNumber?: string | null
+  processedBy?: string | null
+  processedAt?: Date | string | null
+  completedAt?: Date | string | null
+  notes?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  team: Prisma.TeamCreateNestedOneWithoutOrdersInput
+  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
+  domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
+  hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
+  hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
+  promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
+  activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutOrderInput
+}
+
+export type OrderUncheckedCreateWithoutServiceSubscriptionRenewalInput = {
+  id: string
+  orderNumber: string
+  teamId: string
+  createdBy?: string | null
+  type: $Enums.OrderType
+  status?: $Enums.OrderStatus
+  description?: string | null
+  domainRegistrationId?: string | null
+  domainRenewalId?: string | null
+  domainTransferId?: string | null
+  hostingSubscriptionId?: string | null
+  hostingRenewalId?: string | null
+  subtotal?: string | null
+  discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
+  total?: string | null
+  currency?: string
+  promoCode?: string | null
+  promoId?: string | null
+  invoiceNumber?: string | null
+  invoiceId?: string | null
+  processedBy?: string | null
+  processedAt?: Date | string | null
+  completedAt?: Date | string | null
+  notes?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
+  activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutOrderInput
+}
+
+export type OrderCreateOrConnectWithoutServiceSubscriptionRenewalInput = {
+  where: Prisma.OrderWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrderCreateWithoutServiceSubscriptionRenewalInput, Prisma.OrderUncheckedCreateWithoutServiceSubscriptionRenewalInput>
+}
+
+export type OrderUpsertWithoutServiceSubscriptionRenewalInput = {
+  update: Prisma.XOR<Prisma.OrderUpdateWithoutServiceSubscriptionRenewalInput, Prisma.OrderUncheckedUpdateWithoutServiceSubscriptionRenewalInput>
+  create: Prisma.XOR<Prisma.OrderCreateWithoutServiceSubscriptionRenewalInput, Prisma.OrderUncheckedCreateWithoutServiceSubscriptionRenewalInput>
+  where?: Prisma.OrderWhereInput
+}
+
+export type OrderUpdateToOneWithWhereWithoutServiceSubscriptionRenewalInput = {
+  where?: Prisma.OrderWhereInput
+  data: Prisma.XOR<Prisma.OrderUpdateWithoutServiceSubscriptionRenewalInput, Prisma.OrderUncheckedUpdateWithoutServiceSubscriptionRenewalInput>
+}
+
+export type OrderUpdateWithoutServiceSubscriptionRenewalInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
+  status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
+  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
+  domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
+  hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
+  hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
+  promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
+  activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+}
+
+export type OrderUncheckedUpdateWithoutServiceSubscriptionRenewalInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
+  status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
+  activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderCreateManyPromoInput = {
@@ -2477,6 +2896,8 @@ export type OrderUpdateWithoutPromoInput = {
   invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutPromoInput = {
@@ -2511,6 +2932,8 @@ export type OrderUncheckedUpdateWithoutPromoInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutPromoInput = {
@@ -2609,6 +3032,8 @@ export type OrderUpdateWithoutTeamInput = {
   invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutTeamInput = {
@@ -2643,6 +3068,8 @@ export type OrderUncheckedUpdateWithoutTeamInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutTeamInput = {
@@ -2741,6 +3168,8 @@ export type OrderUpdateWithoutHostingSubscriptionInput = {
   invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutHostingSubscriptionInput = {
@@ -2775,6 +3204,8 @@ export type OrderUncheckedUpdateWithoutHostingSubscriptionInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutHostingSubscriptionInput = {
@@ -2873,6 +3304,8 @@ export type OrderUpdateWithoutHostingRenewalInput = {
   invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutHostingRenewalInput = {
@@ -2907,6 +3340,8 @@ export type OrderUncheckedUpdateWithoutHostingRenewalInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutHostingRenewalInput = {
@@ -3005,6 +3440,8 @@ export type OrderUpdateWithoutDomainRegistrationInput = {
   invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutDomainRegistrationInput = {
@@ -3039,6 +3476,8 @@ export type OrderUncheckedUpdateWithoutDomainRegistrationInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutDomainRegistrationInput = {
@@ -3137,6 +3576,8 @@ export type OrderUpdateWithoutDomainRenewalInput = {
   invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutDomainRenewalInput = {
@@ -3171,6 +3612,8 @@ export type OrderUncheckedUpdateWithoutDomainRenewalInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutDomainRenewalInput = {
@@ -3269,6 +3712,8 @@ export type OrderUpdateWithoutDomainTransferInput = {
   invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutDomainTransferInput = {
@@ -3303,6 +3748,8 @@ export type OrderUncheckedUpdateWithoutDomainTransferInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutDomainTransferInput = {
@@ -3401,6 +3848,8 @@ export type OrderUpdateWithoutInvoiceInput = {
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutInvoiceInput = {
@@ -3435,6 +3884,8 @@ export type OrderUncheckedUpdateWithoutInvoiceInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutOrderNestedInput
+  ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutInvoiceInput = {
@@ -3477,11 +3928,15 @@ export type OrderUncheckedUpdateManyWithoutInvoiceInput = {
 export type OrderCountOutputType = {
   orderItems: number
   activityLogs: number
+  serviceSubscriptions: number
+  ServiceSubscriptionRenewal: number
 }
 
 export type OrderCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   orderItems?: boolean | OrderCountOutputTypeCountOrderItemsArgs
   activityLogs?: boolean | OrderCountOutputTypeCountActivityLogsArgs
+  serviceSubscriptions?: boolean | OrderCountOutputTypeCountServiceSubscriptionsArgs
+  ServiceSubscriptionRenewal?: boolean | OrderCountOutputTypeCountServiceSubscriptionRenewalArgs
 }
 
 /**
@@ -3506,6 +3961,20 @@ export type OrderCountOutputTypeCountOrderItemsArgs<ExtArgs extends runtime.Type
  */
 export type OrderCountOutputTypeCountActivityLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.OrderActivityLogWhereInput
+}
+
+/**
+ * OrderCountOutputType without action
+ */
+export type OrderCountOutputTypeCountServiceSubscriptionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ServiceSubscriptionWhereInput
+}
+
+/**
+ * OrderCountOutputType without action
+ */
+export type OrderCountOutputTypeCountServiceSubscriptionRenewalArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ServiceSubscriptionRenewalWhereInput
 }
 
 
@@ -3550,6 +4019,8 @@ export type OrderSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   invoice?: boolean | Prisma.Order$invoiceArgs<ExtArgs>
   orderItems?: boolean | Prisma.Order$orderItemsArgs<ExtArgs>
   activityLogs?: boolean | Prisma.Order$activityLogsArgs<ExtArgs>
+  serviceSubscriptions?: boolean | Prisma.Order$serviceSubscriptionsArgs<ExtArgs>
+  ServiceSubscriptionRenewal?: boolean | Prisma.Order$ServiceSubscriptionRenewalArgs<ExtArgs>
   _count?: boolean | Prisma.OrderCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["order"]>
 
@@ -3680,6 +4151,8 @@ export type OrderInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   invoice?: boolean | Prisma.Order$invoiceArgs<ExtArgs>
   orderItems?: boolean | Prisma.Order$orderItemsArgs<ExtArgs>
   activityLogs?: boolean | Prisma.Order$activityLogsArgs<ExtArgs>
+  serviceSubscriptions?: boolean | Prisma.Order$serviceSubscriptionsArgs<ExtArgs>
+  ServiceSubscriptionRenewal?: boolean | Prisma.Order$ServiceSubscriptionRenewalArgs<ExtArgs>
   _count?: boolean | Prisma.OrderCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OrderIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3716,6 +4189,8 @@ export type $OrderPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     invoice: Prisma.$InvoicePayload<ExtArgs> | null
     orderItems: Prisma.$OrderItemPayload<ExtArgs>[]
     activityLogs: Prisma.$OrderActivityLogPayload<ExtArgs>[]
+    serviceSubscriptions: Prisma.$ServiceSubscriptionPayload<ExtArgs>[]
+    ServiceSubscriptionRenewal: Prisma.$ServiceSubscriptionRenewalPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -4152,6 +4627,8 @@ export interface Prisma__OrderClient<T, Null = never, ExtArgs extends runtime.Ty
   invoice<T extends Prisma.Order$invoiceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$invoiceArgs<ExtArgs>>): Prisma.Prisma__InvoiceClient<runtime.Types.Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   orderItems<T extends Prisma.Order$orderItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$orderItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityLogs<T extends Prisma.Order$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  serviceSubscriptions<T extends Prisma.Order$serviceSubscriptionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$serviceSubscriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceSubscriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  ServiceSubscriptionRenewal<T extends Prisma.Order$ServiceSubscriptionRenewalArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$ServiceSubscriptionRenewalArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceSubscriptionRenewalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4785,6 +5262,54 @@ export type Order$activityLogsArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.OrderActivityLogScalarFieldEnum | Prisma.OrderActivityLogScalarFieldEnum[]
+}
+
+/**
+ * Order.serviceSubscriptions
+ */
+export type Order$serviceSubscriptionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ServiceSubscription
+   */
+  select?: Prisma.ServiceSubscriptionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ServiceSubscription
+   */
+  omit?: Prisma.ServiceSubscriptionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ServiceSubscriptionInclude<ExtArgs> | null
+  where?: Prisma.ServiceSubscriptionWhereInput
+  orderBy?: Prisma.ServiceSubscriptionOrderByWithRelationInput | Prisma.ServiceSubscriptionOrderByWithRelationInput[]
+  cursor?: Prisma.ServiceSubscriptionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ServiceSubscriptionScalarFieldEnum | Prisma.ServiceSubscriptionScalarFieldEnum[]
+}
+
+/**
+ * Order.ServiceSubscriptionRenewal
+ */
+export type Order$ServiceSubscriptionRenewalArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ServiceSubscriptionRenewal
+   */
+  select?: Prisma.ServiceSubscriptionRenewalSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ServiceSubscriptionRenewal
+   */
+  omit?: Prisma.ServiceSubscriptionRenewalOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ServiceSubscriptionRenewalInclude<ExtArgs> | null
+  where?: Prisma.ServiceSubscriptionRenewalWhereInput
+  orderBy?: Prisma.ServiceSubscriptionRenewalOrderByWithRelationInput | Prisma.ServiceSubscriptionRenewalOrderByWithRelationInput[]
+  cursor?: Prisma.ServiceSubscriptionRenewalWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ServiceSubscriptionRenewalScalarFieldEnum | Prisma.ServiceSubscriptionRenewalScalarFieldEnum[]
 }
 
 /**

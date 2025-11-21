@@ -20,6 +20,7 @@ import {
 import { LayoutControls } from "./_components/sidebar/layout-controls";
 import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { TeamSwitcher } from "./_components/sidebar/team-switcher";
+import { CartSwitcher } from "./_components/sidebar/cart-switcher";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 
 export const dynamic = "force-dynamic";
@@ -106,7 +107,8 @@ export default async function TeamLayout({
               </div>
               <div className="flex items-center gap-2">
                 <TeamSwitcher />
-                <LayoutControls {...layoutPreferences} />
+                <CartSwitcher />
+                {/* <LayoutControls {...layoutPreferences} /> */}
                 <ThemeSwitcher />
                 {/* <AccountSwitcher users={users} /> */}
               </div>

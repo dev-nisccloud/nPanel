@@ -23,21 +23,9 @@ export function EmptyCartState() {
           Start building your online presence by adding domains, hosting plans, or services to your cart.
         </p>
         
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button className="flex items-center gap-2">
-            <Search className="h-4 w-4" />
-            Search Domains
-          </Button>
-          <Button variant="outline" className="flex items-center gap-2">
-            Browse Services
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-        
         {/* Helpful Tips */}
         <div className="mt-8 text-sm text-muted-foreground space-y-2">
-          <p className="font-medium">💡 Quick Tips:</p>
+          <p className="font-medium">Quick Tips:</p>
           <ul className="text-left space-y-1">
             <li>• Search for your perfect domain name</li>
             <li>• Add hosting plans for your websites</li>

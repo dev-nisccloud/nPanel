@@ -836,6 +836,23 @@ export type EnumCreditNoteStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumCreditNoteStatusFilter<$PrismaModel>
 }
 
+export type EnumServiceSubscriptionStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.ServiceSubscriptionStatus | Prisma.EnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ServiceSubscriptionStatus[] | Prisma.ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ServiceSubscriptionStatus[] | Prisma.ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumServiceSubscriptionStatusFilter<$PrismaModel> | $Enums.ServiceSubscriptionStatus
+}
+
+export type EnumServiceSubscriptionStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ServiceSubscriptionStatus | Prisma.EnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ServiceSubscriptionStatus[] | Prisma.ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ServiceSubscriptionStatus[] | Prisma.ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumServiceSubscriptionStatusWithAggregatesFilter<$PrismaModel> | $Enums.ServiceSubscriptionStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumServiceSubscriptionStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumServiceSubscriptionStatusFilter<$PrismaModel>
+}
+
 export type EnumSocialMediaPlatformFilter<$PrismaModel = never> = {
   equals?: $Enums.SocialMediaPlatform | Prisma.EnumSocialMediaPlatformFieldRefInput<$PrismaModel>
   in?: $Enums.SocialMediaPlatform[] | Prisma.ListEnumSocialMediaPlatformFieldRefInput<$PrismaModel>
@@ -1666,6 +1683,23 @@ export type NestedEnumCreditNoteStatusWithAggregatesFilter<$PrismaModel = never>
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumCreditNoteStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumCreditNoteStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumServiceSubscriptionStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.ServiceSubscriptionStatus | Prisma.EnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ServiceSubscriptionStatus[] | Prisma.ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ServiceSubscriptionStatus[] | Prisma.ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumServiceSubscriptionStatusFilter<$PrismaModel> | $Enums.ServiceSubscriptionStatus
+}
+
+export type NestedEnumServiceSubscriptionStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ServiceSubscriptionStatus | Prisma.EnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ServiceSubscriptionStatus[] | Prisma.ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ServiceSubscriptionStatus[] | Prisma.ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumServiceSubscriptionStatusWithAggregatesFilter<$PrismaModel> | $Enums.ServiceSubscriptionStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumServiceSubscriptionStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumServiceSubscriptionStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumSocialMediaPlatformFilter<$PrismaModel = never> = {

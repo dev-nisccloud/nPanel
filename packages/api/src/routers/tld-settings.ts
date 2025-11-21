@@ -274,6 +274,7 @@ export const tldSettingsRouter = router({
     }),
 
   // Get a single TLD setting
+  // Global settings - available to all users regardless of role
   get: protectedProcedure
     .input(getTldSettingsSchema)
     .output(z.object({
@@ -281,14 +282,11 @@ export const tldSettingsRouter = router({
       data: tldSettingResponseSchema,
     }))
     .query(async ({ ctx, input }) => {
-      const { session } = ctx;
-      const userId = session!.user!.id;
-
       try {
         const tldSetting = await prisma.tldSettings.findFirst({
           where: {
             id: input.id,
-            userId,
+            // Removed userId filter - TLD settings are global and apply to everyone
           },
           include: {
             nameserverGroup: {
@@ -328,16 +326,14 @@ export const tldSettingsRouter = router({
     }),
 
   // List TLD settings
+  // Global settings - available to all users regardless of role
   list: protectedProcedure
     .input(listTldSettingsSchema)
     .output(tldSettingListResponseSchema)
     .query(async ({ ctx, input }) => {
-      const { session } = ctx;
-      const userId = session!.user!.id;
-
       try {
         const where = {
-          userId,
+          // Removed userId filter - TLD settings are global and apply to everyone
           ...(input.search && {
             name: { contains: input.search, mode: "insensitive" as const },
           }),

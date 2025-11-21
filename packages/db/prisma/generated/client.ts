@@ -364,6 +364,26 @@ export type CreditNoteActivityLog = Prisma.CreditNoteActivityLogModel
  */
 export type InvoiceCounter = Prisma.InvoiceCounterModel
 /**
+ * Model ServiceSubscription
+ * 
+ */
+export type ServiceSubscription = Prisma.ServiceSubscriptionModel
+/**
+ * Model ServiceSubscriptionRenewal
+ * 
+ */
+export type ServiceSubscriptionRenewal = Prisma.ServiceSubscriptionRenewalModel
+/**
+ * Model ServiceSubscriptionActivityLog
+ * 
+ */
+export type ServiceSubscriptionActivityLog = Prisma.ServiceSubscriptionActivityLogModel
+/**
+ * Model ServiceSubscriptionRenewalActivityLog
+ * 
+ */
+export type ServiceSubscriptionRenewalActivityLog = Prisma.ServiceSubscriptionRenewalActivityLogModel
+/**
  * Model SocialMediaIntegration
  * 
  */

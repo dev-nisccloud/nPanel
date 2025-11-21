@@ -452,6 +452,10 @@ export const ModelName = {
   InvoiceTransactionActivityLog: 'InvoiceTransactionActivityLog',
   CreditNoteActivityLog: 'CreditNoteActivityLog',
   InvoiceCounter: 'InvoiceCounter',
+  ServiceSubscription: 'ServiceSubscription',
+  ServiceSubscriptionRenewal: 'ServiceSubscriptionRenewal',
+  ServiceSubscriptionActivityLog: 'ServiceSubscriptionActivityLog',
+  ServiceSubscriptionRenewalActivityLog: 'ServiceSubscriptionRenewalActivityLog',
   SocialMediaIntegration: 'SocialMediaIntegration',
   SocialMediaPageToken: 'SocialMediaPageToken',
   SocialMediaIntegrationActivityLog: 'SocialMediaIntegrationActivityLog',
@@ -471,7 +475,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5211,6 +5215,302 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ServiceSubscription: {
+      payload: Prisma.$ServiceSubscriptionPayload<ExtArgs>
+      fields: Prisma.ServiceSubscriptionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ServiceSubscriptionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ServiceSubscriptionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload>
+        }
+        findFirst: {
+          args: Prisma.ServiceSubscriptionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ServiceSubscriptionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload>
+        }
+        findMany: {
+          args: Prisma.ServiceSubscriptionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload>[]
+        }
+        create: {
+          args: Prisma.ServiceSubscriptionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload>
+        }
+        createMany: {
+          args: Prisma.ServiceSubscriptionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ServiceSubscriptionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload>[]
+        }
+        delete: {
+          args: Prisma.ServiceSubscriptionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload>
+        }
+        update: {
+          args: Prisma.ServiceSubscriptionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload>
+        }
+        deleteMany: {
+          args: Prisma.ServiceSubscriptionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ServiceSubscriptionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ServiceSubscriptionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload>[]
+        }
+        upsert: {
+          args: Prisma.ServiceSubscriptionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionPayload>
+        }
+        aggregate: {
+          args: Prisma.ServiceSubscriptionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateServiceSubscription>
+        }
+        groupBy: {
+          args: Prisma.ServiceSubscriptionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceSubscriptionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ServiceSubscriptionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceSubscriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    ServiceSubscriptionRenewal: {
+      payload: Prisma.$ServiceSubscriptionRenewalPayload<ExtArgs>
+      fields: Prisma.ServiceSubscriptionRenewalFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ServiceSubscriptionRenewalFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ServiceSubscriptionRenewalFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload>
+        }
+        findFirst: {
+          args: Prisma.ServiceSubscriptionRenewalFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ServiceSubscriptionRenewalFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload>
+        }
+        findMany: {
+          args: Prisma.ServiceSubscriptionRenewalFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload>[]
+        }
+        create: {
+          args: Prisma.ServiceSubscriptionRenewalCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload>
+        }
+        createMany: {
+          args: Prisma.ServiceSubscriptionRenewalCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ServiceSubscriptionRenewalCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload>[]
+        }
+        delete: {
+          args: Prisma.ServiceSubscriptionRenewalDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload>
+        }
+        update: {
+          args: Prisma.ServiceSubscriptionRenewalUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload>
+        }
+        deleteMany: {
+          args: Prisma.ServiceSubscriptionRenewalDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ServiceSubscriptionRenewalUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ServiceSubscriptionRenewalUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload>[]
+        }
+        upsert: {
+          args: Prisma.ServiceSubscriptionRenewalUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalPayload>
+        }
+        aggregate: {
+          args: Prisma.ServiceSubscriptionRenewalAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateServiceSubscriptionRenewal>
+        }
+        groupBy: {
+          args: Prisma.ServiceSubscriptionRenewalGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceSubscriptionRenewalGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ServiceSubscriptionRenewalCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceSubscriptionRenewalCountAggregateOutputType> | number
+        }
+      }
+    }
+    ServiceSubscriptionActivityLog: {
+      payload: Prisma.$ServiceSubscriptionActivityLogPayload<ExtArgs>
+      fields: Prisma.ServiceSubscriptionActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ServiceSubscriptionActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ServiceSubscriptionActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.ServiceSubscriptionActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ServiceSubscriptionActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.ServiceSubscriptionActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.ServiceSubscriptionActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.ServiceSubscriptionActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ServiceSubscriptionActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.ServiceSubscriptionActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload>
+        }
+        update: {
+          args: Prisma.ServiceSubscriptionActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.ServiceSubscriptionActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ServiceSubscriptionActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ServiceSubscriptionActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.ServiceSubscriptionActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.ServiceSubscriptionActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateServiceSubscriptionActivityLog>
+        }
+        groupBy: {
+          args: Prisma.ServiceSubscriptionActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceSubscriptionActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ServiceSubscriptionActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceSubscriptionActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    ServiceSubscriptionRenewalActivityLog: {
+      payload: Prisma.$ServiceSubscriptionRenewalActivityLogPayload<ExtArgs>
+      fields: Prisma.ServiceSubscriptionRenewalActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload>
+        }
+        update: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceSubscriptionRenewalActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateServiceSubscriptionRenewalActivityLog>
+        }
+        groupBy: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceSubscriptionRenewalActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ServiceSubscriptionRenewalActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceSubscriptionRenewalActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
     SocialMediaIntegration: {
       payload: Prisma.$SocialMediaIntegrationPayload<ExtArgs>
       fields: Prisma.SocialMediaIntegrationFieldRefs
@@ -6746,6 +7046,74 @@ export const InvoiceCounterScalarFieldEnum = {
 export type InvoiceCounterScalarFieldEnum = (typeof InvoiceCounterScalarFieldEnum)[keyof typeof InvoiceCounterScalarFieldEnum]
 
 
+export const ServiceSubscriptionScalarFieldEnum = {
+  id: 'id',
+  niscServicePlanId: 'niscServicePlanId',
+  teamId: 'teamId',
+  orderId: 'orderId',
+  subscribedBy: 'subscribedBy',
+  subscriptionDate: 'subscriptionDate',
+  billingCycle: 'billingCycle',
+  nextRenewalDate: 'nextRenewalDate',
+  status: 'status',
+  autoRenew: 'autoRenew',
+  hostingSubscriptionId: 'hostingSubscriptionId',
+  notes: 'notes',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ServiceSubscriptionScalarFieldEnum = (typeof ServiceSubscriptionScalarFieldEnum)[keyof typeof ServiceSubscriptionScalarFieldEnum]
+
+
+export const ServiceSubscriptionRenewalScalarFieldEnum = {
+  id: 'id',
+  serviceSubscriptionId: 'serviceSubscriptionId',
+  orderId: 'orderId',
+  renewedBy: 'renewedBy',
+  renewalDate: 'renewalDate',
+  billingCycle: 'billingCycle',
+  nextRenewalDate: 'nextRenewalDate',
+  status: 'status',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ServiceSubscriptionRenewalScalarFieldEnum = (typeof ServiceSubscriptionRenewalScalarFieldEnum)[keyof typeof ServiceSubscriptionRenewalScalarFieldEnum]
+
+
+export const ServiceSubscriptionActivityLogScalarFieldEnum = {
+  id: 'id',
+  serviceSubscriptionId: 'serviceSubscriptionId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ServiceSubscriptionActivityLogScalarFieldEnum = (typeof ServiceSubscriptionActivityLogScalarFieldEnum)[keyof typeof ServiceSubscriptionActivityLogScalarFieldEnum]
+
+
+export const ServiceSubscriptionRenewalActivityLogScalarFieldEnum = {
+  id: 'id',
+  serviceSubscriptionRenewalId: 'serviceSubscriptionRenewalId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ServiceSubscriptionRenewalActivityLogScalarFieldEnum = (typeof ServiceSubscriptionRenewalActivityLogScalarFieldEnum)[keyof typeof ServiceSubscriptionRenewalActivityLogScalarFieldEnum]
+
+
 export const SocialMediaIntegrationScalarFieldEnum = {
   id: 'id',
   platform: 'platform',
@@ -7373,6 +7741,20 @@ export type ListEnumCreditNoteStatusFieldRefInput<$PrismaModel> = FieldRefInputT
 
 
 /**
+ * Reference to a field of type 'ServiceSubscriptionStatus'
+ */
+export type EnumServiceSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ServiceSubscriptionStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'ServiceSubscriptionStatus[]'
+ */
+export type ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ServiceSubscriptionStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'SocialMediaPlatform'
  */
 export type EnumSocialMediaPlatformFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SocialMediaPlatform'>
@@ -7550,6 +7932,10 @@ export type GlobalOmitConfig = {
   invoiceTransactionActivityLog?: Prisma.InvoiceTransactionActivityLogOmit
   creditNoteActivityLog?: Prisma.CreditNoteActivityLogOmit
   invoiceCounter?: Prisma.InvoiceCounterOmit
+  serviceSubscription?: Prisma.ServiceSubscriptionOmit
+  serviceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalOmit
+  serviceSubscriptionActivityLog?: Prisma.ServiceSubscriptionActivityLogOmit
+  serviceSubscriptionRenewalActivityLog?: Prisma.ServiceSubscriptionRenewalActivityLogOmit
   socialMediaIntegration?: Prisma.SocialMediaIntegrationOmit
   socialMediaPageToken?: Prisma.SocialMediaPageTokenOmit
   socialMediaIntegrationActivityLog?: Prisma.SocialMediaIntegrationActivityLogOmit

@@ -251,16 +251,18 @@ model Order {
   updatedAt DateTime
 
   // Relations
-  team                Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  domainRegistration  DomainRegistration?  @relation(fields: [domainRegistrationId], references: [id], onDelete: SetNull)
-  domainRenewal       DomainRenewal?       @relation(fields: [domainRenewalId], references: [id], onDelete: SetNull)
-  domainTransfer      DomainTransfer?      @relation(fields: [domainTransferId], references: [id], onDelete: SetNull)
-  hostingSubscription HostingSubscription? @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
-  hostingRenewal      HostingRenewal?      @relation(fields: [hostingRenewalId], references: [id], onDelete: SetNull)
-  promo               Promo?               @relation(fields: [promoId], references: [id], onDelete: SetNull)
-  invoice             Invoice?             @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  orderItems          OrderItem[] // Multiple order items per order
-  activityLogs        OrderActivityLog[]
+  team                       Team                         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  domainRegistration         DomainRegistration?          @relation(fields: [domainRegistrationId], references: [id], onDelete: SetNull)
+  domainRenewal              DomainRenewal?               @relation(fields: [domainRenewalId], references: [id], onDelete: SetNull)
+  domainTransfer             DomainTransfer?              @relation(fields: [domainTransferId], references: [id], onDelete: SetNull)
+  hostingSubscription        HostingSubscription?         @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
+  hostingRenewal             HostingRenewal?              @relation(fields: [hostingRenewalId], references: [id], onDelete: SetNull)
+  promo                      Promo?                       @relation(fields: [promoId], references: [id], onDelete: SetNull)
+  invoice                    Invoice?                     @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  orderItems                 OrderItem[] // Multiple order items per order
+  activityLogs               OrderActivityLog[]
+  serviceSubscriptions       ServiceSubscription[] // Service subscriptions created by this order
+  ServiceSubscriptionRenewal ServiceSubscriptionRenewal[]
 
   @@index([orderNumber])
   @@index([teamId])
@@ -518,6 +520,8 @@ model Team {
   billingSettings       TeamBillingSettings?
   // Social Media Marketing Relations (page ownership)
   socialMediaPageTokens SocialMediaPageToken[]
+  // Service Subscriptions Relations
+  serviceSubscriptions  ServiceSubscription[]
 
   @@index([slug])
   @@index([createdById])
@@ -738,8 +742,9 @@ model NiscServicePlan {
   updatedAt DateTime
 
   // Relations
-  activityLogs NiscServicePlanActivityLog[]
-  OrderItem    OrderItem[]
+  activityLogs         NiscServicePlanActivityLog[]
+  OrderItem            OrderItem[]
+  serviceSubscriptions ServiceSubscription[]
 
   @@index([planType])
   @@index([hostingSubType])
@@ -833,6 +838,7 @@ model HostingSubscription {
   customerIntegration CustomerIntegration?             @relation(fields: [customerIntegrationId], references: [id], onDelete: SetNull)
   wordpressInstances  WordPressInstance[]
   activityLogs        HostingSubscriptionActivityLog[]
+  serviceSubscription ServiceSubscription? // Link to service subscription for billing tracking
 
   @@index([hostingPlanId])
   @@index([teamId])

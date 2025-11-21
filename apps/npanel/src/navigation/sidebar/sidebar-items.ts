@@ -56,32 +56,32 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         title: "Domains",
-        url: "/dashboard/finance",
+        url: "/dashboard/domains",
         icon: (props: any) => React.createElement(Icons.Site, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
         title: "Hosting",
-        url: "/dashboard/crm",
+        url: "/dashboard/hosting",
         icon: (props: any) => React.createElement(Icons.Hosting, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
         title: "Emails",
-        url: "/dashboard/coming-soon",
+        url: "/dashboard/emails",
         icon: (props: any) => React.createElement(Icons.Mail, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
         title: "Files",
-        url: "/dashboard/coming-soon",
+        url: "/dashboard/files",
         icon: (props: any) => React.createElement(Icons.File, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
         title: "Databases",
-        url: "/dashboard/coming-soon",
+        url: "/dashboard/databases",
         icon: (props: any) => React.createElement(Icons.Database, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
         title: "Security",
-        url: "/dashboard/coming-soon",
+        url: "/dashboard/security",
         icon: (props: any) => React.createElement(Icons.Security, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
     ],
@@ -103,12 +103,12 @@ export const sidebarItems: NavGroup[] = [
     items: [
       {
         title: "Email Marketing",
-        url: "/dashboard/coming-soon",
+        url: "/dashboard/email-marketing",
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
         title: "SEO",
-        url: "/dashboard/coming-soon",
+        url: "/dashboard/seo",
         icon: (props: any) => React.createElement(Icons.Seo, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       // {
@@ -130,12 +130,12 @@ export const sidebarItems: NavGroup[] = [
     items: [
       {
         title: "Invoices",
-        url: "/dashboard/coming-soon",
+        url: "/dashboard/invoices",
         icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
         title: "Subscriptions",
-        url: "/dashboard/coming-soon",
+        url: "/dashboard/subscriptions",
         icon: (props: any) => React.createElement(Icons.Subscriptions, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
     ],
@@ -151,12 +151,12 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         title: "Settings",
-        url: "/dashboard/coming-soon",
+        url: "/dashboard/settings",
         icon: (props: any) => React.createElement(Icons.Settings, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
         title: "Help Center",
-        url: "/dashboard/coming-soon",
+        url: "/dashboard/help-center",
         icon: (props: any) => React.createElement(Icons.Help, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
     ],
