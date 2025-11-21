@@ -487,8 +487,23 @@ export function WordPressThemes({ installationId }: WordPressThemesProps) {
     return <ThemesSkeleton />;
   }
 
-  if (isError || !themes) {
+  if (isError) {
     return <ThemesError error={error as Error} onRetry={() => refetch()} />;
+  }
+
+  // Handle empty themes array (not an error, just no themes installed)
+  if (!themes || themes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="mb-4">
+          <Palette className="h-12 w-12 text-muted-foreground mx-auto" />
+        </div>
+        <h3 className="mb-2 text-lg font-semibold">No themes installed</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          This WordPress installation doesn't have any themes installed yet.
+        </p>
+      </div>
+    );
   }
 
   return (

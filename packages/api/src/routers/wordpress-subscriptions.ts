@@ -58,11 +58,149 @@ const updateSubscriptionOutputSchema = z.object({
 	id: z.string(),
 });
 
+const getDetailWithSubscriptionInputSchema = z.object({
+	installationId: z.number().int().positive(),
+});
+
+const getDetailWithSubscriptionOutputSchema = z.object({
+	installation: z.any(), // WordPress installation data from WP Toolkit
+	subscription: getByInstallationIdOutputSchema.nullable(),
+});
+
 // ============================================================================
 // tRPC ROUTER
 // ============================================================================
 
 export const wordpressSubscriptionsRouter = router({
+	// Get WordPress installation detail with subscription link (batched)
+	getDetailWithSubscription: protectedProcedure
+		.input(getDetailWithSubscriptionInputSchema)
+		.output(getDetailWithSubscriptionOutputSchema)
+		.query(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in to view subscriptions",
+				});
+			}
+
+			// Fetch WordPress installation and subscription link in parallel
+			const [installationResult, subscriptionResult] = await Promise.allSettled([
+				// Fetch from WP Toolkit
+				(async () => {
+					const { sendPleskRestRequest } = await import('../lib/plesk/rest-client');
+					
+					if (!process.env.PLESK_REST_ENDPOINT) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Server configuration error: PLESK_REST_ENDPOINT environment variable is not set",
+						});
+					}
+
+					const endpoint = `/v1/installations/${input.installationId}`;
+					const { data, isAuthError, isHostUnreachable, statusCode } =
+						await sendPleskRestRequest(endpoint, 'GET');
+
+					if (isHostUnreachable) {
+						throw new TRPCError({
+							code: "SERVICE_UNAVAILABLE",
+							message: "Plesk host is unreachable",
+						});
+					}
+
+					if (isAuthError) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "Invalid Plesk credentials",
+						});
+					}
+
+					if (statusCode === 404) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `WordPress installation with ID ${input.installationId} not found`,
+						});
+					}
+
+					if (statusCode < 200 || statusCode >= 300 || !data) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: `WP Toolkit API returned status ${statusCode}: ${JSON.stringify(data)}`,
+						});
+					}
+
+					return data;
+				})().catch((error) => {
+					// Re-throw TRPCErrors as-is, wrap other errors
+					if (error instanceof TRPCError) {
+						throw error;
+					}
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: error instanceof Error ? error.message : "Failed to fetch WordPress installation",
+					});
+				}),
+				// Fetch subscription link from database
+				prisma.wordPressInstance
+					.findUnique({
+						where: { installationId: input.installationId },
+						select: {
+							id: true,
+							teamId: true,
+							installationId: true,
+							hostingSubscriptionId: true,
+							createdAt: true,
+							updatedAt: true,
+						},
+					})
+					.then((sub) => {
+						if (!sub) return null;
+						return {
+							id: sub.id,
+							teamId: sub.teamId,
+							installationId: sub.installationId,
+							hostingSubscriptionId: sub.hostingSubscriptionId,
+							createdAt: sub.createdAt,
+							updatedAt: sub.updatedAt,
+						};
+					})
+					.catch(() => null),
+			]);
+
+			// Handle installation result
+			if (installationResult.status === 'rejected') {
+				const error = installationResult.reason;
+				// Re-throw TRPCErrors as-is
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				// Wrap other errors
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: error instanceof Error ? error.message : "Failed to fetch WordPress installation",
+				});
+			}
+
+			const installation = installationResult.value;
+			const subscription = subscriptionResult.status === 'fulfilled' 
+				? subscriptionResult.value 
+				: null;
+
+			// If installation is null or undefined, throw NOT_FOUND error
+			if (!installation) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `WordPress installation with ID ${input.installationId} not found`,
+				});
+			}
+
+			return {
+				installation,
+				subscription,
+			};
+		}),
+
 	// Get subscription by WordPress installation ID
 	getByInstallationId: protectedProcedure
 		.input(getByInstallationIdInputSchema)

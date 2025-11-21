@@ -40,7 +40,7 @@ import { WordPressSiteCredentials } from "./wordpress-site-credentials";
 import { WordPressPlugins } from "./wordpress-plugins";
 import { WordPressThemes } from "./wordpress-themes";
 import { wordpressInstallationSchema } from "./schema";
-import { useWordPressInstanceById } from "./use-wordpress-instance-by-id";
+import { useWordPressDetailBatched } from "./use-wordpress-detail-batched";
 import { LinkToTeamDialog } from "./link-to-team-dialog";
 import pluginData from "./plugin-data.json";
 import themeData from "./theme-data.json";
@@ -139,22 +139,14 @@ function WordPressDetailError({ error, onRetry }: { error: Error; onRetry: () =>
 }
 
 export function WordPressDetailPage({ installationId }: WordPressDetailPageProps) {
-  const { data: wpData, isLoading, isError, error, refetch } = useWordPressInstanceById(installationId);
+  // Use batched endpoint - fetches both WordPress installation and subscription link in one request
+  const { data: wpData, subscription: subscriptionData, isLoading, isError, error, refetch } = useWordPressDetailBatched(installationId);
   const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
   const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
 
-  // Get installation ID as number from wpData
+  // Get installation ID as number from wpData or fallback to installationId prop
   const wpInstallationId = wpData?.id ? Number(wpData.id) : Number(installationId);
-
-  // Check if WordPress instance is linked to a team
-  const { data: subscriptionData } = trpc.wordpressSubscriptions.getByInstallationId.useQuery(
-    { installationId: wpInstallationId },
-    {
-      enabled: !!wpInstallationId && wpInstallationId > 0,
-      staleTime: 30 * 1000, // 30 seconds
-    }
-  );
 
   const isLinkedToTeam = !!subscriptionData?.teamId;
 
@@ -165,8 +157,8 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
     onSuccess: () => {
       toast.success("WordPress instance unlinked from team successfully");
       setIsUnlinkDialogOpen(false);
-      // Invalidate subscription query to refresh data
-      utils.wordpressSubscriptions.getByInstallationId.invalidate({ installationId: wpInstallationId });
+      // Invalidate batched query to refresh data
+      utils.wordpressSubscriptions.getDetailWithSubscription.invalidate({ installationId: wpInstallationId });
       refetch();
     },
     onError: (error) => {
@@ -185,8 +177,8 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
     return <WordPressDetailSkeleton />;
   }
 
-  // Show error state
-  if (isError || !wpData) {
+  // Show error state - check for error or missing data
+  if (isError || !wpData || !wpData.id) {
     return <WordPressDetailError error={error as Error} onRetry={() => refetch()} />;
   }
 
@@ -294,15 +286,15 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
         </TabsContent>
 
         <TabsContent value="site-credentials" className="mt-6">
-          <WordPressSiteCredentials installationId={installationId} />
+          <WordPressSiteCredentials installationId={String(wpData.id)} />
         </TabsContent>
 
         <TabsContent value="plugins" className="mt-6">
-          <WordPressPlugins installationId={installationId} />
+          <WordPressPlugins installationId={String(wpData.id)} />
         </TabsContent>
 
         <TabsContent value="themes" className="mt-6">
-          <WordPressThemes installationId={installationId} />
+          <WordPressThemes installationId={String(wpData.id)} />
         </TabsContent>
       </Tabs>
 
@@ -312,8 +304,8 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
         onOpenChange={setIsLinkToTeamOpen}
         installationId={wpInstallationId}
         onSuccess={() => {
-          // Invalidate subscription query to refresh data
-          utils.wordpressSubscriptions.getByInstallationId.invalidate({ installationId: wpInstallationId });
+          // Invalidate batched query to refresh data
+          utils.wordpressSubscriptions.getDetailWithSubscription.invalidate({ installationId: wpInstallationId });
           refetch();
         }}
       />

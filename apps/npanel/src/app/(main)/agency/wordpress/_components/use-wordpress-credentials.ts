@@ -38,6 +38,8 @@ export function useWordPressCredentials(installationId: string) {
         if (error?.data?.code === "UNAUTHORIZED") return false;
         // Don't retry on service unavailable errors
         if (error?.data?.code === "SERVICE_UNAVAILABLE") return false;
+        // Don't retry on not found errors
+        if (error?.data?.code === "NOT_FOUND") return false;
         // Retry up to 3 times for other errors
         return failureCount < 3;
       },
@@ -57,6 +59,8 @@ export function useWordPressCredentials(installationId: string) {
         toast.error("Authentication failed. Please check your Plesk credentials.");
       } else if (error?.data?.code === "SERVICE_UNAVAILABLE") {
         toast.error("Plesk server is currently unavailable. Please try again later.");
+      } else if (error?.data?.code === "NOT_FOUND") {
+        toast.error("WordPress installation not found. It may have been deleted or the ID is incorrect.");
       } else if (error?.data?.code === "INTERNAL_SERVER_ERROR") {
         toast.error("Server error occurred while fetching WordPress credentials.");
       } else {
@@ -69,7 +73,7 @@ export function useWordPressCredentials(installationId: string) {
   let transformedData: { login: string; password: string; loginUrl: string } | null = null;
   let transformationError: Error | null = null;
 
-  if (credentialsData) {
+  if (credentialsData?.data) {
     try {
       // The API returns { data: {...} } wrapper
       const validatedData = wordpressCredentialsSchema.parse(credentialsData.data);
@@ -85,7 +89,8 @@ export function useWordPressCredentials(installationId: string) {
           loginUrl: loginUrl,
         };
       } else {
-        throw new Error("Missing required credential fields");
+        // Missing required fields - treat as error
+        transformationError = new Error("Missing required credential fields (login, password, or loginUrl)");
       }
     } catch (error) {
       console.error("WordPress credentials data transformation error:", error);
@@ -98,6 +103,9 @@ export function useWordPressCredentials(installationId: string) {
         toast.error("Failed to process WordPress credentials data. Please refresh the page.");
       }
     }
+  } else if (!isLoading && credentialsData === null) {
+    // API returned null/undefined - treat as error
+    transformationError = new Error("WordPress credentials not available. The installation may not have credentials configured.");
   }
 
   return {

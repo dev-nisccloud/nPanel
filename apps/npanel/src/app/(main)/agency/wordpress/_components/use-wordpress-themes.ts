@@ -133,6 +133,9 @@ export function useWordPressThemes(installationId: string) {
         toast.error("Failed to process WordPress themes data. Please refresh the page.");
       }
     }
+  } else if (!isLoading && themesData === null) {
+    // API returned null/undefined - return empty array (no themes installed)
+    data = [];
   }
 
   return {

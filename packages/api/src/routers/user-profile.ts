@@ -84,6 +84,26 @@ const getUserByIdInputSchema = z.object({
   ])).optional(),
 });
 
+// Schema for batch getUsersByIds
+const getUsersByIdsInputSchema = z.object({
+  userIds: z.array(z.string()).min(1).max(100), // Limit to 100 users per batch
+  fields: z.array(z.enum([
+    "id",
+    "name",
+    "email",
+    "emailVerified",
+    "image",
+    "role",
+    "status",
+    "lastLoginAt",
+    "createdAt",
+    "updatedAt",
+    "profile",
+  ])).optional(),
+});
+
+const getUsersByIdsOutputSchema = z.record(z.string(), z.any()); // userId -> user data map
+
 export const userProfileRouter = router({
   /**
    * Get current user's full profile information
@@ -471,6 +491,95 @@ export const userProfileRouter = router({
       }
 
       return response;
+    }),
+
+  /**
+   * Get multiple users by IDs in a single request (batched)
+   * Returns a map of userId -> user data for efficient lookups
+   */
+  getUsersByIds: protectedProcedure
+    .input(getUsersByIdsInputSchema)
+    .output(getUsersByIdsOutputSchema)
+    .query(async ({ input }) => {
+      const { userIds, fields } = input;
+      
+      // Get unique user IDs
+      const uniqueUserIds = Array.from(new Set(userIds));
+      
+      // Build Prisma select object based on requested fields
+      const selectFields: Record<string, boolean> = {};
+      const includeProfile = fields?.includes("profile") ?? false;
+      
+      // Always include id
+      selectFields.id = true;
+      if (!fields || fields.length === 0 || fields.includes("name")) selectFields.name = true;
+      if (!fields || fields.length === 0 || fields.includes("email")) selectFields.email = true;
+      if (!fields || fields.length === 0 || fields.includes("emailVerified")) selectFields.emailVerified = true;
+      if (!fields || fields.length === 0 || fields.includes("image")) selectFields.image = true;
+      if (!fields || fields.length === 0 || fields.includes("role")) selectFields.role = true;
+      if (!fields || fields.length === 0 || fields.includes("status")) selectFields.status = true;
+      if (!fields || fields.length === 0 || fields.includes("lastLoginAt")) selectFields.lastLoginAt = true;
+      if (!fields || fields.length === 0 || fields.includes("createdAt")) selectFields.createdAt = true;
+      if (!fields || fields.length === 0 || fields.includes("updatedAt")) selectFields.updatedAt = true;
+
+      // Fetch all users in parallel
+      const users = await prisma.user.findMany({
+        where: {
+          id: { in: uniqueUserIds },
+        },
+        select: {
+          ...selectFields,
+          ...(includeProfile && {
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phone: true,
+                address: true,
+                city: true,
+                state: true,
+                country: true,
+                postalCode: true,
+              },
+            },
+          }),
+        },
+      });
+
+      // Build response map: userId -> user data
+      const usersMap: Record<string, any> = {};
+      
+      for (const user of users) {
+        const userData: Record<string, any> = {};
+        const userAny = user as any; // Type assertion needed because Prisma select types are complex
+        
+        if (!fields || fields.length === 0 || fields.includes("id")) userData.id = userAny.id;
+        if (!fields || fields.length === 0 || fields.includes("name")) userData.name = userAny.name;
+        if (!fields || fields.length === 0 || fields.includes("email")) userData.email = userAny.email;
+        if (!fields || fields.length === 0 || fields.includes("emailVerified")) userData.emailVerified = userAny.emailVerified;
+        if (!fields || fields.length === 0 || fields.includes("image")) userData.image = userAny.image;
+        if (!fields || fields.length === 0 || fields.includes("role")) userData.role = userAny.role;
+        if (!fields || fields.length === 0 || fields.includes("status")) userData.status = userAny.status;
+        if (!fields || fields.length === 0 || fields.includes("lastLoginAt")) userData.lastLoginAt = userAny.lastLoginAt;
+        if (!fields || fields.length === 0 || fields.includes("createdAt")) userData.createdAt = userAny.createdAt;
+        if (!fields || fields.length === 0 || fields.includes("updatedAt")) userData.updatedAt = userAny.updatedAt;
+        if (includeProfile) {
+          userData.profile = userAny.profile ? {
+            firstName: userAny.profile.firstName,
+            lastName: userAny.profile.lastName,
+            phone: userAny.profile.phone,
+            address: userAny.profile.address,
+            city: userAny.profile.city,
+            state: userAny.profile.state,
+            country: userAny.profile.country,
+            postalCode: userAny.profile.postalCode,
+          } : null;
+        }
+        
+        usersMap[userAny.id] = userData;
+      }
+      
+      return usersMap;
     }),
 });
 

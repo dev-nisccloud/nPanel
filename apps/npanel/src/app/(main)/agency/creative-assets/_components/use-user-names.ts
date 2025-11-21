@@ -62,35 +62,29 @@ export function useUserNames(userIds: string[]) {
   const [userNamesMap, setUserNamesMap] = React.useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = React.useState(true);
 
-  React.useEffect(() => {
-    if (uniqueUserIds.length === 0) {
-      setIsLoading(false);
-      return;
+  // Use batched endpoint for better performance
+  const { data: usersMap, isLoading: isLoadingBatch } = trpc.userProfile.getUsersByIds.useQuery(
+    { userIds: uniqueUserIds, fields: ["id", "name"] },
+    {
+      enabled: uniqueUserIds.length > 0,
+      staleTime: 10 * 60 * 1000, // 10 minutes
+      gcTime: 30 * 60 * 1000, // 30 minutes
+      refetchOnWindowFocus: false,
     }
+  );
 
-    setIsLoading(true);
-    // Fetch all users and update state
-    Promise.all(
-      uniqueUserIds.map(async (userId) => {
-        try {
-          const data = await utils.userProfile.getUserById.fetch(
-            { userId, fields: ["id", "name"] },
-            { staleTime: 10 * 60 * 1000 }
-          );
-          return { userId, name: data.name || userId };
-        } catch {
-          return { userId, name: userId }; // Fallback to ID on error
-        }
-      })
-    ).then((results) => {
+  React.useEffect(() => {
+    if (usersMap) {
       const map: Record<string, string> = {};
-      results.forEach(({ userId, name }) => {
-        map[userId] = name;
+      uniqueUserIds.forEach((userId) => {
+        map[userId] = usersMap[userId]?.name || userId;
       });
       setUserNamesMap(map);
       setIsLoading(false);
-    });
-  }, [uniqueUserIds, utils]);
+    } else if (!isLoadingBatch) {
+      setIsLoading(false);
+    }
+  }, [usersMap, uniqueUserIds, isLoadingBatch]);
 
   // Get a user name by ID, fallback to ID if not found or loading
   const getUserName = (userId: string | null | undefined): string => {

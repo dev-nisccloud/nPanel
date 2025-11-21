@@ -143,6 +143,9 @@ export function useWordPressPlugins(installationId: string) {
         toast.error("Failed to process WordPress plugins data. Please refresh the page.");
       }
     }
+  } else if (!isLoading && pluginsData === null) {
+    // API returned null/undefined - return empty array (no plugins installed)
+    data = [];
   }
 
   return {

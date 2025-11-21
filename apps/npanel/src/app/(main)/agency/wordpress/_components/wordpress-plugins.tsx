@@ -557,8 +557,23 @@ export function WordPressPlugins({ installationId }: WordPressPluginsProps) {
     return <PluginsSkeleton />;
   }
 
-  if (isError || !plugins) {
+  if (isError) {
     return <PluginsError error={error as Error} onRetry={() => refetch()} />;
+  }
+
+  // Handle empty plugins array (not an error, just no plugins installed)
+  if (!plugins || plugins.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="mb-4">
+          <Package className="h-12 w-12 text-muted-foreground mx-auto" />
+        </div>
+        <h3 className="mb-2 text-lg font-semibold">No plugins installed</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          This WordPress installation doesn't have any plugins installed yet.
+        </p>
+      </div>
+    );
   }
 
   return (

@@ -27,7 +27,7 @@ import { MailTable } from "./mail-table";
 import { FileManager } from "./file-manager";
 import { SubdomainsTable } from "./subdomains-table";
 import { hostingDetailSchema } from "./hosting-detail-schema";
-import { useHostingSubscriptionById } from "./use-hosting-subscription-by-id";
+import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 import { LinkToTeamDialog } from "./link-to-team-dialog";
 import { EditSubscriptionDialog } from "./edit-subscription-dialog";
@@ -138,7 +138,8 @@ function HostingDetailError({ error, onRetry }: { error: Error; onRetry: () => v
 }
 
 export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
-  const { data: hostingData, isLoading, isError, error, refetch, rawData } = useHostingSubscriptionById(subscriptionId);
+  // Use batched endpoint - fetches both hosting data and subscription link in one request
+  const { data: hostingData, subscription: subscriptionData, isLoading, isError, error, refetch, rawData } = useHostingDetailBatched(subscriptionId);
   const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
   const [isEditSubscriptionOpen, setIsEditSubscriptionOpen] = React.useState(false);
   const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
@@ -146,15 +147,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
 
   // Get pleskFilterId from raw data
   const pleskFilterId = String(rawData?.parsed?.packet?.webspace?.get?.result?.["filter-id"] || "");
-
-  // Check if subscription is linked to a team
-  const { data: subscriptionData } = trpc.hosting.getByPleskFilterId.useQuery(
-    { pleskFilterId },
-    {
-      enabled: !!pleskFilterId && pleskFilterId !== "",
-      staleTime: 30 * 1000, // 30 seconds
-    }
-  );
 
   const isLinkedToTeam = !!subscriptionData?.teamId;
 

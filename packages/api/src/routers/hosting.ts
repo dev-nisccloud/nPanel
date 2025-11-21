@@ -2,6 +2,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import prisma from "@nPanel/db";
+import { XMLParser } from 'fast-xml-parser';
+import { sendPleskXmlRequest } from '../lib/plesk/xml-client';
 
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
@@ -83,7 +85,187 @@ const updateSubscriptionOutputSchema = z.object({
 	id: z.string(),
 });
 
+const getDetailWithSubscriptionInputSchema = z.object({
+	subscriptionId: z.string(),
+});
+
+const getDetailWithSubscriptionOutputSchema = z.object({
+	hosting: z.any(), // Plesk subscription data
+	subscription: getByPleskFilterIdOutputSchema,
+});
+
 export const hostingRouter = router({
+	// Get hosting subscription detail with subscription link (batched)
+	getDetailWithSubscription: protectedProcedure
+		.input(getDetailWithSubscriptionInputSchema)
+		.output(getDetailWithSubscriptionOutputSchema)
+		.query(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in to view subscriptions",
+				});
+			}
+
+			const subscriptionIdNumber = parseInt(input.subscriptionId, 10);
+			if (isNaN(subscriptionIdNumber) || subscriptionIdNumber <= 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Invalid subscription ID",
+				});
+			}
+
+			// Build XML request to fetch subscription from Plesk
+			const buildSubscriptionGetByIdXml = (id: number): string => {
+				return `<?xml version="1.0" encoding="UTF-8"?>
+<packet>
+  <webspace>
+    <get>
+      <filter>
+        <id>${id}</id>
+      </filter>
+      <dataset>
+        <gen_info/>
+        <hosting/>
+        <limits/>
+        <prefs/>
+        <stat/>
+        <permissions/>
+      </dataset>
+    </get>
+  </webspace>
+</packet>`;
+			};
+
+			// Fetch Plesk subscription data
+			const pleskDataResult = await Promise.allSettled([
+				// Fetch from Plesk
+				(async () => {
+					if (!process.env.PLESK_XML_ENDPOINT) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Server configuration error: PLESK_XML_ENDPOINT environment variable is not set",
+						});
+					}
+
+					const xmlRequest = buildSubscriptionGetByIdXml(subscriptionIdNumber);
+					const { xml, isAuthError, isHostUnreachable } = await sendPleskXmlRequest(xmlRequest);
+
+					if (isHostUnreachable) {
+						throw new TRPCError({
+							code: "SERVICE_UNAVAILABLE",
+							message: "Plesk host is unreachable",
+						});
+					}
+
+					if (isAuthError) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "Invalid Plesk credentials",
+						});
+					}
+
+					if (!xml || xml.trim() === '') {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Empty response from Plesk server",
+						});
+					}
+
+					const parser = new XMLParser({ ignoreAttributes: false });
+					let parsed: any;
+
+					try {
+						parsed = parser.parse(xml);
+					} catch (parseError) {
+						console.error('Failed to parse XML response:', parseError);
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to parse Plesk response",
+							cause: parseError,
+						});
+					}
+
+					// Check for Plesk system errors
+					if (parsed?.packet?.system?.status === 'error') {
+						const errorCode = parsed.packet.system.errcode;
+						const errorText = parsed.packet.system.errtext || 'Unknown error';
+						
+						if (errorCode === 1010) {
+							throw new TRPCError({
+								code: "TOO_MANY_REQUESTS",
+								message: `Rate limit exceeded: ${errorText}. Please wait before making another request.`,
+							});
+						}
+						
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: `Plesk API Error ${errorCode}: ${errorText}`,
+						});
+					}
+
+					return {
+						raw: xml,
+						parsed,
+					};
+				})(),
+			]).then(([result]) => result);
+
+			// Handle Plesk data result
+			if (pleskDataResult.status === 'rejected') {
+				throw pleskDataResult.reason;
+			}
+
+			const pleskData = pleskDataResult.value;
+
+			// Extract pleskFilterId from Plesk response
+			const pleskFilterId = String(
+				pleskData?.parsed?.packet?.webspace?.get?.result?.["filter-id"] || ""
+			);
+
+			// Now fetch subscription link if filter ID exists
+			const subscriptionLink = pleskFilterId && pleskFilterId !== ""
+				? await prisma.hostingSubscription
+						.findUnique({
+							where: { pleskFilterId },
+							select: {
+								id: true,
+								teamId: true,
+								hostingPlanId: true,
+								primaryDomain: true,
+								billingCycle: true,
+								nextRenewalDate: true,
+								expiryDate: true,
+								notes: true,
+								autoRenew: true,
+								hostingType: true,
+							},
+						})
+						.then((sub) => {
+							if (!sub) return null;
+							return {
+								id: sub.id,
+								teamId: sub.teamId,
+								hostingPlanId: sub.hostingPlanId,
+								primaryDomain: sub.primaryDomain,
+								billingCycle: sub.billingCycle as any,
+								nextRenewalDate: sub.nextRenewalDate,
+								expiryDate: sub.expiryDate,
+								notes: sub.notes,
+								autoRenew: sub.autoRenew,
+								hostingType: sub.hostingType as any,
+							};
+						})
+						.catch(() => null)
+				: null;
+
+			return {
+				hosting: pleskData,
+				subscription: subscriptionLink,
+			};
+		}),
+
 	// Get subscription by Plesk Filter ID
 	getByPleskFilterId: protectedProcedure
 		.input(getByPleskFilterIdInputSchema)
@@ -309,7 +491,6 @@ export const hostingRouter = router({
 			}
 
 		const teamName = subscription.team?.name || "Unknown Team";
-		const pleskFilterId = subscription.pleskFilterId;
 		const now = new Date();
 
 		// Log activity - UserActivityLog (before deletion)
