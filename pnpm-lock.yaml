@@ -24,6 +24,9 @@ catalogs:
     next:
       specifier: 15.5.4
       version: 15.5.4
+    react:
+      specifier: ^19.1.0
+      version: 19.2.0
     tsdown:
       specifier: ^0.15.5
       version: 0.15.6
@@ -512,6 +515,9 @@ importers:
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
+      react:
+        specifier: 'catalog:'
+        version: 19.2.0
       react-email-starter:
         specifier: workspace:*
         version: link:../react-email-starter
