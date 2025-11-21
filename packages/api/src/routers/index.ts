@@ -33,6 +33,7 @@ import { wpThemesStatusRouter } from "./plesk/wp-themes-status";
 import { wpUpdatesInfoRouter } from "./plesk/wp-updates-info";
 import { wpUpdatesSettingsRouter } from "./plesk/wp-updates-settings";
 import { ftpRouter } from "./plesk/ftp";
+import { pleskHealthCheckRouter } from "./plesk/health-check";
 import { openProviderRouter } from "./openprovider";
 import { nameserverGroupsRouter } from "./nameserver-groups";
 import { tldSettingsRouter } from "./tld-settings";
@@ -62,6 +63,9 @@ export const appRouter = router({
 	}),
 	// Plesk integration routes
 	plesk: router({
+		// Health Check
+		healthCheck: pleskHealthCheckRouter,
+		// Core Resources
 		customers: customersRouter,
 		domains: domainsRouter,
 		wordpress: wordpressRouter,
