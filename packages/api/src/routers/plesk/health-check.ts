@@ -229,9 +229,10 @@ export const pleskHealthCheckRouter = router({
 				}
 
 				// Make a minimal REST request to test connection
-				// Using /v1/server endpoint which is lightweight
+				// Using /v1/installations endpoint with limit=1 to make it lightweight
+				// This endpoint is part of WordPress Toolkit REST API
 				const startTime = Date.now();
-				const result = await sendPleskRestRequest("/v1/server", "GET");
+				const result = await sendPleskRestRequest("/v1/installations?limit=1", "GET");
 				const duration = Date.now() - startTime;
 
 				// Check for errors
@@ -287,10 +288,10 @@ export const pleskHealthCheckRouter = router({
 					};
 				}
 
-				// Success
+				// Success - REST API is working (even if no installations exist)
 				return {
 					status: "healthy",
-					message: "Plesk REST API connection successful",
+					message: "Plesk REST API (WordPress Toolkit) connection successful",
 					details: {
 						has_rest_endpoint: true,
 						has_secret_key: hasSecretKey,
@@ -300,6 +301,7 @@ export const pleskHealthCheckRouter = router({
 						is_host_unreachable: false,
 						is_auth_error: false,
 						status_code: result.statusCode,
+						note: "REST API is primarily for WordPress Toolkit. An empty response is normal if no WordPress installations exist.",
 						response_data: result.data,
 					},
 				};
@@ -431,7 +433,7 @@ export const pleskHealthCheckRouter = router({
 					}
 
 					const startTime = Date.now();
-					const result = await sendPleskRestRequest("/v1/server", "GET");
+					const result = await sendPleskRestRequest("/v1/installations?limit=1", "GET");
 					const duration = Date.now() - startTime;
 
 					if (result.isHostUnreachable) {
@@ -461,7 +463,7 @@ export const pleskHealthCheckRouter = router({
 
 					return {
 						status: "healthy",
-						message: "Plesk REST API connection successful",
+						message: "Plesk REST API (WordPress Toolkit) connection successful",
 						response_time_ms: duration,
 					};
 				})(),
