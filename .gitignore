@@ -6,7 +6,13 @@ node_modules
 # Build outputs
 dist
 build
+**/dist
+**/build
 *.tsbuildinfo
+
+# React Email
+.react-email
+**/.react-email
 
 # Environment variables
 .env
