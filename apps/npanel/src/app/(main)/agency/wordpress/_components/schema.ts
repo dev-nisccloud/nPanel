@@ -190,7 +190,7 @@ export const wordpressInstancesResponseSchema = z.object({
             available: z.boolean().optional(),
           }).optional(),
         }).optional(),
-      })),
+      })).optional(),
   metadata: z.object({
     endpoint: z.string().optional(),
     timestamp: z.string().optional(),

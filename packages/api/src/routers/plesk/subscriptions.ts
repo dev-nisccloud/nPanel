@@ -104,6 +104,26 @@ export const subscriptionsRouter = router({
           });
         }
 
+        // Check for Plesk system errors (rate limiting, permissions, etc.)
+        if (parsed?.packet?.system?.status === 'error') {
+          const errorCode = parsed.packet.system.errcode;
+          const errorText = parsed.packet.system.errtext || 'Unknown error';
+          
+          // Handle rate limiting (error code 1010)
+          if (errorCode === 1010) {
+            throw new TRPCError({
+              code: "TOO_MANY_REQUESTS",
+              message: `Rate limit exceeded: ${errorText}. Please wait before making another request.`,
+            });
+          }
+          
+          // Handle other system errors
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Plesk API Error ${errorCode}: ${errorText}`,
+          });
+        }
+
         return {
           raw: xml,
           parsed,
@@ -172,6 +192,26 @@ export const subscriptionsRouter = router({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to parse Plesk response",
             cause: parseError,
+          });
+        }
+
+        // Check for Plesk system errors (rate limiting, permissions, etc.)
+        if (parsed?.packet?.system?.status === 'error') {
+          const errorCode = parsed.packet.system.errcode;
+          const errorText = parsed.packet.system.errtext || 'Unknown error';
+          
+          // Handle rate limiting (error code 1010)
+          if (errorCode === 1010) {
+            throw new TRPCError({
+              code: "TOO_MANY_REQUESTS",
+              message: `Rate limit exceeded: ${errorText}. Please wait before making another request.`,
+            });
+          }
+          
+          // Handle other system errors
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Plesk API Error ${errorCode}: ${errorText}`,
           });
         }
 

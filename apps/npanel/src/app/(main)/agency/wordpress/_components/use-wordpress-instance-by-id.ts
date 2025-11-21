@@ -14,7 +14,8 @@ function transformWordPressInstanceToDetail(
   // Access the correct data structure: data (direct array)
   const installations = wpResponse.data;
 
-  if (!installations) {
+  // Handle missing or invalid data
+  if (!installations || !Array.isArray(installations)) {
     return null;
   }
 
@@ -162,17 +163,19 @@ export function useWordPressInstanceById(installationId: string) {
     {},
     {
       enabled: !isNaN(installationIdNumber) && installationIdNumber > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: 10 * 60 * 1000, // 10 minutes - increased to reduce request frequency
+      gcTime: 30 * 60 * 1000, // 30 minutes - increased cache time
       retry: (failureCount, error: any) => {
         // Don't retry on authentication errors
         if (error?.data?.code === "UNAUTHORIZED") return false;
         // Don't retry on service unavailable errors
         if (error?.data?.code === "SERVICE_UNAVAILABLE") return false;
-        // Retry up to 3 times for other errors
-        return failureCount < 3;
+        // Don't retry on rate limit errors - retrying makes it worse
+        if (error?.data?.code === "TOO_MANY_REQUESTS") return false;
+        // Retry up to 2 times for other errors (reduced from 3)
+        return failureCount < 2;
       },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      retryDelay: (attemptIndex) => Math.min(5000 * (attemptIndex + 1), 60000), // Slower retries: 5s, 10s, max 60s
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
     }
@@ -188,6 +191,10 @@ export function useWordPressInstanceById(installationId: string) {
         toast.error("Authentication failed. Please check your Plesk credentials.");
       } else if (error?.data?.code === "SERVICE_UNAVAILABLE") {
         toast.error("Plesk server is currently unavailable. Please try again later.");
+      } else if (error?.data?.code === "TOO_MANY_REQUESTS") {
+        toast.error("Rate limit exceeded. Please wait a few minutes before trying again.", {
+          duration: 10000, // Show for 10 seconds
+        });
       } else if (error?.data?.code === "INTERNAL_SERVER_ERROR") {
         toast.error("Server error occurred while fetching WordPress installation details.");
       } else {

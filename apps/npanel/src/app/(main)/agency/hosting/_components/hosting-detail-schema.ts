@@ -72,7 +72,12 @@ export const pleskSubscriptionByIdResponseSchema = z.object({
             }),
           }),
         }),
-      }),
+      }).optional(),
+      system: z.object({
+        status: z.string().optional(),
+        errcode: z.union([z.string(), z.number()]).optional(),
+        errtext: z.string().optional(),
+      }).optional(),
     }),
   }),
 });

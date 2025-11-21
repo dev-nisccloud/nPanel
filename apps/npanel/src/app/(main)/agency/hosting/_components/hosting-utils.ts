@@ -26,6 +26,19 @@ export function transformPleskSubscriptionsToTable(
   pleskResponse: z.infer<typeof pleskSubscriptionResponseSchema>
 ): z.infer<typeof hostingSubscriptionSchema>[] {
   try {
+    // Check for system errors first
+    if (pleskResponse.parsed.packet.system?.status === 'error') {
+      const errorCode = pleskResponse.parsed.packet.system.errcode;
+      const errorText = pleskResponse.parsed.packet.system.errtext || 'Unknown error';
+      throw new Error(`Plesk API Error ${errorCode}: ${errorText}`);
+    }
+
+    // Check if webspace exists
+    if (!pleskResponse.parsed.packet.webspace?.get?.result) {
+      // Return empty array if no subscriptions found (not an error)
+      return [];
+    }
+
     const subscriptions = pleskResponse.parsed.packet.webspace.get.result;
     
     return subscriptions.map((subscription, index) => {

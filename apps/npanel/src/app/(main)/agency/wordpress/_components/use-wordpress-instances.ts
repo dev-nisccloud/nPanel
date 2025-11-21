@@ -13,7 +13,8 @@ function transformWordPressInstancesToComponent(
   // Access the correct data structure: data (direct array)
   const installations = wpResponse.data;
 
-  if (!installations) {
+  // Handle missing or invalid data
+  if (!installations || !Array.isArray(installations)) {
     return [];
   }
 
@@ -154,9 +155,14 @@ export function useWordPressInstances() {
         if (error?.data?.code === 'UNAUTHORIZED' || error?.data?.code === 'SERVICE_UNAVAILABLE') {
           return false;
         }
-        return failureCount < 3;
+        // Don't retry on rate limit errors
+        if (error?.data?.code === 'TOO_MANY_REQUESTS') {
+          return false;
+        }
+        // Retry up to 2 times for other errors (reduced from 3)
+        return failureCount < 2;
       },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      retryDelay: (attemptIndex) => Math.min(5000 * (attemptIndex + 1), 60000), // Slower retries: 5s, 10s, max 60s
     }
   );
 
@@ -193,6 +199,11 @@ export function useWordPressInstances() {
           break;
         case 'SERVICE_UNAVAILABLE':
           toast.error("Plesk service is currently unavailable. Please try again later.");
+          break;
+        case 'TOO_MANY_REQUESTS':
+          toast.error("Rate limit exceeded. Please wait a few minutes before trying again.", {
+            duration: 10000, // Show for 10 seconds
+          });
           break;
         case 'INTERNAL_SERVER_ERROR':
           toast.error("Failed to fetch WordPress instances. Please try again.");
