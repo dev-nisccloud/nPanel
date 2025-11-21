@@ -27,7 +27,7 @@ const CurrencyContext = React.createContext<CurrencyContextType | undefined>(und
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [selectedCurrency, setSelectedCurrency] = React.useState<SupportedCurrency>('USD');
   const [isConverting, setIsConverting] = React.useState(false);
-  
+
   // Load from localStorage on mount
   React.useEffect(() => {
     const saved = localStorage.getItem('selectedCurrency') as SupportedCurrency;
@@ -52,7 +52,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     }
   );
 
-  // Currency conversion mutation
+  // Currency conversion mutation - stable reference using useRef for callbacks
   const convertPricesMutation = trpc.currency.convertPrices.useMutation({
     onMutate: () => {
       setIsConverting(true);
@@ -62,7 +62,12 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  // Batch convert prices function
+  // Use ref to store mutation to keep stable reference
+  const mutationRef = React.useRef(convertPricesMutation);
+  mutationRef.current = convertPricesMutation;
+
+  // Batch convert prices function - stabilized with useCallback
+  // Empty deps array ensures function reference stays stable
   const convertPricesBatch = React.useCallback(async (
     prices: Array<{ amount: number; currency: string }>,
     targetCurrency: string
@@ -72,7 +77,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const result = await convertPricesMutation.mutateAsync({
+      const result = await mutationRef.current.mutateAsync({
         prices,
         targetCurrency,
       });
@@ -86,19 +91,21 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       console.error('Failed to convert prices batch:', error);
       return [];
     }
-  }, [convertPricesMutation]);
+  }, []); // Empty deps - mutation ref is updated via assignment
 
   const isConversionAvailable = Boolean(exchangeRates?.success && exchangeRates.data?.rates);
 
+  // CRITICAL FIX: Remove isConverting from dependencies to prevent loop
+  // isConverting is just UI state, not needed for function stability
   const value = React.useMemo(() => ({
     selectedCurrency,
     setSelectedCurrency,
     isConversionAvailable,
     exchangeRates,
     isLoadingRates,
-    isConverting,
+    isConverting, // Still include in value for UI, but don't use in deps
     convertPricesBatch,
-  }), [selectedCurrency, isConversionAvailable, exchangeRates, isLoadingRates, isConverting, convertPricesBatch]);
+  }), [selectedCurrency, isConversionAvailable, exchangeRates, isLoadingRates, convertPricesBatch]); // Removed isConverting from deps
 
   return (
     <CurrencyContext.Provider value={value}>

@@ -1,7 +1,10 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../trpc";
+import { publicProcedure, protectedProcedure, router } from "../trpc";
+import { TRPCError } from "@trpc/server";
 import prisma from "@nPanel/db";
-import { renderTeamInviteEmail } from "react-email-starter/src/email-templates";
+import * as crypto from "crypto";
+import { renderTeamInviteEmail } from "../lib/email-templates";
+import { sendEmail } from "react-email-starter/src/email";
 
 // Zod schemas for API - independent from database schema
 const createTeamInputSchema = z.object({
@@ -629,5 +632,695 @@ export const teamsRouter = router({
       return {
         success: true,
       };
+    }),
+
+  // ============================================================================
+  // ADMIN TEAM MANAGEMENT (for agency/admin use)
+  // ============================================================================
+
+  /**
+   * Get all teams (for admin/agency management)
+   */
+  getAll: protectedProcedure
+    .output(z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      slug: z.string(),
+      baseCurrency: z.string(),
+      logoUrl: z.string().nullable(),
+      isActive: z.boolean(),
+      createdById: z.string(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+      memberCount: z.number(),
+    })))
+    .query(async ({ ctx }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in to view teams",
+        });
+      }
+
+      // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to view all teams",
+        });
+      }
+
+      const teams = await prisma.team.findMany({
+        include: {
+          _count: {
+            select: {
+              members: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      return teams.map((team) => ({
+        id: team.id,
+        name: team.name,
+        slug: team.slug,
+        baseCurrency: team.baseCurrency,
+        logoUrl: team.logoUrl,
+        isActive: team.isActive,
+        createdById: team.createdById,
+        createdAt: team.createdAt,
+        updatedAt: team.updatedAt,
+        memberCount: team._count.members,
+      }));
+    }),
+
+  /**
+   * Get team by ID with full details
+   */
+  getById: protectedProcedure
+    .input(z.object({ teamId: z.string() }))
+    .output(z.object({
+      id: z.string(),
+      name: z.string(),
+      slug: z.string(),
+      baseCurrency: z.string(),
+      logoUrl: z.string().nullable(),
+      isActive: z.boolean(),
+      createdById: z.string(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission",
+        });
+      }
+
+      const team = await prisma.team.findUnique({
+        where: { id: input.teamId },
+      });
+
+      if (!team) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team not found",
+        });
+      }
+
+      return team;
+    }),
+
+  /**
+   * Get team members (returns userIds only)
+   */
+  getMembers: protectedProcedure
+    .input(z.object({ teamId: z.string() }))
+    .output(z.array(z.object({
+      id: z.string(),
+      userId: z.string(),
+      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+    })))
+    .query(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission",
+        });
+      }
+
+      const members = await prisma.teamMember.findMany({
+        where: { teamId: input.teamId },
+        orderBy: { createdAt: "desc" },
+      });
+
+      return members;
+    }),
+
+  /**
+   * Get team invites
+   */
+  getInvites: protectedProcedure
+    .input(z.object({ teamId: z.string() }))
+    .output(z.array(z.object({
+      id: z.string(),
+      email: z.string(),
+      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
+      status: z.enum(["PENDING", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"]),
+      invitedById: z.string(),
+      expiresAt: z.date(),
+      acceptedAt: z.date().nullable(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+    })))
+    .query(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission",
+        });
+      }
+
+      const invites = await prisma.teamInvite.findMany({
+        where: { teamId: input.teamId },
+        orderBy: { createdAt: "desc" },
+      });
+
+      return invites;
+    }),
+
+  /**
+   * Get team hosting subscriptions
+   */
+  getHostingSubscriptions: protectedProcedure
+    .input(z.object({ teamId: z.string() }))
+    .output(z.array(z.object({
+      id: z.string(),
+      hostingPlanId: z.string(),
+      primaryDomain: z.string().nullable(),
+      billingCycle: z.enum(["YEARLY", "MONTHLY", "BIENNIALLY", "CUSTOM"]),
+      nextRenewalDate: z.date().nullable(),
+      expiryDate: z.date().nullable(),
+      autoRenew: z.boolean(),
+      hostingType: z.enum(["WEB_HOSTING", "EMAIL_HOSTING", "RESELLER_HOSTING", "VPS_HOSTING", "DEDICATED_HOSTING"]),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+    })))
+    .query(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission",
+        });
+      }
+
+      const subscriptions = await prisma.hostingSubscription.findMany({
+        where: { teamId: input.teamId },
+        orderBy: { createdAt: "desc" },
+      });
+
+      return subscriptions;
+    }),
+
+  /**
+   * Update team (slug not editable)
+   */
+  update: protectedProcedure
+    .input(z.object({
+      teamId: z.string(),
+      name: z.string().min(2).optional(),
+      baseCurrency: z.string().length(3).optional(),
+      logoUrl: z.string().nullable().optional(),
+      isActive: z.boolean().optional(),
+    }).refine(
+      (data) => data.name !== undefined || data.baseCurrency !== undefined || data.logoUrl !== undefined || data.isActive !== undefined,
+      { message: "At least one field must be provided for update" }
+    ))
+    .output(z.object({
+      id: z.string(),
+      name: z.string(),
+      slug: z.string(),
+      baseCurrency: z.string(),
+      logoUrl: z.string().nullable(),
+      isActive: z.boolean(),
+      createdById: z.string(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission",
+        });
+      }
+
+      const existingTeam = await prisma.team.findUnique({
+        where: { id: input.teamId },
+      });
+
+      if (!existingTeam) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team not found",
+        });
+      }
+
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.baseCurrency !== undefined) updateData.baseCurrency = input.baseCurrency;
+      if (input.logoUrl !== undefined) updateData.logoUrl = input.logoUrl;
+      if (input.isActive !== undefined) updateData.isActive = input.isActive;
+
+      const updatedTeam = await prisma.team.update({
+        where: { id: input.teamId },
+        data: updateData,
+      });
+
+      // Log activity
+      const changedFields = Object.keys(updateData).filter(key => key !== "updatedAt");
+      await prisma.userActivityLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: session.user.id,
+          action: "TEAM_UPDATED_BY_ADMIN",
+          description: `Team updated by admin: ${session.user.email}`,
+          metadata: {
+            teamId: updatedTeam.id,
+            teamName: updatedTeam.name,
+            updatedBy: session.user.id,
+            updatedByEmail: session.user.email,
+            changedFields,
+            previousValues: {
+              name: existingTeam.name,
+              baseCurrency: existingTeam.baseCurrency,
+              logoUrl: existingTeam.logoUrl,
+              isActive: existingTeam.isActive,
+            },
+            newValues: {
+              name: updatedTeam.name,
+              baseCurrency: updatedTeam.baseCurrency,
+              logoUrl: updatedTeam.logoUrl,
+              isActive: updatedTeam.isActive,
+            },
+          },
+          createdAt: new Date(),
+        },
+      });
+
+      return updatedTeam;
+    }),
+
+  /**
+   * Delete team
+   */
+  delete: protectedProcedure
+    .input(z.object({ teamId: z.string() }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission",
+        });
+      }
+
+      const team = await prisma.team.findUnique({
+        where: { id: input.teamId },
+      });
+
+      if (!team) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team not found",
+        });
+      }
+
+      // Delete team (cascade will handle related records)
+      await prisma.team.delete({
+        where: { id: input.teamId },
+      });
+
+      // Log activity
+      await prisma.userActivityLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: session.user.id,
+          action: "TEAM_DELETED_BY_ADMIN",
+          description: `Team deleted by admin: ${session.user.email}`,
+          metadata: {
+            teamId: team.id,
+            teamName: team.name,
+            deletedBy: session.user.id,
+            deletedByEmail: session.user.email,
+          },
+          createdAt: new Date(),
+        },
+      });
+
+      return { success: true };
+    }),
+
+  /**
+   * Invite member to team
+   */
+  inviteMember: protectedProcedure
+    .input(z.object({
+      teamId: z.string(),
+      email: z.string().email(),
+      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]).default("MEMBER"),
+    }))
+    .output(z.object({
+      success: z.boolean(),
+      inviteId: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission",
+        });
+      }
+
+      const team = await prisma.team.findUnique({
+        where: { id: input.teamId },
+      });
+
+      if (!team) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team not found",
+        });
+      }
+
+      // Check if user is already a member
+      const existingMember = await prisma.user.findUnique({
+        where: { email: input.email },
+        include: {
+          teamMemberships: {
+            where: { teamId: input.teamId },
+          },
+        },
+      });
+
+      if (existingMember && existingMember.teamMemberships.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "User is already a member of this team",
+        });
+      }
+
+      // Check if there's already a pending invite
+      const existingInvite = await prisma.teamInvite.findFirst({
+        where: {
+          teamId: input.teamId,
+          email: input.email,
+          status: "PENDING",
+        },
+      });
+
+      if (existingInvite) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "An invite is already pending for this email",
+        });
+      }
+
+      const inviteCode = crypto.randomUUID();
+      const inviteId = crypto.randomUUID();
+
+      // Create invite
+      const invite = await prisma.teamInvite.create({
+        data: {
+          id: inviteId,
+          code: inviteCode,
+          teamId: input.teamId,
+          email: input.email,
+          role: input.role,
+          status: "PENDING",
+          invitedById: session.user.id,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Get inviter info
+      const inviter = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { name: true, email: true },
+      });
+
+      const inviterName = inviter?.name || inviter?.email || "A team member";
+
+      // Send invite email
+      try {
+        const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
+        const acceptInviteUrl = `${frontendUrl}/accept-invite?code=${inviteCode}`;
+
+        const html = await renderTeamInviteEmail({
+          invitedUserEmail: input.email,
+          inviterName,
+          teamName: team.name,
+          teamRole: input.role,
+          acceptInviteLink: acceptInviteUrl,
+          expiresInDays: 7,
+        });
+
+        await sendEmail({
+          to: input.email,
+          subject: `You've been invited to join ${team.name} on Nisc Cloud`,
+          html,
+        });
+      } catch (emailError) {
+        console.error("Failed to send invite email:", emailError);
+      }
+
+      // Log activity
+      await prisma.userActivityLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: session.user.id,
+          action: "TEAM_MEMBER_INVITED_BY_ADMIN",
+          description: `Team member invited by admin: ${session.user.email}`,
+          metadata: {
+            teamId: team.id,
+            teamName: team.name,
+            invitedEmail: input.email,
+            role: input.role,
+            inviteId: invite.id,
+            invitedBy: session.user.id,
+            invitedByEmail: session.user.email,
+          },
+          createdAt: new Date(),
+        },
+      });
+
+      return {
+        success: true,
+        inviteId: invite.id,
+      };
+    }),
+
+  /**
+   * Remove member from team
+   */
+  removeMember: protectedProcedure
+    .input(z.object({
+      teamId: z.string(),
+      memberId: z.string(),
+    }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission",
+        });
+      }
+
+      const member = await prisma.teamMember.findUnique({
+        where: { id: input.memberId },
+        include: {
+          team: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!member) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team member not found",
+        });
+      }
+
+      if (member.teamId !== input.teamId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Member does not belong to this team",
+        });
+      }
+
+      // Delete the team member
+      await prisma.teamMember.delete({
+        where: { id: input.memberId },
+      });
+
+      // Log activity
+      await prisma.userActivityLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: session.user.id,
+          action: "TEAM_MEMBER_REMOVED_BY_ADMIN",
+          description: `Team member removed by admin: ${session.user.email}`,
+          metadata: {
+            teamId: member.team.id,
+            teamName: member.team.name,
+            removedMemberId: member.userId,
+            removedMemberName: member.user.name,
+            removedMemberEmail: member.user.email,
+            removedBy: session.user.id,
+            removedByEmail: session.user.email,
+          },
+          createdAt: new Date(),
+        },
+      });
+
+      return { success: true };
+    }),
+
+  /**
+   * Delete invite
+   */
+  deleteInvite: protectedProcedure
+    .input(z.object({
+      inviteId: z.string(),
+    }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission",
+        });
+      }
+
+      const invite = await prisma.teamInvite.findUnique({
+        where: { id: input.inviteId },
+        include: {
+          team: true,
+        },
+      });
+
+      if (!invite) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Invite not found",
+        });
+      }
+
+      // Delete the invite
+      await prisma.teamInvite.delete({
+        where: { id: input.inviteId },
+      });
+
+      // Log activity
+      await prisma.userActivityLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: session.user.id,
+          action: "TEAM_INVITE_DELETED_BY_ADMIN",
+          description: `Team invite deleted by admin: ${session.user.email}`,
+          metadata: {
+            teamId: invite.team.id,
+            teamName: invite.team.name,
+            deletedInviteId: invite.id,
+            deletedInviteEmail: invite.email,
+            deletedBy: session.user.id,
+            deletedByEmail: session.user.email,
+          },
+          createdAt: new Date(),
+        },
+      });
+
+      return { success: true };
     }),
 });

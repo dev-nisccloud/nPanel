@@ -1,20 +1,16 @@
 import { z } from "zod";
 
 export const clientSchema = z.object({
-  id: z.number(),
-  firstName: z.string(),
-  lastName: z.string(),
-  companyName: z.string().nullable().optional(),
-  email: z.string().email(),
-  address: z.string().nullable().optional(),
-  city: z.string().nullable().optional(),
-  postCode: z.string().nullable().optional(),
-  country: z.string().nullable().optional(),
-  phoneNumber: z.string().nullable().optional(),
-  howDidYouFindUs: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  stateRegion: z.string().nullable().optional(),
-  createdAt: z.string(),
+	id: z.string(),
+	name: z.string(),
+	email: z.string().email(),
+	emailVerified: z.boolean(),
+	role: z.enum(["CUSTOMER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]),
+	status: z.enum(["ACTIVE", "SUSPENDED", "BANNED", "DEACTIVATED"]),
+	image: z.string().nullable(),
+	lastLoginAt: z.date().nullable(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
 });
 
 export type Client = z.infer<typeof clientSchema>;

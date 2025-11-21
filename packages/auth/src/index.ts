@@ -9,12 +9,52 @@ import {
 } from "react-email-starter/src/email-templates";
 import { sendEmail } from "react-email-starter/src/email";
 
+// Resolve trusted origins from environment variables
+// When BETTER_AUTH_ACCEPT_ANY_HTTPS=true, we don't set trustedOrigins
+// This allows Better Auth to accept same-origin requests dynamically for any HTTPS URL
+// Otherwise, use BETTER_AUTH_URLS or BETTER_AUTH_URL from env
 const resolvedTrustedOrigins = (() => {
+  // If explicitly set to accept any HTTPS origin, include all URLs from env + allow dynamic HTTPS
+  if (process.env.BETTER_AUTH_ACCEPT_ANY_HTTPS === "true") {
+    // When accepting any HTTPS, we still need to include the URLs from env
+    // But Better Auth will validate against this list, so include all possible URLs
+    const list = process.env.BETTER_AUTH_URLS
+      ? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+    
+    // Also include BETTER_AUTH_URL if set
+    if (process.env.BETTER_AUTH_URL) {
+      const normalized = process.env.BETTER_AUTH_URL.replace(/\/+$/, "");
+      if (!list.includes(normalized)) {
+        list.push(normalized);
+      }
+    }
+    
+    // Normalize all URLs
+    const normalized = list.map((url) => url.replace(/\/+$/, ""));
+    console.log("[Better Auth Config] BETTER_AUTH_ACCEPT_ANY_HTTPS=true, using trustedOrigins:", normalized);
+    return normalized;
+  }
+  
   const list = process.env.BETTER_AUTH_URLS
     ? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
     : undefined;
-  if (list && list.length > 0) return list;
-  return process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : undefined;
+  if (list && list.length > 0) {
+    // Normalize URLs by removing trailing slashes to avoid origin matching issues
+    const normalized = list.map((url) => url.replace(/\/+$/, ""));
+    console.log("[Better Auth Config] Using BETTER_AUTH_URLS:", normalized);
+    return normalized;
+  }
+  if (process.env.BETTER_AUTH_URL) {
+    // Normalize URL by removing trailing slash
+    const normalized = process.env.BETTER_AUTH_URL.replace(/\/+$/, "");
+    console.log("[Better Auth Config] Using BETTER_AUTH_URL:", normalized);
+    return [normalized];
+  }
+  // When baseURL is undefined and no trustedOrigins are set,
+  // Better Auth should accept same-origin requests automatically
+  console.log("[Better Auth Config] No trusted origins configured, setting to undefined");
+  return undefined;
 })();
 
 export const auth = betterAuth<BetterAuthOptions>({
@@ -354,7 +394,9 @@ export const auth = betterAuth<BetterAuthOptions>({
 		defaultCookieAttributes: {
 			// Lax is safer for same-origin apps and avoids odd cross-site handling in production
 			sameSite: (process.env.BETTER_AUTH_COOKIE_SAMESITE as "lax" | "strict" | "none") || "lax",
-			secure: process.env.NODE_ENV === "production",
+			// Secure cookies should be used for HTTPS (production, ngrok, etc.)
+			// Better Auth will automatically set this based on the request protocol when baseURL is undefined
+			secure: process.env.NODE_ENV === "production" || process.env.BETTER_AUTH_SECURE_COOKIES === "true",
 			httpOnly: true,
 		},
 	},

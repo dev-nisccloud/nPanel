@@ -8,16 +8,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@nPanel/ui/tooltip";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { useEffect, useState } from "react";
 import { useFormContext } from "react-hook-form";
+import { trpc } from "@/utils/trpc";
 import { Input } from "./input";
 import { LabelInput } from "./label-input";
 
 export function InvoiceNo() {
   const {
     watch,
-    setError,
-    clearErrors,
+    setValue,
     formState: { errors },
   } = useFormContext();
   const invoiceNumber = watch("invoiceNumber");
@@ -25,27 +26,23 @@ export function InvoiceNo() {
 
   const { type } = useInvoiceParams();
 
-  // Mock invoice number search
-  const [existingInvoiceNumbers] = useState<string[]>([
-    "INV-001",
-    "INV-002", 
-    "INV-003"
-  ]);
-
-  const isInvoiceNumberExists = type === "create" && 
-    invoiceNumber !== "" && 
-    existingInvoiceNumbers.includes(invoiceNumber);
-
-  useEffect(() => {
-    if (isInvoiceNumberExists) {
-      setError("invoiceNumber", {
-        type: "manual",
-        message: "Invoice number already exists",
-      });
-    } else {
-      clearErrors("invoiceNumber");
+  // Fetch next invoice number when creating a new invoice
+  const { data: nextInvoiceData, isLoading: isLoadingNextNumber } = trpc.invoicing.getNextInvoiceNumber.useQuery(
+    undefined,
+    {
+      enabled: type === "create",
+      staleTime: 5 * 60 * 1000, // 5 minutes - invoice numbers don't change frequently
+      gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
+      refetchOnWindowFocus: false, // Don't refetch on window focus
     }
-  }, [isInvoiceNumberExists, setError, clearErrors]);
+  );
+
+  // Auto-populate invoice number when creating and data is available
+  useEffect(() => {
+    if (type === "create" && nextInvoiceData?.invoiceNumber && !invoiceNumber) {
+      setValue("invoiceNumber", nextInvoiceData.invoiceNumber, { shouldValidate: false });
+    }
+  }, [type, nextInvoiceData?.invoiceNumber, invoiceNumber, setValue]);
 
   return (
     <div className="flex space-x-1 items-center">
@@ -67,19 +64,26 @@ export function InvoiceNo() {
       <TooltipProvider delayDuration={100}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div>
-              <Input
-                name="invoiceNumber"
-                className={cn(
-                  "w-28 flex-shrink p-0 border-none text-[11px] h-4.5 overflow-hidden",
-                  errors.invoiceNumber ? "text-red-500" : "",
-                )}
-              />
+            <div className="relative">
+              {isLoadingNextNumber && type === "create" ? (
+                <div className="flex items-center gap-1.5 w-28 h-4.5">
+                  <Spinner variant="ellipsis" size={12} className="text-muted-foreground" />
+                  <span className="text-[11px] text-muted-foreground">Loading...</span>
+                </div>
+              ) : (
+                <Input
+                  name="invoiceNumber"
+                  className={cn(
+                    "w-28 flex-shrink p-0 border-none text-[11px] h-4.5 overflow-hidden",
+                    errors.invoiceNumber ? "text-red-500" : "",
+                  )}
+                />
+              )}
             </div>
           </TooltipTrigger>
           {errors.invoiceNumber && (
             <TooltipContent className="text-xs px-3 py-1.5">
-              <p>Invoice number already exists</p>
+              <p>{errors.invoiceNumber.message as string || "Invalid invoice number"}</p>
             </TooltipContent>
           )}
         </Tooltip>

@@ -13,7 +13,19 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
-  serverExternalPackages: ["@prisma/client", "@nPanel/db"],
+  serverExternalPackages: ["@prisma/client", "@nPanel/db", "canvas", "pdfjs-dist", "@react-pdf/renderer"],
+  webpack: (config, { isServer }) => {
+    // Exclude canvas from client-side bundles
+    // Canvas is a Node.js native module that pdfjs-dist uses for server-side rendering
+    // It's not needed (and won't work) in the browser
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        canvas: false,
+      };
+    }
+    return config;
+  },
   async redirects() {
     return [
       // Remove the hardcoded dashboard redirect

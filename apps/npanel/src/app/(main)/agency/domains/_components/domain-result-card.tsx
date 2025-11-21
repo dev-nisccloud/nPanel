@@ -16,7 +16,7 @@ interface DomainResultCardProps {
 
 const formatPrice = (price?: number, currency?: string) => {
   if (!price) return "N/A";
-  
+
   // Currency symbols mapping
   const currencySymbols: Record<string, string> = {
     'USD': '$',
@@ -30,22 +30,30 @@ const formatPrice = (price?: number, currency?: string) => {
     'ZAR': 'R',
     'NGN': '₦',
   };
-  
+
   const symbol = currencySymbols[currency || 'USD'] || currency || '$';
-  return `${symbol} ${price.toFixed(2)}`;
+  // Format with thousand separators (e.g., 1,000.00)
+  const formattedNumber = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(price);
+  
+  return `${symbol} ${formattedNumber}`;
 };
 
 const formatPricingInfo = (calculated: any) => {
   if (!calculated) return null;
-  
-  const { marginType, marginValue, marginAmount, originalPrice, finalPrice } = calculated;
-  
+
+  const { marginType, marginValue, marginAmount } = calculated;
+
   if (marginType === "PERCENTAGE") {
-    return `+${marginValue}% ($${marginAmount.toFixed(2)})`;
+    return `+${marginValue}% (+${formatPrice(marginAmount, calculated.currency)})`;
   } else if (marginType === "FIXED") {
-    return `+$${marginValue}`;
+    // marginValue is already a string, so we can use it directly after parsing
+    const fixedValue = parseFloat(marginValue || '0');
+    return `+${formatPrice(fixedValue, calculated.currency)}`;
   }
-  
+
   return null;
 };
 
@@ -70,8 +78,8 @@ const getStatusBadge = (status: string) => {
   };
 
   return (
-    <Badge 
-      variant={statusConfig.variant} 
+    <Badge
+      variant={statusConfig.variant}
       className={`${statusConfig.className} text-xs`}
     >
       {statusConfig.label}
@@ -90,6 +98,17 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
     }
   };
 
+  // Extract price information for display
+  const calculated = result.price?.calculated;
+  const displayPrice = calculated
+    ? ((calculated as any).convertedPrice ?? calculated.finalPrice)
+    : result.price?.reseller?.price;
+  const displayCurrency = calculated
+    ? ((calculated as any).displayCurrency ?? calculated.currency)
+    : result.price?.reseller?.currency;
+  const originalPrice = calculated?.originalPrice ?? result.price?.reseller?.price;
+  const originalCurrency = calculated?.currency ?? result.price?.reseller?.currency;
+
   return (
     <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
       <div className="flex-1 min-w-0">
@@ -100,42 +119,40 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
           {getStatusBadge(result.status)}
         </div>
         {result.status === 'free' && result.price && (
-          <div className="space-y-1">
-            {/* Main Price Display */}
-            <div className="text-base font-medium text-gray-700">
-              {result.price.calculated ? (
-                <>
-                  {/* Show converted price if available, otherwise show calculated price */}
-                  {(result.price.calculated as any).convertedPrice ? (
-                    formatPrice((result.price.calculated as any).convertedPrice, (result.price.calculated as any).displayCurrency)
-                  ) : (
-                    formatPrice(result.price.calculated.finalPrice, result.price.calculated.currency)
-                  )}
-                </>
-              ) : (
-                formatPrice(result.price.reseller?.price, result.price.reseller?.currency)
-              )}
+          <div className="space-y-2">
+            {/* Main Price Display - Prominent */}
+            <div className="text-2xl font-bold text-gray-900">
+              {formatPrice(displayPrice, displayCurrency)}
             </div>
-            
-            {/* Price Breakdown */}
-            {result.price.calculated && (
-              <div className="text-xs text-gray-500 space-y-1">
+
+            {/* Price Breakdown at Bottom */}
+            {calculated && (
+              <div className="text-xs text-gray-500 space-y-0.5 pt-1 border-t border-gray-100">
                 {/* Original Price */}
-                <div className="text-gray-400">
-                  Base: {formatPrice(result.price.calculated.originalPrice, result.price.calculated.currency)}
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">Original Price:</span>
+                  <span className="text-gray-600 line-through">
+                    {formatPrice(originalPrice, originalCurrency)}
+                  </span>
                 </div>
-                
+
                 {/* Margin Information */}
-                {result.price.calculated.marginAmount > 0 && (
-                  <div className="text-green-600 font-medium">
-                    {formatPricingInfo(result.price.calculated)}
+                {calculated.marginAmount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Markup:</span>
+                    <span className="text-green-600 font-medium">
+                      {formatPricingInfo(calculated)}
+                    </span>
                   </div>
                 )}
-                
+
                 {/* Currency Conversion Info */}
-                {(result.price.calculated as any).convertedPrice && (result.price.calculated as any).exchangeRate && (
-                  <div className="text-blue-600">
-                    Rate: 1 {result.price.calculated.currency} = {(result.price.calculated as any).exchangeRate.toFixed(4)} {(result.price.calculated as any).displayCurrency}
+                {(calculated as any).convertedPrice && (calculated as any).exchangeRate && (
+                  <div className="flex items-center justify-between text-blue-600">
+                    <span>Exchange Rate:</span>
+                    <span>
+                      1 {calculated.currency} = {((calculated as any).exchangeRate).toFixed(4)} {(calculated as any).displayCurrency}
+                    </span>
                   </div>
                 )}
               </div>
@@ -143,12 +160,12 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
           </div>
         )}
         {result.reason && (
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 mt-2">
             {result.reason}
           </div>
         )}
       </div>
-      
+
       <div className="flex items-center gap-2 ml-4">
         {result.status === 'free' ? (
           <Button

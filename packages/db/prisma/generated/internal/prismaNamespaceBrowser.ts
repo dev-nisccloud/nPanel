@@ -51,6 +51,8 @@ export const ModelName = {
   CustomerIntegration: 'CustomerIntegration',
   WordPressInstance: 'WordPressInstance',
   Order: 'Order',
+  OrderItem: 'OrderItem',
+  OrderItemActivityLog: 'OrderItemActivityLog',
   Promo: 'Promo',
   User: 'User',
   Session: 'Session',
@@ -58,10 +60,14 @@ export const ModelName = {
   Team: 'Team',
   TeamMember: 'TeamMember',
   TeamInvite: 'TeamInvite',
+  TeamBillingSettings: 'TeamBillingSettings',
+  TeamBillingSettingsActivityLog: 'TeamBillingSettingsActivityLog',
   Verification: 'Verification',
   UserProfile: 'UserProfile',
   UserActivityLog: 'UserActivityLog',
   HostingPlan: 'HostingPlan',
+  NiscServicePlan: 'NiscServicePlan',
+  NiscServicePlanActivityLog: 'NiscServicePlanActivityLog',
   HostingSubscription: 'HostingSubscription',
   HostingRenewal: 'HostingRenewal',
   HostingPlanActivityLog: 'HostingPlanActivityLog',
@@ -97,7 +103,19 @@ export const ModelName = {
   SESConfiguration: 'SESConfiguration',
   EmailDomainActivityLog: 'EmailDomainActivityLog',
   EmailCampaignActivityLog: 'EmailCampaignActivityLog',
-  AudienceActivityLog: 'AudienceActivityLog'
+  AudienceActivityLog: 'AudienceActivityLog',
+  Invoice: 'Invoice',
+  InvoiceLineItem: 'InvoiceLineItem',
+  InvoiceTransaction: 'InvoiceTransaction',
+  CreditNote: 'CreditNote',
+  InvoiceActivityLog: 'InvoiceActivityLog',
+  InvoiceTransactionActivityLog: 'InvoiceTransactionActivityLog',
+  CreditNoteActivityLog: 'CreditNoteActivityLog',
+  InvoiceCounter: 'InvoiceCounter',
+  SocialMediaIntegration: 'SocialMediaIntegration',
+  SocialMediaPageToken: 'SocialMediaPageToken',
+  SocialMediaIntegrationActivityLog: 'SocialMediaIntegrationActivityLog',
+  SocialMediaPageTokenActivityLog: 'SocialMediaPageTokenActivityLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -160,11 +178,15 @@ export const OrderScalarFieldEnum = {
   hostingRenewalId: 'hostingRenewalId',
   subtotal: 'subtotal',
   discount: 'discount',
+  isTaxable: 'isTaxable',
+  taxPercentage: 'taxPercentage',
+  taxAmount: 'taxAmount',
   total: 'total',
   currency: 'currency',
   promoCode: 'promoCode',
   promoId: 'promoId',
   invoiceNumber: 'invoiceNumber',
+  invoiceId: 'invoiceId',
   processedBy: 'processedBy',
   processedAt: 'processedAt',
   completedAt: 'completedAt',
@@ -175,6 +197,45 @@ export const OrderScalarFieldEnum = {
 } as const
 
 export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
+
+
+export const OrderItemScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  niscServicePlanId: 'niscServicePlanId',
+  billingCycle: 'billingCycle',
+  itemPrice: 'itemPrice',
+  itemSubtotal: 'itemSubtotal',
+  itemCurrency: 'itemCurrency',
+  domainName: 'domainName',
+  description: 'description',
+  adminDescription: 'adminDescription',
+  notes: 'notes',
+  status: 'status',
+  isProvisioned: 'isProvisioned',
+  provisioningError: 'provisioningError',
+  hostingSubscriptionId: 'hostingSubscriptionId',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OrderItemScalarFieldEnum = (typeof OrderItemScalarFieldEnum)[keyof typeof OrderItemScalarFieldEnum]
+
+
+export const OrderItemActivityLogScalarFieldEnum = {
+  id: 'id',
+  orderItemId: 'orderItemId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type OrderItemActivityLogScalarFieldEnum = (typeof OrderItemActivityLogScalarFieldEnum)[keyof typeof OrderItemActivityLogScalarFieldEnum]
 
 
 export const PromoScalarFieldEnum = {
@@ -298,6 +359,43 @@ export const TeamInviteScalarFieldEnum = {
 export type TeamInviteScalarFieldEnum = (typeof TeamInviteScalarFieldEnum)[keyof typeof TeamInviteScalarFieldEnum]
 
 
+export const TeamBillingSettingsScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  legalName: 'legalName',
+  billingEmail: 'billingEmail',
+  billingPhone: 'billingPhone',
+  addressLine1: 'addressLine1',
+  addressLine2: 'addressLine2',
+  city: 'city',
+  state: 'state',
+  country: 'country',
+  postalCode: 'postalCode',
+  taxId: 'taxId',
+  additionalNotes: 'additionalNotes',
+  updatedBy: 'updatedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TeamBillingSettingsScalarFieldEnum = (typeof TeamBillingSettingsScalarFieldEnum)[keyof typeof TeamBillingSettingsScalarFieldEnum]
+
+
+export const TeamBillingSettingsActivityLogScalarFieldEnum = {
+  id: 'id',
+  teamBillingSettingsId: 'teamBillingSettingsId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type TeamBillingSettingsActivityLogScalarFieldEnum = (typeof TeamBillingSettingsActivityLogScalarFieldEnum)[keyof typeof TeamBillingSettingsActivityLogScalarFieldEnum]
+
+
 export const VerificationScalarFieldEnum = {
   id: 'id',
   identifier: 'identifier',
@@ -365,6 +463,47 @@ export const HostingPlanScalarFieldEnum = {
 } as const
 
 export type HostingPlanScalarFieldEnum = (typeof HostingPlanScalarFieldEnum)[keyof typeof HostingPlanScalarFieldEnum]
+
+
+export const NiscServicePlanScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  planType: 'planType',
+  hostingSubType: 'hostingSubType',
+  pleskServicePlanId: 'pleskServicePlanId',
+  pleskFilterId: 'pleskFilterId',
+  pleskIpAddress: 'pleskIpAddress',
+  features: 'features',
+  highlights: 'highlights',
+  isPopular: 'isPopular',
+  isRecommended: 'isRecommended',
+  niscPrice: 'niscPrice',
+  niscCurrency: 'niscCurrency',
+  billingCycle: 'billingCycle',
+  setupFee: 'setupFee',
+  isActive: 'isActive',
+  isDefault: 'isDefault',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type NiscServicePlanScalarFieldEnum = (typeof NiscServicePlanScalarFieldEnum)[keyof typeof NiscServicePlanScalarFieldEnum]
+
+
+export const NiscServicePlanActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  niscServicePlanId: 'niscServicePlanId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type NiscServicePlanActivityLogScalarFieldEnum = (typeof NiscServicePlanActivityLogScalarFieldEnum)[keyof typeof NiscServicePlanActivityLogScalarFieldEnum]
 
 
 export const HostingSubscriptionScalarFieldEnum = {
@@ -758,7 +897,6 @@ export const CreativeAssetScalarFieldEnum = {
   teamId: 'teamId',
   name: 'name',
   description: 'description',
-  fileType: 'fileType',
   category: 'category',
   status: 'status',
   currentInternalVersion: 'currentInternalVersion',
@@ -1034,6 +1172,234 @@ export const AudienceActivityLogScalarFieldEnum = {
 } as const
 
 export type AudienceActivityLogScalarFieldEnum = (typeof AudienceActivityLogScalarFieldEnum)[keyof typeof AudienceActivityLogScalarFieldEnum]
+
+
+export const InvoiceScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  customerId: 'customerId',
+  customerName: 'customerName',
+  customerEmail: 'customerEmail',
+  invoiceNumber: 'invoiceNumber',
+  token: 'token',
+  status: 'status',
+  amount: 'amount',
+  subtotal: 'subtotal',
+  tax: 'tax',
+  taxPercentage: 'taxPercentage',
+  vat: 'vat',
+  discount: 'discount',
+  currency: 'currency',
+  creditedAmount: 'creditedAmount',
+  creditBalance: 'creditBalance',
+  issueDate: 'issueDate',
+  dueDate: 'dueDate',
+  paidAt: 'paidAt',
+  sentAt: 'sentAt',
+  reminderSentAt: 'reminderSentAt',
+  viewedAt: 'viewedAt',
+  note: 'note',
+  internalNote: 'internalNote',
+  fromDetails: 'fromDetails',
+  customerDetails: 'customerDetails',
+  paymentDetails: 'paymentDetails',
+  noteDetails: 'noteDetails',
+  template: 'template',
+  topBlock: 'topBlock',
+  bottomBlock: 'bottomBlock',
+  metadata: 'metadata',
+  createdBy: 'createdBy',
+  updatedBy: 'updatedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type InvoiceScalarFieldEnum = (typeof InvoiceScalarFieldEnum)[keyof typeof InvoiceScalarFieldEnum]
+
+
+export const InvoiceLineItemScalarFieldEnum = {
+  id: 'id',
+  invoiceId: 'invoiceId',
+  position: 'position',
+  name: 'name',
+  description: 'description',
+  quantity: 'quantity',
+  unit: 'unit',
+  price: 'price',
+  discount: 'discount',
+  total: 'total',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type InvoiceLineItemScalarFieldEnum = (typeof InvoiceLineItemScalarFieldEnum)[keyof typeof InvoiceLineItemScalarFieldEnum]
+
+
+export const InvoiceTransactionScalarFieldEnum = {
+  id: 'id',
+  invoiceId: 'invoiceId',
+  reference: 'reference',
+  providerReference: 'providerReference',
+  status: 'status',
+  method: 'method',
+  amount: 'amount',
+  currency: 'currency',
+  paidAt: 'paidAt',
+  notes: 'notes',
+  metadata: 'metadata',
+  recordedBy: 'recordedBy',
+  balanceBefore: 'balanceBefore',
+  balanceAfter: 'balanceAfter',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type InvoiceTransactionScalarFieldEnum = (typeof InvoiceTransactionScalarFieldEnum)[keyof typeof InvoiceTransactionScalarFieldEnum]
+
+
+export const CreditNoteScalarFieldEnum = {
+  id: 'id',
+  invoiceId: 'invoiceId',
+  teamId: 'teamId',
+  creditNumber: 'creditNumber',
+  status: 'status',
+  amount: 'amount',
+  currency: 'currency',
+  reason: 'reason',
+  note: 'note',
+  metadata: 'metadata',
+  issuedAt: 'issuedAt',
+  appliedAt: 'appliedAt',
+  createdBy: 'createdBy',
+  updatedBy: 'updatedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CreditNoteScalarFieldEnum = (typeof CreditNoteScalarFieldEnum)[keyof typeof CreditNoteScalarFieldEnum]
+
+
+export const InvoiceActivityLogScalarFieldEnum = {
+  id: 'id',
+  invoiceId: 'invoiceId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type InvoiceActivityLogScalarFieldEnum = (typeof InvoiceActivityLogScalarFieldEnum)[keyof typeof InvoiceActivityLogScalarFieldEnum]
+
+
+export const InvoiceTransactionActivityLogScalarFieldEnum = {
+  id: 'id',
+  invoiceTransactionId: 'invoiceTransactionId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type InvoiceTransactionActivityLogScalarFieldEnum = (typeof InvoiceTransactionActivityLogScalarFieldEnum)[keyof typeof InvoiceTransactionActivityLogScalarFieldEnum]
+
+
+export const CreditNoteActivityLogScalarFieldEnum = {
+  id: 'id',
+  creditNoteId: 'creditNoteId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type CreditNoteActivityLogScalarFieldEnum = (typeof CreditNoteActivityLogScalarFieldEnum)[keyof typeof CreditNoteActivityLogScalarFieldEnum]
+
+
+export const InvoiceCounterScalarFieldEnum = {
+  id: 'id',
+  lastNumber: 'lastNumber',
+  updatedAt: 'updatedAt'
+} as const
+
+export type InvoiceCounterScalarFieldEnum = (typeof InvoiceCounterScalarFieldEnum)[keyof typeof InvoiceCounterScalarFieldEnum]
+
+
+export const SocialMediaIntegrationScalarFieldEnum = {
+  id: 'id',
+  platform: 'platform',
+  status: 'status',
+  userId: 'userId',
+  accessToken: 'accessToken',
+  accessTokenExpiresAt: 'accessTokenExpiresAt',
+  refreshToken: 'refreshToken',
+  refreshTokenExpiresAt: 'refreshTokenExpiresAt',
+  scope: 'scope',
+  tokenType: 'tokenType',
+  lastTokenRefreshAt: 'lastTokenRefreshAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SocialMediaIntegrationScalarFieldEnum = (typeof SocialMediaIntegrationScalarFieldEnum)[keyof typeof SocialMediaIntegrationScalarFieldEnum]
+
+
+export const SocialMediaPageTokenScalarFieldEnum = {
+  id: 'id',
+  integrationId: 'integrationId',
+  teamId: 'teamId',
+  pageId: 'pageId',
+  pageName: 'pageName',
+  pageUsername: 'pageUsername',
+  pagePicture: 'pagePicture',
+  pageCategory: 'pageCategory',
+  accessToken: 'accessToken',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  userId: 'userId'
+} as const
+
+export type SocialMediaPageTokenScalarFieldEnum = (typeof SocialMediaPageTokenScalarFieldEnum)[keyof typeof SocialMediaPageTokenScalarFieldEnum]
+
+
+export const SocialMediaIntegrationActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  integrationId: 'integrationId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type SocialMediaIntegrationActivityLogScalarFieldEnum = (typeof SocialMediaIntegrationActivityLogScalarFieldEnum)[keyof typeof SocialMediaIntegrationActivityLogScalarFieldEnum]
+
+
+export const SocialMediaPageTokenActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  pageTokenId: 'pageTokenId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type SocialMediaPageTokenActivityLogScalarFieldEnum = (typeof SocialMediaPageTokenActivityLogScalarFieldEnum)[keyof typeof SocialMediaPageTokenActivityLogScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -4,16 +4,7 @@ import * as React from "react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal } from "lucide-react";
 import { 
   getStatusDisplayText, 
   getStatusBadgeVariant, 
@@ -44,27 +35,6 @@ export function HostingCard({
     }
   };
 
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onEdit) {
-      onEdit(data.id);
-    }
-  };
-
-  const handleSuspend = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onSuspend) {
-      onSuspend(data.id);
-    }
-  };
-
-  const handleCancel = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onCancel) {
-      onCancel(data.id);
-    }
-  };
-
   return (
     <Card 
       className={cn("group cursor-pointer transition-all hover:shadow-md", className)}
@@ -75,41 +45,9 @@ export function HostingCard({
           <CardTitle className="text-lg font-bold truncate">
             {data.subscriptionName}
           </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant={getStatusBadgeVariant(data.status)}>
-              {getStatusDisplayText(data.status)}
-            </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem onClick={handleViewDetails}>
-                  View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleEdit}>
-                  Edit Subscription
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSuspend}>
-                  Suspend
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={handleCancel}
-                  className="text-destructive focus:text-destructive"
-                >
-                  Cancel
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <Badge variant={getStatusBadgeVariant(data.status)}>
+            {getStatusDisplayText(data.status)}
+          </Badge>
         </div>
       </CardHeader>
 

@@ -1,11 +1,11 @@
 import { ReactNode } from "react";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 
 import { AppSidebar } from "./_components/sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { requireRole, verifyTeamAccess } from "@/lib/auth-server";
+import { requireRole, verifyTeamAccess, getCurrentUser } from "@/lib/auth-server";
 import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
 import {
@@ -31,11 +31,31 @@ export default async function TeamLayout({
   children: ReactNode;
   params: Promise<{ slug: string }>;
 }>) {
-  // Server-side auth check - redirects if not authenticated or not a customer
-  await requireRole(["CUSTOMER"]);
-  
   // Await params in Next.js 15+
   const { slug } = await params;
+  
+  console.log("[TeamLayout] Layout executing for slug:", slug);
+  
+  // CRITICAL: Prevent /agency routes from ever matching this [slug] layout
+  // This must be the FIRST check to prevent Next.js from compiling this route for /agency
+  if (slug === "agency") {
+    console.log("[TeamLayout] Slug is 'agency', redirecting to /agency/default");
+    // Redirect immediately to prevent this layout from executing
+    redirect("/agency/default");
+  }
+  
+  // Check user role first - if they have an agency role, redirect to agency dashboard
+  // This prevents agency users from accessing customer routes
+  const user = await getCurrentUser();
+  if (user && (user as { role?: string }).role?.includes("AGENCY")) {
+    console.log("[TeamLayout] User has agency role, redirecting to /agency/default");
+    redirect("/agency/default");
+  }
+  
+  console.log("[TeamLayout] Proceeding with CUSTOMER role check for slug:", slug);
+  
+  // Server-side auth check - redirects if not authenticated or not a customer
+  await requireRole(["CUSTOMER"]);
   
   // Verify user has access to this team
   const team = await verifyTeamAccess(slug);

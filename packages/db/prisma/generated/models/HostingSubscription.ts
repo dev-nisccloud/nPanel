@@ -420,6 +420,7 @@ export type HostingSubscriptionWhereInput = {
   domainRegistration?: Prisma.XOR<Prisma.DomainRegistrationNullableScalarRelationFilter, Prisma.DomainRegistrationWhereInput> | null
   renewals?: Prisma.HostingRenewalListRelationFilter
   orders?: Prisma.OrderListRelationFilter
+  orderItems?: Prisma.OrderItemListRelationFilter
   customerIntegration?: Prisma.XOR<Prisma.CustomerIntegrationNullableScalarRelationFilter, Prisma.CustomerIntegrationWhereInput> | null
   wordpressInstances?: Prisma.WordPressInstanceListRelationFilter
   activityLogs?: Prisma.HostingSubscriptionActivityLogListRelationFilter
@@ -461,6 +462,7 @@ export type HostingSubscriptionOrderByWithRelationInput = {
   domainRegistration?: Prisma.DomainRegistrationOrderByWithRelationInput
   renewals?: Prisma.HostingRenewalOrderByRelationAggregateInput
   orders?: Prisma.OrderOrderByRelationAggregateInput
+  orderItems?: Prisma.OrderItemOrderByRelationAggregateInput
   customerIntegration?: Prisma.CustomerIntegrationOrderByWithRelationInput
   wordpressInstances?: Prisma.WordPressInstanceOrderByRelationAggregateInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogOrderByRelationAggregateInput
@@ -505,6 +507,7 @@ export type HostingSubscriptionWhereUniqueInput = Prisma.AtLeast<{
   domainRegistration?: Prisma.XOR<Prisma.DomainRegistrationNullableScalarRelationFilter, Prisma.DomainRegistrationWhereInput> | null
   renewals?: Prisma.HostingRenewalListRelationFilter
   orders?: Prisma.OrderListRelationFilter
+  orderItems?: Prisma.OrderItemListRelationFilter
   customerIntegration?: Prisma.XOR<Prisma.CustomerIntegrationNullableScalarRelationFilter, Prisma.CustomerIntegrationWhereInput> | null
   wordpressInstances?: Prisma.WordPressInstanceListRelationFilter
   activityLogs?: Prisma.HostingSubscriptionActivityLogListRelationFilter
@@ -616,6 +619,7 @@ export type HostingSubscriptionCreateInput = {
   domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogCreateNestedManyWithoutHostingSubscriptionInput
@@ -654,6 +658,7 @@ export type HostingSubscriptionUncheckedCreateInput = {
   updatedAt: Date | string
   renewals?: Prisma.HostingRenewalUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedCreateNestedManyWithoutHostingSubscriptionInput
 }
@@ -690,6 +695,7 @@ export type HostingSubscriptionUpdateInput = {
   domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUpdateManyWithoutHostingSubscriptionNestedInput
@@ -728,6 +734,7 @@ export type HostingSubscriptionUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   renewals?: Prisma.HostingRenewalUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
 }
@@ -1028,6 +1035,22 @@ export type HostingSubscriptionUpdateOneWithoutOrdersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.HostingSubscriptionUpdateToOneWithWhereWithoutOrdersInput, Prisma.HostingSubscriptionUpdateWithoutOrdersInput>, Prisma.HostingSubscriptionUncheckedUpdateWithoutOrdersInput>
 }
 
+export type HostingSubscriptionCreateNestedOneWithoutOrderItemsInput = {
+  create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutOrderItemsInput, Prisma.HostingSubscriptionUncheckedCreateWithoutOrderItemsInput>
+  connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutOrderItemsInput
+  connect?: Prisma.HostingSubscriptionWhereUniqueInput
+}
+
+export type HostingSubscriptionUpdateOneWithoutOrderItemsNestedInput = {
+  create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutOrderItemsInput, Prisma.HostingSubscriptionUncheckedCreateWithoutOrderItemsInput>
+  connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutOrderItemsInput
+  upsert?: Prisma.HostingSubscriptionUpsertWithoutOrderItemsInput
+  disconnect?: Prisma.HostingSubscriptionWhereInput | boolean
+  delete?: Prisma.HostingSubscriptionWhereInput | boolean
+  connect?: Prisma.HostingSubscriptionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.HostingSubscriptionUpdateToOneWithWhereWithoutOrderItemsInput, Prisma.HostingSubscriptionUpdateWithoutOrderItemsInput>, Prisma.HostingSubscriptionUncheckedUpdateWithoutOrderItemsInput>
+}
+
 export type HostingSubscriptionCreateNestedManyWithoutTeamInput = {
   create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutTeamInput, Prisma.HostingSubscriptionUncheckedCreateWithoutTeamInput> | Prisma.HostingSubscriptionCreateWithoutTeamInput[] | Prisma.HostingSubscriptionUncheckedCreateWithoutTeamInput[]
   connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutTeamInput | Prisma.HostingSubscriptionCreateOrConnectWithoutTeamInput[]
@@ -1226,6 +1249,7 @@ export type HostingSubscriptionCreateWithoutCustomerIntegrationInput = {
   domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogCreateNestedManyWithoutHostingSubscriptionInput
 }
@@ -1262,6 +1286,7 @@ export type HostingSubscriptionUncheckedCreateWithoutCustomerIntegrationInput = 
   updatedAt: Date | string
   renewals?: Prisma.HostingRenewalUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedCreateNestedManyWithoutHostingSubscriptionInput
 }
@@ -1360,6 +1385,7 @@ export type HostingSubscriptionCreateWithoutWordpressInstancesInput = {
   domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogCreateNestedManyWithoutHostingSubscriptionInput
 }
@@ -1397,6 +1423,7 @@ export type HostingSubscriptionUncheckedCreateWithoutWordpressInstancesInput = {
   updatedAt: Date | string
   renewals?: Prisma.HostingRenewalUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedCreateNestedManyWithoutHostingSubscriptionInput
 }
 
@@ -1448,6 +1475,7 @@ export type HostingSubscriptionUpdateWithoutWordpressInstancesInput = {
   domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUpdateManyWithoutHostingSubscriptionNestedInput
 }
@@ -1485,6 +1513,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutWordpressInstancesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   renewals?: Prisma.HostingRenewalUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
 }
 
@@ -1519,6 +1548,7 @@ export type HostingSubscriptionCreateWithoutOrdersInput = {
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
   domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogCreateNestedManyWithoutHostingSubscriptionInput
@@ -1556,6 +1586,7 @@ export type HostingSubscriptionUncheckedCreateWithoutOrdersInput = {
   createdAt: Date | string
   updatedAt: Date | string
   renewals?: Prisma.HostingRenewalUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedCreateNestedManyWithoutHostingSubscriptionInput
 }
@@ -1607,6 +1638,7 @@ export type HostingSubscriptionUpdateWithoutOrdersInput = {
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
   domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUpdateManyWithoutHostingSubscriptionNestedInput
@@ -1644,6 +1676,171 @@ export type HostingSubscriptionUncheckedUpdateWithoutOrdersInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   renewals?: Prisma.HostingRenewalUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+}
+
+export type HostingSubscriptionCreateWithoutOrderItemsInput = {
+  id: string
+  provisionedBy?: string | null
+  pleskFilterId: string
+  pleskOwnerId?: string | null
+  pleskServiceId?: string | null
+  pleskName?: string | null
+  pleskStatus?: number | null
+  pleskDescription?: string | null
+  pleskAdminDescription?: string | null
+  pleskFtpLogin?: string | null
+  pleskFtpPassword?: string | null
+  primaryDomain?: string | null
+  operation?: $Enums.HostingOperation
+  provisioningMethod?: $Enums.ProvisioningMethod
+  status?: $Enums.HostingStatus
+  hostingType: $Enums.HostingType
+  billingCycle?: $Enums.BillingCycle
+  nextRenewalDate?: Date | string | null
+  expiryDate?: Date | string | null
+  niscPrice?: string | null
+  niscCurrency?: string | null
+  invoiceNumber?: string | null
+  notes?: string | null
+  autoRenew?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  hostingPlan: Prisma.HostingPlanCreateNestedOneWithoutSubscriptionsInput
+  team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
+  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
+  orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
+  customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
+  wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutHostingSubscriptionInput
+  activityLogs?: Prisma.HostingSubscriptionActivityLogCreateNestedManyWithoutHostingSubscriptionInput
+}
+
+export type HostingSubscriptionUncheckedCreateWithoutOrderItemsInput = {
+  id: string
+  hostingPlanId: string
+  teamId?: string | null
+  provisionedBy?: string | null
+  pleskFilterId: string
+  pleskOwnerId?: string | null
+  pleskServiceId?: string | null
+  pleskName?: string | null
+  pleskStatus?: number | null
+  pleskDescription?: string | null
+  pleskAdminDescription?: string | null
+  pleskFtpLogin?: string | null
+  pleskFtpPassword?: string | null
+  primaryDomain?: string | null
+  domainRegistrationId?: string | null
+  operation?: $Enums.HostingOperation
+  provisioningMethod?: $Enums.ProvisioningMethod
+  status?: $Enums.HostingStatus
+  hostingType: $Enums.HostingType
+  billingCycle?: $Enums.BillingCycle
+  nextRenewalDate?: Date | string | null
+  expiryDate?: Date | string | null
+  niscPrice?: string | null
+  niscCurrency?: string | null
+  invoiceNumber?: string | null
+  customerIntegrationId?: string | null
+  notes?: string | null
+  autoRenew?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  renewals?: Prisma.HostingRenewalUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+}
+
+export type HostingSubscriptionCreateOrConnectWithoutOrderItemsInput = {
+  where: Prisma.HostingSubscriptionWhereUniqueInput
+  create: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutOrderItemsInput, Prisma.HostingSubscriptionUncheckedCreateWithoutOrderItemsInput>
+}
+
+export type HostingSubscriptionUpsertWithoutOrderItemsInput = {
+  update: Prisma.XOR<Prisma.HostingSubscriptionUpdateWithoutOrderItemsInput, Prisma.HostingSubscriptionUncheckedUpdateWithoutOrderItemsInput>
+  create: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutOrderItemsInput, Prisma.HostingSubscriptionUncheckedCreateWithoutOrderItemsInput>
+  where?: Prisma.HostingSubscriptionWhereInput
+}
+
+export type HostingSubscriptionUpdateToOneWithWhereWithoutOrderItemsInput = {
+  where?: Prisma.HostingSubscriptionWhereInput
+  data: Prisma.XOR<Prisma.HostingSubscriptionUpdateWithoutOrderItemsInput, Prisma.HostingSubscriptionUncheckedUpdateWithoutOrderItemsInput>
+}
+
+export type HostingSubscriptionUpdateWithoutOrderItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  provisionedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskFilterId?: Prisma.StringFieldUpdateOperationsInput | string
+  pleskOwnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskServiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskStatus?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  pleskDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskAdminDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
+  provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
+  status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
+  hostingType?: Prisma.EnumHostingTypeFieldUpdateOperationsInput | $Enums.HostingType
+  billingCycle?: Prisma.EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
+  nextRenewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscCurrency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  autoRenew?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  hostingPlan?: Prisma.HostingPlanUpdateOneRequiredWithoutSubscriptionsNestedInput
+  team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
+  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
+  customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutHostingSubscriptionNestedInput
+  activityLogs?: Prisma.HostingSubscriptionActivityLogUpdateManyWithoutHostingSubscriptionNestedInput
+}
+
+export type HostingSubscriptionUncheckedUpdateWithoutOrderItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  hostingPlanId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provisionedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskFilterId?: Prisma.StringFieldUpdateOperationsInput | string
+  pleskOwnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskServiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskStatus?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  pleskDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskAdminDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
+  provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
+  status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
+  hostingType?: Prisma.EnumHostingTypeFieldUpdateOperationsInput | $Enums.HostingType
+  billingCycle?: Prisma.EnumBillingCycleFieldUpdateOperationsInput | $Enums.BillingCycle
+  nextRenewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscCurrency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerIntegrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  autoRenew?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewals?: Prisma.HostingRenewalUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
 }
@@ -1679,6 +1876,7 @@ export type HostingSubscriptionCreateWithoutTeamInput = {
   domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogCreateNestedManyWithoutHostingSubscriptionInput
@@ -1716,6 +1914,7 @@ export type HostingSubscriptionUncheckedCreateWithoutTeamInput = {
   updatedAt: Date | string
   renewals?: Prisma.HostingRenewalUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedCreateNestedManyWithoutHostingSubscriptionInput
 }
@@ -1777,6 +1976,7 @@ export type HostingSubscriptionCreateWithoutHostingPlanInput = {
   domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogCreateNestedManyWithoutHostingSubscriptionInput
@@ -1814,6 +2014,7 @@ export type HostingSubscriptionUncheckedCreateWithoutHostingPlanInput = {
   updatedAt: Date | string
   renewals?: Prisma.HostingRenewalUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedCreateNestedManyWithoutHostingSubscriptionInput
 }
@@ -1875,6 +2076,7 @@ export type HostingSubscriptionCreateWithoutRenewalsInput = {
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
   domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogCreateNestedManyWithoutHostingSubscriptionInput
@@ -1912,6 +2114,7 @@ export type HostingSubscriptionUncheckedCreateWithoutRenewalsInput = {
   createdAt: Date | string
   updatedAt: Date | string
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedCreateNestedManyWithoutHostingSubscriptionInput
 }
@@ -1963,6 +2166,7 @@ export type HostingSubscriptionUpdateWithoutRenewalsInput = {
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
   domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUpdateManyWithoutHostingSubscriptionNestedInput
@@ -2000,6 +2204,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutRenewalsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orders?: Prisma.OrderUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
 }
@@ -2036,6 +2241,7 @@ export type HostingSubscriptionCreateWithoutActivityLogsInput = {
   domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutHostingSubscriptionInput
 }
@@ -2073,6 +2279,7 @@ export type HostingSubscriptionUncheckedCreateWithoutActivityLogsInput = {
   updatedAt: Date | string
   renewals?: Prisma.HostingRenewalUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutHostingSubscriptionInput
 }
 
@@ -2124,6 +2331,7 @@ export type HostingSubscriptionUpdateWithoutActivityLogsInput = {
   domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutHostingSubscriptionNestedInput
 }
@@ -2161,6 +2369,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutActivityLogsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   renewals?: Prisma.HostingRenewalUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
 }
 
@@ -2195,6 +2404,7 @@ export type HostingSubscriptionCreateWithoutDomainRegistrationInput = {
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogCreateNestedManyWithoutHostingSubscriptionInput
@@ -2232,6 +2442,7 @@ export type HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput = {
   updatedAt: Date | string
   renewals?: Prisma.HostingRenewalUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutHostingSubscriptionInput
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutHostingSubscriptionInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedCreateNestedManyWithoutHostingSubscriptionInput
 }
@@ -2326,6 +2537,7 @@ export type HostingSubscriptionUpdateWithoutCustomerIntegrationInput = {
   domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUpdateManyWithoutHostingSubscriptionNestedInput
 }
@@ -2362,6 +2574,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutCustomerIntegrationInput = 
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   renewals?: Prisma.HostingRenewalUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
 }
@@ -2461,6 +2674,7 @@ export type HostingSubscriptionUpdateWithoutTeamInput = {
   domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUpdateManyWithoutHostingSubscriptionNestedInput
@@ -2498,6 +2712,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutTeamInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   renewals?: Prisma.HostingRenewalUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
 }
@@ -2597,6 +2812,7 @@ export type HostingSubscriptionUpdateWithoutHostingPlanInput = {
   domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUpdateManyWithoutHostingSubscriptionNestedInput
@@ -2634,6 +2850,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutHostingPlanInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   renewals?: Prisma.HostingRenewalUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
 }
@@ -2733,6 +2950,7 @@ export type HostingSubscriptionUpdateWithoutDomainRegistrationInput = {
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUpdateManyWithoutHostingSubscriptionNestedInput
@@ -2770,6 +2988,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutDomainRegistrationInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   renewals?: Prisma.HostingRenewalUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
   activityLogs?: Prisma.HostingSubscriptionActivityLogUncheckedUpdateManyWithoutHostingSubscriptionNestedInput
 }
@@ -2814,6 +3033,7 @@ export type HostingSubscriptionUncheckedUpdateManyWithoutDomainRegistrationInput
 export type HostingSubscriptionCountOutputType = {
   renewals: number
   orders: number
+  orderItems: number
   wordpressInstances: number
   activityLogs: number
 }
@@ -2821,6 +3041,7 @@ export type HostingSubscriptionCountOutputType = {
 export type HostingSubscriptionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   renewals?: boolean | HostingSubscriptionCountOutputTypeCountRenewalsArgs
   orders?: boolean | HostingSubscriptionCountOutputTypeCountOrdersArgs
+  orderItems?: boolean | HostingSubscriptionCountOutputTypeCountOrderItemsArgs
   wordpressInstances?: boolean | HostingSubscriptionCountOutputTypeCountWordpressInstancesArgs
   activityLogs?: boolean | HostingSubscriptionCountOutputTypeCountActivityLogsArgs
 }
@@ -2847,6 +3068,13 @@ export type HostingSubscriptionCountOutputTypeCountRenewalsArgs<ExtArgs extends 
  */
 export type HostingSubscriptionCountOutputTypeCountOrdersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.OrderWhereInput
+}
+
+/**
+ * HostingSubscriptionCountOutputType without action
+ */
+export type HostingSubscriptionCountOutputTypeCountOrderItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OrderItemWhereInput
 }
 
 /**
@@ -2900,6 +3128,7 @@ export type HostingSubscriptionSelect<ExtArgs extends runtime.Types.Extensions.I
   domainRegistration?: boolean | Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs>
   renewals?: boolean | Prisma.HostingSubscription$renewalsArgs<ExtArgs>
   orders?: boolean | Prisma.HostingSubscription$ordersArgs<ExtArgs>
+  orderItems?: boolean | Prisma.HostingSubscription$orderItemsArgs<ExtArgs>
   customerIntegration?: boolean | Prisma.HostingSubscription$customerIntegrationArgs<ExtArgs>
   wordpressInstances?: boolean | Prisma.HostingSubscription$wordpressInstancesArgs<ExtArgs>
   activityLogs?: boolean | Prisma.HostingSubscription$activityLogsArgs<ExtArgs>
@@ -3020,6 +3249,7 @@ export type HostingSubscriptionInclude<ExtArgs extends runtime.Types.Extensions.
   domainRegistration?: boolean | Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs>
   renewals?: boolean | Prisma.HostingSubscription$renewalsArgs<ExtArgs>
   orders?: boolean | Prisma.HostingSubscription$ordersArgs<ExtArgs>
+  orderItems?: boolean | Prisma.HostingSubscription$orderItemsArgs<ExtArgs>
   customerIntegration?: boolean | Prisma.HostingSubscription$customerIntegrationArgs<ExtArgs>
   wordpressInstances?: boolean | Prisma.HostingSubscription$wordpressInstancesArgs<ExtArgs>
   activityLogs?: boolean | Prisma.HostingSubscription$activityLogsArgs<ExtArgs>
@@ -3046,6 +3276,7 @@ export type $HostingSubscriptionPayload<ExtArgs extends runtime.Types.Extensions
     domainRegistration: Prisma.$DomainRegistrationPayload<ExtArgs> | null
     renewals: Prisma.$HostingRenewalPayload<ExtArgs>[]
     orders: Prisma.$OrderPayload<ExtArgs>[]
+    orderItems: Prisma.$OrderItemPayload<ExtArgs>[]
     customerIntegration: Prisma.$CustomerIntegrationPayload<ExtArgs> | null
     wordpressInstances: Prisma.$WordPressInstancePayload<ExtArgs>[]
     activityLogs: Prisma.$HostingSubscriptionActivityLogPayload<ExtArgs>[]
@@ -3480,6 +3711,7 @@ export interface Prisma__HostingSubscriptionClient<T, Null = never, ExtArgs exte
   domainRegistration<T extends Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs>>): Prisma.Prisma__DomainRegistrationClient<runtime.Types.Result.GetResult<Prisma.$DomainRegistrationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   renewals<T extends Prisma.HostingSubscription$renewalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$renewalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$HostingRenewalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   orders<T extends Prisma.HostingSubscription$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  orderItems<T extends Prisma.HostingSubscription$orderItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$orderItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   customerIntegration<T extends Prisma.HostingSubscription$customerIntegrationArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$customerIntegrationArgs<ExtArgs>>): Prisma.Prisma__CustomerIntegrationClient<runtime.Types.Result.GetResult<Prisma.$CustomerIntegrationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   wordpressInstances<T extends Prisma.HostingSubscription$wordpressInstancesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$wordpressInstancesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WordPressInstancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityLogs<T extends Prisma.HostingSubscription$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$HostingSubscriptionActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -4021,6 +4253,30 @@ export type HostingSubscription$ordersArgs<ExtArgs extends runtime.Types.Extensi
   take?: number
   skip?: number
   distinct?: Prisma.OrderScalarFieldEnum | Prisma.OrderScalarFieldEnum[]
+}
+
+/**
+ * HostingSubscription.orderItems
+ */
+export type HostingSubscription$orderItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OrderItem
+   */
+  select?: Prisma.OrderItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OrderItem
+   */
+  omit?: Prisma.OrderItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OrderItemInclude<ExtArgs> | null
+  where?: Prisma.OrderItemWhereInput
+  orderBy?: Prisma.OrderItemOrderByWithRelationInput | Prisma.OrderItemOrderByWithRelationInput[]
+  cursor?: Prisma.OrderItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OrderItemScalarFieldEnum | Prisma.OrderItemScalarFieldEnum[]
 }
 
 /**

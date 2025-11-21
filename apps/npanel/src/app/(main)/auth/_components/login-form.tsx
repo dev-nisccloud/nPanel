@@ -24,7 +24,7 @@ const FormSchema = z.object({
 
 export function LoginForm() {
   const router = useRouter();
-  const { isPending } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
@@ -76,8 +76,18 @@ export function LoginForm() {
       if (result?.data) {
         toast.success("Login successful!");
         
-        // Redirect to root - server-side auth layout will handle role-based redirect
-        window.location.href = "/";
+        // Wait for session to be available, then redirect
+        // Poll for session up to 2 seconds, then redirect anyway
+        let attempts = 0;
+        const maxAttempts = 20; // 2 seconds total (20 * 100ms)
+        const checkSession = setInterval(() => {
+          attempts++;
+          if (session?.user || attempts >= maxAttempts) {
+            clearInterval(checkSession);
+            // Redirect to root - server-side will handle role-based redirect
+            window.location.href = "/";
+          }
+        }, 100);
       } else if (result?.error) {
         // Handle error response from auth
         const errorMessage = result.error.message || "Invalid credentials. Please try again.";

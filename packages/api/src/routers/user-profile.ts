@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../trpc";
+import { publicProcedure, protectedProcedure, router } from "../trpc";
+import { TRPCError } from "@trpc/server";
 import prisma from "@nPanel/db";
 
 // Zod schemas for API - independent from database schema
@@ -63,6 +64,24 @@ const revokeSessionInputSchema = z.object({
 const revokeSessionOutputSchema = z.object({
   success: z.boolean(),
   message: z.string().optional(),
+});
+
+// Schema for getUserById input
+const getUserByIdInputSchema = z.object({
+  userId: z.string(),
+  fields: z.array(z.enum([
+    "id",
+    "name",
+    "email",
+    "emailVerified",
+    "image",
+    "role",
+    "status",
+    "lastLoginAt",
+    "createdAt",
+    "updatedAt",
+    "profile",
+  ])).optional(),
 });
 
 export const userProfileRouter = router({
@@ -328,6 +347,130 @@ export const userProfileRouter = router({
         success: true,
         message: "Session revoked successfully",
       };
+    }),
+
+  /**
+   * Get user information by ID with optional field selection
+   * This is useful for cases where you only need specific user fields
+   */
+  getUserById: protectedProcedure
+    .input(getUserByIdInputSchema)
+    .query(async ({ input }) => {
+      const { userId, fields } = input;
+      
+      // Build Prisma select object based on requested fields
+      const selectFields: Record<string, boolean> = {};
+      const includeProfile = fields?.includes("profile") ?? false;
+      
+      // If no fields specified, get all fields
+      if (!fields || fields.length === 0) {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          include: {
+            profile: true,
+          },
+        });
+
+        if (!user) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "User not found",
+          });
+        }
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          emailVerified: user.emailVerified,
+          image: user.image,
+          role: user.role as "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER",
+          status: user.status as "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED",
+          lastLoginAt: user.lastLoginAt,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          profile: user.profile ? {
+            firstName: user.profile.firstName,
+            lastName: user.profile.lastName,
+            phone: user.profile.phone,
+            address: user.profile.address,
+            city: user.profile.city,
+            state: user.profile.state,
+            country: user.profile.country,
+            postalCode: user.profile.postalCode,
+          } : null,
+        };
+      }
+
+      // Build select based on requested fields
+      // Always include id since we need it for the response mapping
+      selectFields.id = true;
+      if (fields.includes("name")) selectFields.name = true;
+      if (fields.includes("email")) selectFields.email = true;
+      if (fields.includes("emailVerified")) selectFields.emailVerified = true;
+      if (fields.includes("image")) selectFields.image = true;
+      if (fields.includes("role")) selectFields.role = true;
+      if (fields.includes("status")) selectFields.status = true;
+      if (fields.includes("lastLoginAt")) selectFields.lastLoginAt = true;
+      if (fields.includes("createdAt")) selectFields.createdAt = true;
+      if (fields.includes("updatedAt")) selectFields.updatedAt = true;
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          ...selectFields,
+          ...(includeProfile && {
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phone: true,
+                address: true,
+                city: true,
+                state: true,
+                country: true,
+                postalCode: true,
+              },
+            },
+          }),
+        },
+      }) as any; // Type assertion needed due to dynamic select
+
+      if (!user) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found",
+        });
+      }
+
+      // Build response object based on requested fields
+      const response: Record<string, any> = {};
+      
+      // Always include id in response (we always fetch it)
+      if (fields.includes("id")) response.id = user.id;
+      if (fields.includes("name")) response.name = user.name;
+      if (fields.includes("email")) response.email = user.email;
+      if (fields.includes("emailVerified")) response.emailVerified = user.emailVerified;
+      if (fields.includes("image")) response.image = user.image;
+      if (fields.includes("role")) response.role = user.role as "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+      if (fields.includes("status")) response.status = user.status as "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
+      if (fields.includes("lastLoginAt")) response.lastLoginAt = user.lastLoginAt;
+      if (fields.includes("createdAt")) response.createdAt = user.createdAt;
+      if (fields.includes("updatedAt")) response.updatedAt = user.updatedAt;
+      if (fields.includes("profile")) {
+        response.profile = user.profile ? {
+          firstName: user.profile.firstName,
+          lastName: user.profile.lastName,
+          phone: user.profile.phone,
+          address: user.profile.address,
+          city: user.profile.city,
+          state: user.profile.state,
+          country: user.profile.country,
+          postalCode: user.profile.postalCode,
+        } : null;
+      }
+
+      return response;
     }),
 });
 

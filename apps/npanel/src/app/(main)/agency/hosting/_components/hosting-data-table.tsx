@@ -2,7 +2,6 @@
 
 import * as React from "react";
 
-import { Plus } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -198,13 +197,6 @@ export function HostingDataTable() {
               {filteredData.length} of {data.length}
             </Badge>
           )}
-        </div>
-        <div className="flex items-center space-x-2">
-          {/* <DataTableViewOptions table={table} /> */}
-          <Button size="sm">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Subscription
-          </Button>
         </div>
       </div>
       

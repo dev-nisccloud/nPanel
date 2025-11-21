@@ -84,6 +84,18 @@ export const HostingType = {
 export type HostingType = (typeof HostingType)[keyof typeof HostingType]
 
 
+export const NiscServicePlanType = {
+  HOSTING: 'HOSTING',
+  SEO: 'SEO',
+  VIDEOGRAPHY: 'VIDEOGRAPHY',
+  VISUAL_CREATIVE: 'VISUAL_CREATIVE',
+  SOCIAL_MEDIA_MARKETING: 'SOCIAL_MEDIA_MARKETING',
+  PAY_PER_CLICK_ADVERTISING: 'PAY_PER_CLICK_ADVERTISING'
+} as const
+
+export type NiscServicePlanType = (typeof NiscServicePlanType)[keyof typeof NiscServicePlanType]
+
+
 export const HostingOperation = {
   PROVISION: 'PROVISION',
   RENEWAL: 'RENEWAL',
@@ -142,6 +154,17 @@ export const OrderStatus = {
 } as const
 
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
+
+
+export const OrderItemStatus = {
+  PENDING: 'PENDING',
+  PROVISIONING: 'PROVISIONING',
+  PROVISIONED: 'PROVISIONED',
+  FAILED: 'FAILED',
+  SKIPPED: 'SKIPPED'
+} as const
+
+export type OrderItemStatus = (typeof OrderItemStatus)[keyof typeof OrderItemStatus]
 
 
 export const OrderType = {
@@ -277,3 +300,70 @@ export const EmailEventType = {
 } as const
 
 export type EmailEventType = (typeof EmailEventType)[keyof typeof EmailEventType]
+
+
+export const InvoiceStatus = {
+  DRAFT: 'DRAFT',
+  SENT: 'SENT',
+  PARTIALLY_PAID: 'PARTIALLY_PAID',
+  PAID: 'PAID',
+  OVERDUE: 'OVERDUE',
+  CANCELLED: 'CANCELLED',
+  WRITTEN_OFF: 'WRITTEN_OFF'
+} as const
+
+export type InvoiceStatus = (typeof InvoiceStatus)[keyof typeof InvoiceStatus]
+
+
+export const InvoicePaymentStatus = {
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED'
+} as const
+
+export type InvoicePaymentStatus = (typeof InvoicePaymentStatus)[keyof typeof InvoicePaymentStatus]
+
+
+export const InvoicePaymentMethod = {
+  BANK_TRANSFER: 'BANK_TRANSFER',
+  MPESA: 'MPESA',
+  CHEQUE: 'CHEQUE',
+  CASH: 'CASH',
+  CARD: 'CARD',
+  OTHER: 'OTHER'
+} as const
+
+export type InvoicePaymentMethod = (typeof InvoicePaymentMethod)[keyof typeof InvoicePaymentMethod]
+
+
+export const CreditNoteStatus = {
+  DRAFT: 'DRAFT',
+  ISSUED: 'ISSUED',
+  APPLIED: 'APPLIED',
+  VOIDED: 'VOIDED'
+} as const
+
+export type CreditNoteStatus = (typeof CreditNoteStatus)[keyof typeof CreditNoteStatus]
+
+
+export const SocialMediaPlatform = {
+  META_FACEBOOK: 'META_FACEBOOK',
+  META_INSTAGRAM: 'META_INSTAGRAM',
+  TWITTER: 'TWITTER',
+  LINKEDIN: 'LINKEDIN',
+  TIKTOK: 'TIKTOK'
+} as const
+
+export type SocialMediaPlatform = (typeof SocialMediaPlatform)[keyof typeof SocialMediaPlatform]
+
+
+export const IntegrationStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  EXPIRED: 'EXPIRED',
+  REVOKED: 'REVOKED',
+  PENDING: 'PENDING'
+} as const
+
+export type IntegrationStatus = (typeof IntegrationStatus)[keyof typeof IntegrationStatus]

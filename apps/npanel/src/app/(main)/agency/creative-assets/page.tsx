@@ -1,0 +1,151 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { z } from "zod";
+import { trpc } from "@/utils/trpc";
+import { toast } from "sonner";
+
+import { CreativeAssetsListing } from "./_components/creative-assets-listing";
+import { AddAssetSheet } from "./_components/add-asset-sheet";
+import { EditAssetSheet } from "./_components/edit-asset-sheet";
+import { TestUploadSheet } from "./_components/test-upload-sheet";
+import { creativeAssetSchema } from "./_components/schema";
+
+export default function CreativeAssetsPage() {
+  const router = useRouter();
+  const [isAddAssetOpen, setIsAddAssetOpen] = React.useState(false);
+  const [isEditAssetOpen, setIsEditAssetOpen] = React.useState(false);
+  const [editingAsset, setEditingAsset] = React.useState<z.infer<typeof creativeAssetSchema> | null>(null);
+  const [isTestUploadOpen, setIsTestUploadOpen] = React.useState(false);
+
+  // Fetch creative assets
+  const { data: assets, isLoading, isError, error, refetch } = trpc.creativeAssets.getAll.useQuery();
+
+  const handleAddAsset = () => {
+    // Refetch after creation
+    refetch();
+    toast.success("Creative asset created successfully!");
+  };
+
+  const [archivingAssetId, setArchivingAssetId] = React.useState<string | null>(null);
+  const [unarchivingAssetId, setUnarchivingAssetId] = React.useState<string | null>(null);
+
+  // Archive mutation
+  const archiveMutation = trpc.creativeAssets.archive.useMutation({
+    onMutate: (variables) => {
+      setArchivingAssetId(variables.id);
+      toast.loading("Archiving asset...", {
+        id: `archive-${variables.id}`,
+        description: "Please wait while we archive the asset",
+      });
+    },
+    onSuccess: (data, variables) => {
+      setArchivingAssetId(null);
+      toast.success("Asset archived successfully", {
+        id: `archive-${variables.id}`,
+        description: `${data.name} has been archived`,
+      });
+      refetch();
+    },
+    onError: (error, variables) => {
+      setArchivingAssetId(null);
+      toast.error("Failed to archive asset", {
+        id: `archive-${variables.id}`,
+        description: error.message,
+      });
+    },
+  });
+
+  // Unarchive mutation
+  const unarchiveMutation = trpc.creativeAssets.unarchive.useMutation({
+    onMutate: (variables) => {
+      setUnarchivingAssetId(variables.id);
+      toast.loading("Unarchiving asset...", {
+        id: `unarchive-${variables.id}`,
+        description: "Please wait while we unarchive the asset",
+      });
+    },
+    onSuccess: (data, variables) => {
+      setUnarchivingAssetId(null);
+      toast.success("Asset unarchived successfully", {
+        id: `unarchive-${variables.id}`,
+        description: `${data.name} has been unarchived and set to Draft`,
+      });
+      refetch();
+    },
+    onError: (error, variables) => {
+      setUnarchivingAssetId(null);
+      toast.error("Failed to unarchive asset", {
+        id: `unarchive-${variables.id}`,
+        description: error.message,
+      });
+    },
+  });
+
+  const handleEdit = (id: string) => {
+    const asset = assets?.find((a) => a.id === id);
+    if (asset) {
+      setEditingAsset(asset);
+      setIsEditAssetOpen(true);
+    }
+  };
+
+  const handleArchive = (id: string) => {
+    archiveMutation.mutate({ id });
+  };
+
+  const handleUnarchive = (id: string) => {
+    unarchiveMutation.mutate({ id });
+  };
+
+  const handleEditAsset = () => {
+    refetch();
+  };
+
+  return (
+    <div className="@container/main flex flex-col gap-4 md:gap-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Creative Assets</h1>
+        <p className="text-muted-foreground">
+          Manage creative assets, versions, approvals, and collaborate with your team and clients.
+        </p>
+      </div>
+      <CreativeAssetsListing 
+        data={assets || []}
+        isLoading={isLoading}
+        isError={isError}
+        error={error}
+        onRetry={() => refetch()}
+        onEdit={handleEdit}
+        onArchive={handleArchive}
+        onUnarchive={handleUnarchive}
+        archivingAssetId={archivingAssetId}
+        unarchivingAssetId={unarchivingAssetId}
+        onAddAsset={() => setIsAddAssetOpen(true)}
+        onTestUpload={() => setIsTestUploadOpen(true)}
+      />
+      <AddAssetSheet
+        open={isAddAssetOpen}
+        onOpenChange={setIsAddAssetOpen}
+        onAddAsset={handleAddAsset}
+      />
+      <EditAssetSheet
+        open={isEditAssetOpen}
+        onOpenChange={(open) => {
+          setIsEditAssetOpen(open);
+          if (!open) {
+            setEditingAsset(null);
+          }
+        }}
+        asset={editingAsset}
+        onEditAsset={handleEditAsset}
+      />
+      <TestUploadSheet
+        open={isTestUploadOpen}
+        onOpenChange={setIsTestUploadOpen}
+      />
+    </div>
+  );
+}
+

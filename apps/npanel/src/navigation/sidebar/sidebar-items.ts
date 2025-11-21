@@ -165,7 +165,7 @@ export const sidebarItems: NavGroup[] = [
 export const agencysidebarItems: NavGroup[] = [
   {
     id: 1,
-    label: "Management",
+    label: "Cloud Services",
     items: [
       {     
         title: "Home",
@@ -188,16 +188,9 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Wordpress, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
-        title: "ServicePlans",
-        url: "/agency/plans",
+        title: "Service Plans",
+        url: "/agency/service-plans",
         icon: (props: any) => React.createElement(Icons.Plans, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Hosting Plans", url: "/agency/hosting-plans", },
-          { title: "Email Marketing Plans", url: "/agency/email-marketing-plans", },  
-          { title: "SEO Plans", url: "/agency/seo-plans", },
-          { title: "Social Media Marketing Plans", url: "/agency/social-media-marketing-plans", },
-          { title: "Creatives Plans", url: "/agency/creatives-plans", },
-        ],
       },
       {
         title: "Clients",
@@ -205,10 +198,10 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Clients, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "Clients", url: "/agency/clients", },
-          { title: "Teams", url: "/agency/teams", },
+          { title: "Manage Teams", url: "/agency/manage-teams", },
           // { title: "Create Client", url: "/agency/clients", },
           { title: "Manage Users", url: "/agency/manage-users", },
-          { title: "Manage Affiliates", url: "/agency/manage-affiliates", },
+          // { title: "Manage Affiliates", url: "/agency/manage-affiliates", },
         ],
       },
       {
@@ -231,6 +224,11 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Quotations", url: "/agency/quotations", },
         ],
       },
+      // {
+      //   title: "Invoicing",
+      //   url: "/agency/invoicing",
+      //   icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
       {
         title: "Support",
         url: "/agency/support",
@@ -268,6 +266,18 @@ export const agencysidebarItems: NavGroup[] = [
     id: 3,
     label: "Digital Marketing",
     items: [
+      {
+        title: "Social Media Marketing",
+        url: "/agency/social-media-marketing",
+        icon: (props: any) => React.createElement(Icons.SocialMediaMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Facebook", url: "/agency/social-media-marketing/facebook", },
+          { title: "Instagram", url: "/agency/social-media-marketing/instagram", },
+          { title: "Twitter", url: "/agency/social-media-marketing/twitter", },
+          { title: "LinkedIn", url: "/agency/social-media-marketing/linkedin", },
+          { title: "TikTok", url: "/agency/social-media-marketing/tiktok", },
+        ],
+      },
       {
         title: "Email Marketing",
         url: "/agency/email-marketing",

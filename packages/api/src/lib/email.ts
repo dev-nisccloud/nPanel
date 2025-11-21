@@ -15,12 +15,18 @@ export async function sendEmail({
   subject,
   html,
   text,
+  attachments,
   maxRetries = 3,
 }: {
   to: string;
   subject: string;
   html?: string;
   text?: string;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer | string;
+    contentType?: string;
+  }>;
   maxRetries?: number;
 }) {
   let lastError: unknown;
@@ -48,13 +54,24 @@ export async function sendEmail({
         emailData.text = text;
       }
 
-      const { data, error } = await resend.emails.send({
+      const emailPayload: Parameters<typeof resend.emails.send>[0] = {
         from: emailData.from,
         to: emailData.to,
         subject: emailData.subject,
         ...(emailData.html && { html: emailData.html }),
         ...(emailData.text && { text: emailData.text }),
-      } as Parameters<typeof resend.emails.send>[0]);
+        ...(attachments && attachments.length > 0 && {
+          attachments: attachments.map(att => ({
+            filename: att.filename,
+            content: typeof att.content === 'string' 
+              ? Buffer.from(att.content, 'base64')
+              : att.content,
+            ...(att.contentType && { contentType: att.contentType }),
+          })),
+        }),
+      };
+
+      const { data, error } = await resend.emails.send(emailPayload);
 
       if (error) {
         // Check if it's a rate limit error

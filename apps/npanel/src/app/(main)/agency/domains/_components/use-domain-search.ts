@@ -86,11 +86,33 @@ export function useDomainSearch() {
   // Process search results with pricing calculations
   const [searchResults, setSearchResults] = React.useState<DomainSearchResult[]>([]);
   const [isProcessingResults, setIsProcessingResults] = React.useState(false);
+  const lastProcessedRef = React.useRef<{
+    currency: string | null;
+    dataHash: string | null;
+  }>({ currency: null, dataHash: null });
 
   React.useEffect(() => {
     const processResults = async () => {
       if (!searchQuery.data?.success || !searchQuery.data.data?.results) {
         setSearchResults([]);
+        lastProcessedRef.current = { currency: null, dataHash: null };
+        return;
+      }
+
+      // Create a hash of the raw data to detect if results actually changed
+      const dataHash = JSON.stringify(searchQuery.data.data.results.map((r: any) => ({
+        domain: r.domain,
+        status: r.status,
+        price: r.price?.reseller?.price,
+        currency: r.price?.reseller?.currency,
+      })));
+
+      // Skip processing if data and currency haven't changed
+      const hasChanged = dataHash !== lastProcessedRef.current.dataHash || 
+                        selectedCurrency !== lastProcessedRef.current.currency;
+
+      if (!hasChanged) {
+        // Data and currency haven't changed, no need to reprocess
         return;
       }
 
@@ -107,8 +129,13 @@ export function useDomainSearch() {
         }));
 
         // Then apply pricing calculations in batch for efficiency
+        // This will recalculate when currency or TLD settings change
         const processedResults = await calculatePricesBatch(rawResults);
         setSearchResults(processedResults);
+        lastProcessedRef.current = { 
+          currency: selectedCurrency, 
+          dataHash 
+        };
       } catch (error) {
         console.error('Failed to process search results:', error);
         setSearchResults([]);
@@ -118,7 +145,7 @@ export function useDomainSearch() {
     };
 
     processResults();
-  }, [searchQuery.data, calculatePricesBatch, selectedCurrency]);
+  }, [searchQuery.data, calculatePricesBatch, selectedCurrency]); // Only depend on actual data changes, not searchResults
 
   return {
     domainName,

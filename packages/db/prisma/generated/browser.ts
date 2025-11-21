@@ -32,6 +32,16 @@ export type WordPressInstance = Prisma.WordPressInstanceModel
  */
 export type Order = Prisma.OrderModel
 /**
+ * Model OrderItem
+ * 
+ */
+export type OrderItem = Prisma.OrderItemModel
+/**
+ * Model OrderItemActivityLog
+ * 
+ */
+export type OrderItemActivityLog = Prisma.OrderItemActivityLogModel
+/**
  * Model Promo
  * 
  */
@@ -67,6 +77,16 @@ export type TeamMember = Prisma.TeamMemberModel
  */
 export type TeamInvite = Prisma.TeamInviteModel
 /**
+ * Model TeamBillingSettings
+ * 
+ */
+export type TeamBillingSettings = Prisma.TeamBillingSettingsModel
+/**
+ * Model TeamBillingSettingsActivityLog
+ * 
+ */
+export type TeamBillingSettingsActivityLog = Prisma.TeamBillingSettingsActivityLogModel
+/**
  * Model Verification
  * 
  */
@@ -86,6 +106,16 @@ export type UserActivityLog = Prisma.UserActivityLogModel
  * 
  */
 export type HostingPlan = Prisma.HostingPlanModel
+/**
+ * Model NiscServicePlan
+ * 
+ */
+export type NiscServicePlan = Prisma.NiscServicePlanModel
+/**
+ * Model NiscServicePlanActivityLog
+ * 
+ */
+export type NiscServicePlanActivityLog = Prisma.NiscServicePlanActivityLogModel
 /**
  * Model HostingSubscription
  * 
@@ -266,3 +296,63 @@ export type EmailCampaignActivityLog = Prisma.EmailCampaignActivityLogModel
  * 
  */
 export type AudienceActivityLog = Prisma.AudienceActivityLogModel
+/**
+ * Model Invoice
+ * 
+ */
+export type Invoice = Prisma.InvoiceModel
+/**
+ * Model InvoiceLineItem
+ * 
+ */
+export type InvoiceLineItem = Prisma.InvoiceLineItemModel
+/**
+ * Model InvoiceTransaction
+ * 
+ */
+export type InvoiceTransaction = Prisma.InvoiceTransactionModel
+/**
+ * Model CreditNote
+ * 
+ */
+export type CreditNote = Prisma.CreditNoteModel
+/**
+ * Model InvoiceActivityLog
+ * 
+ */
+export type InvoiceActivityLog = Prisma.InvoiceActivityLogModel
+/**
+ * Model InvoiceTransactionActivityLog
+ * 
+ */
+export type InvoiceTransactionActivityLog = Prisma.InvoiceTransactionActivityLogModel
+/**
+ * Model CreditNoteActivityLog
+ * 
+ */
+export type CreditNoteActivityLog = Prisma.CreditNoteActivityLogModel
+/**
+ * Model InvoiceCounter
+ * 
+ */
+export type InvoiceCounter = Prisma.InvoiceCounterModel
+/**
+ * Model SocialMediaIntegration
+ * 
+ */
+export type SocialMediaIntegration = Prisma.SocialMediaIntegrationModel
+/**
+ * Model SocialMediaPageToken
+ * 
+ */
+export type SocialMediaPageToken = Prisma.SocialMediaPageTokenModel
+/**
+ * Model SocialMediaIntegrationActivityLog
+ * 
+ */
+export type SocialMediaIntegrationActivityLog = Prisma.SocialMediaIntegrationActivityLogModel
+/**
+ * Model SocialMediaPageTokenActivityLog
+ * 
+ */
+export type SocialMediaPageTokenActivityLog = Prisma.SocialMediaPageTokenActivityLogModel

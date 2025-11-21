@@ -22,10 +22,9 @@ model CreativeAsset {
   teamId                 String // Customer team that owns this asset
   name                   String // Asset name/title
   description            String? // Optional description
-  fileType               String // File MIME type (image/png, application/pdf, etc.)
   category               String? // Optional categorization (logo, banner, document, etc.)
   status                 CreativeAssetStatus @default(DRAFT) // Overall asset status
-  currentInternalVersion Int                 @default(0) // Current internal version number
+  currentInternalVersion Int? // Current internal version number (null if no versions uploaded)
   currentPublicVersion   Int? // Current public version number (null if never published)
   isPublic               Boolean             @default(false) // Whether any version is public
   createdBy              String // Agency user who created it

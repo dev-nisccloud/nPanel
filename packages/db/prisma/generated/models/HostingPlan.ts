@@ -677,10 +677,6 @@ export type HostingPlanUpdatehighlightsInput = {
   push?: string | string[]
 }
 
-export type EnumBillingCycleFieldUpdateOperationsInput = {
-  set?: $Enums.BillingCycle
-}
-
 export type HostingPlanCreateNestedOneWithoutSubscriptionsInput = {
   create?: Prisma.XOR<Prisma.HostingPlanCreateWithoutSubscriptionsInput, Prisma.HostingPlanUncheckedCreateWithoutSubscriptionsInput>
   connectOrCreate?: Prisma.HostingPlanCreateOrConnectWithoutSubscriptionsInput

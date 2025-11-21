@@ -54,6 +54,16 @@ enum HostingType {
   DEDICATED_HOSTING // Dedicated server hosting
 }
 
+// NISC Service Plan Types - All service types offered by NISC
+enum NiscServicePlanType {
+  HOSTING // Hosting services (web, email, reseller, VPS, dedicated)
+  SEO // SEO services
+  VIDEOGRAPHY // Videography services
+  VISUAL_CREATIVE // Visual creative services
+  SOCIAL_MEDIA_MARKETING // Social media marketing services
+  PAY_PER_CLICK_ADVERTISING // PPC advertising services
+}
+
 enum HostingOperation {
   PROVISION
   RENEWAL
@@ -94,6 +104,15 @@ enum OrderStatus {
   CANCELLED // Order cancelled
   REFUNDED // Order refunded
   PARTIAL // Order partially completed
+}
+
+// Order Item Status - tracks individual item provisioning status
+enum OrderItemStatus {
+  PENDING // Item is pending provisioning
+  PROVISIONING // Item is currently being provisioned
+  PROVISIONED // Item has been successfully provisioned
+  FAILED // Item provisioning failed
+  SKIPPED // Item provisioning was skipped (non-hosting)
 }
 
 enum OrderType {
@@ -189,11 +208,12 @@ model Order {
   createdBy   String? // User who created the order (admin or customer)
 
   // Order Details
-  type        OrderType // Type of service being ordered
+  type        OrderType // Type of service being ordered (can be CUSTOM_SERVICE for multi-item orders)
   status      OrderStatus @default(PENDING)
   description String? // Order description
 
   // Service References (flexible for different service types)
+  // These are kept for backward compatibility with single-item orders
   domainRegistrationId  String? // Reference to domain registration
   domainRenewalId       String? // Reference to domain renewal
   domainTransferId      String? // Reference to domain transfer
@@ -201,10 +221,13 @@ model Order {
   hostingRenewalId      String? // Reference to hosting renewal
 
   // Pricing Information
-  subtotal String? // Subtotal before discounts
-  discount String? // Discount amount applied
-  total    String? // Final total amount
-  currency String  @default("KES")
+  subtotal      String? // Subtotal before tax and discounts
+  discount      String? // Discount amount applied
+  isTaxable     Boolean? // Whether this order is taxable
+  taxPercentage Float? // Tax percentage (e.g., 16.0 for 16%)
+  taxAmount     String? // Calculated tax amount (subtotal * taxPercentage / 100)
+  total         String? // Final total amount (subtotal + taxAmount - discount)
+  currency      String   @default("KES")
 
   // Promo Information
   promoCode String? // Promo code used
@@ -212,6 +235,7 @@ model Order {
 
   // Invoice Tracking
   invoiceNumber String? // Invoice number for this order
+  invoiceId     String? // Reference to invoice record
 
   // Order Processing
   processedBy String? // User who processed the order
@@ -234,6 +258,8 @@ model Order {
   hostingSubscription HostingSubscription? @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
   hostingRenewal      HostingRenewal?      @relation(fields: [hostingRenewalId], references: [id], onDelete: SetNull)
   promo               Promo?               @relation(fields: [promoId], references: [id], onDelete: SetNull)
+  invoice             Invoice?             @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  orderItems          OrderItem[] // Multiple order items per order
   activityLogs        OrderActivityLog[]
 
   @@index([orderNumber])
@@ -243,7 +269,76 @@ model Order {
   @@index([createdAt])
   @@index([processedAt])
   @@index([completedAt])
+  @@index([invoiceId])
   @@map("order")
+}
+
+// Order Item - Represents a single service plan item in an order
+// Allows multiple items per order (e.g., hosting + SEO + videography)
+model OrderItem {
+  id      String @id @map("_id")
+  orderId String // Reference to the order
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Service Plan Reference
+  niscServicePlanId String // Reference to NISC service plan
+  niscServicePlan   NiscServicePlan @relation(fields: [niscServicePlanId], references: [id], onDelete: Restrict)
+
+  // Item Details
+  billingCycle BillingCycle // Billing cycle for this item
+  itemPrice    String // Price for this item (calculated)
+  itemSubtotal String // Subtotal for this item (same as itemPrice since quantity is always 1)
+  itemCurrency String       @default("KES")
+
+  // Service-specific fields (optional, depends on plan type)
+  domainName       String? // For HOSTING plans - domain name for provisioning
+  description      String? // Item description
+  adminDescription String? // Admin description (for HOSTING plans)
+  notes            String? // Item-specific notes
+
+  // Provisioning Status
+  status                OrderItemStatus      @default(PENDING) // Status of this order item
+  isProvisioned         Boolean              @default(false) // Whether this item has been provisioned (deprecated, use status)
+  provisioningError     String? // Error message if provisioning failed
+  hostingSubscriptionId String? // Reference to hosting subscription (if HOSTING plan and provisioned)
+  hostingSubscription   HostingSubscription? @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
+
+  // Metadata for flexible data storage
+  metadata Json? // Additional item-specific data
+
+  // Timestamps
+  createdAt DateTime
+  updatedAt DateTime
+
+  // Relations
+  activityLogs OrderItemActivityLog[]
+
+  @@index([orderId])
+  @@index([niscServicePlanId])
+  @@index([status])
+  @@index([isProvisioned])
+  @@index([hostingSubscriptionId])
+  @@map("order_item")
+}
+
+// Activity logging for order item actions
+model OrderItemActivityLog {
+  id          String    @id @map("_id")
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  userId      String
+  action      String // e.g., "CREATE", "UPDATE", "PROVISION", "COMPLETE", "CANCEL"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime
+
+  @@index([orderItemId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("order_item_activity_log")
 }
 
 // Promo system for hosting plans and domains
@@ -328,27 +423,30 @@ enum DomainOperation {
 }
 
 model User {
-  id                   String                @id @map("_id")
-  name                 String
-  email                String
-  emailVerified        Boolean               @default(false)
-  image                String?
-  role                 UserRole              @default(CUSTOMER)
-  status               UserStatus            @default(ACTIVE)
-  lastAccessedTeamId   String?
-  lastLoginAt          DateTime?
-  createdAt            DateTime
-  updatedAt            DateTime
-  sessions             Session[]
-  accounts             Account[]
-  teamMemberships      TeamMember[]
-  profile              UserProfile?
-  customerIntegrations CustomerIntegration[]
-  activityLogs         UserActivityLog[]
+  id                      String                   @id @map("_id")
+  name                    String
+  email                   String
+  emailVerified           Boolean                  @default(false)
+  image                   String?
+  role                    UserRole                 @default(CUSTOMER)
+  status                  UserStatus               @default(ACTIVE)
+  lastAccessedTeamId      String?
+  lastLoginAt             DateTime?
+  createdAt               DateTime
+  updatedAt               DateTime
+  sessions                Session[]
+  accounts                Account[]
+  teamMemberships         TeamMember[]
+  profile                 UserProfile?
+  customerIntegrations    CustomerIntegration[]
+  activityLogs            UserActivityLog[]
   // Email Marketing Relations
-  emailDomains         EmailDomain[]
-  emailCampaigns       EmailCampaign[]
-  audiences            Audience[]
+  emailDomains            EmailDomain[]
+  emailCampaigns          EmailCampaign[]
+  audiences               Audience[]
+  // Social Media Marketing Relations
+  socialMediaIntegrations SocialMediaIntegration[]
+  socialMediaPageTokens   SocialMediaPageToken[]
 
   @@unique([email])
   @@index([role])
@@ -392,28 +490,34 @@ model Account {
 }
 
 model Team {
-  id                   String                @id @map("_id")
-  name                 String
-  slug                 String                @unique
-  baseCurrency         String                @default("KES")
-  logoUrl              String?
-  isActive             Boolean               @default(true)
-  createdAt            DateTime
-  updatedAt            DateTime
-  createdById          String
-  members              TeamMember[]
-  invites              TeamInvite[]
-  domainRegistrations  DomainRegistration[]
-  hostingSubscriptions HostingSubscription[]
-  wordpressInstances   WordPressInstance[]
-  promos               Promo[]
-  orders               Order[]
+  id                    String                 @id @map("_id")
+  name                  String
+  slug                  String                 @unique
+  baseCurrency          String                 @default("KES")
+  logoUrl               String?
+  isActive              Boolean                @default(true)
+  createdAt             DateTime
+  updatedAt             DateTime
+  createdById           String
+  members               TeamMember[]
+  invites               TeamInvite[]
+  domainRegistrations   DomainRegistration[]
+  hostingSubscriptions  HostingSubscription[]
+  wordpressInstances    WordPressInstance[]
+  promos                Promo[]
+  orders                Order[]
   // Email Marketing Relations
-  emailDomains         EmailDomain[]
-  emailCampaigns       EmailCampaign[]
-  audiences            Audience[]
+  emailDomains          EmailDomain[]
+  emailCampaigns        EmailCampaign[]
+  audiences             Audience[]
   // Creative Assets Relations
-  creativeAssets       CreativeAsset[]
+  creativeAssets        CreativeAsset[]
+  // Invoicing Relations
+  invoices              Invoice[]
+  creditNotes           CreditNote[]
+  billingSettings       TeamBillingSettings?
+  // Social Media Marketing Relations (page ownership)
+  socialMediaPageTokens SocialMediaPageToken[]
 
   @@index([slug])
   @@index([createdById])
@@ -458,6 +562,51 @@ model TeamInvite {
   @@index([status])
   @@index([expiresAt])
   @@map("team_invite")
+}
+
+model TeamBillingSettings {
+  id              String   @id @map("_id")
+  teamId          String   @unique
+  legalName       String
+  billingEmail    String
+  billingPhone    String?
+  addressLine1    String
+  addressLine2    String?
+  city            String
+  state           String?
+  country         String
+  postalCode      String?
+  taxId           String?
+  additionalNotes String?
+  updatedBy       String
+  createdAt       DateTime
+  updatedAt       DateTime
+
+  team         Team                             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  activityLogs TeamBillingSettingsActivityLog[]
+
+  @@index([teamId])
+  @@map("team_billing_settings")
+}
+
+model TeamBillingSettingsActivityLog {
+  id                    String   @id @map("_id")
+  teamBillingSettingsId String
+  userId                String
+  action                String
+  description           String?
+  metadata              Json?
+  ipAddress             String?
+  userAgent             String?
+  createdAt             DateTime
+
+  teamBillingSettings TeamBillingSettings @relation(fields: [teamBillingSettingsId], references: [id], onDelete: Cascade)
+
+  @@index([teamBillingSettingsId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("team_billing_settings_activity_log")
 }
 
 model Verification {
@@ -553,6 +702,72 @@ model HostingPlan {
   @@map("hosting_plan")
 }
 
+// NISC Service Plan - Generic service plan model supporting all service types
+model NiscServicePlan {
+  id             String              @id @map("_id")
+  name           String // Plan name (e.g., "Basic Web Hosting", "SEO Starter Package")
+  description    String? // Plan description
+  planType       NiscServicePlanType // Type of service plan
+  hostingSubType HostingType? // Sub-type for HOSTING plans (null for other types)
+
+  // Plesk Integration (only for HOSTING plans)
+  pleskServicePlanId String? // Plesk service plan ID
+  pleskFilterId      String? // Plesk filter ID for provisioning
+  pleskIpAddress     String? // IP address for this plan type
+
+  // Marketing Features (for landing pages)
+  features      String[] // Array of marketing features (e.g., ["Unlimited Email", "SSL Certificate", "24/7 Support"])
+  highlights    String[] // Array of key highlights (e.g., ["Best Value", "Most Popular", "Enterprise Grade"])
+  isPopular     Boolean  @default(false) // Mark as popular plan
+  isRecommended Boolean  @default(false) // Mark as recommended plan
+
+  // Pricing
+  niscPrice    String? // Our selling price
+  niscCurrency String? @default("KES")
+
+  // Billing
+  billingCycle BillingCycle @default(MONTHLY)
+  setupFee     String? // One-time setup fee
+
+  // Status
+  isActive  Boolean @default(true)
+  isDefault Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime
+  updatedAt DateTime
+
+  // Relations
+  activityLogs NiscServicePlanActivityLog[]
+  OrderItem    OrderItem[]
+
+  @@index([planType])
+  @@index([hostingSubType])
+  @@index([isActive])
+  @@index([isDefault])
+  @@map("nisc_service_plan")
+}
+
+// Activity logging for NISC service plan actions
+model NiscServicePlanActivityLog {
+  id                String          @id @map("_id")
+  userId            String
+  niscServicePlanId String
+  niscServicePlan   NiscServicePlan @relation(fields: [niscServicePlanId], references: [id], onDelete: Cascade)
+  action            String // e.g., "CREATE", "UPDATE", "DELETE", "ACTIVATE", "DEACTIVATE"
+  description       String?
+  metadata          Json? // Additional data about the action
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime
+
+  @@index([userId])
+  @@index([niscServicePlanId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("nisc_service_plan_activity_log")
+}
+
 // Hosting subscription instances
 model HostingSubscription {
   id            String  @id @map("_id")
@@ -614,6 +829,7 @@ model HostingSubscription {
   domainRegistration  DomainRegistration?              @relation(fields: [domainRegistrationId], references: [id], onDelete: SetNull)
   renewals            HostingRenewal[]
   orders              Order[]
+  orderItems          OrderItem[] // Order items that reference this subscription
   customerIntegration CustomerIntegration?             @relation(fields: [customerIntegrationId], references: [id], onDelete: SetNull)
   wordpressInstances  WordPressInstance[]
   activityLogs        HostingSubscriptionActivityLog[]

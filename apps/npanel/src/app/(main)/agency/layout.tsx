@@ -6,7 +6,8 @@ import { cookies } from "next/headers";
 import { AppSidebar } from "@/app/(main)/agency/_components/sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { requireRole } from "@/lib/auth-server";
+import { requireAuth, ensureCustomerHasTeam } from "@/lib/auth-server";
+import { redirect } from "next/navigation";
 import { users } from "@/data/users";
 import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
@@ -26,8 +27,18 @@ import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 import { CartSwitcher } from "./_components/sidebar/cart-switcher";
 
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
-  // Server-side auth check - redirects if not authenticated or not an agency user
-  await requireRole(["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]);
+  // Server-side auth check - accepts any role except CUSTOMER
+  // First check if user is authenticated
+  const user = await requireAuth();
+  const userRole = (user as { role?: string }).role;
+  
+  // If user is a CUSTOMER, redirect them to their customer dashboard
+  if (userRole === "CUSTOMER") {
+    const teamSlug = await ensureCustomerHasTeam(user as any);
+    redirect(`/${teamSlug}/default`);
+  }
+  
+  // All other roles (AGENCY_*, or any other role) are allowed
 
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";

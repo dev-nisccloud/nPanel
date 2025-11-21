@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, MoreVertical } from "lucide-react";
+import { ArrowLeft, MoreVertical, Edit, Unlink } from "lucide-react";
 import Link from "next/link";
 import { z } from "zod";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,20 @@ import { SubdomainsTable } from "./subdomains-table";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { useHostingSubscriptionById } from "./use-hosting-subscription-by-id";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
+import { LinkToTeamDialog } from "./link-to-team-dialog";
+import { EditSubscriptionDialog } from "./edit-subscription-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { trpc } from "@/utils/trpc";
 
 interface HostingDetailPageProps {
   subscriptionId: string;
@@ -123,7 +138,47 @@ function HostingDetailError({ error, onRetry }: { error: Error; onRetry: () => v
 }
 
 export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
-  const { data: hostingData, isLoading, isError, error, refetch } = useHostingSubscriptionById(subscriptionId);
+  const { data: hostingData, isLoading, isError, error, refetch, rawData } = useHostingSubscriptionById(subscriptionId);
+  const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
+  const [isEditSubscriptionOpen, setIsEditSubscriptionOpen] = React.useState(false);
+  const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
+
+  // Get pleskFilterId from raw data
+  const pleskFilterId = String(rawData?.parsed?.packet?.webspace?.get?.result?.["filter-id"] || "");
+
+  // Check if subscription is linked to a team
+  const { data: subscriptionData } = trpc.hosting.getByPleskFilterId.useQuery(
+    { pleskFilterId },
+    {
+      enabled: !!pleskFilterId && pleskFilterId !== "",
+      staleTime: 30 * 1000, // 30 seconds
+    }
+  );
+
+  const isLinkedToTeam = !!subscriptionData?.teamId;
+
+  const utils = trpc.useUtils();
+
+  // Unlink mutation
+  const unlinkMutation = trpc.hosting.unlinkFromTeam.useMutation({
+    onSuccess: () => {
+      toast.success("Subscription unlinked from team successfully");
+      setIsUnlinkDialogOpen(false);
+      // Invalidate subscription query to refresh data
+      utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to unlink subscription from team");
+    },
+  });
+
+  const handleUnlink = () => {
+    if (subscriptionData?.id) {
+      unlinkMutation.mutate({ subscriptionId: subscriptionData.id });
+    }
+  };
 
   // Show loading state
   if (isLoading) {
@@ -164,29 +219,67 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         
         <div className="flex items-center gap-2">
           {getStatusBadge(hostingData.gen_info.status ?? 0)}
-          <DropdownMenu>
+          <DropdownMenu open={isActionMenuOpen} onOpenChange={setIsActionMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+              >
                 <MoreVertical className="h-4 w-4" />
                 <span className="sr-only">Open menu</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem>View Details</DropdownMenuItem>
-              <DropdownMenuItem>Edit Subscription</DropdownMenuItem>
-              <DropdownMenuItem>Renew</DropdownMenuItem>
+              <DropdownMenuItem 
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setIsActionMenuOpen(false);
+                  setTimeout(() => setIsLinkToTeamOpen(true), 0);
+                }}
+                disabled={isLinkedToTeam}
+              >
+                Link to Team
+              </DropdownMenuItem>
+              {isLinkedToTeam && (
+                <DropdownMenuItem 
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setIsActionMenuOpen(false);
+                    setTimeout(() => setIsUnlinkDialogOpen(true), 0);
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Unlink className="mr-2 h-4 w-4" />
+                  Unlink from Team
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem 
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setIsActionMenuOpen(false);
+                  setTimeout(() => setIsEditSubscriptionOpen(true), 0);
+                }}
+                disabled={!subscriptionData}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Subscription
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem>Active</DropdownMenuItem>
-                  <DropdownMenuItem>Suspended</DropdownMenuItem>
-                  <DropdownMenuItem>Disabled</DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Suspend</DropdownMenuItem>
-              <DropdownMenuItem variant="destructive">Cancel</DropdownMenuItem>
+              {/* Commented out menu items - to be restored later */}
+              {/* <DropdownMenuItem>View Details</DropdownMenuItem> */}
+              {/* <DropdownMenuItem>Renew</DropdownMenuItem> */}
+              {/* <DropdownMenuSeparator /> */}
+              {/* <DropdownMenuSub> */}
+              {/*   <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger> */}
+              {/*   <DropdownMenuSubContent> */}
+              {/*     <DropdownMenuItem>Active</DropdownMenuItem> */}
+              {/*     <DropdownMenuItem>Suspended</DropdownMenuItem> */}
+              {/*     <DropdownMenuItem>Disabled</DropdownMenuItem> */}
+              {/*   </DropdownMenuSubContent> */}
+              {/* </DropdownMenuSub> */}
+              {/* <DropdownMenuSeparator /> */}
+              {/* <DropdownMenuItem>Suspend</DropdownMenuItem> */}
+              {/* <DropdownMenuItem variant="destructive">Cancel</DropdownMenuItem> */}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -222,6 +315,72 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           <SubdomainsTable domainName={hostingData.gen_info?.name || ""} />
         </TabsContent>
       </Tabs>
+
+      {/* Link to Team Dialog */}
+      <LinkToTeamDialog
+        open={isLinkToTeamOpen}
+        onOpenChange={setIsLinkToTeamOpen}
+        subscriptionId={subscriptionId}
+        pleskFilterId={pleskFilterId}
+        hostingType={hostingData?.gen_info?.htype}
+        onSuccess={() => {
+          // Invalidate subscription query to refresh data
+          utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });
+          refetch();
+        }}
+      />
+
+      {/* Edit Subscription Dialog */}
+      <EditSubscriptionDialog
+        open={isEditSubscriptionOpen}
+        onOpenChange={setIsEditSubscriptionOpen}
+        subscriptionId={subscriptionData?.id || ""}
+        initialData={subscriptionData ? {
+          hostingPlanId: subscriptionData.hostingPlanId,
+          primaryDomain: subscriptionData.primaryDomain,
+          billingCycle: subscriptionData.billingCycle,
+          nextRenewalDate: subscriptionData.nextRenewalDate,
+          expiryDate: subscriptionData.expiryDate,
+          notes: subscriptionData.notes,
+          autoRenew: subscriptionData.autoRenew,
+        } : null}
+        onSuccess={() => {
+          // Invalidate subscription query to refresh data
+          utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });
+          refetch();
+        }}
+      />
+
+      {/* Unlink Confirmation Dialog */}
+      <AlertDialog open={isUnlinkDialogOpen} onOpenChange={setIsUnlinkDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink from Team</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to unlink this subscription from its team? This will remove the association but will not delete the subscription.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={unlinkMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUnlink}
+              disabled={unlinkMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {unlinkMutation.isPending ? (
+                <>
+                  <Spinner size={16} className="mr-2" />
+                  Unlinking...
+                </>
+              ) : (
+                "Unlink"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

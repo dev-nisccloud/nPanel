@@ -19,8 +19,18 @@ export type OrderModel = runtime.Types.Result.DefaultSelection<Prisma.$OrderPayl
 
 export type AggregateOrder = {
   _count: OrderCountAggregateOutputType | null
+  _avg: OrderAvgAggregateOutputType | null
+  _sum: OrderSumAggregateOutputType | null
   _min: OrderMinAggregateOutputType | null
   _max: OrderMaxAggregateOutputType | null
+}
+
+export type OrderAvgAggregateOutputType = {
+  taxPercentage: number | null
+}
+
+export type OrderSumAggregateOutputType = {
+  taxPercentage: number | null
 }
 
 export type OrderMinAggregateOutputType = {
@@ -38,11 +48,15 @@ export type OrderMinAggregateOutputType = {
   hostingRenewalId: string | null
   subtotal: string | null
   discount: string | null
+  isTaxable: boolean | null
+  taxPercentage: number | null
+  taxAmount: string | null
   total: string | null
   currency: string | null
   promoCode: string | null
   promoId: string | null
   invoiceNumber: string | null
+  invoiceId: string | null
   processedBy: string | null
   processedAt: Date | null
   completedAt: Date | null
@@ -66,11 +80,15 @@ export type OrderMaxAggregateOutputType = {
   hostingRenewalId: string | null
   subtotal: string | null
   discount: string | null
+  isTaxable: boolean | null
+  taxPercentage: number | null
+  taxAmount: string | null
   total: string | null
   currency: string | null
   promoCode: string | null
   promoId: string | null
   invoiceNumber: string | null
+  invoiceId: string | null
   processedBy: string | null
   processedAt: Date | null
   completedAt: Date | null
@@ -94,11 +112,15 @@ export type OrderCountAggregateOutputType = {
   hostingRenewalId: number
   subtotal: number
   discount: number
+  isTaxable: number
+  taxPercentage: number
+  taxAmount: number
   total: number
   currency: number
   promoCode: number
   promoId: number
   invoiceNumber: number
+  invoiceId: number
   processedBy: number
   processedAt: number
   completedAt: number
@@ -109,6 +131,14 @@ export type OrderCountAggregateOutputType = {
   _all: number
 }
 
+
+export type OrderAvgAggregateInputType = {
+  taxPercentage?: true
+}
+
+export type OrderSumAggregateInputType = {
+  taxPercentage?: true
+}
 
 export type OrderMinAggregateInputType = {
   id?: true
@@ -125,11 +155,15 @@ export type OrderMinAggregateInputType = {
   hostingRenewalId?: true
   subtotal?: true
   discount?: true
+  isTaxable?: true
+  taxPercentage?: true
+  taxAmount?: true
   total?: true
   currency?: true
   promoCode?: true
   promoId?: true
   invoiceNumber?: true
+  invoiceId?: true
   processedBy?: true
   processedAt?: true
   completedAt?: true
@@ -153,11 +187,15 @@ export type OrderMaxAggregateInputType = {
   hostingRenewalId?: true
   subtotal?: true
   discount?: true
+  isTaxable?: true
+  taxPercentage?: true
+  taxAmount?: true
   total?: true
   currency?: true
   promoCode?: true
   promoId?: true
   invoiceNumber?: true
+  invoiceId?: true
   processedBy?: true
   processedAt?: true
   completedAt?: true
@@ -181,11 +219,15 @@ export type OrderCountAggregateInputType = {
   hostingRenewalId?: true
   subtotal?: true
   discount?: true
+  isTaxable?: true
+  taxPercentage?: true
+  taxAmount?: true
   total?: true
   currency?: true
   promoCode?: true
   promoId?: true
   invoiceNumber?: true
+  invoiceId?: true
   processedBy?: true
   processedAt?: true
   completedAt?: true
@@ -234,6 +276,18 @@ export type OrderAggregateArgs<ExtArgs extends runtime.Types.Extensions.Internal
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: OrderAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: OrderSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: OrderMinAggregateInputType
@@ -264,6 +318,8 @@ export type OrderGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   _count?: OrderCountAggregateInputType | true
+  _avg?: OrderAvgAggregateInputType
+  _sum?: OrderSumAggregateInputType
   _min?: OrderMinAggregateInputType
   _max?: OrderMaxAggregateInputType
 }
@@ -283,11 +339,15 @@ export type OrderGroupByOutputType = {
   hostingRenewalId: string | null
   subtotal: string | null
   discount: string | null
+  isTaxable: boolean | null
+  taxPercentage: number | null
+  taxAmount: string | null
   total: string | null
   currency: string
   promoCode: string | null
   promoId: string | null
   invoiceNumber: string | null
+  invoiceId: string | null
   processedBy: string | null
   processedAt: Date | null
   completedAt: Date | null
@@ -296,6 +356,8 @@ export type OrderGroupByOutputType = {
   createdAt: Date
   updatedAt: Date
   _count: OrderCountAggregateOutputType | null
+  _avg: OrderAvgAggregateOutputType | null
+  _sum: OrderSumAggregateOutputType | null
   _min: OrderMinAggregateOutputType | null
   _max: OrderMaxAggregateOutputType | null
 }
@@ -333,11 +395,15 @@ export type OrderWhereInput = {
   hostingRenewalId?: Prisma.StringNullableFilter<"Order"> | string | null
   subtotal?: Prisma.StringNullableFilter<"Order"> | string | null
   discount?: Prisma.StringNullableFilter<"Order"> | string | null
+  isTaxable?: Prisma.BoolNullableFilter<"Order"> | boolean | null
+  taxPercentage?: Prisma.FloatNullableFilter<"Order"> | number | null
+  taxAmount?: Prisma.StringNullableFilter<"Order"> | string | null
   total?: Prisma.StringNullableFilter<"Order"> | string | null
   currency?: Prisma.StringFilter<"Order"> | string
   promoCode?: Prisma.StringNullableFilter<"Order"> | string | null
   promoId?: Prisma.StringNullableFilter<"Order"> | string | null
   invoiceNumber?: Prisma.StringNullableFilter<"Order"> | string | null
+  invoiceId?: Prisma.StringNullableFilter<"Order"> | string | null
   processedBy?: Prisma.StringNullableFilter<"Order"> | string | null
   processedAt?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
@@ -352,6 +418,8 @@ export type OrderWhereInput = {
   hostingSubscription?: Prisma.XOR<Prisma.HostingSubscriptionNullableScalarRelationFilter, Prisma.HostingSubscriptionWhereInput> | null
   hostingRenewal?: Prisma.XOR<Prisma.HostingRenewalNullableScalarRelationFilter, Prisma.HostingRenewalWhereInput> | null
   promo?: Prisma.XOR<Prisma.PromoNullableScalarRelationFilter, Prisma.PromoWhereInput> | null
+  invoice?: Prisma.XOR<Prisma.InvoiceNullableScalarRelationFilter, Prisma.InvoiceWhereInput> | null
+  orderItems?: Prisma.OrderItemListRelationFilter
   activityLogs?: Prisma.OrderActivityLogListRelationFilter
 }
 
@@ -370,11 +438,15 @@ export type OrderOrderByWithRelationInput = {
   hostingRenewalId?: Prisma.SortOrderInput | Prisma.SortOrder
   subtotal?: Prisma.SortOrderInput | Prisma.SortOrder
   discount?: Prisma.SortOrderInput | Prisma.SortOrder
+  isTaxable?: Prisma.SortOrderInput | Prisma.SortOrder
+  taxPercentage?: Prisma.SortOrderInput | Prisma.SortOrder
+  taxAmount?: Prisma.SortOrderInput | Prisma.SortOrder
   total?: Prisma.SortOrderInput | Prisma.SortOrder
   currency?: Prisma.SortOrder
   promoCode?: Prisma.SortOrderInput | Prisma.SortOrder
   promoId?: Prisma.SortOrderInput | Prisma.SortOrder
   invoiceNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  invoiceId?: Prisma.SortOrderInput | Prisma.SortOrder
   processedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   processedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -389,6 +461,8 @@ export type OrderOrderByWithRelationInput = {
   hostingSubscription?: Prisma.HostingSubscriptionOrderByWithRelationInput
   hostingRenewal?: Prisma.HostingRenewalOrderByWithRelationInput
   promo?: Prisma.PromoOrderByWithRelationInput
+  invoice?: Prisma.InvoiceOrderByWithRelationInput
+  orderItems?: Prisma.OrderItemOrderByRelationAggregateInput
   activityLogs?: Prisma.OrderActivityLogOrderByRelationAggregateInput
 }
 
@@ -410,11 +484,15 @@ export type OrderWhereUniqueInput = Prisma.AtLeast<{
   hostingRenewalId?: Prisma.StringNullableFilter<"Order"> | string | null
   subtotal?: Prisma.StringNullableFilter<"Order"> | string | null
   discount?: Prisma.StringNullableFilter<"Order"> | string | null
+  isTaxable?: Prisma.BoolNullableFilter<"Order"> | boolean | null
+  taxPercentage?: Prisma.FloatNullableFilter<"Order"> | number | null
+  taxAmount?: Prisma.StringNullableFilter<"Order"> | string | null
   total?: Prisma.StringNullableFilter<"Order"> | string | null
   currency?: Prisma.StringFilter<"Order"> | string
   promoCode?: Prisma.StringNullableFilter<"Order"> | string | null
   promoId?: Prisma.StringNullableFilter<"Order"> | string | null
   invoiceNumber?: Prisma.StringNullableFilter<"Order"> | string | null
+  invoiceId?: Prisma.StringNullableFilter<"Order"> | string | null
   processedBy?: Prisma.StringNullableFilter<"Order"> | string | null
   processedAt?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
@@ -429,6 +507,8 @@ export type OrderWhereUniqueInput = Prisma.AtLeast<{
   hostingSubscription?: Prisma.XOR<Prisma.HostingSubscriptionNullableScalarRelationFilter, Prisma.HostingSubscriptionWhereInput> | null
   hostingRenewal?: Prisma.XOR<Prisma.HostingRenewalNullableScalarRelationFilter, Prisma.HostingRenewalWhereInput> | null
   promo?: Prisma.XOR<Prisma.PromoNullableScalarRelationFilter, Prisma.PromoWhereInput> | null
+  invoice?: Prisma.XOR<Prisma.InvoiceNullableScalarRelationFilter, Prisma.InvoiceWhereInput> | null
+  orderItems?: Prisma.OrderItemListRelationFilter
   activityLogs?: Prisma.OrderActivityLogListRelationFilter
 }, "id" | "orderNumber">
 
@@ -447,11 +527,15 @@ export type OrderOrderByWithAggregationInput = {
   hostingRenewalId?: Prisma.SortOrderInput | Prisma.SortOrder
   subtotal?: Prisma.SortOrderInput | Prisma.SortOrder
   discount?: Prisma.SortOrderInput | Prisma.SortOrder
+  isTaxable?: Prisma.SortOrderInput | Prisma.SortOrder
+  taxPercentage?: Prisma.SortOrderInput | Prisma.SortOrder
+  taxAmount?: Prisma.SortOrderInput | Prisma.SortOrder
   total?: Prisma.SortOrderInput | Prisma.SortOrder
   currency?: Prisma.SortOrder
   promoCode?: Prisma.SortOrderInput | Prisma.SortOrder
   promoId?: Prisma.SortOrderInput | Prisma.SortOrder
   invoiceNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  invoiceId?: Prisma.SortOrderInput | Prisma.SortOrder
   processedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   processedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -460,8 +544,10 @@ export type OrderOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.OrderCountOrderByAggregateInput
+  _avg?: Prisma.OrderAvgOrderByAggregateInput
   _max?: Prisma.OrderMaxOrderByAggregateInput
   _min?: Prisma.OrderMinOrderByAggregateInput
+  _sum?: Prisma.OrderSumOrderByAggregateInput
 }
 
 export type OrderScalarWhereWithAggregatesInput = {
@@ -482,11 +568,15 @@ export type OrderScalarWhereWithAggregatesInput = {
   hostingRenewalId?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   subtotal?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   discount?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
+  isTaxable?: Prisma.BoolNullableWithAggregatesFilter<"Order"> | boolean | null
+  taxPercentage?: Prisma.FloatNullableWithAggregatesFilter<"Order"> | number | null
+  taxAmount?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   total?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   currency?: Prisma.StringWithAggregatesFilter<"Order"> | string
   promoCode?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   promoId?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   invoiceNumber?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
+  invoiceId?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   processedBy?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   processedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
@@ -505,6 +595,9 @@ export type OrderCreateInput = {
   description?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
@@ -523,6 +616,8 @@ export type OrderCreateInput = {
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
 }
 
@@ -541,11 +636,15 @@ export type OrderUncheckedCreateInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -553,6 +652,7 @@ export type OrderUncheckedCreateInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -565,6 +665,9 @@ export type OrderUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -583,6 +686,8 @@ export type OrderUpdateInput = {
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
 }
 
@@ -601,11 +706,15 @@ export type OrderUncheckedUpdateInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -613,6 +722,7 @@ export type OrderUncheckedUpdateInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -631,11 +741,15 @@ export type OrderCreateManyInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -654,6 +768,9 @@ export type OrderUpdateManyMutationInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -682,11 +799,15 @@ export type OrderUncheckedUpdateManyInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -711,11 +832,15 @@ export type OrderCountOrderByAggregateInput = {
   hostingRenewalId?: Prisma.SortOrder
   subtotal?: Prisma.SortOrder
   discount?: Prisma.SortOrder
+  isTaxable?: Prisma.SortOrder
+  taxPercentage?: Prisma.SortOrder
+  taxAmount?: Prisma.SortOrder
   total?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   promoCode?: Prisma.SortOrder
   promoId?: Prisma.SortOrder
   invoiceNumber?: Prisma.SortOrder
+  invoiceId?: Prisma.SortOrder
   processedBy?: Prisma.SortOrder
   processedAt?: Prisma.SortOrder
   completedAt?: Prisma.SortOrder
@@ -723,6 +848,10 @@ export type OrderCountOrderByAggregateInput = {
   metadata?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type OrderAvgOrderByAggregateInput = {
+  taxPercentage?: Prisma.SortOrder
 }
 
 export type OrderMaxOrderByAggregateInput = {
@@ -740,11 +869,15 @@ export type OrderMaxOrderByAggregateInput = {
   hostingRenewalId?: Prisma.SortOrder
   subtotal?: Prisma.SortOrder
   discount?: Prisma.SortOrder
+  isTaxable?: Prisma.SortOrder
+  taxPercentage?: Prisma.SortOrder
+  taxAmount?: Prisma.SortOrder
   total?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   promoCode?: Prisma.SortOrder
   promoId?: Prisma.SortOrder
   invoiceNumber?: Prisma.SortOrder
+  invoiceId?: Prisma.SortOrder
   processedBy?: Prisma.SortOrder
   processedAt?: Prisma.SortOrder
   completedAt?: Prisma.SortOrder
@@ -768,17 +901,30 @@ export type OrderMinOrderByAggregateInput = {
   hostingRenewalId?: Prisma.SortOrder
   subtotal?: Prisma.SortOrder
   discount?: Prisma.SortOrder
+  isTaxable?: Prisma.SortOrder
+  taxPercentage?: Prisma.SortOrder
+  taxAmount?: Prisma.SortOrder
   total?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   promoCode?: Prisma.SortOrder
   promoId?: Prisma.SortOrder
   invoiceNumber?: Prisma.SortOrder
+  invoiceId?: Prisma.SortOrder
   processedBy?: Prisma.SortOrder
   processedAt?: Prisma.SortOrder
   completedAt?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type OrderSumOrderByAggregateInput = {
+  taxPercentage?: Prisma.SortOrder
+}
+
+export type OrderScalarRelationFilter = {
+  is?: Prisma.OrderWhereInput
+  isNot?: Prisma.OrderWhereInput
 }
 
 export type OrderListRelationFilter = {
@@ -791,17 +937,38 @@ export type OrderOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type OrderScalarRelationFilter = {
-  is?: Prisma.OrderWhereInput
-  isNot?: Prisma.OrderWhereInput
-}
-
 export type EnumOrderTypeFieldUpdateOperationsInput = {
   set?: $Enums.OrderType
 }
 
 export type EnumOrderStatusFieldUpdateOperationsInput = {
   set?: $Enums.OrderStatus
+}
+
+export type NullableBoolFieldUpdateOperationsInput = {
+  set?: boolean | null
+}
+
+export type NullableFloatFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type OrderCreateNestedOneWithoutOrderItemsInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutOrderItemsInput, Prisma.OrderUncheckedCreateWithoutOrderItemsInput>
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutOrderItemsInput
+  connect?: Prisma.OrderWhereUniqueInput
+}
+
+export type OrderUpdateOneRequiredWithoutOrderItemsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutOrderItemsInput, Prisma.OrderUncheckedCreateWithoutOrderItemsInput>
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutOrderItemsInput
+  upsert?: Prisma.OrderUpsertWithoutOrderItemsInput
+  connect?: Prisma.OrderWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrderUpdateToOneWithWhereWithoutOrderItemsInput, Prisma.OrderUpdateWithoutOrderItemsInput>, Prisma.OrderUncheckedUpdateWithoutOrderItemsInput>
 }
 
 export type OrderCreateNestedManyWithoutPromoInput = {
@@ -1112,7 +1279,49 @@ export type OrderUncheckedUpdateManyWithoutDomainTransferNestedInput = {
   deleteMany?: Prisma.OrderScalarWhereInput | Prisma.OrderScalarWhereInput[]
 }
 
-export type OrderCreateWithoutPromoInput = {
+export type OrderCreateNestedManyWithoutInvoiceInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutInvoiceInput, Prisma.OrderUncheckedCreateWithoutInvoiceInput> | Prisma.OrderCreateWithoutInvoiceInput[] | Prisma.OrderUncheckedCreateWithoutInvoiceInput[]
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutInvoiceInput | Prisma.OrderCreateOrConnectWithoutInvoiceInput[]
+  createMany?: Prisma.OrderCreateManyInvoiceInputEnvelope
+  connect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
+}
+
+export type OrderUncheckedCreateNestedManyWithoutInvoiceInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutInvoiceInput, Prisma.OrderUncheckedCreateWithoutInvoiceInput> | Prisma.OrderCreateWithoutInvoiceInput[] | Prisma.OrderUncheckedCreateWithoutInvoiceInput[]
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutInvoiceInput | Prisma.OrderCreateOrConnectWithoutInvoiceInput[]
+  createMany?: Prisma.OrderCreateManyInvoiceInputEnvelope
+  connect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
+}
+
+export type OrderUpdateManyWithoutInvoiceNestedInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutInvoiceInput, Prisma.OrderUncheckedCreateWithoutInvoiceInput> | Prisma.OrderCreateWithoutInvoiceInput[] | Prisma.OrderUncheckedCreateWithoutInvoiceInput[]
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutInvoiceInput | Prisma.OrderCreateOrConnectWithoutInvoiceInput[]
+  upsert?: Prisma.OrderUpsertWithWhereUniqueWithoutInvoiceInput | Prisma.OrderUpsertWithWhereUniqueWithoutInvoiceInput[]
+  createMany?: Prisma.OrderCreateManyInvoiceInputEnvelope
+  set?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
+  disconnect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
+  delete?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
+  connect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
+  update?: Prisma.OrderUpdateWithWhereUniqueWithoutInvoiceInput | Prisma.OrderUpdateWithWhereUniqueWithoutInvoiceInput[]
+  updateMany?: Prisma.OrderUpdateManyWithWhereWithoutInvoiceInput | Prisma.OrderUpdateManyWithWhereWithoutInvoiceInput[]
+  deleteMany?: Prisma.OrderScalarWhereInput | Prisma.OrderScalarWhereInput[]
+}
+
+export type OrderUncheckedUpdateManyWithoutInvoiceNestedInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutInvoiceInput, Prisma.OrderUncheckedCreateWithoutInvoiceInput> | Prisma.OrderCreateWithoutInvoiceInput[] | Prisma.OrderUncheckedCreateWithoutInvoiceInput[]
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutInvoiceInput | Prisma.OrderCreateOrConnectWithoutInvoiceInput[]
+  upsert?: Prisma.OrderUpsertWithWhereUniqueWithoutInvoiceInput | Prisma.OrderUpsertWithWhereUniqueWithoutInvoiceInput[]
+  createMany?: Prisma.OrderCreateManyInvoiceInputEnvelope
+  set?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
+  disconnect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
+  delete?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
+  connect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
+  update?: Prisma.OrderUpdateWithWhereUniqueWithoutInvoiceInput | Prisma.OrderUpdateWithWhereUniqueWithoutInvoiceInput[]
+  updateMany?: Prisma.OrderUpdateManyWithWhereWithoutInvoiceInput | Prisma.OrderUpdateManyWithWhereWithoutInvoiceInput[]
+  deleteMany?: Prisma.OrderScalarWhereInput | Prisma.OrderScalarWhereInput[]
+}
+
+export type OrderCreateWithoutOrderItemsInput = {
   id: string
   orderNumber: string
   createdBy?: string | null
@@ -1121,6 +1330,9 @@ export type OrderCreateWithoutPromoInput = {
   description?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
@@ -1138,6 +1350,160 @@ export type OrderCreateWithoutPromoInput = {
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
+  promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+}
+
+export type OrderUncheckedCreateWithoutOrderItemsInput = {
+  id: string
+  orderNumber: string
+  teamId: string
+  createdBy?: string | null
+  type: $Enums.OrderType
+  status?: $Enums.OrderStatus
+  description?: string | null
+  domainRegistrationId?: string | null
+  domainRenewalId?: string | null
+  domainTransferId?: string | null
+  hostingSubscriptionId?: string | null
+  hostingRenewalId?: string | null
+  subtotal?: string | null
+  discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
+  total?: string | null
+  currency?: string
+  promoCode?: string | null
+  promoId?: string | null
+  invoiceNumber?: string | null
+  invoiceId?: string | null
+  processedBy?: string | null
+  processedAt?: Date | string | null
+  completedAt?: Date | string | null
+  notes?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+}
+
+export type OrderCreateOrConnectWithoutOrderItemsInput = {
+  where: Prisma.OrderWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrderCreateWithoutOrderItemsInput, Prisma.OrderUncheckedCreateWithoutOrderItemsInput>
+}
+
+export type OrderUpsertWithoutOrderItemsInput = {
+  update: Prisma.XOR<Prisma.OrderUpdateWithoutOrderItemsInput, Prisma.OrderUncheckedUpdateWithoutOrderItemsInput>
+  create: Prisma.XOR<Prisma.OrderCreateWithoutOrderItemsInput, Prisma.OrderUncheckedCreateWithoutOrderItemsInput>
+  where?: Prisma.OrderWhereInput
+}
+
+export type OrderUpdateToOneWithWhereWithoutOrderItemsInput = {
+  where?: Prisma.OrderWhereInput
+  data: Prisma.XOR<Prisma.OrderUpdateWithoutOrderItemsInput, Prisma.OrderUncheckedUpdateWithoutOrderItemsInput>
+}
+
+export type OrderUpdateWithoutOrderItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
+  status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
+  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
+  domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
+  hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
+  hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
+  promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+}
+
+export type OrderUncheckedUpdateWithoutOrderItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
+  status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+}
+
+export type OrderCreateWithoutPromoInput = {
+  id: string
+  orderNumber: string
+  createdBy?: string | null
+  type: $Enums.OrderType
+  status?: $Enums.OrderStatus
+  description?: string | null
+  subtotal?: string | null
+  discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
+  total?: string | null
+  currency?: string
+  promoCode?: string | null
+  invoiceNumber?: string | null
+  processedBy?: string | null
+  processedAt?: Date | string | null
+  completedAt?: Date | string | null
+  notes?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  team: Prisma.TeamCreateNestedOneWithoutOrdersInput
+  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
+  domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
+  hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
+  hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
 }
 
@@ -1156,10 +1522,14 @@ export type OrderUncheckedCreateWithoutPromoInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -1167,6 +1537,7 @@ export type OrderUncheckedCreateWithoutPromoInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -1214,11 +1585,15 @@ export type OrderScalarWhereInput = {
   hostingRenewalId?: Prisma.StringNullableFilter<"Order"> | string | null
   subtotal?: Prisma.StringNullableFilter<"Order"> | string | null
   discount?: Prisma.StringNullableFilter<"Order"> | string | null
+  isTaxable?: Prisma.BoolNullableFilter<"Order"> | boolean | null
+  taxPercentage?: Prisma.FloatNullableFilter<"Order"> | number | null
+  taxAmount?: Prisma.StringNullableFilter<"Order"> | string | null
   total?: Prisma.StringNullableFilter<"Order"> | string | null
   currency?: Prisma.StringFilter<"Order"> | string
   promoCode?: Prisma.StringNullableFilter<"Order"> | string | null
   promoId?: Prisma.StringNullableFilter<"Order"> | string | null
   invoiceNumber?: Prisma.StringNullableFilter<"Order"> | string | null
+  invoiceId?: Prisma.StringNullableFilter<"Order"> | string | null
   processedBy?: Prisma.StringNullableFilter<"Order"> | string | null
   processedAt?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
@@ -1237,6 +1612,9 @@ export type OrderCreateWithoutTeamInput = {
   description?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
@@ -1254,6 +1632,8 @@ export type OrderCreateWithoutTeamInput = {
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
 }
 
@@ -1271,11 +1651,15 @@ export type OrderUncheckedCreateWithoutTeamInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -1283,6 +1667,7 @@ export type OrderUncheckedCreateWithoutTeamInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -1321,6 +1706,9 @@ export type OrderCreateWithoutHostingSubscriptionInput = {
   description?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
@@ -1338,6 +1726,8 @@ export type OrderCreateWithoutHostingSubscriptionInput = {
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
 }
 
@@ -1355,11 +1745,15 @@ export type OrderUncheckedCreateWithoutHostingSubscriptionInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -1367,6 +1761,7 @@ export type OrderUncheckedCreateWithoutHostingSubscriptionInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -1405,6 +1800,9 @@ export type OrderCreateWithoutHostingRenewalInput = {
   description?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
@@ -1422,6 +1820,8 @@ export type OrderCreateWithoutHostingRenewalInput = {
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
 }
 
@@ -1439,11 +1839,15 @@ export type OrderUncheckedCreateWithoutHostingRenewalInput = {
   hostingSubscriptionId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -1451,6 +1855,7 @@ export type OrderUncheckedCreateWithoutHostingRenewalInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -1489,6 +1894,9 @@ export type OrderCreateWithoutActivityLogsInput = {
   description?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
@@ -1507,6 +1915,8 @@ export type OrderCreateWithoutActivityLogsInput = {
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutActivityLogsInput = {
@@ -1524,11 +1934,15 @@ export type OrderUncheckedCreateWithoutActivityLogsInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -1536,6 +1950,7 @@ export type OrderUncheckedCreateWithoutActivityLogsInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutActivityLogsInput = {
@@ -1563,6 +1978,9 @@ export type OrderUpdateWithoutActivityLogsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1581,6 +1999,8 @@ export type OrderUpdateWithoutActivityLogsInput = {
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutActivityLogsInput = {
@@ -1598,11 +2018,15 @@ export type OrderUncheckedUpdateWithoutActivityLogsInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1610,6 +2034,7 @@ export type OrderUncheckedUpdateWithoutActivityLogsInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderCreateWithoutDomainRegistrationInput = {
@@ -1621,6 +2046,9 @@ export type OrderCreateWithoutDomainRegistrationInput = {
   description?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
@@ -1638,6 +2066,8 @@ export type OrderCreateWithoutDomainRegistrationInput = {
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
 }
 
@@ -1655,11 +2085,15 @@ export type OrderUncheckedCreateWithoutDomainRegistrationInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -1667,6 +2101,7 @@ export type OrderUncheckedCreateWithoutDomainRegistrationInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -1705,6 +2140,9 @@ export type OrderCreateWithoutDomainRenewalInput = {
   description?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
@@ -1722,6 +2160,8 @@ export type OrderCreateWithoutDomainRenewalInput = {
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
 }
 
@@ -1739,11 +2179,15 @@ export type OrderUncheckedCreateWithoutDomainRenewalInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -1751,6 +2195,7 @@ export type OrderUncheckedCreateWithoutDomainRenewalInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -1789,6 +2234,9 @@ export type OrderCreateWithoutDomainTransferInput = {
   description?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
@@ -1806,6 +2254,8 @@ export type OrderCreateWithoutDomainTransferInput = {
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
   promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  invoice?: Prisma.InvoiceCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
 }
 
@@ -1823,11 +2273,15 @@ export type OrderUncheckedCreateWithoutDomainTransferInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -1835,6 +2289,7 @@ export type OrderUncheckedCreateWithoutDomainTransferInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -1864,6 +2319,100 @@ export type OrderUpdateManyWithWhereWithoutDomainTransferInput = {
   data: Prisma.XOR<Prisma.OrderUpdateManyMutationInput, Prisma.OrderUncheckedUpdateManyWithoutDomainTransferInput>
 }
 
+export type OrderCreateWithoutInvoiceInput = {
+  id: string
+  orderNumber: string
+  createdBy?: string | null
+  type: $Enums.OrderType
+  status?: $Enums.OrderStatus
+  description?: string | null
+  subtotal?: string | null
+  discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
+  total?: string | null
+  currency?: string
+  promoCode?: string | null
+  invoiceNumber?: string | null
+  processedBy?: string | null
+  processedAt?: Date | string | null
+  completedAt?: Date | string | null
+  notes?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  team: Prisma.TeamCreateNestedOneWithoutOrdersInput
+  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
+  domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
+  hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
+  hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
+  promo?: Prisma.PromoCreateNestedOneWithoutOrdersInput
+  orderItems?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
+  activityLogs?: Prisma.OrderActivityLogCreateNestedManyWithoutOrderInput
+}
+
+export type OrderUncheckedCreateWithoutInvoiceInput = {
+  id: string
+  orderNumber: string
+  teamId: string
+  createdBy?: string | null
+  type: $Enums.OrderType
+  status?: $Enums.OrderStatus
+  description?: string | null
+  domainRegistrationId?: string | null
+  domainRenewalId?: string | null
+  domainTransferId?: string | null
+  hostingSubscriptionId?: string | null
+  hostingRenewalId?: string | null
+  subtotal?: string | null
+  discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
+  total?: string | null
+  currency?: string
+  promoCode?: string | null
+  promoId?: string | null
+  invoiceNumber?: string | null
+  processedBy?: string | null
+  processedAt?: Date | string | null
+  completedAt?: Date | string | null
+  notes?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  orderItems?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
+  activityLogs?: Prisma.OrderActivityLogUncheckedCreateNestedManyWithoutOrderInput
+}
+
+export type OrderCreateOrConnectWithoutInvoiceInput = {
+  where: Prisma.OrderWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrderCreateWithoutInvoiceInput, Prisma.OrderUncheckedCreateWithoutInvoiceInput>
+}
+
+export type OrderCreateManyInvoiceInputEnvelope = {
+  data: Prisma.OrderCreateManyInvoiceInput | Prisma.OrderCreateManyInvoiceInput[]
+  skipDuplicates?: boolean
+}
+
+export type OrderUpsertWithWhereUniqueWithoutInvoiceInput = {
+  where: Prisma.OrderWhereUniqueInput
+  update: Prisma.XOR<Prisma.OrderUpdateWithoutInvoiceInput, Prisma.OrderUncheckedUpdateWithoutInvoiceInput>
+  create: Prisma.XOR<Prisma.OrderCreateWithoutInvoiceInput, Prisma.OrderUncheckedCreateWithoutInvoiceInput>
+}
+
+export type OrderUpdateWithWhereUniqueWithoutInvoiceInput = {
+  where: Prisma.OrderWhereUniqueInput
+  data: Prisma.XOR<Prisma.OrderUpdateWithoutInvoiceInput, Prisma.OrderUncheckedUpdateWithoutInvoiceInput>
+}
+
+export type OrderUpdateManyWithWhereWithoutInvoiceInput = {
+  where: Prisma.OrderScalarWhereInput
+  data: Prisma.XOR<Prisma.OrderUpdateManyMutationInput, Prisma.OrderUncheckedUpdateManyWithoutInvoiceInput>
+}
+
 export type OrderCreateManyPromoInput = {
   id: string
   orderNumber: string
@@ -1879,10 +2428,14 @@ export type OrderCreateManyPromoInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -1901,6 +2454,9 @@ export type OrderUpdateWithoutPromoInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1918,6 +2474,8 @@ export type OrderUpdateWithoutPromoInput = {
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
 }
 
@@ -1936,10 +2494,14 @@ export type OrderUncheckedUpdateWithoutPromoInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1947,6 +2509,7 @@ export type OrderUncheckedUpdateWithoutPromoInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -1965,10 +2528,14 @@ export type OrderUncheckedUpdateManyWithoutPromoInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1992,11 +2559,15 @@ export type OrderCreateManyTeamInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -2015,6 +2586,9 @@ export type OrderUpdateWithoutTeamInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2032,6 +2606,8 @@ export type OrderUpdateWithoutTeamInput = {
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
 }
 
@@ -2049,11 +2625,15 @@ export type OrderUncheckedUpdateWithoutTeamInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2061,6 +2641,7 @@ export type OrderUncheckedUpdateWithoutTeamInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -2078,11 +2659,15 @@ export type OrderUncheckedUpdateManyWithoutTeamInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2106,11 +2691,15 @@ export type OrderCreateManyHostingSubscriptionInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -2129,6 +2718,9 @@ export type OrderUpdateWithoutHostingSubscriptionInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2146,6 +2738,8 @@ export type OrderUpdateWithoutHostingSubscriptionInput = {
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
 }
 
@@ -2163,11 +2757,15 @@ export type OrderUncheckedUpdateWithoutHostingSubscriptionInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2175,6 +2773,7 @@ export type OrderUncheckedUpdateWithoutHostingSubscriptionInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -2192,11 +2791,15 @@ export type OrderUncheckedUpdateManyWithoutHostingSubscriptionInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2220,11 +2823,15 @@ export type OrderCreateManyHostingRenewalInput = {
   hostingSubscriptionId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -2243,6 +2850,9 @@ export type OrderUpdateWithoutHostingRenewalInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2260,6 +2870,8 @@ export type OrderUpdateWithoutHostingRenewalInput = {
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
 }
 
@@ -2277,11 +2889,15 @@ export type OrderUncheckedUpdateWithoutHostingRenewalInput = {
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2289,6 +2905,7 @@ export type OrderUncheckedUpdateWithoutHostingRenewalInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -2306,11 +2923,15 @@ export type OrderUncheckedUpdateManyWithoutHostingRenewalInput = {
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2334,11 +2955,15 @@ export type OrderCreateManyDomainRegistrationInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -2357,6 +2982,9 @@ export type OrderUpdateWithoutDomainRegistrationInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2374,6 +3002,8 @@ export type OrderUpdateWithoutDomainRegistrationInput = {
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
 }
 
@@ -2391,11 +3021,15 @@ export type OrderUncheckedUpdateWithoutDomainRegistrationInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2403,6 +3037,7 @@ export type OrderUncheckedUpdateWithoutDomainRegistrationInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -2420,11 +3055,15 @@ export type OrderUncheckedUpdateManyWithoutDomainRegistrationInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2448,11 +3087,15 @@ export type OrderCreateManyDomainRenewalInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -2471,6 +3114,9 @@ export type OrderUpdateWithoutDomainRenewalInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2488,6 +3134,8 @@ export type OrderUpdateWithoutDomainRenewalInput = {
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
 }
 
@@ -2505,11 +3153,15 @@ export type OrderUncheckedUpdateWithoutDomainRenewalInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2517,6 +3169,7 @@ export type OrderUncheckedUpdateWithoutDomainRenewalInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -2534,11 +3187,15 @@ export type OrderUncheckedUpdateManyWithoutDomainRenewalInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2562,11 +3219,15 @@ export type OrderCreateManyDomainTransferInput = {
   hostingRenewalId?: string | null
   subtotal?: string | null
   discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
   total?: string | null
   currency?: string
   promoCode?: string | null
   promoId?: string | null
   invoiceNumber?: string | null
+  invoiceId?: string | null
   processedBy?: string | null
   processedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -2585,6 +3246,9 @@ export type OrderUpdateWithoutDomainTransferInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2602,6 +3266,8 @@ export type OrderUpdateWithoutDomainTransferInput = {
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
   promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  invoice?: Prisma.InvoiceUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
 }
 
@@ -2619,11 +3285,15 @@ export type OrderUncheckedUpdateWithoutDomainTransferInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2631,6 +3301,7 @@ export type OrderUncheckedUpdateWithoutDomainTransferInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -2648,6 +3319,142 @@ export type OrderUncheckedUpdateManyWithoutDomainTransferInput = {
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type OrderCreateManyInvoiceInput = {
+  id: string
+  orderNumber: string
+  teamId: string
+  createdBy?: string | null
+  type: $Enums.OrderType
+  status?: $Enums.OrderStatus
+  description?: string | null
+  domainRegistrationId?: string | null
+  domainRenewalId?: string | null
+  domainTransferId?: string | null
+  hostingSubscriptionId?: string | null
+  hostingRenewalId?: string | null
+  subtotal?: string | null
+  discount?: string | null
+  isTaxable?: boolean | null
+  taxPercentage?: number | null
+  taxAmount?: string | null
+  total?: string | null
+  currency?: string
+  promoCode?: string | null
+  promoId?: string | null
+  invoiceNumber?: string | null
+  processedBy?: string | null
+  processedAt?: Date | string | null
+  completedAt?: Date | string | null
+  notes?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+}
+
+export type OrderUpdateWithoutInvoiceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
+  status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
+  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
+  domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
+  hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
+  hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
+  promo?: Prisma.PromoUpdateOneWithoutOrdersNestedInput
+  orderItems?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
+  activityLogs?: Prisma.OrderActivityLogUpdateManyWithoutOrderNestedInput
+}
+
+export type OrderUncheckedUpdateWithoutInvoiceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
+  status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  promoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  invoiceNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orderItems?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
+  activityLogs?: Prisma.OrderActivityLogUncheckedUpdateManyWithoutOrderNestedInput
+}
+
+export type OrderUncheckedUpdateManyWithoutInvoiceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
+  status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isTaxable?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  taxPercentage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  taxAmount?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   total?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   promoCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2668,10 +3475,12 @@ export type OrderUncheckedUpdateManyWithoutDomainTransferInput = {
  */
 
 export type OrderCountOutputType = {
+  orderItems: number
   activityLogs: number
 }
 
 export type OrderCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  orderItems?: boolean | OrderCountOutputTypeCountOrderItemsArgs
   activityLogs?: boolean | OrderCountOutputTypeCountActivityLogsArgs
 }
 
@@ -2683,6 +3492,13 @@ export type OrderCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extens
    * Select specific fields to fetch from the OrderCountOutputType
    */
   select?: Prisma.OrderCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * OrderCountOutputType without action
+ */
+export type OrderCountOutputTypeCountOrderItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OrderItemWhereInput
 }
 
 /**
@@ -2708,11 +3524,15 @@ export type OrderSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   hostingRenewalId?: boolean
   subtotal?: boolean
   discount?: boolean
+  isTaxable?: boolean
+  taxPercentage?: boolean
+  taxAmount?: boolean
   total?: boolean
   currency?: boolean
   promoCode?: boolean
   promoId?: boolean
   invoiceNumber?: boolean
+  invoiceId?: boolean
   processedBy?: boolean
   processedAt?: boolean
   completedAt?: boolean
@@ -2727,6 +3547,8 @@ export type OrderSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
   hostingRenewal?: boolean | Prisma.Order$hostingRenewalArgs<ExtArgs>
   promo?: boolean | Prisma.Order$promoArgs<ExtArgs>
+  invoice?: boolean | Prisma.Order$invoiceArgs<ExtArgs>
+  orderItems?: boolean | Prisma.Order$orderItemsArgs<ExtArgs>
   activityLogs?: boolean | Prisma.Order$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.OrderCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["order"]>
@@ -2746,11 +3568,15 @@ export type OrderSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   hostingRenewalId?: boolean
   subtotal?: boolean
   discount?: boolean
+  isTaxable?: boolean
+  taxPercentage?: boolean
+  taxAmount?: boolean
   total?: boolean
   currency?: boolean
   promoCode?: boolean
   promoId?: boolean
   invoiceNumber?: boolean
+  invoiceId?: boolean
   processedBy?: boolean
   processedAt?: boolean
   completedAt?: boolean
@@ -2765,6 +3591,7 @@ export type OrderSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
   hostingRenewal?: boolean | Prisma.Order$hostingRenewalArgs<ExtArgs>
   promo?: boolean | Prisma.Order$promoArgs<ExtArgs>
+  invoice?: boolean | Prisma.Order$invoiceArgs<ExtArgs>
 }, ExtArgs["result"]["order"]>
 
 export type OrderSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -2782,11 +3609,15 @@ export type OrderSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   hostingRenewalId?: boolean
   subtotal?: boolean
   discount?: boolean
+  isTaxable?: boolean
+  taxPercentage?: boolean
+  taxAmount?: boolean
   total?: boolean
   currency?: boolean
   promoCode?: boolean
   promoId?: boolean
   invoiceNumber?: boolean
+  invoiceId?: boolean
   processedBy?: boolean
   processedAt?: boolean
   completedAt?: boolean
@@ -2801,6 +3632,7 @@ export type OrderSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
   hostingRenewal?: boolean | Prisma.Order$hostingRenewalArgs<ExtArgs>
   promo?: boolean | Prisma.Order$promoArgs<ExtArgs>
+  invoice?: boolean | Prisma.Order$invoiceArgs<ExtArgs>
 }, ExtArgs["result"]["order"]>
 
 export type OrderSelectScalar = {
@@ -2818,11 +3650,15 @@ export type OrderSelectScalar = {
   hostingRenewalId?: boolean
   subtotal?: boolean
   discount?: boolean
+  isTaxable?: boolean
+  taxPercentage?: boolean
+  taxAmount?: boolean
   total?: boolean
   currency?: boolean
   promoCode?: boolean
   promoId?: boolean
   invoiceNumber?: boolean
+  invoiceId?: boolean
   processedBy?: boolean
   processedAt?: boolean
   completedAt?: boolean
@@ -2832,7 +3668,7 @@ export type OrderSelectScalar = {
   updatedAt?: boolean
 }
 
-export type OrderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "orderNumber" | "teamId" | "createdBy" | "type" | "status" | "description" | "domainRegistrationId" | "domainRenewalId" | "domainTransferId" | "hostingSubscriptionId" | "hostingRenewalId" | "subtotal" | "discount" | "total" | "currency" | "promoCode" | "promoId" | "invoiceNumber" | "processedBy" | "processedAt" | "completedAt" | "notes" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
+export type OrderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "orderNumber" | "teamId" | "createdBy" | "type" | "status" | "description" | "domainRegistrationId" | "domainRenewalId" | "domainTransferId" | "hostingSubscriptionId" | "hostingRenewalId" | "subtotal" | "discount" | "isTaxable" | "taxPercentage" | "taxAmount" | "total" | "currency" | "promoCode" | "promoId" | "invoiceNumber" | "invoiceId" | "processedBy" | "processedAt" | "completedAt" | "notes" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
 export type OrderInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   domainRegistration?: boolean | Prisma.Order$domainRegistrationArgs<ExtArgs>
@@ -2841,6 +3677,8 @@ export type OrderInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
   hostingRenewal?: boolean | Prisma.Order$hostingRenewalArgs<ExtArgs>
   promo?: boolean | Prisma.Order$promoArgs<ExtArgs>
+  invoice?: boolean | Prisma.Order$invoiceArgs<ExtArgs>
+  orderItems?: boolean | Prisma.Order$orderItemsArgs<ExtArgs>
   activityLogs?: boolean | Prisma.Order$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.OrderCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -2852,6 +3690,7 @@ export type OrderIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
   hostingRenewal?: boolean | Prisma.Order$hostingRenewalArgs<ExtArgs>
   promo?: boolean | Prisma.Order$promoArgs<ExtArgs>
+  invoice?: boolean | Prisma.Order$invoiceArgs<ExtArgs>
 }
 export type OrderIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
@@ -2861,6 +3700,7 @@ export type OrderIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
   hostingRenewal?: boolean | Prisma.Order$hostingRenewalArgs<ExtArgs>
   promo?: boolean | Prisma.Order$promoArgs<ExtArgs>
+  invoice?: boolean | Prisma.Order$invoiceArgs<ExtArgs>
 }
 
 export type $OrderPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2873,6 +3713,8 @@ export type $OrderPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     hostingSubscription: Prisma.$HostingSubscriptionPayload<ExtArgs> | null
     hostingRenewal: Prisma.$HostingRenewalPayload<ExtArgs> | null
     promo: Prisma.$PromoPayload<ExtArgs> | null
+    invoice: Prisma.$InvoicePayload<ExtArgs> | null
+    orderItems: Prisma.$OrderItemPayload<ExtArgs>[]
     activityLogs: Prisma.$OrderActivityLogPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -2890,11 +3732,15 @@ export type $OrderPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     hostingRenewalId: string | null
     subtotal: string | null
     discount: string | null
+    isTaxable: boolean | null
+    taxPercentage: number | null
+    taxAmount: string | null
     total: string | null
     currency: string
     promoCode: string | null
     promoId: string | null
     invoiceNumber: string | null
+    invoiceId: string | null
     processedBy: string | null
     processedAt: Date | null
     completedAt: Date | null
@@ -3303,6 +4149,8 @@ export interface Prisma__OrderClient<T, Null = never, ExtArgs extends runtime.Ty
   hostingSubscription<T extends Prisma.Order$hostingSubscriptionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$hostingSubscriptionArgs<ExtArgs>>): Prisma.Prisma__HostingSubscriptionClient<runtime.Types.Result.GetResult<Prisma.$HostingSubscriptionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   hostingRenewal<T extends Prisma.Order$hostingRenewalArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$hostingRenewalArgs<ExtArgs>>): Prisma.Prisma__HostingRenewalClient<runtime.Types.Result.GetResult<Prisma.$HostingRenewalPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   promo<T extends Prisma.Order$promoArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$promoArgs<ExtArgs>>): Prisma.Prisma__PromoClient<runtime.Types.Result.GetResult<Prisma.$PromoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  invoice<T extends Prisma.Order$invoiceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$invoiceArgs<ExtArgs>>): Prisma.Prisma__InvoiceClient<runtime.Types.Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  orderItems<T extends Prisma.Order$orderItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$orderItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityLogs<T extends Prisma.Order$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -3347,11 +4195,15 @@ export interface OrderFieldRefs {
   readonly hostingRenewalId: Prisma.FieldRef<"Order", 'String'>
   readonly subtotal: Prisma.FieldRef<"Order", 'String'>
   readonly discount: Prisma.FieldRef<"Order", 'String'>
+  readonly isTaxable: Prisma.FieldRef<"Order", 'Boolean'>
+  readonly taxPercentage: Prisma.FieldRef<"Order", 'Float'>
+  readonly taxAmount: Prisma.FieldRef<"Order", 'String'>
   readonly total: Prisma.FieldRef<"Order", 'String'>
   readonly currency: Prisma.FieldRef<"Order", 'String'>
   readonly promoCode: Prisma.FieldRef<"Order", 'String'>
   readonly promoId: Prisma.FieldRef<"Order", 'String'>
   readonly invoiceNumber: Prisma.FieldRef<"Order", 'String'>
+  readonly invoiceId: Prisma.FieldRef<"Order", 'String'>
   readonly processedBy: Prisma.FieldRef<"Order", 'String'>
   readonly processedAt: Prisma.FieldRef<"Order", 'DateTime'>
   readonly completedAt: Prisma.FieldRef<"Order", 'DateTime'>
@@ -3866,6 +4718,49 @@ export type Order$promoArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
    */
   include?: Prisma.PromoInclude<ExtArgs> | null
   where?: Prisma.PromoWhereInput
+}
+
+/**
+ * Order.invoice
+ */
+export type Order$invoiceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Invoice
+   */
+  select?: Prisma.InvoiceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Invoice
+   */
+  omit?: Prisma.InvoiceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.InvoiceInclude<ExtArgs> | null
+  where?: Prisma.InvoiceWhereInput
+}
+
+/**
+ * Order.orderItems
+ */
+export type Order$orderItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OrderItem
+   */
+  select?: Prisma.OrderItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OrderItem
+   */
+  omit?: Prisma.OrderItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OrderItemInclude<ExtArgs> | null
+  where?: Prisma.OrderItemWhereInput
+  orderBy?: Prisma.OrderItemOrderByWithRelationInput | Prisma.OrderItemOrderByWithRelationInput[]
+  cursor?: Prisma.OrderItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OrderItemScalarFieldEnum | Prisma.OrderItemScalarFieldEnum[]
 }
 
 /**

@@ -40,7 +40,6 @@ export type CreativeAssetMinAggregateOutputType = {
   teamId: string | null
   name: string | null
   description: string | null
-  fileType: string | null
   category: string | null
   status: $Enums.CreativeAssetStatus | null
   currentInternalVersion: number | null
@@ -57,7 +56,6 @@ export type CreativeAssetMaxAggregateOutputType = {
   teamId: string | null
   name: string | null
   description: string | null
-  fileType: string | null
   category: string | null
   status: $Enums.CreativeAssetStatus | null
   currentInternalVersion: number | null
@@ -74,7 +72,6 @@ export type CreativeAssetCountAggregateOutputType = {
   teamId: number
   name: number
   description: number
-  fileType: number
   category: number
   status: number
   currentInternalVersion: number
@@ -103,7 +100,6 @@ export type CreativeAssetMinAggregateInputType = {
   teamId?: true
   name?: true
   description?: true
-  fileType?: true
   category?: true
   status?: true
   currentInternalVersion?: true
@@ -120,7 +116,6 @@ export type CreativeAssetMaxAggregateInputType = {
   teamId?: true
   name?: true
   description?: true
-  fileType?: true
   category?: true
   status?: true
   currentInternalVersion?: true
@@ -137,7 +132,6 @@ export type CreativeAssetCountAggregateInputType = {
   teamId?: true
   name?: true
   description?: true
-  fileType?: true
   category?: true
   status?: true
   currentInternalVersion?: true
@@ -241,10 +235,9 @@ export type CreativeAssetGroupByOutputType = {
   teamId: string
   name: string
   description: string | null
-  fileType: string
   category: string | null
   status: $Enums.CreativeAssetStatus
-  currentInternalVersion: number
+  currentInternalVersion: number | null
   currentPublicVersion: number | null
   isPublic: boolean
   createdBy: string
@@ -281,10 +274,9 @@ export type CreativeAssetWhereInput = {
   teamId?: Prisma.StringFilter<"CreativeAsset"> | string
   name?: Prisma.StringFilter<"CreativeAsset"> | string
   description?: Prisma.StringNullableFilter<"CreativeAsset"> | string | null
-  fileType?: Prisma.StringFilter<"CreativeAsset"> | string
   category?: Prisma.StringNullableFilter<"CreativeAsset"> | string | null
   status?: Prisma.EnumCreativeAssetStatusFilter<"CreativeAsset"> | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFilter<"CreativeAsset"> | number
+  currentInternalVersion?: Prisma.IntNullableFilter<"CreativeAsset"> | number | null
   currentPublicVersion?: Prisma.IntNullableFilter<"CreativeAsset"> | number | null
   isPublic?: Prisma.BoolFilter<"CreativeAsset"> | boolean
   createdBy?: Prisma.StringFilter<"CreativeAsset"> | string
@@ -302,10 +294,9 @@ export type CreativeAssetOrderByWithRelationInput = {
   teamId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  fileType?: Prisma.SortOrder
   category?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
-  currentInternalVersion?: Prisma.SortOrder
+  currentInternalVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   currentPublicVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
@@ -326,10 +317,9 @@ export type CreativeAssetWhereUniqueInput = Prisma.AtLeast<{
   teamId?: Prisma.StringFilter<"CreativeAsset"> | string
   name?: Prisma.StringFilter<"CreativeAsset"> | string
   description?: Prisma.StringNullableFilter<"CreativeAsset"> | string | null
-  fileType?: Prisma.StringFilter<"CreativeAsset"> | string
   category?: Prisma.StringNullableFilter<"CreativeAsset"> | string | null
   status?: Prisma.EnumCreativeAssetStatusFilter<"CreativeAsset"> | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFilter<"CreativeAsset"> | number
+  currentInternalVersion?: Prisma.IntNullableFilter<"CreativeAsset"> | number | null
   currentPublicVersion?: Prisma.IntNullableFilter<"CreativeAsset"> | number | null
   isPublic?: Prisma.BoolFilter<"CreativeAsset"> | boolean
   createdBy?: Prisma.StringFilter<"CreativeAsset"> | string
@@ -347,10 +337,9 @@ export type CreativeAssetOrderByWithAggregationInput = {
   teamId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  fileType?: Prisma.SortOrder
   category?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
-  currentInternalVersion?: Prisma.SortOrder
+  currentInternalVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   currentPublicVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
@@ -372,10 +361,9 @@ export type CreativeAssetScalarWhereWithAggregatesInput = {
   teamId?: Prisma.StringWithAggregatesFilter<"CreativeAsset"> | string
   name?: Prisma.StringWithAggregatesFilter<"CreativeAsset"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"CreativeAsset"> | string | null
-  fileType?: Prisma.StringWithAggregatesFilter<"CreativeAsset"> | string
   category?: Prisma.StringNullableWithAggregatesFilter<"CreativeAsset"> | string | null
   status?: Prisma.EnumCreativeAssetStatusWithAggregatesFilter<"CreativeAsset"> | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntWithAggregatesFilter<"CreativeAsset"> | number
+  currentInternalVersion?: Prisma.IntNullableWithAggregatesFilter<"CreativeAsset"> | number | null
   currentPublicVersion?: Prisma.IntNullableWithAggregatesFilter<"CreativeAsset"> | number | null
   isPublic?: Prisma.BoolWithAggregatesFilter<"CreativeAsset"> | boolean
   createdBy?: Prisma.StringWithAggregatesFilter<"CreativeAsset"> | string
@@ -388,10 +376,9 @@ export type CreativeAssetCreateInput = {
   id: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -409,10 +396,9 @@ export type CreativeAssetUncheckedCreateInput = {
   teamId: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -428,10 +414,9 @@ export type CreativeAssetUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -449,10 +434,9 @@ export type CreativeAssetUncheckedUpdateInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -469,10 +453,9 @@ export type CreativeAssetCreateManyInput = {
   teamId: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -485,10 +468,9 @@ export type CreativeAssetUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -502,10 +484,9 @@ export type CreativeAssetUncheckedUpdateManyInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -529,7 +510,6 @@ export type CreativeAssetCountOrderByAggregateInput = {
   teamId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  fileType?: Prisma.SortOrder
   category?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentInternalVersion?: Prisma.SortOrder
@@ -551,7 +531,6 @@ export type CreativeAssetMaxOrderByAggregateInput = {
   teamId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  fileType?: Prisma.SortOrder
   category?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentInternalVersion?: Prisma.SortOrder
@@ -568,7 +547,6 @@ export type CreativeAssetMinOrderByAggregateInput = {
   teamId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  fileType?: Prisma.SortOrder
   category?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentInternalVersion?: Prisma.SortOrder
@@ -682,10 +660,9 @@ export type CreativeAssetCreateWithoutTeamInput = {
   id: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -701,10 +678,9 @@ export type CreativeAssetUncheckedCreateWithoutTeamInput = {
   id: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -750,10 +726,9 @@ export type CreativeAssetScalarWhereInput = {
   teamId?: Prisma.StringFilter<"CreativeAsset"> | string
   name?: Prisma.StringFilter<"CreativeAsset"> | string
   description?: Prisma.StringNullableFilter<"CreativeAsset"> | string | null
-  fileType?: Prisma.StringFilter<"CreativeAsset"> | string
   category?: Prisma.StringNullableFilter<"CreativeAsset"> | string | null
   status?: Prisma.EnumCreativeAssetStatusFilter<"CreativeAsset"> | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFilter<"CreativeAsset"> | number
+  currentInternalVersion?: Prisma.IntNullableFilter<"CreativeAsset"> | number | null
   currentPublicVersion?: Prisma.IntNullableFilter<"CreativeAsset"> | number | null
   isPublic?: Prisma.BoolFilter<"CreativeAsset"> | boolean
   createdBy?: Prisma.StringFilter<"CreativeAsset"> | string
@@ -766,10 +741,9 @@ export type CreativeAssetCreateWithoutVersionsInput = {
   id: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -786,10 +760,9 @@ export type CreativeAssetUncheckedCreateWithoutVersionsInput = {
   teamId: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -820,10 +793,9 @@ export type CreativeAssetUpdateWithoutVersionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -840,10 +812,9 @@ export type CreativeAssetUncheckedUpdateWithoutVersionsInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -858,10 +829,9 @@ export type CreativeAssetCreateWithoutPermissionsInput = {
   id: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -878,10 +848,9 @@ export type CreativeAssetUncheckedCreateWithoutPermissionsInput = {
   teamId: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -912,10 +881,9 @@ export type CreativeAssetUpdateWithoutPermissionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -932,10 +900,9 @@ export type CreativeAssetUncheckedUpdateWithoutPermissionsInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -950,10 +917,9 @@ export type CreativeAssetCreateWithoutActivityLogsInput = {
   id: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -970,10 +936,9 @@ export type CreativeAssetUncheckedCreateWithoutActivityLogsInput = {
   teamId: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -1004,10 +969,9 @@ export type CreativeAssetUpdateWithoutActivityLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1024,10 +988,9 @@ export type CreativeAssetUncheckedUpdateWithoutActivityLogsInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1042,10 +1005,9 @@ export type CreativeAssetCreateManyTeamInput = {
   id: string
   name: string
   description?: string | null
-  fileType: string
   category?: string | null
   status?: $Enums.CreativeAssetStatus
-  currentInternalVersion?: number
+  currentInternalVersion?: number | null
   currentPublicVersion?: number | null
   isPublic?: boolean
   createdBy: string
@@ -1058,10 +1020,9 @@ export type CreativeAssetUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1077,10 +1038,9 @@ export type CreativeAssetUncheckedUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1096,10 +1056,9 @@ export type CreativeAssetUncheckedUpdateManyWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileType?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCreativeAssetStatusFieldUpdateOperationsInput | $Enums.CreativeAssetStatus
-  currentInternalVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  currentInternalVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   currentPublicVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1162,7 +1121,6 @@ export type CreativeAssetSelect<ExtArgs extends runtime.Types.Extensions.Interna
   teamId?: boolean
   name?: boolean
   description?: boolean
-  fileType?: boolean
   category?: boolean
   status?: boolean
   currentInternalVersion?: boolean
@@ -1184,7 +1142,6 @@ export type CreativeAssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   teamId?: boolean
   name?: boolean
   description?: boolean
-  fileType?: boolean
   category?: boolean
   status?: boolean
   currentInternalVersion?: boolean
@@ -1202,7 +1159,6 @@ export type CreativeAssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   teamId?: boolean
   name?: boolean
   description?: boolean
-  fileType?: boolean
   category?: boolean
   status?: boolean
   currentInternalVersion?: boolean
@@ -1220,7 +1176,6 @@ export type CreativeAssetSelectScalar = {
   teamId?: boolean
   name?: boolean
   description?: boolean
-  fileType?: boolean
   category?: boolean
   status?: boolean
   currentInternalVersion?: boolean
@@ -1232,7 +1187,7 @@ export type CreativeAssetSelectScalar = {
   updatedAt?: boolean
 }
 
-export type CreativeAssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "teamId" | "name" | "description" | "fileType" | "category" | "status" | "currentInternalVersion" | "currentPublicVersion" | "isPublic" | "createdBy" | "lastModifiedBy" | "createdAt" | "updatedAt", ExtArgs["result"]["creativeAsset"]>
+export type CreativeAssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "teamId" | "name" | "description" | "category" | "status" | "currentInternalVersion" | "currentPublicVersion" | "isPublic" | "createdBy" | "lastModifiedBy" | "createdAt" | "updatedAt", ExtArgs["result"]["creativeAsset"]>
 export type CreativeAssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   versions?: boolean | Prisma.CreativeAsset$versionsArgs<ExtArgs>
@@ -1260,10 +1215,9 @@ export type $CreativeAssetPayload<ExtArgs extends runtime.Types.Extensions.Inter
     teamId: string
     name: string
     description: string | null
-    fileType: string
     category: string | null
     status: $Enums.CreativeAssetStatus
-    currentInternalVersion: number
+    currentInternalVersion: number | null
     currentPublicVersion: number | null
     isPublic: boolean
     createdBy: string
@@ -1701,7 +1655,6 @@ export interface CreativeAssetFieldRefs {
   readonly teamId: Prisma.FieldRef<"CreativeAsset", 'String'>
   readonly name: Prisma.FieldRef<"CreativeAsset", 'String'>
   readonly description: Prisma.FieldRef<"CreativeAsset", 'String'>
-  readonly fileType: Prisma.FieldRef<"CreativeAsset", 'String'>
   readonly category: Prisma.FieldRef<"CreativeAsset", 'String'>
   readonly status: Prisma.FieldRef<"CreativeAsset", 'CreativeAssetStatus'>
   readonly currentInternalVersion: Prisma.FieldRef<"CreativeAsset", 'Int'>

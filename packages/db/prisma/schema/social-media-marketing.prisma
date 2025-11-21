@@ -1,0 +1,139 @@
+// Social Media Marketing Integrations Schema
+// This schema handles social media platform integrations (Meta/Facebook, Instagram, etc.)
+
+// Enums for Social Media Marketing
+enum SocialMediaPlatform {
+  META_FACEBOOK
+  META_INSTAGRAM
+  TWITTER
+  LINKEDIN
+  TIKTOK
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+  REVOKED
+  PENDING
+}
+
+// Social Media Integration
+// Stores access tokens only - App ID, App Secret, and API version are global settings (env vars)
+// Integration is global (shared across all users) - teamId is only used for page ownership
+model SocialMediaIntegration {
+  id String @id @map("_id")
+
+  // Platform Information
+  platform SocialMediaPlatform
+  status   IntegrationStatus   @default(PENDING)
+
+  // User who created/configured this integration
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Access Tokens
+  accessToken           String // Long-lived user access token
+  accessTokenExpiresAt  DateTime? // When the access token expires
+  refreshToken          String? // Refresh token if available
+  refreshTokenExpiresAt DateTime? // When refresh token expires
+
+  // Token Metadata
+  scope              String? // Granted permissions/scopes
+  tokenType          String? // Token type (e.g., "bearer")
+  lastTokenRefreshAt DateTime? // When token was last refreshed
+
+  // Timestamps
+  createdAt DateTime
+  updatedAt DateTime
+
+  // Page-specific tokens (for Facebook Pages)
+  pageTokens   SocialMediaPageToken[]
+  // Activity logging
+  activityLogs SocialMediaIntegrationActivityLog[]
+
+  @@index([platform])
+  @@index([status])
+  @@index([userId])
+  @@map("social_media_integration")
+}
+
+// Page-specific access tokens for Facebook Pages
+// Each page has its own access token that doesn't expire
+// teamId links the page to a team so team members can manage it
+model SocialMediaPageToken {
+  id            String  @id @map("_id")
+  integrationId String // Reference to the parent integration
+  teamId        String? // Team that owns this page (allows team members to manage it)
+
+  // Page Information
+  pageId       String // Facebook Page ID
+  pageName     String? // Page name
+  pageUsername String? // Page username
+  pagePicture  String? // Page picture URL
+  pageCategory String? // Page category
+
+  // Page Access Token (doesn't expire if page admin doesn't revoke)
+  accessToken String
+  isActive    Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime
+  updatedAt DateTime
+
+  // Relations
+  integration  SocialMediaIntegration            @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  team         Team?                             @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  user         User?                             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId       String? // User who linked this page to a team
+  // Activity logging
+  activityLogs SocialMediaPageTokenActivityLog[]
+
+  @@unique([integrationId, pageId]) // One token per page per integration
+  @@index([integrationId])
+  @@index([pageId])
+  @@index([teamId])
+  @@index([userId])
+  @@index([isActive])
+  @@map("social_media_page_token")
+}
+
+// Activity logging for social media integration actions
+model SocialMediaIntegrationActivityLog {
+  id            String                 @id @map("_id")
+  userId        String
+  integrationId String
+  integration   SocialMediaIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  action        String // e.g., "CREATE", "UPDATE", "TOKEN_REFRESH", "STATUS_CHANGE", "REVOKE"
+  description   String?
+  metadata      Json? // Additional data about the action
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime
+
+  @@index([userId])
+  @@index([integrationId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("social_media_integration_activity_log")
+}
+
+// Activity logging for social media page token actions
+model SocialMediaPageTokenActivityLog {
+  id          String               @id @map("_id")
+  userId      String
+  pageTokenId String
+  pageToken   SocialMediaPageToken @relation(fields: [pageTokenId], references: [id], onDelete: Cascade)
+  action      String // e.g., "CREATE", "UPDATE", "LINK_TEAM", "UNLINK_TEAM", "DEACTIVATE", "REACTIVATE"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime
+
+  @@index([userId])
+  @@index([pageTokenId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("social_media_page_token_activity_log")
+}

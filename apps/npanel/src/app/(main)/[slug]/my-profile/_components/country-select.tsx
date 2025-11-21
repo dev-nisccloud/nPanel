@@ -54,12 +54,30 @@ export function CountrySelect({ value, onValueChange, placeholder = "Select coun
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent 
+        className="w-[var(--radix-popover-trigger-width)] p-0 z-[100]" 
+        align="start"
+        onPointerDownOutside={(e) => {
+          // Prevent closing when clicking inside the command list
+          const target = e.target as HTMLElement;
+          if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]') || target.closest('[cmdk-input]')) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
+          // Prevent closing when interacting with command items
+          const target = e.target as HTMLElement;
+          if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]') || target.closest('[cmdk-input]')) {
+            e.preventDefault();
+          }
+        }}
+        style={{ pointerEvents: 'auto' }}
+      >
         <Command>
           <CommandInput placeholder="Search countries..." />
-          <CommandList>
+          <CommandList className="max-h-64 overflow-auto">
             <CommandEmpty>No country found.</CommandEmpty>
-            <CommandGroup className="max-h-64 overflow-auto">
+            <CommandGroup>
               {countries.map((country) => (
                 <CommandItem
                   key={country.alpha2}

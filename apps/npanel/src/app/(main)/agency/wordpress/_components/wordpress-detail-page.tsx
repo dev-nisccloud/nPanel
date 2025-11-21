@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, MoreVertical } from "lucide-react";
+import { ArrowLeft, MoreVertical, Unlink, Edit } from "lucide-react";
 import Link from "next/link";
 import { z } from "zod";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,19 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { trpc } from "@/utils/trpc";
 
 import { PluginDataTable } from "./plugin-data-table";
 import { ThemeDataTable } from "./theme-data-table";
@@ -28,6 +41,7 @@ import { WordPressPlugins } from "./wordpress-plugins";
 import { WordPressThemes } from "./wordpress-themes";
 import { wordpressInstallationSchema } from "./schema";
 import { useWordPressInstanceById } from "./use-wordpress-instance-by-id";
+import { LinkToTeamDialog } from "./link-to-team-dialog";
 import pluginData from "./plugin-data.json";
 import themeData from "./theme-data.json";
 
@@ -126,6 +140,45 @@ function WordPressDetailError({ error, onRetry }: { error: Error; onRetry: () =>
 
 export function WordPressDetailPage({ installationId }: WordPressDetailPageProps) {
   const { data: wpData, isLoading, isError, error, refetch } = useWordPressInstanceById(installationId);
+  const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
+  const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
+
+  // Get installation ID as number from wpData
+  const wpInstallationId = wpData?.id ? Number(wpData.id) : Number(installationId);
+
+  // Check if WordPress instance is linked to a team
+  const { data: subscriptionData } = trpc.wordpressSubscriptions.getByInstallationId.useQuery(
+    { installationId: wpInstallationId },
+    {
+      enabled: !!wpInstallationId && wpInstallationId > 0,
+      staleTime: 30 * 1000, // 30 seconds
+    }
+  );
+
+  const isLinkedToTeam = !!subscriptionData?.teamId;
+
+  const utils = trpc.useUtils();
+
+  // Unlink mutation
+  const unlinkMutation = trpc.wordpressSubscriptions.unlinkFromTeam.useMutation({
+    onSuccess: () => {
+      toast.success("WordPress instance unlinked from team successfully");
+      setIsUnlinkDialogOpen(false);
+      // Invalidate subscription query to refresh data
+      utils.wordpressSubscriptions.getByInstallationId.invalidate({ installationId: wpInstallationId });
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to unlink WordPress instance from team");
+    },
+  });
+
+  const handleUnlink = () => {
+    if (subscriptionData?.id) {
+      unlinkMutation.mutate({ subscriptionId: subscriptionData.id });
+    }
+  };
 
   // Show loading state
   if (isLoading) {
@@ -171,29 +224,57 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
         
         <div className="flex items-center gap-2">
           {getStatusBadge()}
-          <DropdownMenu>
+          <DropdownMenu open={isActionMenuOpen} onOpenChange={setIsActionMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+              >
                 <MoreVertical className="h-4 w-4" />
                 <span className="sr-only">Open menu</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem>View Details</DropdownMenuItem>
-              <DropdownMenuItem>Edit Installation</DropdownMenuItem>
-              <DropdownMenuItem>Update WordPress</DropdownMenuItem>
+              <DropdownMenuItem 
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setIsActionMenuOpen(false);
+                  setTimeout(() => setIsLinkToTeamOpen(true), 0);
+                }}
+                disabled={isLinkedToTeam}
+              >
+                Link to Team
+              </DropdownMenuItem>
+              {isLinkedToTeam && (
+                <DropdownMenuItem 
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setIsActionMenuOpen(false);
+                    setTimeout(() => setIsUnlinkDialogOpen(true), 0);
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Unlink className="mr-2 h-4 w-4" />
+                  Unlink from Team
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>Manage</DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-              <DropdownMenuItem>Manage Plugins</DropdownMenuItem>
-              <DropdownMenuItem>Manage Themes</DropdownMenuItem>
-                  <DropdownMenuItem>Backup</DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Clone</DropdownMenuItem>
-              <DropdownMenuItem variant="destructive">Delete Installation</DropdownMenuItem>
+              {/* Commented out menu items - to be restored later */}
+              {/* <DropdownMenuItem>View Details</DropdownMenuItem> */}
+              {/* <DropdownMenuItem>Edit Installation</DropdownMenuItem> */}
+              {/* <DropdownMenuItem>Update WordPress</DropdownMenuItem> */}
+              {/* <DropdownMenuSeparator /> */}
+              {/* <DropdownMenuSub> */}
+              {/*   <DropdownMenuSubTrigger>Manage</DropdownMenuSubTrigger> */}
+              {/*   <DropdownMenuSubContent> */}
+              {/*     <DropdownMenuItem>Manage Plugins</DropdownMenuItem> */}
+              {/*     <DropdownMenuItem>Manage Themes</DropdownMenuItem> */}
+              {/*     <DropdownMenuItem>Backup</DropdownMenuItem> */}
+              {/*   </DropdownMenuSubContent> */}
+              {/* </DropdownMenuSub> */}
+              {/* <DropdownMenuSeparator /> */}
+              {/* <DropdownMenuItem>Clone</DropdownMenuItem> */}
+              {/* <DropdownMenuItem variant="destructive">Delete Installation</DropdownMenuItem> */}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -224,6 +305,49 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
           <WordPressThemes installationId={installationId} />
         </TabsContent>
       </Tabs>
+
+      {/* Link to Team Dialog */}
+      <LinkToTeamDialog
+        open={isLinkToTeamOpen}
+        onOpenChange={setIsLinkToTeamOpen}
+        installationId={wpInstallationId}
+        onSuccess={() => {
+          // Invalidate subscription query to refresh data
+          utils.wordpressSubscriptions.getByInstallationId.invalidate({ installationId: wpInstallationId });
+          refetch();
+        }}
+      />
+
+      {/* Unlink Confirmation Dialog */}
+      <AlertDialog open={isUnlinkDialogOpen} onOpenChange={setIsUnlinkDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink from Team</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to unlink this WordPress instance from its team? This will remove the association and delete the subscription record so it can be linked to another team later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={unlinkMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUnlink}
+              disabled={unlinkMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {unlinkMutation.isPending ? (
+                <>
+                  <Spinner size={16} className="mr-2" />
+                  Unlinking...
+                </>
+              ) : (
+                "Unlink"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

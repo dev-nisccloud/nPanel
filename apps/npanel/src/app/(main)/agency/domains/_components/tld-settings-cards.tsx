@@ -159,7 +159,7 @@ function TldSettingCard({
           </div>
         </div>
         <div className="min-w-0 flex-1">
-          <CardTitle className="text-lg font-bold font-mono truncate">
+          <CardTitle className="text-lg font-bold font-mono line-clamp-2 break-words">
             {data.name}
           </CardTitle>
         </div>

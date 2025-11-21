@@ -101,37 +101,19 @@ export async function sendPleskXmlRequest(
     }
   });
 
-  // Check host reachability with a quick HEAD request
-  try {
-    await request(PLESK_XML_ENDPOINT, {
-      method: 'HEAD',
-      dispatcher: pleskAgent,
-      signal: AbortSignal.timeout(10000) // Increased to 10 seconds
-    });
-    
-    Sentry.addBreadcrumb({
-      message: 'Host reachability check passed',
-      category: 'plesk-api',
-      level: 'debug',
-      data: {
-        endpoint: PLESK_XML_ENDPOINT
-      }
-    });
-  } catch (error) {
-    const err = error as NetworkError;
-    console.log('Host reachability check failed:', err.message);
-    Sentry.addBreadcrumb({
-      message: 'Host reachability check failed',
-      category: 'plesk-api',
-      level: 'warning',
-      data: {
-        endpoint: PLESK_XML_ENDPOINT,
-        error: err.message,
-        code: err.code || 'unknown'
-      }
-    });
-    // Don't return early - continue with the actual request as it might still work
-  }
+  // Optional host reachability check (fire-and-forget, non-blocking)
+  // Legacy code does this but continues even if it fails - we'll do the same
+  // Start it but don't await - proceed immediately with actual request
+  request(PLESK_XML_ENDPOINT, {
+    method: 'HEAD',
+    dispatcher: pleskAgent,
+    signal: AbortSignal.timeout(5000) // Match legacy: 5 seconds
+  }).then(() => {
+    console.log('Host reachability check passed');
+  }).catch(() => {
+    // Silently ignore - legacy code continues even on failure
+    // The actual POST request will handle connection issues
+  });
 
   try {
     console.log('Building request headers...');
@@ -157,12 +139,13 @@ export async function sendPleskXmlRequest(
     console.log('Making request to:', PLESK_XML_ENDPOINT);
     const startTime = Date.now();
     
+    // Match legacy timeout: 30 seconds (legacy used 30_000ms)
     const response = await request(PLESK_XML_ENDPOINT, {
       method: 'POST',
       headers,
       body: xmlPayload,
       dispatcher: pleskAgent,
-      signal: AbortSignal.timeout(60_000), // Increased to 60 seconds for Plesk operations
+      signal: AbortSignal.timeout(30_000), // Match legacy: 30 seconds
       // Note: For self-signed certificates, you may need to set NODE_TLS_REJECT_UNAUTHORIZED=0
       // or handle this at the environment level
     });

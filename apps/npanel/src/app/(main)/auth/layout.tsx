@@ -5,11 +5,10 @@ import { Command } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
 import { APP_CONFIG } from "@/config/app-config";
-import { redirectIfAuthenticated } from "@/lib/auth-server";
 
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
-  // Redirect authenticated users to their appropriate dashboard
-  await redirectIfAuthenticated();
+  // Note: Middleware already handles redirecting authenticated users away from auth pages
+  // No need to call redirectIfAuthenticated() here as it conflicts with middleware
   return (
     <main>
       <div className="grid h-dvh justify-center p-2 lg:grid-cols-2">

@@ -1,20 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle, XCircle, HardDrive, Wifi, Cpu, Database as DatabaseIcon, Mail, Globe, MoreHorizontal } from "lucide-react";
+import { CheckCircle, XCircle, HardDrive, Wifi, Cpu, Database as DatabaseIcon, Globe } from "lucide-react";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { Database } from "./databases-schema";
@@ -340,23 +332,6 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
                       </div>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>View Details</DropdownMenuItem>
-                      <DropdownMenuItem>Backup Database</DropdownMenuItem>
-                      <DropdownMenuItem>Export Database</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">
-                        Delete Database
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               ))}
               {(!databasesData || databasesData.length === 0) && (

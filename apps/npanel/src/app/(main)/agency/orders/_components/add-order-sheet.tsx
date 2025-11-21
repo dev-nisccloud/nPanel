@@ -2,1140 +2,1117 @@
 
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ShoppingCart, XIcon, Plus, Check, ChevronsUpDown, Loader2, Server } from "lucide-react";
+import { ShoppingCart, XIcon, Plus, Check, ChevronsUpDown, Server, Building2, Globe, AlertCircle, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
+	Sheet,
+	SheetClose,
+	SheetContent,
+	SheetDescription,
+	SheetFooter,
+	SheetHeader,
+	SheetTitle,
 } from "@/components/npanel-ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { DatePicker } from "@/components/npanel-ui/date-picker";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
 } from "@/components/ui/command";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { billingCycleSchema } from "./schema";
+import { getPlanTypeDisplayName } from "@/app/(main)/agency/service-plans/_components/service-plans-utils";
 
-import { orderSchema } from "./schema";
-
-const FormSchema = z.object({
-  orderNumber: z.string().min(1, { message: "Order number is required." }),
-  companyName: z.string().min(1, { message: "Company name is required." }),
-  date: z.string().min(1, { message: "Date is required." }),
-  paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]),
-  totalAmount: z.number().min(0, { message: "Total amount must be positive." }),
-  status: z.enum(["pending", "processing", "active", "suspended", "cancelled"]),
-  // Service Plan fields
-  servicePlanId: z.string().min(1, { message: "Service plan is required." }),
-  servicePlanName: z.string().optional(),
-  // Customer fields
-  customerType: z.enum(["existing", "new"]),
-  existingCustomerId: z.string().optional(),
-  existingCustomerName: z.string().optional(),
-  // New customer fields
-  newCustomerName: z.string().optional(),
-  newCustomerEmail: z.string().email("Invalid email address").optional().or(z.literal("")),
-  newCustomerPhone: z.string().optional(),
-  newCustomerCompany: z.string().optional(),
-  newCustomerAddress: z.string().optional(),
-  newCustomerCity: z.string().optional(),
-  newCustomerState: z.string().optional(),
-  newCustomerPostCode: z.string().optional(),
-  newCustomerCountry: z.string().optional(),
-  // Subscription fields
-  subscriptionName: z.string().min(1, "Domain name is required"),
-  hostingType: z.enum(["vrt_hst", "standard", "none"]).default("vrt_hst"),
-  ipAddress: z.string().optional(),
-  // FTP login and password are auto-generated
-  description: z.string().optional(),
-  adminDescription: z.string().optional(),
-}).refine((data) => {
-  if (data.customerType === "existing") {
-    return data.existingCustomerId && data.existingCustomerName;
-  }
-  if (data.customerType === "new") {
-    return data.newCustomerName && data.newCustomerEmail;
-  }
-  return true;
-}, {
-  message: "Please complete all required customer fields",
-  path: ["customerType"],
+// Order Item Schema
+const orderItemSchema = z.object({
+	niscServicePlanId: z.string().min(1, { message: "Service plan is required." }),
+	billingCycle: billingCycleSchema,
+	domainName: z.string().optional(), // Required for HOSTING plans, validated in form
+	description: z.string().optional(),
+	adminDescription: z.string().optional(),
+	notes: z.string().optional(),
 });
 
+// Form Schema - supports multiple items
+const FormSchema = z.object({
+	teamId: z.string().min(1, { message: "Team is required." }),
+	items: z.array(orderItemSchema).min(1, { message: "At least one order item is required." }),
+	isTaxable: z.boolean().optional().nullable(),
+	taxPercentage: z.number().min(0).max(100).optional().nullable(),
+	description: z.string().optional(),
+	notes: z.string().optional(),
+}).refine(
+	(data) => {
+		// If isTaxable is true, taxPercentage must be provided
+		if (data.isTaxable === true && (data.taxPercentage === null || data.taxPercentage === undefined)) {
+			return false;
+		}
+		return true;
+	},
+	{
+		message: "Tax percentage is required when order is taxable.",
+		path: ["taxPercentage"],
+	}
+).refine(
+	(data) => {
+		// Validate HOSTING plans have domainName - we'll do this after fetching plan details
+		return true;
+	},
+	{
+		message: "Domain name is required for HOSTING plans",
+	}
+);
+
+type FormData = z.infer<typeof FormSchema>;
+
 interface AddOrderSheetProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onAddOrder: (order: Omit<z.infer<typeof orderSchema>, "id">) => void;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	onSuccess?: () => void;
 }
 
-export function AddOrderSheet({ open, onOpenChange, onAddOrder }: AddOrderSheetProps) {
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isLoadingData, setIsLoadingData] = React.useState(false);
-  const [servicePlanOpen, setServicePlanOpen] = React.useState(false);
-  const [customerOpen, setCustomerOpen] = React.useState(false);
+export function AddOrderSheet({ open, onOpenChange, onSuccess }: AddOrderSheetProps) {
+	const [isSubmitting, setIsSubmitting] = React.useState(false);
+	const [teamOpen, setTeamOpen] = React.useState(false);
+	const [domainOpenMap, setDomainOpenMap] = React.useState<Record<number, boolean>>({});
+	const [planOpenMap, setPlanOpenMap] = React.useState<Record<number, boolean>>({});
+	const [showNoBillingDialog, setShowNoBillingDialog] = React.useState(false);
+	const [pendingOrderData, setPendingOrderData] = React.useState<FormData | null>(null);
+	const isSubmittingRef = React.useRef(false);
 
-  // tRPC queries
-  const { data: servicePlansData, isLoading: isLoadingServicePlans, error: servicePlansError } = trpc.plesk.servicePlans.getAll.useQuery(
-    {},
-    {
-      enabled: open, // Only fetch when sheet is open
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+	// Fetch all service plans (all types)
+	const { data: servicePlansData, isLoading: isLoadingPlans } = trpc.hostingPlans.getAll.useQuery(
+		{ isActive: true },
+		{
+			enabled: open,
+			staleTime: 5 * 60 * 1000, // 5 minutes
+		}
+	);
 
-  const { data: customersData, isLoading: isLoadingCustomers, error: customersError, refetch: refetchCustomers } = trpc.plesk.customers.getAll.useQuery(
-    {},
-    {
-      enabled: open, // Only fetch when sheet is open
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+	// Fetch teams
+	const { data: teamsData, isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery(
+		undefined,
+		{
+			enabled: open,
+			staleTime: 5 * 60 * 1000, // 5 minutes
+		}
+	);
 
+	const form = useForm<FormData>({
+		resolver: zodResolver(FormSchema),
+		mode: "onSubmit", // Only validate on submit, not on every change
+		reValidateMode: "onChange", // Re-validate on change after first submit attempt
+		defaultValues: {
+			teamId: "",
+			items: [
+				{
+					niscServicePlanId: "",
+					billingCycle: "MONTHLY",
+					domainName: "",
+					description: "",
+					adminDescription: "",
+					notes: "",
+				},
+			],
+			isTaxable: false,
+			taxPercentage: null,
+			description: "",
+			notes: "",
+		},
+	});
 
-  // Customer creation mutation
-  const createCustomerMutation = trpc.plesk.customersCreate.create.useMutation({
-    onSuccess: (data) => {
-      // console.log("=== CUSTOMER MUTATION SUCCESS ===");
-      // console.log("Success data:", data);
-    },
-    onError: (error) => {
-      // console.log("=== CUSTOMER MUTATION ERROR ===");
-      // console.log("Mutation error:", error);
-      // console.log("Error message:", error.message);
-      // console.log("Error data:", error.data);
-      // console.log("Error code:", error.code);
-    },
-  });
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "items",
+	});
 
-  // Subscription creation mutation
-  const createSubscriptionMutation = trpc.plesk.subscriptionsCreate.create.useMutation({
-    onSuccess: (data) => {
-      // console.log("=== SUBSCRIPTION MUTATION SUCCESS ===");
-      // console.log("Success data:", data);
-    },
-    onError: (error) => {
-      // console.log("=== SUBSCRIPTION MUTATION ERROR ===");
-      // console.log("Mutation error:", error);
-      // console.log("Error message:", error.message);
-      // console.log("Error data:", error.data);
-      // console.log("Error code:", error.code);
-    },
-  });
+	const watchedTeamId = form.watch("teamId");
+	const watchedItems = form.watch("items");
 
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
-    mode: "onChange", // Validate on change to catch errors early
-    defaultValues: {
-      orderNumber: `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}`,
-      companyName: "",
-      date: new Date().toISOString().split('T')[0],
-      paymentStatus: "pending",
-      totalAmount: 0,
-      status: "pending",
-      servicePlanId: "",
-      servicePlanName: "",
-      customerType: "existing",
-      existingCustomerId: "",
-      existingCustomerName: "",
-      newCustomerName: "",
-      newCustomerEmail: "",
-      newCustomerPhone: "",
-      newCustomerCompany: "",
-      newCustomerAddress: "",
-      newCustomerCity: "",
-      newCustomerState: "",
-      newCustomerPostCode: "",
-      newCustomerCountry: "",
-      // Subscription defaults
-      subscriptionName: "",
-      hostingType: "vrt_hst",
-      ipAddress: "",
-      // FTP login and password are auto-generated
-      description: "",
-      adminDescription: "",
-    },
-  });
+	// Fetch domains for selected team
+	const { data: domainsData, isLoading: isLoadingDomains } = trpc.orders.getTeamDomains.useQuery(
+		{ teamId: watchedTeamId },
+		{
+			enabled: open && !!watchedTeamId,
+			staleTime: 5 * 60 * 1000,
+		}
+	);
 
-  // Watch customer type to show/hide relevant fields
-  const customerType = form.watch("customerType");
+	// Get plan details for each item
+	const getPlanForItem = React.useCallback((itemIndex: number) => {
+		const item = watchedItems[itemIndex];
+		if (!item?.niscServicePlanId || !servicePlansData) return null;
+		return servicePlansData.find((plan) => plan.id === item.niscServicePlanId);
+	}, [watchedItems, servicePlansData]);
 
-  // Parse service plans from XML response
-  const servicePlans = React.useMemo(() => {
-    if (!servicePlansData?.parsed) return [];
-    
-    try {
-      const plans = (servicePlansData.parsed as any)?.packet?.["service-plan"]?.get?.result;
-      if (!plans) return [];
-      
-      // Handle both single and multiple results
-      const planArray = Array.isArray(plans) ? plans : [plans];
-      
-      return planArray.map((plan: any) => ({
-        id: (plan.id?.["#text"] || plan.id)?.toString() || "",
-        name: plan.name?.["#text"] || plan.name,
-        description: plan.description?.["#text"] || plan.description || "",
-      })).filter((plan: any) => plan.id && plan.name);
-    } catch (error) {
-      // console.error("Error parsing service plans:", error);
-      return [];
-    }
-  }, [servicePlansData]);
+	// Get available billing cycles for an item
+	const getAvailableBillingCycles = React.useCallback((itemIndex: number) => {
+		const plan = getPlanForItem(itemIndex);
+		if (!plan) return ["MONTHLY", "YEARLY", "BIENNIALLY"];
+		
+		const cycleOrder = {
+			MONTHLY: 1,
+			YEARLY: 12,
+			BIENNIALLY: 24,
+		};
 
-  // Parse customers from XML response
-  const customers = React.useMemo(() => {
-    if (!customersData?.parsed) return [];
-    
-    try {
-      const customerList = (customersData.parsed as any)?.packet?.customer?.get?.result;
-      if (!customerList) return [];
-      
-      // Handle both single and multiple results
-      const customerArray = Array.isArray(customerList) ? customerList : [customerList];
-      
-      const parsedCustomers = customerArray.map((customer: any) => {
-        // Extract customer info from the correct structure
-        const genInfo = customer.data?.gen_info;
-        if (!genInfo) return null;
-        
-        // Use company name if available, otherwise use personal name
-        const displayName = genInfo.cname || genInfo.pname || "";
-        
-        return {
-          id: customer.id?.toString() || "",
-          name: displayName,
-          email: genInfo.email || "",
-          company: genInfo.cname || "",
-          phone: genInfo.phone || "",
-        };
-      }).filter((customer: any) => customer && customer.id && customer.name);
-      
-      // console.log("=== CUSTOMER PARSING DEBUG ===");
-      // console.log("Raw customer data:", customerArray);
-      // console.log("Parsed customers:", parsedCustomers);
-      // console.log("Available customer IDs:", parsedCustomers.map(c => c.id));
-      
-      return parsedCustomers;
-    } catch (error) {
-      // console.error("Error parsing customers:", error);
-      return [];
-    }
-  }, [customersData]);
+		const planMonths = cycleOrder[plan.billingCycle as keyof typeof cycleOrder] || 1;
+		
+		return (["MONTHLY", "YEARLY", "BIENNIALLY"] as const).filter((cycle) => {
+			const cycleMonths = cycleOrder[cycle] || 1;
+			return cycleMonths >= planMonths;
+		});
+	}, [getPlanForItem]);
 
-  // Check if data is still loading
-  React.useEffect(() => {
-    const isLoading = isLoadingServicePlans || isLoadingCustomers;
-    setIsLoadingData(isLoading);
-  }, [isLoadingServicePlans, isLoadingCustomers]);
+	// Calculate price for an item (similar to invoicing pattern - calculated on render)
+	const calculateItemPrice = (itemIndex: number): number => {
+		const plan = getPlanForItem(itemIndex);
+		if (!plan || !plan.niscPrice) return 0;
 
-  const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    // console.log("=== FORM SUBMISSION DEBUG ===");
-    // console.log("Form data being submitted:", data);
-    // console.log("Form validation state:", form.formState);
-    // console.log("Form errors:", form.formState.errors);
-    
-    // Check if there are validation errors
-    if (Object.keys(form.formState.errors).length > 0) {
-      // console.error("Form has validation errors, preventing submission:", form.formState.errors);
-      toast.error("Please fix the form errors before submitting");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // If creating a new customer, do that first
-      let customerId = data.existingCustomerId;
-      let customerName = data.existingCustomerName;
-      let customerCreated = false;
-      let subscriptionCreated = false;
-      
-      if (data.customerType === "new") {
-        try {
-          // console.log("=== CUSTOMER CREATION DEBUG ===");
-          // console.log("Creating customer with data:", {
-          //   personName: data.newCustomerName!,
-          //   email: data.newCustomerEmail!,
-          //   phone: data.newCustomerPhone || undefined,
-          //   company: data.newCustomerCompany || undefined,
-          //   address: data.newCustomerAddress || undefined,
-          //   city: data.newCustomerCity || undefined,
-          //   state: data.newCustomerState || undefined,
-          //   postCode: data.newCustomerPostCode || undefined,
-          //   country: data.newCustomerCountry || undefined,
-          // });
-          
-          const customerResult = await createCustomerMutation.mutateAsync({
-            personName: data.newCustomerName!,
-            email: data.newCustomerEmail!,
-            phone: data.newCustomerPhone || undefined,
-            company: data.newCustomerCompany || undefined,
-            address: data.newCustomerAddress || undefined,
-            city: data.newCustomerCity || undefined,
-            state: data.newCustomerState || undefined,
-            postCode: data.newCustomerPostCode || undefined,
-            country: data.newCustomerCountry || undefined,
-          });
-          
-          // console.log("Raw customer creation response:", customerResult);
-          // console.log("Parsed customer creation response:", customerResult.parsed);
-          
-          // Extract customer ID from response
-          const parsedResult = customerResult.parsed as any;
-          // console.log("Looking for customer ID in:", parsedResult?.packet?.customer?.add?.result);
-          
-          customerId = parsedResult?.packet?.customer?.add?.result?.id?.["#text"] || 
-                      parsedResult?.packet?.customer?.add?.result?.id;
-          customerName = data.newCustomerName!;
-          
-          // console.log("Extracted customer ID:", customerId);
-          
-          if (customerId) {
-            customerCreated = true;
-            // console.log("Customer created successfully:", customerId);
-            toast.success("Customer created successfully!");
-            
-            // Refresh customer data to include the newly created customer
-            // console.log("Refreshing customer data...");
-            await refetchCustomers();
-          } else {
-            // console.error("Customer ID not found in response structure:", parsedResult);
-            throw new Error("Customer ID not found in response");
-          }
-        } catch (error) {
-          // console.error("=== CUSTOMER CREATION ERROR DEBUG ===");
-          // console.error("Error object:", error);
-          // console.error("Error message:", error.message);
-          // console.error("Error stack:", error.stack);
-          
-          // Check if it's a tRPC error with more details
-          if (error && typeof error === 'object') {
-            // console.error("Error details:", JSON.stringify(error, null, 2));
-            
-            // Check for tRPC error structure
-            if ('data' in error) {
-              // console.error("tRPC error data:", error.data);
-            }
-            if ('message' in error) {
-              // console.error("tRPC error message:", error.message);
-            }
-            if ('code' in error) {
-              //  console.error("tRPC error code:", error.code);
-            }
-          }
-          
-          toast.error("Failed to create customer", {
-            description: "Please check the customer details and try again.",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-      } else {
-        // For existing customers, validate they exist
-        if (customerId && customerName) {
-          // Double-check that the customer actually exists in our parsed list
-          const customerExists = customers.find(c => c && c.id === customerId);
-          if (customerExists) {
-            customerCreated = true;
-            // console.log("Using existing customer:", { customerId, customerName, customerExists });
-          } else {
-            // console.error("Selected customer not found in available customers list");
-            // console.error("Selected customer ID:", customerId);
-            // console.error("Available customer IDs:", customers.map(c => c.id));
-            toast.error("Selected customer not found", {
-              description: "The selected customer is no longer available. Please refresh and try again.",
-            });
-            setIsSubmitting(false);
-            return;
-          }
-        } else {
-          // console.error("Existing customer ID or name not provided");
-          toast.error("Please select an existing customer", {
-            description: "Customer ID or name is missing.",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-      
-      // Create subscription if customer ID is available
-      if (customerId && customerCreated) {
-        try {
-          // console.log("=== SUBSCRIPTION CREATION DEBUG ===");
-          // console.log("Customer ID being used:", customerId);
-          // console.log("Customer ID type:", typeof customerId);
-          // console.log("Parsed customer ID:", parseInt(customerId));
-          // console.log("Creating subscription with data:", {
-          //   name: data.subscriptionName,
-          //   ownerId: parseInt(customerId),
-          //   hostingType: data.hostingType,
-          //   ipAddress: data.ipAddress || undefined,
-          //   // FTP login and password are auto-generated
-          //   description: data.description || undefined,
-          //   adminDescription: data.adminDescription || undefined,
-          //   planName: data.servicePlanName || undefined,
-          // });
-          
-          const subscriptionResult = await createSubscriptionMutation.mutateAsync({
-            name: data.subscriptionName,
-            ownerId: parseInt(customerId),
-            hostingType: data.hostingType,
-            ipAddress: data.ipAddress || undefined,
-            // FTP login and password are auto-generated
-            description: data.description || undefined,
-            adminDescription: data.adminDescription || undefined,
-            planName: data.servicePlanName || undefined,
-          });
-            
-            // console.log("Raw subscription creation response:", subscriptionResult);
-            // console.log("Parsed subscription creation response:", subscriptionResult.parsed);
-          
-          // Check if subscription was actually created
-          const parsedResult = subscriptionResult.parsed as any;
-          // console.log("Looking for subscription ID in:", parsedResult?.packet?.webspace?.add?.result);
-          
-          const subscriptionId = parsedResult?.packet?.webspace?.add?.result?.id?.["#text"] || 
-                                 parsedResult?.packet?.webspace?.add?.result?.id;
-          
-          // console.log("Extracted subscription ID:", subscriptionId);
-          
-          if (subscriptionId) {
-            subscriptionCreated = true;
-            // console.log("Subscription created successfully:", subscriptionId);
-            toast.success("Subscription created successfully!");
-          } else {
-            // console.error("Subscription ID not found in response structure:", parsedResult);
-            throw new Error("Subscription ID not found in response");
-          }
-        } catch (error) {
-          // console.error("=== SUBSCRIPTION CREATION ERROR DEBUG ===");
-          // console.error("Error object:", error);
-          // console.error("Error message:", error.message);
-          // console.error("Error stack:", error.stack);
-          
-          // Check if it's a tRPC error with more details
-          if (error && typeof error === 'object') {
-            // console.error("Error details:", JSON.stringify(error, null, 2));
-            
-            // Check for tRPC error structure
-            if ('data' in error) {
-              // console.error("tRPC error data:", error.data);
-            }
-            if ('message' in error) {
-              // console.error("tRPC error message:", error.message);
-            }
-            if ('code' in error) {
-              // console.error("tRPC error code:", error.code);
-            }
-          }
-          
-          toast.error("Failed to create subscription", {
-            description: "Please check the subscription details and try again.",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-      
-      // Only proceed if both customer and subscription were created successfully
-      if (customerCreated && subscriptionCreated) {
-        // Prepare order data for localStorage
-      const orderData = {
-          id: `order_${Date.now()}`, // Generate unique ID
-        orderNumber: data.orderNumber,
-        companyName: data.companyName,
-        date: new Date(data.date).toISOString(),
-        paymentStatus: data.paymentStatus,
-        totalAmount: data.totalAmount,
-        status: data.status,
-          servicePlanId: data.servicePlanId.toString(),
-          servicePlanName: data.servicePlanName,
-          customerId: customerId,
-          customerName: customerName,
-          subscriptionName: data.subscriptionName,
-          hostingType: data.hostingType,
-          createdAt: new Date().toISOString(),
-        };
+		const item = watchedItems[itemIndex];
+		if (!item) return 0;
 
-        // Save to localStorage
-        try {
-          const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-          existingOrders.push(orderData);
-          localStorage.setItem('orders', JSON.stringify(existingOrders));
-          // console.log("Order saved to localStorage:", orderData);
-        } catch (storageError) {
-          // console.error("Failed to save order to localStorage:", storageError);
-          toast.error("Failed to save order locally", {
-            description: "Order was created on Plesk but not saved locally.",
-          });
-          setIsSubmitting(false);
-          return;
-        }
+		const planPrice = parseFloat(plan.niscPrice);
+		const cycleMonths = {
+			MONTHLY: 1,
+			YEARLY: 12,
+			BIENNIALLY: 24,
+		};
 
-        // Call the parent callback
-      onAddOrder(orderData);
-      
-      toast.success("Order created successfully!");
-      form.reset();
-      onOpenChange(false);
-      } else {
-        toast.error("Failed to create order", {
-          description: "Customer or subscription creation failed.",
-        });
-      }
-    } catch (error) {
-      // console.error("Error creating order:", error);
-      toast.error("Failed to create order", {
-        description: "Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+		const planMonths = cycleMonths[plan.billingCycle as keyof typeof cycleMonths] || 1;
+		const orderMonths = cycleMonths[item.billingCycle as keyof typeof cycleMonths] || 1;
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto">
-        <SheetHeader className="mb-6 flex justify-between items-center flex-row">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary/10 rounded-full">
-              <ShoppingCart className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <SheetTitle className="text-2xl font-bold">Add Order</SheetTitle>
-              <SheetDescription className="text-base">
-                Create a new order
-              </SheetDescription>
-            </div>
-          </div>
-          <SheetClose asChild>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="p-0 m-0 size-auto hover:bg-transparent"
-            >
-              <XIcon className="size-5" />
-            </Button>
-          </SheetClose>
-        </SheetHeader>
+		const multiplier = orderMonths / planMonths;
+		return planPrice * multiplier; // Quantity is always 1
+	};
 
-        <div className="px-1 pb-1">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Service Plan Selection */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <ShoppingCart className="h-5 w-5" />
-                    Service Plan
-                  </CardTitle>
-                  <CardDescription>Select the service plan for this order</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="servicePlanId"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Service Plan</FormLabel>
-                        <Popover open={servicePlanOpen} onOpenChange={setServicePlanOpen}>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={servicePlanOpen}
-                                className="w-full justify-between"
-                                disabled={isLoadingServicePlans}
-                              >
-                                {isLoadingServicePlans ? (
-                                  <div className="flex items-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    <span>Loading service plans...</span>
-                                  </div>
-                                ) : field.value ? (
-                                  servicePlans.find((plan) => plan.id === field.value)?.name || "Select service plan"
-                                ) : (
-                                  "Select service plan"
-                                )}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-full p-0">
-                            <Command>
-                              <CommandInput placeholder="Search service plans..." />
-                              <CommandList>
-                                <CommandEmpty>No service plans found.</CommandEmpty>
-                                <CommandGroup>
-                                  {servicePlans.map((plan) => (
-                                    <CommandItem
-                                      key={plan.id}
-                                      value={plan.name}
-                                      onSelect={() => {
-                                        form.setValue("servicePlanId", plan.id);
-                                        form.setValue("servicePlanName", plan.name);
-                                        setServicePlanOpen(false);
-                                      }}
-                                    >
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          field.value === plan.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                      />
-                                      <div className="flex flex-col">
-                                        <span className="font-medium">{plan.name}</span>
-                                        {plan.description && (
-                                          <span className="text-sm text-muted-foreground">{plan.description}</span>
-                                        )}
-                                      </div>
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+	// Calculate total order price (recalculated on every render when items/billing cycles change)
+	// Similar to invoicing pattern - no memoization, recalculates automatically
+	const calculateTotalPrice = (): { subtotal: number; taxAmount: number | null; total: number } => {
+		const subtotal = watchedItems.reduce((sum, _, index) => {
+			return sum + calculateItemPrice(index);
+		}, 0);
+		
+		const isTaxable = form.watch("isTaxable");
+		const taxPercentage = form.watch("taxPercentage");
+		
+		let taxAmount: number | null = null;
+		let total: number;
+		
+		if (isTaxable && taxPercentage !== null && taxPercentage !== undefined) {
+			taxAmount = subtotal * (taxPercentage / 100);
+			total = subtotal + taxAmount;
+		} else {
+			total = subtotal;
+		}
+		
+		return { subtotal, taxAmount, total };
+	};
 
-              {/* Customer Selection */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <ShoppingCart className="h-5 w-5" />
-                    Customer Information
-                  </CardTitle>
-                  <CardDescription>Select or create a customer for this order</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Customer Type Selection */}
-                  <FormField
-                    control={form.control}
-                    name="customerType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select customer type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="existing">Existing Customer</SelectItem>
-                            <SelectItem value="new">New Customer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+	const { subtotal: orderSubtotal, taxAmount, total: totalPrice } = calculateTotalPrice();
+	const watchedIsTaxable = form.watch("isTaxable");
+	const watchedTaxPercentage = form.watch("taxPercentage");
 
-                  {/* Existing Customer Selection */}
-                  {customerType === "existing" && (
-                    <FormField
-                      control={form.control}
-                      name="existingCustomerId"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Select Customer</FormLabel>
-                          <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  aria-expanded={customerOpen}
-                                  className="w-full justify-between"
-                                  disabled={isLoadingCustomers}
-                                >
-                                  {isLoadingCustomers ? (
-                                    <div className="flex items-center gap-2">
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                      <span>Loading customers...</span>
-                                    </div>
-                                  ) : field.value ? (
-                                    customers.find((customer) => customer && customer.id === field.value)?.name || "Select customer"
-                                  ) : (
-                                    "Select customer"
-                                  )}
-                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
-                              <Command>
-                                <CommandInput placeholder="Search customers..." />
-                                <CommandList>
-                                  <CommandEmpty>No customers found.</CommandEmpty>
-                                  <CommandGroup>
-                                    {customers.filter(customer => customer).map((customer) => (
-                                      <CommandItem
-                                        key={customer!.id}
-                                        value={`${customer!.name} ${customer!.email} ${customer!.company}`}
-                                        onSelect={() => {
-                                          // console.log("=== CUSTOMER SELECTION DEBUG ===");
-                                          // console.log("Selected customer:", customer);
-                                          // console.log("Customer ID:", customer.id);
-                                          // console.log("Customer ID type:", typeof customer.id);
-                                          form.setValue("existingCustomerId", customer!.id);
-                                          form.setValue("existingCustomerName", customer!.name);
-                                          setCustomerOpen(false);
-                                        }}
-                                      >
-                                        <Check
-                                          className={cn(
-                                            "mr-2 h-4 w-4",
-                                            field.value === customer!.id ? "opacity-100" : "opacity-0"
-                                          )}
-                                        />
-                                        <div className="flex flex-col">
-                                          <span className="font-medium">{customer!.name}</span>
-                                          {customer!.email && (
-                                            <span className="text-sm text-muted-foreground">{customer!.email}</span>
-                                          )}
-                                          {customer!.company && (
-                                            <span className="text-sm text-muted-foreground">{customer!.company}</span>
-                                          )}
-                                        </div>
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
+	// Check billing settings for selected team
+	const checkBillingSettingsQuery = trpc.orders.checkTeamBillingSettings.useQuery(
+		{ teamId: form.watch("teamId") },
+		{
+			enabled: false, // Only check when explicitly called
+		}
+	);
 
-                  {/* New Customer Form */}
-                  {customerType === "new" && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="newCustomerName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Customer Name *</FormLabel>
-                              <FormControl>
-                                <Input placeholder="John Doe" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="newCustomerEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email *</FormLabel>
-                              <FormControl>
-                                <Input placeholder="john@example.com" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="newCustomerPhone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Phone</FormLabel>
-                              <FormControl>
-                                <Input placeholder="+1 (555) 123-4567" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="newCustomerCompany"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Company</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Acme Corp" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <FormField
-                        control={form.control}
-                        name="newCustomerAddress"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Address</FormLabel>
-                            <FormControl>
-                              <Input placeholder="123 Main St" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="grid grid-cols-3 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="newCustomerCity"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>City</FormLabel>
-                              <FormControl>
-                                <Input placeholder="New York" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="newCustomerState"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>State</FormLabel>
-                              <FormControl>
-                                <Input placeholder="NY" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="newCustomerPostCode"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Postal Code</FormLabel>
-                              <FormControl>
-                                <Input placeholder="10001" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <FormField
-                        control={form.control}
-                        name="newCustomerCountry"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Country</FormLabel>
-                            <FormControl>
-                              <Input placeholder="United States" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+	// Create order mutation
+	const createOrderMutation = trpc.orders.createServiceOrder.useMutation({
+		onSuccess: (data) => {
+			// Show toasts for each order item status
+			if (data.orderItemStatuses && data.orderItemStatuses.length > 0) {
+				data.orderItemStatuses.forEach((item) => {
+					if (item.status === "PROVISIONED") {
+						toast.success(`${item.planName} provisioned successfully`, {
+							description: item.domainName ? `Domain: ${item.domainName}` : undefined,
+						});
+					} else if (item.status === "SKIPPED") {
+						toast.info(`${item.planName} will be implemented later`, {
+							description: "This service will be provisioned manually.",
+						});
+					} else if (item.status === "FAILED") {
+						toast.error(`Failed to provision ${item.planName}`, {
+							description: item.provisioningError || "Provisioning failed. Please try again or contact support.",
+						});
+					} else if (item.status === "PROVISIONING") {
+						toast.info(`Provisioning ${item.planName}...`, {
+							description: "This may take a few moments.",
+						});
+					}
+				});
+			}
 
-              {/* Subscription Details */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Server className="h-5 w-5" />
-                    Subscription Details
-                  </CardTitle>
-                  <CardDescription>Configure the hosting subscription</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Domain Name */}
-                  <FormField
-                    control={form.control}
-                    name="subscriptionName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Domain Name *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+			// Show invoice creation status
+			if (data.invoiceCreated && data.invoiceNumber) {
+				toast.success("Invoice created and sent", {
+					description: `The Invoice number for this order is ${data.invoiceNumber}.`,
+				});
+			}
 
-                  {/* Hosting Type */}
-                  <FormField
-                    control={form.control}
-                    name="hostingType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Hosting Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select hosting type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="vrt_hst">Virtual Hosting</SelectItem>
-                            <SelectItem value="standard">Standard</SelectItem>
-                            <SelectItem value="none">None</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+			// Show main order creation success
+			toast.success(data.message || "Order created successfully", {
+				description: data.invoiceCreated 
+					? `The Invoice number for this order is ${data.invoiceNumber}.`
+					: undefined,
+			});
 
-                  {/* IP Address */}
-                  <FormField
-                    control={form.control}
-                    name="ipAddress"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>IP Address</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select IP Address" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="23.92.70.234">23.92.70.234</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+			// Reset form and close
+			form.reset();
+			onOpenChange(false);
+			onSuccess?.();
+		},
+		onError: (error) => {
+			toast.error(error.message || "Failed to create order");
+		},
+	});
 
-                  {/* FTP Credentials are auto-generated */}
+	// Reset form when dialog closes
+	React.useEffect(() => {
+		if (!open) {
+			form.reset({
+				teamId: "",
+				items: [
+					{
+						niscServicePlanId: "",
+						billingCycle: "MONTHLY",
+						domainName: "",
+						description: "",
+						adminDescription: "",
+						notes: "",
+					},
+				],
+				isTaxable: false,
+				taxPercentage: null,
+				description: "",
+				notes: "",
+			});
+			isSubmittingRef.current = false;
+			setIsSubmitting(false);
+			setDomainOpenMap({});
+			setPlanOpenMap({});
+		}
+	}, [open, form]);
 
-                  {/* Descriptions */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Customer-facing description" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="adminDescription"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Admin Description</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Internal admin notes" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+	const onSubmit = async (data: FormData) => {
+		// Prevent duplicate submissions
+		if (isSubmitting || isSubmittingRef.current || createOrderMutation.isPending) {
+			console.warn("Order submission already in progress, ignoring duplicate request");
+			return;
+		}
 
-              {/* Order Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <ShoppingCart className="h-5 w-5" />
-                    Order Information
-                  </CardTitle>
-                  <CardDescription>Basic order details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="orderNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Order Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="ORD-2024-001" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+		// Validate HOSTING plans have domainName
+		for (let i = 0; i < data.items.length; i++) {
+			const item = data.items[i];
+			const plan = servicePlansData?.find((p) => p.id === item.niscServicePlanId);
+			if (plan?.planType === "HOSTING" && !item.domainName) {
+				form.setError(`items.${i}.domainName`, {
+					type: "manual",
+					message: "Domain name is required for HOSTING plans",
+				});
+				toast.error(`Domain name is required for HOSTING plan in item ${i + 1}`);
+				return;
+			}
+		}
 
-                  <FormField
-                    control={form.control}
-                    name="companyName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Company Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="TechCorp Solutions" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+		// Check billing settings before proceeding
+		try {
+			const billingCheck = await checkBillingSettingsQuery.refetch();
+			
+			if (!billingCheck.data?.hasBillingSettings) {
+				// No billing settings - show dialog
+				setPendingOrderData(data);
+				setShowNoBillingDialog(true);
+				return;
+			}
 
-                  <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Order Date</FormLabel>
-                        <FormControl>
-                          <DatePicker
-                            value={field.value ? new Date(field.value) : undefined}
-                            onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : "")}
-                            placeholder="Select order date"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+			// Has billing settings - proceed with order creation (will auto-create invoice)
+			await proceedWithOrderCreation(data, true);
+		} catch (error) {
+			toast.error("Failed to check billing settings");
+			console.error("Billing settings check error:", error);
+		}
+	};
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="totalAmount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Total Amount</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              step="0.01"
-                              placeholder="1250.00" 
-                              {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+	const proceedWithOrderCreation = async (data: FormData, createInvoice: boolean) => {
+		isSubmittingRef.current = true;
+		setIsSubmitting(true);
+		
+		try {
+			await createOrderMutation.mutateAsync({
+				teamId: data.teamId,
+				items: data.items.map((item) => ({
+					niscServicePlanId: item.niscServicePlanId,
+					billingCycle: item.billingCycle,
+					domainName: item.domainName || undefined,
+					description: item.description || undefined,
+					adminDescription: item.adminDescription || undefined,
+					notes: item.notes || undefined,
+				})),
+				isTaxable: data.isTaxable || undefined,
+				taxPercentage: data.taxPercentage || undefined,
+				description: data.description || undefined,
+				notes: data.notes || undefined,
+				createInvoice, // Pass flag to API
+			});
+		} catch (error) {
+			// Error handled in mutation
+		} finally {
+			isSubmittingRef.current = false;
+			setIsSubmitting(false);
+		}
+	};
 
-                    <FormField
-                      control={form.control}
-                      name="paymentStatus"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Payment Status</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select payment status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="paid">Paid</SelectItem>
-                              <SelectItem value="failed">Failed</SelectItem>
-                              <SelectItem value="refunded">Refunded</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+	const isLoading = isLoadingPlans || isLoadingTeams;
 
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Order Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select order status" />
-                            </SelectTrigger>
-                          </FormControl>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="processing">Processing</SelectItem>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="suspended">Suspended</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+	return (
+		<Sheet open={open} onOpenChange={onOpenChange}>
+			<SheetContent className="overflow-y-auto max-w-4xl">
+				<SheetHeader className="mb-6 flex justify-between items-center flex-row">
+					<div className="flex items-center gap-3 mb-2">
+						<div className="p-2 bg-primary/10 rounded-full">
+							<ShoppingCart className="h-6 w-6 text-primary" />
+						</div>
+						<div>
+							<SheetTitle className="text-2xl font-bold">Create Service Order</SheetTitle>
+							<SheetDescription className="text-base">
+								Create a new order with one or more service plans
+							</SheetDescription>
+						</div>
+					</div>
+					<SheetClose asChild>
+						<Button
+							size="icon"
+							variant="ghost"
+							className="p-0 m-0 size-auto hover:bg-transparent"
+						>
+							<XIcon className="size-5" />
+						</Button>
+					</SheetClose>
+				</SheetHeader>
 
-              <SheetFooter className="flex gap-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => onOpenChange(false)}
-                  disabled={isSubmitting || isLoadingData}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting || isLoadingData}>
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
-                      <span>Creating...</span>
-                    </div>
-                  ) : isLoadingData ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Loading...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      <span>Add Order</span>
-                    </div>
-                  )}
-                </Button>
-              </SheetFooter>
-            </form>
-          </Form>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
+				<div className="px-1 pb-1">
+					<Form {...form}>
+						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+							{/* Team Selection */}
+							<Card>
+								<CardHeader>
+									<CardTitle className="text-lg flex items-center gap-2">
+										<Building2 className="h-5 w-5" />
+										Team
+									</CardTitle>
+									<CardDescription>Select the team that will own this order</CardDescription>
+								</CardHeader>
+								<CardContent>
+									<FormField
+										control={form.control}
+										name="teamId"
+										render={({ field }) => (
+											<FormItem className="flex flex-col">
+												<FormLabel>Team *</FormLabel>
+												<Popover open={teamOpen} onOpenChange={setTeamOpen}>
+													<PopoverTrigger asChild>
+														<FormControl>
+															<Button
+																variant="outline"
+																role="combobox"
+																aria-expanded={teamOpen}
+																className="w-full justify-between"
+																disabled={isLoadingTeams}
+															>
+																{isLoadingTeams ? (
+																	<div className="flex items-center gap-2">
+																		<Spinner className="h-4 w-4" />
+																		<span>Loading teams...</span>
+																	</div>
+																) : field.value ? (
+																	teamsData?.find((team) => team.id === field.value)?.name || "Select team"
+																) : (
+																	"Select team"
+																)}
+																<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+															</Button>
+														</FormControl>
+													</PopoverTrigger>
+													<PopoverContent className="w-full p-0" style={{ pointerEvents: 'auto' }}>
+														<Command>
+															<CommandInput placeholder="Search teams..." />
+															<CommandList className="max-h-64 overflow-auto">
+																<CommandEmpty>No teams found.</CommandEmpty>
+																<CommandGroup>
+																	{teamsData?.map((team) => (
+																		<CommandItem
+																			key={team.id}
+																			value={team.name}
+																			onSelect={() => {
+																				form.setValue("teamId", team.id);
+																				setTeamOpen(false);
+																			}}
+																		>
+																			<Check
+																				className={cn(
+																					"mr-2 h-4 w-4",
+																					field.value === team.id ? "opacity-100" : "opacity-0"
+																				)}
+																			/>
+																			<div className="flex flex-col flex-1">
+																				<span className="font-medium">{team.name}</span>
+																				<span className="text-xs text-muted-foreground">
+																					{team.memberCount} member{team.memberCount !== 1 ? "s" : ""}
+																				</span>
+																			</div>
+																		</CommandItem>
+																	))}
+																</CommandGroup>
+															</CommandList>
+														</Command>
+													</PopoverContent>
+												</Popover>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</CardContent>
+							</Card>
+
+							{/* Order Items */}
+							<Card>
+								<CardHeader>
+									<CardTitle className="text-lg flex items-center gap-2">
+										<Server className="h-5 w-5" />
+										Order Items
+									</CardTitle>
+									<CardDescription>Add one or more service plans to this order</CardDescription>
+								</CardHeader>
+								<CardContent className="space-y-6">
+									{fields.map((field, index) => {
+										const plan = getPlanForItem(index);
+										const isHosting = plan?.planType === "HOSTING";
+										const availableCycles = getAvailableBillingCycles(index);
+										const itemPrice = calculateItemPrice(index);
+
+										return (
+											<div key={field.id} className="p-4 border rounded-lg space-y-4">
+												<div className="flex items-center justify-between mb-4">
+													<h4 className="font-medium">Item {index + 1}</h4>
+													<Button
+														type="button"
+														variant="ghost"
+														size="sm"
+														onClick={() => {
+															if (fields.length > 1) {
+																remove(index);
+															} else {
+																// If it's the last item, clear it instead of removing (form requires at least one item)
+																form.setValue(`items.${index}.niscServicePlanId`, "");
+																form.setValue(`items.${index}.billingCycle`, "MONTHLY");
+																form.setValue(`items.${index}.domainName`, "");
+																form.setValue(`items.${index}.description`, "");
+																form.setValue(`items.${index}.adminDescription`, "");
+																form.setValue(`items.${index}.notes`, "");
+																toast.info("Item cleared. At least one item is required in the order.");
+															}
+														}}
+														title={fields.length === 1 ? "Clear this item (at least one item is required)" : "Remove this item"}
+														className="text-destructive hover:text-destructive hover:bg-destructive/10"
+													>
+														<Trash2 className="h-4 w-4" />
+													</Button>
+												</div>
+
+												{/* Service Plan Selection */}
+												<FormField
+													control={form.control}
+													name={`items.${index}.niscServicePlanId`}
+													render={({ field }) => (
+														<FormItem className="flex flex-col">
+															<FormLabel>Service Plan *</FormLabel>
+															<Popover 
+																open={planOpenMap[index] || false} 
+																onOpenChange={(open) => setPlanOpenMap({ ...planOpenMap, [index]: open })}
+															>
+																<PopoverTrigger asChild>
+																	<FormControl>
+																		<Button
+																			variant="outline"
+																			role="combobox"
+																			aria-expanded={planOpenMap[index] || false}
+																			className="w-full justify-between"
+																			disabled={isLoadingPlans}
+																		>
+																			{isLoadingPlans ? (
+																				<div className="flex items-center gap-2">
+																					<Spinner className="h-4 w-4" />
+																					<span>Loading plans...</span>
+																				</div>
+																			) : field.value ? (
+																				<div className="flex items-center gap-2">
+																					<span>{servicePlansData?.find((p) => p.id === field.value)?.name || "Select plan"}</span>
+																					{plan && (
+																						<Badge variant="outline" className="text-xs">
+																							{getPlanTypeDisplayName(plan.planType)}
+																						</Badge>
+																					)}
+																				</div>
+																			) : (
+																				"Select service plan"
+																			)}
+																			<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+																		</Button>
+																	</FormControl>
+																</PopoverTrigger>
+																<PopoverContent className="w-full p-0" style={{ pointerEvents: 'auto' }}>
+																	<Command>
+																		<CommandInput placeholder="Search plans..." />
+																		<CommandList className="max-h-64 overflow-auto">
+																			<CommandEmpty>No plans found.</CommandEmpty>
+																			<CommandGroup>
+																				{servicePlansData?.map((plan) => {
+																					// Check if this plan is already added to the order
+																					const isAlreadyAdded = watchedItems.some(
+																						(item, idx) => 
+																							idx !== index && 
+																							item.niscServicePlanId === plan.id
+																					);
+																					
+																					// Check if this plan is selected for THIS specific item
+																					const isSelectedForThisItem = field.value === plan.id;
+																					
+																					return (
+																						<CommandItem
+																							key={plan.id}
+																							value={plan.name}
+																							onSelect={() => {
+																								if (!isAlreadyAdded) {
+																									form.setValue(`items.${index}.niscServicePlanId`, plan.id);
+																									form.setValue(`items.${index}.billingCycle`, plan.billingCycle);
+																									if (plan.planType !== "HOSTING") {
+																										form.setValue(`items.${index}.domainName`, "");
+																									}
+																									setPlanOpenMap({ ...planOpenMap, [index]: false });
+																								}
+																							}}
+																							disabled={isAlreadyAdded}
+																							className={cn(
+																								isAlreadyAdded && "opacity-50 cursor-not-allowed",
+																								// Only show selected background if this plan is selected for THIS specific item
+																								isSelectedForThisItem && "bg-accent text-accent-foreground",
+																								// Override cmdk's data-selected for keyboard navigation - only apply if actually selected
+																								!isSelectedForThisItem && "data-[selected=true]:bg-transparent data-[selected=true]:text-foreground"
+																							)}
+																							title={isAlreadyAdded ? "This service plan has already been added to your order items" : undefined}
+																						>
+																						<Check
+																							className={cn(
+																								"mr-2 h-4 w-4",
+																								field.value === plan.id ? "opacity-100" : "opacity-0"
+																							)}
+																						/>
+																						<div className="flex flex-col flex-1">
+																							<div className="flex items-center gap-2">
+																								<span className="font-medium">{plan.name}</span>
+																								<Badge variant="outline" className="text-xs">
+																									{getPlanTypeDisplayName(plan.planType)}
+																								</Badge>
+																							</div>
+																							{plan.description && (
+																								<span className="text-sm text-muted-foreground">{plan.description}</span>
+																							)}
+																							<div className="flex items-center gap-2 mt-1">
+																								{plan.niscPrice && (
+																									<span className="text-sm font-medium">
+																										{plan.niscCurrency || "KES"} {plan.niscPrice}
+																									</span>
+																								)}
+																								<span className="text-xs text-muted-foreground">
+																									/{plan.billingCycle}
+																								</span>
+																							</div>
+																						</div>
+																						{isAlreadyAdded && (
+																							<div className="ml-auto">
+																								<Badge variant="outline" className="text-xs">
+																									Already added
+																								</Badge>
+																							</div>
+																						)}
+																					</CommandItem>
+																					);
+																				})}
+																			</CommandGroup>
+																		</CommandList>
+																	</Command>
+																</PopoverContent>
+															</Popover>
+															{plan && (
+																<div className="mt-2 p-3 bg-muted rounded-lg">
+																	<div className="text-sm space-y-1">
+																		<p className="font-medium">{plan.name}</p>
+																		{plan.description && (
+																			<p className="text-muted-foreground">{plan.description}</p>
+																		)}
+																		{isHosting && !plan.pleskServicePlanId && (
+																			<Alert className="mt-2">
+																				<AlertCircle className="h-4 w-4" />
+																				<AlertDescription className="text-xs">
+																					This HOSTING plan does not have a Plesk service plan ID configured. Provisioning will be skipped.
+																				</AlertDescription>
+																			</Alert>
+																		)}
+																		{!isHosting && (
+																			<Alert className="mt-2">
+																				<AlertCircle className="h-4 w-4" />
+																				<AlertDescription className="text-xs">
+																					This service will be provisioned manually after order creation.
+																				</AlertDescription>
+																			</Alert>
+																		)}
+																	</div>
+																</div>
+															)}
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+
+												{/* Domain Selection - Only for HOSTING plans */}
+												{isHosting && watchedTeamId && (
+													<FormField
+														control={form.control}
+														name={`items.${index}.domainName`}
+														render={({ field }) => (
+															<FormItem className="flex flex-col">
+																<FormLabel>Domain Name *</FormLabel>
+																{isLoadingDomains ? (
+																	<div className="flex items-center gap-2 py-2">
+																		<Spinner className="mr-2 h-4 w-4" />
+																		<span className="text-sm text-muted-foreground">Loading domains...</span>
+																	</div>
+																) : domainsData && domainsData.length > 0 ? (
+																	<Popover 
+																		open={domainOpenMap[index] || false} 
+																		onOpenChange={(open) => setDomainOpenMap({ ...domainOpenMap, [index]: open })}
+																	>
+																		<PopoverTrigger asChild>
+																			<FormControl>
+																				<Button
+																					variant="outline"
+																					role="combobox"
+																					aria-expanded={domainOpenMap[index] || false}
+																					className="w-full justify-between"
+																				>
+																					{field.value ? (
+																						domainsData.find((domain) => domain.domainName === field.value)?.domainName || field.value
+																					) : (
+																						"Select or type domain"
+																					)}
+																					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+																				</Button>
+																			</FormControl>
+																		</PopoverTrigger>
+																		<PopoverContent className="w-full p-0 z-[100]" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()} style={{ pointerEvents: 'auto' }}>
+																			<Command>
+																				<CommandInput
+																					placeholder="Search domains or type new domain..."
+																					value={field.value || ""}
+																					onValueChange={(value) => {
+																						form.setValue(`items.${index}.domainName`, value);
+																					}}
+																				/>
+																				<CommandList className="max-h-64 overflow-auto">
+																					<CommandEmpty>
+																						<div className="py-2 text-sm text-center">
+																							<p className="text-muted-foreground mb-2">No domains found</p>
+																							<p className="text-xs text-muted-foreground">Type a domain name to use for provisioning</p>
+																						</div>
+																					</CommandEmpty>
+																					<CommandGroup>
+																						{domainsData.map((domain) => (
+																							<CommandItem
+																								key={domain.id}
+																								value={domain.domainName}
+																								onSelect={() => {
+																									form.setValue(`items.${index}.domainName`, domain.domainName);
+																									setDomainOpenMap({ ...domainOpenMap, [index]: false });
+																								}}
+																							>
+																								<Check
+																									className={cn(
+																										"mr-2 h-4 w-4",
+																										field.value === domain.domainName ? "opacity-100" : "opacity-0"
+																									)}
+																								/>
+																								<span className="font-medium">{domain.domainName}</span>
+																								<Badge variant="outline" className="ml-2 text-xs">
+																									{domain.status}
+																								</Badge>
+																							</CommandItem>
+																						))}
+																					</CommandGroup>
+																				</CommandList>
+																			</Command>
+																		</PopoverContent>
+																	</Popover>
+																) : (
+																	<>
+																		<FormControl>
+																			<Input
+																				placeholder="example.com"
+																				{...field}
+																			/>
+																		</FormControl>
+																		<p className="text-xs text-muted-foreground">
+																			No domains found for this team. Type a domain name to use for provisioning.
+																		</p>
+																	</>
+																)}
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+												)}
+
+												{/* Billing Cycle */}
+												<FormField
+													control={form.control}
+													name={`items.${index}.billingCycle`}
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel>Billing Cycle *</FormLabel>
+															<Select
+																onValueChange={field.onChange}
+																value={field.value}
+																disabled={!plan}
+															>
+																<FormControl>
+																	<SelectTrigger>
+																		<SelectValue />
+																	</SelectTrigger>
+																</FormControl>
+																<SelectContent>
+																	{availableCycles.map((cycle) => (
+																		<SelectItem key={cycle} value={cycle}>
+																			{cycle}
+																			{plan && cycle === plan.billingCycle && " (Plan default)"}
+																		</SelectItem>
+																	))}
+																</SelectContent>
+															</Select>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+
+												{/* Item Price */}
+												{itemPrice > 0 && plan && (
+													<div className="p-3 bg-muted rounded-lg">
+														<div className="flex items-center justify-between">
+															<span className="text-sm text-muted-foreground">Item Total</span>
+															<span className="text-base font-semibold">
+																{plan.niscCurrency || "KES"} {itemPrice.toFixed(2)}
+															</span>
+														</div>
+														<p className="text-xs text-muted-foreground mt-1">
+															{plan.niscPrice} ({watchedItems[index]?.billingCycle || "MONTHLY"})
+														</p>
+													</div>
+												)}
+
+												{/* Optional fields for this item */}
+												<FormField
+													control={form.control}
+													name={`items.${index}.description`}
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel>Description</FormLabel>
+															<FormControl>
+																<Input placeholder="Item description" {...field} />
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+
+												{isHosting && (
+													<FormField
+														control={form.control}
+														name={`items.${index}.adminDescription`}
+														render={({ field }) => (
+															<FormItem>
+																<FormLabel>Admin Description</FormLabel>
+																<FormControl>
+																	<Input placeholder="Internal notes" {...field} />
+																</FormControl>
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+												)}
+											</div>
+										);
+									})}
+
+									{/* Add Item Button */}
+									<Button
+										type="button"
+										variant="outline"
+										onClick={() => append({
+											niscServicePlanId: "",
+											billingCycle: "MONTHLY",
+											domainName: "",
+											description: "",
+											adminDescription: "",
+											notes: "",
+										})}
+										className="w-full"
+									>
+										<Plus className="h-4 w-4 mr-2" />
+										Add Another Item
+									</Button>
+								</CardContent>
+							</Card>
+
+							{/* Tax Configuration */}
+							<Card>
+								<CardHeader>
+									<CardTitle className="text-lg">Tax Configuration</CardTitle>
+									<CardDescription>Configure tax settings for this order</CardDescription>
+								</CardHeader>
+								<CardContent className="space-y-4">
+									<FormField
+										control={form.control}
+										name="isTaxable"
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+												<div className="space-y-0.5">
+													<FormLabel className="text-base">Taxable Order</FormLabel>
+													<FormMessage />
+												</div>
+												<FormControl>
+													<input
+														type="checkbox"
+														checked={field.value ?? false}
+														onChange={(e) => {
+															field.onChange(e.target.checked);
+															if (!e.target.checked) {
+																form.setValue("taxPercentage", null);
+															}
+														}}
+														className="h-4 w-4 rounded border-gray-300"
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+									{watchedIsTaxable && (
+										<FormField
+											control={form.control}
+											name="taxPercentage"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Tax Percentage (%)</FormLabel>
+													<FormControl>
+														<Input
+															type="number"
+															min="0"
+															max="100"
+															step="0.01"
+															placeholder="e.g., 16.0"
+															{...field}
+															value={field.value ?? ""}
+															onChange={(e) => {
+																const value = e.target.value === "" ? null : parseFloat(e.target.value);
+																field.onChange(value);
+															}}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+								</CardContent>
+							</Card>
+
+							{/* Order Summary */}
+							{totalPrice > 0 && (
+								<Card>
+									<CardHeader>
+										<CardTitle className="text-lg">Order Summary</CardTitle>
+									</CardHeader>
+									<CardContent>
+										<div className="space-y-3">
+											<div className="flex items-center justify-between">
+												<span className="text-sm text-muted-foreground">Subtotal</span>
+												<span className="text-base font-medium">
+													{watchedItems.length > 0 && getPlanForItem(0)?.niscCurrency || "KES"} {orderSubtotal.toFixed(2)}
+												</span>
+											</div>
+											{taxAmount !== null && taxAmount > 0 && (
+												<div className="flex items-center justify-between">
+													<span className="text-sm text-muted-foreground">
+														Tax ({watchedTaxPercentage}%)
+													</span>
+													<span className="text-base font-medium">
+														{watchedItems.length > 0 && getPlanForItem(0)?.niscCurrency || "KES"} {taxAmount.toFixed(2)}
+													</span>
+												</div>
+											)}
+											<div className="border-t pt-3">
+												<div className="flex items-center justify-between">
+													<span className="text-base font-medium">Total Order Amount</span>
+													<span className="text-xl font-bold">
+														{watchedItems.length > 0 && getPlanForItem(0)?.niscCurrency || "KES"} {totalPrice.toFixed(2)}
+													</span>
+												</div>
+											</div>
+										</div>
+									</CardContent>
+								</Card>
+							)}
+
+							{/* Optional Order Fields */}
+							<Card>
+								<CardHeader>
+									<CardTitle className="text-lg">Additional Information</CardTitle>
+									<CardDescription>Optional details for this order</CardDescription>
+								</CardHeader>
+								<CardContent className="space-y-4">
+									<FormField
+										control={form.control}
+										name="description"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Order Description</FormLabel>
+												<FormControl>
+													<Input placeholder="Customer-facing description" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={form.control}
+										name="notes"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Notes</FormLabel>
+												<FormControl>
+													<Input placeholder="Additional notes" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</CardContent>
+							</Card>
+
+							<SheetFooter className="gap-2 sm:gap-0 pt-6">
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => onOpenChange(false)}
+									disabled={isSubmitting}
+								>
+									Cancel
+								</Button>
+								<Button type="submit" disabled={isSubmitting || isLoading || createOrderMutation.isPending}>
+									{isSubmitting ? (
+										<div className="flex items-center gap-2">
+											<Spinner variant="ellipsis" className="text-primary-foreground h-4 w-4" />
+											<span>Creating...</span>
+										</div>
+									) : (
+										<div className="flex items-center gap-2">
+											<Plus className="h-4 w-4" />
+											<span>Create Order</span>
+										</div>
+									)}
+								</Button>
+							</SheetFooter>
+						</form>
+					</Form>
+				</div>
+
+				{/* Dialog for missing billing settings */}
+				<AlertDialog open={showNoBillingDialog} onOpenChange={setShowNoBillingDialog}>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Billing Details Required</AlertDialogTitle>
+							<AlertDialogDescription>
+								The selected team does not have billing details configured. 
+								Without billing details, we cannot automatically generate and send invoices for this order.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel 
+								disabled={isSubmitting || createOrderMutation.isPending}
+								onClick={() => {
+									setShowNoBillingDialog(false);
+									setPendingOrderData(null);
+								}}
+							>
+								Cancel
+							</AlertDialogCancel>
+							<AlertDialogAction
+								onClick={async () => {
+									setShowNoBillingDialog(false);
+									if (pendingOrderData) {
+										await proceedWithOrderCreation(pendingOrderData, false);
+										setPendingOrderData(null);
+									}
+								}}
+								disabled={isSubmitting || createOrderMutation.isPending}
+								className="bg-primary text-primary-foreground hover:bg-primary/90"
+							>
+								{isSubmitting || createOrderMutation.isPending ? (
+									<>
+										<Spinner className="mr-2 h-4 w-4" />
+										Creating Order...
+									</>
+								) : (
+									"Create Order Without Invoice"
+								)}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+
+			</SheetContent>
+		</Sheet>
+	);
 }

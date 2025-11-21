@@ -44,6 +44,10 @@ const domainSearchResultSchema = z.object({
       currency: z.string(),
       marginType: z.string().nullable(),
       marginValue: z.string().nullable(),
+      // Currency conversion fields
+      convertedPrice: z.number().optional(),
+      exchangeRate: z.number().optional(),
+      displayCurrency: z.string().optional(),
     }).optional(),
   }).optional(),
   whois: z.object({
@@ -73,8 +77,8 @@ function DomainSearchContent() {
 
   return (
     <div className="space-y-6">
-      {/* Currency Selector */}
-      <div className="flex justify-center">
+      {/* Currency Selector - Positioned on the right side, prominent and visible */}
+      <div className="flex justify-end w-full mb-2">
         <CurrencySelector />
       </div>
 

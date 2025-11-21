@@ -51,7 +51,7 @@ export function DatePicker({
 
   return (
     <div className={cn("relative", className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -69,22 +69,52 @@ export function DatePicker({
         <PopoverContent 
           className={cn("w-auto p-0", popoverClassName)} 
           align="start"
+          onPointerDownOutside={(e) => {
+            // Prevent closing when clicking on calendar navigation elements
+            const target = e.target as HTMLElement;
+            if (target.closest('.rdp') || 
+                target.closest('[role="button"]') ||
+                target.closest('select') ||
+                target.closest('option')) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            // Prevent closing when interacting with calendar navigation elements
+            const target = e.target as HTMLElement;
+            if (target.closest('.rdp') || 
+                target.closest('[role="button"]') ||
+                target.closest('select') ||
+                target.closest('option')) {
+              e.preventDefault();
+            }
+          }}
+          onEscapeKeyDown={(e) => {
+            // Allow escape to close
+          }}
+          style={{ pointerEvents: 'auto' }}
         >
-          <Calendar
-            mode="single"
-            selected={value}
-            onSelect={handleDateSelect}
-            disabled={(date) => {
-              if (disabledDates?.some(disabledDate => 
-                date.getTime() === disabledDate.getTime()
-              )) return true;
-              if (fromDate && date < fromDate) return true;
-              if (toDate && date > toDate) return true;
-              return false;
-            }}
-            initialFocus
-            className={calendarClassName}
-          />
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <Calendar
+              mode="single"
+              selected={value}
+              onSelect={handleDateSelect}
+              disabled={(date) => {
+                if (disabledDates?.some(disabledDate => 
+                  date.getTime() === disabledDate.getTime()
+                )) return true;
+                if (fromDate && date < fromDate) return true;
+                if (toDate && date > toDate) return true;
+                return false;
+              }}
+              initialFocus
+              className={calendarClassName}
+            />
+          </div>
         </PopoverContent>
       </Popover>
     </div>
@@ -130,7 +160,7 @@ export function SimpleDatePicker({
 
   return (
     <div className={cn("relative", className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -148,22 +178,52 @@ export function SimpleDatePicker({
         <PopoverContent 
           className={cn("w-auto p-0", popoverClassName)} 
           align="start"
+          onPointerDownOutside={(e) => {
+            // Prevent closing when clicking on calendar navigation elements
+            const target = e.target as HTMLElement;
+            if (target.closest('.rdp') || 
+                target.closest('[role="button"]') ||
+                target.closest('select') ||
+                target.closest('option')) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            // Prevent closing when interacting with calendar navigation elements
+            const target = e.target as HTMLElement;
+            if (target.closest('.rdp') || 
+                target.closest('[role="button"]') ||
+                target.closest('select') ||
+                target.closest('option')) {
+              e.preventDefault();
+            }
+          }}
+          onEscapeKeyDown={(e) => {
+            // Allow escape to close
+          }}
+          style={{ pointerEvents: 'auto' }}
         >
-          <Calendar
-            mode="single"
-            selected={value}
-            onSelect={handleDateSelect}
-            disabled={(date) => {
-              if (disabledDates?.some(disabledDate => 
-                date.getTime() === disabledDate.getTime()
-              )) return true;
-              if (fromDate && date < fromDate) return true;
-              if (toDate && date > toDate) return true;
-              return false;
-            }}
-            initialFocus
-            className={calendarClassName}
-          />
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <Calendar
+              mode="single"
+              selected={value}
+              onSelect={handleDateSelect}
+              disabled={(date) => {
+                if (disabledDates?.some(disabledDate => 
+                  date.getTime() === disabledDate.getTime()
+                )) return true;
+                if (fromDate && date < fromDate) return true;
+                if (toDate && date > toDate) return true;
+                return false;
+              }}
+              initialFocus
+              className={calendarClassName}
+            />
+          </div>
         </PopoverContent>
       </Popover>
     </div>

@@ -71,14 +71,29 @@ export function ComboboxDropdown<T extends ComboboxItem>({
 
   const showCreate = onCreate && Boolean(inputValue) && !filteredItems.length;
 
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  // Auto-focus input when popover opens
+  React.useEffect(() => {
+    if (open && inputRef.current) {
+      // Small delay to ensure popover is fully rendered
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [open]);
+
   const Component = (
     <Command loop shouldFilter={false}>
-      <CommandInput
-        value={inputValue}
-        onValueChange={setInputValue}
-        placeholder={searchPlaceholder ?? "Search item..."}
-        className="px-3"
-      />
+      <div className="border-b px-3" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+        <CommandInput
+          ref={inputRef}
+          value={inputValue}
+          onValueChange={setInputValue}
+          placeholder={searchPlaceholder ?? "Search item..."}
+          className="border-0 focus:ring-0 focus-visible:ring-0"
+        />
+      </div>
 
       <CommandGroup>
         <CommandList className="max-h-[225px] overflow-auto">
@@ -174,6 +189,13 @@ export function ComboboxDropdown<T extends ComboboxItem>({
       <PopoverContent
         className="p-0"
         {...popoverProps}
+        onOpenAutoFocus={(e) => {
+          // Prevent default focus on trigger, focus input instead
+          e.preventDefault();
+          setTimeout(() => {
+            inputRef.current?.focus();
+          }, 0);
+        }}
         style={{
           width: "var(--radix-popover-trigger-width)",
           ...popoverProps?.style,

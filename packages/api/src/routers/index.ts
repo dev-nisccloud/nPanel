@@ -40,6 +40,15 @@ import { currencyConversionRouter } from "./currency-conversion";
 import { teamsRouter } from "./teams";
 import { userProfileRouter } from "./user-profile";
 import { creativeAssetsRouter } from "./creative-assets";
+import { hostingRouter } from "./hosting";
+import { hostingPlansRouter } from "./hosting-plans";
+import { wordpressSubscriptionsRouter } from "./wordpress-subscriptions";
+import { clientsRouter } from "./clients";
+import { manageUsersRouter } from "./manage-users";
+import { ordersRouter } from "./orders";
+import { invoicingRouter } from "./invoicing";
+import { teamBillingRouter } from "./team-billing";
+import { metaRouter } from "./social-media-marketing/meta";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -107,5 +116,25 @@ export const appRouter = router({
 	userProfile: userProfileRouter,
 	// Creative Assets Management
 	creativeAssets: creativeAssetsRouter,
+	// Hosting Management
+	hosting: hostingRouter,
+	// Hosting Plans Management
+	hostingPlans: hostingPlansRouter,
+	// WordPress Subscriptions Management
+	wordpressSubscriptions: wordpressSubscriptionsRouter,
+	// Clients Management
+	clients: clientsRouter,
+	// Manage Users (Agency Users)
+	manageUsers: manageUsersRouter,
+	// Orders Management
+	orders: ordersRouter,
+	// Invoicing Management
+	invoicing: invoicingRouter,
+	// Team Billing Settings
+	teamBilling: teamBillingRouter,
+	// Social Media Marketing - Meta/Facebook
+	socialMediaMarketing: router({
+		meta: metaRouter,
+	}),
 });
 export type AppRouter = typeof appRouter;

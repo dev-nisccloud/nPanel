@@ -9,7 +9,7 @@ import prisma from "@nPanel/db";
 
 // Input schemas
 const createTldSettingsSchema = z.object({
-  name: z.string().min(1, "TLD name is required").max(10),
+  name: z.string().min(1, "TLD setting name is required").max(100, "TLD setting name must be 100 characters or less"),
   nameserverGroupId: z.string().optional(),
   marginType: z.enum(["PERCENTAGE", "FIXED"]).optional(),
   percentageMargin: z.string().optional(),
@@ -19,7 +19,7 @@ const createTldSettingsSchema = z.object({
 
 const updateTldSettingsSchema = z.object({
   id: z.string(),
-  name: z.string().min(1, "TLD name is required").max(10).optional(),
+  name: z.string().min(1, "TLD setting name is required").max(100, "TLD setting name must be 100 characters or less").optional(),
   nameserverGroupId: z.string().optional(),
   marginType: z.enum(["PERCENTAGE", "FIXED"]).optional(),
   percentageMargin: z.string().optional(),

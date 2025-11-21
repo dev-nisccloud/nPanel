@@ -121,7 +121,8 @@ export function WordPressCard({
           </div>
           <div className="flex items-center gap-2">
             {getStatusBadge()}
-            <DropdownMenu>
+            {/* Action menu - to be implemented later */}
+            {/* <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
@@ -159,7 +160,7 @@ export function WordPressCard({
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu> */}
           </div>
         </div>
       </CardHeader>

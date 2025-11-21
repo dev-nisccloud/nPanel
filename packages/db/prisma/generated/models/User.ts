@@ -238,6 +238,8 @@ export type UserWhereInput = {
   emailDomains?: Prisma.EmailDomainListRelationFilter
   emailCampaigns?: Prisma.EmailCampaignListRelationFilter
   audiences?: Prisma.AudienceListRelationFilter
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationListRelationFilter
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -261,6 +263,8 @@ export type UserOrderByWithRelationInput = {
   emailDomains?: Prisma.EmailDomainOrderByRelationAggregateInput
   emailCampaigns?: Prisma.EmailCampaignOrderByRelationAggregateInput
   audiences?: Prisma.AudienceOrderByRelationAggregateInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationOrderByRelationAggregateInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -287,6 +291,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   emailDomains?: Prisma.EmailDomainListRelationFilter
   emailCampaigns?: Prisma.EmailCampaignListRelationFilter
   audiences?: Prisma.AudienceListRelationFilter
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationListRelationFilter
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -344,6 +350,8 @@ export type UserCreateInput = {
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -367,6 +375,8 @@ export type UserUncheckedCreateInput = {
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -390,6 +400,8 @@ export type UserUpdateInput = {
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -413,6 +425,8 @@ export type UserUncheckedUpdateInput = {
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -502,6 +516,11 @@ export type UserMinOrderByAggregateInput = {
   lastLoginAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserNullableScalarRelationFilter = {
+  is?: Prisma.UserWhereInput | null
+  isNot?: Prisma.UserWhereInput | null
 }
 
 export type UserCreateNestedOneWithoutCustomerIntegrationsInput = {
@@ -638,6 +657,36 @@ export type UserUpdateOneRequiredWithoutAudiencesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAudiencesInput, Prisma.UserUpdateWithoutAudiencesInput>, Prisma.UserUncheckedUpdateWithoutAudiencesInput>
 }
 
+export type UserCreateNestedOneWithoutSocialMediaIntegrationsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSocialMediaIntegrationsInput, Prisma.UserUncheckedCreateWithoutSocialMediaIntegrationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSocialMediaIntegrationsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutSocialMediaIntegrationsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSocialMediaIntegrationsInput, Prisma.UserUncheckedCreateWithoutSocialMediaIntegrationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSocialMediaIntegrationsInput
+  upsert?: Prisma.UserUpsertWithoutSocialMediaIntegrationsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSocialMediaIntegrationsInput, Prisma.UserUpdateWithoutSocialMediaIntegrationsInput>, Prisma.UserUncheckedUpdateWithoutSocialMediaIntegrationsInput>
+}
+
+export type UserCreateNestedOneWithoutSocialMediaPageTokensInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSocialMediaPageTokensInput, Prisma.UserUncheckedCreateWithoutSocialMediaPageTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSocialMediaPageTokensInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutSocialMediaPageTokensNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSocialMediaPageTokensInput, Prisma.UserUncheckedCreateWithoutSocialMediaPageTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSocialMediaPageTokensInput
+  upsert?: Prisma.UserUpsertWithoutSocialMediaPageTokensInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSocialMediaPageTokensInput, Prisma.UserUpdateWithoutSocialMediaPageTokensInput>, Prisma.UserUncheckedUpdateWithoutSocialMediaPageTokensInput>
+}
+
 export type UserCreateWithoutCustomerIntegrationsInput = {
   id: string
   name: string
@@ -658,6 +707,8 @@ export type UserCreateWithoutCustomerIntegrationsInput = {
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
@@ -680,6 +731,8 @@ export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCustomerIntegrationsInput = {
@@ -718,6 +771,8 @@ export type UserUpdateWithoutCustomerIntegrationsInput = {
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
@@ -740,6 +795,8 @@ export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSessionsInput = {
@@ -762,6 +819,8 @@ export type UserCreateWithoutSessionsInput = {
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -784,6 +843,8 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -822,6 +883,8 @@ export type UserUpdateWithoutSessionsInput = {
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -844,6 +907,8 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -866,6 +931,8 @@ export type UserCreateWithoutAccountsInput = {
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -888,6 +955,8 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -926,6 +995,8 @@ export type UserUpdateWithoutAccountsInput = {
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -948,6 +1019,8 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTeamMembershipsInput = {
@@ -970,6 +1043,8 @@ export type UserCreateWithoutTeamMembershipsInput = {
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTeamMembershipsInput = {
@@ -992,6 +1067,8 @@ export type UserUncheckedCreateWithoutTeamMembershipsInput = {
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTeamMembershipsInput = {
@@ -1030,6 +1107,8 @@ export type UserUpdateWithoutTeamMembershipsInput = {
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
@@ -1052,6 +1131,8 @@ export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutProfileInput = {
@@ -1074,6 +1155,8 @@ export type UserCreateWithoutProfileInput = {
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutProfileInput = {
@@ -1096,6 +1179,8 @@ export type UserUncheckedCreateWithoutProfileInput = {
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProfileInput = {
@@ -1134,6 +1219,8 @@ export type UserUpdateWithoutProfileInput = {
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProfileInput = {
@@ -1156,6 +1243,8 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutActivityLogsInput = {
@@ -1178,6 +1267,8 @@ export type UserCreateWithoutActivityLogsInput = {
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutActivityLogsInput = {
@@ -1200,6 +1291,8 @@ export type UserUncheckedCreateWithoutActivityLogsInput = {
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutActivityLogsInput = {
@@ -1238,6 +1331,8 @@ export type UserUpdateWithoutActivityLogsInput = {
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutActivityLogsInput = {
@@ -1260,6 +1355,8 @@ export type UserUncheckedUpdateWithoutActivityLogsInput = {
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEmailDomainsInput = {
@@ -1282,6 +1379,8 @@ export type UserCreateWithoutEmailDomainsInput = {
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailDomainsInput = {
@@ -1304,6 +1403,8 @@ export type UserUncheckedCreateWithoutEmailDomainsInput = {
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailDomainsInput = {
@@ -1342,6 +1443,8 @@ export type UserUpdateWithoutEmailDomainsInput = {
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailDomainsInput = {
@@ -1364,6 +1467,8 @@ export type UserUncheckedUpdateWithoutEmailDomainsInput = {
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEmailCampaignsInput = {
@@ -1386,6 +1491,8 @@ export type UserCreateWithoutEmailCampaignsInput = {
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailCampaignsInput = {
@@ -1408,6 +1515,8 @@ export type UserUncheckedCreateWithoutEmailCampaignsInput = {
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailCampaignsInput = {
@@ -1446,6 +1555,8 @@ export type UserUpdateWithoutEmailCampaignsInput = {
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailCampaignsInput = {
@@ -1468,6 +1579,8 @@ export type UserUncheckedUpdateWithoutEmailCampaignsInput = {
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAudiencesInput = {
@@ -1490,6 +1603,8 @@ export type UserCreateWithoutAudiencesInput = {
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAudiencesInput = {
@@ -1512,6 +1627,8 @@ export type UserUncheckedCreateWithoutAudiencesInput = {
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAudiencesInput = {
@@ -1550,6 +1667,8 @@ export type UserUpdateWithoutAudiencesInput = {
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAudiencesInput = {
@@ -1572,6 +1691,232 @@ export type UserUncheckedUpdateWithoutAudiencesInput = {
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutSocialMediaIntegrationsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
+  emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutSocialMediaIntegrationsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutSocialMediaIntegrationsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutSocialMediaIntegrationsInput, Prisma.UserUncheckedCreateWithoutSocialMediaIntegrationsInput>
+}
+
+export type UserUpsertWithoutSocialMediaIntegrationsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutSocialMediaIntegrationsInput, Prisma.UserUncheckedUpdateWithoutSocialMediaIntegrationsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutSocialMediaIntegrationsInput, Prisma.UserUncheckedCreateWithoutSocialMediaIntegrationsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutSocialMediaIntegrationsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutSocialMediaIntegrationsInput, Prisma.UserUncheckedUpdateWithoutSocialMediaIntegrationsInput>
+}
+
+export type UserUpdateWithoutSocialMediaIntegrationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutSocialMediaIntegrationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutSocialMediaPageTokensInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
+  emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutSocialMediaPageTokensInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutSocialMediaPageTokensInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutSocialMediaPageTokensInput, Prisma.UserUncheckedCreateWithoutSocialMediaPageTokensInput>
+}
+
+export type UserUpsertWithoutSocialMediaPageTokensInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutSocialMediaPageTokensInput, Prisma.UserUncheckedUpdateWithoutSocialMediaPageTokensInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutSocialMediaPageTokensInput, Prisma.UserUncheckedCreateWithoutSocialMediaPageTokensInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutSocialMediaPageTokensInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutSocialMediaPageTokensInput, Prisma.UserUncheckedUpdateWithoutSocialMediaPageTokensInput>
+}
+
+export type UserUpdateWithoutSocialMediaPageTokensInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutSocialMediaPageTokensInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -1588,6 +1933,8 @@ export type UserCountOutputType = {
   emailDomains: number
   emailCampaigns: number
   audiences: number
+  socialMediaIntegrations: number
+  socialMediaPageTokens: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1599,6 +1946,8 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   emailDomains?: boolean | UserCountOutputTypeCountEmailDomainsArgs
   emailCampaigns?: boolean | UserCountOutputTypeCountEmailCampaignsArgs
   audiences?: boolean | UserCountOutputTypeCountAudiencesArgs
+  socialMediaIntegrations?: boolean | UserCountOutputTypeCountSocialMediaIntegrationsArgs
+  socialMediaPageTokens?: boolean | UserCountOutputTypeCountSocialMediaPageTokensArgs
 }
 
 /**
@@ -1667,6 +2016,20 @@ export type UserCountOutputTypeCountAudiencesArgs<ExtArgs extends runtime.Types.
   where?: Prisma.AudienceWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountSocialMediaIntegrationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SocialMediaIntegrationWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountSocialMediaPageTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SocialMediaPageTokenWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1689,6 +2052,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   emailDomains?: boolean | Prisma.User$emailDomainsArgs<ExtArgs>
   emailCampaigns?: boolean | Prisma.User$emailCampaignsArgs<ExtArgs>
   audiences?: boolean | Prisma.User$audiencesArgs<ExtArgs>
+  socialMediaIntegrations?: boolean | Prisma.User$socialMediaIntegrationsArgs<ExtArgs>
+  socialMediaPageTokens?: boolean | Prisma.User$socialMediaPageTokensArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1745,6 +2110,8 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   emailDomains?: boolean | Prisma.User$emailDomainsArgs<ExtArgs>
   emailCampaigns?: boolean | Prisma.User$emailCampaignsArgs<ExtArgs>
   audiences?: boolean | Prisma.User$audiencesArgs<ExtArgs>
+  socialMediaIntegrations?: boolean | Prisma.User$socialMediaIntegrationsArgs<ExtArgs>
+  socialMediaPageTokens?: boolean | Prisma.User$socialMediaPageTokensArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1762,6 +2129,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     emailDomains: Prisma.$EmailDomainPayload<ExtArgs>[]
     emailCampaigns: Prisma.$EmailCampaignPayload<ExtArgs>[]
     audiences: Prisma.$AudiencePayload<ExtArgs>[]
+    socialMediaIntegrations: Prisma.$SocialMediaIntegrationPayload<ExtArgs>[]
+    socialMediaPageTokens: Prisma.$SocialMediaPageTokenPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2178,6 +2547,8 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   emailDomains<T extends Prisma.User$emailDomainsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$emailDomainsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailDomainPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   emailCampaigns<T extends Prisma.User$emailCampaignsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$emailCampaignsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailCampaignPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   audiences<T extends Prisma.User$audiencesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$audiencesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AudiencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  socialMediaIntegrations<T extends Prisma.User$socialMediaIntegrationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$socialMediaIntegrationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SocialMediaIntegrationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  socialMediaPageTokens<T extends Prisma.User$socialMediaPageTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$socialMediaPageTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SocialMediaPageTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2814,6 +3185,54 @@ export type User$audiencesArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   distinct?: Prisma.AudienceScalarFieldEnum | Prisma.AudienceScalarFieldEnum[]
+}
+
+/**
+ * User.socialMediaIntegrations
+ */
+export type User$socialMediaIntegrationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SocialMediaIntegration
+   */
+  select?: Prisma.SocialMediaIntegrationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SocialMediaIntegration
+   */
+  omit?: Prisma.SocialMediaIntegrationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SocialMediaIntegrationInclude<ExtArgs> | null
+  where?: Prisma.SocialMediaIntegrationWhereInput
+  orderBy?: Prisma.SocialMediaIntegrationOrderByWithRelationInput | Prisma.SocialMediaIntegrationOrderByWithRelationInput[]
+  cursor?: Prisma.SocialMediaIntegrationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SocialMediaIntegrationScalarFieldEnum | Prisma.SocialMediaIntegrationScalarFieldEnum[]
+}
+
+/**
+ * User.socialMediaPageTokens
+ */
+export type User$socialMediaPageTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SocialMediaPageToken
+   */
+  select?: Prisma.SocialMediaPageTokenSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SocialMediaPageToken
+   */
+  omit?: Prisma.SocialMediaPageTokenOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SocialMediaPageTokenInclude<ExtArgs> | null
+  where?: Prisma.SocialMediaPageTokenWhereInput
+  orderBy?: Prisma.SocialMediaPageTokenOrderByWithRelationInput | Prisma.SocialMediaPageTokenOrderByWithRelationInput[]
+  cursor?: Prisma.SocialMediaPageTokenWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SocialMediaPageTokenScalarFieldEnum | Prisma.SocialMediaPageTokenScalarFieldEnum[]
 }
 
 /**
