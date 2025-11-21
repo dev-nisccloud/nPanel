@@ -339,11 +339,11 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           hostingPlanId: subscriptionData.hostingPlanId,
           primaryDomain: subscriptionData.primaryDomain,
           billingCycle: subscriptionData.billingCycle,
-          nextRenewalDate: subscriptionData.nextRenewalDate,
-          expiryDate: subscriptionData.expiryDate,
+          nextRenewalDate: subscriptionData.nextRenewalDate ? new Date(subscriptionData.nextRenewalDate) : null,
+          expiryDate: subscriptionData.expiryDate ? new Date(subscriptionData.expiryDate) : null,
           notes: subscriptionData.notes,
           autoRenew: subscriptionData.autoRenew,
-        } : null}
+        } : undefined}
         onSuccess={() => {
           // Invalidate subscription query to refresh data
           utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });

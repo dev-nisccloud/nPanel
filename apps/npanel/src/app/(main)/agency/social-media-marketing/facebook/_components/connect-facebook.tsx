@@ -15,19 +15,6 @@ interface ConnectFacebookProps {
 export function ConnectFacebook({ onConnected }: ConnectFacebookProps) {
 	const [isConnecting, setIsConnecting] = React.useState(false);
 
-	const {
-		data: authUrlData,
-		isLoading: isLoadingAuthUrl,
-		error: authUrlError,
-	} = trpc.socialMediaMarketing.meta.auth.generateAuthUrl.useQuery(
-		{
-			redirectUri: `${window.location.origin}/agency/social-media-marketing/facebook/callback`,
-		},
-		{
-			enabled: false, // Only fetch when button is clicked
-		}
-	);
-
 	const generateAuthUrlMutation = trpc.socialMediaMarketing.meta.auth.generateAuthUrl.useMutation({
 		onSuccess: (data) => {
 			const authUrl = data.data?.url;

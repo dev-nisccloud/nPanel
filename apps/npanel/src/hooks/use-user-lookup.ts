@@ -82,7 +82,7 @@ export function useUsersLookup(userIds: (string | null | undefined)[]) {
   // Always call exactly MAX_USERS hooks to ensure consistent hook order
   // Pad with nulls if we have fewer than MAX_USERS
   const paddedUserIds = React.useMemo(() => {
-    const padded = [...uniqueUserIds];
+    const padded: (string | null)[] = [...uniqueUserIds];
     while (padded.length < MAX_USERS) {
       padded.push(null);
     }

@@ -49,12 +49,16 @@ export function AssetOverview({ asset }: AssetOverviewProps) {
           </p>
         </div>
 
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            File Type
-          </p>
-          <p className="text-sm font-medium">{asset.fileType}</p>
-        </div>
+        {asset.versions && asset.versions.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              File Type
+            </p>
+            <p className="text-sm font-medium">
+              {asset.versions[0]?.mimeType?.split('/')[1]?.toUpperCase() || "Unknown"}
+            </p>
+          </div>
+        )}
 
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">

@@ -74,7 +74,19 @@ export function BillingSettingsTab({ teamId }: BillingSettingsTabProps) {
 		return (
 			<BillingSettingsForm
 				teamId={teamId}
-				initialData={billingSettings ?? undefined}
+				initialData={billingSettings ? {
+					legalName: billingSettings.legalName,
+					billingEmail: billingSettings.billingEmail,
+					billingPhone: billingSettings.billingPhone ?? null,
+					addressLine1: billingSettings.addressLine1,
+					addressLine2: billingSettings.addressLine2 ?? null,
+					city: billingSettings.city,
+					state: billingSettings.state ?? null,
+					country: billingSettings.country,
+					postalCode: billingSettings.postalCode ?? null,
+					taxId: billingSettings.taxId ?? null,
+					additionalNotes: billingSettings.additionalNotes ?? null,
+				} : undefined}
 				onSuccess={handleFormSuccess}
 				onCancel={() => setIsEditMode(false)}
 			/>

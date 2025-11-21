@@ -33,7 +33,8 @@ export function OrdersDataTable({ data: initialData }: OrdersDataTableProps) {
     if (searchTerm.trim()) {
       filtered = filtered.filter((item) =>
         item.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.companyName.toLowerCase().includes(searchTerm.toLowerCase())
+        item.team?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        false
       );
     }
 
@@ -45,7 +46,7 @@ export function OrdersDataTable({ data: initialData }: OrdersDataTableProps) {
     setIsUpdateOrderOpen(true);
   };
 
-  const handleDeleteOrder = (orderId: number) => {
+  const handleDeleteOrder = (orderId: string) => {
     setData(prev => prev.filter(order => order.id !== orderId));
   };
 
@@ -69,18 +70,15 @@ export function OrdersDataTable({ data: initialData }: OrdersDataTableProps) {
     table.resetRowSelection();
   };
 
-  const handleAddOrder = (order: Omit<z.infer<typeof orderSchema>, "id">) => {
-    const newOrder = {
-      ...order,
-      id: Math.max(...data.map(o => o.id)) + 1,
-    };
-    setData(prev => [newOrder, ...prev]);
-  };
-
-  const handleUpdateOrder = (orderId: number, updatedOrder: Partial<z.infer<typeof orderSchema>>) => {
+  const handleUpdateOrder = (orderId: string, updatedOrder: Partial<z.infer<typeof orderSchema>>) => {
     setData(prev => prev.map(order => 
       order.id === orderId ? { ...order, ...updatedOrder } : order
     ));
+  };
+
+  const handleAddOrderSuccess = () => {
+    // AddOrderSheet handles mutation and invalidation internally
+    // This is just for closing the sheet or other UI updates if needed
   };
 
 
@@ -134,7 +132,7 @@ export function OrdersDataTable({ data: initialData }: OrdersDataTableProps) {
       <AddOrderSheet
         open={isAddOrderOpen}
         onOpenChange={setIsAddOrderOpen}
-        onAddOrder={handleAddOrder}
+        onSuccess={handleAddOrderSuccess}
       />
 
       {/* Update Order Sheet */}

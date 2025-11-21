@@ -181,7 +181,7 @@ export const wordpressSubscriptionsRouter = router({
 			await prisma.wordPressInstanceActivityLog.create({
 				data: {
 					id: crypto.randomUUID(),
-					wordPressInstanceId: instance.id,
+					wordpressInstanceId: instance.id,
 					userId: userId,
 					action: "LINK_TO_TEAM",
 					description: `Linked WordPress instance to team: ${team.name}`,
@@ -243,7 +243,7 @@ export const wordpressSubscriptionsRouter = router({
 			await prisma.wordPressInstanceActivityLog.create({
 				data: {
 					id: crypto.randomUUID(),
-					wordPressInstanceId: instance.id,
+					wordpressInstanceId: instance.id,
 					userId: userId,
 					action: "UNLINK_FROM_TEAM",
 					description: `Unlinked WordPress instance from team: ${teamName}. Instance deleted.`,
@@ -332,7 +332,7 @@ export const wordpressSubscriptionsRouter = router({
 			await prisma.wordPressInstanceActivityLog.create({
 				data: {
 					id: crypto.randomUUID(),
-					wordPressInstanceId: updatedInstance.id,
+					wordpressInstanceId: updatedInstance.id,
 					userId: userId,
 					action: "UPDATE",
 					description: "WordPress instance updated",

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { CreativeAssetStatus } from "../types";
+import { CreativeAssetStatus } from "./types";
 
 interface AssetStatusBadgeProps {
   status: CreativeAssetStatus;

@@ -64,7 +64,9 @@ export function AddUserSheet({ open, onOpenChange, onAddUser }: AddUserSheetProp
         email: data.email,
         emailVerified: false, // New users start as unverified
         role: data.role,
-        status: "active" as const,
+        status: "ACTIVE" as const,
+        image: null,
+        updatedAt: new Date(),
       };
 
       onAddUser(userData);

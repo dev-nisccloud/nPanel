@@ -64,14 +64,15 @@ export function UsersDataTable({ data: initialData }: UsersDataTableProps) {
   const handleAddUser = (user: Omit<z.infer<typeof userSchema>, "id" | "createdAt" | "lastLoginAt">) => {
     const newUser = {
       ...user,
-      id: Math.max(...data.map(u => u.id)) + 1,
-      createdAt: new Date().toISOString(),
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
       lastLoginAt: null,
     };
     setData(prev => [newUser, ...prev]);
   };
 
-  const handleUpdateUser = (userId: number, updatedUser: Partial<z.infer<typeof userSchema>>) => {
+  const handleUpdateUser = (userId: string, updatedUser: Partial<z.infer<typeof userSchema>>) => {
     setData(prev => prev.map(user => 
       user.id === userId ? { ...user, ...updatedUser } : user
     ));

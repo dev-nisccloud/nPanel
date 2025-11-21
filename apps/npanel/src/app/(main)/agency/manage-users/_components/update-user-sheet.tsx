@@ -30,14 +30,14 @@ const FormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
   emailVerified: z.boolean(),
   role: z.enum(["CUSTOMER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]),
-  status: z.enum(["active", "suspended", "banned", "deactivated"]),
+  status: z.enum(["ACTIVE", "SUSPENDED", "BANNED", "DEACTIVATED"]),
 });
 
 interface UpdateUserSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: z.infer<typeof userSchema> | null;
-  onUpdateUser: (userId: number, user: Partial<z.infer<typeof userSchema>>) => void;
+  onUpdateUser: (userId: string, user: Partial<z.infer<typeof userSchema>>) => void;
 }
 
 export function UpdateUserSheet({ open, onOpenChange, user, onUpdateUser }: UpdateUserSheetProps) {
@@ -50,7 +50,7 @@ export function UpdateUserSheet({ open, onOpenChange, user, onUpdateUser }: Upda
       email: "",
       emailVerified: false,
       role: "CUSTOMER",
-      status: "active",
+      status: "ACTIVE",
     },
   });
 

@@ -94,7 +94,7 @@ export function IntegrationsDisplay({ userId }: IntegrationsDisplayProps) {
     </div>
   );
 
-  function IntegrationCard({ integration }: { integration: typeof integrations[0] }) {
+  function IntegrationCard({ integration }: { integration: NonNullable<typeof integrations>[number] }) {
     const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
     
     const { data: verificationStatus, isLoading: isLoadingVerification, refetch: refetchVerification } = 

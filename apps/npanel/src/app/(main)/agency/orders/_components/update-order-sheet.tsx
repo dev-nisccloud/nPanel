@@ -39,7 +39,7 @@ interface UpdateOrderSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order: z.infer<typeof orderSchema> | null;
-  onUpdateOrder: (orderId: number, order: Partial<z.infer<typeof orderSchema>>) => void;
+  onUpdateOrder: (orderId: string, order: Partial<z.infer<typeof orderSchema>>) => void;
 }
 
 export function UpdateOrderSheet({ open, onOpenChange, order, onUpdateOrder }: UpdateOrderSheetProps) {
@@ -61,11 +61,11 @@ export function UpdateOrderSheet({ open, onOpenChange, order, onUpdateOrder }: U
     if (order) {
       form.reset({
         orderNumber: order.orderNumber,
-        companyName: order.companyName,
-        date: new Date(order.date).toISOString().split('T')[0],
-        paymentStatus: order.paymentStatus,
-        totalAmount: order.totalAmount,
-        status: order.status,
+        companyName: order.team?.name || "",
+        date: order.createdAt ? new Date(order.createdAt).toISOString().split('T')[0] : "",
+        paymentStatus: "pending", // Order doesn't have paymentStatus, defaulting
+        totalAmount: order.total ? parseFloat(order.total) : 0,
+        status: order.status.toLowerCase() as "pending" | "processing" | "active" | "suspended" | "cancelled",
       });
     }
   }, [order, form]);
@@ -81,11 +81,9 @@ export function UpdateOrderSheet({ open, onOpenChange, order, onUpdateOrder }: U
       
       const updatedOrder = {
         orderNumber: data.orderNumber,
-        companyName: data.companyName,
-        date: new Date(data.date).toISOString(),
-        paymentStatus: data.paymentStatus,
-        totalAmount: data.totalAmount,
-        status: data.status,
+        status: data.status.toUpperCase() as "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED" | "PARTIAL",
+        total: data.totalAmount.toString(),
+        // Map other fields to order schema properties
       };
 
       onUpdateOrder(order.id, updatedOrder);

@@ -43,7 +43,7 @@ export function ClientViewDialog({
   }, [clientsData, clientId]);
 
   // Fallback: fetch user info if not in cache
-  const { data: userInfo, isLoading: isLoadingUserInfo } = trpc.userProfile.getUserById.useQuery(
+  const { data: userInfo, isLoading: isLoadingUserInfo, error: userInfoError } = trpc.userProfile.getUserById.useQuery(
     { userId: clientId, fields: ["id", "name", "email", "emailVerified", "role", "status", "image", "lastLoginAt", "createdAt", "updatedAt"] },
     { enabled: open && !!clientId && !clientFromCache }
   );
@@ -68,13 +68,13 @@ export function ClientViewDialog({
     return undefined;
   }, [clientFromCache, userInfo]);
 
-  const { data: sessions, isLoading: isLoadingSessions } = trpc.clients.getSessions.useQuery(
+  const { data: sessions, isLoading: isLoadingSessions, error: sessionsError } = trpc.clients.getSessions.useQuery(
     { userId: clientId },
     { enabled: open && !!clientId }
   );
 
   const isLoading = !displayClient && isLoadingUserInfo;
-  const error = undefined;
+  const error: { message?: string } | null = userInfoError || sessionsError || null;
 
   const handleEditSuccess = React.useCallback(() => {
     // Invalidate only the specific queries that need updating
@@ -145,7 +145,7 @@ export function ClientViewDialog({
                 <div className="flex items-center gap-2">
                   <DialogTitle className="text-2xl">{displayClient.name}</DialogTitle>
                   {displayClient.emailVerified && (
-                    <BadgeCheck className="h-5 w-5 text-blue-500 flex-shrink-0 fill-blue-500" title="Verified Account" />
+                    <BadgeCheck className="h-5 w-5 text-blue-500 flex-shrink-0 fill-blue-500" />
                   )}
                 </div>
                 <DialogDescription>Client account details</DialogDescription>
@@ -187,9 +187,9 @@ export function ClientViewDialog({
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{displayClient.email}</p>
                     {displayClient.emailVerified ? (
-                      <ShieldCheck className="h-4 w-4 text-green-500" title="Email Verified" />
+                      <ShieldCheck className="h-4 w-4 text-green-500" />
                     ) : (
-                      <ShieldX className="h-4 w-4 text-gray-400" title="Email Not Verified" />
+                      <ShieldX className="h-4 w-4 text-gray-400" />
                     )}
                   </div>
                 </div>
@@ -285,8 +285,8 @@ export function ClientViewDialog({
                             {session.token}
                           </p>
                         </div>
-                        <Badge variant={session.expiresAt > new Date() ? "default" : "secondary"}>
-                          {session.expiresAt > new Date() ? "Active" : "Expired"}
+                        <Badge variant={new Date(session.expiresAt) > new Date() ? "default" : "secondary"}>
+                          {new Date(session.expiresAt) > new Date() ? "Active" : "Expired"}
                         </Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-sm">

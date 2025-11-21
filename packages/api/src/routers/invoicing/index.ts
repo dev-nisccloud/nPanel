@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import prisma from "@nPanel/db";
 import * as crypto from "crypto";
 import { z } from "zod";
-import { protectedProcedure, router } from "../../trpc";
+import { protectedProcedure, router, type Context } from "../../trpc";
 import {
 	activityLogSchema,
 	creditNoteInputSchema,
@@ -23,11 +23,14 @@ import {
 } from "./schemas";
 import type { InvoiceDetail } from "./schemas";
 
-type DbClient = typeof prisma;
+// Type that accepts both PrismaClient instance and transaction client
+// Uses typeof to avoid importing Prisma types directly - maintains API layer independence
+type DbClient = typeof prisma | Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
 
 const isAgencyUser = (role: string) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
-const isCustomer = (role: string) => role === "CUSTOMER";
+// // Unused function commented out
+// const isCustomer = (role: string) => role === "CUSTOMER"; // Unused, commented out
 
 function parseDate(value: unknown) {
 	if (!value) {
@@ -50,7 +53,7 @@ function stringOrNull(value: unknown) {
 	return String(value);
 }
 
-async function getAuthenticatedUser(ctx: Parameters<typeof protectedProcedure.use>[0]["ctx"]) {
+async function getAuthenticatedUser(ctx: Context) {
 	const user = ctx.session?.user;
 	if (!user?.id) {
 		throw new TRPCError({
@@ -137,14 +140,14 @@ async function ensureInvoiceAccess(db: DbClient, userId: string, role: string, i
 	return invoice;
 }
 
-function buildInvoiceData(input: typeof invoiceCreateInputSchema._type) {
-	return {
+function buildInvoiceData(input: z.infer<typeof invoiceCreateInputSchema>) {
+	const data: any = {
 		teamId: input.teamId ?? null,
 		customerId: input.customerId ?? null,
 		customerName: stringOrNull(input.customerName),
 		customerEmail: stringOrNull(input.customerEmail),
 		invoiceNumber: stringOrNull(input.invoiceNumber),
-		token: stringOrNull(input.token),
+		token: input.token ?? crypto.randomUUID(), // Token is required, generate if not provided
 		status: input.status ?? "DRAFT",
 		amount: stringOrNull(input.amount),
 		subtotal: stringOrNull(input.subtotal),
@@ -163,21 +166,41 @@ function buildInvoiceData(input: typeof invoiceCreateInputSchema._type) {
 		viewedAt: parseDate(input.viewedAt),
 		note: stringOrNull(input.note),
 		internalNote: stringOrNull(input.internalNote),
-		metadata: input.metadata ?? null,
-		fromDetails: input.fromDetails ?? null,
-		customerDetails: input.customerDetails ?? null,
-		paymentDetails: input.paymentDetails ?? null,
-		noteDetails: input.noteDetails ?? null,
-		template: input.template ?? null,
-		topBlock: input.topBlock ?? null,
-		bottomBlock: input.bottomBlock ?? null,
 		createdBy: input.createdBy,
 		updatedBy: input.updatedBy ?? input.createdBy,
 	};
+	
+	// Only include Json fields if they are defined and not null
+	if (input.metadata !== undefined && input.metadata !== null) {
+		data.metadata = input.metadata;
+	}
+	if (input.fromDetails !== undefined && input.fromDetails !== null) {
+		data.fromDetails = input.fromDetails;
+	}
+	if (input.customerDetails !== undefined && input.customerDetails !== null) {
+		data.customerDetails = input.customerDetails;
+	}
+	if (input.paymentDetails !== undefined && input.paymentDetails !== null) {
+		data.paymentDetails = input.paymentDetails;
+	}
+	if (input.noteDetails !== undefined && input.noteDetails !== null) {
+		data.noteDetails = input.noteDetails;
+	}
+	if (input.template !== undefined && input.template !== null) {
+		data.template = input.template;
+	}
+	if (input.topBlock !== undefined && input.topBlock !== null) {
+		data.topBlock = input.topBlock;
+	}
+	if (input.bottomBlock !== undefined && input.bottomBlock !== null) {
+		data.bottomBlock = input.bottomBlock;
+	}
+	
+	return data;
 }
 
 function buildInvoiceUpdateData(
-	input: typeof invoiceUpdateInputSchema._type,
+	input: z.infer<typeof invoiceUpdateInputSchema>,
 	userId: string,
 ) {
 	const data: Record<string, unknown> = {
@@ -185,9 +208,9 @@ function buildInvoiceUpdateData(
 		updatedAt: new Date(),
 	};
 
-	const assignWhenProvided = <Key extends keyof typeof invoiceUpdateInputSchema._type>(
+	const assignWhenProvided = <Key extends keyof z.infer<typeof invoiceUpdateInputSchema>>(
 		key: Key,
-		value: (typeof invoiceUpdateInputSchema._type)[Key],
+		value: z.infer<typeof invoiceUpdateInputSchema>[Key],
 	) => {
 		if (Object.prototype.hasOwnProperty.call(input, key)) {
 			data[key as string] = value;
@@ -218,28 +241,28 @@ function buildInvoiceUpdateData(
 	assignWhenProvided("note", stringOrNull(input.note));
 	assignWhenProvided("internalNote", stringOrNull(input.internalNote));
 	if (Object.prototype.hasOwnProperty.call(input, "metadata")) {
-		data.metadata = input.metadata ?? null;
+		data.metadata = input.metadata !== undefined ? input.metadata : undefined;
 	}
 	if (Object.prototype.hasOwnProperty.call(input, "fromDetails")) {
-		data.fromDetails = input.fromDetails ?? null;
+		data.fromDetails = input.fromDetails !== undefined ? input.fromDetails : undefined;
 	}
 	if (Object.prototype.hasOwnProperty.call(input, "customerDetails")) {
-		data.customerDetails = input.customerDetails ?? null;
+		data.customerDetails = input.customerDetails !== undefined ? input.customerDetails : undefined;
 	}
 	if (Object.prototype.hasOwnProperty.call(input, "paymentDetails")) {
-		data.paymentDetails = input.paymentDetails ?? null;
+		data.paymentDetails = input.paymentDetails !== undefined ? input.paymentDetails : undefined;
 	}
 	if (Object.prototype.hasOwnProperty.call(input, "noteDetails")) {
-		data.noteDetails = input.noteDetails ?? null;
+		data.noteDetails = input.noteDetails !== undefined ? input.noteDetails : undefined;
 	}
 	if (Object.prototype.hasOwnProperty.call(input, "template")) {
-		data.template = input.template ?? null;
+		data.template = input.template !== undefined ? input.template : undefined;
 	}
 	if (Object.prototype.hasOwnProperty.call(input, "topBlock")) {
-		data.topBlock = input.topBlock ?? null;
+		data.topBlock = input.topBlock !== undefined ? input.topBlock : undefined;
 	}
 	if (Object.prototype.hasOwnProperty.call(input, "bottomBlock")) {
-		data.bottomBlock = input.bottomBlock ?? null;
+		data.bottomBlock = input.bottomBlock !== undefined ? input.bottomBlock : undefined;
 	}
 
 	return data;
@@ -257,7 +280,7 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 			price: item.price,
 			discount: item.discount,
 			total: item.total,
-			metadata: item.metadata ?? null,
+			...(item.metadata !== undefined && { metadata: item.metadata }),
 			createdAt: item.createdAt,
 			updatedAt: item.updatedAt,
 		}),
@@ -275,7 +298,7 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 			currency: transaction.currency,
 			paidAt: transaction.paidAt,
 			notes: transaction.notes,
-			metadata: transaction.metadata ?? null,
+			...(transaction.metadata !== undefined && { metadata: transaction.metadata }),
 			balanceBefore: transaction.balanceBefore,
 			balanceAfter: transaction.balanceAfter,
 			recordedBy: transaction.recordedBy,
@@ -287,7 +310,7 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 					userId: log.userId,
 					action: log.action,
 					description: log.description ?? null,
-					metadata: log.metadata ?? null,
+					...(log.metadata !== undefined && { metadata: log.metadata }),
 					ipAddress: log.ipAddress ?? null,
 					userAgent: log.userAgent ?? null,
 					createdAt: log.createdAt,
@@ -305,7 +328,7 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 						userId: log.userId,
 						action: log.action,
 						description: log.description ?? null,
-						metadata: log.metadata ?? null,
+						...(log.metadata !== undefined && { metadata: log.metadata }),
 						ipAddress: log.ipAddress ?? null,
 						userAgent: log.userAgent ?? null,
 						createdAt: log.createdAt,
@@ -320,7 +343,7 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 			userId: log.userId,
 			action: log.action,
 			description: log.description ?? null,
-			metadata: log.metadata ?? null,
+						...(log.metadata !== undefined && { metadata: log.metadata }),
 			ipAddress: log.ipAddress ?? null,
 			userAgent: log.userAgent ?? null,
 			createdAt: log.createdAt,
@@ -354,18 +377,18 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 		viewedAt: invoice.viewedAt,
 		note: invoice.note,
 		internalNote: invoice.internalNote,
-		metadata: invoice.metadata ?? null,
+		...(invoice.metadata !== undefined && { metadata: invoice.metadata }),
 		lineItems,
 		transactions,
 		creditNote,
 		activityLogs,
-		fromDetails: invoice.fromDetails ?? null,
-		customerDetails: invoice.customerDetails ?? null,
-		paymentDetails: invoice.paymentDetails ?? null,
-		noteDetails: invoice.noteDetails ?? null,
-		template: invoice.template ?? null,
-		topBlock: invoice.topBlock ?? null,
-		bottomBlock: invoice.bottomBlock ?? null,
+		...(invoice.fromDetails !== undefined && { fromDetails: invoice.fromDetails }),
+		...(invoice.customerDetails !== undefined && { customerDetails: invoice.customerDetails }),
+		...(invoice.paymentDetails !== undefined && { paymentDetails: invoice.paymentDetails }),
+		...(invoice.noteDetails !== undefined && { noteDetails: invoice.noteDetails }),
+		...(invoice.template !== undefined && { template: invoice.template }),
+		...(invoice.topBlock !== undefined && { topBlock: invoice.topBlock }),
+		...(invoice.bottomBlock !== undefined && { bottomBlock: invoice.bottomBlock }),
 	});
 }
 
@@ -417,16 +440,29 @@ async function logInvoiceActivity(
 		metadata?: unknown;
 	},
 ) {
+	const logData: {
+		id: string;
+		invoiceId: string;
+		userId: string;
+		action: string;
+		description: string | null;
+		metadata?: unknown;
+		createdAt: Date;
+	} = {
+		id: crypto.randomUUID(),
+		invoiceId: params.invoiceId,
+		userId: params.userId,
+		action: params.action,
+		description: params.description ?? null,
+		createdAt: new Date(),
+	};
+	
+	if (params.metadata !== undefined && params.metadata !== null) {
+		logData.metadata = params.metadata;
+	}
+	
 	await db.invoiceActivityLog.create({
-		data: {
-			id: crypto.randomUUID(),
-			invoiceId: params.invoiceId,
-			userId: params.userId,
-			action: params.action,
-			description: params.description ?? null,
-			metadata: params.metadata ?? null,
-			createdAt: new Date(),
-		},
+		data: logData as any, // Type assertion for JsonValue compatibility
 	});
 }
 
@@ -440,16 +476,29 @@ async function logTransactionActivity(
 		metadata?: unknown;
 	},
 ) {
+	const logData: {
+		id: string;
+		invoiceTransactionId: string;
+		userId: string;
+		action: string;
+		description: string | null;
+		metadata?: unknown;
+		createdAt: Date;
+	} = {
+		id: crypto.randomUUID(),
+		invoiceTransactionId: params.transactionId,
+		userId: params.userId,
+		action: params.action,
+		description: params.description ?? null,
+		createdAt: new Date(),
+	};
+	
+	if (params.metadata !== undefined && params.metadata !== null) {
+		logData.metadata = params.metadata;
+	}
+	
 	await db.invoiceTransactionActivityLog.create({
-		data: {
-			id: crypto.randomUUID(),
-			invoiceTransactionId: params.transactionId,
-			userId: params.userId,
-			action: params.action,
-			description: params.description ?? null,
-			metadata: params.metadata ?? null,
-			createdAt: new Date(),
-		},
+		data: logData as any, // Type assertion for JsonValue compatibility
 	});
 }
 
@@ -463,16 +512,29 @@ async function logCreditNoteActivity(
 		metadata?: unknown;
 	},
 ) {
+	const logData: {
+		id: string;
+		creditNoteId: string;
+		userId: string;
+		action: string;
+		description: string | null;
+		metadata?: unknown;
+		createdAt: Date;
+	} = {
+		id: crypto.randomUUID(),
+		creditNoteId: params.creditNoteId,
+		userId: params.userId,
+		action: params.action,
+		description: params.description ?? null,
+		createdAt: new Date(),
+	};
+	
+	if (params.metadata !== undefined && params.metadata !== null) {
+		logData.metadata = params.metadata;
+	}
+	
 	await db.creditNoteActivityLog.create({
-		data: {
-			id: crypto.randomUUID(),
-			creditNoteId: params.creditNoteId,
-			userId: params.userId,
-			action: params.action,
-			description: params.description ?? null,
-			metadata: params.metadata ?? null,
-			createdAt: new Date(),
-		},
+		data: logData as any, // Type assertion for JsonValue compatibility
 	});
 }
 
@@ -651,11 +713,9 @@ export const invoicingRouter = router({
 					quantity: item.quantity,
 					unit: item.unit,
 					price: item.price,
-					tax: item.tax,
-					vat: item.vat,
 					discount: item.discount,
 					total: item.total,
-					metadata: item.metadata,
+					...(item.metadata !== undefined && { metadata: item.metadata }),
 					createdAt: item.createdAt,
 					updatedAt: item.updatedAt,
 				})),
@@ -760,32 +820,34 @@ export const invoicingRouter = router({
 
 				await tx.invoice.create({
 					data: {
-						id: invoiceId,
-						token,
 						...invoiceData,
+						id: invoiceId,
 						createdAt: new Date(),
 						updatedAt: new Date(),
-					},
+					} as any, // Type assertion for JsonValue compatibility
 				});
 
 				if (input.lineItems && input.lineItems.length > 0) {
 					for (const [index, item] of input.lineItems.entries()) {
+						const lineItemData: any = {
+							id: item.id ?? crypto.randomUUID(),
+							invoiceId,
+							position: item.position ?? index,
+							name: stringOrNull(item.name),
+							description: stringOrNull(item.description),
+							quantity: item.quantity ?? null,
+							unit: stringOrNull(item.unit),
+							price: stringOrNull(item.price),
+							discount: stringOrNull(item.discount),
+							total: stringOrNull(item.total),
+							createdAt: new Date(),
+							updatedAt: new Date(),
+						};
+						if (item.metadata !== undefined && item.metadata !== null) {
+							lineItemData.metadata = item.metadata;
+						}
 						await tx.invoiceLineItem.create({
-							data: {
-								id: item.id ?? crypto.randomUUID(),
-								invoiceId,
-								position: item.position ?? index,
-								name: stringOrNull(item.name),
-								description: stringOrNull(item.description),
-								quantity: item.quantity ?? null,
-								unit: stringOrNull(item.unit),
-								price: stringOrNull(item.price),
-								discount: stringOrNull(item.discount),
-								total: stringOrNull(item.total),
-								metadata: item.metadata ?? null,
-								createdAt: new Date(),
-								updatedAt: new Date(),
-							},
+							data: lineItemData,
 						});
 					}
 				}
@@ -793,25 +855,28 @@ export const invoicingRouter = router({
 				if (input.transactions && input.transactions.length > 0) {
 					for (const transaction of input.transactions) {
 						const transactionId = transaction.id ?? crypto.randomUUID();
+						const transactionData: any = {
+							id: transactionId,
+							invoiceId,
+							reference: stringOrNull(transaction.reference),
+							providerReference: stringOrNull(transaction.providerReference),
+							status: transaction.status ?? "PENDING",
+							method: transaction.method,
+							amount: transaction.amount,
+							currency: transaction.currency ?? "KES",
+							paidAt: parseDate(transaction.paidAt),
+							notes: stringOrNull(transaction.notes),
+							balanceBefore: stringOrNull(transaction.balanceBefore),
+							balanceAfter: stringOrNull(transaction.balanceAfter),
+							recordedBy: stringOrNull(transaction.recordedBy) ?? user.id,
+							createdAt: new Date(),
+							updatedAt: new Date(),
+						};
+						if (transaction.metadata !== undefined && transaction.metadata !== null) {
+							transactionData.metadata = transaction.metadata;
+						}
 						await tx.invoiceTransaction.create({
-							data: {
-								id: transactionId,
-								invoiceId,
-								reference: stringOrNull(transaction.reference),
-								providerReference: stringOrNull(transaction.providerReference),
-								status: transaction.status ?? "PENDING",
-								method: transaction.method,
-								amount: transaction.amount,
-								currency: transaction.currency ?? "KES",
-								paidAt: parseDate(transaction.paidAt),
-								notes: stringOrNull(transaction.notes),
-								metadata: transaction.metadata ?? null,
-								balanceBefore: stringOrNull(transaction.balanceBefore),
-								balanceAfter: stringOrNull(transaction.balanceAfter),
-								recordedBy: stringOrNull(transaction.recordedBy) ?? user.id,
-								createdAt: new Date(),
-								updatedAt: new Date(),
-							},
+							data: transactionData,
 						});
 
 						await logTransactionActivity(tx, {
@@ -825,25 +890,28 @@ export const invoicingRouter = router({
 
 				if (input.creditNote) {
 					const creditNoteId = input.creditNote.id ?? crypto.randomUUID();
+					const creditNoteData: any = {
+						id: creditNoteId,
+						invoiceId,
+						teamId: input.creditNote.teamId ?? input.teamId ?? null,
+						creditNumber: stringOrNull(input.creditNote.creditNumber),
+						status: input.creditNote.status ?? "DRAFT",
+						amount: input.creditNote.amount,
+						currency: input.creditNote.currency ?? "KES",
+						reason: stringOrNull(input.creditNote.reason),
+						note: stringOrNull(input.creditNote.note),
+						issuedAt: parseDate(input.creditNote.issuedAt),
+						appliedAt: parseDate(input.creditNote.appliedAt),
+						createdBy: input.creditNote.createdBy ?? user.id,
+						updatedBy: input.creditNote.updatedBy ?? user.id,
+						createdAt: new Date(),
+						updatedAt: new Date(),
+					};
+					if (input.creditNote.metadata !== undefined && input.creditNote.metadata !== null) {
+						creditNoteData.metadata = input.creditNote.metadata;
+					}
 					await tx.creditNote.create({
-						data: {
-							id: creditNoteId,
-							invoiceId,
-							teamId: input.creditNote.teamId ?? input.teamId ?? null,
-							creditNumber: stringOrNull(input.creditNote.creditNumber),
-							status: input.creditNote.status ?? "DRAFT",
-							amount: input.creditNote.amount,
-							currency: input.creditNote.currency ?? "KES",
-							reason: stringOrNull(input.creditNote.reason),
-							note: stringOrNull(input.creditNote.note),
-							metadata: input.creditNote.metadata ?? null,
-							issuedAt: parseDate(input.creditNote.issuedAt),
-							appliedAt: parseDate(input.creditNote.appliedAt),
-							createdBy: input.creditNote.createdBy ?? user.id,
-							updatedBy: input.creditNote.updatedBy ?? user.id,
-							createdAt: new Date(),
-							updatedAt: new Date(),
-						},
+						data: creditNoteData,
 					});
 
 					await logCreditNoteActivity(tx, {
@@ -914,39 +982,35 @@ export const invoicingRouter = router({
 					}
 
 					for (const [index, item] of input.lineItems.entries()) {
+						const lineItemData: any = {
+							position: item.position ?? index,
+							name: stringOrNull(item.name),
+							description: stringOrNull(item.description),
+							quantity: item.quantity ?? null,
+							unit: stringOrNull(item.unit),
+							price: stringOrNull(item.price),
+							discount: stringOrNull(item.discount),
+							total: stringOrNull(item.total),
+							updatedAt: new Date(),
+						};
+						if (item.metadata !== undefined && item.metadata !== null) {
+							lineItemData.metadata = item.metadata;
+						}
+						
 						if (item.id) {
 							await tx.invoiceLineItem.update({
 								where: { id: item.id },
-								data: {
-									position: item.position ?? index,
-									name: stringOrNull(item.name),
-									description: stringOrNull(item.description),
-									quantity: item.quantity ?? null,
-									unit: stringOrNull(item.unit),
-									price: stringOrNull(item.price),
-									discount: stringOrNull(item.discount),
-									total: stringOrNull(item.total),
-									metadata: item.metadata ?? null,
-									updatedAt: new Date(),
-								},
+								data: lineItemData,
 							});
 						} else {
+							const createData = {
+								...lineItemData,
+								id: crypto.randomUUID(),
+								invoiceId: input.id,
+								createdAt: new Date(),
+							};
 							await tx.invoiceLineItem.create({
-								data: {
-									id: crypto.randomUUID(),
-									invoiceId: input.id,
-									position: item.position ?? index,
-									name: stringOrNull(item.name),
-									description: stringOrNull(item.description),
-									quantity: item.quantity ?? null,
-									unit: stringOrNull(item.unit),
-									price: stringOrNull(item.price),
-									discount: stringOrNull(item.discount),
-									total: stringOrNull(item.total),
-									metadata: item.metadata ?? null,
-									createdAt: new Date(),
-									updatedAt: new Date(),
-								},
+								data: createData,
 							});
 						}
 					}
@@ -1011,7 +1075,7 @@ export const invoicingRouter = router({
 			const transactionId = input.id ?? crypto.randomUUID();
 
 			await prisma.$transaction(async (tx) => {
-				const data = {
+				const data: any = {
 					invoiceId: input.invoiceId,
 					reference: stringOrNull(input.reference),
 					providerReference: stringOrNull(input.providerReference),
@@ -1021,12 +1085,14 @@ export const invoicingRouter = router({
 					currency: input.currency ?? "KES",
 					paidAt: parseDate(input.paidAt),
 					notes: stringOrNull(input.notes),
-					metadata: input.metadata ?? null,
 					balanceBefore: stringOrNull(input.balanceBefore),
 					balanceAfter: stringOrNull(input.balanceAfter),
 					recordedBy: stringOrNull(input.recordedBy) ?? user.id,
 					updatedAt: new Date(),
 				};
+				if (input.metadata !== undefined && input.metadata !== null) {
+					data.metadata = input.metadata;
+				}
 
 				if (input.id) {
 					await tx.invoiceTransaction.update({
@@ -1106,7 +1172,7 @@ export const invoicingRouter = router({
 				});
 
 				await logTransactionActivity(tx, {
-					transactionId: input.id,
+					transactionId: input.id!,
 					userId: user.id,
 					action: "DELETE_PAYMENT",
 					description: "Deleted invoice transaction",
@@ -1135,7 +1201,7 @@ export const invoicingRouter = router({
 			const creditNoteId = input.id ?? crypto.randomUUID();
 
 			await prisma.$transaction(async (tx) => {
-				const data = {
+				const data: any = {
 					invoiceId: input.invoiceId,
 					teamId: input.teamId ?? null,
 					creditNumber: stringOrNull(input.creditNumber),
@@ -1144,13 +1210,15 @@ export const invoicingRouter = router({
 					currency: input.currency ?? "KES",
 					reason: stringOrNull(input.reason),
 					note: stringOrNull(input.note),
-					metadata: input.metadata ?? null,
 					issuedAt: parseDate(input.issuedAt),
 					appliedAt: parseDate(input.appliedAt),
 					createdBy: input.createdBy,
 					updatedBy: input.updatedBy ?? user.id,
 					updatedAt: new Date(),
 				};
+				if (input.metadata !== undefined && input.metadata !== null) {
+					data.metadata = input.metadata;
+				}
 
 				const existing = await tx.creditNote.findUnique({
 					where: { invoiceId: input.invoiceId },
@@ -1160,7 +1228,7 @@ export const invoicingRouter = router({
 				if (existing) {
 					await tx.creditNote.update({
 						where: { id: existing.id },
-						data,
+						data: data as any, // Type assertion for JsonValue compatibility
 					});
 
 					await logCreditNoteActivity(tx, {
@@ -1175,7 +1243,7 @@ export const invoicingRouter = router({
 							id: creditNoteId,
 							createdAt: new Date(),
 							...data,
-						},
+						} as any, // Type assertion for JsonValue compatibility
 					});
 
 					await logCreditNoteActivity(tx, {
@@ -1278,9 +1346,9 @@ export const invoicingRouter = router({
 					const generatedParsed = parseInvoiceNumber(generatedNumber);
 					
 					// If provided number matches what we generated, use it (counter already updated)
-					if (providedParsed && generatedParsed && providedParsed === generatedParsed) {
+					if (providedParsed !== null && generatedParsed !== null && providedParsed === generatedParsed) {
 						invoiceNumber = input.invoiceNumber;
-					} else if (providedParsed && providedParsed > generatedParsed) {
+					} else if (providedParsed !== null && generatedParsed !== null && providedParsed > generatedParsed) {
 						// Provided number is higher - validate uniqueness and use it
 						const existing = await tx.invoice.findFirst({
 							where: {
@@ -1333,33 +1401,35 @@ export const invoicingRouter = router({
 
 				await tx.invoice.create({
 					data: {
-						id: invoiceId,
-						token,
 						...invoiceData,
+						id: invoiceId,
 						sentAt: new Date(),
 						createdAt: new Date(),
 						updatedAt: new Date(),
-					},
+					} as any, // Type assertion for JsonValue compatibility
 				});
 
 				if (input.lineItems && input.lineItems.length > 0) {
 					for (const [index, item] of input.lineItems.entries()) {
+						const lineItemData: any = {
+							id: item.id ?? crypto.randomUUID(),
+							invoiceId,
+							position: item.position ?? index,
+							name: stringOrNull(item.name),
+							description: stringOrNull(item.description),
+							quantity: item.quantity ?? null,
+							unit: stringOrNull(item.unit),
+							price: stringOrNull(item.price),
+							discount: stringOrNull(item.discount),
+							total: stringOrNull(item.total),
+							createdAt: new Date(),
+							updatedAt: new Date(),
+						};
+						if (item.metadata !== undefined && item.metadata !== null) {
+							lineItemData.metadata = item.metadata;
+						}
 						await tx.invoiceLineItem.create({
-							data: {
-								id: item.id ?? crypto.randomUUID(),
-								invoiceId,
-								position: item.position ?? index,
-								name: stringOrNull(item.name),
-								description: stringOrNull(item.description),
-								quantity: item.quantity ?? null,
-								unit: stringOrNull(item.unit),
-								price: stringOrNull(item.price),
-								discount: stringOrNull(item.discount),
-								total: stringOrNull(item.total),
-								metadata: item.metadata ?? null,
-								createdAt: new Date(),
-								updatedAt: new Date(),
-							},
+							data: lineItemData,
 						});
 					}
 				}

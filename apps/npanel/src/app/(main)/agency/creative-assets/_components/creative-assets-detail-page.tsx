@@ -238,9 +238,10 @@ export function CreativeAssetsDetailPage({
 
   // Show error state
   if (isError) {
+    const errorMessage = error?.message || (error as any)?.data?.message || "An error occurred";
     return (
       <CreativeAssetsDetailError
-        error={error as Error}
+        error={new Error(errorMessage)}
         onRetry={() => {
           refetch();
         }}
@@ -377,7 +378,7 @@ export function CreativeAssetsDetailPage({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Status
             </p>
-            <AssetStatusBadge status={asset.status} />
+            <AssetStatusBadge status={asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED"} />
           </div>
 
           <div className="space-y-1">
@@ -460,7 +461,16 @@ export function CreativeAssetsDetailPage({
 
         <TabsContent value="versions" className="mt-6">
           <VersionsTab
-            asset={asset}
+            asset={{
+              ...asset,
+              status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
+              versions: asset.versions?.map(version => ({
+                ...version,
+                fileMetadata: (version as any).fileMetadata ?? null,
+                internalApprovalStatus: version.internalApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+                publicApprovalStatus: version.publicApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+              })) || [],
+            }}
             onUploadVersion={handleUploadVersion}
             onUpdateVersionStatus={handleUpdateVersionStatus}
             onMakePrivate={handleMakeVersionPrivate}
@@ -472,7 +482,19 @@ export function CreativeAssetsDetailPage({
         </TabsContent>
 
         <TabsContent value="permissions" className="mt-6">
-          <PermissionsTab asset={asset} onManagePermissions={handleManagePermissions} />
+          <PermissionsTab 
+            asset={{
+              ...asset,
+              status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
+              versions: asset.versions?.map(version => ({
+                ...version,
+                fileMetadata: (version as any).fileMetadata ?? null,
+                internalApprovalStatus: version.internalApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+                publicApprovalStatus: version.publicApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+              })) || [],
+            }} 
+            onManagePermissions={handleManagePermissions} 
+          />
         </TabsContent>
       </Tabs>
 
@@ -482,7 +504,10 @@ export function CreativeAssetsDetailPage({
         onOpenChange={setIsUploadVersionOpen}
         assetId={assetId}
         currentInternalVersion={asset.currentInternalVersion}
-        onUploadVersion={handleVersionUploaded}
+        onUploadVersion={() => {
+          handleVersionUploaded({});
+          onUploadVersion?.();
+        }}
       />
 
       {/* Manage Permissions Sheet */}

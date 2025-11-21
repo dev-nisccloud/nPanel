@@ -25,6 +25,7 @@ interface DbCreativeAssetVersion {
   fileName: string;
   fileSize: number;
   mimeType: string;
+  fileMetadata?: unknown | null;
   versionNotes: string | null;
   changesSummary: string | null;
   previousVersionId: string | null;
@@ -208,6 +209,7 @@ function transformVersion(version: DbCreativeAssetVersion): {
   fileName: string;
   fileSize: number;
   mimeType: string;
+  fileMetadata: unknown | null;
   versionNotes: string | null;
   changesSummary: string | null;
   previousVersionId: string | null;
@@ -240,6 +242,7 @@ function transformVersion(version: DbCreativeAssetVersion): {
     fileName: version.fileName,
     fileSize: version.fileSize,
     mimeType: version.mimeType,
+    fileMetadata: version.fileMetadata ?? null,
     versionNotes: version.versionNotes,
     changesSummary: version.changesSummary,
     previousVersionId: version.previousVersionId,
@@ -2045,7 +2048,7 @@ export const creativeAssetsRouter = router({
 				name?: string;
 				description?: string | null;
 				category?: string | null;
-				status?: string;
+				status?: CreativeAssetStatusType;
 				teamId?: string;
 				lastModifiedBy: string;
 				updatedAt: Date;
@@ -2057,13 +2060,13 @@ export const creativeAssetsRouter = router({
 			if (input.name !== undefined) updateData.name = input.name;
 			if (input.description !== undefined) updateData.description = input.description || null;
 			if (input.category !== undefined) updateData.category = input.category || null;
-			if (input.status !== undefined) updateData.status = input.status;
+			if (input.status !== undefined) updateData.status = input.status as CreativeAssetStatusType;
 			if (input.teamId !== undefined) updateData.teamId = input.teamId;
 
 			// Update asset
 			const updatedAsset = await prisma.creativeAsset.update({
 				where: { id: input.id },
-				data: updateData,
+				data: updateData as any, // Type assertion for enum compatibility
 				include: {
 					team: true,
 				},

@@ -82,19 +82,14 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const clientData = {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        companyName: data.companyName || null,
+        name: `${data.firstName} ${data.lastName}`,
         email: data.email,
-        address: data.address || null,
-        city: data.city || null,
-        postCode: data.postCode || null,
-        country: data.country || null,
-        phoneNumber: data.phoneNumber || null,
-        howDidYouFindUs: data.howDidYouFindUs || null,
-        notes: data.notes || null,
-        stateRegion: data.stateRegion || null,
-        createdAt: new Date().toISOString(),
+        emailVerified: false,
+        role: "CUSTOMER" as const,
+        status: "ACTIVE" as const,
+        image: null,
+        lastLoginAt: null,
+        updatedAt: new Date(),
       };
 
       onAddClient(clientData);

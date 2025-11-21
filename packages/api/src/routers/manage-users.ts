@@ -290,10 +290,21 @@ export const manageUsersRouter = router({
 				},
 			});
 
-			if (!signupResult || signupResult.error) {
+			if (!signupResult) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: signupResult?.error?.message || "Failed to create user account",
+					message: "Failed to create user account",
+				});
+			}
+			
+			// Check if signupResult has an error property
+			if ('error' in signupResult && signupResult.error) {
+				const errorMessage = typeof signupResult.error === 'object' && 'message' in signupResult.error 
+					? String(signupResult.error.message) 
+					: "Failed to create user account";
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: errorMessage,
 				});
 			}
 

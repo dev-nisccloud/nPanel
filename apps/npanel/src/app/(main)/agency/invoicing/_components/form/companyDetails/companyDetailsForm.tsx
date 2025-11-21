@@ -14,7 +14,7 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ChevronsUpDown, Check, Info } from "lucide-react";
-import type { TeamBillingSettings, TeamBillingSummary } from "../../api/team-billing-schemas";
+import type { TeamBillingSettings, TeamBillingSummary } from "@/app/(main)/agency/invoicing/api/team-billing-schemas";
 
 const REQUIRED_FIELDS: Array<keyof TeamBillingSettings> = [
 	"legalName",
@@ -43,7 +43,19 @@ export const CompanyDetailsForm = () => {
 	const { data, isLoading } = trpc.teamBilling.listTeams.useQuery();
 
 	const teams = data?.teams ?? [];
-	const selectedTeam: TeamBillingSummary | undefined = teams.find((team) => team.id === selectedTeamId);
+	const foundTeam = teams.find((team) => team.id === selectedTeamId);
+	const selectedTeam: TeamBillingSummary | undefined = foundTeam ? {
+		...foundTeam,
+		billingSettings: foundTeam.billingSettings ? {
+			...foundTeam.billingSettings,
+			billingPhone: foundTeam.billingSettings.billingPhone ?? null,
+			addressLine2: foundTeam.billingSettings.addressLine2 ?? null,
+			state: foundTeam.billingSettings.state ?? null,
+			postalCode: foundTeam.billingSettings.postalCode ?? null,
+			taxId: foundTeam.billingSettings.taxId ?? null,
+			additionalNotes: foundTeam.billingSettings.additionalNotes ?? null,
+		} : null,
+	} : undefined;
 	const billingSettings = selectedTeam?.billingSettings ?? null;
 	const billingComplete = hasCompleteBilling(billingSettings);
 

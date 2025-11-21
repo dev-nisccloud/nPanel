@@ -86,7 +86,17 @@ export default function CreativeAssetsPage() {
   const handleEdit = (id: string) => {
     const asset = assets?.find((a) => a.id === id);
     if (asset) {
-      setEditingAsset(asset);
+      // Cast status to ensure type safety
+      setEditingAsset({
+        ...asset,
+        status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
+        versions: asset.versions?.map(version => ({
+          ...version,
+          fileMetadata: (version as any).fileMetadata ?? null,
+          internalApprovalStatus: version.internalApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+          publicApprovalStatus: version.publicApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+        })) || [],
+      });
       setIsEditAssetOpen(true);
     }
   };
@@ -112,10 +122,19 @@ export default function CreativeAssetsPage() {
         </p>
       </div>
       <CreativeAssetsListing 
-        data={assets || []}
+        data={(assets || []).map(asset => ({
+          ...asset,
+          status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
+          versions: asset.versions?.map(version => ({
+            ...version,
+            fileMetadata: (version as any).fileMetadata ?? null,
+            internalApprovalStatus: version.internalApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+            publicApprovalStatus: version.publicApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+          })) || [],
+        }))}
         isLoading={isLoading}
         isError={isError}
-        error={error}
+        error={error ? new Error(error.message || "An error occurred") : undefined}
         onRetry={() => refetch()}
         onEdit={handleEdit}
         onArchive={handleArchive}

@@ -207,7 +207,7 @@ export function ClientCard({
               {data.name}
             </p>
             {data.emailVerified && (
-              <BadgeCheck className="h-4 w-4 text-blue-500 flex-shrink-0 fill-blue-500" title="Verified Account" />
+              <BadgeCheck className="h-4 w-4 text-blue-500 flex-shrink-0 fill-blue-500" />
             )}
           </div>
         </div>
@@ -219,9 +219,9 @@ export function ClientCard({
               Email
             </p>
             {data.emailVerified ? (
-              <ShieldCheck className="h-3 w-3 text-green-500" title="Email Verified" />
+              <ShieldCheck className="h-3 w-3 text-green-500" />
             ) : (
-              <ShieldX className="h-3 w-3 text-gray-400" title="Email Not Verified" />
+              <ShieldX className="h-3 w-3 text-gray-400" />
             )}
           </div>
           <p className="text-sm font-medium">{data.email}</p>

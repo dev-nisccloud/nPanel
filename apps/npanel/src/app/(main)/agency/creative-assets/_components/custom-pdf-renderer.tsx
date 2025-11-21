@@ -3,13 +3,21 @@
 import * as React from "react";
 import { Worker, Viewer, ScrollMode } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
-import type { DocRenderer } from "@cyntler/react-doc-viewer";
+// Type for DocRenderer mainState - avoiding direct import from @cyntler/react-doc-viewer
+type DocRendererMainState = {
+  currentDocument?: {
+    fileData?: string | Uint8Array;
+    uri?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
 
 /**
  * Custom PDF renderer using @react-pdf-viewer/core
  * This provides a clean, header-free PDF viewer without the header bar issues
  */
-export const CustomPDFRenderer: DocRenderer = ({ mainState }) => {
+export const CustomPDFRenderer = ({ mainState }: { mainState: DocRendererMainState }) => {
   const { currentDocument } = mainState;
 
   if (!currentDocument) {

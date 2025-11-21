@@ -45,7 +45,7 @@ export default function OrdersPage() {
 	const { data, isLoading, error, refetch } = trpc.orders.getAll.useQuery(
 		{ limit: 50 },
 		{
-			keepPreviousData: true,
+			placeholderData: (previousData) => previousData,
 		}
 	);
 
@@ -205,7 +205,20 @@ export default function OrdersPage() {
 					</Button>
 				</div>
 			) : (
-				<OrdersList orders={filteredOrders} onDelete={handleDelete} />
+				<OrdersList orders={filteredOrders.map(order => ({
+					...order,
+					metadata: order.metadata ?? null,
+					processedAt: order.processedAt ? (typeof order.processedAt === 'string' ? new Date(order.processedAt) : order.processedAt) : null,
+					completedAt: order.completedAt ? (typeof order.completedAt === 'string' ? new Date(order.completedAt) : order.completedAt) : null,
+					createdAt: typeof order.createdAt === 'string' ? new Date(order.createdAt) : order.createdAt,
+					updatedAt: typeof order.updatedAt === 'string' ? new Date(order.updatedAt) : order.updatedAt,
+					orderItems: order.orderItems?.map(item => ({
+						...item,
+						metadata: item.metadata ?? null,
+						createdAt: typeof item.createdAt === 'string' ? new Date(item.createdAt) : item.createdAt,
+						updatedAt: typeof item.updatedAt === 'string' ? new Date(item.updatedAt) : item.updatedAt,
+					})),
+				}))} onDelete={handleDelete} />
 			)}
 
 			<AddOrderSheet
@@ -232,10 +245,10 @@ export default function OrdersPage() {
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={confirmDelete}
-							disabled={deleteOrderMutation.isLoading}
+							disabled={deleteOrderMutation.isPending}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							{deleteOrderMutation.isLoading ? "Deleting..." : "Delete"}
+							{deleteOrderMutation.isPending ? "Deleting..." : "Delete"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

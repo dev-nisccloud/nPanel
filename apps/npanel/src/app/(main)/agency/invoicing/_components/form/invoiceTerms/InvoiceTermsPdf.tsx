@@ -19,12 +19,12 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
       style={{
         display: "flex",
         flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
+        justifyContent: "space-between" as const,
+        alignItems: "flex-start" as const,
       }}
     >
       <View style={{ flex: 1 }} /> {/* Spacer for left side */}
-      <View style={{ flex: 1, alignItems: "flex-end" }}>
+      <View style={{ flex: 1, alignItems: "flex-end" as const }}>
         <View style={lineStyle}>
           <Text style={labelStyle}>INVOICE NO</Text>
           <Text wrap={false} style={valueStyle}>
@@ -59,10 +59,10 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
 );
 
 const lineStyle = {
-  display: "flex",
+  display: "flex" as const,
   flexDirection: "row" as const,
-  alignItems: "center",
-  justifyContent: "flex-end",
+  alignItems: "center" as const,
+  justifyContent: "flex-end" as const,
   gap: 6,
   marginBottom: 8,
 };

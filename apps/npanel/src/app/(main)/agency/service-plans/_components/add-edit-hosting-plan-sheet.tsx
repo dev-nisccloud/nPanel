@@ -304,12 +304,12 @@ export function AddEditHostingPlanSheet({
         }
         
         // Only include planType if it's a valid value and changed
-        if (data.planType !== undefined && data.planType !== "" && data.planType !== planData?.planType) {
+        if (data.planType !== undefined && data.planType !== planData?.planType) {
           submitData.planType = data.planType;
         }
         
         // Only include hostingSubType if it's a valid enum value and changed
-        if (data.hostingSubType !== undefined && data.hostingSubType !== null && data.hostingSubType !== "" && data.hostingSubType !== planData?.hostingSubType) {
+        if (data.hostingSubType !== undefined && data.hostingSubType !== null && data.hostingSubType !== planData?.hostingSubType) {
           submitData.hostingSubType = data.hostingSubType;
         }
         
@@ -358,7 +358,7 @@ export function AddEditHostingPlanSheet({
         if (data.niscCurrency !== undefined && data.niscCurrency !== "" && data.niscCurrency !== planData?.niscCurrency) {
           submitData.niscCurrency = data.niscCurrency;
         }
-        if (data.billingCycle !== undefined && data.billingCycle !== "" && data.billingCycle !== planData?.billingCycle) {
+        if (data.billingCycle !== undefined && data.billingCycle !== planData?.billingCycle) {
           submitData.billingCycle = data.billingCycle;
         }
         if (data.setupFee !== undefined) {

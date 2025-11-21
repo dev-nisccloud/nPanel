@@ -43,7 +43,8 @@ export function UserViewDialog({
 
   const handleEditSuccess = () => {
     utils.manageUsers.getAll.invalidate();
-    onStatusChange?.();
+    utils.manageUsers.getById.invalidate({ userId });
+    // onStatusChange is called when status actually changes, not here
   };
 
   if (isLoading) {
@@ -97,7 +98,7 @@ export function UserViewDialog({
                 <div className="flex items-center gap-2">
                   <DialogTitle className="text-2xl">{user.name}</DialogTitle>
                   {user.emailVerified && (
-                    <BadgeCheck className="h-5 w-5 text-blue-500 flex-shrink-0 fill-blue-500" title="Verified Account" />
+                    <BadgeCheck className="h-5 w-5 text-blue-500 flex-shrink-0 fill-blue-500" />
                   )}
                 </div>
                 <DialogDescription>Agency user account details</DialogDescription>
@@ -138,9 +139,9 @@ export function UserViewDialog({
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{user.email}</p>
                     {user.emailVerified ? (
-                      <ShieldCheck className="h-4 w-4 text-green-500" title="Email Verified" />
+                      <ShieldCheck className="h-4 w-4 text-green-500" />
                     ) : (
-                      <ShieldX className="h-4 w-4 text-gray-400" title="Email Not Verified" />
+                      <ShieldX className="h-4 w-4 text-gray-400" />
                     )}
                   </div>
                 </div>
@@ -221,8 +222,8 @@ export function UserViewDialog({
                             {session.token}
                           </p>
                         </div>
-                        <Badge variant={session.expiresAt > new Date() ? "default" : "secondary"}>
-                          {session.expiresAt > new Date() ? "Active" : "Expired"}
+                        <Badge variant={new Date(session.expiresAt) > new Date() ? "default" : "secondary"}>
+                          {new Date(session.expiresAt) > new Date() ? "Active" : "Expired"}
                         </Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-sm">
@@ -265,7 +266,7 @@ export function UserViewDialog({
             initialData={{
               name: user.name,
               email: user.email,
-              role: user.role,
+              role: user.role === "CUSTOMER" ? "AGENCY_USER" : user.role as "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER",
             }}
             onSuccess={handleEditSuccess}
           />

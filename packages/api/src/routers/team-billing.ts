@@ -235,7 +235,7 @@ export const teamBillingRouter = router({
 							userId: user.id,
 							action: "UPDATE",
 							description: "Updated team billing settings",
-							metadata: null,
+							// metadata omitted - use undefined for optional Json fields
 							ipAddress: null,
 							userAgent: null,
 							createdAt: now,
@@ -261,7 +261,7 @@ export const teamBillingRouter = router({
 						userId: user.id,
 						action: "CREATE",
 						description: "Created team billing settings",
-						metadata: null,
+						// metadata omitted - use undefined for optional Json fields
 						ipAddress: null,
 						userAgent: null,
 						createdAt: now,
@@ -343,7 +343,7 @@ export const teamBillingRouter = router({
 						userId: user.id,
 						action: "DELETE",
 						description: "Deleted team billing settings",
-						metadata: null,
+						// metadata omitted - use undefined for optional Json fields
 						ipAddress: null,
 						userAgent: null,
 						createdAt: now,

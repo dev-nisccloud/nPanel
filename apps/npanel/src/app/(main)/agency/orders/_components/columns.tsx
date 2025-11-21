@@ -19,7 +19,7 @@ import { orderSchema } from "./schema";
 
 interface OrderColumnsProps {
   onEditOrder?: (order: z.infer<typeof orderSchema>) => void;
-  onDeleteOrder?: (orderId: number) => void;
+  onDeleteOrder?: (orderId: string) => void;
 }
 
 export const createOrderColumns = ({ onEditOrder, onDeleteOrder }: OrderColumnsProps = {}): ColumnDef<z.infer<typeof orderSchema>>[] => [

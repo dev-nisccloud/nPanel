@@ -54,7 +54,8 @@ export async function sendEmail({
         emailData.text = text;
       }
 
-      const emailPayload: Parameters<typeof resend.emails.send>[0] = {
+      // Type the payload explicitly for HTML/text emails (not React Email)
+      const emailPayload = {
         from: emailData.from,
         to: emailData.to,
         subject: emailData.subject,
@@ -69,7 +70,7 @@ export async function sendEmail({
             ...(att.contentType && { contentType: att.contentType }),
           })),
         }),
-      };
+      } as Parameters<typeof resend.emails.send>[0];
 
       const { data, error } = await resend.emails.send(emailPayload);
 

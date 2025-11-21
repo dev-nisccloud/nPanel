@@ -196,7 +196,8 @@ export function HostingPlansDataTable() {
 
   // Show error state
   if (isError) {
-    return <HostingPlansTableError error={error as Error} onRetry={() => refetch()} />;
+    const errorMessage = error?.message || (error as any)?.data?.message || "An error occurred";
+    return <HostingPlansTableError error={new Error(errorMessage)} onRetry={() => refetch()} />;
   }
 
   // Show empty state
@@ -272,7 +273,11 @@ export function HostingPlansDataTable() {
         <ScrollArea className="h-[600px]">
           <div className="p-4">
             <HostingPlansCardsList
-              data={filteredData}
+              data={filteredData.map(plan => ({
+                ...plan,
+                createdAt: typeof plan.createdAt === 'string' ? new Date(plan.createdAt) : plan.createdAt,
+                updatedAt: typeof plan.updatedAt === 'string' ? new Date(plan.updatedAt) : plan.updatedAt,
+              }))}
               onViewDetails={(id) => {
                 // Navigate to details page (if needed in the future)
                 console.log("View plan:", id);

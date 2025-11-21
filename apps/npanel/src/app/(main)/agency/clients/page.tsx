@@ -49,7 +49,7 @@ export default function ClientsPage() {
 
   const { data: clients, isLoading, error, refetch } = trpc.clients.getAll.useQuery({}, {
     // Keep previous data while refetching to prevent UI freezing
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
   const utils = trpc.useUtils();
