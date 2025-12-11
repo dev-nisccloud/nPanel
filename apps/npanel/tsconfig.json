@@ -13,6 +13,8 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    // Optimize for memory-constrained builds
+    "maxNodeModuleJsDepth": 1,
     "plugins": [
       {
         "name": "next"
