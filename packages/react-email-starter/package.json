@@ -7,9 +7,10 @@
     "./src/*": "./src/*.ts"
   },
   "scripts": {
-    "build": "email build",
+    "build": "email build && node scripts/fix-spam-check.js",
     "dev": "email dev",
-    "export": "email export"
+    "export": "email export",
+    "postinstall": "node scripts/fix-spam-check.js || true"
   },
   "dependencies": {
     "@react-email/components": "0.5.7",
