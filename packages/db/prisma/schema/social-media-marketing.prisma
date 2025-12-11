@@ -18,6 +18,32 @@ enum IntegrationStatus {
   PENDING
 }
 
+enum MetaContentCalendarStatus {
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  CANCELLED
+  DRAFT
+}
+
+enum MetaContentMediaType {
+  PHOTO
+  VIDEO
+}
+
+enum LinkedInContentCalendarStatus {
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  CANCELLED
+  DRAFT
+}
+
+enum LinkedInContentMediaType {
+  PHOTO
+  VIDEO
+}
+
 // Social Media Integration
 // Stores access tokens only - App ID, App Secret, and API version are global settings (env vars)
 // Integration is global (shared across all users) - teamId is only used for page ownership
@@ -33,10 +59,13 @@ model SocialMediaIntegration {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Access Tokens
-  accessToken           String // Long-lived user access token
+  accessToken           String // Long-lived user access token (60 days, can be extended)
   accessTokenExpiresAt  DateTime? // When the access token expires
-  refreshToken          String? // Refresh token if available
-  refreshTokenExpiresAt DateTime? // When refresh token expires
+  // Note: Meta/Facebook doesn't provide traditional OAuth 2.0 refresh tokens
+  // Instead, they use long-lived tokens (60 days) that can be exchanged for new long-lived tokens
+  // The refreshToken field is kept for future compatibility but is not used by Meta API
+  refreshToken          String? // Not used by Meta API - kept for compatibility
+  refreshTokenExpiresAt DateTime? // Not used by Meta API - kept for compatibility
 
   // Token Metadata
   scope              String? // Granted permissions/scopes
@@ -48,9 +77,11 @@ model SocialMediaIntegration {
   updatedAt DateTime
 
   // Page-specific tokens (for Facebook Pages)
-  pageTokens   SocialMediaPageToken[]
+  pageTokens      SocialMediaPageToken[]
   // Activity logging
-  activityLogs SocialMediaIntegrationActivityLog[]
+  activityLogs    SocialMediaIntegrationActivityLog[]
+  // Meta Ads accounts (for Meta Ads integration)
+  metaAdsAccounts MetaAdsAccount[]
 
   @@index([platform])
   @@index([status])
@@ -58,43 +89,54 @@ model SocialMediaIntegration {
   @@map("social_media_integration")
 }
 
-// Page-specific access tokens for Facebook Pages
-// Each page has its own access token that doesn't expire
+// Page-specific access tokens for Facebook Pages and LinkedIn Organizations
+// Page tokens are automatically generated when pages/organizations are fetched from APIs
 // teamId links the page to a team so team members can manage it
 model SocialMediaPageToken {
   id            String  @id @map("_id")
   integrationId String // Reference to the parent integration
   teamId        String? // Team that owns this page (allows team members to manage it)
 
-  // Page Information
-  pageId       String // Facebook Page ID
-  pageName     String? // Page name
-  pageUsername String? // Page username
-  pagePicture  String? // Page picture URL
-  pageCategory String? // Page category
+  // Platform Information
+  platform SocialMediaPlatform // Platform this page token belongs to (META_FACEBOOK, LINKEDIN, etc.)
 
-  // Page Access Token (doesn't expire if page admin doesn't revoke)
-  accessToken String
-  isActive    Boolean @default(true)
+  // Page Information
+  pageId       String // Facebook Page ID or LinkedIn Organization ID
+  pageName     String? // Page/Organization name
+  pageUsername String? // Page/Organization username
+  pagePicture  String? // Page/Organization picture URL
+  pageCategory String? // Page/Organization category
+
+  // Page Access Token
+  // Note: Page tokens typically don't expire unless revoked by page admin
+  // However, they can become invalid if the parent user token expires or is revoked
+  accessToken          String
+  accessTokenExpiresAt DateTime? // When the access token expires (if applicable)
+  isActive             Boolean   @default(true)
+  lastTokenRefreshAt   DateTime? // When token was last refreshed/updated
 
   // Timestamps
   createdAt DateTime
   updatedAt DateTime
 
   // Relations
-  integration  SocialMediaIntegration            @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  team         Team?                             @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  user         User?                             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId       String? // User who linked this page to a team
+  integration                  SocialMediaIntegration            @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  team                         Team?                             @relation(fields: [teamId], references: [id], onDelete: SetNull)
   // Activity logging
-  activityLogs SocialMediaPageTokenActivityLog[]
+  activityLogs                 SocialMediaPageTokenActivityLog[]
+  User                         User?                             @relation(fields: [userId], references: [id])
+  userId                       String?
+  // Content calendar posts
+  contentCalendarPosts         MetaContentCalendar[]
+  linkedInContentCalendarPosts LinkedInContentCalendar[]
 
   @@unique([integrationId, pageId]) // One token per page per integration
   @@index([integrationId])
   @@index([pageId])
+  @@index([platform])
   @@index([teamId])
-  @@index([userId])
   @@index([isActive])
+  @@index([accessTokenExpiresAt])
   @@map("social_media_page_token")
 }
 
@@ -136,4 +178,222 @@ model SocialMediaPageTokenActivityLog {
   @@index([action])
   @@index([createdAt])
   @@map("social_media_page_token_activity_log")
+}
+
+// Meta Content Calendar
+// Stores scheduled posts for Facebook Pages
+// Note: Media type constraint (photos OR video, not both) is enforced at application level
+model MetaContentCalendar {
+  id String @id @map("_id")
+
+  // Page relationship
+  // When pageToken is deleted, set pageTokenId to null (don't cascade delete calendar posts)
+  pageTokenId String?
+  pageToken   SocialMediaPageToken? @relation(fields: [pageTokenId], references: [id], onDelete: SetNull)
+
+  // Post Content
+  message String? // Post message/text content (optional)
+
+  // Scheduling
+  scheduledPublishTime DateTime // When the post should be published (Unix timestamp converted to DateTime)
+  status               MetaContentCalendarStatus @default(SCHEDULED)
+
+  // Publishing Metadata
+  published          Boolean   @default(false) // Whether the post has been published
+  publishedAt        DateTime? // When the post was actually published
+  publishedPostId    String? // Facebook post ID after publishing
+  publishedPermalink String? // Facebook post permalink URL
+
+  // Error Handling
+  lastError   String? // Last error message if publishing failed
+  retryCount  Int       @default(0) // Number of retry attempts
+  lastRetryAt DateTime? // Last retry attempt timestamp
+
+  // QStash Job Tracking
+  qstashJobId String? // QStash message ID for job cancellation/rescheduling
+
+  // User tracking
+  createdBy String // User who created this scheduled post
+  user      User   @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  mediaItems   MetaContentCalendarMedia[]
+  activityLogs MetaContentCalendarActivityLog[]
+
+  @@index([pageTokenId])
+  @@index([status])
+  @@index([scheduledPublishTime])
+  @@index([published])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@map("meta_content_calendar")
+}
+
+// Meta Content Calendar Media
+// Stores media items (photos or videos) for scheduled posts
+// Note: A post can have multiple photos OR one video, but not both (enforced at application level)
+model MetaContentCalendarMedia {
+  id String @id @map("_id")
+
+  // Calendar post relationship
+  calendarPostId String
+  calendarPost   MetaContentCalendar @relation(fields: [calendarPostId], references: [id], onDelete: Cascade)
+
+  // Media Information
+  mediaType MetaContentMediaType // PHOTO or VIDEO
+  url       String // URL to the media file (stored on UploadThing server)
+
+  // File metadata (nullable to support existing data)
+  fileName String? // Original file name
+  fileSize Int? // File size in bytes
+
+  // Media-specific fields
+  caption     String? // Caption for photos
+  description String? // Description for videos
+
+  // Ordering (for multiple photos - determines display/publish order)
+  order Int @default(0) // Order index for sorting multiple photos
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([calendarPostId])
+  @@index([mediaType])
+  @@index([order])
+  @@map("meta_content_calendar_media")
+}
+
+// Activity logging for Meta content calendar actions
+model MetaContentCalendarActivityLog {
+  id             String              @id @map("_id")
+  userId         String
+  calendarPostId String
+  calendarPost   MetaContentCalendar @relation(fields: [calendarPostId], references: [id], onDelete: Cascade)
+  action         String // e.g., "CREATE", "UPDATE", "SCHEDULE", "PUBLISH", "FAILED", "CANCEL", "RETRY", "RESCHEDULE"
+  description    String?
+  metadata       Json? // Additional data about the action (e.g., error details, API response, etc.)
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime
+
+  @@index([userId])
+  @@index([calendarPostId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("meta_content_calendar_activity_log")
+}
+
+// LinkedIn Content Calendar
+// Stores scheduled posts for LinkedIn Organizations
+// Note: Media type constraint (photos OR video, not both) is enforced at application level
+// LinkedIn constraints: max 1 video, multiple photos (min 2 for carousel), cannot mix
+model LinkedInContentCalendar {
+  id String @id @map("_id")
+
+  // Organization relationship
+  // When pageToken is deleted, set pageTokenId to null (don't cascade delete calendar posts)
+  pageTokenId String?
+  pageToken   SocialMediaPageToken? @relation(fields: [pageTokenId], references: [id], onDelete: SetNull)
+
+  // Post Content
+  message String? // Post message/text content (optional)
+
+  // Scheduling
+  scheduledPublishTime DateTime // When the post should be published (Unix timestamp converted to DateTime)
+  status               LinkedInContentCalendarStatus @default(SCHEDULED)
+
+  // Publishing Metadata
+  published          Boolean   @default(false) // Whether the post has been published
+  publishedAt        DateTime? // When the post was actually published
+  publishedPostId    String? // LinkedIn post URN after publishing
+  publishedPermalink String? // LinkedIn post permalink URL
+
+  // Error Handling
+  lastError   String? // Last error message if publishing failed
+  retryCount  Int       @default(0) // Number of retry attempts
+  lastRetryAt DateTime? // Last retry attempt timestamp
+
+  // QStash Job Tracking
+  qstashJobId String? // QStash message ID for job cancellation/rescheduling
+
+  // User tracking
+  createdBy String // User who created this scheduled post
+  user      User   @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  mediaItems   LinkedInContentCalendarMedia[]
+  activityLogs LinkedInContentCalendarActivityLog[]
+
+  @@index([pageTokenId])
+  @@index([status])
+  @@index([scheduledPublishTime])
+  @@index([published])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@map("linkedin_content_calendar")
+}
+
+// LinkedIn Content Calendar Media
+// Stores media items (photos or videos) for scheduled posts
+// Note: A post can have multiple photos OR one video, but not both (enforced at application level)
+// LinkedIn constraints: max 1 video, multiple photos (min 2 for carousel)
+model LinkedInContentCalendarMedia {
+  id String @id @map("_id")
+
+  // Calendar post relationship
+  calendarPostId String
+  calendarPost   LinkedInContentCalendar @relation(fields: [calendarPostId], references: [id], onDelete: Cascade)
+
+  // Media Information
+  mediaType LinkedInContentMediaType // PHOTO or VIDEO
+  url       String // URL to the media file (stored on UploadThing server)
+
+  // File metadata (nullable to support existing data)
+  fileName String? // Original file name
+  fileSize Int? // File size in bytes
+
+  // Media-specific fields
+  caption     String? // Caption for photos
+  description String? // Description for videos
+
+  // Ordering (for multiple photos - determines display/publish order)
+  order Int @default(0) // Order index for sorting multiple photos
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([calendarPostId])
+  @@index([mediaType])
+  @@index([order])
+  @@map("linkedin_content_calendar_media")
+}
+
+// Activity logging for LinkedIn content calendar actions
+model LinkedInContentCalendarActivityLog {
+  id             String                  @id @map("_id")
+  userId         String
+  calendarPostId String
+  calendarPost   LinkedInContentCalendar @relation(fields: [calendarPostId], references: [id], onDelete: Cascade)
+  action         String // e.g., "CREATE", "UPDATE", "SCHEDULE", "PUBLISH", "FAILED", "CANCEL", "RETRY", "RESCHEDULE"
+  description    String?
+  metadata       Json? // Additional data about the action (e.g., error details, API response, etc.)
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime
+
+  @@index([userId])
+  @@index([calendarPostId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("linkedin_content_calendar_activity_log")
 }

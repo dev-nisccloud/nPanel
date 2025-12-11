@@ -768,6 +768,40 @@ export type EnumEmailEventTypeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumEmailEventTypeFilter<$PrismaModel>
 }
 
+export type EnumGoogleAdsIntegrationStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.GoogleAdsIntegrationStatus | Prisma.EnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GoogleAdsIntegrationStatus[] | Prisma.ListEnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GoogleAdsIntegrationStatus[] | Prisma.ListEnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGoogleAdsIntegrationStatusFilter<$PrismaModel> | $Enums.GoogleAdsIntegrationStatus
+}
+
+export type EnumGoogleAdsIntegrationStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.GoogleAdsIntegrationStatus | Prisma.EnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GoogleAdsIntegrationStatus[] | Prisma.ListEnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GoogleAdsIntegrationStatus[] | Prisma.ListEnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGoogleAdsIntegrationStatusWithAggregatesFilter<$PrismaModel> | $Enums.GoogleAdsIntegrationStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumGoogleAdsIntegrationStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumGoogleAdsIntegrationStatusFilter<$PrismaModel>
+}
+
+export type EnumGoogleAdsAccountStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.GoogleAdsAccountStatus | Prisma.EnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GoogleAdsAccountStatus[] | Prisma.ListEnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GoogleAdsAccountStatus[] | Prisma.ListEnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGoogleAdsAccountStatusFilter<$PrismaModel> | $Enums.GoogleAdsAccountStatus
+}
+
+export type EnumGoogleAdsAccountStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.GoogleAdsAccountStatus | Prisma.EnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GoogleAdsAccountStatus[] | Prisma.ListEnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GoogleAdsAccountStatus[] | Prisma.ListEnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGoogleAdsAccountStatusWithAggregatesFilter<$PrismaModel> | $Enums.GoogleAdsAccountStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumGoogleAdsAccountStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumGoogleAdsAccountStatusFilter<$PrismaModel>
+}
+
 export type EnumInvoiceStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.InvoiceStatus | Prisma.EnumInvoiceStatusFieldRefInput<$PrismaModel>
   in?: $Enums.InvoiceStatus[] | Prisma.ListEnumInvoiceStatusFieldRefInput<$PrismaModel>
@@ -836,6 +870,142 @@ export type EnumCreditNoteStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumCreditNoteStatusFilter<$PrismaModel>
 }
 
+export type EnumMetaAdsAccountStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAccountStatus | Prisma.EnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAccountStatus[] | Prisma.ListEnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAccountStatus[] | Prisma.ListEnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAccountStatusFilter<$PrismaModel> | $Enums.MetaAdsAccountStatus
+}
+
+export type EnumMetaAdsAccountStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAccountStatus | Prisma.EnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAccountStatus[] | Prisma.ListEnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAccountStatus[] | Prisma.ListEnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAccountStatusWithAggregatesFilter<$PrismaModel> | $Enums.MetaAdsAccountStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaAdsAccountStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaAdsAccountStatusFilter<$PrismaModel>
+}
+
+export type EnumMetaAdsCampaignObjectiveNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsCampaignObjective | Prisma.EnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MetaAdsCampaignObjective[] | Prisma.ListEnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MetaAdsCampaignObjective[] | Prisma.ListEnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMetaAdsCampaignObjectiveNullableFilter<$PrismaModel> | $Enums.MetaAdsCampaignObjective | null
+}
+
+export type EnumMetaAdsCampaignStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsCampaignStatus | Prisma.EnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsCampaignStatus[] | Prisma.ListEnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsCampaignStatus[] | Prisma.ListEnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsCampaignStatusFilter<$PrismaModel> | $Enums.MetaAdsCampaignStatus
+}
+
+export type EnumMetaAdsCampaignObjectiveNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsCampaignObjective | Prisma.EnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MetaAdsCampaignObjective[] | Prisma.ListEnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MetaAdsCampaignObjective[] | Prisma.ListEnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMetaAdsCampaignObjectiveNullableWithAggregatesFilter<$PrismaModel> | $Enums.MetaAdsCampaignObjective | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaAdsCampaignObjectiveNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaAdsCampaignObjectiveNullableFilter<$PrismaModel>
+}
+
+export type EnumMetaAdsCampaignStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsCampaignStatus | Prisma.EnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsCampaignStatus[] | Prisma.ListEnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsCampaignStatus[] | Prisma.ListEnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsCampaignStatusWithAggregatesFilter<$PrismaModel> | $Enums.MetaAdsCampaignStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaAdsCampaignStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaAdsCampaignStatusFilter<$PrismaModel>
+}
+
+export type EnumMetaAdsAdSetStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAdSetStatus | Prisma.EnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAdSetStatus[] | Prisma.ListEnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAdSetStatus[] | Prisma.ListEnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAdSetStatusFilter<$PrismaModel> | $Enums.MetaAdsAdSetStatus
+}
+
+export type EnumMetaAdsAdSetStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAdSetStatus | Prisma.EnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAdSetStatus[] | Prisma.ListEnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAdSetStatus[] | Prisma.ListEnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAdSetStatusWithAggregatesFilter<$PrismaModel> | $Enums.MetaAdsAdSetStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaAdsAdSetStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaAdsAdSetStatusFilter<$PrismaModel>
+}
+
+export type EnumMetaAdsAdStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAdStatus | Prisma.EnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAdStatus[] | Prisma.ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAdStatus[] | Prisma.ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAdStatusFilter<$PrismaModel> | $Enums.MetaAdsAdStatus
+}
+
+export type EnumMetaAdsAdStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAdStatus | Prisma.EnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAdStatus[] | Prisma.ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAdStatus[] | Prisma.ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAdStatusWithAggregatesFilter<$PrismaModel> | $Enums.MetaAdsAdStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaAdsAdStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaAdsAdStatusFilter<$PrismaModel>
+}
+
+export type JsonFilter<$PrismaModel = never> =
+| Prisma.PatchUndefined<
+    Prisma.Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+    Required<JsonFilterBase<$PrismaModel>>
+  >
+| Prisma.OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+export type JsonFilterBase<$PrismaModel = never> = {
+  equals?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+  path?: string[]
+  mode?: Prisma.QueryMode | Prisma.EnumQueryModeFieldRefInput<$PrismaModel>
+  string_contains?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_starts_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_ends_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  array_starts_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_ends_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_contains?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  lt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  lte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+}
+
+export type JsonWithAggregatesFilter<$PrismaModel = never> =
+| Prisma.PatchUndefined<
+    Prisma.Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+    Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+  >
+| Prisma.OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+  equals?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+  path?: string[]
+  mode?: Prisma.QueryMode | Prisma.EnumQueryModeFieldRefInput<$PrismaModel>
+  string_contains?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_starts_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_ends_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  array_starts_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_ends_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_contains?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  lt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  lte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedJsonFilter<$PrismaModel>
+  _max?: Prisma.NestedJsonFilter<$PrismaModel>
+}
+
 export type EnumServiceSubscriptionStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.ServiceSubscriptionStatus | Prisma.EnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
   in?: $Enums.ServiceSubscriptionStatus[] | Prisma.ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
@@ -885,6 +1055,74 @@ export type EnumIntegrationStatusWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumIntegrationStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumIntegrationStatusFilter<$PrismaModel>
+}
+
+export type EnumMetaContentCalendarStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaContentCalendarStatus | Prisma.EnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaContentCalendarStatus[] | Prisma.ListEnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaContentCalendarStatus[] | Prisma.ListEnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaContentCalendarStatusFilter<$PrismaModel> | $Enums.MetaContentCalendarStatus
+}
+
+export type EnumMetaContentCalendarStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaContentCalendarStatus | Prisma.EnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaContentCalendarStatus[] | Prisma.ListEnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaContentCalendarStatus[] | Prisma.ListEnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaContentCalendarStatusWithAggregatesFilter<$PrismaModel> | $Enums.MetaContentCalendarStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaContentCalendarStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaContentCalendarStatusFilter<$PrismaModel>
+}
+
+export type EnumMetaContentMediaTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaContentMediaType | Prisma.EnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaContentMediaType[] | Prisma.ListEnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaContentMediaType[] | Prisma.ListEnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaContentMediaTypeFilter<$PrismaModel> | $Enums.MetaContentMediaType
+}
+
+export type EnumMetaContentMediaTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaContentMediaType | Prisma.EnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaContentMediaType[] | Prisma.ListEnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaContentMediaType[] | Prisma.ListEnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaContentMediaTypeWithAggregatesFilter<$PrismaModel> | $Enums.MetaContentMediaType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaContentMediaTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaContentMediaTypeFilter<$PrismaModel>
+}
+
+export type EnumLinkedInContentCalendarStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.LinkedInContentCalendarStatus | Prisma.EnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.LinkedInContentCalendarStatus[] | Prisma.ListEnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LinkedInContentCalendarStatus[] | Prisma.ListEnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLinkedInContentCalendarStatusFilter<$PrismaModel> | $Enums.LinkedInContentCalendarStatus
+}
+
+export type EnumLinkedInContentCalendarStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.LinkedInContentCalendarStatus | Prisma.EnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.LinkedInContentCalendarStatus[] | Prisma.ListEnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LinkedInContentCalendarStatus[] | Prisma.ListEnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLinkedInContentCalendarStatusWithAggregatesFilter<$PrismaModel> | $Enums.LinkedInContentCalendarStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumLinkedInContentCalendarStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumLinkedInContentCalendarStatusFilter<$PrismaModel>
+}
+
+export type EnumLinkedInContentMediaTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.LinkedInContentMediaType | Prisma.EnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.LinkedInContentMediaType[] | Prisma.ListEnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LinkedInContentMediaType[] | Prisma.ListEnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLinkedInContentMediaTypeFilter<$PrismaModel> | $Enums.LinkedInContentMediaType
+}
+
+export type EnumLinkedInContentMediaTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.LinkedInContentMediaType | Prisma.EnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.LinkedInContentMediaType[] | Prisma.ListEnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LinkedInContentMediaType[] | Prisma.ListEnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLinkedInContentMediaTypeWithAggregatesFilter<$PrismaModel> | $Enums.LinkedInContentMediaType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumLinkedInContentMediaTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumLinkedInContentMediaTypeFilter<$PrismaModel>
 }
 
 export type NestedStringFilter<$PrismaModel = never> = {
@@ -1617,6 +1855,40 @@ export type NestedEnumEmailEventTypeWithAggregatesFilter<$PrismaModel = never> =
   _max?: Prisma.NestedEnumEmailEventTypeFilter<$PrismaModel>
 }
 
+export type NestedEnumGoogleAdsIntegrationStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.GoogleAdsIntegrationStatus | Prisma.EnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GoogleAdsIntegrationStatus[] | Prisma.ListEnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GoogleAdsIntegrationStatus[] | Prisma.ListEnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGoogleAdsIntegrationStatusFilter<$PrismaModel> | $Enums.GoogleAdsIntegrationStatus
+}
+
+export type NestedEnumGoogleAdsIntegrationStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.GoogleAdsIntegrationStatus | Prisma.EnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GoogleAdsIntegrationStatus[] | Prisma.ListEnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GoogleAdsIntegrationStatus[] | Prisma.ListEnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGoogleAdsIntegrationStatusWithAggregatesFilter<$PrismaModel> | $Enums.GoogleAdsIntegrationStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumGoogleAdsIntegrationStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumGoogleAdsIntegrationStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumGoogleAdsAccountStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.GoogleAdsAccountStatus | Prisma.EnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GoogleAdsAccountStatus[] | Prisma.ListEnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GoogleAdsAccountStatus[] | Prisma.ListEnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGoogleAdsAccountStatusFilter<$PrismaModel> | $Enums.GoogleAdsAccountStatus
+}
+
+export type NestedEnumGoogleAdsAccountStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.GoogleAdsAccountStatus | Prisma.EnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GoogleAdsAccountStatus[] | Prisma.ListEnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GoogleAdsAccountStatus[] | Prisma.ListEnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGoogleAdsAccountStatusWithAggregatesFilter<$PrismaModel> | $Enums.GoogleAdsAccountStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumGoogleAdsAccountStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumGoogleAdsAccountStatusFilter<$PrismaModel>
+}
+
 export type NestedEnumInvoiceStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.InvoiceStatus | Prisma.EnumInvoiceStatusFieldRefInput<$PrismaModel>
   in?: $Enums.InvoiceStatus[] | Prisma.ListEnumInvoiceStatusFieldRefInput<$PrismaModel>
@@ -1685,6 +1957,115 @@ export type NestedEnumCreditNoteStatusWithAggregatesFilter<$PrismaModel = never>
   _max?: Prisma.NestedEnumCreditNoteStatusFilter<$PrismaModel>
 }
 
+export type NestedEnumMetaAdsAccountStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAccountStatus | Prisma.EnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAccountStatus[] | Prisma.ListEnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAccountStatus[] | Prisma.ListEnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAccountStatusFilter<$PrismaModel> | $Enums.MetaAdsAccountStatus
+}
+
+export type NestedEnumMetaAdsAccountStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAccountStatus | Prisma.EnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAccountStatus[] | Prisma.ListEnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAccountStatus[] | Prisma.ListEnumMetaAdsAccountStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAccountStatusWithAggregatesFilter<$PrismaModel> | $Enums.MetaAdsAccountStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaAdsAccountStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaAdsAccountStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumMetaAdsCampaignObjectiveNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsCampaignObjective | Prisma.EnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MetaAdsCampaignObjective[] | Prisma.ListEnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MetaAdsCampaignObjective[] | Prisma.ListEnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMetaAdsCampaignObjectiveNullableFilter<$PrismaModel> | $Enums.MetaAdsCampaignObjective | null
+}
+
+export type NestedEnumMetaAdsCampaignStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsCampaignStatus | Prisma.EnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsCampaignStatus[] | Prisma.ListEnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsCampaignStatus[] | Prisma.ListEnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsCampaignStatusFilter<$PrismaModel> | $Enums.MetaAdsCampaignStatus
+}
+
+export type NestedEnumMetaAdsCampaignObjectiveNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsCampaignObjective | Prisma.EnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MetaAdsCampaignObjective[] | Prisma.ListEnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MetaAdsCampaignObjective[] | Prisma.ListEnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMetaAdsCampaignObjectiveNullableWithAggregatesFilter<$PrismaModel> | $Enums.MetaAdsCampaignObjective | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaAdsCampaignObjectiveNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaAdsCampaignObjectiveNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumMetaAdsCampaignStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsCampaignStatus | Prisma.EnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsCampaignStatus[] | Prisma.ListEnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsCampaignStatus[] | Prisma.ListEnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsCampaignStatusWithAggregatesFilter<$PrismaModel> | $Enums.MetaAdsCampaignStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaAdsCampaignStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaAdsCampaignStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumMetaAdsAdSetStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAdSetStatus | Prisma.EnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAdSetStatus[] | Prisma.ListEnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAdSetStatus[] | Prisma.ListEnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAdSetStatusFilter<$PrismaModel> | $Enums.MetaAdsAdSetStatus
+}
+
+export type NestedEnumMetaAdsAdSetStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAdSetStatus | Prisma.EnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAdSetStatus[] | Prisma.ListEnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAdSetStatus[] | Prisma.ListEnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAdSetStatusWithAggregatesFilter<$PrismaModel> | $Enums.MetaAdsAdSetStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaAdsAdSetStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaAdsAdSetStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumMetaAdsAdStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAdStatus | Prisma.EnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAdStatus[] | Prisma.ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAdStatus[] | Prisma.ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAdStatusFilter<$PrismaModel> | $Enums.MetaAdsAdStatus
+}
+
+export type NestedEnumMetaAdsAdStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaAdsAdStatus | Prisma.EnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaAdsAdStatus[] | Prisma.ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaAdsAdStatus[] | Prisma.ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaAdsAdStatusWithAggregatesFilter<$PrismaModel> | $Enums.MetaAdsAdStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaAdsAdStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaAdsAdStatusFilter<$PrismaModel>
+}
+
+export type NestedJsonFilter<$PrismaModel = never> =
+| Prisma.PatchUndefined<
+    Prisma.Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+    Required<NestedJsonFilterBase<$PrismaModel>>
+  >
+| Prisma.OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+export type NestedJsonFilterBase<$PrismaModel = never> = {
+  equals?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+  path?: string[]
+  mode?: Prisma.QueryMode | Prisma.EnumQueryModeFieldRefInput<$PrismaModel>
+  string_contains?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_starts_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_ends_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  array_starts_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_ends_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_contains?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  lt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  lte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+}
+
 export type NestedEnumServiceSubscriptionStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.ServiceSubscriptionStatus | Prisma.EnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
   in?: $Enums.ServiceSubscriptionStatus[] | Prisma.ListEnumServiceSubscriptionStatusFieldRefInput<$PrismaModel>
@@ -1734,6 +2115,74 @@ export type NestedEnumIntegrationStatusWithAggregatesFilter<$PrismaModel = never
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumIntegrationStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumIntegrationStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumMetaContentCalendarStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaContentCalendarStatus | Prisma.EnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaContentCalendarStatus[] | Prisma.ListEnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaContentCalendarStatus[] | Prisma.ListEnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaContentCalendarStatusFilter<$PrismaModel> | $Enums.MetaContentCalendarStatus
+}
+
+export type NestedEnumMetaContentCalendarStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaContentCalendarStatus | Prisma.EnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaContentCalendarStatus[] | Prisma.ListEnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaContentCalendarStatus[] | Prisma.ListEnumMetaContentCalendarStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaContentCalendarStatusWithAggregatesFilter<$PrismaModel> | $Enums.MetaContentCalendarStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaContentCalendarStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaContentCalendarStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumMetaContentMediaTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaContentMediaType | Prisma.EnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaContentMediaType[] | Prisma.ListEnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaContentMediaType[] | Prisma.ListEnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaContentMediaTypeFilter<$PrismaModel> | $Enums.MetaContentMediaType
+}
+
+export type NestedEnumMetaContentMediaTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MetaContentMediaType | Prisma.EnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.MetaContentMediaType[] | Prisma.ListEnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MetaContentMediaType[] | Prisma.ListEnumMetaContentMediaTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMetaContentMediaTypeWithAggregatesFilter<$PrismaModel> | $Enums.MetaContentMediaType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMetaContentMediaTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMetaContentMediaTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumLinkedInContentCalendarStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.LinkedInContentCalendarStatus | Prisma.EnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.LinkedInContentCalendarStatus[] | Prisma.ListEnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LinkedInContentCalendarStatus[] | Prisma.ListEnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLinkedInContentCalendarStatusFilter<$PrismaModel> | $Enums.LinkedInContentCalendarStatus
+}
+
+export type NestedEnumLinkedInContentCalendarStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.LinkedInContentCalendarStatus | Prisma.EnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.LinkedInContentCalendarStatus[] | Prisma.ListEnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LinkedInContentCalendarStatus[] | Prisma.ListEnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLinkedInContentCalendarStatusWithAggregatesFilter<$PrismaModel> | $Enums.LinkedInContentCalendarStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumLinkedInContentCalendarStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumLinkedInContentCalendarStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumLinkedInContentMediaTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.LinkedInContentMediaType | Prisma.EnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.LinkedInContentMediaType[] | Prisma.ListEnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LinkedInContentMediaType[] | Prisma.ListEnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLinkedInContentMediaTypeFilter<$PrismaModel> | $Enums.LinkedInContentMediaType
+}
+
+export type NestedEnumLinkedInContentMediaTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.LinkedInContentMediaType | Prisma.EnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.LinkedInContentMediaType[] | Prisma.ListEnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LinkedInContentMediaType[] | Prisma.ListEnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLinkedInContentMediaTypeWithAggregatesFilter<$PrismaModel> | $Enums.LinkedInContentMediaType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumLinkedInContentMediaTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumLinkedInContentMediaTypeFilter<$PrismaModel>
 }
 
 

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ArrowLeft, MoreVertical, Edit, Unlink } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { z } from "zod";
 import { toast } from "sonner";
 
@@ -31,6 +32,8 @@ import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 import { LinkToTeamDialog } from "./link-to-team-dialog";
 import { EditSubscriptionDialog } from "./edit-subscription-dialog";
+import { UnauthorizedAccess } from "./unauthorized-access";
+import { NotFoundPage } from "./not-found-page";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -138,8 +141,12 @@ function HostingDetailError({ error, onRetry }: { error: Error; onRetry: () => v
 }
 
 export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
+  const pathname = usePathname();
+  // Extract team slug from URL (first segment after /)
+  const teamSlug = pathname.split("/")[1];
+  
   // Use batched endpoint - fetches both hosting data and subscription link in one request
-  const { data: hostingData, subscription: subscriptionData, isLoading, isError, error, refetch, rawData } = useHostingDetailBatched(subscriptionId);
+  const { data: hostingData, subscription: subscriptionData, serviceSubscription: serviceSubscriptionData, isLoading, isError, error, refetch, rawData } = useHostingDetailBatched(subscriptionId);
   const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
   const [isEditSubscriptionOpen, setIsEditSubscriptionOpen] = React.useState(false);
   const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
@@ -177,7 +184,17 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     return <HostingDetailSkeleton />;
   }
 
-  // Show error state
+  // Handle FORBIDDEN error (unauthorized access)
+  if (isError && (error as any)?.data?.code === "FORBIDDEN") {
+    return <UnauthorizedAccess />;
+  }
+
+  // Handle NOT_FOUND error (404)
+  if (isError && (error as any)?.data?.code === "NOT_FOUND") {
+    return <NotFoundPage />;
+  }
+
+  // Show error state for other errors
   if (isError || !hostingData) {
     return <HostingDetailError error={error as Error} onRetry={() => refetch()} />;
   }
@@ -195,7 +212,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/agency/hosting">
+          <Link href={`/${teamSlug}/hosting`}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
@@ -207,73 +224,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </h1>
             <p className="text-muted-foreground">Hosting subscription details</p>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {getStatusBadge(hostingData.gen_info.status ?? 0)}
-          <DropdownMenu open={isActionMenuOpen} onOpenChange={setIsActionMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon"
-              >
-                <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem 
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setIsActionMenuOpen(false);
-                  setTimeout(() => setIsLinkToTeamOpen(true), 0);
-                }}
-                disabled={isLinkedToTeam}
-              >
-                Link to Team
-              </DropdownMenuItem>
-              {isLinkedToTeam && (
-                <DropdownMenuItem 
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setIsActionMenuOpen(false);
-                    setTimeout(() => setIsUnlinkDialogOpen(true), 0);
-                  }}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Unlink className="mr-2 h-4 w-4" />
-                  Unlink from Team
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem 
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setIsActionMenuOpen(false);
-                  setTimeout(() => setIsEditSubscriptionOpen(true), 0);
-                }}
-                disabled={!subscriptionData}
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Subscription
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {/* Commented out menu items - to be restored later */}
-              {/* <DropdownMenuItem>View Details</DropdownMenuItem> */}
-              {/* <DropdownMenuItem>Renew</DropdownMenuItem> */}
-              {/* <DropdownMenuSeparator /> */}
-              {/* <DropdownMenuSub> */}
-              {/*   <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger> */}
-              {/*   <DropdownMenuSubContent> */}
-              {/*     <DropdownMenuItem>Active</DropdownMenuItem> */}
-              {/*     <DropdownMenuItem>Suspended</DropdownMenuItem> */}
-              {/*     <DropdownMenuItem>Disabled</DropdownMenuItem> */}
-              {/*   </DropdownMenuSubContent> */}
-              {/* </DropdownMenuSub> */}
-              {/* <DropdownMenuSeparator /> */}
-              {/* <DropdownMenuItem>Suspend</DropdownMenuItem> */}
-              {/* <DropdownMenuItem variant="destructive">Cancel</DropdownMenuItem> */}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
@@ -288,7 +238,11 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         </TabsList>
         
         <TabsContent value="overview" className="mt-6">
-          <HostingOverview hostingData={hostingData} />
+          <HostingOverview 
+            hostingData={hostingData} 
+            subscriptionData={subscriptionData}
+            serviceSubscriptionData={serviceSubscriptionData}
+          />
         </TabsContent>
         
         <TabsContent value="dns" className="mt-6">
@@ -342,37 +296,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           refetch();
         }}
       />
-
-      {/* Unlink Confirmation Dialog */}
-      <AlertDialog open={isUnlinkDialogOpen} onOpenChange={setIsUnlinkDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Unlink from Team</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to unlink this subscription from its team? This will remove the association but will not delete the subscription.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={unlinkMutation.isPending}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleUnlink}
-              disabled={unlinkMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {unlinkMutation.isPending ? (
-                <>
-                  <Spinner size={16} className="mr-2" />
-                  Unlinking...
-                </>
-              ) : (
-                "Unlink"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -444,6 +444,10 @@ export const ModelName = {
   EmailDomainActivityLog: 'EmailDomainActivityLog',
   EmailCampaignActivityLog: 'EmailCampaignActivityLog',
   AudienceActivityLog: 'AudienceActivityLog',
+  GoogleAdsIntegration: 'GoogleAdsIntegration',
+  GoogleAdsAccount: 'GoogleAdsAccount',
+  GoogleAdsIntegrationActivityLog: 'GoogleAdsIntegrationActivityLog',
+  GoogleAdsAccountActivityLog: 'GoogleAdsAccountActivityLog',
   Invoice: 'Invoice',
   InvoiceLineItem: 'InvoiceLineItem',
   InvoiceTransaction: 'InvoiceTransaction',
@@ -452,6 +456,15 @@ export const ModelName = {
   InvoiceTransactionActivityLog: 'InvoiceTransactionActivityLog',
   CreditNoteActivityLog: 'CreditNoteActivityLog',
   InvoiceCounter: 'InvoiceCounter',
+  MetaAdsAccount: 'MetaAdsAccount',
+  MetaAdsCampaign: 'MetaAdsCampaign',
+  MetaAdsAdSet: 'MetaAdsAdSet',
+  MetaAdsAd: 'MetaAdsAd',
+  MetaAdsInsight: 'MetaAdsInsight',
+  MetaAdsAccountActivityLog: 'MetaAdsAccountActivityLog',
+  MetaAdsCampaignActivityLog: 'MetaAdsCampaignActivityLog',
+  MetaAdsAdSetActivityLog: 'MetaAdsAdSetActivityLog',
+  MetaAdsAdActivityLog: 'MetaAdsAdActivityLog',
   ServiceSubscription: 'ServiceSubscription',
   ServiceSubscriptionRenewal: 'ServiceSubscriptionRenewal',
   ServiceSubscriptionActivityLog: 'ServiceSubscriptionActivityLog',
@@ -459,7 +472,13 @@ export const ModelName = {
   SocialMediaIntegration: 'SocialMediaIntegration',
   SocialMediaPageToken: 'SocialMediaPageToken',
   SocialMediaIntegrationActivityLog: 'SocialMediaIntegrationActivityLog',
-  SocialMediaPageTokenActivityLog: 'SocialMediaPageTokenActivityLog'
+  SocialMediaPageTokenActivityLog: 'SocialMediaPageTokenActivityLog',
+  MetaContentCalendar: 'MetaContentCalendar',
+  MetaContentCalendarMedia: 'MetaContentCalendarMedia',
+  MetaContentCalendarActivityLog: 'MetaContentCalendarActivityLog',
+  LinkedInContentCalendar: 'LinkedInContentCalendar',
+  LinkedInContentCalendarMedia: 'LinkedInContentCalendarMedia',
+  LinkedInContentCalendarActivityLog: 'LinkedInContentCalendarActivityLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -475,7 +494,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4623,6 +4642,302 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    GoogleAdsIntegration: {
+      payload: Prisma.$GoogleAdsIntegrationPayload<ExtArgs>
+      fields: Prisma.GoogleAdsIntegrationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GoogleAdsIntegrationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GoogleAdsIntegrationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload>
+        }
+        findFirst: {
+          args: Prisma.GoogleAdsIntegrationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GoogleAdsIntegrationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload>
+        }
+        findMany: {
+          args: Prisma.GoogleAdsIntegrationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload>[]
+        }
+        create: {
+          args: Prisma.GoogleAdsIntegrationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload>
+        }
+        createMany: {
+          args: Prisma.GoogleAdsIntegrationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GoogleAdsIntegrationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload>[]
+        }
+        delete: {
+          args: Prisma.GoogleAdsIntegrationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload>
+        }
+        update: {
+          args: Prisma.GoogleAdsIntegrationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload>
+        }
+        deleteMany: {
+          args: Prisma.GoogleAdsIntegrationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GoogleAdsIntegrationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GoogleAdsIntegrationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload>[]
+        }
+        upsert: {
+          args: Prisma.GoogleAdsIntegrationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationPayload>
+        }
+        aggregate: {
+          args: Prisma.GoogleAdsIntegrationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGoogleAdsIntegration>
+        }
+        groupBy: {
+          args: Prisma.GoogleAdsIntegrationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleAdsIntegrationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GoogleAdsIntegrationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleAdsIntegrationCountAggregateOutputType> | number
+        }
+      }
+    }
+    GoogleAdsAccount: {
+      payload: Prisma.$GoogleAdsAccountPayload<ExtArgs>
+      fields: Prisma.GoogleAdsAccountFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GoogleAdsAccountFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GoogleAdsAccountFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload>
+        }
+        findFirst: {
+          args: Prisma.GoogleAdsAccountFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GoogleAdsAccountFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload>
+        }
+        findMany: {
+          args: Prisma.GoogleAdsAccountFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload>[]
+        }
+        create: {
+          args: Prisma.GoogleAdsAccountCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload>
+        }
+        createMany: {
+          args: Prisma.GoogleAdsAccountCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GoogleAdsAccountCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload>[]
+        }
+        delete: {
+          args: Prisma.GoogleAdsAccountDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload>
+        }
+        update: {
+          args: Prisma.GoogleAdsAccountUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload>
+        }
+        deleteMany: {
+          args: Prisma.GoogleAdsAccountDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GoogleAdsAccountUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GoogleAdsAccountUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload>[]
+        }
+        upsert: {
+          args: Prisma.GoogleAdsAccountUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountPayload>
+        }
+        aggregate: {
+          args: Prisma.GoogleAdsAccountAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGoogleAdsAccount>
+        }
+        groupBy: {
+          args: Prisma.GoogleAdsAccountGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleAdsAccountGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GoogleAdsAccountCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleAdsAccountCountAggregateOutputType> | number
+        }
+      }
+    }
+    GoogleAdsIntegrationActivityLog: {
+      payload: Prisma.$GoogleAdsIntegrationActivityLogPayload<ExtArgs>
+      fields: Prisma.GoogleAdsIntegrationActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GoogleAdsIntegrationActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GoogleAdsIntegrationActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.GoogleAdsIntegrationActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GoogleAdsIntegrationActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.GoogleAdsIntegrationActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.GoogleAdsIntegrationActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.GoogleAdsIntegrationActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GoogleAdsIntegrationActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.GoogleAdsIntegrationActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload>
+        }
+        update: {
+          args: Prisma.GoogleAdsIntegrationActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.GoogleAdsIntegrationActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GoogleAdsIntegrationActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GoogleAdsIntegrationActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.GoogleAdsIntegrationActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsIntegrationActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.GoogleAdsIntegrationActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGoogleAdsIntegrationActivityLog>
+        }
+        groupBy: {
+          args: Prisma.GoogleAdsIntegrationActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleAdsIntegrationActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GoogleAdsIntegrationActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleAdsIntegrationActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    GoogleAdsAccountActivityLog: {
+      payload: Prisma.$GoogleAdsAccountActivityLogPayload<ExtArgs>
+      fields: Prisma.GoogleAdsAccountActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GoogleAdsAccountActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GoogleAdsAccountActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.GoogleAdsAccountActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GoogleAdsAccountActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.GoogleAdsAccountActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.GoogleAdsAccountActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.GoogleAdsAccountActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GoogleAdsAccountActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.GoogleAdsAccountActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload>
+        }
+        update: {
+          args: Prisma.GoogleAdsAccountActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.GoogleAdsAccountActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GoogleAdsAccountActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GoogleAdsAccountActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.GoogleAdsAccountActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleAdsAccountActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.GoogleAdsAccountActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGoogleAdsAccountActivityLog>
+        }
+        groupBy: {
+          args: Prisma.GoogleAdsAccountActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleAdsAccountActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GoogleAdsAccountActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleAdsAccountActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
     Invoice: {
       payload: Prisma.$InvoicePayload<ExtArgs>
       fields: Prisma.InvoiceFieldRefs
@@ -5215,6 +5530,672 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MetaAdsAccount: {
+      payload: Prisma.$MetaAdsAccountPayload<ExtArgs>
+      fields: Prisma.MetaAdsAccountFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdsAccountFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdsAccountFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdsAccountFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdsAccountFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdsAccountFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdsAccountCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdsAccountCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdsAccountCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdsAccountDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload>
+        }
+        update: {
+          args: Prisma.MetaAdsAccountUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdsAccountDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdsAccountUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdsAccountUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdsAccountUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdsAccountAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdsAccount>
+        }
+        groupBy: {
+          args: Prisma.MetaAdsAccountGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAccountGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdsAccountCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAccountCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaAdsCampaign: {
+      payload: Prisma.$MetaAdsCampaignPayload<ExtArgs>
+      fields: Prisma.MetaAdsCampaignFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdsCampaignFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdsCampaignFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdsCampaignFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdsCampaignFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdsCampaignFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdsCampaignCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdsCampaignCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdsCampaignCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdsCampaignDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload>
+        }
+        update: {
+          args: Prisma.MetaAdsCampaignUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdsCampaignDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdsCampaignUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdsCampaignUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdsCampaignUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdsCampaignAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdsCampaign>
+        }
+        groupBy: {
+          args: Prisma.MetaAdsCampaignGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsCampaignGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdsCampaignCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsCampaignCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaAdsAdSet: {
+      payload: Prisma.$MetaAdsAdSetPayload<ExtArgs>
+      fields: Prisma.MetaAdsAdSetFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdsAdSetFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdsAdSetFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdsAdSetFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdsAdSetFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdsAdSetFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdsAdSetCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdsAdSetCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdsAdSetCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdsAdSetDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload>
+        }
+        update: {
+          args: Prisma.MetaAdsAdSetUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdsAdSetDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdsAdSetUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdsAdSetUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdsAdSetUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdsAdSetAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdsAdSet>
+        }
+        groupBy: {
+          args: Prisma.MetaAdsAdSetGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAdSetGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdsAdSetCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAdSetCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaAdsAd: {
+      payload: Prisma.$MetaAdsAdPayload<ExtArgs>
+      fields: Prisma.MetaAdsAdFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdsAdFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdsAdFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdsAdFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdsAdFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdsAdFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdsAdCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdsAdCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdsAdCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdsAdDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload>
+        }
+        update: {
+          args: Prisma.MetaAdsAdUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdsAdDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdsAdUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdsAdUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdsAdUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdsAdAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdsAd>
+        }
+        groupBy: {
+          args: Prisma.MetaAdsAdGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAdGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdsAdCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAdCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaAdsInsight: {
+      payload: Prisma.$MetaAdsInsightPayload<ExtArgs>
+      fields: Prisma.MetaAdsInsightFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdsInsightFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdsInsightFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdsInsightFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdsInsightFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdsInsightFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdsInsightCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdsInsightCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdsInsightCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdsInsightDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload>
+        }
+        update: {
+          args: Prisma.MetaAdsInsightUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdsInsightDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdsInsightUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdsInsightUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdsInsightUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsInsightPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdsInsightAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdsInsight>
+        }
+        groupBy: {
+          args: Prisma.MetaAdsInsightGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsInsightGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdsInsightCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsInsightCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaAdsAccountActivityLog: {
+      payload: Prisma.$MetaAdsAccountActivityLogPayload<ExtArgs>
+      fields: Prisma.MetaAdsAccountActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdsAccountActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdsAccountActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdsAccountActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdsAccountActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdsAccountActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdsAccountActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdsAccountActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdsAccountActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdsAccountActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload>
+        }
+        update: {
+          args: Prisma.MetaAdsAccountActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdsAccountActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdsAccountActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdsAccountActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdsAccountActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAccountActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdsAccountActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdsAccountActivityLog>
+        }
+        groupBy: {
+          args: Prisma.MetaAdsAccountActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAccountActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdsAccountActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAccountActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaAdsCampaignActivityLog: {
+      payload: Prisma.$MetaAdsCampaignActivityLogPayload<ExtArgs>
+      fields: Prisma.MetaAdsCampaignActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdsCampaignActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdsCampaignActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdsCampaignActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdsCampaignActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdsCampaignActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdsCampaignActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdsCampaignActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdsCampaignActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdsCampaignActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload>
+        }
+        update: {
+          args: Prisma.MetaAdsCampaignActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdsCampaignActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdsCampaignActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdsCampaignActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdsCampaignActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsCampaignActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdsCampaignActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdsCampaignActivityLog>
+        }
+        groupBy: {
+          args: Prisma.MetaAdsCampaignActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsCampaignActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdsCampaignActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsCampaignActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaAdsAdSetActivityLog: {
+      payload: Prisma.$MetaAdsAdSetActivityLogPayload<ExtArgs>
+      fields: Prisma.MetaAdsAdSetActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdsAdSetActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdsAdSetActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdsAdSetActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdsAdSetActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdsAdSetActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdsAdSetActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdsAdSetActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdsAdSetActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdsAdSetActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload>
+        }
+        update: {
+          args: Prisma.MetaAdsAdSetActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdsAdSetActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdsAdSetActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdsAdSetActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdsAdSetActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdSetActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdsAdSetActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdsAdSetActivityLog>
+        }
+        groupBy: {
+          args: Prisma.MetaAdsAdSetActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAdSetActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdsAdSetActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAdSetActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaAdsAdActivityLog: {
+      payload: Prisma.$MetaAdsAdActivityLogPayload<ExtArgs>
+      fields: Prisma.MetaAdsAdActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdsAdActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdsAdActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdsAdActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdsAdActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdsAdActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdsAdActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdsAdActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdsAdActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdsAdActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload>
+        }
+        update: {
+          args: Prisma.MetaAdsAdActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdsAdActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdsAdActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdsAdActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdsAdActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdsAdActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdsAdActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdsAdActivityLog>
+        }
+        groupBy: {
+          args: Prisma.MetaAdsAdActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAdActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdsAdActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdsAdActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
     ServiceSubscription: {
       payload: Prisma.$ServiceSubscriptionPayload<ExtArgs>
       fields: Prisma.ServiceSubscriptionFieldRefs
@@ -5804,6 +6785,450 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.SocialMediaPageTokenActivityLogCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.SocialMediaPageTokenActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaContentCalendar: {
+      payload: Prisma.$MetaContentCalendarPayload<ExtArgs>
+      fields: Prisma.MetaContentCalendarFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaContentCalendarFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaContentCalendarFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaContentCalendarFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaContentCalendarFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload>
+        }
+        findMany: {
+          args: Prisma.MetaContentCalendarFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload>[]
+        }
+        create: {
+          args: Prisma.MetaContentCalendarCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload>
+        }
+        createMany: {
+          args: Prisma.MetaContentCalendarCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaContentCalendarCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaContentCalendarDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload>
+        }
+        update: {
+          args: Prisma.MetaContentCalendarUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaContentCalendarDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaContentCalendarUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaContentCalendarUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaContentCalendarUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaContentCalendarAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaContentCalendar>
+        }
+        groupBy: {
+          args: Prisma.MetaContentCalendarGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaContentCalendarGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaContentCalendarCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaContentCalendarCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaContentCalendarMedia: {
+      payload: Prisma.$MetaContentCalendarMediaPayload<ExtArgs>
+      fields: Prisma.MetaContentCalendarMediaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaContentCalendarMediaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaContentCalendarMediaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaContentCalendarMediaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaContentCalendarMediaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload>
+        }
+        findMany: {
+          args: Prisma.MetaContentCalendarMediaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload>[]
+        }
+        create: {
+          args: Prisma.MetaContentCalendarMediaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload>
+        }
+        createMany: {
+          args: Prisma.MetaContentCalendarMediaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaContentCalendarMediaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaContentCalendarMediaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload>
+        }
+        update: {
+          args: Prisma.MetaContentCalendarMediaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaContentCalendarMediaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaContentCalendarMediaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaContentCalendarMediaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaContentCalendarMediaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarMediaPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaContentCalendarMediaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaContentCalendarMedia>
+        }
+        groupBy: {
+          args: Prisma.MetaContentCalendarMediaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaContentCalendarMediaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaContentCalendarMediaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaContentCalendarMediaCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaContentCalendarActivityLog: {
+      payload: Prisma.$MetaContentCalendarActivityLogPayload<ExtArgs>
+      fields: Prisma.MetaContentCalendarActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaContentCalendarActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaContentCalendarActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaContentCalendarActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaContentCalendarActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.MetaContentCalendarActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.MetaContentCalendarActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.MetaContentCalendarActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaContentCalendarActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaContentCalendarActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload>
+        }
+        update: {
+          args: Prisma.MetaContentCalendarActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaContentCalendarActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaContentCalendarActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaContentCalendarActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaContentCalendarActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaContentCalendarActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaContentCalendarActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaContentCalendarActivityLog>
+        }
+        groupBy: {
+          args: Prisma.MetaContentCalendarActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaContentCalendarActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaContentCalendarActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaContentCalendarActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    LinkedInContentCalendar: {
+      payload: Prisma.$LinkedInContentCalendarPayload<ExtArgs>
+      fields: Prisma.LinkedInContentCalendarFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LinkedInContentCalendarFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LinkedInContentCalendarFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload>
+        }
+        findFirst: {
+          args: Prisma.LinkedInContentCalendarFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LinkedInContentCalendarFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload>
+        }
+        findMany: {
+          args: Prisma.LinkedInContentCalendarFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload>[]
+        }
+        create: {
+          args: Prisma.LinkedInContentCalendarCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload>
+        }
+        createMany: {
+          args: Prisma.LinkedInContentCalendarCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LinkedInContentCalendarCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload>[]
+        }
+        delete: {
+          args: Prisma.LinkedInContentCalendarDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload>
+        }
+        update: {
+          args: Prisma.LinkedInContentCalendarUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload>
+        }
+        deleteMany: {
+          args: Prisma.LinkedInContentCalendarDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LinkedInContentCalendarUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LinkedInContentCalendarUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload>[]
+        }
+        upsert: {
+          args: Prisma.LinkedInContentCalendarUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarPayload>
+        }
+        aggregate: {
+          args: Prisma.LinkedInContentCalendarAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLinkedInContentCalendar>
+        }
+        groupBy: {
+          args: Prisma.LinkedInContentCalendarGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LinkedInContentCalendarGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LinkedInContentCalendarCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LinkedInContentCalendarCountAggregateOutputType> | number
+        }
+      }
+    }
+    LinkedInContentCalendarMedia: {
+      payload: Prisma.$LinkedInContentCalendarMediaPayload<ExtArgs>
+      fields: Prisma.LinkedInContentCalendarMediaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LinkedInContentCalendarMediaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LinkedInContentCalendarMediaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload>
+        }
+        findFirst: {
+          args: Prisma.LinkedInContentCalendarMediaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LinkedInContentCalendarMediaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload>
+        }
+        findMany: {
+          args: Prisma.LinkedInContentCalendarMediaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload>[]
+        }
+        create: {
+          args: Prisma.LinkedInContentCalendarMediaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload>
+        }
+        createMany: {
+          args: Prisma.LinkedInContentCalendarMediaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LinkedInContentCalendarMediaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload>[]
+        }
+        delete: {
+          args: Prisma.LinkedInContentCalendarMediaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload>
+        }
+        update: {
+          args: Prisma.LinkedInContentCalendarMediaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload>
+        }
+        deleteMany: {
+          args: Prisma.LinkedInContentCalendarMediaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LinkedInContentCalendarMediaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LinkedInContentCalendarMediaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload>[]
+        }
+        upsert: {
+          args: Prisma.LinkedInContentCalendarMediaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarMediaPayload>
+        }
+        aggregate: {
+          args: Prisma.LinkedInContentCalendarMediaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLinkedInContentCalendarMedia>
+        }
+        groupBy: {
+          args: Prisma.LinkedInContentCalendarMediaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LinkedInContentCalendarMediaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LinkedInContentCalendarMediaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LinkedInContentCalendarMediaCountAggregateOutputType> | number
+        }
+      }
+    }
+    LinkedInContentCalendarActivityLog: {
+      payload: Prisma.$LinkedInContentCalendarActivityLogPayload<ExtArgs>
+      fields: Prisma.LinkedInContentCalendarActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LinkedInContentCalendarActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LinkedInContentCalendarActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.LinkedInContentCalendarActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LinkedInContentCalendarActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.LinkedInContentCalendarActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.LinkedInContentCalendarActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.LinkedInContentCalendarActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LinkedInContentCalendarActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.LinkedInContentCalendarActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload>
+        }
+        update: {
+          args: Prisma.LinkedInContentCalendarActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.LinkedInContentCalendarActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LinkedInContentCalendarActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LinkedInContentCalendarActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.LinkedInContentCalendarActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinkedInContentCalendarActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.LinkedInContentCalendarActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLinkedInContentCalendarActivityLog>
+        }
+        groupBy: {
+          args: Prisma.LinkedInContentCalendarActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LinkedInContentCalendarActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LinkedInContentCalendarActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LinkedInContentCalendarActivityLogCountAggregateOutputType> | number
         }
       }
     }
@@ -6886,6 +8311,69 @@ export const AudienceActivityLogScalarFieldEnum = {
 export type AudienceActivityLogScalarFieldEnum = (typeof AudienceActivityLogScalarFieldEnum)[keyof typeof AudienceActivityLogScalarFieldEnum]
 
 
+export const GoogleAdsIntegrationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  status: 'status',
+  refreshToken: 'refreshToken',
+  accessToken: 'accessToken',
+  accessTokenExpiresAt: 'accessTokenExpiresAt',
+  scope: 'scope',
+  tokenType: 'tokenType',
+  lastTokenRefreshAt: 'lastTokenRefreshAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleAdsIntegrationScalarFieldEnum = (typeof GoogleAdsIntegrationScalarFieldEnum)[keyof typeof GoogleAdsIntegrationScalarFieldEnum]
+
+
+export const GoogleAdsAccountScalarFieldEnum = {
+  id: 'id',
+  integrationId: 'integrationId',
+  customerId: 'customerId',
+  accountName: 'accountName',
+  currencyCode: 'currencyCode',
+  timeZone: 'timeZone',
+  status: 'status',
+  teamId: 'teamId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleAdsAccountScalarFieldEnum = (typeof GoogleAdsAccountScalarFieldEnum)[keyof typeof GoogleAdsAccountScalarFieldEnum]
+
+
+export const GoogleAdsIntegrationActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  integrationId: 'integrationId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type GoogleAdsIntegrationActivityLogScalarFieldEnum = (typeof GoogleAdsIntegrationActivityLogScalarFieldEnum)[keyof typeof GoogleAdsIntegrationActivityLogScalarFieldEnum]
+
+
+export const GoogleAdsAccountActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type GoogleAdsAccountActivityLogScalarFieldEnum = (typeof GoogleAdsAccountActivityLogScalarFieldEnum)[keyof typeof GoogleAdsAccountActivityLogScalarFieldEnum]
+
+
 export const InvoiceScalarFieldEnum = {
   id: 'id',
   teamId: 'teamId',
@@ -7046,6 +8534,164 @@ export const InvoiceCounterScalarFieldEnum = {
 export type InvoiceCounterScalarFieldEnum = (typeof InvoiceCounterScalarFieldEnum)[keyof typeof InvoiceCounterScalarFieldEnum]
 
 
+export const MetaAdsAccountScalarFieldEnum = {
+  id: 'id',
+  integrationId: 'integrationId',
+  accountId: 'accountId',
+  accountName: 'accountName',
+  currency: 'currency',
+  timezone: 'timezone',
+  status: 'status',
+  spendLimit: 'spendLimit',
+  amountSpent: 'amountSpent',
+  balance: 'balance',
+  teamId: 'teamId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaAdsAccountScalarFieldEnum = (typeof MetaAdsAccountScalarFieldEnum)[keyof typeof MetaAdsAccountScalarFieldEnum]
+
+
+export const MetaAdsCampaignScalarFieldEnum = {
+  id: 'id',
+  accountId: 'accountId',
+  campaignId: 'campaignId',
+  campaignName: 'campaignName',
+  objective: 'objective',
+  status: 'status',
+  dailyBudget: 'dailyBudget',
+  lifetimeBudget: 'lifetimeBudget',
+  budgetRemaining: 'budgetRemaining',
+  startTime: 'startTime',
+  stopTime: 'stopTime',
+  createdTime: 'createdTime',
+  updatedTime: 'updatedTime',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaAdsCampaignScalarFieldEnum = (typeof MetaAdsCampaignScalarFieldEnum)[keyof typeof MetaAdsCampaignScalarFieldEnum]
+
+
+export const MetaAdsAdSetScalarFieldEnum = {
+  id: 'id',
+  campaignId: 'campaignId',
+  accountId: 'accountId',
+  adSetId: 'adSetId',
+  adSetName: 'adSetName',
+  status: 'status',
+  dailyBudget: 'dailyBudget',
+  lifetimeBudget: 'lifetimeBudget',
+  budgetRemaining: 'budgetRemaining',
+  bidAmount: 'bidAmount',
+  targeting: 'targeting',
+  startTime: 'startTime',
+  stopTime: 'stopTime',
+  createdTime: 'createdTime',
+  updatedTime: 'updatedTime',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaAdsAdSetScalarFieldEnum = (typeof MetaAdsAdSetScalarFieldEnum)[keyof typeof MetaAdsAdSetScalarFieldEnum]
+
+
+export const MetaAdsAdScalarFieldEnum = {
+  id: 'id',
+  adSetId: 'adSetId',
+  campaignId: 'campaignId',
+  accountId: 'accountId',
+  adId: 'adId',
+  adName: 'adName',
+  status: 'status',
+  creative: 'creative',
+  createdTime: 'createdTime',
+  updatedTime: 'updatedTime',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaAdsAdScalarFieldEnum = (typeof MetaAdsAdScalarFieldEnum)[keyof typeof MetaAdsAdScalarFieldEnum]
+
+
+export const MetaAdsInsightScalarFieldEnum = {
+  id: 'id',
+  accountId: 'accountId',
+  campaignId: 'campaignId',
+  adSetId: 'adSetId',
+  adId: 'adId',
+  dateStart: 'dateStart',
+  dateEnd: 'dateEnd',
+  breakdown: 'breakdown',
+  metrics: 'metrics',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaAdsInsightScalarFieldEnum = (typeof MetaAdsInsightScalarFieldEnum)[keyof typeof MetaAdsInsightScalarFieldEnum]
+
+
+export const MetaAdsAccountActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type MetaAdsAccountActivityLogScalarFieldEnum = (typeof MetaAdsAccountActivityLogScalarFieldEnum)[keyof typeof MetaAdsAccountActivityLogScalarFieldEnum]
+
+
+export const MetaAdsCampaignActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  campaignId: 'campaignId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type MetaAdsCampaignActivityLogScalarFieldEnum = (typeof MetaAdsCampaignActivityLogScalarFieldEnum)[keyof typeof MetaAdsCampaignActivityLogScalarFieldEnum]
+
+
+export const MetaAdsAdSetActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  adSetId: 'adSetId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type MetaAdsAdSetActivityLogScalarFieldEnum = (typeof MetaAdsAdSetActivityLogScalarFieldEnum)[keyof typeof MetaAdsAdSetActivityLogScalarFieldEnum]
+
+
+export const MetaAdsAdActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  adId: 'adId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type MetaAdsAdActivityLogScalarFieldEnum = (typeof MetaAdsAdActivityLogScalarFieldEnum)[keyof typeof MetaAdsAdActivityLogScalarFieldEnum]
+
+
 export const ServiceSubscriptionScalarFieldEnum = {
   id: 'id',
   niscServicePlanId: 'niscServicePlanId',
@@ -7137,13 +8783,16 @@ export const SocialMediaPageTokenScalarFieldEnum = {
   id: 'id',
   integrationId: 'integrationId',
   teamId: 'teamId',
+  platform: 'platform',
   pageId: 'pageId',
   pageName: 'pageName',
   pageUsername: 'pageUsername',
   pagePicture: 'pagePicture',
   pageCategory: 'pageCategory',
   accessToken: 'accessToken',
+  accessTokenExpiresAt: 'accessTokenExpiresAt',
   isActive: 'isActive',
+  lastTokenRefreshAt: 'lastTokenRefreshAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   userId: 'userId'
@@ -7182,6 +8831,114 @@ export const SocialMediaPageTokenActivityLogScalarFieldEnum = {
 export type SocialMediaPageTokenActivityLogScalarFieldEnum = (typeof SocialMediaPageTokenActivityLogScalarFieldEnum)[keyof typeof SocialMediaPageTokenActivityLogScalarFieldEnum]
 
 
+export const MetaContentCalendarScalarFieldEnum = {
+  id: 'id',
+  pageTokenId: 'pageTokenId',
+  message: 'message',
+  scheduledPublishTime: 'scheduledPublishTime',
+  status: 'status',
+  published: 'published',
+  publishedAt: 'publishedAt',
+  publishedPostId: 'publishedPostId',
+  publishedPermalink: 'publishedPermalink',
+  lastError: 'lastError',
+  retryCount: 'retryCount',
+  lastRetryAt: 'lastRetryAt',
+  qstashJobId: 'qstashJobId',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaContentCalendarScalarFieldEnum = (typeof MetaContentCalendarScalarFieldEnum)[keyof typeof MetaContentCalendarScalarFieldEnum]
+
+
+export const MetaContentCalendarMediaScalarFieldEnum = {
+  id: 'id',
+  calendarPostId: 'calendarPostId',
+  mediaType: 'mediaType',
+  url: 'url',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  caption: 'caption',
+  description: 'description',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaContentCalendarMediaScalarFieldEnum = (typeof MetaContentCalendarMediaScalarFieldEnum)[keyof typeof MetaContentCalendarMediaScalarFieldEnum]
+
+
+export const MetaContentCalendarActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  calendarPostId: 'calendarPostId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type MetaContentCalendarActivityLogScalarFieldEnum = (typeof MetaContentCalendarActivityLogScalarFieldEnum)[keyof typeof MetaContentCalendarActivityLogScalarFieldEnum]
+
+
+export const LinkedInContentCalendarScalarFieldEnum = {
+  id: 'id',
+  pageTokenId: 'pageTokenId',
+  message: 'message',
+  scheduledPublishTime: 'scheduledPublishTime',
+  status: 'status',
+  published: 'published',
+  publishedAt: 'publishedAt',
+  publishedPostId: 'publishedPostId',
+  publishedPermalink: 'publishedPermalink',
+  lastError: 'lastError',
+  retryCount: 'retryCount',
+  lastRetryAt: 'lastRetryAt',
+  qstashJobId: 'qstashJobId',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LinkedInContentCalendarScalarFieldEnum = (typeof LinkedInContentCalendarScalarFieldEnum)[keyof typeof LinkedInContentCalendarScalarFieldEnum]
+
+
+export const LinkedInContentCalendarMediaScalarFieldEnum = {
+  id: 'id',
+  calendarPostId: 'calendarPostId',
+  mediaType: 'mediaType',
+  url: 'url',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  caption: 'caption',
+  description: 'description',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LinkedInContentCalendarMediaScalarFieldEnum = (typeof LinkedInContentCalendarMediaScalarFieldEnum)[keyof typeof LinkedInContentCalendarMediaScalarFieldEnum]
+
+
+export const LinkedInContentCalendarActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  calendarPostId: 'calendarPostId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type LinkedInContentCalendarActivityLogScalarFieldEnum = (typeof LinkedInContentCalendarActivityLogScalarFieldEnum)[keyof typeof LinkedInContentCalendarActivityLogScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -7196,6 +8953,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -7685,6 +9449,34 @@ export type ListEnumEmailEventTypeFieldRefInput<$PrismaModel> = FieldRefInputTyp
 
 
 /**
+ * Reference to a field of type 'GoogleAdsIntegrationStatus'
+ */
+export type EnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GoogleAdsIntegrationStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'GoogleAdsIntegrationStatus[]'
+ */
+export type ListEnumGoogleAdsIntegrationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GoogleAdsIntegrationStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'GoogleAdsAccountStatus'
+ */
+export type EnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GoogleAdsAccountStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'GoogleAdsAccountStatus[]'
+ */
+export type ListEnumGoogleAdsAccountStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GoogleAdsAccountStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'InvoiceStatus'
  */
 export type EnumInvoiceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'InvoiceStatus'>
@@ -7741,6 +9533,76 @@ export type ListEnumCreditNoteStatusFieldRefInput<$PrismaModel> = FieldRefInputT
 
 
 /**
+ * Reference to a field of type 'MetaAdsAccountStatus'
+ */
+export type EnumMetaAdsAccountStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaAdsAccountStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaAdsAccountStatus[]'
+ */
+export type ListEnumMetaAdsAccountStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaAdsAccountStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaAdsCampaignObjective'
+ */
+export type EnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaAdsCampaignObjective'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaAdsCampaignObjective[]'
+ */
+export type ListEnumMetaAdsCampaignObjectiveFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaAdsCampaignObjective[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaAdsCampaignStatus'
+ */
+export type EnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaAdsCampaignStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaAdsCampaignStatus[]'
+ */
+export type ListEnumMetaAdsCampaignStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaAdsCampaignStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaAdsAdSetStatus'
+ */
+export type EnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaAdsAdSetStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaAdsAdSetStatus[]'
+ */
+export type ListEnumMetaAdsAdSetStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaAdsAdSetStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaAdsAdStatus'
+ */
+export type EnumMetaAdsAdStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaAdsAdStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaAdsAdStatus[]'
+ */
+export type ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaAdsAdStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'ServiceSubscriptionStatus'
  */
 export type EnumServiceSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ServiceSubscriptionStatus'>
@@ -7779,6 +9641,62 @@ export type EnumIntegrationStatusFieldRefInput<$PrismaModel> = FieldRefInputType
  * Reference to a field of type 'IntegrationStatus[]'
  */
 export type ListEnumIntegrationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'IntegrationStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaContentCalendarStatus'
+ */
+export type EnumMetaContentCalendarStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaContentCalendarStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaContentCalendarStatus[]'
+ */
+export type ListEnumMetaContentCalendarStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaContentCalendarStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaContentMediaType'
+ */
+export type EnumMetaContentMediaTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaContentMediaType'>
+    
+
+
+/**
+ * Reference to a field of type 'MetaContentMediaType[]'
+ */
+export type ListEnumMetaContentMediaTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetaContentMediaType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'LinkedInContentCalendarStatus'
+ */
+export type EnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LinkedInContentCalendarStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'LinkedInContentCalendarStatus[]'
+ */
+export type ListEnumLinkedInContentCalendarStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LinkedInContentCalendarStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'LinkedInContentMediaType'
+ */
+export type EnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LinkedInContentMediaType'>
+    
+
+
+/**
+ * Reference to a field of type 'LinkedInContentMediaType[]'
+ */
+export type ListEnumLinkedInContentMediaTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LinkedInContentMediaType[]'>
     
 
 /**
@@ -7924,6 +9842,10 @@ export type GlobalOmitConfig = {
   emailDomainActivityLog?: Prisma.EmailDomainActivityLogOmit
   emailCampaignActivityLog?: Prisma.EmailCampaignActivityLogOmit
   audienceActivityLog?: Prisma.AudienceActivityLogOmit
+  googleAdsIntegration?: Prisma.GoogleAdsIntegrationOmit
+  googleAdsAccount?: Prisma.GoogleAdsAccountOmit
+  googleAdsIntegrationActivityLog?: Prisma.GoogleAdsIntegrationActivityLogOmit
+  googleAdsAccountActivityLog?: Prisma.GoogleAdsAccountActivityLogOmit
   invoice?: Prisma.InvoiceOmit
   invoiceLineItem?: Prisma.InvoiceLineItemOmit
   invoiceTransaction?: Prisma.InvoiceTransactionOmit
@@ -7932,6 +9854,15 @@ export type GlobalOmitConfig = {
   invoiceTransactionActivityLog?: Prisma.InvoiceTransactionActivityLogOmit
   creditNoteActivityLog?: Prisma.CreditNoteActivityLogOmit
   invoiceCounter?: Prisma.InvoiceCounterOmit
+  metaAdsAccount?: Prisma.MetaAdsAccountOmit
+  metaAdsCampaign?: Prisma.MetaAdsCampaignOmit
+  metaAdsAdSet?: Prisma.MetaAdsAdSetOmit
+  metaAdsAd?: Prisma.MetaAdsAdOmit
+  metaAdsInsight?: Prisma.MetaAdsInsightOmit
+  metaAdsAccountActivityLog?: Prisma.MetaAdsAccountActivityLogOmit
+  metaAdsCampaignActivityLog?: Prisma.MetaAdsCampaignActivityLogOmit
+  metaAdsAdSetActivityLog?: Prisma.MetaAdsAdSetActivityLogOmit
+  metaAdsAdActivityLog?: Prisma.MetaAdsAdActivityLogOmit
   serviceSubscription?: Prisma.ServiceSubscriptionOmit
   serviceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalOmit
   serviceSubscriptionActivityLog?: Prisma.ServiceSubscriptionActivityLogOmit
@@ -7940,6 +9871,12 @@ export type GlobalOmitConfig = {
   socialMediaPageToken?: Prisma.SocialMediaPageTokenOmit
   socialMediaIntegrationActivityLog?: Prisma.SocialMediaIntegrationActivityLogOmit
   socialMediaPageTokenActivityLog?: Prisma.SocialMediaPageTokenActivityLogOmit
+  metaContentCalendar?: Prisma.MetaContentCalendarOmit
+  metaContentCalendarMedia?: Prisma.MetaContentCalendarMediaOmit
+  metaContentCalendarActivityLog?: Prisma.MetaContentCalendarActivityLogOmit
+  linkedInContentCalendar?: Prisma.LinkedInContentCalendarOmit
+  linkedInContentCalendarMedia?: Prisma.LinkedInContentCalendarMediaOmit
+  linkedInContentCalendarActivityLog?: Prisma.LinkedInContentCalendarActivityLogOmit
 }
 
 /* Types for Logging */

@@ -25,16 +25,18 @@ interface CurrencyContextType {
 const CurrencyContext = React.createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  const [selectedCurrency, setSelectedCurrency] = React.useState<SupportedCurrency>('USD');
+  // Default currency changed to KES for customer side
+  const [selectedCurrency, setSelectedCurrency] = React.useState<SupportedCurrency>('KES');
   const [isConverting, setIsConverting] = React.useState(false);
 
   // Load from localStorage on mount
-  React.useEffect(() => {
-    const saved = localStorage.getItem('selectedCurrency') as SupportedCurrency;
-    if (saved && SUPPORTED_CURRENCIES.some(c => c.code === saved)) {
-      setSelectedCurrency(saved);
-    }
-  }, []);
+  // Commented out to always use KES as default for customer side
+  // React.useEffect(() => {
+  //   const saved = localStorage.getItem('selectedCurrency') as SupportedCurrency;
+  //   if (saved && SUPPORTED_CURRENCIES.some(c => c.code === saved)) {
+  //     setSelectedCurrency(saved);
+  //   }
+  // }, []);
 
   // Save to localStorage on change
   React.useEffect(() => {

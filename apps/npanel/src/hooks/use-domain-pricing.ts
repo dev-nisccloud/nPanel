@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import { trpc } from "@/utils/trpc";
-import type { DomainSearchResult } from "./domain-search";
-import { useCurrency } from "./currency-context";
+import type { DomainSearchResult } from "./use-domain-search";
 
 // Types for pricing calculation
 interface TldSetting {
@@ -45,19 +44,22 @@ function getTldSettingHash(tldSetting: TldSetting | null): string {
   return `${tldSetting.id}-${tldSetting.marginType}-${tldSetting.percentageMargin}-${tldSetting.fixedMargin}-${tldSetting.roundOff}`;
 }
 
-export function useDomainPricing() {
+// Currency context interface - shared between agency and customer
+interface CurrencyContext {
+  selectedCurrency: string;
+  isConversionAvailable: boolean;
+  convertPricesBatch: (prices: Array<{ amount: number; currency: string }>, targetCurrency: string) => Promise<any[]>;
+}
+
+export function useDomainPricing(currencyContext: CurrencyContext) {
   const [defaultTldSetting, setDefaultTldSetting] = React.useState<TldSetting | null>(null);
   const [isLoadingTldSettings, setIsLoadingTldSettings] = React.useState(true);
 
-  // Use currency context for efficient state management
-  const { selectedCurrency, isConversionAvailable, convertPricesBatch } = useCurrency();
+  const { selectedCurrency, isConversionAvailable, convertPricesBatch } = currencyContext;
 
-  // Fetch default TLD setting with React Query caching
-  const { data: tldSettingsData } = trpc.tldSettings.list.useQuery(
-    {
-      limit: 100,
-      offset: 0,
-    },
+  // P0-2: Fetch only default TLD setting (optimized endpoint - reduces payload by ~95%)
+  const { data: tldSettingsData } = trpc.tldSettings.getDefault.useQuery(
+    undefined,
     {
       staleTime: 10 * 60 * 1000, // 10 minutes - data stays fresh
       gcTime: 30 * 60 * 1000, // 30 minutes - cache persists
@@ -66,11 +68,10 @@ export function useDomainPricing() {
     }
   );
 
-  // Find default TLD setting
+  // Set default TLD setting directly from optimized query
   React.useEffect(() => {
-    if (tldSettingsData?.success && tldSettingsData.data) {
-      const defaultSetting = tldSettingsData.data.find(setting => setting.isDefault);
-      setDefaultTldSetting(defaultSetting || null);
+    if (tldSettingsData?.success) {
+      setDefaultTldSetting(tldSettingsData.data || null);
     }
     setIsLoadingTldSettings(false);
   }, [tldSettingsData]);
@@ -146,19 +147,33 @@ export function useDomainPricing() {
       currentCache = pricingCache.get(cacheKey) || {};
     }
 
-    // Process all domains in one go
-    const processedResults = await Promise.all(results.map(async (result) => {
+    // Process all domains in parallel, but collect prices needing conversion for batch processing
+    interface ProcessedDomain {
+      result: DomainSearchResult;
+      calculated: CalculatedPrice | null;
+      needsConversion: boolean;
+      domainCacheKey: string;
+      convertedCacheKey: string;
+    }
+
+    // First pass: Process all domains in parallel and collect prices needing conversion
+    const processedDomains = await Promise.all(results.map(async (result, index) => {
       if (result.status !== 'free' || !result.price?.reseller?.price) {
-        return result;
+        return {
+          result,
+          calculated: null,
+          needsConversion: false,
+          domainCacheKey: '',
+          convertedCacheKey: '',
+        };
       }
 
       const domain = result.domain;
       const originalPrice = result.price.reseller.price;
       const currency = result.price.reseller.currency || 'USD';
-
-      // Create a domain-specific cache key
       const domainCacheKey = `${domain}-${originalPrice}-${currency}`;
-      
+      const convertedCacheKey = `${domainCacheKey}-converted-${selectedCurrency}`;
+
       // Check if result already has correct conversion - skip if it does
       const existingCalculated = result.price.calculated;
       if (existingCalculated) {
@@ -169,11 +184,17 @@ export function useDomainPricing() {
           : true; // No conversion needed
         
         if (hasCorrectConversion && existingCalculated.finalPrice) {
-          // Result already has correct pricing, return as-is
-          return result;
+          // Result already has correct pricing, no processing needed
+          return {
+            result,
+            calculated: existingCalculated as CalculatedPrice,
+            needsConversion: false,
+            domainCacheKey,
+            convertedCacheKey,
+          };
         }
       }
-      
+
       // Check cache first (only if cache is valid)
       if (cacheIsValid && currentCache[domainCacheKey]) {
         const cached = currentCache[domainCacheKey];
@@ -181,15 +202,11 @@ export function useDomainPricing() {
         if (selectedCurrency === currency || 
             (cached as any).displayCurrency === selectedCurrency) {
           return {
-            ...result,
-            price: {
-              ...result.price,
-              reseller: {
-                ...result.price.reseller,
-                price: cached.finalPrice,
-              },
-              calculated: cached,
-            },
+            result,
+            calculated: cached,
+            needsConversion: false,
+            domainCacheKey,
+            convertedCacheKey,
           };
         }
       }
@@ -197,45 +214,18 @@ export function useDomainPricing() {
       // Calculate new price with markup
       const calculated = calculatePrice(domain, originalPrice, currency);
 
-      // Add currency conversion if available and different from original currency
-      // Only convert if we don't already have the conversion for this currency
-      if (isConversionAvailable && selectedCurrency !== currency) {
-        // Check if we already have this conversion in cache by checking the domain cache key with currency
-        const convertedCacheKey = `${domainCacheKey}-converted-${selectedCurrency}`;
+      // Check if conversion is needed and not cached
+      const needsConversion = isConversionAvailable && selectedCurrency !== currency;
+      
+      if (needsConversion) {
         const cachedConverted = currentCache[convertedCacheKey] as any;
-        
         if (cachedConverted?.convertedPrice && cachedConverted?.displayCurrency === selectedCurrency) {
           // Use cached conversion
           calculated.convertedPrice = cachedConverted.convertedPrice;
           calculated.exchangeRate = cachedConverted.exchangeRate;
           calculated.displayCurrency = cachedConverted.displayCurrency;
-        } else {
-          // Only convert if we don't have cached conversion
-          try {
-            const convertedPrices = await convertPricesBatch([{
-              amount: calculated.finalPrice,
-              currency: currency,
-            }], selectedCurrency);
-
-            if (convertedPrices.length > 0 && convertedPrices[0]) {
-              const converted = convertedPrices[0];
-              calculated.convertedPrice = converted.convertedAmount;
-              calculated.exchangeRate = converted.rate;
-              calculated.displayCurrency = selectedCurrency;
-              
-              // Cache the conversion separately
-              currentCache[convertedCacheKey] = {
-                ...calculated,
-                convertedPrice: converted.convertedAmount,
-                exchangeRate: converted.rate,
-                displayCurrency: selectedCurrency,
-              };
-            }
-          } catch (error) {
-            console.error('Failed to convert price for domain:', domain, error);
-            // Continue without conversion if it fails
-          }
         }
+        // If not cached, we'll batch convert below
       } else if (selectedCurrency === currency) {
         // Same currency, no conversion needed
         calculated.convertedPrice = undefined;
@@ -243,21 +233,90 @@ export function useDomainPricing() {
         calculated.displayCurrency = undefined;
       }
 
-      // Cache the result
-      currentCache[domainCacheKey] = calculated;
-
       return {
-        ...result,
-        price: {
-          ...result.price,
-          reseller: {
-            ...result.price.reseller,
-            price: calculated.finalPrice,
-          },
-          calculated,
-        },
+        result,
+        calculated,
+        needsConversion: needsConversion && !currentCache[convertedCacheKey],
+        domainCacheKey,
+        convertedCacheKey,
       };
     }));
+
+    // Collect all prices that need conversion for batch processing
+    const pricesToConvert: Array<{ amount: number; currency: string; index: number }> = [];
+    processedDomains.forEach((processed, index) => {
+      if (processed.needsConversion && processed.calculated) {
+        const currency = processed.result.price?.reseller?.currency || 'USD';
+        pricesToConvert.push({
+          amount: processed.calculated.finalPrice,
+          currency: currency,
+          index: index,
+        });
+      }
+    });
+
+    // Batch convert all prices that need conversion in a single API call
+    if (pricesToConvert.length > 0) {
+      try {
+        const pricesForConversion = pricesToConvert.map(p => ({
+          amount: p.amount,
+          currency: p.currency,
+        }));
+
+        const convertedPrices = await convertPricesBatch(pricesForConversion, selectedCurrency);
+
+        // Map converted prices back to their domains
+        pricesToConvert.forEach((priceData, priceIndex) => {
+          const converted = convertedPrices[priceIndex];
+          if (converted && processedDomains[priceData.index].calculated) {
+            const calculated = processedDomains[priceData.index].calculated!;
+            calculated.convertedPrice = converted.convertedAmount;
+            calculated.exchangeRate = converted.rate;
+            calculated.displayCurrency = selectedCurrency;
+
+            // Cache the conversion separately
+            const processed = processedDomains[priceData.index];
+            currentCache[processed.convertedCacheKey] = {
+              ...calculated,
+              convertedPrice: converted.convertedAmount,
+              exchangeRate: converted.rate,
+              displayCurrency: selectedCurrency,
+            };
+          }
+        });
+      } catch (error) {
+        console.error('Failed to convert prices batch:', error);
+        // Continue without conversion if it fails
+      }
+    }
+
+    // Build final results array and cache them
+    const processedResults = processedDomains.map((processed) => {
+      if (!processed.calculated) {
+        return processed.result;
+      }
+
+      // Cache the result
+      if (processed.domainCacheKey) {
+        currentCache[processed.domainCacheKey] = processed.calculated;
+      }
+
+      return {
+        ...processed.result,
+        price: {
+          ...processed.result.price,
+          product: processed.result.price?.product || {
+            price: processed.calculated.originalPrice,
+            currency: processed.calculated.currency,
+          },
+          reseller: {
+            ...processed.result.price!.reseller,
+            price: processed.calculated.finalPrice,
+          },
+          calculated: processed.calculated,
+        },
+      };
+    });
 
     // Store in cache with stable key
     pricingCache.set(cacheKey, currentCache);
@@ -312,3 +371,4 @@ export function useDomainPricing() {
     isConversionAvailable,
   };
 }
+

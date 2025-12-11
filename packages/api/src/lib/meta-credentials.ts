@@ -48,6 +48,8 @@ export async function getStoredMetaAccessToken(): Promise<{
 
 /**
  * Get stored page access token for a specific Facebook Page
+ * Returns the access token if available, not expired, and integration is active
+ * Note: Filters by META_FACEBOOK platform to ensure correct platform token
  */
 export async function getStoredPageAccessToken(
 	pageId: string
@@ -56,6 +58,7 @@ export async function getStoredPageAccessToken(
 		const pageToken = await prisma.socialMediaPageToken.findFirst({
 			where: {
 				pageId,
+				platform: 'META_FACEBOOK', // Filter by platform to ensure correct token
 				isActive: true,
 			},
 			include: {
@@ -64,6 +67,19 @@ export async function getStoredPageAccessToken(
 		});
 
 		if (!pageToken || pageToken.integration.status !== 'ACTIVE') {
+			return null;
+		}
+
+		// Check if token is expired
+		if (
+			pageToken.accessTokenExpiresAt &&
+			new Date(pageToken.accessTokenExpiresAt) < new Date()
+		) {
+			// Update status to inactive
+			await prisma.socialMediaPageToken.update({
+				where: { id: pageToken.id },
+				data: { isActive: false },
+			});
 			return null;
 		}
 

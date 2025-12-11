@@ -1,196 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { trpc } from "@/utils/trpc";
-import { useCartStore } from "@/stores/cart-store";
-import { 
-  getPopularTlds,
-  getBusinessTlds,
-  getEducationTlds,
-  getInternationalTlds,
-  getTechnologyTlds,
-  getSocialPersonalTlds,
-  getProfessionalServicesTlds,
-  getMediaEntertainmentTlds,
-  getEcommerceShoppingTlds,
-  getIndustrySectorTlds,
-  getLifestyleHobbiesTlds,
-  getCountryCodeTlds,
-  getAllTldExtensions,
-  removeDotPrefix
-} from "@nPanel/utils";
-import { useDomainPricing } from "./use-domain-pricing";
-import type { DomainSearchResult } from "./domain-search";
+import { useDomainSearch as useSharedDomainSearch, type CurrencyContext } from "@/hooks/use-domain-search";
+import { useDomainPricing } from "@/hooks/use-domain-pricing";
+import { useCurrency } from "./currency-context";
 
+// Adapter hook that bridges shared logic with agency-specific currency context
 export function useDomainSearch() {
-  const [domainName, setDomainName] = React.useState("");
-  const [debouncedDomainName, setDebouncedDomainName] = React.useState("");
-  const [activeTab, setActiveTab] = React.useState("popular");
-  const [error, setError] = React.useState<string | null>(null);
-
-  // Pricing hook
-  const { calculatePricesBatch, isLoadingTldSettings, selectedCurrency } = useDomainPricing();
-
-  // Cart store
-  const addDomain = useCartStore(state => state.addDomain);
-  const removeDomainByName = useCartStore(state => state.removeDomainByName);
-  const cartItems = useCartStore(state => state.items);
+  const currencyContext = useCurrency();
   
-  // Helper function to check if domain is in cart
-  const isDomainInCart = React.useCallback((domainName: string) => {
-    return cartItems.some(item => item.type === 'domain' && item.domain === domainName);
-  }, [cartItems]);
-
-  // Debounce domain name input to avoid excessive API calls
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedDomainName(domainName);
-    }, 2000); // 2 second delay
-
-    return () => clearTimeout(timer);
-  }, [domainName]);
-
-  // Domain search query
-  const searchQuery = trpc.openProvider.domains.checkAvailability.useQuery(
-    {
-      name: debouncedDomainName,
-      extensions: getCurrentTabExtensions(activeTab).map(removeDotPrefix),
-      with_price: true,
-      with_whois: true,
-    },
-    {
-      enabled: debouncedDomainName.length > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: true,
-      refetchOnMount: false,
-    }
-  );
-
-  // Handle adding domain to cart
-  const handleAddToCart = React.useCallback((result: DomainSearchResult) => {
-    addDomain({
-      domain: result.domain,
-      status: result.status,
-      price: result.price,
-      addedInCurrency: selectedCurrency, // Store the currency that was active when added
-    });
-  }, [addDomain, selectedCurrency]);
-
-  // Handle removing domain from cart
-  const handleRemoveFromCart = React.useCallback((domain: string) => {
-    removeDomainByName(domain);
-  }, [removeDomainByName]);
-
-  // Process search results with pricing calculations
-  const [searchResults, setSearchResults] = React.useState<DomainSearchResult[]>([]);
-  const [isProcessingResults, setIsProcessingResults] = React.useState(false);
-  const lastProcessedRef = React.useRef<{
-    currency: string | null;
-    dataHash: string | null;
-  }>({ currency: null, dataHash: null });
-
-  React.useEffect(() => {
-    const processResults = async () => {
-      if (!searchQuery.data?.success || !searchQuery.data.data?.results) {
-        setSearchResults([]);
-        lastProcessedRef.current = { currency: null, dataHash: null };
-        return;
-      }
-
-      // Create a hash of the raw data to detect if results actually changed
-      const dataHash = JSON.stringify(searchQuery.data.data.results.map((r: any) => ({
-        domain: r.domain,
-        status: r.status,
-        price: r.price?.reseller?.price,
-        currency: r.price?.reseller?.currency,
-      })));
-
-      // Skip processing if data and currency haven't changed
-      const hasChanged = dataHash !== lastProcessedRef.current.dataHash || 
-                        selectedCurrency !== lastProcessedRef.current.currency;
-
-      if (!hasChanged) {
-        // Data and currency haven't changed, no need to reprocess
-        return;
-      }
-
-      setIsProcessingResults(true);
-
-      try {
-        // First, map the raw results
-        const rawResults = searchQuery.data.data.results.map((result: any) => ({
-          domain: result.domain || 'unknown',
-          status: result.status || 'unknown',
-          reason: result.reason || '',
-          price: result.price || undefined,
-          whois: result.whois || undefined,
-        }));
-
-        // Then apply pricing calculations in batch for efficiency
-        // This will recalculate when currency or TLD settings change
-        const processedResults = await calculatePricesBatch(rawResults);
-        setSearchResults(processedResults);
-        lastProcessedRef.current = { 
-          currency: selectedCurrency, 
-          dataHash 
-        };
-      } catch (error) {
-        console.error('Failed to process search results:', error);
-        setSearchResults([]);
-      } finally {
-        setIsProcessingResults(false);
-      }
-    };
-
-    processResults();
-  }, [searchQuery.data, calculatePricesBatch, selectedCurrency]); // Only depend on actual data changes, not searchResults
-
-  return {
-    domainName,
-    setDomainName,
-    activeTab,
-    setActiveTab,
-    error,
-    setError,
-    searchResults,
-    isLoading: searchQuery.isLoading || isLoadingTldSettings || isProcessingResults,
-    isError: searchQuery.isError,
-    isDomainInCart,
-    handleAddToCart,
-    handleRemoveFromCart,
+  // Create currency context for shared hook
+  const sharedCurrencyContext: CurrencyContext = {
+    selectedCurrency: currencyContext.selectedCurrency,
+    isConversionAvailable: currencyContext.isConversionAvailable,
+    convertPricesBatch: currencyContext.convertPricesBatch,
   };
-}
 
-// Helper function to get extensions for current tab using TLD utility
-function getCurrentTabExtensions(tab: string): string[] {
-  switch (tab) {
-    case "popular": 
-      return getPopularTlds().map(ext => `.${ext}`);
-    case "business": 
-      return getBusinessTlds().map(ext => `.${ext}`);
-    case "education": 
-      return getEducationTlds().map(ext => `.${ext}`);
-    case "international": 
-      return getInternationalTlds().map(ext => `.${ext}`);
-    case "technology": 
-      return getTechnologyTlds().map(ext => `.${ext}`);
-    case "socialpersonal": 
-      return getSocialPersonalTlds().map(ext => `.${ext}`);
-    case "professionalservices": 
-      return getProfessionalServicesTlds().map(ext => `.${ext}`);
-    case "mediaentertainment": 
-      return getMediaEntertainmentTlds().map(ext => `.${ext}`);
-    case "ecommerceshopping": 
-      return getEcommerceShoppingTlds().map(ext => `.${ext}`);
-    case "industrysector": 
-      return getIndustrySectorTlds().map(ext => `.${ext}`);
-    case "lifestylehobbies": 
-      return getLifestyleHobbiesTlds().map(ext => `.${ext}`);
-    case "countrycodes": 
-      return getCountryCodeTlds().map(ext => `.${ext}`);
-    default: 
-      return getPopularTlds().map(ext => `.${ext}`);
-  }
+  // Get pricing hook with currency context
+  const pricingHook = useDomainPricing(sharedCurrencyContext);
+
+  // Use shared domain search hook
+  return useSharedDomainSearch(sharedCurrencyContext, pricingHook);
 }

@@ -109,6 +109,31 @@ export const ourFileRouter = {
       console.log("Creative asset upload complete for userId:", metadata.userId);
       return { uploadedBy: metadata.userId };
     }),
+
+  // Content Calendar Media upload (supports images and videos)
+  // Images: up to 10 files, 32MB each
+  // Videos: up to 1 file, 500MB (larger than fileUploader for video support)
+  contentCalendarMedia: f({ 
+    image: { maxFileSize: "32MB", maxFileCount: 10 },
+    video: { maxFileSize: "1GB", maxFileCount: 1 },
+  })
+    .middleware(async ({ req }) => {
+      const session = await auth.api.getSession({
+        headers: req.headers,
+      });
+
+      if (!session?.user) {
+        throw new Error("Unauthorized");
+      }
+
+      return {
+        userId: session.user.id,
+      };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("Content calendar media upload complete for userId:", metadata.userId);
+      return { uploadedBy: metadata.userId };
+    }),
 };
 
 // Export type for use in client components

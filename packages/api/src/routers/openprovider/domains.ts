@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, publicProcedure } from '../../trpc';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
+import { Redis } from "@upstash/redis";
 import type { 
   OpenProviderDomainCheckRequest,
   OpenProviderDomainRegistrationRequest,
@@ -13,6 +14,29 @@ import type {
   OpenProviderAdditionalDataRequest,
   OpenProviderCustomerAdditionalDataRequest,
 } from '../../types/openprovider';
+
+// P1-6: Redis client for backend response caching
+let redisInstance: Redis | null = null;
+
+function getRedisClient(): Redis | null {
+  try {
+    if (!redisInstance) {
+      const url = process.env.UPSTASH_REDIS_REST_URL;
+      const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+      if (!url || !token) {
+        // Redis not configured - caching disabled
+        return null;
+      }
+
+      redisInstance = new Redis({ url, token });
+    }
+    return redisInstance;
+  } catch (error) {
+    console.error('Failed to initialize Redis client:', error);
+    return null;
+  }
+}
 
 // Validation schemas
 const DomainCheckRequestSchema = z.object({
@@ -139,6 +163,34 @@ export const openProviderDomainsRouter = router({
     .input(DomainCheckRequestSchema)
     .query(async ({ input }) => {
       try {
+        // P1-6: Check Redis cache before making API call
+        const redis = getRedisClient();
+        let cacheKey: string | null = null;
+        
+        if (redis && input.name) {
+          // Create cache key from input parameters
+          const extensionsKey = input.extensions?.sort().join(',') || 'all';
+          cacheKey = `domain-check:${input.name}:${extensionsKey}:${input.with_price}:${input.with_whois}`;
+          
+          try {
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+              // Return cached response
+              const cachedResponse = typeof cached === 'string' ? JSON.parse(cached) : cached;
+              return {
+                ...cachedResponse,
+                meta: {
+                  ...cachedResponse.meta,
+                  cached: true,
+                },
+              };
+            }
+          } catch (cacheError) {
+            console.error('Failed to read from cache:', cacheError);
+            // Continue with API call if cache read fails
+          }
+        }
+
         const client = createOpenProviderClient();
         
         // Try to authenticate with environment credentials
@@ -211,6 +263,7 @@ export const openProviderDomainsRouter = router({
         let checkResponse;
         
         // If we have many domains, batch them into smaller requests
+        // FIX: Process batches sequentially with delays to avoid overwhelming API and prevent 504 timeouts
         if (checkRequest.domains && checkRequest.domains.length > 10) {
           const batchSize = 10;
           const batches: OpenProviderDomainCheckRequest[] = [];
@@ -225,17 +278,41 @@ export const openProviderDomainsRouter = router({
             });
           }
           
-          // Process each batch
+          // Process batches with controlled concurrency (2-3 at a time) to balance speed and API limits
           const batchResults: any[] = [];
-          for (const batch of batches) {
-            const batchResponse = await client.checkDomains(batch);
-            if (batchResponse.code !== 0) {
-              throw new TRPCError({
-                code: 'BAD_REQUEST',
-                message: batchResponse.desc,
-              });
+          const CONCURRENCY_LIMIT = 2; // Process 2 batches at a time
+          
+          for (let i = 0; i < batches.length; i += CONCURRENCY_LIMIT) {
+            const batchGroup = batches.slice(i, i + CONCURRENCY_LIMIT);
+            
+            // Process this group of batches in parallel
+            const groupPromises = batchGroup.map(async (batch, groupIndex) => {
+              try {
+                const batchResponse = await client.checkDomains(batch);
+                
+                if (batchResponse.code !== 0) {
+                  throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: batchResponse.desc,
+                  });
+                }
+                
+                return batchResponse.data.results || [];
+              } catch (error) {
+                // If a batch fails, log it but return empty array
+                console.error(`Batch ${i + groupIndex + 1} failed:`, error);
+                return [];
+              }
+            });
+            
+            // Wait for this group to complete
+            const groupResults = await Promise.all(groupPromises);
+            batchResults.push(...groupResults.flat());
+            
+            // Add small delay between groups (except for the last group) to avoid overwhelming API
+            if (i + CONCURRENCY_LIMIT < batches.length) {
+              await new Promise(resolve => setTimeout(resolve, 150)); // 150ms delay between groups
             }
-            batchResults.push(...batchResponse.data.results);
           }
           
           // Combine all batch results
@@ -258,7 +335,7 @@ export const openProviderDomainsRouter = router({
           }
         }
 
-        return {
+        const response = {
           success: true,
           data: checkResponse.data,
           meta: {
@@ -269,8 +346,21 @@ export const openProviderDomainsRouter = router({
                   ? 'name_with_specific_extensions' 
                   : 'name_with_custom_extensions')
               : 'specific_domains',
+            cached: false,
           },
         };
+
+        // P1-6: Cache the response for 5 minutes (300 seconds)
+        if (redis && cacheKey) {
+          try {
+            await redis.setex(cacheKey, 300, JSON.stringify(response));
+          } catch (cacheError) {
+            console.error('Failed to cache response:', cacheError);
+            // Don't throw error - caching failure shouldn't break the API
+          }
+        }
+
+        return response;
       } catch (error) {
         console.error('OpenProvider domain check error:', error);
 

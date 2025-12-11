@@ -13,11 +13,42 @@ import { Database } from "./databases-schema";
 import { useDatabasesBySiteId } from "./use-databases-by-site-id";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// ServiceSubscription status enum (UI layer - independent schema)
+const serviceSubscriptionStatusSchema = z.enum([
+	"ACTIVE",
+	"PENDING",
+	"SUSPENDED",
+	"CANCELLED",
+	"EXPIRED",
+	"PROCESSING",
+	"FAILED",
+]);
+
+// BillingCycle enum (UI layer - independent schema)
+const billingCycleSchema = z.enum(["YEARLY", "MONTHLY", "BIENNIALLY", "CUSTOM"]);
+
+// ServiceSubscription schema (UI layer - dates as ISO strings from API)
+const serviceSubscriptionSchema = z.object({
+	id: z.string(),
+	subscriptionDate: z.string().nullable(), // ISO date string from API
+	billingCycle: billingCycleSchema,
+	nextRenewalDate: z.string().nullable(), // ISO date string from API
+	status: serviceSubscriptionStatusSchema,
+	autoRenew: z.boolean(),
+});
+
 interface HostingOverviewProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
+  subscriptionData?: {
+    id: string;
+    billingCycle?: string;
+    nextRenewalDate?: string | null; // ISO date string
+    autoRenew?: boolean;
+  } | null;
+  serviceSubscriptionData?: z.infer<typeof serviceSubscriptionSchema> | null;
 }
 
-export function HostingOverview({ hostingData }: HostingOverviewProps) {
+export function HostingOverview({ hostingData, subscriptionData, serviceSubscriptionData }: HostingOverviewProps) {
   // Fetch databases for this hosting subscription
   const { data: databasesData, isLoading: databasesLoading, isError: databasesError } = useDatabasesBySiteId(hostingData.id);
 
@@ -84,26 +115,57 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <p className="text-lg font-semibold">{hostingData.gen_info?.name || "Not Available"}</p>
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Owner</p>
-            <p className="text-lg font-semibold">{hostingData.gen_info?.["owner-login"] || "Not Available"}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Created Date</p>
+            <p className="text-sm font-medium text-muted-foreground">Subscription Date</p>
             <p className="text-lg font-semibold">
-              {hostingData.gen_info?.["cr_date"] ? new Date(hostingData.gen_info["cr_date"]).toLocaleDateString() : "Not Available"}
+              {serviceSubscriptionData?.subscriptionDate 
+                ? new Date(serviceSubscriptionData.subscriptionDate).toLocaleDateString() 
+                : "Not Available"}
             </p>
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Server IP</p>
-            <p className="text-lg font-semibold">{hostingData.hosting?.vrt_hst?.ip_address || "Not Available"}</p>
+            <p className="text-sm font-medium text-muted-foreground">Billing Cycle</p>
+            <p className="text-lg font-semibold">
+              {serviceSubscriptionData?.billingCycle || subscriptionData?.billingCycle || "Not Available"}
+            </p>
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">DNS IP</p>
-            <p className="text-lg font-semibold">{hostingData.gen_info?.["dns_ip_address"] || "Not Available"}</p>
+            <p className="text-sm font-medium text-muted-foreground">Next Renewal Date</p>
+            <p className="text-lg font-semibold">
+              {(serviceSubscriptionData?.nextRenewalDate 
+                ? new Date(serviceSubscriptionData.nextRenewalDate).toLocaleDateString()
+                : subscriptionData?.nextRenewalDate
+                  ? new Date(subscriptionData.nextRenewalDate).toLocaleDateString()
+                  : "Not Available")}
+            </p>
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Hosting Type</p>
-            <p className="text-lg font-semibold">{hostingData.gen_info?.htype || "Not Available"}</p>
+            <p className="text-sm font-medium text-muted-foreground">Status</p>
+            {serviceSubscriptionData?.status ? (
+              <Badge 
+                variant={
+                  serviceSubscriptionData.status === "ACTIVE" ? "default" :
+                  serviceSubscriptionData.status === "SUSPENDED" ? "destructive" :
+                  serviceSubscriptionData.status === "PENDING" ? "secondary" :
+                  serviceSubscriptionData.status === "CANCELLED" ? "destructive" :
+                  serviceSubscriptionData.status === "EXPIRED" ? "secondary" :
+                  "outline"
+                }
+                className="text-sm"
+              >
+                {serviceSubscriptionData.status}
+              </Badge>
+            ) : (
+              <p className="text-lg font-semibold text-muted-foreground">Not Available</p>
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Auto Renewal</p>
+            <Badge 
+              variant={(serviceSubscriptionData?.autoRenew ?? subscriptionData?.autoRenew ?? false) ? "default" : "secondary"}
+              className="text-sm"
+            >
+              {(serviceSubscriptionData?.autoRenew ?? subscriptionData?.autoRenew ?? false) ? "Enabled" : "Disabled"}
+            </Badge>
           </div>
         </CardContent>
       </Card>

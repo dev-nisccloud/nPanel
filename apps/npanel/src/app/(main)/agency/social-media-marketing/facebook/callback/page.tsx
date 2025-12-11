@@ -14,10 +14,12 @@ export default function FacebookCallbackPage() {
 	const searchParams = useSearchParams();
 	const [status, setStatus] = React.useState<"loading" | "success" | "error">("loading");
 	const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+	const [hasProcessed, setHasProcessed] = React.useState(false);
 
 	const generateTokenMutation = trpc.socialMediaMarketing.meta.auth.generateToken.useMutation({
 		onSuccess: () => {
 			setStatus("success");
+			setHasProcessed(true);
 			toast.success("Facebook account connected successfully!");
 			// Redirect to main Facebook page after a short delay
 			setTimeout(() => {
@@ -26,12 +28,18 @@ export default function FacebookCallbackPage() {
 		},
 		onError: (error) => {
 			setStatus("error");
+			setHasProcessed(true);
 			setErrorMessage(error.message || "Failed to connect Facebook account");
 			toast.error(error.message || "Failed to connect Facebook account");
 		},
 	});
 
 	React.useEffect(() => {
+		// Prevent multiple executions
+		if (hasProcessed) {
+			return;
+		}
+
 		const code = searchParams.get("code");
 		const state = searchParams.get("state");
 		const error = searchParams.get("error");
@@ -41,6 +49,7 @@ export default function FacebookCallbackPage() {
 		// Check for OAuth errors
 		if (error) {
 			setStatus("error");
+			setHasProcessed(true);
 			setErrorMessage(
 				errorDescription || errorReason || "Facebook authorization was cancelled or failed"
 			);
@@ -51,24 +60,25 @@ export default function FacebookCallbackPage() {
 		const storedState = sessionStorage.getItem("facebook_oauth_state");
 		if (state && storedState && state !== storedState) {
 			setStatus("error");
+			setHasProcessed(true);
 			setErrorMessage("Invalid state parameter. Please try connecting again.");
 			return;
 		}
 
 		// Exchange code for token
 		if (code) {
-			// The code needs to be exchanged for a short-lived token first
-			// Then we exchange that for a long-lived token
-			// For now, we'll use the code directly - but in production, you'd need
-			// to exchange it server-side first
+			setHasProcessed(true);
 			generateTokenMutation.mutate({
-				shortLivedToken: code, // In production, this should be the actual short-lived token
+				code: code,
+				redirectUri: `${window.location.origin}/agency/social-media-marketing/facebook/callback`,
 			});
 		} else {
 			setStatus("error");
+			setHasProcessed(true);
 			setErrorMessage("No authorization code received from Facebook");
 		}
-	}, [searchParams, generateTokenMutation]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [searchParams]);
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6">

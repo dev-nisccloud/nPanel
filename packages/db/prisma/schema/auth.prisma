@@ -425,30 +425,39 @@ enum DomainOperation {
 }
 
 model User {
-  id                      String                   @id @map("_id")
-  name                    String
-  email                   String
-  emailVerified           Boolean                  @default(false)
-  image                   String?
-  role                    UserRole                 @default(CUSTOMER)
-  status                  UserStatus               @default(ACTIVE)
-  lastAccessedTeamId      String?
-  lastLoginAt             DateTime?
-  createdAt               DateTime
-  updatedAt               DateTime
-  sessions                Session[]
-  accounts                Account[]
-  teamMemberships         TeamMember[]
-  profile                 UserProfile?
-  customerIntegrations    CustomerIntegration[]
-  activityLogs            UserActivityLog[]
+  id                          String                       @id @map("_id")
+  name                        String
+  email                       String
+  emailVerified               Boolean                      @default(false)
+  image                       String?
+  role                        UserRole                     @default(CUSTOMER)
+  status                      UserStatus                   @default(ACTIVE)
+  lastAccessedTeamId          String?
+  lastLoginAt                 DateTime?
+  createdAt                   DateTime
+  updatedAt                   DateTime
+  sessions                    Session[]
+  accounts                    Account[]
+  teamMemberships             TeamMember[]
+  profile                     UserProfile?
+  customerIntegrations        CustomerIntegration[]
+  activityLogs                UserActivityLog[]
   // Email Marketing Relations
-  emailDomains            EmailDomain[]
-  emailCampaigns          EmailCampaign[]
-  audiences               Audience[]
+  emailDomains                EmailDomain[]
+  emailCampaigns              EmailCampaign[]
+  audiences                   Audience[]
   // Social Media Marketing Relations
-  socialMediaIntegrations SocialMediaIntegration[]
-  socialMediaPageTokens   SocialMediaPageToken[]
+  socialMediaIntegrations     SocialMediaIntegration[]
+  socialMediaPageTokens       SocialMediaPageToken[]
+  metaContentCalendarPosts    MetaContentCalendar[]
+  LinkedInContentCalendar     LinkedInContentCalendar[]
+  // Google Ads Relations
+  googleAdsIntegrations       GoogleAdsIntegration[]
+  // Meta Ads Relations (via activity logs - accounts are linked to integrations)
+  metaAdsAccountActivityLogs  MetaAdsAccountActivityLog[]
+  metaAdsCampaignActivityLogs MetaAdsCampaignActivityLog[]
+  metaAdsAdSetActivityLogs    MetaAdsAdSetActivityLog[]
+  metaAdsAdActivityLogs       MetaAdsAdActivityLog[]
 
   @@unique([email])
   @@index([role])
@@ -520,6 +529,10 @@ model Team {
   billingSettings       TeamBillingSettings?
   // Social Media Marketing Relations (page ownership)
   socialMediaPageTokens SocialMediaPageToken[]
+  // Google Ads Relations (account ownership)
+  googleAdsAccounts     GoogleAdsAccount[]
+  // Meta Ads Relations (account ownership)
+  metaAdsAccounts       MetaAdsAccount[]
   // Service Subscriptions Relations
   serviceSubscriptions  ServiceSubscription[]
 

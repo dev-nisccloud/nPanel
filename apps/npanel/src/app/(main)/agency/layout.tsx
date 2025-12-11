@@ -41,12 +41,14 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
   // All other roles (AGENCY_*, or any other role) are allowed
 
   const cookieStore = await cookies();
-  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
+  const sidebarState = cookieStore.get("sidebar_state")?.value;
+  // Default to true (open) unless explicitly set to "false"
+  const defaultOpen = sidebarState !== "false";
 
   const [sidebarVariant, sidebarCollapsible, contentLayout] = await Promise.all([
-    getPreference<SidebarVariant>("sidebar_variant", SIDEBAR_VARIANT_VALUES, "inset"),
+    getPreference<SidebarVariant>("sidebar_variant", SIDEBAR_VARIANT_VALUES, "floating"),
     getPreference<SidebarCollapsible>("sidebar_collapsible", SIDEBAR_COLLAPSIBLE_VALUES, "icon"),
-    getPreference<ContentLayout>("content_layout", CONTENT_LAYOUT_VALUES, "centered"),
+    getPreference<ContentLayout>("content_layout", CONTENT_LAYOUT_VALUES, "full-width"),
   ]);
 
   const layoutPreferences = {

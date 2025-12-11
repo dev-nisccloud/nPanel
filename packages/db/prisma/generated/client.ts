@@ -324,6 +324,26 @@ export type EmailCampaignActivityLog = Prisma.EmailCampaignActivityLogModel
  */
 export type AudienceActivityLog = Prisma.AudienceActivityLogModel
 /**
+ * Model GoogleAdsIntegration
+ * 
+ */
+export type GoogleAdsIntegration = Prisma.GoogleAdsIntegrationModel
+/**
+ * Model GoogleAdsAccount
+ * 
+ */
+export type GoogleAdsAccount = Prisma.GoogleAdsAccountModel
+/**
+ * Model GoogleAdsIntegrationActivityLog
+ * 
+ */
+export type GoogleAdsIntegrationActivityLog = Prisma.GoogleAdsIntegrationActivityLogModel
+/**
+ * Model GoogleAdsAccountActivityLog
+ * 
+ */
+export type GoogleAdsAccountActivityLog = Prisma.GoogleAdsAccountActivityLogModel
+/**
  * Model Invoice
  * 
  */
@@ -364,6 +384,51 @@ export type CreditNoteActivityLog = Prisma.CreditNoteActivityLogModel
  */
 export type InvoiceCounter = Prisma.InvoiceCounterModel
 /**
+ * Model MetaAdsAccount
+ * 
+ */
+export type MetaAdsAccount = Prisma.MetaAdsAccountModel
+/**
+ * Model MetaAdsCampaign
+ * 
+ */
+export type MetaAdsCampaign = Prisma.MetaAdsCampaignModel
+/**
+ * Model MetaAdsAdSet
+ * 
+ */
+export type MetaAdsAdSet = Prisma.MetaAdsAdSetModel
+/**
+ * Model MetaAdsAd
+ * 
+ */
+export type MetaAdsAd = Prisma.MetaAdsAdModel
+/**
+ * Model MetaAdsInsight
+ * 
+ */
+export type MetaAdsInsight = Prisma.MetaAdsInsightModel
+/**
+ * Model MetaAdsAccountActivityLog
+ * 
+ */
+export type MetaAdsAccountActivityLog = Prisma.MetaAdsAccountActivityLogModel
+/**
+ * Model MetaAdsCampaignActivityLog
+ * 
+ */
+export type MetaAdsCampaignActivityLog = Prisma.MetaAdsCampaignActivityLogModel
+/**
+ * Model MetaAdsAdSetActivityLog
+ * 
+ */
+export type MetaAdsAdSetActivityLog = Prisma.MetaAdsAdSetActivityLogModel
+/**
+ * Model MetaAdsAdActivityLog
+ * 
+ */
+export type MetaAdsAdActivityLog = Prisma.MetaAdsAdActivityLogModel
+/**
  * Model ServiceSubscription
  * 
  */
@@ -403,3 +468,33 @@ export type SocialMediaIntegrationActivityLog = Prisma.SocialMediaIntegrationAct
  * 
  */
 export type SocialMediaPageTokenActivityLog = Prisma.SocialMediaPageTokenActivityLogModel
+/**
+ * Model MetaContentCalendar
+ * 
+ */
+export type MetaContentCalendar = Prisma.MetaContentCalendarModel
+/**
+ * Model MetaContentCalendarMedia
+ * 
+ */
+export type MetaContentCalendarMedia = Prisma.MetaContentCalendarMediaModel
+/**
+ * Model MetaContentCalendarActivityLog
+ * 
+ */
+export type MetaContentCalendarActivityLog = Prisma.MetaContentCalendarActivityLogModel
+/**
+ * Model LinkedInContentCalendar
+ * 
+ */
+export type LinkedInContentCalendar = Prisma.LinkedInContentCalendarModel
+/**
+ * Model LinkedInContentCalendarMedia
+ * 
+ */
+export type LinkedInContentCalendarMedia = Prisma.LinkedInContentCalendarMediaModel
+/**
+ * Model LinkedInContentCalendarActivityLog
+ * 
+ */
+export type LinkedInContentCalendarActivityLog = Prisma.LinkedInContentCalendarActivityLogModel

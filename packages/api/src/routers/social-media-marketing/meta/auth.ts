@@ -40,12 +40,13 @@ const getMetaAppSecret = () => {
 };
 
 const getMetaApiVersion = () => {
-	return process.env.META_API_VERSION || 'v21.0';
+	return process.env.META_API_VERSION || 'v24.0';
 };
 
 // Validation schemas
 const GenerateTokenRequestSchema = z.object({
-	shortLivedToken: z.string().min(1, 'Short-lived user access token is required'),
+	code: z.string().min(1, 'OAuth authorization code is required'),
+	redirectUri: z.string().url().optional(),
 });
 
 const GetLongLivedPageTokenRequestSchema = z.object({
@@ -53,6 +54,49 @@ const GetLongLivedPageTokenRequestSchema = z.object({
 	pageId: z.string().min(1, 'Page ID is required'),
 	teamId: z.string().optional().nullish(), // Team that owns this page
 });
+
+/**
+ * Exchange OAuth authorization code for a short-lived access token
+ * This is the first step in the OAuth flow
+ */
+async function exchangeCodeForToken(
+	code: string,
+	redirectUri: string
+): Promise<{ access_token: string; token_type: string; expires_in: number }> {
+	const appId = getMetaAppId();
+	const appSecret = getMetaAppSecret();
+	const apiVersion = getMetaApiVersion();
+	const url = `https://graph.facebook.com/${apiVersion}/oauth/access_token`;
+
+	const params = new URLSearchParams({
+		client_id: appId,
+		client_secret: appSecret,
+		redirect_uri: redirectUri,
+		code: code,
+	});
+
+	const response = await request(`${url}?${params.toString()}`, {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+	});
+
+	const data = (await response.body.json()) as unknown;
+
+	if (typeof data === 'object' && data !== null && 'error' in data) {
+		const error = (data as { error: MetaApiError['error'] }).error;
+		throw new MetaApiError(
+			error.code,
+			error.message,
+			error.type,
+			error.error_subcode,
+			error.fbtrace_id
+		);
+	}
+
+	return data as { access_token: string; token_type: string; expires_in: number };
+}
 
 /**
  * Generate a long-lived user access token from a short-lived token
@@ -137,9 +181,10 @@ async function getLongLivedPageToken(
 
 export const metaAuthRouter = router({
 	/**
-	 * Generate long-lived access token from short-lived token
+	 * Generate long-lived access token from OAuth authorization code
 	 * App ID and App Secret come from environment variables
 	 * This is the main endpoint to use for token generation
+	 * Flow: code -> short-lived token -> long-lived token
 	 */
 	generateToken: protectedProcedure
 		.input(GenerateTokenRequestSchema)
@@ -153,8 +198,15 @@ export const metaAuthRouter = router({
 					});
 				}
 
-				// Exchange short-lived token for long-lived token
-				const longLivedToken = await exchangeShortLivedToken(input.shortLivedToken);
+				// Step 1: Exchange OAuth code for short-lived token
+				const redirectUri =
+					input.redirectUri ||
+					`${process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/agency/social-media-marketing/facebook/callback`;
+
+				const shortLivedTokenResponse = await exchangeCodeForToken(input.code, redirectUri);
+
+				// Step 2: Exchange short-lived token for long-lived token
+				const longLivedToken = await exchangeShortLivedToken(shortLivedTokenResponse.access_token);
 
 				// Calculate expiration date (60 days from now)
 				const expiresAt = new Date();
@@ -392,18 +444,25 @@ export const metaAuthRouter = router({
 
 				let pageTokenId: string;
 
+				// Note: Page tokens typically don't expire unless revoked by page admin
+				// However, we set expiration to match parent integration token expiration
+				// as page tokens become invalid if parent user token expires
+				const expiresAt = integration.accessTokenExpiresAt || null;
+
 				if (existingPageToken) {
 					await prisma.socialMediaPageToken.update({
 						where: { id: existingPageToken.id },
 						data: {
-							userId, // Update userId if different user updates
+							platform: integration.platform, // Set platform from integration
 							accessToken: pageToken.access_token,
+							accessTokenExpiresAt: expiresAt,
 							pageName: pageInfo.pageName,
 							pageUsername: pageInfo.pageUsername,
 							pagePicture: pageInfo.pagePicture,
 							pageCategory: pageInfo.pageCategory,
 							teamId: newTeamId,
 							isActive: true,
+							lastTokenRefreshAt: now,
 							updatedAt: now,
 						},
 					});
@@ -413,15 +472,17 @@ export const metaAuthRouter = router({
 						data: {
 							id: `page_token_${integration.id}_${input.pageId}_${Date.now()}`,
 							integrationId: integration.id,
+							platform: integration.platform, // Set platform from integration
 							pageId: input.pageId,
-							userId,
 							accessToken: pageToken.access_token,
+							accessTokenExpiresAt: expiresAt,
 							pageName: pageInfo.pageName,
 							pageUsername: pageInfo.pageUsername,
 							pagePicture: pageInfo.pagePicture,
 							pageCategory: pageInfo.pageCategory,
 							teamId: newTeamId,
 							isActive: true,
+							lastTokenRefreshAt: now,
 							createdAt: now,
 							updatedAt: now,
 						},

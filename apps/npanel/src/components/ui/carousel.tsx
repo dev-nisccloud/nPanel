@@ -138,8 +138,9 @@ function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       ref={carouselRef}
-      className="overflow-hidden"
+      className="overflow-hidden w-full max-w-full"
       data-slot="carousel-content"
+      style={{ width: '100%', maxWidth: '100%' }}
     >
       <div
         className={cn(
@@ -147,6 +148,7 @@ function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
           orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col",
           className
         )}
+        style={{ width: '100%' }}
         {...props}
       />
     </div>

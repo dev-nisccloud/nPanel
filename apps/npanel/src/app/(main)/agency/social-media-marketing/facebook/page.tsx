@@ -7,6 +7,8 @@ import { ConnectFacebook } from "./_components/connect-facebook";
 import { PagesList } from "./_components/pages-list";
 import { PageContent } from "./_components/page-content";
 import type { StoredCredentials } from "./_components/schemas";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 export default function FacebookPage() {
 	const [selectedPageId, setSelectedPageId] = React.useState<string | null>(null);
@@ -25,6 +27,9 @@ export default function FacebookPage() {
 	const credentials = credentialsData?.data as StoredCredentials | null | undefined;
 	const isConnected = credentials && !credentials.isExpired && credentials.status === "ACTIVE";
 
+	const refetchPagesRef = React.useRef<(() => void) | null>(null);
+	const [isFetchingPages, setIsFetchingPages] = React.useState(false);
+
 	const handlePageSelect = React.useCallback((pageId: string, pageName?: string) => {
 		setSelectedPageId(pageId);
 		setSelectedPageName(pageName || null);
@@ -33,6 +38,17 @@ export default function FacebookPage() {
 	const handleConnected = React.useCallback(() => {
 		refetchCredentials();
 	}, [refetchCredentials]);
+
+	const handleRefetchPages = React.useCallback(async () => {
+		if (refetchPagesRef.current) {
+			setIsFetchingPages(true);
+			try {
+				await refetchPagesRef.current();
+			} finally {
+				setIsFetchingPages(false);
+			}
+		}
+	}, []);
 
 	if (isLoadingCredentials) {
 		return (
@@ -46,11 +62,24 @@ export default function FacebookPage() {
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6">
-			<div className="flex flex-col gap-2">
-				<h1 className="text-2xl font-semibold tracking-tight">Facebook</h1>
-				<p className="text-muted-foreground">
-					Manage your Facebook pages, posts, and content from one place.
-				</p>
+			<div className="flex items-start justify-between gap-4">
+				<div className="flex flex-col gap-2">
+					<h1 className="text-2xl font-semibold tracking-tight">Facebook</h1>
+					<p className="text-muted-foreground">
+						Manage your Facebook pages, posts, and content from one place.
+					</p>
+				</div>
+				{isConnected && (
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={handleRefetchPages}
+						disabled={isFetchingPages || !refetchPagesRef.current}
+						title="Refresh pages"
+					>
+						<RefreshCw className={`h-4 w-4 ${isFetchingPages ? "animate-spin" : ""}`} />
+					</Button>
+				)}
 			</div>
 
 			{!isConnected ? (
@@ -69,6 +98,9 @@ export default function FacebookPage() {
 							handlePageSelect(pageId, pageName);
 						}}
 						selectedPageId={selectedPageId}
+						onRefetchReady={(refetch) => {
+							refetchPagesRef.current = refetch;
+						}}
 					/>
 
 					{selectedPageId && (

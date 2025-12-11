@@ -302,6 +302,26 @@ export const EmailEventType = {
 export type EmailEventType = (typeof EmailEventType)[keyof typeof EmailEventType]
 
 
+export const GoogleAdsIntegrationStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  EXPIRED: 'EXPIRED',
+  REVOKED: 'REVOKED',
+  PENDING: 'PENDING'
+} as const
+
+export type GoogleAdsIntegrationStatus = (typeof GoogleAdsIntegrationStatus)[keyof typeof GoogleAdsIntegrationStatus]
+
+
+export const GoogleAdsAccountStatus = {
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  REMOVED: 'REMOVED'
+} as const
+
+export type GoogleAdsAccountStatus = (typeof GoogleAdsAccountStatus)[keyof typeof GoogleAdsAccountStatus]
+
+
 export const InvoiceStatus = {
   DRAFT: 'DRAFT',
   SENT: 'SENT',
@@ -347,6 +367,61 @@ export const CreditNoteStatus = {
 export type CreditNoteStatus = (typeof CreditNoteStatus)[keyof typeof CreditNoteStatus]
 
 
+export const MetaAdsAccountStatus = {
+  ACTIVE: 'ACTIVE',
+  DISABLED: 'DISABLED',
+  UNSETTLED: 'UNSETTLED',
+  PENDING_REVIEW: 'PENDING_REVIEW',
+  IN_GRACE_PERIOD: 'IN_GRACE_PERIOD',
+  PENDING_CLOSURE: 'PENDING_CLOSURE',
+  CLOSED: 'CLOSED'
+} as const
+
+export type MetaAdsAccountStatus = (typeof MetaAdsAccountStatus)[keyof typeof MetaAdsAccountStatus]
+
+
+export const MetaAdsCampaignStatus = {
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  ARCHIVED: 'ARCHIVED',
+  DELETED: 'DELETED'
+} as const
+
+export type MetaAdsCampaignStatus = (typeof MetaAdsCampaignStatus)[keyof typeof MetaAdsCampaignStatus]
+
+
+export const MetaAdsAdSetStatus = {
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  ARCHIVED: 'ARCHIVED',
+  DELETED: 'DELETED'
+} as const
+
+export type MetaAdsAdSetStatus = (typeof MetaAdsAdSetStatus)[keyof typeof MetaAdsAdSetStatus]
+
+
+export const MetaAdsAdStatus = {
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  ARCHIVED: 'ARCHIVED',
+  DELETED: 'DELETED'
+} as const
+
+export type MetaAdsAdStatus = (typeof MetaAdsAdStatus)[keyof typeof MetaAdsAdStatus]
+
+
+export const MetaAdsCampaignObjective = {
+  OUTCOME_TRAFFIC: 'OUTCOME_TRAFFIC',
+  OUTCOME_ENGAGEMENT: 'OUTCOME_ENGAGEMENT',
+  OUTCOME_LEADS: 'OUTCOME_LEADS',
+  OUTCOME_APP_PROMOTION: 'OUTCOME_APP_PROMOTION',
+  OUTCOME_SALES: 'OUTCOME_SALES',
+  OUTCOME_AWARENESS: 'OUTCOME_AWARENESS'
+} as const
+
+export type MetaAdsCampaignObjective = (typeof MetaAdsCampaignObjective)[keyof typeof MetaAdsCampaignObjective]
+
+
 export const ServiceSubscriptionStatus = {
   ACTIVE: 'ACTIVE',
   PENDING: 'PENDING',
@@ -380,3 +455,41 @@ export const IntegrationStatus = {
 } as const
 
 export type IntegrationStatus = (typeof IntegrationStatus)[keyof typeof IntegrationStatus]
+
+
+export const MetaContentCalendarStatus = {
+  SCHEDULED: 'SCHEDULED',
+  PUBLISHED: 'PUBLISHED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  DRAFT: 'DRAFT'
+} as const
+
+export type MetaContentCalendarStatus = (typeof MetaContentCalendarStatus)[keyof typeof MetaContentCalendarStatus]
+
+
+export const MetaContentMediaType = {
+  PHOTO: 'PHOTO',
+  VIDEO: 'VIDEO'
+} as const
+
+export type MetaContentMediaType = (typeof MetaContentMediaType)[keyof typeof MetaContentMediaType]
+
+
+export const LinkedInContentCalendarStatus = {
+  SCHEDULED: 'SCHEDULED',
+  PUBLISHED: 'PUBLISHED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  DRAFT: 'DRAFT'
+} as const
+
+export type LinkedInContentCalendarStatus = (typeof LinkedInContentCalendarStatus)[keyof typeof LinkedInContentCalendarStatus]
+
+
+export const LinkedInContentMediaType = {
+  PHOTO: 'PHOTO',
+  VIDEO: 'VIDEO'
+} as const
+
+export type LinkedInContentMediaType = (typeof LinkedInContentMediaType)[keyof typeof LinkedInContentMediaType]

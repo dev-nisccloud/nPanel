@@ -4,6 +4,7 @@ import { protectedProcedure, router } from "../trpc";
 import prisma from "@nPanel/db";
 import { XMLParser } from 'fast-xml-parser';
 import { sendPleskXmlRequest } from '../lib/plesk/xml-client';
+import * as crypto from "crypto";
 
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
@@ -87,11 +88,37 @@ const updateSubscriptionOutputSchema = z.object({
 
 const getDetailWithSubscriptionInputSchema = z.object({
 	subscriptionId: z.string(),
+	teamId: z.string().optional(), // Optional teamId for ownership verification
+});
+
+// ServiceSubscription status enum (independent schema, source of truth is DB)
+const serviceSubscriptionStatusSchema = z.enum([
+	"ACTIVE",
+	"PENDING",
+	"SUSPENDED",
+	"CANCELLED",
+	"EXPIRED",
+	"PROCESSING",
+	"FAILED",
+]);
+
+// BillingCycle enum (independent schema, source of truth is DB)
+const billingCycleSchema = z.enum(["YEARLY", "MONTHLY", "BIENNIALLY", "CUSTOM"]);
+
+// ServiceSubscription output schema (API layer - dates as ISO strings for JSON serialization)
+const serviceSubscriptionOutputSchema = z.object({
+	id: z.string(),
+	subscriptionDate: z.string().nullable(), // ISO date string
+	billingCycle: billingCycleSchema,
+	nextRenewalDate: z.string().nullable(), // ISO date string
+	status: serviceSubscriptionStatusSchema,
+	autoRenew: z.boolean(),
 });
 
 const getDetailWithSubscriptionOutputSchema = z.object({
 	hosting: z.any(), // Plesk subscription data
 	subscription: getByPleskFilterIdOutputSchema,
+	serviceSubscription: serviceSubscriptionOutputSchema.nullable(),
 });
 
 export const hostingRouter = router({
@@ -104,7 +131,7 @@ export const hostingRouter = router({
 			if (!session?.user?.id) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You must be logged in to view subscriptions",
+					message: "You must be logged in to view your hosting subscriptions",
 				});
 			}
 
@@ -219,50 +246,168 @@ export const hostingRouter = router({
 
 			const pleskData = pleskDataResult.value;
 
-			// Extract pleskFilterId from Plesk response
-			const pleskFilterId = String(
-				pleskData?.parsed?.packet?.webspace?.get?.result?.["filter-id"] || ""
-			);
+			// Check if subscription exists in Plesk response
+			const pleskResult = pleskData?.parsed?.packet?.webspace?.get?.result;
+			if (!pleskResult) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Hosting subscription not found",
+				});
+			}
 
-			// Now fetch subscription link if filter ID exists
-			const subscriptionLink = pleskFilterId && pleskFilterId !== ""
-				? await prisma.hostingSubscription
-						.findUnique({
-							where: { pleskFilterId },
-							select: {
-								id: true,
-								teamId: true,
-								hostingPlanId: true,
-								primaryDomain: true,
-								billingCycle: true,
-								nextRenewalDate: true,
-								expiryDate: true,
-								notes: true,
-								autoRenew: true,
-								hostingType: true,
+			// Extract pleskFilterId from Plesk response
+			const pleskFilterId = String(pleskResult["filter-id"] || "");
+
+			// If teamId is provided, verify ownership
+			if (input.teamId) {
+				// Only check ownership if we have a valid pleskFilterId
+				// If pleskFilterId is empty, the subscription isn't linked, so deny access
+				if (!pleskFilterId || pleskFilterId === "") {
+					// Log unauthorized access attempt (fire and forget to not affect performance)
+					prisma.userActivityLog.create({
+						data: {
+							id: crypto.randomUUID(),
+							userId: session.user.id,
+							action: "UNAUTHORIZED_RESOURCE_ACCESS",
+							description: `Attempted to access hosting subscription ${input.subscriptionId} that is not linked to any team`,
+							metadata: {
+								resourceType: "hosting_subscription",
+								resourceId: input.subscriptionId,
+								teamId: input.teamId,
+								pleskFilterId: null,
 							},
-						})
-						.then((sub) => {
-							if (!sub) return null;
-							return {
-								id: sub.id,
-								teamId: sub.teamId,
-								hostingPlanId: sub.hostingPlanId,
-								primaryDomain: sub.primaryDomain,
-								billingCycle: sub.billingCycle as any,
-								nextRenewalDate: sub.nextRenewalDate,
-								expiryDate: sub.expiryDate,
-								notes: sub.notes,
-								autoRenew: sub.autoRenew,
-								hostingType: sub.hostingType as any,
-							};
-						})
-						.catch(() => null)
-				: null;
+							ipAddress: null, // Headers not available in tRPC context
+							userAgent: null, // Headers not available in tRPC context
+							createdAt: new Date(),
+						},
+					}).catch(() => {
+						// Silently fail logging to not affect performance
+					});
+
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this resource",
+					});
+				}
+
+				// Efficiently check if subscription belongs to team via ServiceSubscription
+				// This avoids fetching HostingSubscription if not needed
+				// Accept all hosting subtypes for ownership verification
+				const hasAccess = await prisma.serviceSubscription.findFirst({
+					where: {
+						teamId: input.teamId,
+						hostingSubscription: {
+							pleskFilterId: pleskFilterId,
+						},
+						niscServicePlan: {
+							planType: "HOSTING",
+						},
+					},
+					select: {
+						id: true,
+					},
+				});
+
+				if (!hasAccess) {
+					// Log unauthorized access attempt (fire and forget to not affect performance)
+					prisma.userActivityLog.create({
+						data: {
+							id: crypto.randomUUID(),
+							userId: session.user.id,
+							action: "UNAUTHORIZED_RESOURCE_ACCESS",
+							description: `Attempted to access hosting subscription ${input.subscriptionId} that does not belong to team ${input.teamId}`,
+							metadata: {
+								resourceType: "hosting_subscription",
+								resourceId: input.subscriptionId,
+								teamId: input.teamId,
+								pleskFilterId: pleskFilterId,
+							},
+							ipAddress: null, // Headers not available in tRPC context
+							userAgent: null, // Headers not available in tRPC context
+							createdAt: new Date(),
+						},
+					}).catch(() => {
+						// Silently fail logging to not affect performance
+					});
+
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this resource",
+					});
+				}
+			}
+
+			// Now fetch subscription link and service subscription if filter ID exists
+			let subscriptionLink = null;
+			let serviceSubscription = null;
+
+			if (pleskFilterId && pleskFilterId !== "") {
+				const hostingSub = await prisma.hostingSubscription.findUnique({
+					where: { pleskFilterId },
+					select: {
+						id: true,
+						teamId: true,
+						hostingPlanId: true,
+						primaryDomain: true,
+						billingCycle: true,
+						nextRenewalDate: true,
+						expiryDate: true,
+						notes: true,
+						autoRenew: true,
+						hostingType: true,
+					},
+				}).catch(() => null);
+
+				if (hostingSub) {
+					subscriptionLink = {
+						id: hostingSub.id,
+						teamId: hostingSub.teamId,
+						hostingPlanId: hostingSub.hostingPlanId,
+						primaryDomain: hostingSub.primaryDomain,
+						billingCycle: hostingSub.billingCycle as any,
+						nextRenewalDate: hostingSub.nextRenewalDate,
+						expiryDate: hostingSub.expiryDate,
+						notes: hostingSub.notes,
+						autoRenew: hostingSub.autoRenew,
+						hostingType: hostingSub.hostingType as any,
+					};
+
+					// Fetch ServiceSubscription linked to this HostingSubscription
+					// Accept all hosting subtypes
+					const serviceSub = await prisma.serviceSubscription.findFirst({
+						where: {
+							hostingSubscriptionId: hostingSub.id,
+							niscServicePlan: {
+								planType: "HOSTING",
+							},
+						},
+						select: {
+							id: true,
+							subscriptionDate: true,
+							billingCycle: true,
+							nextRenewalDate: true,
+							status: true,
+							autoRenew: true,
+						},
+					}).catch(() => null);
+
+					if (serviceSub) {
+						serviceSubscription = {
+							id: serviceSub.id,
+							subscriptionDate: serviceSub.subscriptionDate?.toISOString() ?? null,
+							billingCycle: serviceSub.billingCycle as "YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM",
+							nextRenewalDate: serviceSub.nextRenewalDate?.toISOString() ?? null,
+							status: serviceSub.status as "ACTIVE" | "PENDING" | "SUSPENDED" | "CANCELLED" | "EXPIRED" | "PROCESSING" | "FAILED",
+							autoRenew: serviceSub.autoRenew,
+						};
+					}
+				}
+			}
 
 			return {
 				hosting: pleskData,
 				subscription: subscriptionLink,
+				serviceSubscription: serviceSubscription,
 			};
 		}),
 

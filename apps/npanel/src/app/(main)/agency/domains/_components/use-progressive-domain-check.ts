@@ -18,7 +18,6 @@ import {
   getCountryCodeTlds,
   removeDotPrefix
 } from "@nPanel/utils";
-import { useDomainPricing } from "./use-domain-pricing";
 import { useCurrency } from "./currency-context";
 import type { DomainSearchResult } from "./domain-search";
 

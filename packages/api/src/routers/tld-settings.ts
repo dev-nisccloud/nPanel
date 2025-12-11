@@ -325,6 +325,44 @@ export const tldSettingsRouter = router({
       }
     }),
 
+  // Get default TLD setting (P0-2: Optimized endpoint for pricing calculations)
+  // This endpoint is optimized to fetch only the default setting, reducing payload by ~95%
+  getDefault: protectedProcedure
+    .output(z.object({
+      success: z.boolean(),
+      data: tldSettingResponseSchema.nullable(),
+    }))
+    .query(async ({ ctx }) => {
+      try {
+        const defaultSetting = await prisma.tldSettings.findFirst({
+          where: { isDefault: true },
+          include: {
+            nameserverGroup: {
+              include: {
+                nameservers: true,
+              },
+            },
+            _count: {
+              select: {
+                activityLogs: true,
+              },
+            },
+          },
+        });
+
+        return {
+          success: true,
+          data: defaultSetting ? transformTldSetting(defaultSetting) : null,
+        };
+      } catch (error) {
+        console.error("Error fetching default TLD setting:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch default TLD setting",
+        });
+      }
+    }),
+
   // List TLD settings
   // Global settings - available to all users regardless of role
   list: protectedProcedure

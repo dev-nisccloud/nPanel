@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 export const dynamic = "force-dynamic";
 
-import { Command } from "lucide-react";
+import Image from "next/image";
 
 import { Separator } from "@/components/ui/separator";
 import { APP_CONFIG } from "@/config/app-config";
@@ -14,9 +14,17 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       <div className="grid h-dvh justify-center p-2 lg:grid-cols-2">
         <div className="bg-primary relative order-2 hidden h-full rounded-3xl lg:flex">
           <div className="text-primary-foreground absolute top-10 space-y-1 px-10">
-            <Command className="size-10" />
-            <h1 className="text-2xl font-medium">{APP_CONFIG.name}</h1>
-            <p className="text-sm">Design. Build. Launch. Repeat.</p>
+            <Image
+              src="/nisclogowhite.png"
+              alt={`${APP_CONFIG.name} Logo`}
+              width={300}
+              height={100}
+              className="h-auto w-auto"
+              style={{ width: "auto", height: "auto", maxWidth: "100%" }}
+              priority
+            />
+            {/* <h1 className="text-2xl font-medium">{APP_CONFIG.name}</h1>
+            <p className="text-sm">Design. Build. Launch. Repeat.</p> */}
           </div>
 
           <div className="absolute bottom-10 flex w-full justify-between px-10">

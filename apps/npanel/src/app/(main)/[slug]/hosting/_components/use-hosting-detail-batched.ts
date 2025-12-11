@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { z } from "zod";
 import { trpc } from "@/utils/trpc";
 import { pleskSubscriptionByIdResponseSchema, hostingDetailSchema } from "./hosting-detail-schema";
@@ -82,6 +83,19 @@ function transformPleskSubscriptionToDetail(
  * This replaces the previous pattern of 2 sequential queries with a single batched query
  */
 export function useHostingDetailBatched(subscriptionId: string) {
+  const pathname = usePathname();
+  // Extract team slug from URL (first segment after /)
+  const teamSlug = pathname.split("/")[1];
+
+  // Get teamId from slug for ownership verification
+  const { data: teamData, isLoading: isTeamLoading } = trpc.teams.getTeamIdBySlug.useQuery(
+    { slug: teamSlug },
+    {
+      enabled: !!teamSlug,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+
   const {
     data: batchedData,
     isLoading,
@@ -90,9 +104,12 @@ export function useHostingDetailBatched(subscriptionId: string) {
     refetch,
     isRefetching,
   } = trpc.hosting.getDetailWithSubscription.useQuery(
-    { subscriptionId },
+    { 
+      subscriptionId,
+      teamId: teamData?.id, // Pass teamId for ownership verification
+    },
     {
-      enabled: !!subscriptionId,
+      enabled: !!subscriptionId && !!teamData?.id,
       staleTime: 10 * 60 * 1000, // 10 minutes
       gcTime: 30 * 60 * 1000, // 30 minutes
       retry: (failureCount, error: any) => {
@@ -102,6 +119,8 @@ export function useHostingDetailBatched(subscriptionId: string) {
         if (error?.data?.code === "SERVICE_UNAVAILABLE") return false;
         // Don't retry on not found errors
         if (error?.data?.code === "NOT_FOUND") return false;
+        // Don't retry on forbidden errors (unauthorized access)
+        if (error?.data?.code === "FORBIDDEN") return false;
         // Don't retry on rate limit errors
         if (error?.data?.code === "TOO_MANY_REQUESTS") return false;
         // Retry up to 2 times for other errors
@@ -113,11 +132,9 @@ export function useHostingDetailBatched(subscriptionId: string) {
     }
   );
 
-  // Handle API errors
+  // Handle API errors (don't show toast for FORBIDDEN - handled by component)
   useEffect(() => {
-    if (error) {
-      console.error("Hosting subscription fetch error:", error);
-      
+    if (error && error?.data?.code !== "FORBIDDEN" && error?.data?.code !== "NOT_FOUND") {
       // Show user-friendly error messages
       if (error?.data?.code === "UNAUTHORIZED") {
         toast.error("Authentication failed. Please check your Plesk credentials.");
@@ -127,8 +144,6 @@ export function useHostingDetailBatched(subscriptionId: string) {
         toast.error("Rate limit exceeded. Please wait a few minutes before trying again.", {
           duration: 10000,
         });
-      } else if (error?.data?.code === "NOT_FOUND") {
-        toast.error("Hosting subscription not found.");
       } else if (error?.data?.code === "INTERNAL_SERVER_ERROR") {
         toast.error("Server error occurred while fetching subscription details.");
       } else {
@@ -140,6 +155,7 @@ export function useHostingDetailBatched(subscriptionId: string) {
   // Transform the data
   let transformedData: z.infer<typeof hostingDetailSchema> | null = null;
   let subscriptionData: any = null;
+  let serviceSubscriptionData: any = null;
   let transformationError: Error | null = null;
 
   if (batchedData) {
@@ -148,14 +164,12 @@ export function useHostingDetailBatched(subscriptionId: string) {
       const validatedHostingData = pleskSubscriptionByIdResponseSchema.parse(batchedData.hosting);
       transformedData = transformPleskSubscriptionToDetail(validatedHostingData);
       subscriptionData = batchedData.subscription;
+      serviceSubscriptionData = batchedData.serviceSubscription;
     } catch (error) {
-      console.error("Data transformation error:", error);
-      console.error("Raw API response:", batchedData);
       transformationError = error as Error;
       
       // Provide more specific error messages based on the error type
       if (error instanceof z.ZodError) {
-        console.error("Zod validation errors:", error.issues);
         toast.error(`Data validation failed: ${error.issues.length} field(s) have invalid data.`);
       } else {
         toast.error("Failed to process subscription data. Please refresh the page.");
@@ -166,7 +180,8 @@ export function useHostingDetailBatched(subscriptionId: string) {
   return {
     data: transformedData,
     subscription: subscriptionData,
-    isLoading: isLoading || isRefetching,
+    serviceSubscription: serviceSubscriptionData,
+    isLoading: isLoading || isRefetching || isTeamLoading,
     isError: isError || !!transformationError,
     error: error || transformationError,
     refetch,

@@ -60,21 +60,21 @@ const formatPricingInfo = (calculated: any) => {
 const getStatusBadge = (status: string) => {
   // Convert status to a more user-friendly format
   const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; className: string }> = {
-    'free': { label: 'Available', variant: 'default', className: 'bg-green-100 text-green-800' },
-    'taken': { label: 'Taken', variant: 'destructive', className: 'bg-red-100 text-red-800' },
-    'premium': { label: 'Premium', variant: 'destructive', className: 'bg-red-100 text-red-800' },
-    'reserved': { label: 'Reserved', variant: 'destructive', className: 'bg-red-100 text-red-800' },
-    'blocked': { label: 'Blocked', variant: 'destructive', className: 'bg-red-100 text-red-800' },
-    'invalid': { label: 'Invalid', variant: 'destructive', className: 'bg-red-100 text-red-800' },
-    'pending': { label: 'Pending', variant: 'destructive', className: 'bg-red-100 text-red-800' },
-    'unknown': { label: 'Unknown', variant: 'destructive', className: 'bg-red-100 text-red-800' },
+    'free': { label: 'Available', variant: 'default', className: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' },
+    'taken': { label: 'Taken', variant: 'destructive', className: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' },
+    'premium': { label: 'Premium', variant: 'destructive', className: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' },
+    'reserved': { label: 'Reserved', variant: 'destructive', className: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' },
+    'blocked': { label: 'Blocked', variant: 'destructive', className: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' },
+    'invalid': { label: 'Invalid', variant: 'destructive', className: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' },
+    'pending': { label: 'Pending', variant: 'destructive', className: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' },
+    'unknown': { label: 'Unknown', variant: 'destructive', className: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' },
   };
 
   // Get the status config or default to showing the raw status
   const statusConfig = statusMap[status.toLowerCase()] || {
     label: status.charAt(0).toUpperCase() + status.slice(1), // Capitalize first letter
     variant: 'destructive' as const,
-    className: 'bg-red-100 text-red-800'
+    className: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
   };
 
   return (
@@ -109,45 +109,50 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
     : result.price?.reseller?.currency;
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="font-semibold text-lg text-gray-900 truncate">
+    <div className="flex flex-col p-3 bg-card border border-border rounded-lg hover:border-border/80 hover:shadow-sm transition-all">
+      {/* Header: Domain name and status */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex-1 min-w-0">
+          <span className="font-semibold text-sm text-card-foreground truncate block">
             {result.domain}
           </span>
-          {getStatusBadge(result.status)}
         </div>
-        {result.status === 'free' && result.price && (
-          <div className="space-y-2">
-            {/* Main Price Display - Only show final price (with markup applied if available) */}
-            <div className="text-2xl font-bold text-gray-900">
-              {formatPrice(displayPrice, displayCurrency)}
-            </div>
-          </div>
-        )}
-        {result.reason && (
-          <div className="text-sm text-gray-500 mt-2">
-            {result.reason}
-          </div>
-        )}
+        {getStatusBadge(result.status)}
       </div>
 
-      <div className="flex items-center gap-2 ml-4">
+      {/* Price Section */}
+      {result.status === 'free' && result.price && (
+        <div className="mb-2">
+          <div className="text-lg font-bold text-card-foreground">
+            {formatPrice(displayPrice, displayCurrency)}
+          </div>
+        </div>
+      )}
+
+      {/* Reason */}
+      {result.reason && (
+        <div className="text-xs text-muted-foreground mb-2 line-clamp-2">
+          {result.reason}
+        </div>
+      )}
+
+      {/* Action Button */}
+      <div className="mt-auto pt-2">
         {result.status === 'free' ? (
           <Button
             size="sm"
             variant={isInCart ? "destructive" : "default"}
             onClick={handleCartAction}
-            className="flex-shrink-0"
+            className="w-full text-xs h-7"
           >
             {isInCart ? (
               <>
-                <XCircle className="h-4 w-4 mr-2" />
-                Remove from Cart
+                <XCircle className="h-3 w-3 mr-1" />
+                Remove
               </>
             ) : (
               <>
-                <Icons.Cart className="h-4 w-4 mr-2" />
+                <Icons.Cart className="h-3 w-3 mr-1" />
                 Add to Cart
               </>
             )}
@@ -157,9 +162,9 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
             size="sm"
             variant="outline"
             disabled
-            className="flex-shrink-0"
+            className="w-full text-xs h-7"
           >
-            <CheckCircle className="h-4 w-4 mr-2" />
+            <CheckCircle className="h-3 w-3 mr-1" />
             Not Available
           </Button>
         )}

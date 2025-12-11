@@ -23,42 +23,8 @@ import { CurrencyProvider } from "./currency-context";
 import { useDomainSearch } from "./use-domain-search";
 // import { useAIDomainGeneration } from "./use-ai-domain-generation"; // Temporarily disabled
 
-// Domain search result schema
-const domainSearchResultSchema = z.object({
-  domain: z.string(),
-  status: z.string(),
-  reason: z.string().optional(),
-  price: z.object({
-    product: z.object({
-      price: z.number(),
-      currency: z.string(),
-    }),
-    reseller: z.object({
-      price: z.number(),
-      currency: z.string(),
-    }),
-    calculated: z.object({
-      originalPrice: z.number(),
-      marginAmount: z.number(),
-      finalPrice: z.number(),
-      currency: z.string(),
-      marginType: z.string().nullable(),
-      marginValue: z.string().nullable(),
-      // Currency conversion fields
-      convertedPrice: z.number().optional(),
-      exchangeRate: z.number().optional(),
-      displayCurrency: z.string().optional(),
-    }).optional(),
-  }).optional(),
-  whois: z.object({
-    registrant: z.string().optional(),
-    registrar: z.string().optional(),
-    creation_date: z.string().optional(),
-    expiration_date: z.string().optional(),
-  }).optional(),
-});
-
-export type DomainSearchResult = z.infer<typeof domainSearchResultSchema>;
+// Import shared type
+export type { DomainSearchResult } from "@/hooks/use-domain-search";
 
 export function DomainSearch() {
   return (
@@ -78,9 +44,10 @@ function DomainSearchContent() {
   return (
     <div className="space-y-6">
       {/* Currency Selector - Positioned on the right side, prominent and visible */}
-      <div className="flex justify-end w-full mb-2">
+      {/* Commented out for customer side - default currency is KES */}
+      {/* <div className="flex justify-end w-full mb-2">
         <CurrencySelector />
-      </div>
+      </div> */}
 
       {/* Search Input */}
       <Card className="border-0 shadow-lg">

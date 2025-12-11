@@ -700,6 +700,61 @@ export const teamsRouter = router({
     }),
 
   /**
+   * Get team ID by slug
+   */
+  getTeamIdBySlug: protectedProcedure
+    .input(z.object({ slug: z.string() }))
+    .output(z.object({
+      id: z.string(),
+      name: z.string(),
+      slug: z.string(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const team = await prisma.team.findUnique({
+        where: { slug: input.slug },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      });
+
+      if (!team) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team not found",
+        });
+      }
+
+      // Verify user has access to this team
+      const membership = await prisma.teamMember.findUnique({
+        where: {
+          teamId_userId: {
+            teamId: team.id,
+            userId: session.user.id,
+          },
+        },
+      });
+
+      if (!membership) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have access to this team",
+        });
+      }
+
+      return team;
+    }),
+
+  /**
    * Get team by ID with full details
    */
   getById: protectedProcedure

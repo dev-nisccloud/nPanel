@@ -50,6 +50,10 @@ import { ordersRouter } from "./orders";
 import { invoicingRouter } from "./invoicing";
 import { teamBillingRouter } from "./team-billing";
 import { metaRouter } from "./social-media-marketing/meta";
+import { linkedinRouter } from "./social-media-marketing/linkedin";
+import { serviceSubscriptionsRouter } from "./service-subscriptions";
+import { googleAdsRouter } from "./google-ads";
+import { metaAdsRouter } from "./meta-ads";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -136,9 +140,16 @@ export const appRouter = router({
 	invoicing: invoicingRouter,
 	// Team Billing Settings
 	teamBilling: teamBillingRouter,
-	// Social Media Marketing - Meta/Facebook
+	// Service Subscriptions Management
+	serviceSubscriptions: serviceSubscriptionsRouter,
+	// Social Media Marketing - Meta/Facebook & LinkedIn
 	socialMediaMarketing: router({
 		meta: metaRouter,
+		linkedin: linkedinRouter,
 	}),
+	// Google Ads Integration
+	googleAds: googleAdsRouter,
+	// Meta Ads Integration
+	metaAds: metaAdsRouter,
 });
 export type AppRouter = typeof appRouter;

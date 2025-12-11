@@ -37,6 +37,7 @@ export const UPLOAD_ENDPOINTS = {
   DOCUMENT: "documentUploader",
   CREATIVE_ASSET_VERSION: "creativeAssetVersion",
   CREATIVE_ASSET: "creativeAsset",
+  CONTENT_CALENDAR_MEDIA: "contentCalendarMedia",
 } as const;
 
 /**

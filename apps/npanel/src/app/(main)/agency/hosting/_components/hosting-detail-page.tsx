@@ -30,6 +30,7 @@ import { hostingDetailSchema } from "./hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 import { LinkToTeamDialog } from "./link-to-team-dialog";
+import { LinkToSubscriptionDialog } from "./link-to-subscription-dialog";
 import { EditSubscriptionDialog } from "./edit-subscription-dialog";
 import {
   AlertDialog,
@@ -141,6 +142,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   // Use batched endpoint - fetches both hosting data and subscription link in one request
   const { data: hostingData, subscription: subscriptionData, isLoading, isError, error, refetch, rawData } = useHostingDetailBatched(subscriptionId);
   const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
+  const [isLinkToSubscriptionOpen, setIsLinkToSubscriptionOpen] = React.useState(false);
   const [isEditSubscriptionOpen, setIsEditSubscriptionOpen] = React.useState(false);
   const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
@@ -149,6 +151,20 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const pleskFilterId = String(rawData?.parsed?.packet?.webspace?.get?.result?.["filter-id"] || "");
 
   const isLinkedToTeam = !!subscriptionData?.teamId;
+
+  // Find or get HostingSubscription ID by pleskFilterId
+  // We need this to check if it's linked to a service subscription and to link it
+  const { data: hostingSubscriptionByFilter } = trpc.hosting.getByPleskFilterId.useQuery(
+    { pleskFilterId },
+    { enabled: !!pleskFilterId && pleskFilterId !== "" }
+  );
+  
+  // Check if hosting subscription is already linked to a service subscription
+  const { data: existingServiceSubscription } = trpc.serviceSubscriptions.getByHostingSubscriptionId.useQuery(
+    { hostingSubscriptionId: hostingSubscriptionByFilter?.id || "" },
+    { enabled: !!hostingSubscriptionByFilter?.id }
+  );
+  const isLinkedToServiceSubscription = !!existingServiceSubscription;
 
   const utils = trpc.useUtils();
 
@@ -231,6 +247,16 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                 disabled={isLinkedToTeam}
               >
                 Link to Team
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setIsActionMenuOpen(false);
+                  setTimeout(() => setIsLinkToSubscriptionOpen(true), 0);
+                }}
+                disabled={isLinkedToServiceSubscription}
+              >
+                Link to Subscription
               </DropdownMenuItem>
               {isLinkedToTeam && (
                 <DropdownMenuItem 
@@ -317,6 +343,26 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         hostingType={hostingData?.gen_info?.htype}
         onSuccess={() => {
           // Invalidate subscription query to refresh data
+          utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });
+          refetch();
+        }}
+      />
+
+      {/* Link to Subscription Dialog */}
+      <LinkToSubscriptionDialog
+        open={isLinkToSubscriptionOpen}
+        onOpenChange={setIsLinkToSubscriptionOpen}
+        subscriptionId={subscriptionId}
+        pleskFilterId={pleskFilterId}
+        hostingType={hostingData?.gen_info?.htype}
+        subscriptionName={hostingData?.gen_info?.name}
+        onSuccess={() => {
+          // Invalidate queries to refresh data
+          if (hostingSubscriptionByFilter?.id) {
+            utils.serviceSubscriptions.getByHostingSubscriptionId.invalidate({ 
+              hostingSubscriptionId: hostingSubscriptionByFilter.id 
+            });
+          }
           utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });
           refetch();
         }}

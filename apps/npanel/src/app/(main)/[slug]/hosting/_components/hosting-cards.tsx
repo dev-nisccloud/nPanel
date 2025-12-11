@@ -37,80 +37,76 @@ export function HostingCard({
 
   return (
     <Card 
-      className={cn("group cursor-pointer transition-all hover:shadow-md", className)}
+      className={cn("group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50 h-full flex flex-col", className)}
       onClick={handleViewDetails}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-bold truncate">
+      <CardHeader className="pb-3 flex-shrink-0">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
             {data.subscriptionName}
           </CardTitle>
-          <Badge variant={getStatusBadgeVariant(data.status)}>
+          <Badge variant={getStatusBadgeVariant(data.status)} className="flex-shrink-0">
             {getStatusDisplayText(data.status)}
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
-        <div className="grid grid-cols-4 gap-4">
+      <CardContent className="pt-0 flex-1 flex flex-col">
+        <div className="space-y-3 flex-1">
+          {/* SSL Status */}
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               SSL Security
             </p>
             <Badge 
               variant={data.sslEnabled ? "default" : "destructive"}
-              className="text-xs"
+              className="text-xs w-fit"
             >
               {data.sslEnabled ? "Enabled" : "Disabled"}
             </Badge>
           </div>
           
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Previous Day Traffic
-            </p>
-            <p className="text-sm font-medium">{formatFileSize(data.trafficPrevDay)}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Disk Usage
-            </p>
-            <p className="text-sm font-medium">{formatFileSize(data.realSize)}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Setup Date
-            </p>
-            <p className="text-sm font-medium">{new Date(data.setupDate).toLocaleDateString()}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Total Traffic
-            </p>
-            <p className="text-sm font-medium">{formatFileSize(data.traffic)}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              DNS IP
-            </p>
-            <p className="text-sm font-medium">{data.dnsIpAddress}</p>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Disk Usage
+              </p>
+              <p className="text-sm font-semibold">{formatFileSize(data.realSize)}</p>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Total Traffic
+              </p>
+              <p className="text-sm font-semibold">{formatFileSize(data.traffic)}</p>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Daily Traffic
+              </p>
+              <p className="text-sm font-semibold">{formatFileSize(data.trafficPrevDay)}</p>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Setup Date
+              </p>
+              <p className="text-sm font-semibold">{new Date(data.setupDate).toLocaleDateString()}</p>
+            </div>
           </div>
         </div>
 
+        {/* Description */}
         {data.description && (
-          <div className="mt-4 pt-4 border-t">
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Description
-              </p>
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {data.description}
-              </p>
-            </div>
+          <div className="mt-4 pt-3 border-t flex-shrink-0">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+              Description
+            </p>
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {data.description}
+            </p>
           </div>
         )}
       </CardContent>

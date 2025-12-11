@@ -228,6 +228,8 @@ export type TeamWhereInput = {
   creditNotes?: Prisma.CreditNoteListRelationFilter
   billingSettings?: Prisma.XOR<Prisma.TeamBillingSettingsNullableScalarRelationFilter, Prisma.TeamBillingSettingsWhereInput> | null
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenListRelationFilter
+  googleAdsAccounts?: Prisma.GoogleAdsAccountListRelationFilter
+  metaAdsAccounts?: Prisma.MetaAdsAccountListRelationFilter
   serviceSubscriptions?: Prisma.ServiceSubscriptionListRelationFilter
 }
 
@@ -256,6 +258,8 @@ export type TeamOrderByWithRelationInput = {
   creditNotes?: Prisma.CreditNoteOrderByRelationAggregateInput
   billingSettings?: Prisma.TeamBillingSettingsOrderByWithRelationInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenOrderByRelationAggregateInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountOrderByRelationAggregateInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountOrderByRelationAggregateInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionOrderByRelationAggregateInput
 }
 
@@ -287,6 +291,8 @@ export type TeamWhereUniqueInput = Prisma.AtLeast<{
   creditNotes?: Prisma.CreditNoteListRelationFilter
   billingSettings?: Prisma.XOR<Prisma.TeamBillingSettingsNullableScalarRelationFilter, Prisma.TeamBillingSettingsWhereInput> | null
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenListRelationFilter
+  googleAdsAccounts?: Prisma.GoogleAdsAccountListRelationFilter
+  metaAdsAccounts?: Prisma.MetaAdsAccountListRelationFilter
   serviceSubscriptions?: Prisma.ServiceSubscriptionListRelationFilter
 }, "id" | "slug">
 
@@ -345,6 +351,8 @@ export type TeamCreateInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -373,6 +381,8 @@ export type TeamUncheckedCreateInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -401,6 +411,8 @@ export type TeamUpdateInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -429,6 +441,8 @@ export type TeamUncheckedUpdateInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -694,6 +708,22 @@ export type TeamUpdateOneWithoutAudiencesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutAudiencesInput, Prisma.TeamUpdateWithoutAudiencesInput>, Prisma.TeamUncheckedUpdateWithoutAudiencesInput>
 }
 
+export type TeamCreateNestedOneWithoutGoogleAdsAccountsInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutGoogleAdsAccountsInput, Prisma.TeamUncheckedCreateWithoutGoogleAdsAccountsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutGoogleAdsAccountsInput
+  connect?: Prisma.TeamWhereUniqueInput
+}
+
+export type TeamUpdateOneWithoutGoogleAdsAccountsNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutGoogleAdsAccountsInput, Prisma.TeamUncheckedCreateWithoutGoogleAdsAccountsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutGoogleAdsAccountsInput
+  upsert?: Prisma.TeamUpsertWithoutGoogleAdsAccountsInput
+  disconnect?: Prisma.TeamWhereInput | boolean
+  delete?: Prisma.TeamWhereInput | boolean
+  connect?: Prisma.TeamWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutGoogleAdsAccountsInput, Prisma.TeamUpdateWithoutGoogleAdsAccountsInput>, Prisma.TeamUncheckedUpdateWithoutGoogleAdsAccountsInput>
+}
+
 export type TeamCreateNestedOneWithoutInvoicesInput = {
   create?: Prisma.XOR<Prisma.TeamCreateWithoutInvoicesInput, Prisma.TeamUncheckedCreateWithoutInvoicesInput>
   connectOrCreate?: Prisma.TeamCreateOrConnectWithoutInvoicesInput
@@ -724,6 +754,22 @@ export type TeamUpdateOneWithoutCreditNotesNestedInput = {
   delete?: Prisma.TeamWhereInput | boolean
   connect?: Prisma.TeamWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutCreditNotesInput, Prisma.TeamUpdateWithoutCreditNotesInput>, Prisma.TeamUncheckedUpdateWithoutCreditNotesInput>
+}
+
+export type TeamCreateNestedOneWithoutMetaAdsAccountsInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutMetaAdsAccountsInput, Prisma.TeamUncheckedCreateWithoutMetaAdsAccountsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutMetaAdsAccountsInput
+  connect?: Prisma.TeamWhereUniqueInput
+}
+
+export type TeamUpdateOneWithoutMetaAdsAccountsNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutMetaAdsAccountsInput, Prisma.TeamUncheckedCreateWithoutMetaAdsAccountsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutMetaAdsAccountsInput
+  upsert?: Prisma.TeamUpsertWithoutMetaAdsAccountsInput
+  disconnect?: Prisma.TeamWhereInput | boolean
+  delete?: Prisma.TeamWhereInput | boolean
+  connect?: Prisma.TeamWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutMetaAdsAccountsInput, Prisma.TeamUpdateWithoutMetaAdsAccountsInput>, Prisma.TeamUncheckedUpdateWithoutMetaAdsAccountsInput>
 }
 
 export type TeamCreateNestedOneWithoutServiceSubscriptionsInput = {
@@ -782,6 +828,8 @@ export type TeamCreateWithoutWordpressInstancesInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -809,6 +857,8 @@ export type TeamUncheckedCreateWithoutWordpressInstancesInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -852,6 +902,8 @@ export type TeamUpdateWithoutWordpressInstancesInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -879,6 +931,8 @@ export type TeamUncheckedUpdateWithoutWordpressInstancesInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -906,6 +960,8 @@ export type TeamCreateWithoutOrdersInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -933,6 +989,8 @@ export type TeamUncheckedCreateWithoutOrdersInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -976,6 +1034,8 @@ export type TeamUpdateWithoutOrdersInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -1003,6 +1063,8 @@ export type TeamUncheckedUpdateWithoutOrdersInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -1030,6 +1092,8 @@ export type TeamCreateWithoutPromosInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -1057,6 +1121,8 @@ export type TeamUncheckedCreateWithoutPromosInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -1100,6 +1166,8 @@ export type TeamUpdateWithoutPromosInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -1127,6 +1195,8 @@ export type TeamUncheckedUpdateWithoutPromosInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -1154,6 +1224,8 @@ export type TeamCreateWithoutMembersInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -1181,6 +1253,8 @@ export type TeamUncheckedCreateWithoutMembersInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -1224,6 +1298,8 @@ export type TeamUpdateWithoutMembersInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -1251,6 +1327,8 @@ export type TeamUncheckedUpdateWithoutMembersInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -1278,6 +1356,8 @@ export type TeamCreateWithoutInvitesInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -1305,6 +1385,8 @@ export type TeamUncheckedCreateWithoutInvitesInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -1348,6 +1430,8 @@ export type TeamUpdateWithoutInvitesInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -1375,6 +1459,8 @@ export type TeamUncheckedUpdateWithoutInvitesInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -1402,6 +1488,8 @@ export type TeamCreateWithoutBillingSettingsInput = {
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -1429,6 +1517,8 @@ export type TeamUncheckedCreateWithoutBillingSettingsInput = {
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -1472,6 +1562,8 @@ export type TeamUpdateWithoutBillingSettingsInput = {
   invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -1499,6 +1591,8 @@ export type TeamUncheckedUpdateWithoutBillingSettingsInput = {
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -1526,6 +1620,8 @@ export type TeamCreateWithoutHostingSubscriptionsInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -1553,6 +1649,8 @@ export type TeamUncheckedCreateWithoutHostingSubscriptionsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -1596,6 +1694,8 @@ export type TeamUpdateWithoutHostingSubscriptionsInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -1623,6 +1723,8 @@ export type TeamUncheckedUpdateWithoutHostingSubscriptionsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -1650,6 +1752,8 @@ export type TeamCreateWithoutDomainRegistrationsInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -1677,6 +1781,8 @@ export type TeamUncheckedCreateWithoutDomainRegistrationsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -1720,6 +1826,8 @@ export type TeamUpdateWithoutDomainRegistrationsInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -1747,6 +1855,8 @@ export type TeamUncheckedUpdateWithoutDomainRegistrationsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -1774,6 +1884,8 @@ export type TeamCreateWithoutCreativeAssetsInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -1801,6 +1913,8 @@ export type TeamUncheckedCreateWithoutCreativeAssetsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -1844,6 +1958,8 @@ export type TeamUpdateWithoutCreativeAssetsInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -1871,6 +1987,8 @@ export type TeamUncheckedUpdateWithoutCreativeAssetsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -1898,6 +2016,8 @@ export type TeamCreateWithoutEmailDomainsInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -1925,6 +2045,8 @@ export type TeamUncheckedCreateWithoutEmailDomainsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -1968,6 +2090,8 @@ export type TeamUpdateWithoutEmailDomainsInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -1995,6 +2119,8 @@ export type TeamUncheckedUpdateWithoutEmailDomainsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -2022,6 +2148,8 @@ export type TeamCreateWithoutEmailCampaignsInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -2049,6 +2177,8 @@ export type TeamUncheckedCreateWithoutEmailCampaignsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -2092,6 +2222,8 @@ export type TeamUpdateWithoutEmailCampaignsInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -2119,6 +2251,8 @@ export type TeamUncheckedUpdateWithoutEmailCampaignsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -2146,6 +2280,8 @@ export type TeamCreateWithoutAudiencesInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -2173,6 +2309,8 @@ export type TeamUncheckedCreateWithoutAudiencesInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -2216,6 +2354,8 @@ export type TeamUpdateWithoutAudiencesInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -2243,6 +2383,140 @@ export type TeamUncheckedUpdateWithoutAudiencesInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamCreateWithoutGoogleAdsAccountsInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteCreateNestedManyWithoutTeamInput
+  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutTeamInput
+  emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutTeamInput
+  audiences?: Prisma.AudienceCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
+}
+
+export type TeamUncheckedCreateWithoutGoogleAdsAccountsInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteUncheckedCreateNestedManyWithoutTeamInput
+  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutTeamInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutTeamInput
+  audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+}
+
+export type TeamCreateOrConnectWithoutGoogleAdsAccountsInput = {
+  where: Prisma.TeamWhereUniqueInput
+  create: Prisma.XOR<Prisma.TeamCreateWithoutGoogleAdsAccountsInput, Prisma.TeamUncheckedCreateWithoutGoogleAdsAccountsInput>
+}
+
+export type TeamUpsertWithoutGoogleAdsAccountsInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutGoogleAdsAccountsInput, Prisma.TeamUncheckedUpdateWithoutGoogleAdsAccountsInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutGoogleAdsAccountsInput, Prisma.TeamUncheckedCreateWithoutGoogleAdsAccountsInput>
+  where?: Prisma.TeamWhereInput
+}
+
+export type TeamUpdateToOneWithWhereWithoutGoogleAdsAccountsInput = {
+  where?: Prisma.TeamWhereInput
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutGoogleAdsAccountsInput, Prisma.TeamUncheckedUpdateWithoutGoogleAdsAccountsInput>
+}
+
+export type TeamUpdateWithoutGoogleAdsAccountsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUpdateManyWithoutTeamNestedInput
+  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutTeamNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutTeamNestedInput
+  audiences?: Prisma.AudienceUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamUncheckedUpdateWithoutGoogleAdsAccountsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUncheckedUpdateManyWithoutTeamNestedInput
+  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutTeamNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutTeamNestedInput
+  audiences?: Prisma.AudienceUncheckedUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -2270,6 +2544,8 @@ export type TeamCreateWithoutInvoicesInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -2297,6 +2573,8 @@ export type TeamUncheckedCreateWithoutInvoicesInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -2340,6 +2618,8 @@ export type TeamUpdateWithoutInvoicesInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -2367,6 +2647,8 @@ export type TeamUncheckedUpdateWithoutInvoicesInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -2394,6 +2676,8 @@ export type TeamCreateWithoutCreditNotesInput = {
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -2421,6 +2705,8 @@ export type TeamUncheckedCreateWithoutCreditNotesInput = {
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -2464,6 +2750,8 @@ export type TeamUpdateWithoutCreditNotesInput = {
   invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -2491,6 +2779,140 @@ export type TeamUncheckedUpdateWithoutCreditNotesInput = {
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamCreateWithoutMetaAdsAccountsInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteCreateNestedManyWithoutTeamInput
+  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutTeamInput
+  emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutTeamInput
+  audiences?: Prisma.AudienceCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
+}
+
+export type TeamUncheckedCreateWithoutMetaAdsAccountsInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteUncheckedCreateNestedManyWithoutTeamInput
+  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutTeamInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutTeamInput
+  audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+}
+
+export type TeamCreateOrConnectWithoutMetaAdsAccountsInput = {
+  where: Prisma.TeamWhereUniqueInput
+  create: Prisma.XOR<Prisma.TeamCreateWithoutMetaAdsAccountsInput, Prisma.TeamUncheckedCreateWithoutMetaAdsAccountsInput>
+}
+
+export type TeamUpsertWithoutMetaAdsAccountsInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutMetaAdsAccountsInput, Prisma.TeamUncheckedUpdateWithoutMetaAdsAccountsInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutMetaAdsAccountsInput, Prisma.TeamUncheckedCreateWithoutMetaAdsAccountsInput>
+  where?: Prisma.TeamWhereInput
+}
+
+export type TeamUpdateToOneWithWhereWithoutMetaAdsAccountsInput = {
+  where?: Prisma.TeamWhereInput
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutMetaAdsAccountsInput, Prisma.TeamUncheckedUpdateWithoutMetaAdsAccountsInput>
+}
+
+export type TeamUpdateWithoutMetaAdsAccountsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUpdateManyWithoutTeamNestedInput
+  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutTeamNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutTeamNestedInput
+  audiences?: Prisma.AudienceUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamUncheckedUpdateWithoutMetaAdsAccountsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUncheckedUpdateManyWithoutTeamNestedInput
+  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutTeamNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutTeamNestedInput
+  audiences?: Prisma.AudienceUncheckedUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -2519,6 +2941,8 @@ export type TeamCreateWithoutServiceSubscriptionsInput = {
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutServiceSubscriptionsInput = {
@@ -2546,6 +2970,8 @@ export type TeamUncheckedCreateWithoutServiceSubscriptionsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutServiceSubscriptionsInput = {
@@ -2589,6 +3015,8 @@ export type TeamUpdateWithoutServiceSubscriptionsInput = {
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutServiceSubscriptionsInput = {
@@ -2616,6 +3044,8 @@ export type TeamUncheckedUpdateWithoutServiceSubscriptionsInput = {
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutSocialMediaPageTokensInput = {
@@ -2642,6 +3072,8 @@ export type TeamCreateWithoutSocialMediaPageTokensInput = {
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
   creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
 }
 
@@ -2669,6 +3101,8 @@ export type TeamUncheckedCreateWithoutSocialMediaPageTokensInput = {
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
   creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
 }
 
@@ -2712,6 +3146,8 @@ export type TeamUpdateWithoutSocialMediaPageTokensInput = {
   invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
   creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
 }
 
@@ -2739,6 +3175,8 @@ export type TeamUncheckedUpdateWithoutSocialMediaPageTokensInput = {
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
   creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
   billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
 }
 
@@ -2762,6 +3200,8 @@ export type TeamCountOutputType = {
   invoices: number
   creditNotes: number
   socialMediaPageTokens: number
+  googleAdsAccounts: number
+  metaAdsAccounts: number
   serviceSubscriptions: number
 }
 
@@ -2780,6 +3220,8 @@ export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   invoices?: boolean | TeamCountOutputTypeCountInvoicesArgs
   creditNotes?: boolean | TeamCountOutputTypeCountCreditNotesArgs
   socialMediaPageTokens?: boolean | TeamCountOutputTypeCountSocialMediaPageTokensArgs
+  googleAdsAccounts?: boolean | TeamCountOutputTypeCountGoogleAdsAccountsArgs
+  metaAdsAccounts?: boolean | TeamCountOutputTypeCountMetaAdsAccountsArgs
   serviceSubscriptions?: boolean | TeamCountOutputTypeCountServiceSubscriptionsArgs
 }
 
@@ -2894,6 +3336,20 @@ export type TeamCountOutputTypeCountSocialMediaPageTokensArgs<ExtArgs extends ru
 /**
  * TeamCountOutputType without action
  */
+export type TeamCountOutputTypeCountGoogleAdsAccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.GoogleAdsAccountWhereInput
+}
+
+/**
+ * TeamCountOutputType without action
+ */
+export type TeamCountOutputTypeCountMetaAdsAccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MetaAdsAccountWhereInput
+}
+
+/**
+ * TeamCountOutputType without action
+ */
 export type TeamCountOutputTypeCountServiceSubscriptionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.ServiceSubscriptionWhereInput
 }
@@ -2924,6 +3380,8 @@ export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   creditNotes?: boolean | Prisma.Team$creditNotesArgs<ExtArgs>
   billingSettings?: boolean | Prisma.Team$billingSettingsArgs<ExtArgs>
   socialMediaPageTokens?: boolean | Prisma.Team$socialMediaPageTokensArgs<ExtArgs>
+  googleAdsAccounts?: boolean | Prisma.Team$googleAdsAccountsArgs<ExtArgs>
+  metaAdsAccounts?: boolean | Prisma.Team$metaAdsAccountsArgs<ExtArgs>
   serviceSubscriptions?: boolean | Prisma.Team$serviceSubscriptionsArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["team"]>
@@ -2981,6 +3439,8 @@ export type TeamInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   creditNotes?: boolean | Prisma.Team$creditNotesArgs<ExtArgs>
   billingSettings?: boolean | Prisma.Team$billingSettingsArgs<ExtArgs>
   socialMediaPageTokens?: boolean | Prisma.Team$socialMediaPageTokensArgs<ExtArgs>
+  googleAdsAccounts?: boolean | Prisma.Team$googleAdsAccountsArgs<ExtArgs>
+  metaAdsAccounts?: boolean | Prisma.Team$metaAdsAccountsArgs<ExtArgs>
   serviceSubscriptions?: boolean | Prisma.Team$serviceSubscriptionsArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -3005,6 +3465,8 @@ export type $TeamPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     creditNotes: Prisma.$CreditNotePayload<ExtArgs>[]
     billingSettings: Prisma.$TeamBillingSettingsPayload<ExtArgs> | null
     socialMediaPageTokens: Prisma.$SocialMediaPageTokenPayload<ExtArgs>[]
+    googleAdsAccounts: Prisma.$GoogleAdsAccountPayload<ExtArgs>[]
+    metaAdsAccounts: Prisma.$MetaAdsAccountPayload<ExtArgs>[]
     serviceSubscriptions: Prisma.$ServiceSubscriptionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -3426,6 +3888,8 @@ export interface Prisma__TeamClient<T, Null = never, ExtArgs extends runtime.Typ
   creditNotes<T extends Prisma.Team$creditNotesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$creditNotesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CreditNotePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   billingSettings<T extends Prisma.Team$billingSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$billingSettingsArgs<ExtArgs>>): Prisma.Prisma__TeamBillingSettingsClient<runtime.Types.Result.GetResult<Prisma.$TeamBillingSettingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   socialMediaPageTokens<T extends Prisma.Team$socialMediaPageTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$socialMediaPageTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SocialMediaPageTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  googleAdsAccounts<T extends Prisma.Team$googleAdsAccountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$googleAdsAccountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GoogleAdsAccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  metaAdsAccounts<T extends Prisma.Team$metaAdsAccountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$metaAdsAccountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MetaAdsAccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   serviceSubscriptions<T extends Prisma.Team$serviceSubscriptionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$serviceSubscriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceSubscriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -4205,6 +4669,54 @@ export type Team$socialMediaPageTokensArgs<ExtArgs extends runtime.Types.Extensi
   take?: number
   skip?: number
   distinct?: Prisma.SocialMediaPageTokenScalarFieldEnum | Prisma.SocialMediaPageTokenScalarFieldEnum[]
+}
+
+/**
+ * Team.googleAdsAccounts
+ */
+export type Team$googleAdsAccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the GoogleAdsAccount
+   */
+  select?: Prisma.GoogleAdsAccountSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the GoogleAdsAccount
+   */
+  omit?: Prisma.GoogleAdsAccountOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.GoogleAdsAccountInclude<ExtArgs> | null
+  where?: Prisma.GoogleAdsAccountWhereInput
+  orderBy?: Prisma.GoogleAdsAccountOrderByWithRelationInput | Prisma.GoogleAdsAccountOrderByWithRelationInput[]
+  cursor?: Prisma.GoogleAdsAccountWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.GoogleAdsAccountScalarFieldEnum | Prisma.GoogleAdsAccountScalarFieldEnum[]
+}
+
+/**
+ * Team.metaAdsAccounts
+ */
+export type Team$metaAdsAccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MetaAdsAccount
+   */
+  select?: Prisma.MetaAdsAccountSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MetaAdsAccount
+   */
+  omit?: Prisma.MetaAdsAccountOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MetaAdsAccountInclude<ExtArgs> | null
+  where?: Prisma.MetaAdsAccountWhereInput
+  orderBy?: Prisma.MetaAdsAccountOrderByWithRelationInput | Prisma.MetaAdsAccountOrderByWithRelationInput[]
+  cursor?: Prisma.MetaAdsAccountWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MetaAdsAccountScalarFieldEnum | Prisma.MetaAdsAccountScalarFieldEnum[]
 }
 
 /**

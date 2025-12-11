@@ -2,8 +2,12 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../../trpc';
 import { createMetaClient, MetaApiError } from '../../../lib/meta-client';
-import { getStoredMetaAccessToken } from '../../../lib/meta-credentials';
+import {
+	getStoredMetaAccessToken,
+	getStoredPageAccessToken,
+} from '../../../lib/meta-credentials';
 import { MetaErrorHandler } from '../../../lib/meta-error-handler';
+import { request } from 'undici';
 
 // Validation schema for page content request
 const PageContentRequestSchema = z.object({
@@ -14,7 +18,7 @@ const PageContentRequestSchema = z.object({
 	since: z.string().optional(), // ISO 8601 date string
 	until: z.string().optional(), // ISO 8601 date string
 	accessToken: z.string().optional(), // Optional - will use stored token if not provided
-	apiVersion: z.string().optional().default('v21.0'),
+	apiVersion: z.string().optional().default('v24.0'),
 	useStoredToken: z.boolean().optional().default(true), // Whether to use stored token if available
 });
 
@@ -26,12 +30,43 @@ export const metaPageContentRouter = router({
 		.input(PageContentRequestSchema)
 		.query(async ({ input }) => {
 			try {
-				// Get access token - use stored token if available and not explicitly provided
+				// For page content, we need a page access token, not a user access token
+				// Step 1: Try to get stored page token
 				let accessToken = input.accessToken;
 				if (!accessToken && input.useStoredToken) {
-					const stored = await getStoredMetaAccessToken();
-					if (stored) {
-						accessToken = stored.accessToken;
+					const storedPageToken = await getStoredPageAccessToken(input.pageId);
+					if (storedPageToken) {
+						accessToken = storedPageToken.accessToken;
+					} else {
+						// Step 2: If no stored page token, get user token and fetch page token on-the-fly
+						const userToken = await getStoredMetaAccessToken();
+						if (userToken) {
+							try {
+								// Get page access token using user access token
+								const apiVersion = input.apiVersion || 'v22.0';
+								const pageTokenUrl = `https://graph.facebook.com/${apiVersion}/${input.pageId}?fields=access_token&access_token=${userToken.accessToken}`;
+								const pageTokenResponse = await request(pageTokenUrl, { method: 'GET' });
+								const pageTokenData = (await pageTokenResponse.body.json()) as any;
+
+								if (pageTokenData && pageTokenData.access_token) {
+									accessToken = pageTokenData.access_token;
+								} else if (pageTokenData && 'error' in pageTokenData) {
+									// If error getting page token, fall back to user token (might work for some operations)
+									console.warn(
+										'Failed to get page token, falling back to user token:',
+										pageTokenData.error
+									);
+									accessToken = userToken.accessToken;
+								} else {
+									// Fall back to user token
+									accessToken = userToken.accessToken;
+								}
+							} catch (error) {
+								console.warn('Error fetching page token, using user token:', error);
+								// Fall back to user token
+								accessToken = userToken.accessToken;
+							}
+						}
 					}
 				}
 
@@ -514,6 +549,138 @@ export const metaPageContentRouter = router({
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
 					message: 'Failed to retrieve page events',
+				});
+			}
+		}),
+
+	/**
+	 * Publish a post to a Facebook Page
+	 * Supports text posts, photo posts, video posts, and scheduled posts
+	 */
+	publishPost: protectedProcedure
+		.input(
+			z.object({
+				pageId: z.string().min(1, 'Page ID is required'),
+				message: z.string().optional(),
+				photos: z
+					.array(
+						z.object({
+							url: z.string().url('Photo URL must be a valid URL'),
+							caption: z.string().optional(),
+						})
+					)
+					.optional(),
+				video: z
+					.object({
+						file_url: z.string().url('Video file URL must be a valid URL'),
+						description: z.string().optional(),
+					})
+					.optional(),
+				scheduledPublishTime: z.number().optional(), // Unix timestamp
+				published: z.boolean().optional().default(true),
+				accessToken: z.string().optional(),
+				apiVersion: z.string().optional().default('v24.0'),
+				useStoredToken: z.boolean().optional().default(true),
+			})
+		)
+		.mutation(async ({ input }) => {
+			try {
+				// For publishing posts, we need a page access token with pages_manage_posts permission
+				let accessToken = input.accessToken;
+				if (!accessToken && input.useStoredToken) {
+					const storedPageToken = await getStoredPageAccessToken(input.pageId);
+					if (storedPageToken) {
+						accessToken = storedPageToken.accessToken;
+					} else {
+						// If no stored page token, get user token and fetch page token on-the-fly
+						const userToken = await getStoredMetaAccessToken();
+						if (userToken) {
+							try {
+								const apiVersion = input.apiVersion || 'v24.0';
+								const pageTokenUrl = `https://graph.facebook.com/${apiVersion}/${input.pageId}?fields=access_token&access_token=${userToken.accessToken}`;
+								const pageTokenResponse = await request(pageTokenUrl, {
+									method: 'GET',
+								});
+								const pageTokenData = (await pageTokenResponse.body.json()) as any;
+
+								if (pageTokenData && pageTokenData.access_token) {
+									accessToken = pageTokenData.access_token;
+								} else {
+									throw new TRPCError({
+										code: 'UNAUTHORIZED',
+										message:
+											'Page access token is required for publishing posts. Please ensure you have proper permissions on this page.',
+									});
+								}
+							} catch (error) {
+								if (error instanceof TRPCError) {
+									throw error;
+								}
+								throw new TRPCError({
+									code: 'UNAUTHORIZED',
+									message:
+										'Page access token is required for publishing posts. Please ensure you have proper permissions on this page.',
+								});
+							}
+						}
+					}
+				}
+
+				if (!accessToken) {
+					throw new TRPCError({
+						code: 'BAD_REQUEST',
+						message:
+							'Access token is required. Either provide accessToken in the request or configure stored credentials.',
+					});
+				}
+
+				const client = createMetaClient(accessToken, input.apiVersion);
+
+				const response = await client.publishPost(input.pageId, {
+					message: input.message,
+					photos: input.photos,
+					video: input.video,
+					scheduledPublishTime: input.scheduledPublishTime,
+					published: input.published,
+				});
+
+				return {
+					success: true,
+					data: {
+						postId: response.id,
+						permalink: response.permalink_url || null,
+					},
+					meta: {
+						published_at: new Date().toISOString(),
+						page_id: input.pageId,
+					},
+				};
+			} catch (error) {
+				console.error('Meta API publish post error:', error);
+
+				if (error instanceof MetaApiError) {
+					const errorInfo = MetaErrorHandler.handleError(error);
+					const errorType = (error as any).errorType || errorInfo?.type || 'unknown';
+
+					throw new TRPCError({
+						code: error.code === 190 || error.code === 200 ? 'UNAUTHORIZED' : 'BAD_REQUEST',
+						message: errorInfo?.message || error.message,
+						cause: {
+							metaErrorCode: error.code,
+							metaErrorType: error.type,
+							errorType,
+							requiresTokenRefresh: errorType === 'refresh-token',
+						},
+					});
+				}
+
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Failed to publish post',
 				});
 			}
 		}),

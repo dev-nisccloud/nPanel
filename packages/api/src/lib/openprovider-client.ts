@@ -92,9 +92,16 @@ export class OpenProviderClient {
       headers.Authorization = `Bearer ${this.token}`;
     }
 
+    // FIX: Add timeout to prevent 504 Gateway Timeout errors
+    // Use longer timeout for domain checks (60 seconds) as they can take longer with many domains
+    const timeoutDuration = endpoint.includes('/domains/check') ? 60000 : 30000; // 60s for domain checks, 30s for others
+    const controller = new AbortController();
+    let timeoutId: NodeJS.Timeout | undefined = setTimeout(() => controller.abort(), timeoutDuration);
+
     const requestOptions: any = {
       method,
       headers,
+      signal: controller.signal,
       ...options,
     };
 
@@ -104,7 +111,50 @@ export class OpenProviderClient {
 
     try {
       const response = await request(url, requestOptions);
-      const responseData = await response.body.json() as any;
+      if (timeoutId) {
+        clearTimeout(timeoutId); // Clear timeout on success
+        timeoutId = undefined;
+      }
+      
+      // Read response as text first to handle HTML error pages
+      const responseText = await response.body.text();
+      
+      // Check if response is HTML (starts with <html, <HTML, or <!DOCTYPE)
+      const trimmedText = responseText.trim();
+      const isHtml = trimmedText.toLowerCase().startsWith('<html') || 
+                     trimmedText.toLowerCase().startsWith('<!doctype') ||
+                     trimmedText.startsWith('<');
+      
+      if (isHtml) {
+        // Response is HTML (likely error page from authentication failure or wrong endpoint)
+        const errorMessage = responseText.length > 500 
+          ? responseText.substring(0, 500) + '...'
+          : responseText;
+        
+        // Try to extract error message from HTML if possible
+        const titleMatch = responseText.match(/<title[^>]*>([^<]+)<\/title>/i);
+        const h1Match = responseText.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+        const extractedError = titleMatch?.[1] || h1Match?.[1] || 'HTML error page';
+        
+        throw new OpenProviderApiError(
+          response.statusCode || 0,
+          `OpenProvider API returned HTML instead of JSON (likely authentication error or invalid endpoint). Status: ${response.statusCode || 'unknown'}. Error: ${extractedError}. Please check your OPENPROVIDER_USERNAME, OPENPROVIDER_PASSWORD, and OPENPROVIDER_BASE_URL environment variables.`,
+          new Error(`Non-JSON response from OpenProvider API`)
+        );
+      }
+      
+      // Try to parse as JSON
+      let responseData: any;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (parseError) {
+        // Failed to parse as JSON
+        throw new OpenProviderApiError(
+          response.statusCode || 0,
+          `Failed to parse JSON response from OpenProvider API. Response preview: ${responseText.substring(0, 200)}`,
+          parseError instanceof Error ? parseError : new Error('JSON parse error')
+        );
+      }
 
       if (response.statusCode >= 400) {
         const errorData = responseData as OpenProviderError;
@@ -117,6 +167,23 @@ export class OpenProviderClient {
 
       return responseData;
     } catch (error) {
+      // Clear timeout if still set
+      if (typeof timeoutId !== 'undefined') {
+        clearTimeout(timeoutId);
+      }
+
+      // Handle timeout/abort errors
+      if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        const timeoutMsg = endpoint.includes('/domains/check') 
+          ? 'Request timeout: OpenProvider API did not respond within 60 seconds. This may be due to high load or network issues.'
+          : 'Request timeout: OpenProvider API did not respond within 30 seconds. This may be due to high load or network issues.';
+        throw new OpenProviderApiError(
+          504,
+          timeoutMsg,
+          error
+        );
+      }
+
       if (error instanceof OpenProviderApiError) {
         throw error;
       }

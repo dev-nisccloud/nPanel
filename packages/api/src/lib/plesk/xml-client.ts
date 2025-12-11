@@ -8,9 +8,10 @@ const Sentry = {
 const PLESK_XML_ENDPOINT =
   process.env.PLESK_XML_ENDPOINT ??
   'https://your-plesk-host:8443/enterprise/control/agent.php';
-const PLESK_XML_USERNAME = process.env.PLESK_XML_USERNAME ?? 'admin';
-const PLESK_XML_PASSWORD = process.env.PLESK_XML_PASSWORD ?? 'your-password';
-const PLESK_SECRET_KEY = process.env.PLESK_SECRET_KEY; // Optional secret key authentication
+// TEMPORARILY COMMENTED OUT - Testing secret key only authentication
+// const PLESK_XML_USERNAME = process.env.PLESK_XML_USERNAME ?? 'admin';
+// const PLESK_XML_PASSWORD = process.env.PLESK_XML_PASSWORD ?? 'your-password';
+const PLESK_SECRET_KEY = process.env.PLESK_SECRET_KEY; // Required - secret key authentication only
 
 // Connection pool for better performance
 const pleskAgent = new Agent({
@@ -71,22 +72,37 @@ export async function sendPleskXmlRequest(
   console.log('Starting Plesk XML request...');
   console.log('PLESK_XML_ENDPOINT:', PLESK_XML_ENDPOINT);
   console.log('Has SECRET_KEY:', !!PLESK_SECRET_KEY);
-  console.log('Has USERNAME:', !!PLESK_XML_USERNAME);
-  console.log('Has PASSWORD:', !!PLESK_XML_PASSWORD);
+  // TEMPORARILY COMMENTED OUT - Testing secret key only authentication
+  // console.log('Has USERNAME:', !!PLESK_XML_USERNAME);
+  // console.log('Has PASSWORD:', !!PLESK_XML_PASSWORD);
   
   const trimmedPayload = xmlPayload.trim();
   if (!trimmedPayload.includes('<packet')) {
     throw new Error('Invalid XML payload: Must contain <packet> element');
   }
 
-  if (
-    !(
-      PLESK_XML_ENDPOINT &&
-      (PLESK_SECRET_KEY || (PLESK_XML_USERNAME && PLESK_XML_PASSWORD))
-    )
-  ) {
+  // TEMPORARILY COMMENTED OUT - Testing secret key only authentication
+  // if (
+  //   !(
+  //     PLESK_XML_ENDPOINT &&
+  //     (PLESK_SECRET_KEY || (PLESK_XML_USERNAME && PLESK_XML_PASSWORD))
+  //   )
+  // ) {
+  //   throw new Error(
+  //     'Missing required Plesk environment variables. Set either PLESK_SECRET_KEY or both PLESK_XML_USERNAME and PLESK_XML_PASSWORD.'
+  //   );
+  // }
+  
+  // SECRET KEY ONLY - No fallback to basic auth
+  if (!PLESK_XML_ENDPOINT) {
     throw new Error(
-      'Missing required Plesk environment variables. Set either PLESK_SECRET_KEY or both PLESK_XML_USERNAME and PLESK_XML_PASSWORD.'
+      'PLESK_XML_ENDPOINT environment variable is required'
+    );
+  }
+  
+  if (!PLESK_SECRET_KEY) {
+    throw new Error(
+      'PLESK_SECRET_KEY environment variable is required. Secret key authentication only (basic auth temporarily disabled for testing).'
     );
   }
 
@@ -123,18 +139,28 @@ export async function sendPleskXmlRequest(
       'User-Agent': 'nPanel-Server/1.0',
     };
 
+    // SECRET KEY ONLY - No fallback to basic auth
     if (PLESK_SECRET_KEY) {
-      console.log('Using SECRET_KEY authentication');
+      console.log('Using SECRET_KEY authentication (secret key only mode)');
       headers['KEY'] = PLESK_SECRET_KEY;
     } else {
-      console.log('Using username/password authentication');
-      const authHeader =
-        'Basic ' +
-        Buffer.from(`${PLESK_XML_USERNAME}:${PLESK_XML_PASSWORD}`).toString(
-          'base64'
-        );
-      headers['Authorization'] = authHeader;
+      // This should not happen due to validation above, but kept for safety
+      throw new Error('PLESK_SECRET_KEY is required. Basic auth is temporarily disabled for testing.');
     }
+    
+    // TEMPORARILY COMMENTED OUT - Testing secret key only authentication
+    // if (PLESK_SECRET_KEY) {
+    //   console.log('Using SECRET_KEY authentication');
+    //   headers['KEY'] = PLESK_SECRET_KEY;
+    // } else {
+    //   console.log('Using username/password authentication');
+    //   const authHeader =
+    //     'Basic ' +
+    //     Buffer.from('PLESK_XML_USERNAME:PLESK_XML_PASSWORD').toString(
+    //       'base64'
+    //     );
+    //   headers['Authorization'] = authHeader;
+    // }
 
     console.log('Making request to:', PLESK_XML_ENDPOINT);
     const startTime = Date.now();

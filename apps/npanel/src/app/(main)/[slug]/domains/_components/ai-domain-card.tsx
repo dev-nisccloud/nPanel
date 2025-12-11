@@ -92,8 +92,8 @@ const getStatusBadge = (status: string) => {
       variant={isAvailable ? "default" : "destructive"} 
       className={`text-xs border flex items-center gap-1 ${
         isAvailable 
-          ? 'bg-green-100 text-green-800 border-green-200' 
-          : 'bg-red-100 text-red-800 border-red-200'
+          ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800' 
+          : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800'
       }`}
     >
       {isAvailable ? (
@@ -140,32 +140,32 @@ export function AIDomainCard({
   const totalCount = domainResults.length;
 
   return (
-    <Card className="border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-md">
+    <Card className="border border-border hover:border-border/80 transition-all duration-200 hover:shadow-md">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2">
-              <h4 className="text-xl font-bold text-gray-900 truncate">{suggestion.name}</h4>
+              <h4 className="text-xl font-bold text-card-foreground truncate">{suggestion.name}</h4>
               {suggestion.confidence && (
-                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                   <Star className="h-3 w-3 mr-1" />
                   {Math.round(suggestion.confidence * 100)}% match
                 </Badge>
               )}
             </div>
             {suggestion.description && (
-              <p className="text-sm text-gray-600 mb-2">{suggestion.description}</p>
+              <p className="text-sm text-muted-foreground mb-2">{suggestion.description}</p>
             )}
-            <div className="flex items-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                 {availableCount} available
               </span>
               <span className="flex items-center gap-1">
-                <XCircle className="h-4 w-4 text-red-600" />
+                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                 {totalCount - availableCount} taken
               </span>
-              <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+              <span className="text-xs bg-muted px-2 py-1 rounded-full">
                 {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} category
               </span>
             </div>
@@ -173,7 +173,7 @@ export function AIDomainCard({
           <Button
             variant="ghost"
             size="sm"
-            className="text-gray-400 hover:text-red-500 transition-colors"
+            className="text-muted-foreground hover:text-red-500 dark:hover:text-red-400 transition-colors"
           >
             <Heart className="h-4 w-4" />
           </Button>
@@ -184,12 +184,12 @@ export function AIDomainCard({
                 {isChecking ? (
                   <div className="space-y-3">
                     {[...Array(6)].map((_, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg animate-pulse">
+                      <div key={index} className="flex items-center justify-between p-4 bg-muted rounded-lg animate-pulse">
                         <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                          <div className="h-4 bg-muted-foreground/20 rounded w-3/4"></div>
+                          <div className="h-3 bg-muted-foreground/20 rounded w-1/2"></div>
                         </div>
-                        <div className="h-8 bg-gray-200 rounded w-16"></div>
+                        <div className="h-8 bg-muted-foreground/20 rounded w-16"></div>
                       </div>
                     ))}
                   </div>
@@ -198,13 +198,13 @@ export function AIDomainCard({
                     {domainResults.map((result, index) => (
                       <div
                         key={`${result.domain}-${index}`}
-                        className="group flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200 border border-transparent hover:border-gray-200"
+                        className="group flex items-center justify-between p-4 bg-muted rounded-lg hover:bg-muted/80 transition-all duration-200 border border-transparent hover:border-border"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="font-semibold text-base text-gray-900 truncate">
+                                <span className="font-semibold text-base text-card-foreground truncate">
                                   {result.domain}
                                 </span>
                                 <Button
@@ -214,9 +214,9 @@ export function AIDomainCard({
                                   className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                   {copiedDomain === result.domain ? (
-                                    <CheckCircle className="h-3 w-3 text-green-600" />
+                                    <CheckCircle className="h-3 w-3 text-green-600 dark:text-green-400" />
                                   ) : (
-                                    <Copy className="h-3 w-3 text-gray-400" />
+                                    <Copy className="h-3 w-3 text-muted-foreground" />
                                   )}
                                 </Button>
                               </div>
@@ -226,7 +226,7 @@ export function AIDomainCard({
                           
                           <div className="flex items-center justify-between">
                             {result.status === 'free' && result.price ? (
-                              <div className="text-sm font-medium text-gray-700">
+                              <div className="text-sm font-medium text-card-foreground">
                                 {result.price.calculated ? (
                                   <>
                                     {/* Show converted price if available, otherwise show calculated price */}
@@ -241,11 +241,11 @@ export function AIDomainCard({
                                 )}
                               </div>
                             ) : result.reason ? (
-                              <div className="text-sm text-gray-500 italic">
+                              <div className="text-sm text-muted-foreground italic">
                                 {result.reason}
                               </div>
                             ) : (
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-muted-foreground">
                                 Not available
                               </div>
                             )}
@@ -282,16 +282,16 @@ export function AIDomainCard({
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Clock className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
                     <p>No domains found for this category</p>
                   </div>
                 )}
 
         {/* Enhanced Footer */}
-                <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="mt-6 pt-4 border-t border-border">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       {isChecking ? (
                         <span className="flex items-center gap-1">
                           <Spinner variant="ellipsis" className="h-3 w-3" />
@@ -299,16 +299,16 @@ export function AIDomainCard({
                         </span>
                       ) : isComplete ? (
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3 text-green-600" />
+                          <CheckCircle className="h-3 w-3 text-green-600 dark:text-green-400" />
                           Real-time availability
                         </span>
                       ) : (
                         <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-gray-400" />
+                          <Clock className="h-3 w-3 text-muted-foreground/50" />
                           Waiting to check...
                         </span>
                       )}
-                      <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                      <span className="text-xs bg-muted px-2 py-1 rounded-full">
                         {isChecking ? 'Checking...' : isComplete ? 'Updated just now' : 'Pending'}
                       </span>
                     </div>

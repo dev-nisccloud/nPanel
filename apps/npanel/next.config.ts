@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
-  serverExternalPackages: ["@prisma/client", "@nPanel/db", "canvas", "pdfjs-dist", "@react-pdf/renderer"],
+  serverExternalPackages: ["@prisma/client", "@nPanel/db", "canvas", "pdfjs-dist", "@react-pdf/renderer", "google-ads-api"],
   webpack: (config, { isServer }) => {
     // Exclude canvas from client-side bundles
     // Canvas is a Node.js native module that pdfjs-dist uses for server-side rendering

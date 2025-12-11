@@ -73,6 +73,7 @@ const getServicePlanByIdInputSchema = z.object({
 
 const getServicePlansInputSchema = z.object({
 	planType: servicePlanTypeSchema.optional(),
+	hostingSubType: hostingSubTypeSchema.optional(),
 	isActive: z.boolean().optional(),
 });
 
@@ -122,6 +123,10 @@ export const hostingPlansRouter = router({
 			
 			if (input?.planType !== undefined) {
 				where.planType = input.planType;
+			}
+			
+			if (input?.hostingSubType !== undefined) {
+				where.hostingSubType = input.hostingSubType;
 			}
 			
 			if (input?.isActive !== undefined) {

@@ -1,0 +1,349 @@
+// Meta Ads Integration Schema
+// This schema handles Meta Ads (Facebook/Instagram Ads) account management, campaigns, ad sets, and ads
+// Reuses SocialMediaIntegration for OAuth authentication
+
+// Enums for Meta Ads
+enum MetaAdsAccountStatus {
+  ACTIVE
+  DISABLED
+  UNSETTLED
+  PENDING_REVIEW
+  IN_GRACE_PERIOD
+  PENDING_CLOSURE
+  CLOSED
+}
+
+enum MetaAdsCampaignStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+  DELETED
+}
+
+enum MetaAdsAdSetStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+  DELETED
+}
+
+enum MetaAdsAdStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+  DELETED
+}
+
+enum MetaAdsCampaignObjective {
+  OUTCOME_TRAFFIC
+  OUTCOME_ENGAGEMENT
+  OUTCOME_LEADS
+  OUTCOME_APP_PROMOTION
+  OUTCOME_SALES
+  OUTCOME_AWARENESS
+}
+
+// Meta Ads Account
+// Represents a Meta Ad Account (act_123456789)
+// Linked to SocialMediaIntegration for OAuth authentication
+model MetaAdsAccount {
+  id String @id @map("_id")
+
+  // Integration relationship (reuse existing SocialMediaIntegration)
+  integrationId String
+  integration   SocialMediaIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  // Ad Account Information
+  accountId   String               @unique // Meta Ad Account ID (format: act_123456789)
+  accountName String?
+  currency    String? // Currency code (e.g., "USD", "KES")
+  timezone    String? // Timezone (e.g., "America/New_York")
+  status      MetaAdsAccountStatus @default(ACTIVE)
+
+  // Account Stats (cached from API)
+  spendLimit  String? // Account spend limit
+  amountSpent String? // Total amount spent (in account currency)
+  balance     String? // Account balance
+
+  // Optional: Team association for ownership/management
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  campaigns    MetaAdsCampaign[]
+  adSets       MetaAdsAdSet[]
+  ads          MetaAdsAd[]
+  insights     MetaAdsInsight[]
+  activityLogs MetaAdsAccountActivityLog[]
+
+  @@unique([integrationId, accountId]) // One account per integration
+  @@index([integrationId])
+  @@index([accountId])
+  @@index([teamId])
+  @@index([status])
+  @@map("meta_ads_account")
+}
+
+// Meta Ads Campaign
+// Represents a Meta Ad Campaign
+model MetaAdsCampaign {
+  id String @id @map("_id")
+
+  // Account relationship
+  accountId String
+  account   MetaAdsAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  // Campaign Information
+  campaignId   String // Meta Campaign ID
+  campaignName String?
+  objective    MetaAdsCampaignObjective?
+  status       MetaAdsCampaignStatus     @default(ACTIVE)
+
+  // Budget Settings
+  dailyBudget     String? // Daily budget in account currency
+  lifetimeBudget  String? // Lifetime budget in account currency
+  budgetRemaining String? // Remaining budget
+
+  // Campaign Metadata
+  startTime   DateTime? // Campaign start date
+  stopTime    DateTime? // Campaign end date
+  createdTime DateTime? // When campaign was created in Meta
+  updatedTime DateTime? // When campaign was last updated in Meta
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  adSets       MetaAdsAdSet[]
+  ads          MetaAdsAd[]
+  insights     MetaAdsInsight[]
+  activityLogs MetaAdsCampaignActivityLog[]
+
+  @@unique([accountId, campaignId]) // One campaign per account
+  @@index([accountId])
+  @@index([campaignId])
+  @@index([status])
+  @@index([objective])
+  @@map("meta_ads_campaign")
+}
+
+// Meta Ads Ad Set
+// Represents a Meta Ad Set (contains ads and defines targeting)
+model MetaAdsAdSet {
+  id String @id @map("_id")
+
+  // Campaign relationship
+  campaignId String
+  campaign   MetaAdsCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Account relationship (for direct queries)
+  accountId String
+  account   MetaAdsAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  // Ad Set Information
+  adSetId   String // Meta Ad Set ID
+  adSetName String?
+  status    MetaAdsAdSetStatus @default(ACTIVE)
+
+  // Budget Settings
+  dailyBudget     String? // Daily budget in account currency
+  lifetimeBudget  String? // Lifetime budget in account currency
+  budgetRemaining String? // Remaining budget
+  bidAmount       String? // Bid amount
+
+  // Targeting Settings (stored as JSON for flexibility)
+  targeting Json? // Targeting configuration (age, gender, locations, interests, etc.)
+
+  // Schedule
+  startTime   DateTime? // Ad set start date
+  stopTime    DateTime? // Ad set end date
+  createdTime DateTime? // When ad set was created in Meta
+  updatedTime DateTime? // When ad set was last updated in Meta
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ads          MetaAdsAd[]
+  insights     MetaAdsInsight[]
+  activityLogs MetaAdsAdSetActivityLog[]
+
+  @@unique([campaignId, adSetId]) // One ad set per campaign
+  @@index([campaignId])
+  @@index([accountId])
+  @@index([adSetId])
+  @@index([status])
+  @@map("meta_ads_ad_set")
+}
+
+// Meta Ads Ad
+// Represents an individual Meta Ad
+model MetaAdsAd {
+  id String @id @map("_id")
+
+  // Ad Set relationship
+  adSetId String
+  adSet   MetaAdsAdSet @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+
+  // Campaign relationship (for direct queries)
+  campaignId String
+  campaign   MetaAdsCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Account relationship (for direct queries)
+  accountId String
+  account   MetaAdsAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  // Ad Information
+  adId   String // Meta Ad ID
+  adName String?
+  status MetaAdsAdStatus @default(ACTIVE)
+
+  // Creative Information (stored as JSON for flexibility)
+  creative Json? // Creative details (images, videos, text, headlines, etc.)
+
+  // Ad Metadata
+  createdTime DateTime? // When ad was created in Meta
+  updatedTime DateTime? // When ad was last updated in Meta
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  insights     MetaAdsInsight[]
+  activityLogs MetaAdsAdActivityLog[]
+
+  @@unique([adSetId, adId]) // One ad per ad set
+  @@index([adSetId])
+  @@index([campaignId])
+  @@index([accountId])
+  @@index([adId])
+  @@index([status])
+  @@map("meta_ads_ad")
+}
+
+// Meta Ads Insight
+// Stores performance data for accounts, campaigns, ad sets, and ads
+model MetaAdsInsight {
+  id String @id @map("_id")
+
+  // Entity relationships (one of these will be set)
+  accountId  String?
+  account    MetaAdsAccount?  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  campaignId String?
+  campaign   MetaAdsCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  adSetId    String?
+  adSet      MetaAdsAdSet?    @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+  adId       String?
+  ad         MetaAdsAd?       @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  // Date and Breakdown
+  dateStart DateTime // Start date of the insight period
+  dateEnd   DateTime // End date of the insight period
+  breakdown Json? // Breakdown dimensions (age, gender, placement, etc.)
+
+  // Performance Metrics (stored as JSON for flexibility)
+  metrics Json // Metrics object (impressions, clicks, spend, conversions, etc.)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([campaignId])
+  @@index([adSetId])
+  @@index([adId])
+  @@index([dateStart])
+  @@index([dateEnd])
+  @@map("meta_ads_insight")
+}
+
+// Activity logging for Meta Ads account actions
+model MetaAdsAccountActivityLog {
+  id          String         @id @map("_id")
+  userId      String
+  accountId   String
+  account     MetaAdsAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  action      String // e.g., "CREATE", "UPDATE", "STATUS_CHANGE", "LINK_TEAM", "UNLINK_TEAM"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime       @default(now())
+  User        User           @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("meta_ads_account_activity_log")
+}
+
+// Activity logging for Meta Ads campaign actions
+model MetaAdsCampaignActivityLog {
+  id          String          @id @map("_id")
+  userId      String
+  campaignId  String
+  campaign    MetaAdsCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  action      String // e.g., "CREATE", "UPDATE", "STATUS_CHANGE", "DELETE"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime        @default(now())
+  User        User            @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([campaignId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("meta_ads_campaign_activity_log")
+}
+
+// Activity logging for Meta Ads ad set actions
+model MetaAdsAdSetActivityLog {
+  id          String       @id @map("_id")
+  userId      String
+  adSetId     String
+  adSet       MetaAdsAdSet @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+  action      String // e.g., "CREATE", "UPDATE", "STATUS_CHANGE", "DELETE"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime     @default(now())
+  User        User         @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([adSetId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("meta_ads_ad_set_activity_log")
+}
+
+// Activity logging for Meta Ads ad actions
+model MetaAdsAdActivityLog {
+  id          String    @id @map("_id")
+  userId      String
+  adId        String
+  ad          MetaAdsAd @relation(fields: [adId], references: [id], onDelete: Cascade)
+  action      String // e.g., "CREATE", "UPDATE", "STATUS_CHANGE", "DELETE"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+  User        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([adId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("meta_ads_ad_activity_log")
+}

@@ -104,6 +104,10 @@ export const ModelName = {
   EmailDomainActivityLog: 'EmailDomainActivityLog',
   EmailCampaignActivityLog: 'EmailCampaignActivityLog',
   AudienceActivityLog: 'AudienceActivityLog',
+  GoogleAdsIntegration: 'GoogleAdsIntegration',
+  GoogleAdsAccount: 'GoogleAdsAccount',
+  GoogleAdsIntegrationActivityLog: 'GoogleAdsIntegrationActivityLog',
+  GoogleAdsAccountActivityLog: 'GoogleAdsAccountActivityLog',
   Invoice: 'Invoice',
   InvoiceLineItem: 'InvoiceLineItem',
   InvoiceTransaction: 'InvoiceTransaction',
@@ -112,6 +116,15 @@ export const ModelName = {
   InvoiceTransactionActivityLog: 'InvoiceTransactionActivityLog',
   CreditNoteActivityLog: 'CreditNoteActivityLog',
   InvoiceCounter: 'InvoiceCounter',
+  MetaAdsAccount: 'MetaAdsAccount',
+  MetaAdsCampaign: 'MetaAdsCampaign',
+  MetaAdsAdSet: 'MetaAdsAdSet',
+  MetaAdsAd: 'MetaAdsAd',
+  MetaAdsInsight: 'MetaAdsInsight',
+  MetaAdsAccountActivityLog: 'MetaAdsAccountActivityLog',
+  MetaAdsCampaignActivityLog: 'MetaAdsCampaignActivityLog',
+  MetaAdsAdSetActivityLog: 'MetaAdsAdSetActivityLog',
+  MetaAdsAdActivityLog: 'MetaAdsAdActivityLog',
   ServiceSubscription: 'ServiceSubscription',
   ServiceSubscriptionRenewal: 'ServiceSubscriptionRenewal',
   ServiceSubscriptionActivityLog: 'ServiceSubscriptionActivityLog',
@@ -119,7 +132,13 @@ export const ModelName = {
   SocialMediaIntegration: 'SocialMediaIntegration',
   SocialMediaPageToken: 'SocialMediaPageToken',
   SocialMediaIntegrationActivityLog: 'SocialMediaIntegrationActivityLog',
-  SocialMediaPageTokenActivityLog: 'SocialMediaPageTokenActivityLog'
+  SocialMediaPageTokenActivityLog: 'SocialMediaPageTokenActivityLog',
+  MetaContentCalendar: 'MetaContentCalendar',
+  MetaContentCalendarMedia: 'MetaContentCalendarMedia',
+  MetaContentCalendarActivityLog: 'MetaContentCalendarActivityLog',
+  LinkedInContentCalendar: 'LinkedInContentCalendar',
+  LinkedInContentCalendarMedia: 'LinkedInContentCalendarMedia',
+  LinkedInContentCalendarActivityLog: 'LinkedInContentCalendarActivityLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1178,6 +1197,69 @@ export const AudienceActivityLogScalarFieldEnum = {
 export type AudienceActivityLogScalarFieldEnum = (typeof AudienceActivityLogScalarFieldEnum)[keyof typeof AudienceActivityLogScalarFieldEnum]
 
 
+export const GoogleAdsIntegrationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  status: 'status',
+  refreshToken: 'refreshToken',
+  accessToken: 'accessToken',
+  accessTokenExpiresAt: 'accessTokenExpiresAt',
+  scope: 'scope',
+  tokenType: 'tokenType',
+  lastTokenRefreshAt: 'lastTokenRefreshAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleAdsIntegrationScalarFieldEnum = (typeof GoogleAdsIntegrationScalarFieldEnum)[keyof typeof GoogleAdsIntegrationScalarFieldEnum]
+
+
+export const GoogleAdsAccountScalarFieldEnum = {
+  id: 'id',
+  integrationId: 'integrationId',
+  customerId: 'customerId',
+  accountName: 'accountName',
+  currencyCode: 'currencyCode',
+  timeZone: 'timeZone',
+  status: 'status',
+  teamId: 'teamId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleAdsAccountScalarFieldEnum = (typeof GoogleAdsAccountScalarFieldEnum)[keyof typeof GoogleAdsAccountScalarFieldEnum]
+
+
+export const GoogleAdsIntegrationActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  integrationId: 'integrationId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type GoogleAdsIntegrationActivityLogScalarFieldEnum = (typeof GoogleAdsIntegrationActivityLogScalarFieldEnum)[keyof typeof GoogleAdsIntegrationActivityLogScalarFieldEnum]
+
+
+export const GoogleAdsAccountActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type GoogleAdsAccountActivityLogScalarFieldEnum = (typeof GoogleAdsAccountActivityLogScalarFieldEnum)[keyof typeof GoogleAdsAccountActivityLogScalarFieldEnum]
+
+
 export const InvoiceScalarFieldEnum = {
   id: 'id',
   teamId: 'teamId',
@@ -1338,6 +1420,164 @@ export const InvoiceCounterScalarFieldEnum = {
 export type InvoiceCounterScalarFieldEnum = (typeof InvoiceCounterScalarFieldEnum)[keyof typeof InvoiceCounterScalarFieldEnum]
 
 
+export const MetaAdsAccountScalarFieldEnum = {
+  id: 'id',
+  integrationId: 'integrationId',
+  accountId: 'accountId',
+  accountName: 'accountName',
+  currency: 'currency',
+  timezone: 'timezone',
+  status: 'status',
+  spendLimit: 'spendLimit',
+  amountSpent: 'amountSpent',
+  balance: 'balance',
+  teamId: 'teamId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaAdsAccountScalarFieldEnum = (typeof MetaAdsAccountScalarFieldEnum)[keyof typeof MetaAdsAccountScalarFieldEnum]
+
+
+export const MetaAdsCampaignScalarFieldEnum = {
+  id: 'id',
+  accountId: 'accountId',
+  campaignId: 'campaignId',
+  campaignName: 'campaignName',
+  objective: 'objective',
+  status: 'status',
+  dailyBudget: 'dailyBudget',
+  lifetimeBudget: 'lifetimeBudget',
+  budgetRemaining: 'budgetRemaining',
+  startTime: 'startTime',
+  stopTime: 'stopTime',
+  createdTime: 'createdTime',
+  updatedTime: 'updatedTime',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaAdsCampaignScalarFieldEnum = (typeof MetaAdsCampaignScalarFieldEnum)[keyof typeof MetaAdsCampaignScalarFieldEnum]
+
+
+export const MetaAdsAdSetScalarFieldEnum = {
+  id: 'id',
+  campaignId: 'campaignId',
+  accountId: 'accountId',
+  adSetId: 'adSetId',
+  adSetName: 'adSetName',
+  status: 'status',
+  dailyBudget: 'dailyBudget',
+  lifetimeBudget: 'lifetimeBudget',
+  budgetRemaining: 'budgetRemaining',
+  bidAmount: 'bidAmount',
+  targeting: 'targeting',
+  startTime: 'startTime',
+  stopTime: 'stopTime',
+  createdTime: 'createdTime',
+  updatedTime: 'updatedTime',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaAdsAdSetScalarFieldEnum = (typeof MetaAdsAdSetScalarFieldEnum)[keyof typeof MetaAdsAdSetScalarFieldEnum]
+
+
+export const MetaAdsAdScalarFieldEnum = {
+  id: 'id',
+  adSetId: 'adSetId',
+  campaignId: 'campaignId',
+  accountId: 'accountId',
+  adId: 'adId',
+  adName: 'adName',
+  status: 'status',
+  creative: 'creative',
+  createdTime: 'createdTime',
+  updatedTime: 'updatedTime',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaAdsAdScalarFieldEnum = (typeof MetaAdsAdScalarFieldEnum)[keyof typeof MetaAdsAdScalarFieldEnum]
+
+
+export const MetaAdsInsightScalarFieldEnum = {
+  id: 'id',
+  accountId: 'accountId',
+  campaignId: 'campaignId',
+  adSetId: 'adSetId',
+  adId: 'adId',
+  dateStart: 'dateStart',
+  dateEnd: 'dateEnd',
+  breakdown: 'breakdown',
+  metrics: 'metrics',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaAdsInsightScalarFieldEnum = (typeof MetaAdsInsightScalarFieldEnum)[keyof typeof MetaAdsInsightScalarFieldEnum]
+
+
+export const MetaAdsAccountActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type MetaAdsAccountActivityLogScalarFieldEnum = (typeof MetaAdsAccountActivityLogScalarFieldEnum)[keyof typeof MetaAdsAccountActivityLogScalarFieldEnum]
+
+
+export const MetaAdsCampaignActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  campaignId: 'campaignId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type MetaAdsCampaignActivityLogScalarFieldEnum = (typeof MetaAdsCampaignActivityLogScalarFieldEnum)[keyof typeof MetaAdsCampaignActivityLogScalarFieldEnum]
+
+
+export const MetaAdsAdSetActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  adSetId: 'adSetId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type MetaAdsAdSetActivityLogScalarFieldEnum = (typeof MetaAdsAdSetActivityLogScalarFieldEnum)[keyof typeof MetaAdsAdSetActivityLogScalarFieldEnum]
+
+
+export const MetaAdsAdActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  adId: 'adId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type MetaAdsAdActivityLogScalarFieldEnum = (typeof MetaAdsAdActivityLogScalarFieldEnum)[keyof typeof MetaAdsAdActivityLogScalarFieldEnum]
+
+
 export const ServiceSubscriptionScalarFieldEnum = {
   id: 'id',
   niscServicePlanId: 'niscServicePlanId',
@@ -1429,13 +1669,16 @@ export const SocialMediaPageTokenScalarFieldEnum = {
   id: 'id',
   integrationId: 'integrationId',
   teamId: 'teamId',
+  platform: 'platform',
   pageId: 'pageId',
   pageName: 'pageName',
   pageUsername: 'pageUsername',
   pagePicture: 'pagePicture',
   pageCategory: 'pageCategory',
   accessToken: 'accessToken',
+  accessTokenExpiresAt: 'accessTokenExpiresAt',
   isActive: 'isActive',
+  lastTokenRefreshAt: 'lastTokenRefreshAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   userId: 'userId'
@@ -1474,6 +1717,114 @@ export const SocialMediaPageTokenActivityLogScalarFieldEnum = {
 export type SocialMediaPageTokenActivityLogScalarFieldEnum = (typeof SocialMediaPageTokenActivityLogScalarFieldEnum)[keyof typeof SocialMediaPageTokenActivityLogScalarFieldEnum]
 
 
+export const MetaContentCalendarScalarFieldEnum = {
+  id: 'id',
+  pageTokenId: 'pageTokenId',
+  message: 'message',
+  scheduledPublishTime: 'scheduledPublishTime',
+  status: 'status',
+  published: 'published',
+  publishedAt: 'publishedAt',
+  publishedPostId: 'publishedPostId',
+  publishedPermalink: 'publishedPermalink',
+  lastError: 'lastError',
+  retryCount: 'retryCount',
+  lastRetryAt: 'lastRetryAt',
+  qstashJobId: 'qstashJobId',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaContentCalendarScalarFieldEnum = (typeof MetaContentCalendarScalarFieldEnum)[keyof typeof MetaContentCalendarScalarFieldEnum]
+
+
+export const MetaContentCalendarMediaScalarFieldEnum = {
+  id: 'id',
+  calendarPostId: 'calendarPostId',
+  mediaType: 'mediaType',
+  url: 'url',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  caption: 'caption',
+  description: 'description',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaContentCalendarMediaScalarFieldEnum = (typeof MetaContentCalendarMediaScalarFieldEnum)[keyof typeof MetaContentCalendarMediaScalarFieldEnum]
+
+
+export const MetaContentCalendarActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  calendarPostId: 'calendarPostId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type MetaContentCalendarActivityLogScalarFieldEnum = (typeof MetaContentCalendarActivityLogScalarFieldEnum)[keyof typeof MetaContentCalendarActivityLogScalarFieldEnum]
+
+
+export const LinkedInContentCalendarScalarFieldEnum = {
+  id: 'id',
+  pageTokenId: 'pageTokenId',
+  message: 'message',
+  scheduledPublishTime: 'scheduledPublishTime',
+  status: 'status',
+  published: 'published',
+  publishedAt: 'publishedAt',
+  publishedPostId: 'publishedPostId',
+  publishedPermalink: 'publishedPermalink',
+  lastError: 'lastError',
+  retryCount: 'retryCount',
+  lastRetryAt: 'lastRetryAt',
+  qstashJobId: 'qstashJobId',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LinkedInContentCalendarScalarFieldEnum = (typeof LinkedInContentCalendarScalarFieldEnum)[keyof typeof LinkedInContentCalendarScalarFieldEnum]
+
+
+export const LinkedInContentCalendarMediaScalarFieldEnum = {
+  id: 'id',
+  calendarPostId: 'calendarPostId',
+  mediaType: 'mediaType',
+  url: 'url',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  caption: 'caption',
+  description: 'description',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LinkedInContentCalendarMediaScalarFieldEnum = (typeof LinkedInContentCalendarMediaScalarFieldEnum)[keyof typeof LinkedInContentCalendarMediaScalarFieldEnum]
+
+
+export const LinkedInContentCalendarActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  calendarPostId: 'calendarPostId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type LinkedInContentCalendarActivityLogScalarFieldEnum = (typeof LinkedInContentCalendarActivityLogScalarFieldEnum)[keyof typeof LinkedInContentCalendarActivityLogScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1488,6 +1839,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {

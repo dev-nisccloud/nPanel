@@ -96,6 +96,21 @@ export const pageContentItemSchema = z.object({
 	permalink_url: z.string().optional(),
 	type: z.string().optional(),
 	status_type: z.string().optional(),
+	// Image/media fields
+	picture: z.string().optional(), // Post/photo/video thumbnail
+	full_picture: z.string().optional(), // Full size picture from post attachment (PagePost field)
+	images: z
+		.array(
+			z.object({
+				height: z.number().optional(),
+				width: z.number().optional(),
+				source: z.string().optional(),
+			})
+		)
+		.optional(), // Photo images array (for photos endpoint)
+	source: z.string().optional(), // Video source URL
+	link: z.string().optional(), // Photo/video link
+	// Engagement metrics (fetched separately)
 	likes: z
 		.object({
 			data: z.array(z.any()).optional(),
@@ -123,7 +138,55 @@ export const pageContentItemSchema = z.object({
 		.optional(),
 	attachments: z
 		.object({
-			data: z.array(z.any()).optional(),
+			data: z
+				.array(
+					z.object({
+						media: z
+							.object({
+								image: z
+									.object({
+										height: z.number().optional(),
+										width: z.number().optional(),
+										src: z.string().optional(),
+									})
+									.optional(),
+								source: z.string().optional(), // For videos
+							})
+							.optional(),
+						media_type: z.string().optional(), // 'photo', 'video', 'link', etc.
+						type: z.string().optional(), // 'photo', 'video', 'album', etc.
+						url: z.string().optional(),
+						title: z.string().optional(),
+						description: z.string().optional(),
+						subattachments: z
+							.object({
+								data: z
+									.array(
+										z.object({
+											media: z
+												.object({
+													image: z
+														.object({
+															height: z.number().optional(),
+															width: z.number().optional(),
+															src: z.string().optional(),
+														})
+														.optional(),
+													source: z.string().optional(),
+												})
+												.optional(),
+											media_type: z.string().optional(),
+											type: z.string().optional(),
+											url: z.string().optional(),
+											title: z.string().optional(),
+										})
+									)
+									.optional(),
+							})
+							.optional(), // For multiple attachments (albums, carousels)
+					})
+				)
+				.optional(),
 		})
 		.optional(),
 	from: z
@@ -132,6 +195,29 @@ export const pageContentItemSchema = z.object({
 			name: z.string().optional(),
 		})
 		.optional(),
+	// Additional fields for photos/videos/events
+	name: z.string().optional(), // Photo/video/event name
+	description: z.string().optional(), // Video/event description
+	length: z.number().optional(), // Video length in seconds
+	start_time: z.string().optional(), // Event start time
+	end_time: z.string().optional(), // Event end time
+	place: z
+		.object({
+			id: z.string().optional(),
+			name: z.string().optional(),
+			location: z
+				.object({
+					city: z.string().optional(),
+					country: z.string().optional(),
+					latitude: z.number().optional(),
+					longitude: z.number().optional(),
+				})
+				.optional(),
+		})
+		.optional(),
+	attending_count: z.number().optional(),
+	declined_count: z.number().optional(),
+	interested_count: z.number().optional(),
 });
 
 export type PageContentItem = z.infer<typeof pageContentItemSchema>;

@@ -21,14 +21,15 @@ interface DomainSearchResultsProps {
 
 function SearchResultsSkeleton() {
   return (
-    <div className="space-y-4">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div key={index} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg">
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-3 w-24" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <div key={index} className="flex flex-col p-3 bg-card border border-border rounded-lg">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-5 w-16" />
           </div>
-          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-6 w-24 mb-2" />
+          <Skeleton className="h-7 w-full mt-auto" />
         </div>
       ))}
     </div>
@@ -60,23 +61,25 @@ export function DomainSearchResults({
       <CategoryTabs value={activeTab} onValueChange={onTabChange} />
 
       {/* Search Results */}
-      <div className="space-y-4">
+      <div>
         {isLoading ? (
           <SearchResultsSkeleton />
         ) : results.length > 0 ? (
-          results.map((result, index) => (
-            <DomainResultCard
-              key={`${result.domain}-${index}`}
-              result={result}
-              isDomainInCart={isDomainInCart}
-              onAddToCart={onAddToCart}
-              onRemoveFromCart={onRemoveFromCart}
-            />
-          ))
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {results.map((result, index) => (
+              <DomainResultCard
+                key={`${result.domain}-${index}`}
+                result={result}
+                isDomainInCart={isDomainInCart}
+                onAddToCart={onAddToCart}
+                onRemoveFromCart={onRemoveFromCart}
+              />
+            ))}
+          </div>
         ) : (
           <div className="text-center py-12">
-            <div className="text-gray-500 text-lg mb-2">No domains found</div>
-            <div className="text-gray-400 text-sm">
+            <div className="text-muted-foreground text-lg mb-2">No domains found</div>
+            <div className="text-muted-foreground/70 text-sm">
               Try searching with a different domain name or check another category.
             </div>
           </div>
