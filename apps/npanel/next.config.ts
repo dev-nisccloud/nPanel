@@ -17,8 +17,9 @@ const nextConfig: NextConfig = {
   },
   // Disable source maps in production to save memory
   productionBrowserSourceMaps: false,
-  // Use standalone output to reduce memory during build
-  output: 'standalone',
+  // Removed standalone output - it increases runtime memory usage
+  // Using default output which is more memory-efficient for Render free tier
+  // output: 'standalone',
   // Reduce memory usage during build
   experimental: {
     // Optimize memory usage
