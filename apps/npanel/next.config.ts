@@ -17,8 +17,8 @@ const nextConfig: NextConfig = {
   },
   // Disable source maps in production to save memory
   productionBrowserSourceMaps: false,
-  // Optimize for memory-constrained environments
-  swcMinify: true,
+  // Use standalone output to reduce memory during build
+  output: 'standalone',
   // Reduce memory usage during build
   experimental: {
     // Optimize memory usage
@@ -46,11 +46,15 @@ const nextConfig: NextConfig = {
 
     // Optimize memory usage during build
     if (!dev) {
-      // Reduce memory usage by limiting chunk splitting
+      // Reduce memory usage by limiting chunk splitting and parallel processing
       config.optimization = {
         ...config.optimization,
+        // Reduce parallel processing to save memory
+        minimize: true,
         splitChunks: {
           chunks: 'all',
+          maxInitialRequests: 25,
+          minSize: 20000,
           cacheGroups: {
             default: false,
             vendors: false,
@@ -66,6 +70,10 @@ const nextConfig: NextConfig = {
           },
         },
       };
+      
+      // Limit parallel module processing to reduce memory usage
+      // Using 2 instead of 1 to balance memory and build time
+      config.parallelism = 2;
     }
 
     return config;
