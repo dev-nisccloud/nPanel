@@ -34,10 +34,12 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setIsSubmitting(true);
     try {
-      // Use the same approach as the working web app
+      // Use NEXT_PUBLIC_APP_URL for redirectTo - this should match the origin in trustedOrigins
+      // Better Auth validates redirectTo against trustedOrigins, so ensure APP_URL is included
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
       const result = await authClient.forgetPassword({
         email: data.email,
-        redirectTo: `${process.env.NEXT_PUBLIC_CORS_ORIGIN || "http://localhost:3002"}/auth/reset-password`,
+        redirectTo: `${appUrl}/auth/reset-password`,
       });
       
       console.log("Forgot password result:", result);

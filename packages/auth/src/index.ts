@@ -13,7 +13,18 @@ import { sendEmail } from "react-email-starter/src/email";
 // When BETTER_AUTH_ACCEPT_ANY_HTTPS=true, we don't set trustedOrigins
 // This allows Better Auth to accept same-origin requests dynamically for any HTTPS URL
 // Otherwise, use BETTER_AUTH_URLS or BETTER_AUTH_URL from env
+// Also include APP_URL to match NEXT_PUBLIC_APP_URL used in client redirects
 const resolvedTrustedOrigins = (() => {
+  // Helper to normalize and add URL to list if not already present
+  const addUrlToList = (list: string[], url: string | undefined) => {
+    if (url) {
+      const normalized = url.replace(/\/+$/, "");
+      if (!list.includes(normalized)) {
+        list.push(normalized);
+      }
+    }
+  };
+
   // If explicitly set to accept any HTTPS origin, include all URLs from env + allow dynamic HTTPS
   if (process.env.BETTER_AUTH_ACCEPT_ANY_HTTPS === "true") {
     // When accepting any HTTPS, we still need to include the URLs from env
@@ -22,13 +33,14 @@ const resolvedTrustedOrigins = (() => {
       ? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
       : [];
     
-    // Also include BETTER_AUTH_URL if set
-    if (process.env.BETTER_AUTH_URL) {
-      const normalized = process.env.BETTER_AUTH_URL.replace(/\/+$/, "");
-      if (!list.includes(normalized)) {
-        list.push(normalized);
-      }
-    }
+    // Include BETTER_AUTH_URL if set
+    addUrlToList(list, process.env.BETTER_AUTH_URL);
+    
+    // Include APP_URL to match NEXT_PUBLIC_APP_URL used in client redirects
+    addUrlToList(list, process.env.APP_URL);
+    
+    // Also include CORS_ORIGIN for backward compatibility
+    addUrlToList(list, process.env.CORS_ORIGIN);
     
     // Normalize all URLs
     const normalized = list.map((url) => url.replace(/\/+$/, ""));
@@ -38,19 +50,39 @@ const resolvedTrustedOrigins = (() => {
   
   const list = process.env.BETTER_AUTH_URLS
     ? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
-    : undefined;
-  if (list && list.length > 0) {
+    : [];
+  
+  // If BETTER_AUTH_URLS is set, also include APP_URL and other env vars
+  if (list.length > 0) {
+    addUrlToList(list, process.env.BETTER_AUTH_URL);
+    addUrlToList(list, process.env.APP_URL);
+    addUrlToList(list, process.env.CORS_ORIGIN);
+    
     // Normalize URLs by removing trailing slashes to avoid origin matching issues
     const normalized = list.map((url) => url.replace(/\/+$/, ""));
-    console.log("[Better Auth Config] Using BETTER_AUTH_URLS:", normalized);
+    console.log("[Better Auth Config] Using BETTER_AUTH_URLS with additional URLs, trustedOrigins:", normalized);
     return normalized;
   }
+  
+  // If BETTER_AUTH_URL is set, use it and also include APP_URL
   if (process.env.BETTER_AUTH_URL) {
-    // Normalize URL by removing trailing slash
-    const normalized = process.env.BETTER_AUTH_URL.replace(/\/+$/, "");
-    console.log("[Better Auth Config] Using BETTER_AUTH_URL:", normalized);
+    const list: string[] = [];
+    addUrlToList(list, process.env.BETTER_AUTH_URL);
+    addUrlToList(list, process.env.APP_URL);
+    addUrlToList(list, process.env.CORS_ORIGIN);
+    
+    const normalized = list.map((url) => url.replace(/\/+$/, ""));
+    console.log("[Better Auth Config] Using BETTER_AUTH_URL with additional URLs, trustedOrigins:", normalized);
+    return normalized;
+  }
+  
+  // If APP_URL is set, use it as trusted origin
+  if (process.env.APP_URL) {
+    const normalized = process.env.APP_URL.replace(/\/+$/, "");
+    console.log("[Better Auth Config] Using APP_URL as trustedOrigin:", normalized);
     return [normalized];
   }
+  
   // When baseURL is undefined and no trustedOrigins are set,
   // Better Auth should accept same-origin requests automatically
   console.log("[Better Auth Config] No trusted origins configured, setting to undefined");
@@ -272,7 +304,8 @@ export const auth = betterAuth<BetterAuthOptions>({
 			}
 			
 			// Override URL to include /auth prefix
-			const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
+			// Use APP_URL to match NEXT_PUBLIC_APP_URL used in client redirects
+			const frontendUrl = process.env.APP_URL || process.env.CORS_ORIGIN || "http://localhost:3002";
 			const resetUrl = `${frontendUrl}/auth/reset-password?token=${token}`;
 			
 			console.log(`Reset URL: ${resetUrl}`);
@@ -318,7 +351,8 @@ export const auth = betterAuth<BetterAuthOptions>({
 			
 			// Send password reset success email
 			try {
-				const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
+				// Use APP_URL to match NEXT_PUBLIC_APP_URL used in client redirects
+				const frontendUrl = process.env.APP_URL || process.env.CORS_ORIGIN || "http://localhost:3002";
 				const loginLink = `${frontendUrl}/auth/login`;
 				
 				const html = await renderPasswordResetSuccessEmail({
@@ -369,7 +403,8 @@ export const auth = betterAuth<BetterAuthOptions>({
 			}
 			
 			// Redirect to frontend verification page instead of API endpoint
-			const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
+			// Use APP_URL to match NEXT_PUBLIC_APP_URL used in client redirects
+			const frontendUrl = process.env.APP_URL || process.env.CORS_ORIGIN || "http://localhost:3002";
 			const verificationUrl = `${frontendUrl}/auth/verify-email?token=${token}`;
 			
 			console.log(`Verification URL: ${verificationUrl}`);
