@@ -78,7 +78,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
     if (open && inputRef.current) {
       // Small delay to ensure popover is fully rendered
       setTimeout(() => {
-        inputRef.current?.focus();
+        (inputRef.current as HTMLInputElement | null)?.focus();
       }, 100);
     }
   }, [open]);
@@ -87,7 +87,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
     <Command loop shouldFilter={false}>
       <div className="border-b px-3" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
         <CommandInput
-          ref={inputRef}
+          ref={inputRef as any}
           value={inputValue}
           onValueChange={setInputValue}
           placeholder={searchPlaceholder ?? "Search item..."}
@@ -193,7 +193,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
           // Prevent default focus on trigger, focus input instead
           e.preventDefault();
           setTimeout(() => {
-            inputRef.current?.focus();
+            (inputRef.current as HTMLInputElement | null)?.focus();
           }, 0);
         }}
         style={{

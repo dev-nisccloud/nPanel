@@ -458,6 +458,9 @@ model User {
   metaAdsCampaignActivityLogs MetaAdsCampaignActivityLog[]
   metaAdsAdSetActivityLogs    MetaAdsAdSetActivityLog[]
   metaAdsAdActivityLogs       MetaAdsAdActivityLog[]
+  // ImageGen Studio Relations
+  imageGenProjects            ImageGenProject[]
+  imageGenTemplates           ImageGenTemplate[]
 
   @@unique([email])
   @@index([role])
@@ -535,6 +538,8 @@ model Team {
   metaAdsAccounts       MetaAdsAccount[]
   // Service Subscriptions Relations
   serviceSubscriptions  ServiceSubscription[]
+  // ImageGen Studio Relations
+  imageGenProjects      ImageGenProject[]
 
   @@index([slug])
   @@index([createdById])

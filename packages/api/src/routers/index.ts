@@ -54,6 +54,7 @@ import { linkedinRouter } from "./social-media-marketing/linkedin";
 import { serviceSubscriptionsRouter } from "./service-subscriptions";
 import { googleAdsRouter } from "./google-ads";
 import { metaAdsRouter } from "./meta-ads";
+import { imageGenStudioRouter } from "./imagegen-studio";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -151,5 +152,7 @@ export const appRouter = router({
 	googleAds: googleAdsRouter,
 	// Meta Ads Integration
 	metaAds: metaAdsRouter,
+	// ImageGen Studio
+	imageGenStudio: imageGenStudioRouter,
 });
 export type AppRouter = typeof appRouter;

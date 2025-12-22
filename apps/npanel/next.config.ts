@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-	// Disable typedRoutes during build to save memory (can be enabled locally)
-	// typedRoutes: true,
+  // Disable typedRoutes during build to save memory (can be enabled locally)
+  // typedRoutes: true,
   eslint: {
     // Don't run ESLint during production builds
     ignoreDuringBuilds: true,
@@ -17,6 +17,22 @@ const nextConfig: NextConfig = {
   },
   // Disable source maps in production to save memory
   productionBrowserSourceMaps: false,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "replicate.delivery",
+      },
+      {
+        protocol: "https",
+        hostname: "**.replicate.delivery",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
+  },
   // Removed standalone output - it increases runtime memory usage
   // Using default output which is more memory-efficient for Render free tier
   // output: 'standalone',
@@ -42,8 +58,15 @@ const nextConfig: NextConfig = {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         canvas: false,
+        jsdom: false, // Fabric.js tries to require jsdom in Node.js, but we use it client-side only
       };
     }
+
+    // Ignore jsdom for both server and client since fabric.js is client-side only
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      jsdom: false,
+    };
 
     // Optimize memory usage during build
     if (!dev) {
@@ -71,7 +94,7 @@ const nextConfig: NextConfig = {
           },
         },
       };
-      
+
       // Limit parallel module processing to reduce memory usage
       // Using 2 instead of 1 to balance memory and build time
       config.parallelism = 2;

@@ -108,6 +108,10 @@ export const ModelName = {
   GoogleAdsAccount: 'GoogleAdsAccount',
   GoogleAdsIntegrationActivityLog: 'GoogleAdsIntegrationActivityLog',
   GoogleAdsAccountActivityLog: 'GoogleAdsAccountActivityLog',
+  ImageGenProject: 'ImageGenProject',
+  ImageGenTemplate: 'ImageGenTemplate',
+  ImageGenProjectActivityLog: 'ImageGenProjectActivityLog',
+  ImageGenTemplateActivityLog: 'ImageGenTemplateActivityLog',
   Invoice: 'Invoice',
   InvoiceLineItem: 'InvoiceLineItem',
   InvoiceTransaction: 'InvoiceTransaction',
@@ -1258,6 +1262,68 @@ export const GoogleAdsAccountActivityLogScalarFieldEnum = {
 } as const
 
 export type GoogleAdsAccountActivityLogScalarFieldEnum = (typeof GoogleAdsAccountActivityLogScalarFieldEnum)[keyof typeof GoogleAdsAccountActivityLogScalarFieldEnum]
+
+
+export const ImageGenProjectScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  userId: 'userId',
+  teamId: 'teamId',
+  json: 'json',
+  height: 'height',
+  width: 'width',
+  thumbnailUrl: 'thumbnailUrl',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ImageGenProjectScalarFieldEnum = (typeof ImageGenProjectScalarFieldEnum)[keyof typeof ImageGenProjectScalarFieldEnum]
+
+
+export const ImageGenTemplateScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  userId: 'userId',
+  json: 'json',
+  height: 'height',
+  width: 'width',
+  thumbnailUrl: 'thumbnailUrl',
+  isPublic: 'isPublic',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ImageGenTemplateScalarFieldEnum = (typeof ImageGenTemplateScalarFieldEnum)[keyof typeof ImageGenTemplateScalarFieldEnum]
+
+
+export const ImageGenProjectActivityLogScalarFieldEnum = {
+  id: 'id',
+  imageGenProjectId: 'imageGenProjectId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ImageGenProjectActivityLogScalarFieldEnum = (typeof ImageGenProjectActivityLogScalarFieldEnum)[keyof typeof ImageGenProjectActivityLogScalarFieldEnum]
+
+
+export const ImageGenTemplateActivityLogScalarFieldEnum = {
+  id: 'id',
+  imageGenTemplateId: 'imageGenTemplateId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ImageGenTemplateActivityLogScalarFieldEnum = (typeof ImageGenTemplateActivityLogScalarFieldEnum)[keyof typeof ImageGenTemplateActivityLogScalarFieldEnum]
 
 
 export const InvoiceScalarFieldEnum = {

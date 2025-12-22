@@ -42,8 +42,10 @@
     "fast-xml-parser": "^5.3.0",
     "next": "catalog:",
     "qrcode": "^1.5.4",
+    "replicate": "^0.34.1",
     "resend": "^6.1.2",
     "undici": "^7.16.0",
+    "unsplash-js": "^7.0.20",
     "zod": "catalog:",
     "google-ads-api": "^20.0.0"
   }
