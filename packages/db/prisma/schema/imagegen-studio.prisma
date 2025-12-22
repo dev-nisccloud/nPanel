@@ -80,11 +80,3 @@ model ImageGenTemplateActivityLog {
   @@index([createdAt])
   @@map("imagegen_template_activity_log")
 }
-
-
-
-
-
-
-
-
