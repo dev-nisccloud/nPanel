@@ -71,9 +71,17 @@ export function DnsCard({
     }
   };
 
+  const handleCardClick = () => {
+    // Only open edit drawer if onEdit is provided
+    if (onEdit) {
+      onEdit(data.id);
+    }
+  };
+
   return (
     <Card 
       className={cn("group cursor-pointer transition-all hover:shadow-md", className)}
+      onClick={handleCardClick}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">

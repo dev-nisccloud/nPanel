@@ -102,21 +102,23 @@ export const sidebarItems: NavGroup[] = [
     label: "Digital Marketing",
     items: [
       {
-        title: "Social Media",
+        title: "Nisc Social",
         url: "/dashboard/social-media",
         icon: (props: any) => React.createElement(Icons.SocialMediaMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Meta", url: "/dashboard/social-media/meta", },
-          { title: "LinkedIn", url: "/agency/social-media-marketing/linkedin", },
-          // { title: "Instagram", url: "/agency/social-media-marketing/instagram", },
-          // { title: "Twitter", url: "/agency/social-media-marketing/twitter", },
-          // { title: "TikTok", url: "/agency/social-media-marketing/tiktok", },
+          { title: "Facebook", url: "/dashboard/social-media/facebook", },
+          { title: "LinkedIn", url: "/dashboard/social-media-marketing/linkedin", },
         ],
       },
       {
-        title: "PPC Advertising",
-        url: "/dashboard/pay-per-click-advertising",
-        icon: (props: any) => React.createElement(Icons.PayPerClickAdvertising, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        title: "Ad Campaigns",
+        url: "/dashboard/ad-campaigns",
+        icon: (props: any) => React.createElement(Icons.Campaigns, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Meta Ads", url: "/dashboard/ad-campaigns/meta-ads", },
+          { title: "Google Ads", url: "/dashboard/ad-campaigns/google-ads", },
+          { title: "LinkedIn Ads", url: "/dashboard/ad-campaigns/linkedin-ads", },
+        ],
       },
       {
         title: "SEO",
