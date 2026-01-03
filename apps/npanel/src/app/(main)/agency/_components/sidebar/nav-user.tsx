@@ -3,6 +3,7 @@
 import { EllipsisVertical, CircleUser, CreditCard, MessageSquareDot, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -21,11 +22,14 @@ import { authClient } from "@/lib/auth-client";
 export function NavUser() {
   const { isMobile } = useSidebar();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: session, isPending } = authClient.useSession();
 
   const handleLogout = async () => {
     try {
       await authClient.signOut();
+      // Clear all cached queries on logout
+      queryClient.clear();
       toast.success("Logged out successfully");
       router.push("/auth/login");
     } catch (error: any) {

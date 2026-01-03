@@ -22,6 +22,7 @@ import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { TeamSwitcher } from "./_components/sidebar/team-switcher";
 import { CartSwitcher } from "./_components/sidebar/cart-switcher";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
+import { PrefetchTeams } from "./_components/prefetch-teams";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +87,7 @@ export default async function TeamLayout({
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
+        <PrefetchTeams />
         <AppSidebar 
           variant={sidebarVariant} 
           collapsible={sidebarCollapsible} 

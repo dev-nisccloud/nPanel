@@ -99,6 +99,17 @@ export const sidebarItems: NavGroup[] = [
   },
   {
     id: 3,
+    label: "Gen AI Tools",
+    items: [
+      {
+        title: "ImageGen Studio",
+        url: "/gen-ai/image-gen-studio",
+        icon: (props: any) => React.createElement(Icons.AIImage, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+    ],
+  },
+  {
+    id: 4,
     label: "Digital Marketing",
     items: [
       {
@@ -139,7 +150,7 @@ export const sidebarItems: NavGroup[] = [
     ],
   },
   {
-    id: 4,
+    id: 5,
     label: "Billing",
     items: [
       {
@@ -155,7 +166,7 @@ export const sidebarItems: NavGroup[] = [
     ],
   },
   {
-    id: 5,
+    id: 6,
     label: "Account Settings",
     items: [
       {

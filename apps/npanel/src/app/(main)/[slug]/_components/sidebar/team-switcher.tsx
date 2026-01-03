@@ -25,8 +25,14 @@ export function TeamSwitcher() {
   // Extract current team slug from URL (first segment after /)
   const currentSlug = pathname.split("/")[1];
 
-  // Fetch user's teams
-  const { data: teams, isLoading, error } = trpc.teams.getUserTeams.useQuery();
+  // Fetch user's teams with caching
+  const { data: teams, isLoading, error } = trpc.teams.getUserTeams.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
 
   // Active team is determined by URL slug (no state needed!)
   const activeTeam = teams?.find((team) => team.slug === currentSlug);

@@ -74,20 +74,9 @@ export function LoginForm() {
       }
       
       if (result?.data) {
-        toast.success("Login successful!");
-        
-        // Wait for session to be available, then redirect
-        // Poll for session up to 2 seconds, then redirect anyway
-        let attempts = 0;
-        const maxAttempts = 20; // 2 seconds total (20 * 100ms)
-        const checkSession = setInterval(() => {
-          attempts++;
-          if (session?.user || attempts >= maxAttempts) {
-            clearInterval(checkSession);
-            // Redirect to root - server-side will handle role-based redirect
-            window.location.href = "/";
-          }
-        }, 100);
+        // Redirect immediately - session cookie is already set by the auth library
+        // Server-side will handle role-based redirect (agency/customer)
+        window.location.href = "/";
       } else if (result?.error) {
         // Handle error response from auth
         const errorMessage = result.error.message || "Invalid credentials. Please try again.";

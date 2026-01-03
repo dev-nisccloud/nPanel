@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { XIcon } from "lucide-react";
+import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetClose,
@@ -13,7 +13,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/npanel-ui/sheet";
-import { Icons } from "@/components/icons";
 import { useCartStore } from "@/stores/cart-store";
 
 import { CartItemCard } from "./cart-item-card";
@@ -35,60 +34,60 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl">
-        <SheetHeader className="mb-6 flex justify-between items-center flex-row">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary/10 rounded-full">
-              <Icons.Cart className="h-6 w-6 text-primary" />
+      <SheetContent className="flex flex-col w-full sm:max-w-lg p-0 h-full">
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Header */}
+          <SheetHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <div>
+                <SheetTitle className="text-xl font-semibold">Shopping Cart</SheetTitle>
+                <SheetDescription className="mt-1">
+                  {itemCount === 0 
+                    ? "Your cart is empty" 
+                    : `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`
+                  }
+                </SheetDescription>
+              </div>
+              <SheetClose asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </SheetClose>
             </div>
-            <div>
-              <SheetTitle className="text-2xl font-bold">Your Cart</SheetTitle>
-              <SheetDescription className="text-base">
-                {itemCount === 0 
-                  ? "Your cart is empty" 
-                  : `${itemCount} ${itemCount === 1 ? 'item' : 'items'} ready for checkout`
-                }
-              </SheetDescription>
-            </div>
-          </div>
-          <SheetClose asChild>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="p-0 m-0 size-auto hover:bg-transparent"
-            >
-              <XIcon className="size-5" />
-            </Button>
-          </SheetClose>
-        </SheetHeader>
+          </SheetHeader>
 
-        {itemCount === 0 ? (
-          <EmptyCartState />
-        ) : (
-          <div className="flex flex-col h-full">
-            {/* Cart Items - Responsive Height Scrollable Container */}
-            <div className="h-[650px] md:h-[600px] overflow-y-auto pr-2 mb-8 md:mb-8 pb-20 md:pb-0">
-              <div className="space-y-4">
-                {items.map((item) => (
-                  <CartItemCard
-                    key={item.id}
-                    item={item}
-                    onRemove={handleRemoveItem}
-                  />
-                ))}
+          {itemCount === 0 ? (
+            <div className="flex-1 flex items-center justify-center">
+              <EmptyCartState />
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col min-h-0">
+              {/* Scrollable Cart Items - Explicit height container */}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <ScrollArea className="h-full">
+                  <div className="px-6 py-4 space-y-3">
+                    {items.map((item) => (
+                      <CartItemCard
+                        key={item.id}
+                        item={item}
+                        onRemove={handleRemoveItem}
+                      />
+                    ))}
+                  </div>
+                  <ScrollBar orientation="vertical" />
+                </ScrollArea>
+              </div>
+
+              {/* Fixed Bottom Summary */}
+              <div className="flex-shrink-0 border-t bg-background">
+                <CartSummary />
               </div>
             </div>
-
-            {/* Desktop/Tablet Fixed Bottom Section - Cart Summary */}
-            <div className="hidden md:flex flex-shrink-0 mt-4">
-              <CartSummary />
-            </div>
-          </div>
-        )}
-
-        {/* Mobile Cart Summary - Always rendered for mobile */}
-        <div className="md:hidden">
-          <CartSummary />
+          )}
         </div>
       </SheetContent>
     </Sheet>
