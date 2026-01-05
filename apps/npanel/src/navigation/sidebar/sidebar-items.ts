@@ -198,19 +198,14 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Home, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
-        title: "Domain Management",
-        url: "/agency/domains",
-        icon: (props: any) => React.createElement(Icons.Site, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "All Domains", url: "/agency/all-domains", },
-          { title: "Registration", url: "/agency/domain-registration", },
-          { title: "Transfer", url: "/agency/domain-transfer", },
-        ],
-      },
-      {
         title: "Domains",
         url: "/agency/domains",
         icon: (props: any) => React.createElement(Icons.Site, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Registration", url: "/agency/domains", },
+          { title: "Transfer", url: "/agency/domain-transfer", },
+          { title: "Domains Portfolio", url: "/agency/domains-portfolio", },
+        ],
       },
       {
         title: "Hosting",

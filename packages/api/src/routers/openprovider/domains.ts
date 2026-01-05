@@ -106,6 +106,14 @@ const DomainSearchRequestSchema = z.object({
   status: z.enum(['ACT', 'REQ', 'DEL', 'FAIL']).optional(),
 });
 
+const DomainListRequestSchema = z.object({
+  domain_name_pattern: z.string().optional(),
+  limit: z.number().min(1).max(1000).optional().default(100),
+  offset: z.number().min(0).optional().default(0),
+  status: z.enum(['ACT', 'REQ', 'DEL', 'FAIL']).optional(),
+  with_customer_info: z.boolean().optional().default(false),
+});
+
 const DomainUpdateRequestSchema = z.object({
   domainId: z.number().min(1, 'Domain ID is required'),
   owner_handle: z.string().optional(),
@@ -618,6 +626,190 @@ export const openProviderDomainsRouter = router({
         };
       } catch (error) {
         console.error('OpenProvider domain search error:', error);
+
+        if (error instanceof z.ZodError) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Invalid request data',
+            cause: error.issues.map((err: any) => ({
+              field: err.path.join('.'),
+              message: err.message,
+            })),
+          });
+        }
+
+        if (error instanceof OpenProviderApiError) {
+          throw new TRPCError({
+            code: error.code >= 400 && error.code < 500 ? 'BAD_REQUEST' : 'INTERNAL_SERVER_ERROR',
+            message: error.description,
+          });
+        }
+
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Internal server error',
+        });
+      }
+    }),
+
+  /**
+   * List all domains (Domains Portfolio)
+   * This is a user-friendly endpoint for the domains portfolio page
+   */
+  list: publicProcedure
+    .input(DomainListRequestSchema)
+    .query(async ({ input }) => {
+      try {
+        const client = createOpenProviderClient();
+        
+        // Try to authenticate with environment credentials
+        try {
+          await client.authenticate({
+            username: process.env.OPENPROVIDER_USERNAME!,
+            password: process.env.OPENPROVIDER_PASSWORD!,
+            ip: process.env.OPENPROVIDER_IP,
+          });
+        } catch (authError) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+          });
+        }
+
+        const searchRequest: OpenProviderDomainSearchRequest = {
+          domain_name_pattern: input.domain_name_pattern,
+          limit: input.limit,
+          offset: input.offset,
+          status: input.status,
+        };
+
+        const response = await client.searchDomains(searchRequest);
+
+        if (response.code !== 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: response.desc,
+          });
+        }
+
+        // Map OpenProvider response to our domain portfolio format
+        const mappedDomains = response.data.results.map((domain) => {
+          // Handle domain field - it might be a string or an object
+          let domainString: string;
+          let extension: string;
+
+          if (typeof domain.domain === 'string') {
+            // Domain is a string like "example.com"
+            domainString = domain.domain;
+            const domainParts = domain.domain.split('.');
+            extension = `.${domainParts.slice(1).join('.')}`;
+          } else if (domain.domain && typeof domain.domain === 'object') {
+            // Domain is an object with name and extension properties
+            const domainObj = domain.domain as { name?: string; extension?: string };
+            const domainName = domainObj.name || '';
+            const ext = domainObj.extension || '';
+            extension = ext.startsWith('.') ? ext : `.${ext}`;
+            domainString = `${domainName}${extension}`;
+          } else {
+            // Fallback - log error and skip this domain
+            console.error('Invalid domain format:', domain.domain);
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: `Invalid domain format received from OpenProvider: ${JSON.stringify(domain.domain)}`,
+            });
+          }
+
+          // Map status from OpenProvider to our format
+          const statusMap: Record<string, 'ACTIVE' | 'EXPIRED' | 'PENDING' | 'SUSPENDED' | 'TRANSFERRING'> = {
+            'ACT': 'ACTIVE',
+            'REQ': 'PENDING',
+            'DEL': 'EXPIRED',
+            'FAIL': 'SUSPENDED',
+          };
+
+          // Check if domain is expired
+          const expiryDate = new Date(domain.expiration_date);
+          const isExpired = expiryDate < new Date();
+          const mappedStatus = isExpired ? 'EXPIRED' : (statusMap[domain.status] || 'PENDING');
+
+          // Extract owner information if available
+          const owner = (domain as any).owner;
+          const ownerName = owner?.full_name || owner?.company_name || domain.owner_handle || '';
+          const ownerCompany = owner?.company_name || '';
+
+          return {
+            id: domain.id.toString(),
+            domain: domainString,
+            status: mappedStatus,
+            registrationDate: domain.creation_date,
+            expiryDate: domain.expiration_date,
+            clientName: ownerName,
+            clientEmail: '', // Will be populated if with_customer_info is true
+            tld: extension,
+            autoRenewal: domain.autorenew === 'on',
+            nameservers: domain.name_servers.map((ns) => ns.name),
+            // Additional OpenProvider fields
+            ownerHandle: domain.owner_handle,
+            adminHandle: domain.admin_handle,
+            techHandle: domain.tech_handle,
+            billingHandle: domain.billing_handle,
+            isLocked: domain.is_locked,
+            isPrivateWhois: domain.is_private_whois_enabled,
+            isDnssecEnabled: domain.is_dnssec_enabled,
+            authCode: domain.auth_code,
+            renewalDate: domain.renewal_date,
+            // Extended fields from OpenProvider
+            resellerId: (domain as any).reseller_id,
+            nsgroupId: (domain as any).nsgroup_id,
+            nsGroup: (domain as any).ns_group,
+            type: (domain as any).type,
+            canRenew: (domain as any).can_renew,
+            isLockable: (domain as any).is_lockable,
+            isDeleted: (domain as any).is_deleted,
+            isPremium: (domain as any).is_premium,
+            isAbusive: (domain as any).is_abusive,
+            isParked: (domain as any).is_parked,
+            orderDate: (domain as any).order_date,
+            activeDate: (domain as any).active_date,
+            registryExpirationDate: (domain as any).registry_expiration_date,
+            lastChanged: (domain as any).last_changed,
+            ownerCompanyName: ownerCompany,
+            ownerFullName: owner?.full_name || '',
+            comments: (domain as any).comments || '',
+            unit: (domain as any).unit,
+            dnssec: (domain as any).dnssec,
+            nameServersFull: domain.name_servers.map((ns) => ({
+              name: ns.name,
+              ip: ns.ip,
+              ip6: (ns as any).ip6,
+              seqNr: (ns as any).seq_nr,
+            })),
+          };
+        });
+
+        // If with_customer_info is true, fetch customer details for each unique handle
+        if (input.with_customer_info) {
+          // TODO: Implement customer info fetching
+          // For now, we'll use the handle as the client name
+          // This would require calling the customer search endpoint for each unique handle
+        }
+
+        return {
+          success: true,
+          data: mappedDomains,
+          meta: {
+            total: response.data.total,
+            limit: input.limit,
+            offset: input.offset,
+            retrieved_at: new Date().toISOString(),
+          },
+        };
+      } catch (error) {
+        console.error('OpenProvider domain list error:', error);
 
         if (error instanceof z.ZodError) {
           throw new TRPCError({
