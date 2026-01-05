@@ -17,8 +17,8 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
             <Image
               src="/nisclogowhite.png"
               alt={`${APP_CONFIG.name} Logo`}
-              width={300}
-              height={100}
+              width={180}
+              height={60}
               className="h-auto w-auto"
               style={{ width: "auto", height: "auto", maxWidth: "100%" }}
               priority
@@ -29,9 +29,9 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
 
           <div className="absolute bottom-10 flex w-full justify-between px-10">
             <div className="text-primary-foreground flex-1 space-y-1">
-              <h2 className="font-medium">Manage your cloud.</h2>
+              <h2 className="font-medium">Manage your services.</h2>
               <p className="text-sm">
-                Control your hosting, emails, VPS, and digital marketing all in one dashboard.
+                Manage your hosting, emails, VPS, domains and marketing all in one dashboard.
               </p>
             </div>
             <Separator orientation="vertical" className="mx-3 !h-auto" />

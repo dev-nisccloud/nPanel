@@ -190,6 +190,14 @@ export function LoginForm() {
             </FormItem>
           )}
         />
+        <div className="text-right">
+          <Link 
+            href="/auth/forgot-password" 
+            className="text-sm text-primary hover:underline"
+          >
+            Forgot your password?
+          </Link>
+        </div>
         <FormField
           control={form.control}
           name="remember"
@@ -219,15 +227,6 @@ export function LoginForm() {
             "Login"
           )}
         </Button>
-        
-        <div className="text-center">
-          <Link 
-            href="/auth/forgot-password" 
-            className="text-sm text-primary hover:underline"
-          >
-            Forgot your password?
-          </Link>
-        </div>
       </form>
     </Form>
   );

@@ -50,15 +50,12 @@ export default function RegisterPage() {
             <span className="bg-background text-muted-foreground relative z-10 px-2">Or continue with</span>
           </div>
           <RegisterForm />
-        </div>
-      </div>
-
-      <div className="absolute top-5 flex w-full justify-end px-10">
-        <div className="text-muted-foreground text-sm">
-          Already have an account?{" "}
-          <Link className="text-foreground" href="/auth/login">
-            Login
-          </Link>
+          <div className="text-center text-sm">
+            <span className="text-muted-foreground">Already have an account?{" "}</span>
+            <Link className="text-primary hover:underline" href="/auth/login">
+              Login
+            </Link>
+          </div>
         </div>
       </div>
 
