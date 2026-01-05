@@ -23,6 +23,7 @@ import { TeamSwitcher } from "./_components/sidebar/team-switcher";
 import { CartSwitcher } from "./_components/sidebar/cart-switcher";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 import { PrefetchTeams } from "./_components/prefetch-teams";
+import { NavigationLoader } from "@/components/navigation-loader";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,7 @@ export default async function TeamLayout({
             </div>
           </header>
           <div className="h-full p-4 md:p-6">{children}</div>
+          <NavigationLoader />
         </SidebarInset>
       </SidebarProvider>
   );

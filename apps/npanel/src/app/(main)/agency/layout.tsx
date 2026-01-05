@@ -25,6 +25,7 @@ import { LayoutControls } from "./_components/sidebar/layout-controls";
 import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 import { CartSwitcher } from "./_components/sidebar/cart-switcher";
+import { NavigationLoader } from "@/components/navigation-loader";
 
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   // Server-side auth check - accepts any role except CUSTOMER
@@ -85,6 +86,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
             </div>
           </header>
           <div className="h-full p-4 md:p-6">{children}</div>
+          <NavigationLoader />
         </SidebarInset>
       </SidebarProvider>
   );
