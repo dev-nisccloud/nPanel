@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
@@ -32,7 +32,7 @@ export function RegisterForm() {
   const redirectPath = searchParams.get("redirect");
   const inviteCode = searchParams.get("code");
   
-  const { isPending } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -47,6 +47,19 @@ export function RegisterForm() {
       confirmPassword: "",
     },
   });
+
+  // Reset state on mount to ensure clean state when component remounts
+  useEffect(() => {
+    setIsSubmitting(false);
+    setIsEmailSent(false);
+  }, []);
+
+  // Redirect if user is already authenticated (fallback in case middleware didn't catch it)
+  useEffect(() => {
+    if (!isPending && session) {
+      window.location.href = "/";
+    }
+  }, [session, isPending]);
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     try {
@@ -81,22 +94,27 @@ export function RegisterForm() {
         toast.error("Registration failed", {
           description: errorMessage,
         });
+        setIsSubmitting(false);
         return;
       }
       
       if (result?.data) {
         setIsEmailSent(true);
         toast.success("Please check your email to verify your account");
+        // Don't reset isSubmitting on success - keep state consistent
+        return;
       } else if (result?.error) {
         // Handle error response from auth
         const errorMessage = result.error.message || "Unable to create account. Please try again.";
         toast.error("Registration failed", {
           description: errorMessage,
         });
+        setIsSubmitting(false);
       } else {
         toast.error("Registration failed", {
           description: "Unable to create account. Please try again.",
         });
+        setIsSubmitting(false);
       }
     } catch (error: unknown) {
       console.error("Unexpected registration error:", error);
@@ -110,7 +128,6 @@ export function RegisterForm() {
       toast.error("Registration failed", {
         description: errorMessage,
       });
-    } finally {
       setIsSubmitting(false);
     }
   };

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
@@ -26,6 +26,7 @@ export function LoginForm() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -36,6 +37,19 @@ export function LoginForm() {
       remember: false,
     },
   });
+
+  // Reset state on mount to ensure clean state when component remounts
+  useEffect(() => {
+    setIsSubmitting(false);
+    setIsSuccess(false);
+  }, []);
+
+  // Redirect if user is already authenticated (fallback in case middleware didn't catch it)
+  useEffect(() => {
+    if (!isPending && session) {
+      window.location.href = "/";
+    }
+  }, [session, isPending]);
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     try {
@@ -70,23 +84,30 @@ export function LoginForm() {
         toast.error("Login failed", {
           description: errorMessage,
         });
+        setIsSubmitting(false);
         return;
       }
       
       if (result?.data) {
+        // Set success state to prevent form from reappearing
+        setIsSuccess(true);
         // Redirect immediately - session cookie is already set by the auth library
         // Server-side will handle role-based redirect (agency/customer)
         window.location.href = "/";
+        // Don't reset isSubmitting on success - keep loading state until redirect
+        return;
       } else if (result?.error) {
         // Handle error response from auth
         const errorMessage = result.error.message || "Invalid credentials. Please try again.";
         toast.error("Login failed", {
           description: errorMessage,
         });
+        setIsSubmitting(false);
       } else {
         toast.error("Login failed", {
           description: "Invalid credentials. Please try again.",
         });
+        setIsSubmitting(false);
       }
     } catch (error: unknown) {
       console.error("Unexpected login error:", error);
@@ -100,7 +121,6 @@ export function LoginForm() {
       toast.error("Login failed", {
         description: errorMessage,
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -109,6 +129,16 @@ export function LoginForm() {
     return (
       <div className="flex items-center justify-center p-8">
         <Spinner variant="ellipsis" className="text-primary" />
+      </div>
+    );
+  }
+
+  // Show success/loading state after successful login to prevent form from reappearing
+  if (isSuccess || isSubmitting) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4 p-8">
+        <Spinner variant="ellipsis" className="text-primary" />
+        <p className="text-sm text-muted-foreground">Signing you in...</p>
       </div>
     );
   }
