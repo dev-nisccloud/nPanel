@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2, Sparkles } from "lucide-react";
 
 import { useCreateProject } from "../_api/use-create-project";
+import { useTeamContext } from "./_components/team-context";
 
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -12,6 +13,9 @@ export const Banner = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const mutation = useCreateProject();
+  
+  // Get team context (only available for customers, null for agency)
+  const teamContext = useTeamContext();
 
   const onClick = () => {
     setLoading(true);
@@ -21,6 +25,7 @@ export const Banner = () => {
         json: "",
         width: 900,
         height: 1200,
+        teamId: teamContext?.teamId,
       },
       {
         onSuccess: (data) => {

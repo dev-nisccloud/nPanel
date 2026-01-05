@@ -6,13 +6,13 @@ import { Loader, TriangleAlert } from "lucide-react";
 import { use } from "react";
 import { usePathname } from "next/navigation";
 
-import { useGetProject } from "../../../../../gen-ai/image-gen-studio/_api/use-get-project";
+import { useGetProject } from "@/app/(main)/gen-ai/image-gen-studio/_api/use-get-project";
 import { Button } from "@/components/ui/button";
 
 // Dynamically import Editor to prevent SSR (Fabric.js is browser-only)
 const Editor = dynamic(
   async () => {
-    const mod = await import("../../../../../gen-ai/image-gen-studio/_components/editor");
+    const mod = await import("@/app/(main)/gen-ai/image-gen-studio/_components/editor");
     return { default: mod.Editor };
   },
   {

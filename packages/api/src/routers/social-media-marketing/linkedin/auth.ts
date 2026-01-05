@@ -489,7 +489,7 @@ export const linkedinAuthRouter = router({
 				const clientId = getLinkedInClientId();
 				const frontendUrl = getFrontendUrl();
 
-				// Required scopes for LinkedIn organization posting
+				// Required scopes for LinkedIn organization posting and Marketing API
 				const scopes = [
 					'openid',
 					'profile',
@@ -498,6 +498,8 @@ export const linkedinAuthRouter = router({
 					'rw_organization_admin',
 					'w_organization_social',
 					'r_organization_social',
+					'r_ads', // Marketing API - read ad accounts
+					'r_ads_reporting', // Marketing API - read analytics
 				];
 
 				// Generate state for OAuth security

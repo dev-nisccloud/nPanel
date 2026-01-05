@@ -5,12 +5,17 @@ import { Loader, TriangleAlert } from "lucide-react";
 
 import { useGetTemplates } from "../_api/use-get-templates";
 import { useCreateProject } from "../_api/use-create-project";
+import { useTeamContext } from "./_components/team-context";
 
 import { TemplateCard } from "./template-card";
 
 export const TemplatesSection = () => {
   const router = useRouter();
   const mutation = useCreateProject();
+
+  // Get team context (only available for customers, null for agency)
+  const teamContext = useTeamContext();
+  const teamId = teamContext?.teamId;
 
   const { data, isLoading, isError } = useGetTemplates({ page: 1, limit: 4 });
 
@@ -21,6 +26,7 @@ export const TemplatesSection = () => {
         json: template.json,
         width: template.width,
         height: template.height,
+        teamId,
       },
       {
         onSuccess: (data) => {

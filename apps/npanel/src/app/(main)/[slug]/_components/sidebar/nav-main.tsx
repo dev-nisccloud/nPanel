@@ -32,18 +32,10 @@ interface NavMainProps {
   readonly teamSlug?: string;
 }
 
-// Helper to replace /dashboard/ and /gen-ai/image-gen-studio with /{teamSlug}/
+// Helper to replace /dashboard/ with /{teamSlug}/
 const replaceTeamSlug = (url: string, teamSlug?: string): string => {
   if (!teamSlug) return url;
-  // Replace /dashboard/ paths
-  if (url.startsWith("/dashboard/")) {
-    return url.replace(/^\/dashboard\//, `/${teamSlug}/`);
-  }
-  // Replace /gen-ai/image-gen-studio paths
-  if (url.startsWith("/gen-ai/image-gen-studio")) {
-    return url.replace(/^\/gen-ai\/image-gen-studio/, `/${teamSlug}/gen-ai/image-gen-studio`);
-  }
-  return url;
+  return url.replace(/^\/dashboard\//, `/${teamSlug}/`);
 };
 
 const IsComingSoon = () => (

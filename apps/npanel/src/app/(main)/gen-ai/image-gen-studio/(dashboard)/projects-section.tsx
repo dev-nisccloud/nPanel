@@ -16,6 +16,7 @@ import {
 import { useGetProjects } from "../_api/use-get-projects";
 import { useDeleteProject } from "../_api/use-delete-project";
 import { useDuplicateProject } from "../_api/use-duplicate-project";
+import { useTeamContext } from "./_components/team-context";
 
 import {
   DropdownMenuContent,
@@ -41,6 +42,10 @@ export const ProjectsSection = () => {
   const removeMutation = useDeleteProject();
   const router = useRouter();
 
+  // Get team context (only available for customers, null for agency)
+  const teamContext = useTeamContext();
+  const teamId = teamContext?.teamId;
+
   const onCopy = (id: string) => {
     duplicateMutation.mutate({ id });
   };
@@ -59,7 +64,7 @@ export const ProjectsSection = () => {
     fetchNextPage,
     isFetchingNextPage,
     hasNextPage,
-  } = useGetProjects();
+  } = useGetProjects({ teamId });
 
   if (status === "pending") {
     return (
