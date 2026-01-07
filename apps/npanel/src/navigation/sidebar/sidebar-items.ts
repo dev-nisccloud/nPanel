@@ -288,7 +288,7 @@ export const agencysidebarItems: NavGroup[] = [
       },
       {
         title: "Background Remover",
-        url: "/gen-ai/background-remover",
+        url: "/agency/gen-ai/background-remover",
         icon: (props: any) => React.createElement(Icons.BackgroundRemover, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
     ],

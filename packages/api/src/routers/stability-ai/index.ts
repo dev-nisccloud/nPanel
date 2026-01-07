@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../../trpc";
+import { fetch } from "undici";
 
 const aspectRatioSchema = z.enum([
   "21:9",
@@ -223,6 +224,156 @@ export const stabilityAiRouter = router({
             error instanceof Error
               ? error.message
               : "Failed to generate image",
+        });
+      }
+    }),
+
+  /**
+   * Remove background from an image using Stability AI
+   */
+  removeBackground: protectedProcedure
+    .input(
+      z.object({
+        image: z.string(), // Base64 encoded image
+        outputFormat: z.enum(["webp", "jpeg", "png"]).default("png"),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const apiKey = process.env.STABILITY_AI_API_KEY;
+
+      if (!apiKey) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Stability AI API key not configured",
+        });
+      }
+
+      try {
+        const host = "https://api.stability.ai/v2beta/stable-image/edit/remove-background";
+
+        // Convert base64 to buffer
+        const imageBuffer = Buffer.from(input.image, "base64");
+
+        // Detect image type from buffer (check magic bytes)
+        let imageType = "image/png";
+        let imageExtension = "png";
+        if (imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8) {
+          imageType = "image/jpeg";
+          imageExtension = "jpg";
+        } else if (imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50) {
+          imageType = "image/png";
+          imageExtension = "png";
+        } else if (imageBuffer[0] === 0x52 && imageBuffer[1] === 0x49) {
+          imageType = "image/webp";
+          imageExtension = "webp";
+        }
+
+        // Use form-data package for proper multipart/form-data file uploads
+        const FormDataClass = (await import("form-data")).default;
+        const formData = new FormDataClass();
+        
+        // Append image buffer as a file with detected content type
+        formData.append("image", imageBuffer, {
+          filename: `image.${imageExtension}`,
+          contentType: imageType,
+        });
+        formData.append("output_format", input.outputFormat);
+        
+        // Get headers from form-data (includes Content-Type with boundary)
+        const formHeaders = formData.getHeaders();
+
+        // Convert form-data stream to buffer for proper transmission
+        // This ensures the boundary is properly included
+        const formDataBuffer = await new Promise<Buffer>((resolve, reject) => {
+          const chunks: Buffer[] = [];
+          formData.on("data", (chunk: Buffer) => chunks.push(chunk));
+          formData.on("end", () => resolve(Buffer.concat(chunks)));
+          formData.on("error", reject);
+        });
+
+        // Log request for debugging
+        console.log("Stability AI Remove Background Request:", {
+          host,
+          outputFormat: input.outputFormat,
+          imageSize: imageBuffer.length,
+          formDataSize: formDataBuffer.length,
+          contentType: formHeaders["content-type"],
+        });
+
+        // Use undici fetch with the buffered form data
+        const response = await fetch(host, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            Accept: "image/*",
+            ...formHeaders, // Include Content-Type with boundary from form-data
+          },
+          body: formDataBuffer,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage = `Stability AI API error: ${response.status}`;
+          let errorDetails: any = {};
+          
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.message || errorJson.error?.message || errorJson.name || errorMessage;
+            errorDetails = errorJson;
+          } catch {
+            errorMessage = errorText || errorMessage;
+            errorDetails = { raw: errorText };
+          }
+
+          console.error("Stability AI remove background error:", {
+            status: response.status,
+            statusText: response.statusText,
+            url: host,
+            outputFormat: input.outputFormat,
+            imageSize: imageBuffer.length,
+            errorMessage,
+            errorDetails,
+            errorText,
+          });
+
+          throw new TRPCError({
+            code: response.status >= 400 && response.status < 500 ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR",
+            message: errorMessage,
+          });
+        }
+
+        // Check for NSFW classification
+        const finishReason = response.headers.get("finish-reason");
+        if (finishReason === "CONTENT_FILTERED") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Processing failed NSFW classifier",
+          });
+        }
+
+        // Get the processed image
+        const imageBufferResult = await response.arrayBuffer();
+        const imageBase64 = Buffer.from(imageBufferResult).toString("base64");
+        const seed = response.headers.get("seed");
+
+        return {
+          image: imageBase64,
+          mimeType: `image/${input.outputFormat}`,
+          seed: seed ? parseInt(seed, 10) : null,
+          finishReason: finishReason || "SUCCESS",
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        console.error("Stability AI remove background error:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to remove background",
         });
       }
     }),

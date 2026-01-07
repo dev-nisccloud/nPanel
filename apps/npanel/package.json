@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "NODE_OPTIONS='--max-old-space-size=2048' next build",
-    "start": "NODE_OPTIONS='--max-old-space-size=384' next start",
+    "start": "NODE_OPTIONS='--max-old-space-size=1024' next start",
     "lint": "next lint",
     "check-types": "cross-env NODE_OPTIONS=--max-old-space-size=4096 tsc --noEmit",
     "format": "prettier --write .",
