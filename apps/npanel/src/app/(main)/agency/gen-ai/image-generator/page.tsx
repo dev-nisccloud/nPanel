@@ -1,0 +1,46 @@
+"use client";
+
+import * as React from "react";
+import { Sparkles } from "lucide-react";
+import Link from "next/link";
+import { ImageGeneratorInterface } from "./_components/image-generator-interface";
+import { Button } from "@/components/ui/button";
+
+export default function ImageGeneratorPage() {
+  return (
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
+      {/* Header */}
+      <div className="flex flex-col items-center justify-center py-8 px-4 flex-shrink-0">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-lg border-2 border-primary flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold tracking-tight">Image generator</h1>
+        </div>
+        <div className="text-muted-foreground text-center max-w-2xl text-sm space-y-2">
+          <p>
+            Let's create! Powered by the leading AI models, your creative imagination has no limits.
+          </p>
+          <p>
+            For detailed AI generations like designs and posters, use the{" "}
+            <Button
+              asChild
+              variant="link"
+              className="h-auto p-0 text-primary underline"
+            >
+              <Link href="/gen-ai/image-gen-studio">Visual Studio</Link>
+            </Button>{" "}
+            feature.
+          </p>
+        </div>
+      </div>
+
+      {/* Main Content Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <ImageGeneratorInterface />
+      </div>
+    </div>
+  );
+}

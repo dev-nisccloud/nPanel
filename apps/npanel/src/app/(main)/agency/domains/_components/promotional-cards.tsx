@@ -216,13 +216,21 @@ function AICard({
     : displayResult?.price?.reseller?.currency || 'KES';
   const originalPrice = calculated?.originalPrice ?? displayResult?.price?.reseller?.price;
 
-  const handleCartAction = () => {
-    if (displayResult) {
-      if (isInCart) {
-        onRemoveFromCart(aiDomain);
+  const handleCartAction = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    try {
+      if (displayResult && displayResult.domain) {
+        if (isInCart) {
+          onRemoveFromCart(aiDomain);
+        } else {
+          onAddToCart(displayResult);
+        }
       } else {
-        onAddToCart(displayResult);
+        console.error('Invalid displayResult for cart action:', displayResult);
       }
+    } catch (error) {
+      console.error('Error handling cart action:', error);
     }
   };
 
@@ -298,7 +306,19 @@ function AICard({
           <Button
             size="sm"
             variant="default"
-            onClick={() => setBuyNowOpen(true)}
+            onClick={(e) => {
+              e?.preventDefault();
+              e?.stopPropagation();
+              try {
+                if (displayResult && displayResult.domain) {
+                  setBuyNowOpen(true);
+                } else {
+                  console.error('Invalid displayResult for buy now:', displayResult);
+                }
+              } catch (error) {
+                console.error('Error opening buy now dialog:', error);
+              }
+            }}
             className="flex-1"
           >
             Buy Now
@@ -319,7 +339,7 @@ function AICard({
         </div>
       </div>
 
-      {displayResult && (
+      {displayResult && displayResult.domain && (
         <BuyNowDialog
           open={buyNowOpen}
           onOpenChange={setBuyNowOpen}
@@ -382,13 +402,21 @@ function CoKeCard({
     ? ((calculated as any).displayCurrency ?? calculated.currency)
     : currency;
 
-  const handleCartAction = () => {
-    if (displayResult) {
-      if (isInCart) {
-        onRemoveFromCart(coKeDomain);
+  const handleCartAction = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    try {
+      if (displayResult && displayResult.domain) {
+        if (isInCart) {
+          onRemoveFromCart(coKeDomain);
+        } else {
+          onAddToCart(displayResult);
+        }
       } else {
-        onAddToCart(displayResult);
+        console.error('Invalid displayResult for cart action:', displayResult);
       }
+    } catch (error) {
+      console.error('Error handling cart action:', error);
     }
   };
 
@@ -428,7 +456,19 @@ function CoKeCard({
           <Button
             size="sm"
             variant="default"
-            onClick={() => setBuyNowOpen(true)}
+            onClick={(e) => {
+              e?.preventDefault();
+              e?.stopPropagation();
+              try {
+                if (displayResult && displayResult.domain) {
+                  setBuyNowOpen(true);
+                } else {
+                  console.error('Invalid displayResult for buy now:', displayResult);
+                }
+              } catch (error) {
+                console.error('Error opening buy now dialog:', error);
+              }
+            }}
             className="flex-1"
           >
             Buy Now
@@ -449,7 +489,7 @@ function CoKeCard({
         </div>
       </div>
 
-      {displayResult && (
+      {displayResult && displayResult.domain && (
         <BuyNowDialog
           open={buyNowOpen}
           onOpenChange={setBuyNowOpen}
@@ -586,15 +626,21 @@ function BundleCard({
   const allInCart = bundleDomains.every(domain => isDomainInCart(domain));
   const anyInCart = bundleDomains.some(domain => isDomainInCart(domain));
 
-  const handleCartAction = () => {
-    if (allInCart) {
-      bundleDomains.forEach(domain => onRemoveFromCart(domain));
-    } else {
-      pricedBundleResults.forEach(result => {
-        if (!isDomainInCart(result.domain)) {
-          onAddToCart(result);
-        }
-      });
+  const handleCartAction = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    try {
+      if (allInCart) {
+        bundleDomains.forEach(domain => onRemoveFromCart(domain));
+      } else {
+        pricedBundleResults.forEach(result => {
+          if (result && result.domain && !isDomainInCart(result.domain)) {
+            onAddToCart(result);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error handling bundle cart action:', error);
     }
   };
 
@@ -662,7 +708,19 @@ function BundleCard({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setBuyNowOpen(true)}
+            onClick={(e) => {
+              e?.preventDefault();
+              e?.stopPropagation();
+              try {
+                if (pricedBundleResults && pricedBundleResults.length > 0) {
+                  setBuyNowOpen(true);
+                } else {
+                  console.error('Invalid bundle results for buy now:', pricedBundleResults);
+                }
+              } catch (error) {
+                console.error('Error opening bundle buy now dialog:', error);
+              }
+            }}
             className="flex-1 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
           >
             Buy Now
@@ -684,7 +742,7 @@ function BundleCard({
       </div>
 
       {/* Bundle Buy Now Dialog - will need custom implementation */}
-      {buyNowOpen && (
+      {buyNowOpen && pricedBundleResults && pricedBundleResults.length > 0 && (
         <BundleBuyNowDialog
           open={buyNowOpen}
           onOpenChange={setBuyNowOpen}

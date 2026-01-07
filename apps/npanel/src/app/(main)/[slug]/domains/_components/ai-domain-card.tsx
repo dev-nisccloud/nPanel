@@ -258,9 +258,19 @@ export function AIDomainCard({
                                 <Button
                                   size="sm"
                                   variant="default"
-                                  onClick={() => {
-                                    setBuyNowDomain(result);
-                                    setBuyNowOpen(true);
+                                  onClick={(e) => {
+                                    e?.preventDefault();
+                                    e?.stopPropagation();
+                                    try {
+                                      if (result && result.domain) {
+                                        setBuyNowDomain(result);
+                                        setBuyNowOpen(true);
+                                      } else {
+                                        console.error('Invalid result for buy now:', result);
+                                      }
+                                    } catch (error) {
+                                      console.error('Error opening buy now dialog:', error);
+                                    }
                                   }}
                                   className="flex-shrink-0 h-8 text-xs"
                                 >
@@ -269,11 +279,21 @@ export function AIDomainCard({
                               <Button
                                 size="sm"
                                   variant={isDomainInCart(result.domain) ? "destructive" : "outline"}
-                                onClick={() => {
-                                  if (isDomainInCart(result.domain)) {
-                                    onRemoveFromCart(result.domain);
-                                  } else {
-                                    onAddToCart(result);
+                                onClick={(e) => {
+                                  e?.preventDefault();
+                                  e?.stopPropagation();
+                                  try {
+                                    if (result && result.domain) {
+                                      if (isDomainInCart(result.domain)) {
+                                        onRemoveFromCart(result.domain);
+                                      } else {
+                                        onAddToCart(result);
+                                      }
+                                    } else {
+                                      console.error('Invalid result for cart action:', result);
+                                    }
+                                  } catch (error) {
+                                    console.error('Error handling cart action:', error);
                                   }
                                 }}
                                   className="h-8 w-8 p-0 flex-shrink-0"
@@ -336,11 +356,13 @@ export function AIDomainCard({
       </CardContent>
 
       {/* Buy Now Dialog */}
-      <BuyNowDialog
-        open={buyNowOpen}
-        onOpenChange={setBuyNowOpen}
-        domain={buyNowDomain}
-      />
+      {buyNowDomain && buyNowDomain.domain && (
+        <BuyNowDialog
+          open={buyNowOpen}
+          onOpenChange={setBuyNowOpen}
+          domain={buyNowDomain}
+        />
+      )}
     </Card>
   );
 }

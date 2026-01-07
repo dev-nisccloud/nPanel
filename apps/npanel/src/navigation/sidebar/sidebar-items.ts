@@ -283,7 +283,7 @@ export const agencysidebarItems: NavGroup[] = [
       },
       {
         title: "Image Generator",
-        url: "/gen-ai/image-generator",
+        url: "/agency/gen-ai/image-generator",
         icon: (props: any) => React.createElement(Icons.AIImage, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {

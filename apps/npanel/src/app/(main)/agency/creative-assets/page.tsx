@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { CreativeAssetsListing } from "./_components/creative-assets-listing";
 import { AddAssetSheet } from "./_components/add-asset-sheet";
 import { EditAssetSheet } from "./_components/edit-asset-sheet";
-import { TestUploadSheet } from "./_components/test-upload-sheet";
 import { creativeAssetSchema } from "./_components/schema";
 
 export default function CreativeAssetsPage() {
@@ -17,7 +16,6 @@ export default function CreativeAssetsPage() {
   const [isAddAssetOpen, setIsAddAssetOpen] = React.useState(false);
   const [isEditAssetOpen, setIsEditAssetOpen] = React.useState(false);
   const [editingAsset, setEditingAsset] = React.useState<z.infer<typeof creativeAssetSchema> | null>(null);
-  const [isTestUploadOpen, setIsTestUploadOpen] = React.useState(false);
 
   // Fetch creative assets
   const { data: assets, isLoading, isError, error, refetch } = trpc.creativeAssets.getAll.useQuery();
@@ -142,7 +140,6 @@ export default function CreativeAssetsPage() {
         archivingAssetId={archivingAssetId}
         unarchivingAssetId={unarchivingAssetId}
         onAddAsset={() => setIsAddAssetOpen(true)}
-        onTestUpload={() => setIsTestUploadOpen(true)}
       />
       <AddAssetSheet
         open={isAddAssetOpen}
@@ -159,10 +156,6 @@ export default function CreativeAssetsPage() {
         }}
         asset={editingAsset}
         onEditAsset={handleEditAsset}
-      />
-      <TestUploadSheet
-        open={isTestUploadOpen}
-        onOpenChange={setIsTestUploadOpen}
       />
     </div>
   );

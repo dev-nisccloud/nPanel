@@ -33,7 +33,10 @@ interface BuyNowDialogProps {
 }
 
 const formatPrice = (price?: number, currency?: string) => {
-  if (!price) return "N/A";
+  // Safely handle undefined, null, NaN, or invalid prices
+  if (price === undefined || price === null || isNaN(price) || !isFinite(price)) {
+    return "N/A";
+  }
 
   const currencySymbols: Record<string, string> = {
     'USD': '$',
@@ -49,12 +52,22 @@ const formatPrice = (price?: number, currency?: string) => {
   };
 
   const symbol = currencySymbols[currency || 'USD'] || currency || '$';
-  const formattedNumber = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(price);
   
-  return `${symbol} ${formattedNumber}`;
+  try {
+    // Safely format number with error handling for SSR/compatibility
+    const formattedNumber = typeof Intl !== 'undefined' && Intl.NumberFormat
+      ? new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(price)
+      : price.toFixed(2);
+    
+    return `${symbol} ${formattedNumber}`;
+  } catch (error) {
+    // Fallback to simple formatting if Intl fails
+    console.error('Error formatting price:', error);
+    return `${symbol} ${price.toFixed(2)}`;
+  }
 };
 
 export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) {
@@ -62,37 +75,68 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
   const [couponCode, setCouponCode] = React.useState("");
   const [showCouponInput, setShowCouponInput] = React.useState(false);
 
-  // Calculate pricing
+  // Safely calculate pricing with proper null/undefined checks
   const calculated = domain?.price?.calculated;
-  const displayPrice = calculated
-    ? ((calculated as any).convertedPrice ?? calculated.finalPrice)
-    : domain?.price?.reseller?.price ?? 0;
+  
+  // Safely extract display price with fallbacks
+  let displayPrice = 0;
+  if (calculated) {
+    displayPrice = (calculated as any)?.convertedPrice ?? calculated?.finalPrice ?? 0;
+  } else {
+    displayPrice = domain?.price?.reseller?.price ?? 0;
+  }
+  
+  // Ensure displayPrice is a valid number
+  displayPrice = typeof displayPrice === 'number' && isFinite(displayPrice) ? displayPrice : 0;
+  
   const displayCurrency = calculated
-    ? ((calculated as any).displayCurrency ?? calculated.currency)
-    : domain?.price?.reseller?.currency ?? 'USD';
-  const originalPrice = calculated?.originalPrice ?? domain?.price?.reseller?.price ?? 0;
+    ? ((calculated as any)?.displayCurrency ?? calculated?.currency ?? 'USD')
+    : (domain?.price?.reseller?.currency ?? 'USD');
+  
+  // Safely extract original price
+  let originalPrice = 0;
+  if (calculated?.originalPrice !== undefined && calculated?.originalPrice !== null) {
+    originalPrice = calculated.originalPrice;
+  } else {
+    originalPrice = domain?.price?.reseller?.price ?? 0;
+  }
+  
+  // Ensure originalPrice is a valid number
+  originalPrice = typeof originalPrice === 'number' && isFinite(originalPrice) ? originalPrice : 0;
+  
   const originalCurrency = calculated?.currency ?? domain?.price?.reseller?.currency ?? 'USD';
 
-  // Calculate totals
-  const basePrice = displayPrice * duration;
-  const originalBasePrice = originalPrice * duration;
+  // Calculate totals with safe number operations
+  const basePrice = Math.max(0, displayPrice * duration);
+  const originalBasePrice = Math.max(0, originalPrice * duration);
   
   // Calculate tax (16% VAT - adjust as needed)
   const taxRate = 0.16;
-  const taxes = basePrice * taxRate;
+  const taxes = Math.max(0, basePrice * taxRate);
   
   // Apply coupon discount (placeholder - 0% for now)
   const couponDiscount = 0;
   
   const subtotal = basePrice;
-  const total = subtotal + taxes - couponDiscount;
+  const total = Math.max(0, subtotal + taxes - couponDiscount);
 
   const handlePayment = () => {
     // TODO: Implement payment flow
-    console.log("Proceeding to payment", { domain: domain?.domain, duration, couponCode, total });
+    try {
+      if (!domain || !domain.domain) {
+        console.error('Cannot proceed to payment: invalid domain', domain);
+        return;
+      }
+      console.log("Proceeding to payment", { domain: domain.domain, duration, couponCode, total });
+    } catch (error) {
+      console.error('Error in payment handler:', error);
+    }
   };
 
-  if (!domain) return null;
+  // Early return with additional validation
+  if (!domain || !domain.domain) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

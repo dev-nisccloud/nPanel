@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Search, Upload } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -102,7 +102,6 @@ interface CreativeAssetsListingProps {
   archivingAssetId?: string | null;
   unarchivingAssetId?: string | null;
   onAddAsset?: () => void;
-  onTestUpload?: () => void;
 }
 
 export function CreativeAssetsListing({
@@ -117,7 +116,6 @@ export function CreativeAssetsListing({
   archivingAssetId = null,
   unarchivingAssetId = null,
   onAddAsset,
-  onTestUpload,
 }: CreativeAssetsListingProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
@@ -266,12 +264,6 @@ export function CreativeAssetsListing({
             </Select>
           </div>
 
-          {onTestUpload && (
-            <Button size="sm" variant="outline" onClick={onTestUpload}>
-              <Upload className="mr-2 h-4 w-4" />
-              Test Upload
-            </Button>
-          )}
           {onAddAsset && (
             <Button size="sm" onClick={onAddAsset}>
               <Plus className="mr-2 h-4 w-4" />

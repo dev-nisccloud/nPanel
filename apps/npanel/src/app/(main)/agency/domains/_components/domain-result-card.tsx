@@ -92,11 +92,23 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
   const [buyNowOpen, setBuyNowOpen] = React.useState(false);
   const isInCart = isDomainInCart(result.domain);
 
-  const handleCartAction = () => {
-    if (isInCart) {
-      onRemoveFromCart(result.domain);
-    } else {
-      onAddToCart(result);
+  const handleCartAction = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
+    try {
+      if (isInCart) {
+        onRemoveFromCart(result.domain);
+      } else {
+        // Validate result before adding to cart
+        if (result && result.domain) {
+          onAddToCart(result);
+        } else {
+          console.error('Invalid domain result for cart:', result);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling cart action:', error);
     }
   };
 
@@ -181,7 +193,19 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
             <Button
               size="sm"
               variant="default"
-              onClick={() => setBuyNowOpen(true)}
+              onClick={(e) => {
+                e?.preventDefault();
+                e?.stopPropagation();
+                try {
+                  if (result && result.domain) {
+                    setBuyNowOpen(true);
+                  } else {
+                    console.error('Invalid domain result for buy now:', result);
+                  }
+                } catch (error) {
+                  console.error('Error opening buy now dialog:', error);
+                }
+              }}
               className="flex-1 text-xs h-7"
             >
               Buy Now
