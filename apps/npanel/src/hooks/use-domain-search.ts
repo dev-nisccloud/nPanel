@@ -269,6 +269,7 @@ export function useDomainSearch(
   return {
     domainName,
     setDomainName,
+    searchQueryName, // Expose sanitized query for promotional cards
     activeTab,
     setActiveTab,
     error,
@@ -280,6 +281,7 @@ export function useDomainSearch(
     handleAddToCart,
     handleRemoveFromCart,
     triggerSearch,
+    sanitizeDomainName, // Expose sanitization function
   };
 }
 

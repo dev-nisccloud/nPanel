@@ -186,19 +186,19 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
             >
               Buy Now
             </Button>
-            <Button
-              size="sm"
+          <Button
+            size="sm"
               variant={isInCart ? "destructive" : "outline"}
-              onClick={handleCartAction}
+            onClick={handleCartAction}
               className="h-7 w-7 p-0"
               title={isInCart ? "Remove from cart" : "Add to cart"}
-            >
-              {isInCart ? (
+          >
+            {isInCart ? (
                 <XCircle className="h-4 w-4" />
-              ) : (
+            ) : (
                 <ShoppingCart className="h-4 w-4" />
-              )}
-            </Button>
+            )}
+          </Button>
           </div>
         ) : (
           <Button

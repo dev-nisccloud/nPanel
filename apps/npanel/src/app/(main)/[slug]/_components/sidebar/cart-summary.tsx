@@ -6,6 +6,7 @@ import { ShoppingCart, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCartStore } from "@/stores/cart-store";
+import { CheckoutDialog } from "./checkout-dialog";
 
 export function CartSummary() {
   const { 
@@ -18,6 +19,7 @@ export function CartSummary() {
   const totalItems = getItemCount();
   const totalsByCurrency = getTotalsByCurrency();
   const currenciesInCart = getCurrenciesInCart();
+  const [checkoutOpen, setCheckoutOpen] = React.useState(false);
 
   // Format price with currency support
   const formatPrice = (price: number, currency: string = 'USD') => {
@@ -28,8 +30,7 @@ export function CartSummary() {
   };
 
   const handleCheckout = () => {
-    // TODO: Implement checkout logic
-    console.log('Proceeding to checkout with items:', items);
+    setCheckoutOpen(true);
   };
 
   if (totalItems === 0) {
@@ -57,14 +58,36 @@ export function CartSummary() {
           <>
             <Separator />
             <div className="space-y-2">
-              {currenciesInCart.map(currency => (
-                <div key={currency} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total ({currency})</span>
-                  <span className="text-base font-semibold">
-                    {formatPrice(totalsByCurrency[currency], currency)}
-                  </span>
-                </div>
-              ))}
+              {currenciesInCart.map(currency => {
+                const subtotal = totalsByCurrency[currency];
+                const vatRate = 0.16; // 16% VAT
+                const vat = subtotal * vatRate;
+                const total = subtotal + vat;
+
+                return (
+                  <div key={currency} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Sub Total ({currency})</span>
+                      <span className="text-sm font-medium">
+                        {formatPrice(subtotal, currency)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">VAT (16%)</span>
+                      <span className="text-sm font-medium">
+                        {formatPrice(vat, currency)}
+                      </span>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">Total to be paid</span>
+                      <span className="text-base font-semibold">
+                        {formatPrice(total, currency)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </>
         )}
@@ -80,6 +103,9 @@ export function CartSummary() {
         <CreditCard className="h-4 w-4 mr-2" />
         Proceed to Checkout
       </Button>
+
+      {/* Checkout Dialog */}
+      <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
     </div>
   );
 }

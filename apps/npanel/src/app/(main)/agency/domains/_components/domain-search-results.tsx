@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CategoryTabs } from "./category-tabs";
 import { DomainResultCard } from "./domain-result-card";
+import { PromotionalCards } from "./promotional-cards";
 import type { DomainSearchResult } from "./domain-search";
 
 interface DomainSearchResultsProps {
@@ -17,6 +18,7 @@ interface DomainSearchResultsProps {
   isDomainInCart: (domain: string) => boolean;
   onAddToCart: (result: DomainSearchResult) => void;
   onRemoveFromCart: (domain: string) => void;
+  searchQuery?: string;
 }
 
 function SearchResultsSkeleton() {
@@ -45,6 +47,7 @@ export function DomainSearchResults({
   isDomainInCart,
   onAddToCart,
   onRemoveFromCart,
+  searchQuery = "",
 }: DomainSearchResultsProps) {
   if (error) {
     return (
@@ -57,6 +60,17 @@ export function DomainSearchResults({
 
   return (
     <div className="space-y-6">
+      {/* Promotional Cards - Show first, even while loading */}
+      {searchQuery && searchQuery.trim().length > 0 && (
+        <PromotionalCards
+          searchQuery={searchQuery.trim()}
+          onAddToCart={onAddToCart}
+          onRemoveFromCart={onRemoveFromCart}
+          isDomainInCart={isDomainInCart}
+          isLoading={isLoading}
+        />
+      )}
+
       {/* Category Tabs */}
       <CategoryTabs value={activeTab} onValueChange={onTabChange} />
 

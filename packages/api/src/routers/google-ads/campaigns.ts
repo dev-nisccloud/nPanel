@@ -451,19 +451,33 @@ export const googleAdsCampaignsRouter = router({
 					? Number(campaignData.campaign_budget.amount_micros) / 1000000
 					: null;
 
+				// Convert status to string (Google Ads API may return enum numbers)
+				const statusValue = campaignData.campaign?.status;
+				const statusStr = statusValue !== undefined && statusValue !== null 
+					? String(statusValue) 
+					: 'UNKNOWN';
+
 				return {
 					success: true,
 					data: {
 						id: String(campaignData.campaign?.id || ''),
 						name: campaignData.campaign?.name || '',
-						status: campaignData.campaign?.status || 'UNKNOWN',
-						advertising_channel_type: campaignData.campaign?.advertising_channel_type,
-						advertising_channel_sub_type: campaignData.campaign?.advertising_channel_sub_type,
-						start_date: campaignData.campaign?.start_date,
-						end_date: campaignData.campaign?.end_date,
-						bidding_strategy_type: campaignData.campaign?.bidding_strategy_type,
+						status: statusStr,
+						advertising_channel_type: campaignData.campaign?.advertising_channel_type 
+							? String(campaignData.campaign.advertising_channel_type) 
+							: undefined,
+						advertising_channel_sub_type: campaignData.campaign?.advertising_channel_sub_type 
+							? String(campaignData.campaign.advertising_channel_sub_type) 
+							: undefined,
+						start_date: campaignData.campaign?.start_date ?? undefined,
+						end_date: campaignData.campaign?.end_date ?? undefined,
+						bidding_strategy_type: campaignData.campaign?.bidding_strategy_type 
+							? String(campaignData.campaign.bidding_strategy_type) 
+							: undefined,
 						budget_amount: budgetAmount,
-						budget_period: campaignData.campaign_budget?.period,
+						budget_period: campaignData.campaign_budget?.period 
+							? String(campaignData.campaign_budget.period) 
+							: undefined,
 					},
 				};
 			} catch (error) {

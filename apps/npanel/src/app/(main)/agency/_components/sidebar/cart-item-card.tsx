@@ -11,6 +11,7 @@ import { useCartStore, type CartItem, type DomainCartItem } from "@/stores/cart-
 interface CartItemCardProps {
   item: CartItem;
   onRemove: (itemId: string) => void;
+  hideRemoveButton?: boolean;
 }
 
 // Helper function to get service icon based on type
@@ -129,7 +130,7 @@ const getServicePrice = (item: CartItem) => {
   }
 };
 
-export function CartItemCard({ item, onRemove }: CartItemCardProps) {
+export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartItemCardProps) {
   const serviceName = getServiceName(item);
   const servicePrice = getServicePrice(item);
   const billingCycle = getBillingCycleLabel(item);
@@ -164,14 +165,16 @@ export function CartItemCard({ item, onRemove }: CartItemCardProps) {
           </div>
           
           {/* Remove Button */}
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => onRemove(item.id)}
-            className="flex-shrink-0 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {!hideRemoveButton && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => onRemove(item.id)}
+              className="flex-shrink-0 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
         
         <Separator className="my-3" />

@@ -106,6 +106,7 @@ function DomainSearchContent() {
           isDomainInCart={domainSearch.isDomainInCart}
           onAddToCart={domainSearch.handleAddToCart}
           onRemoveFromCart={domainSearch.handleRemoveFromCart}
+          searchQuery={domainSearch.searchQueryName}
         />
       )}
     </div>

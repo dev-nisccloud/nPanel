@@ -266,25 +266,25 @@ export function AIDomainCard({
                                 >
                                   Buy Now
                                 </Button>
-                                <Button
-                                  size="sm"
+                              <Button
+                                size="sm"
                                   variant={isDomainInCart(result.domain) ? "destructive" : "outline"}
-                                  onClick={() => {
-                                    if (isDomainInCart(result.domain)) {
-                                      onRemoveFromCart(result.domain);
-                                    } else {
-                                      onAddToCart(result);
-                                    }
-                                  }}
+                                onClick={() => {
+                                  if (isDomainInCart(result.domain)) {
+                                    onRemoveFromCart(result.domain);
+                                  } else {
+                                    onAddToCart(result);
+                                  }
+                                }}
                                   className="h-8 w-8 p-0 flex-shrink-0"
                                   title={isDomainInCart(result.domain) ? "Remove from cart" : "Add to cart"}
-                                >
-                                  {isDomainInCart(result.domain) ? (
+                              >
+                                {isDomainInCart(result.domain) ? (
                                     <XCircle className="h-4 w-4" />
-                                  ) : (
+                                ) : (
                                     <ShoppingCart className="h-4 w-4" />
-                                  )}
-                                </Button>
+                                )}
+                              </Button>
                               </div>
                             )}
                           </div>
