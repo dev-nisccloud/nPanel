@@ -65,11 +65,16 @@ function DomainSearchContent() {
                 placeholder="Enter domain name (e.g., mybusiness)"
                 value={domainSearch.domainName}
                 onChange={(e) => domainSearch.setDomainName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && domainSearch.domainName.trim()) {
+                    domainSearch.triggerSearch();
+                  }
+                }}
                 className="flex-1 h-12 text-base"
               />
               <Button
                 size="lg"
-                onClick={() => domainSearch.setDomainName(domainSearch.domainName)}
+                onClick={domainSearch.triggerSearch}
                 disabled={!domainSearch.domainName.trim() || domainSearch.isLoading}
                 className="h-12 px-8"
               >
@@ -91,7 +96,7 @@ function DomainSearchContent() {
       </Card>
 
       {/* Search Results */}
-      {domainSearch.domainName && (
+      {(domainSearch.searchResults.length > 0 || domainSearch.isLoading) && (
         <DomainSearchResults
           results={domainSearch.searchResults}
           activeTab={domainSearch.activeTab}

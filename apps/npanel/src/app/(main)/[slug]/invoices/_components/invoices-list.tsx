@@ -256,9 +256,9 @@ function convertInvoiceToPdfData(invoice: InvoiceDetail) {
 		bankName: paymentMethod === "bank" ? paymentDetails?.bankName : undefined,
 		accountNumber: paymentMethod === "bank" ? paymentDetails?.accountNumber : undefined,
 		accountName: paymentMethod === "bank" ? paymentDetails?.accountName : undefined,
-		routingCode: paymentMethod === "bank" ? paymentDetails?.routingCode : undefined,
+		branchName: paymentMethod === "bank" ? paymentDetails?.branchName : undefined,
+		branchCode: paymentMethod === "bank" ? paymentDetails?.branchCode : undefined,
 		swiftCode: paymentMethod === "bank" ? paymentDetails?.swiftCode : undefined,
-		ifscCode: paymentMethod === "bank" ? paymentDetails?.ifscCode : undefined,
 		// MPESA fields (only if method is mpesa, with defaults if not provided)
 		mpesaPaybillNumber: paymentMethod === "mpesa" 
 			? (paymentDetails?.mpesaPaybillNumber || "303030")

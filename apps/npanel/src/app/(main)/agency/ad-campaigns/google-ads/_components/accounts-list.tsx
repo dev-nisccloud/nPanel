@@ -6,9 +6,11 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 import { ShoppingCart, Building2, Globe, Calendar } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { GoogleAdsAccount } from "./schemas";
 
 export function AccountsList() {
+	const router = useRouter();
 	const {
 		data: accountsData,
 		isLoading,
@@ -26,6 +28,12 @@ export function AccountsList() {
 	}, [error]);
 
 	const accounts = accountsData?.data || [];
+
+	const handleAccountClick = (customerId: string) => {
+		// Remove dashes from customer ID for URL (format: XXX-XXX-XXXX -> XXXXXXXXXX)
+		const customerIdWithoutDashes = customerId.replace(/-/g, '');
+		router.push(`/agency/ad-campaigns/google-ads/${customerIdWithoutDashes}`);
+	};
 
 	if (isLoading) {
 		return (
@@ -76,9 +84,10 @@ export function AccountsList() {
 			<CardContent>
 				<div className="space-y-4">
 					{accounts.map((account: GoogleAdsAccount) => (
-						<div
+						<button
 							key={account.customerId}
-							className="flex items-start gap-4 rounded-lg border p-4 hover:bg-accent/50 transition-colors"
+							onClick={() => handleAccountClick(account.customerId)}
+							className="w-full text-left flex items-start gap-4 rounded-lg border p-4 hover:bg-accent/50 transition-colors"
 						>
 							<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
 								<Building2 className="h-5 w-5 text-primary" />
@@ -121,7 +130,7 @@ export function AccountsList() {
 									)}
 								</div>
 							</div>
-						</div>
+						</button>
 					))}
 				</div>
 			</CardContent>

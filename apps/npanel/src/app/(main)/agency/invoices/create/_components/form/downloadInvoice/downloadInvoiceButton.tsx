@@ -204,7 +204,7 @@ export const DownloadInvoiceButton = () => {
       const discountValue = parseFloat(invoiceDetails.discount || "0");
       const taxPercentage = invoiceDetails.taxPercentage || 0;
       const taxAmount = (subtotal - discountValue) * (taxPercentage / 100);
-      const totalAmount = subtotal - discountValue + taxAmount;
+      const totalAmount = roundTotalIfExceeds(subtotal - discountValue + taxAmount);
 
       // Map line items (tax and vat removed - tax is applied at invoice level)
       const lineItems = items.map((item, index) => ({
@@ -229,9 +229,9 @@ export const DownloadInvoiceButton = () => {
         paymentDetailsJson.bankName = paymentDetails.bankName;
         paymentDetailsJson.accountNumber = paymentDetails.accountNumber;
         paymentDetailsJson.accountName = paymentDetails.accountName;
-        paymentDetailsJson.routingCode = paymentDetails.routingCode;
+        paymentDetailsJson.branchName = paymentDetails.branchName;
+        paymentDetailsJson.branchCode = paymentDetails.branchCode;
         paymentDetailsJson.swiftCode = paymentDetails.swiftCode;
-        paymentDetailsJson.ifscCode = paymentDetails.ifscCode;
       } else if (paymentDetails.paymentMethod === "mpesa") {
         paymentDetailsJson.mpesaPaybillNumber = paymentDetails.mpesaPaybillNumber;
         paymentDetailsJson.mpesaAccountNumber = paymentDetails.mpesaAccountNumber;
@@ -329,4 +329,15 @@ export const DownloadInvoiceButton = () => {
       </div>
     </div>
   );
+};
+
+/**
+ * Rounds the total amount to 2 decimal places only if it exceeds 2 decimal places
+ */
+const roundTotalIfExceeds = (amount: number): number => {
+  const decimalPlaces = (amount.toString().split('.')[1] || '').length;
+  if (decimalPlaces > 2) {
+    return Math.round(amount * 100) / 100;
+  }
+  return amount;
 };

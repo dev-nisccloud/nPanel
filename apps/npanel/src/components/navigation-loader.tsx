@@ -73,8 +73,8 @@ export function NavigationLoader() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-4">
-        <Spinner variant="infinite" className="text-primary" size="md" />
-        <p className="text-sm text-muted-foreground">Loading page...</p>
+        <Spinner variant="infinite" className="text-primary" size="sm" />
+        <p className="text-xl font-bold text-muted-foreground">Loading page...</p>
       </div>
     </div>
   );

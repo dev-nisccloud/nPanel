@@ -217,6 +217,86 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/wordpress",
         icon: (props: any) => React.createElement(Icons.Wordpress, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
+    ],
+  },
+  {
+    id: 2,
+    label: "Digital Marketing",
+    items: [
+      {
+        title: "Nisc Social",
+        url: "/agency/social-media-marketing",
+        icon: (props: any) => React.createElement(Icons.SocialMediaMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Facebook", url: "/agency/social-media-marketing/facebook", },
+          // { title: "Instagram", url: "/agency/social-media-marketing/instagram", },
+          // { title: "Twitter", url: "/agency/social-media-marketing/twitter", },
+          { title: "LinkedIn", url: "/agency/social-media-marketing/linkedin", },
+          // { title: "TikTok", url: "/agency/social-media-marketing/tiktok", },
+        ],
+      },
+      {
+        title: "Ad Campaigns",
+        url: "/agency/ad-campaigns",
+        icon: (props: any) => React.createElement(Icons.Campaigns, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Meta Ads", url: "/agency/ad-campaigns/meta-ads", },
+          { title: "Google Ads", url: "/agency/ad-campaigns/google-ads", },
+          { title: "LinkedIn Ads", url: "/agency/ad-campaigns/linkedin-ads", },
+        ],
+      },
+      // {
+      //   title: "Email Marketing",
+      //   url: "/agency/email-marketing",
+      //   icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     { title: "Metrics", url: "/agency/metrics", },
+      //     { title: "Emails", url: "/agency/emails", },
+      //     { title: "Campaigns", url: "/agency/campaigns", },
+      //     { title: "Audiences", url: "/agency/audiences", },
+      //     // { title: "Segments", url: "/agency/segments", },
+      //     { title: "Templates", url: "/agency/templates", },
+      //     { title: "Domains", url: "/agency/domains", },
+      //     { title: "Email Builder", url: "/agency/email-builder", },
+      //   ],
+      // },
+      {
+        title: "SEO",
+        url: "/agency/seo",
+        icon: (props: any) => React.createElement(Icons.Seo, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+      {
+        title: "Visual Creatives",
+        url: "/agency/creative-assets",
+        icon: (props: any) => React.createElement(Icons.CreativeAssets, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+    ],
+  },
+  {
+    id: 3,
+    label: "Gen AI Tools",
+    items: [
+      {
+        title: "Visual Studio",
+        url: "/gen-ai/image-gen-studio",
+        icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+      {
+        title: "Image Generator",
+        url: "/gen-ai/image-generator",
+        icon: (props: any) => React.createElement(Icons.AIImage, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+      {
+        title: "Background Remover",
+        url: "/gen-ai/background-remover",
+        icon: (props: any) => React.createElement(Icons.BackgroundRemover, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+    ],
+  },
+  {
+    id: 4,
+    label: "Management",
+    items: [
       {
         title: "Service Plans",
         url: "/agency/service-plans",
@@ -278,76 +358,6 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Order Reports", url: "/agency/reports", },
           { title: "Transaction Reports", url: "/agency/reports", },
         ],
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: "Creatives",
-    items: [
-      {
-        title: "Creative Assets",
-        url: "/agency/creative-assets",
-        icon: (props: any) => React.createElement(Icons.CreativeAssets, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
-    ],
-  },
-  {
-    id: 3,
-    label: "Gen AI Tools",
-    items: [
-      {
-        title: "ImageGen Studio",
-        url: "/gen-ai/image-gen-studio",
-        icon: (props: any) => React.createElement(Icons.AIImage, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
-    ],
-  },
-  {
-    id: 4,
-    label: "Digital Marketing",
-    items: [
-      {
-        title: "Nisc Social",
-        url: "/agency/social-media-marketing",
-        icon: (props: any) => React.createElement(Icons.SocialMediaMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Facebook", url: "/agency/social-media-marketing/facebook", },
-          // { title: "Instagram", url: "/agency/social-media-marketing/instagram", },
-          // { title: "Twitter", url: "/agency/social-media-marketing/twitter", },
-          { title: "LinkedIn", url: "/agency/social-media-marketing/linkedin", },
-          // { title: "TikTok", url: "/agency/social-media-marketing/tiktok", },
-        ],
-      },
-      {
-        title: "Ad Campaigns",
-        url: "/agency/ad-campaigns",
-        icon: (props: any) => React.createElement(Icons.Campaigns, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Meta Ads", url: "/agency/ad-campaigns/meta-ads", },
-          { title: "Google Ads", url: "/agency/ad-campaigns/google-ads", },
-          { title: "LinkedIn Ads", url: "/agency/ad-campaigns/linkedin-ads", },
-        ],
-      },
-      // {
-      //   title: "Email Marketing",
-      //   url: "/agency/email-marketing",
-      //   icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      //   subItems: [
-      //     { title: "Metrics", url: "/agency/metrics", },
-      //     { title: "Emails", url: "/agency/emails", },
-      //     { title: "Campaigns", url: "/agency/campaigns", },
-      //     { title: "Audiences", url: "/agency/audiences", },
-      //     // { title: "Segments", url: "/agency/segments", },
-      //     { title: "Templates", url: "/agency/templates", },
-      //     { title: "Domains", url: "/agency/domains", },
-      //     { title: "Email Builder", url: "/agency/email-builder", },
-      //   ],
-      // },
-      {
-        title: "SEO",
-        url: "/agency/seo",
-        icon: (props: any) => React.createElement(Icons.Seo, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
     ],
   },

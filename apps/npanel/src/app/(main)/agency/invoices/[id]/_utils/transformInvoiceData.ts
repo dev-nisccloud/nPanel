@@ -84,9 +84,9 @@ export function transformInvoiceToPreviewData(
 		bankName: paymentDetailsData?.bankName as string | undefined,
 		accountNumber: paymentDetailsData?.accountNumber as string | undefined,
 		accountName: paymentDetailsData?.accountName as string | undefined,
-		routingCode: paymentDetailsData?.routingCode as string | undefined,
+		branchName: paymentDetailsData?.branchName as string | undefined,
+		branchCode: paymentDetailsData?.branchCode as string | undefined,
 		swiftCode: paymentDetailsData?.swiftCode as string | undefined,
-		ifscCode: paymentDetailsData?.ifscCode as string | undefined,
 		// MPESA fields
 		mpesaPaybillNumber: paymentDetailsData?.paybillNumber as string | undefined,
 		mpesaAccountNumber: paymentDetailsData?.accountNumber as string | undefined,

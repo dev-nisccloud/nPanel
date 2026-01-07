@@ -41,14 +41,14 @@ export const PaymentDetailsForm = () => {
               variableName="accountName"
             />
             <CustomTextInput
-              label="IFSC code"
-              placeholder="HSBC0560002"
-              variableName="ifscCode"
+              label="Branch Name"
+              placeholder="Westlands Branch"
+              variableName="branchName"
             />
             <CustomTextInput
-              label="Routing number"
-              placeholder="0804189592"
-              variableName="routingCode"
+              label="Branch Code"
+              placeholder="001"
+              variableName="branchCode"
             />
             <CustomNumberInput
               label="Swift code"

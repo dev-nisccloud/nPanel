@@ -18,7 +18,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
   const subtotal = calculateTotalAmount(items);
   const discountAmount = subtotal - (discount ? +discount : 0);
   const taxAmount = discountAmount * ((taxPercentage || 0) / 100);
-  const totalAmount = discountAmount + taxAmount;
+  const totalAmount = roundTotalIfExceeds(discountAmount + taxAmount);
 
   return (
     <View>
@@ -213,4 +213,15 @@ const addCommasToNumber = (number: number): string => {
   const parts = numberString.split(".");
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return parts.join(".");
+};
+
+/**
+ * Rounds the total amount to 2 decimal places only if it exceeds 2 decimal places
+ */
+const roundTotalIfExceeds = (amount: number): number => {
+  const decimalPlaces = (amount.toString().split('.')[1] || '').length;
+  if (decimalPlaces > 2) {
+    return Math.round(amount * 100) / 100;
+  }
+  return amount;
 };

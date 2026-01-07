@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Heart, ExternalLink, Copy, CheckCircle, XCircle, Clock, Star } from "lucide-react";
+import { Heart, ExternalLink, Copy, CheckCircle, XCircle, Clock, Star, ShoppingCart } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import {
   getAllTldExtensions
 } from "@nPanel/utils";
 import type { DomainSearchResult } from "./domain-search";
+import { BuyNowDialog } from "./buy-now-dialog";
 
 interface AISuggestion {
   name: string;
@@ -118,6 +119,8 @@ export function AIDomainCard({
   isComplete = false 
 }: AIDomainCardProps) {
   const [copiedDomain, setCopiedDomain] = React.useState<string | null>(null);
+  const [buyNowDomain, setBuyNowDomain] = React.useState<DomainSearchResult | null>(null);
+  const [buyNowOpen, setBuyNowOpen] = React.useState(false);
 
   // Show toast for errors instead of displaying them in UI
   React.useEffect(() => {
@@ -251,30 +254,38 @@ export function AIDomainCard({
                             )}
                             
                             {result.status === 'free' && (
-                              <Button
-                                size="sm"
-                                variant={isDomainInCart(result.domain) ? "destructive" : "default"}
-                                onClick={() => {
-                                  if (isDomainInCart(result.domain)) {
-                                    onRemoveFromCart(result.domain);
-                                  } else {
-                                    onAddToCart(result);
-                                  }
-                                }}
-                                className="ml-2 flex-shrink-0 h-8"
-                              >
-                                {isDomainInCart(result.domain) ? (
-                                  <>
-                                    <Icons.Cart className="h-3 w-3 mr-1" />
-                                    Remove
-                                  </>
-                                ) : (
-                                  <>
-                                    <Icons.Cart className="h-3 w-3 mr-1" />
-                                    Add to Cart
-                                  </>
-                                )}
-                              </Button>
+                              <div className="flex items-center gap-2 ml-2">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={() => {
+                                    setBuyNowDomain(result);
+                                    setBuyNowOpen(true);
+                                  }}
+                                  className="flex-shrink-0 h-8 text-xs"
+                                >
+                                  Buy Now
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={isDomainInCart(result.domain) ? "destructive" : "outline"}
+                                  onClick={() => {
+                                    if (isDomainInCart(result.domain)) {
+                                      onRemoveFromCart(result.domain);
+                                    } else {
+                                      onAddToCart(result);
+                                    }
+                                  }}
+                                  className="h-8 w-8 p-0 flex-shrink-0"
+                                  title={isDomainInCart(result.domain) ? "Remove from cart" : "Add to cart"}
+                                >
+                                  {isDomainInCart(result.domain) ? (
+                                    <XCircle className="h-4 w-4" />
+                                  ) : (
+                                    <ShoppingCart className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -323,6 +334,13 @@ export function AIDomainCard({
                   </div>
                 </div>
       </CardContent>
+
+      {/* Buy Now Dialog */}
+      <BuyNowDialog
+        open={buyNowOpen}
+        onOpenChange={setBuyNowOpen}
+        domain={buyNowDomain}
+      />
     </Card>
   );
 }

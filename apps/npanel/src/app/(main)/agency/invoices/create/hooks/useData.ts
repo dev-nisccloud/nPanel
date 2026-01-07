@@ -30,9 +30,9 @@ export const useData = () => {
   const bankName = useGetValue("bankName");
   const accountNumber = useGetValue("accountNumber");
   const accountName = useGetValue("accountName");
-  const routingCode = useGetValue("routingCode");
+  const branchName = useGetValue("branchName");
+  const branchCode = useGetValue("branchCode");
   const swiftCode = useGetValue("swiftCode");
-  const ifscCode = useGetValue("ifscCode");
 
   const mpesaPaybillNumber = useGetValue("mpesaPaybillNumber");
   const mpesaAccountNumber = useGetValue("mpesaAccountNumber");
@@ -71,9 +71,9 @@ export const useData = () => {
     bankName,
     accountNumber,
     accountName,
-    routingCode,
+    branchName,
+    branchCode,
     swiftCode,
-    ifscCode,
     // MPESA fields
     mpesaPaybillNumber,
     mpesaAccountNumber,

@@ -46,9 +46,9 @@ export type PaymentDetails = {
   bankName?: string;
   accountNumber?: string;
   accountName?: string;
-  routingCode?: string;
+  branchName?: string;
+  branchCode?: string;
   swiftCode?: string;
-  ifscCode?: string;
   // MPESA fields
   mpesaPaybillNumber?: string;
   mpesaAccountNumber?: string;

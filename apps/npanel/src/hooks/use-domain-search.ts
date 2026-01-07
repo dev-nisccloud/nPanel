@@ -73,7 +73,7 @@ export function useDomainSearch(
   pricingHook: DomainPricingHook
 ) {
   const [domainName, setDomainName] = React.useState("");
-  const [debouncedDomainName, setDebouncedDomainName] = React.useState("");
+  const [searchQueryName, setSearchQueryName] = React.useState("");
   const [activeTab, setActiveTab] = React.useState("popular");
   const [error, setError] = React.useState<string | null>(null);
 
@@ -90,15 +90,49 @@ export function useDomainSearch(
     return cartItems.some(item => item.type === 'domain' && item.domain === domainName);
   }, [cartItems]);
 
-  // P2-7: Reduced debounce time for better responsiveness (from 2s to 800ms)
-  // Debounce domain name input to avoid excessive API calls
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedDomainName(domainName);
-    }, 800); // 800ms delay for better UX
+  /**
+   * Sanitize domain name input by removing:
+   * - www. prefix
+   * - TLD extensions (.com, .org, .net, etc.)
+   * - Any protocol (http://, https://)
+   * - Trailing slashes
+   * @param input - Raw domain input from user
+   * @returns Sanitized domain name ready for API
+   */
+  const sanitizeDomainName = React.useCallback((input: string): string => {
+    let sanitized = input.trim().toLowerCase();
+    
+    // Remove protocol if present
+    sanitized = sanitized.replace(/^https?:\/\//, '');
+    
+    // Remove trailing slashes
+    sanitized = sanitized.replace(/\/+$/, '');
+    
+    // Remove www. prefix (case insensitive)
+    sanitized = sanitized.replace(/^www\./i, '');
+    
+    // Remove TLD extension if present
+    // Match common TLD patterns: .com, .org, .net, .io, .co.uk, etc.
+    // This regex matches a dot followed by 2-63 characters (valid TLD length)
+    // and ensures it's at the end of the string
+    sanitized = sanitized.replace(/\.[a-z0-9-]{2,63}$/i, '');
+    
+    return sanitized.trim();
+  }, []);
 
-    return () => clearTimeout(timer);
-  }, [domainName]);
+  // Trigger search manually (called by search button)
+  const triggerSearch = React.useCallback(() => {
+    if (domainName.trim()) {
+      const sanitized = sanitizeDomainName(domainName);
+      if (sanitized) {
+        setSearchQueryName(sanitized);
+      }
+    }
+  }, [domainName, sanitizeDomainName]);
+
+  // Note: Tab changes automatically trigger search because:
+  // - When activeTab changes, extensions change
+  // - Query key includes extensions, so React Query automatically refetches
 
   // Memoize extensions to prevent unnecessary query refetches
   const extensions = React.useMemo(() => {
@@ -112,13 +146,13 @@ export function useDomainSearch(
   // FIX: Query key includes extensions, so it will refetch when tab changes
   const searchQuery = trpc.openProvider.domains.checkAvailability.useQuery(
     {
-      name: debouncedDomainName,
+      name: searchQueryName,
       extensions: extensions,
       with_price: true,
       with_whois: false, // Lazy load whois data when needed
     },
     {
-      enabled: debouncedDomainName.length > 0,
+      enabled: searchQueryName.length > 0,
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes
       refetchOnWindowFocus: false,
@@ -245,6 +279,7 @@ export function useDomainSearch(
     isDomainInCart,
     handleAddToCart,
     handleRemoveFromCart,
+    triggerSearch,
   };
 }
 

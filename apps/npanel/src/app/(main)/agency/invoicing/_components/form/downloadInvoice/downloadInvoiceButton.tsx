@@ -227,9 +227,9 @@ export const DownloadInvoiceButton = () => {
         paymentDetailsJson.bankName = paymentDetails.bankName;
         paymentDetailsJson.accountNumber = paymentDetails.accountNumber;
         paymentDetailsJson.accountName = paymentDetails.accountName;
-        paymentDetailsJson.routingCode = paymentDetails.routingCode;
+        paymentDetailsJson.branchName = paymentDetails.branchName;
+        paymentDetailsJson.branchCode = paymentDetails.branchCode;
         paymentDetailsJson.swiftCode = paymentDetails.swiftCode;
-        paymentDetailsJson.ifscCode = paymentDetails.ifscCode;
       } else if (paymentDetails.paymentMethod === "mpesa") {
         paymentDetailsJson.mpesaPaybillNumber = paymentDetails.mpesaPaybillNumber;
         paymentDetailsJson.mpesaAccountNumber = paymentDetails.mpesaAccountNumber;

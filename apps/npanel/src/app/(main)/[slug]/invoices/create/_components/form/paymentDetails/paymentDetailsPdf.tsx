@@ -13,9 +13,9 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
   bankName,
   accountNumber,
   accountName,
-  routingCode,
+  branchName,
+  branchCode,
   swiftCode,
-  ifscCode,
   mpesaPaybillNumber,
   mpesaAccountNumber,
   mpesaInstructions,
@@ -65,6 +65,34 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
               {accountName ? accountName : "-"}
             </Text>
           </View>
+          {branchName && (
+            <View style={pdfUtils.flexRowItemCenter}>
+              <Text style={pdfTypography.paymentTitle}>Branch Name</Text>
+              <Text
+                style={{
+                  flex: 1,
+                  ...pdfTypography.itemDescription,
+                  paddingLeft: 35,
+                }}
+              >
+                {branchName}
+              </Text>
+            </View>
+          )}
+          {branchCode && (
+            <View style={pdfUtils.flexRowItemCenter}>
+              <Text style={pdfTypography.paymentTitle}>Branch Code</Text>
+              <Text
+                style={{
+                  flex: 1,
+                  ...pdfTypography.itemDescription,
+                  paddingLeft: 38,
+                }}
+              >
+                {branchCode}
+              </Text>
+            </View>
+          )}
           {swiftCode && (
             <View style={pdfUtils.flexRowItemCenter}>
               <Text style={pdfTypography.paymentTitle}>Swift Code</Text>
@@ -76,34 +104,6 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
                 }}
               >
                 {swiftCode}
-              </Text>
-            </View>
-          )}
-          {ifscCode && (
-            <View style={pdfUtils.flexRowItemCenter}>
-              <Text style={pdfTypography.paymentTitle}>IFSC Code</Text>
-              <Text
-                style={{
-                  flex: 1,
-                  ...pdfTypography.itemDescription,
-                  paddingLeft: 48,
-                }}
-              >
-                {ifscCode}
-              </Text>
-            </View>
-          )}
-          {routingCode && (
-            <View style={pdfUtils.flexRowItemCenter}>
-              <Text style={pdfTypography.paymentTitle}>Routing Code</Text>
-              <Text
-                style={{
-                  flex: 1,
-                  ...pdfTypography.itemDescription,
-                  paddingLeft: 32,
-                }}
-              >
-                {routingCode}
               </Text>
             </View>
           )}

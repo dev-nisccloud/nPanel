@@ -9,9 +9,9 @@ export const PaymentDetailsPreview: React.FC<
   bankName,
   accountNumber,
   accountName,
-  routingCode,
+  branchName,
+  branchCode,
   swiftCode,
-  ifscCode,
   mpesaPaybillNumber,
   mpesaAccountNumber,
   mpesaInstructions,
@@ -61,6 +61,26 @@ export const PaymentDetailsPreview: React.FC<
               <div className="rounded-[3.5px] bg-neutral-100 h-4 w-full animate-pulse" />
             )}
           </div>
+          {branchName && (
+            <div className="mb-2 grid grid-cols-2 items-center">
+              <p className="truncate text-xs font-medium text-gray-500">
+                Branch Name
+              </p>
+              <p className="flex truncate text-xs font-medium text-gray-600">
+                {branchName}
+              </p>
+            </div>
+          )}
+          {branchCode && (
+            <div className="mb-2 grid grid-cols-2 items-center">
+              <p className="truncate text-xs font-medium text-gray-500">
+                Branch Code
+              </p>
+              <p className="flex truncate text-xs font-medium text-gray-600">
+                {branchCode}
+              </p>
+            </div>
+          )}
           {swiftCode && (
             <div className="mb-2 grid grid-cols-2 items-center">
               <p className="truncate text-xs font-medium text-gray-500">
@@ -68,26 +88,6 @@ export const PaymentDetailsPreview: React.FC<
               </p>
               <p className="flex truncate text-xs font-medium text-gray-600">
                 {swiftCode}
-              </p>
-            </div>
-          )}
-          {routingCode && (
-            <div className="mb-2 grid grid-cols-2 items-center">
-              <p className="truncate text-xs font-medium text-gray-500">
-                Routing Code
-              </p>
-              <p className="flex truncate text-xs font-medium text-gray-600">
-                {routingCode}
-              </p>
-            </div>
-          )}
-          {ifscCode && (
-            <div className="mb-2 grid grid-cols-2 items-center">
-              <p className="truncate text-xs font-medium text-gray-500">
-                IFSC Code
-              </p>
-              <p className="flex truncate text-xs font-medium text-gray-600">
-                {ifscCode}
               </p>
             </div>
           )}

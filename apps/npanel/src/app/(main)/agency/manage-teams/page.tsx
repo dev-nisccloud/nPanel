@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TeamCardsList } from "./_components/team-card";
 import { TeamViewDialog } from "./_components/team-view-dialog";
 import { EditTeamDialog } from "./_components/edit-team-dialog";
+import { CreateTeamDialog } from "./_components/create-team-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,7 @@ const EmptyState = ({ title, description }: { title: string; description: string
 export default function ManageTeamsPage() {
   const [selectedTeamId, setSelectedTeamId] = React.useState<string | null>(null);
   const [editTeamId, setEditTeamId] = React.useState<string | null>(null);
+  const [createTeamOpen, setCreateTeamOpen] = React.useState(false);
   const [deleteDialog, setDeleteDialog] = React.useState<{
     open: boolean;
     teamId: string | null;
@@ -164,6 +166,13 @@ export default function ManageTeamsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button
+            onClick={() => setCreateTeamOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Team
+          </Button>
+          <Button
             variant="outline"
             size="icon"
             onClick={() => refetch()}
@@ -226,6 +235,14 @@ export default function ManageTeamsPage() {
           }}
         />
       )}
+
+      <CreateTeamDialog
+        open={createTeamOpen}
+        onOpenChange={setCreateTeamOpen}
+        onSuccess={() => {
+          utils.teams.getAll.invalidate();
+        }}
+      />
 
       <AlertDialog
         open={deleteDialog.open}

@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, ShoppingCart } from "lucide-react";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { DomainSearchResult } from "./domain-search";
+import { BuyNowDialog } from "./buy-now-dialog";
 
 interface DomainResultCardProps {
   result: DomainSearchResult;
@@ -88,6 +89,7 @@ const getStatusBadge = (status: string) => {
 };
 
 export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemoveFromCart }: DomainResultCardProps) {
+  const [buyNowOpen, setBuyNowOpen] = React.useState(false);
   const isInCart = isDomainInCart(result.domain);
 
   const handleCartAction = () => {
@@ -172,27 +174,32 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
         </div>
       )}
 
-      {/* Action Button */}
+      {/* Action Buttons */}
       <div className="mt-auto pt-2">
         {result.status === 'free' ? (
-          <Button
-            size="sm"
-            variant={isInCart ? "destructive" : "default"}
-            onClick={handleCartAction}
-            className="w-full text-xs h-7"
-          >
-            {isInCart ? (
-              <>
-                <XCircle className="h-3 w-3 mr-1" />
-                Remove
-              </>
-            ) : (
-              <>
-                <Icons.Cart className="h-3 w-3 mr-1" />
-                Add to Cart
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => setBuyNowOpen(true)}
+              className="flex-1 text-xs h-7"
+            >
+              Buy Now
+            </Button>
+            <Button
+              size="sm"
+              variant={isInCart ? "destructive" : "outline"}
+              onClick={handleCartAction}
+              className="h-7 w-7 p-0"
+              title={isInCart ? "Remove from cart" : "Add to cart"}
+            >
+              {isInCart ? (
+                <XCircle className="h-4 w-4" />
+              ) : (
+                <ShoppingCart className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         ) : (
           <Button
             size="sm"
@@ -205,6 +212,13 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
           </Button>
         )}
       </div>
+
+      {/* Buy Now Dialog */}
+      <BuyNowDialog
+        open={buyNowOpen}
+        onOpenChange={setBuyNowOpen}
+        domain={result}
+      />
     </div>
   );
 }
