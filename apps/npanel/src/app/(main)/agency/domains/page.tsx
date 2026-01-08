@@ -23,14 +23,16 @@ export default function DomainsPage() {
   }, [utils]);
 
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6">
-      <Tabs defaultValue="domain-search" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="domain-search">Domain Search</TabsTrigger>
-          {/* <TabsTrigger value="openprovider-tlds">Openprovider TLDs</TabsTrigger> */}
-          {/* <TabsTrigger value="supported-domains">Supported Domains</TabsTrigger> */}
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
+    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <Tabs defaultValue="domain-search" className="w-full max-w-7xl mx-auto">
+        <div className="flex justify-center mb-6">
+          <TabsList className="inline-flex w-auto">
+            <TabsTrigger value="domain-search">Domain Search</TabsTrigger>
+            {/* <TabsTrigger value="openprovider-tlds">Openprovider TLDs</TabsTrigger> */}
+            {/* <TabsTrigger value="supported-domains">Supported Domains</TabsTrigger> */}
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="domain-search" className="mt-6">
           <DomainSearch />

@@ -27,7 +27,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { trpc } from "@/utils/trpc";
 import { BuyNowDialog } from "./buy-now-dialog";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
@@ -39,6 +38,13 @@ interface PromotionalCardsProps {
   onRemoveFromCart: (domain: string) => void;
   isDomainInCart: (domain: string) => boolean;
   isLoading?: boolean;
+  // PERFORMANCE: Use promotional results from main query instead of separate API call
+  promotionalResults?: {
+    ai: any;
+    com: any;
+    info: any;
+    online: any;
+  };
 }
 
 const formatPrice = (price?: number, currency?: string) => {
@@ -96,65 +102,8 @@ function sanitizeDomainName(input: string): string {
   return sanitized.trim();
 }
 
-// Shared hook for promotional cards data - batches all extensions in one API call
-function usePromotionalCardsData(searchQuery: string) {
-  // Sanitize the search query before using it
-  const sanitizedQuery = React.useMemo(() => {
-    const trimmed = searchQuery.trim();
-    if (!trimmed) return '';
-    return sanitizeDomainName(trimmed);
-  }, [searchQuery]);
-  
-  // Single batched query for all promotional card extensions (AI, Bundle)
-  // Only enabled when we have a valid sanitized query
-  const { data: promotionalData, isLoading } = trpc.openProvider.domains.checkAvailability.useQuery(
-    {
-      name: sanitizedQuery,
-      extensions: ['ai', 'com', 'info', 'online'], // Batch all extensions in one call
-      with_price: true,
-      with_whois: false,
-    },
-    {
-      enabled: sanitizedQuery.length > 0, // Only search when we have a valid sanitized query
-      refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes cache
-      gcTime: 10 * 60 * 1000, // 10 minutes cache
-    }
-  );
-
-  // Process and separate results by extension
-  const processedData = React.useMemo(() => {
-    if (!promotionalData?.data?.results) {
-      return {
-        ai: null,
-        com: null,
-        info: null,
-        online: null,
-      } as { ai: any; com: any; info: any; online: any };
-    }
-
-    const results: { ai: any; com: any; info: any; online: any } = {
-      ai: null,
-      com: null,
-      info: null,
-      online: null,
-    };
-
-    promotionalData.data.results.forEach((result: any) => {
-      const extension = result.domain.split('.').pop()?.toLowerCase();
-      if (extension && results.hasOwnProperty(extension)) {
-        results[extension as keyof typeof results] = result;
-      }
-    });
-
-    return results;
-  }, [promotionalData]);
-
-  return {
-    data: processedData,
-    isLoading,
-  };
-}
+// PERFORMANCE: Removed separate hook - now using shared data from main query
+// This eliminates duplicate API calls and improves performance
 
 // AI Card Component
 function AICard({ 
@@ -196,14 +145,41 @@ function AICard({
   }, [aiData, aiDomain]);
 
   // Calculate pricing with markup
+  // OPTIMIZATION: Use ref to track pricing calculation to avoid duplicate calculations
+  const pricedAIResultRef = React.useRef<DomainSearchResult | null>(null);
   const [pricedAIResult, setPricedAIResult] = React.useState<DomainSearchResult | null>(null);
+  const pricingCalculationRef = React.useRef<string>('');
   
   React.useEffect(() => {
-    if (aiResult && pricingHook) {
-      pricingHook.calculatePricesBatch([aiResult]).then(([priced]) => {
-        setPricedAIResult(priced);
-      });
+    if (!aiResult || !pricingHook) {
+      setPricedAIResult(null);
+      pricedAIResultRef.current = null;
+      return;
     }
+
+    // OPTIMIZATION: Create a stable key to avoid duplicate calculations
+    const resultKey = `${aiResult.domain}-${aiResult.status}-${aiResult.price?.reseller?.price || 0}`;
+    
+    // Skip if already calculated for this result
+    if (pricingCalculationRef.current === resultKey && pricedAIResultRef.current) {
+      return;
+    }
+
+    pricingCalculationRef.current = resultKey;
+    
+    // OPTIMIZATION: Use requestIdleCallback or setTimeout to defer non-critical calculations
+    const timer = setTimeout(() => {
+      pricingHook.calculatePricesBatch([aiResult]).then(([priced]) => {
+        pricedAIResultRef.current = priced;
+        setPricedAIResult(priced);
+      }).catch((error) => {
+        console.error('Failed to calculate AI domain pricing:', error);
+        // Fallback to original result if pricing fails
+        setPricedAIResult(aiResult);
+      });
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [aiResult, pricingHook]);
 
   const displayResult = pricedAIResult || aiResult;
@@ -302,7 +278,7 @@ function AICard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <Button
             size="sm"
             variant="default"
@@ -319,7 +295,7 @@ function AICard({
                 console.error('Error opening buy now dialog:', error);
               }
             }}
-            className="flex-1"
+            className="px-4"
           >
             Buy Now
           </Button>
@@ -381,16 +357,47 @@ function CoKeCard({
   }), [coKeDomain]);
 
   // Calculate pricing with markup (if pricing hook is available)
+  // OPTIMIZATION: Use ref to track pricing calculation to avoid duplicate calculations
+  const pricedCoKeResultRef = React.useRef<DomainSearchResult | null>(null);
   const [pricedCoKeResult, setPricedCoKeResult] = React.useState<DomainSearchResult | null>(null);
+  const pricingCalculationRef = React.useRef<string>('');
   
   React.useEffect(() => {
-    if (coKeResult && pricingHook) {
-      pricingHook.calculatePricesBatch([coKeResult]).then(([priced]) => {
-        setPricedCoKeResult(priced);
-      });
-    } else {
-      setPricedCoKeResult(coKeResult);
+    if (!coKeResult) {
+      setPricedCoKeResult(null);
+      pricedCoKeResultRef.current = null;
+      return;
     }
+
+    // OPTIMIZATION: Create a stable key to avoid duplicate calculations
+    const resultKey = `${coKeResult.domain}-${coKeResult.status}-${coKeResult.price?.reseller?.price || 0}`;
+    
+    // Skip if already calculated for this result
+    if (pricingCalculationRef.current === resultKey && pricedCoKeResultRef.current) {
+      return;
+    }
+
+    if (!pricingHook) {
+      setPricedCoKeResult(coKeResult);
+      pricedCoKeResultRef.current = coKeResult;
+      return;
+    }
+
+    pricingCalculationRef.current = resultKey;
+    
+    // OPTIMIZATION: Use setTimeout to defer non-critical calculations
+    const timer = setTimeout(() => {
+      pricingHook.calculatePricesBatch([coKeResult]).then(([priced]) => {
+        pricedCoKeResultRef.current = priced;
+        setPricedCoKeResult(priced);
+      }).catch((error) => {
+        console.error('Failed to calculate .co.ke domain pricing:', error);
+        // Fallback to original result if pricing fails
+        setPricedCoKeResult(coKeResult);
+      });
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [coKeResult, pricingHook]);
 
   const displayResult = pricedCoKeResult || coKeResult;
@@ -452,7 +459,7 @@ function CoKeCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <Button
             size="sm"
             variant="default"
@@ -469,7 +476,7 @@ function CoKeCard({
                 console.error('Error opening buy now dialog:', error);
               }
             }}
-            className="flex-1"
+            className="px-4"
           >
             Buy Now
           </Button>
@@ -584,14 +591,47 @@ function BundleCard({
   }, [bundleData, searchQuery]);
 
   // Calculate pricing with markup and convert to KES
+  // OPTIMIZATION: Use ref to track pricing calculation to avoid duplicate calculations
+  const pricedBundleResultsRef = React.useRef<DomainSearchResult[]>([]);
   const [pricedBundleResults, setPricedBundleResults] = React.useState<DomainSearchResult[]>([]);
+  const pricingCalculationRef = React.useRef<string>('');
   
   React.useEffect(() => {
-    if (bundleResults.length > 0 && pricingHook) {
-      pricingHook.calculatePricesBatch(bundleResults).then((priced) => {
-        setPricedBundleResults(priced);
-      });
+    if (bundleResults.length === 0) {
+      setPricedBundleResults([]);
+      pricedBundleResultsRef.current = [];
+      return;
     }
+
+    if (!pricingHook) {
+      setPricedBundleResults(bundleResults);
+      pricedBundleResultsRef.current = bundleResults;
+      return;
+    }
+
+    // OPTIMIZATION: Create a stable key to avoid duplicate calculations
+    const resultKey = bundleResults.map(r => `${r.domain}-${r.status}-${r.price?.reseller?.price || 0}`).join('|');
+    
+    // Skip if already calculated for this result
+    if (pricingCalculationRef.current === resultKey && pricedBundleResultsRef.current.length > 0) {
+      return;
+    }
+
+    pricingCalculationRef.current = resultKey;
+    
+    // OPTIMIZATION: Use setTimeout to defer non-critical calculations and batch them
+    const timer = setTimeout(() => {
+      pricingHook.calculatePricesBatch(bundleResults).then((priced) => {
+        pricedBundleResultsRef.current = priced;
+        setPricedBundleResults(priced);
+      }).catch((error) => {
+        console.error('Failed to calculate bundle pricing:', error);
+        // Fallback to original results if pricing fails
+        setPricedBundleResults(bundleResults);
+      });
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [bundleResults, pricingHook]);
 
   // Calculate total bundle price in KES (ensure all prices are in KES)
@@ -704,7 +744,7 @@ function BundleCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <Button
             size="sm"
             variant="outline"
@@ -721,7 +761,7 @@ function BundleCard({
                 console.error('Error opening bundle buy now dialog:', error);
               }
             }}
-            className="flex-1 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+            className="px-4 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
           >
             Buy Now
           </Button>
@@ -994,11 +1034,16 @@ export function PromotionalCards(props: PromotionalCardsProps) {
     return null;
   }
   
-  // Use shared batched data hook - single API call for all promotional extensions
-  const { data: promotionalData, isLoading: isLoadingPromotional } = usePromotionalCardsData(sanitizedQuery);
+  // PERFORMANCE: Use promotional results from main query (no separate API call)
+  const promotionalData = props.promotionalResults || {
+    ai: null,
+    com: null,
+    info: null,
+    online: null,
+  };
   
-  // Show skeleton while loading (either main search or promotional data)
-  if (props.isLoading || isLoadingPromotional) {
+  // Show skeleton while loading
+  if (props.isLoading) {
     return <PromotionalCardsSkeleton />;
   }
 
@@ -1017,7 +1062,7 @@ export function PromotionalCards(props: PromotionalCardsProps) {
       {...props} 
       searchQuery={sanitizedQuery}
       aiData={promotionalData.ai}
-      isLoadingAI={isLoadingPromotional}
+      isLoadingAI={props.isLoading ?? false}
     />
   );
   // Check if AI card should be shown (it will return null if not available)
@@ -1032,7 +1077,7 @@ export function PromotionalCards(props: PromotionalCardsProps) {
       {...props} 
       searchQuery={sanitizedQuery}
       bundleData={promotionalData}
-      isLoadingBundle={isLoadingPromotional}
+      isLoadingBundle={props.isLoading ?? false}
     />
   );
   // Check if bundle should be shown (all domains must be available)

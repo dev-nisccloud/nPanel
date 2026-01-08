@@ -263,8 +263,8 @@ export function AIDomainCard({
                                     e?.stopPropagation();
                                     try {
                                       if (result && result.domain) {
-                                        setBuyNowDomain(result);
-                                        setBuyNowOpen(true);
+                                    setBuyNowDomain(result);
+                                    setBuyNowOpen(true);
                                       } else {
                                         console.error('Invalid result for buy now:', result);
                                       }
@@ -284,10 +284,10 @@ export function AIDomainCard({
                                   e?.stopPropagation();
                                   try {
                                     if (result && result.domain) {
-                                      if (isDomainInCart(result.domain)) {
-                                        onRemoveFromCart(result.domain);
-                                      } else {
-                                        onAddToCart(result);
+                                  if (isDomainInCart(result.domain)) {
+                                    onRemoveFromCart(result.domain);
+                                  } else {
+                                    onAddToCart(result);
                                       }
                                     } else {
                                       console.error('Invalid result for cart action:', result);
@@ -357,11 +357,11 @@ export function AIDomainCard({
 
       {/* Buy Now Dialog */}
       {buyNowDomain && buyNowDomain.domain && (
-        <BuyNowDialog
-          open={buyNowOpen}
-          onOpenChange={setBuyNowOpen}
-          domain={buyNowDomain}
-        />
+      <BuyNowDialog
+        open={buyNowOpen}
+        onOpenChange={setBuyNowOpen}
+        domain={buyNowDomain}
+      />
       )}
     </Card>
   );

@@ -107,6 +107,8 @@ function DomainSearchContent() {
           onAddToCart={domainSearch.handleAddToCart}
           onRemoveFromCart={domainSearch.handleRemoveFromCart}
           searchQuery={domainSearch.searchQueryName}
+          promotionalResults={domainSearch.promotionalResults}
+          isPromotionalLoading={domainSearch.isPromotionalLoading ?? domainSearch.isLoading}
         />
       )}
     </div>

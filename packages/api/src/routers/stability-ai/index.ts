@@ -129,15 +129,20 @@ export const stabilityAiRouter = router({
 
         // Make the request to Stability AI
         // Stability AI v2beta requires multipart/form-data
-        // Use the global FormData (available in Node.js 18+)
-        const formData = new (globalThis.FormData || FormData)();
+        // Use form-data package for proper multipart/form-data handling
+        const FormDataClass = (await import("form-data")).default;
+        const formData = new FormDataClass();
         
+        // Append all parameters to form data
         Object.entries(params).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== "") {
             // Convert all values to strings for FormData
             formData.append(key, String(value));
           }
         });
+
+        // Get headers from form-data (includes Content-Type with boundary)
+        const formHeaders = formData.getHeaders();
 
         // Log request for debugging
         const cleanParams: Record<string, any> = {};
@@ -149,16 +154,39 @@ export const stabilityAiRouter = router({
         console.log("Stability AI Request:", {
           host,
           params: cleanParams,
+          contentType: formHeaders["content-type"],
         });
 
+        // Convert form-data to buffer - we must buffer it to ensure boundary is included
+        const formDataBuffer = await new Promise<Buffer>((resolve, reject) => {
+          const chunks: Buffer[] = [];
+          
+          formData.on("data", (chunk: Buffer | string) => {
+            // Ensure chunk is always a Buffer
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+          });
+          
+          formData.on("end", () => {
+            resolve(Buffer.concat(chunks));
+          });
+          
+          formData.on("error", reject);
+          
+          // Important: form-data streams need to be resumed to start flowing
+          formData.resume();
+        });
+
+        console.log("Form data buffered, size:", formDataBuffer.length);
+
+        // Use undici fetch with the buffered form data
         const response = await fetch(host, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
             Accept: "image/*",
-            // Don't set Content-Type - fetch will set it with boundary for FormData
+            ...formHeaders, // Include Content-Type with boundary from form-data
           },
-          body: formData as any, // Type assertion for Node.js FormData compatibility
+          body: formDataBuffer,
         });
 
         if (!response.ok) {
@@ -282,23 +310,34 @@ export const stabilityAiRouter = router({
         // Get headers from form-data (includes Content-Type with boundary)
         const formHeaders = formData.getHeaders();
 
-        // Convert form-data stream to buffer for proper transmission
-        // This ensures the boundary is properly included
-        const formDataBuffer = await new Promise<Buffer>((resolve, reject) => {
-          const chunks: Buffer[] = [];
-          formData.on("data", (chunk: Buffer) => chunks.push(chunk));
-          formData.on("end", () => resolve(Buffer.concat(chunks)));
-          formData.on("error", reject);
-        });
-
         // Log request for debugging
         console.log("Stability AI Remove Background Request:", {
           host,
           outputFormat: input.outputFormat,
           imageSize: imageBuffer.length,
-          formDataSize: formDataBuffer.length,
           contentType: formHeaders["content-type"],
         });
+
+        // Convert form-data to buffer - we must buffer it to ensure boundary is included
+        const formDataBuffer = await new Promise<Buffer>((resolve, reject) => {
+          const chunks: Buffer[] = [];
+          
+          formData.on("data", (chunk: Buffer | string) => {
+            // Ensure chunk is always a Buffer
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+          });
+          
+          formData.on("end", () => {
+            resolve(Buffer.concat(chunks));
+          });
+          
+          formData.on("error", reject);
+          
+          // Important: form-data streams need to be resumed to start flowing
+          formData.resume();
+        });
+
+        console.log("Form data buffered, size:", formDataBuffer.length);
 
         // Use undici fetch with the buffered form data
         const response = await fetch(host, {

@@ -228,6 +228,26 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'npanel-cart',
+      // OPTIMIZATION: Limit localStorage size and add error handling
+      partialize: (state) => {
+        // Limit cart to max 100 items to prevent localStorage bloat
+        const MAX_CART_ITEMS = 100;
+        const limitedItems = state.items.slice(0, MAX_CART_ITEMS);
+        return { items: limitedItems };
+      },
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Cart rehydration error:', error);
+          // Clear corrupted cart data
+          if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+              localStorage.removeItem('npanel-cart');
+            } catch (e) {
+              console.error('Failed to clear corrupted cart:', e);
+            }
+          }
+        }
+      },
     }
   )
 );

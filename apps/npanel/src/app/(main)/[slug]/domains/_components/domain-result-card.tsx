@@ -153,7 +153,7 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
       {/* Action Buttons */}
       <div className="mt-auto pt-2">
         {result.status === 'free' ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <Button
               size="sm"
               variant="default"
@@ -170,34 +170,36 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
                   console.error('Error opening buy now dialog:', error);
                 }
               }}
-              className="flex-1 text-xs h-7"
+              className="text-xs h-7 px-4"
             >
               Buy Now
             </Button>
-          <Button
-            size="sm"
+            <Button
+              size="sm"
               variant={isInCart ? "destructive" : "outline"}
-            onClick={handleCartAction}
+              onClick={handleCartAction}
               className="h-7 w-7 p-0"
               title={isInCart ? "Remove from cart" : "Add to cart"}
-          >
-            {isInCart ? (
+            >
+              {isInCart ? (
                 <XCircle className="h-4 w-4" />
-            ) : (
+              ) : (
                 <ShoppingCart className="h-4 w-4" />
-            )}
-          </Button>
+              )}
+            </Button>
           </div>
         ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled
-            className="w-full text-xs h-7"
-          >
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Not Available
-          </Button>
+          <div className="flex justify-center">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled
+              className="text-xs h-7 px-4"
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Not Available
+            </Button>
+          </div>
         )}
       </div>
 

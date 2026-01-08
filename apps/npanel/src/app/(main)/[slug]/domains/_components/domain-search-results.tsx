@@ -19,6 +19,15 @@ interface DomainSearchResultsProps {
   onAddToCart: (result: DomainSearchResult) => void;
   onRemoveFromCart: (domain: string) => void;
   searchQuery?: string;
+  // PERFORMANCE: Pass promotional results from main query (cached by searchQueryName)
+  promotionalResults?: {
+    ai: any;
+    com: any;
+    info: any;
+    online: any;
+  };
+  // Separate loading state for promotional cards (only true if no cached data)
+  isPromotionalLoading?: boolean;
 }
 
 function SearchResultsSkeleton() {
@@ -48,6 +57,8 @@ export function DomainSearchResults({
   onAddToCart,
   onRemoveFromCart,
   searchQuery = "",
+  promotionalResults,
+  isPromotionalLoading,
 }: DomainSearchResultsProps) {
   if (error) {
     return (
@@ -60,14 +71,15 @@ export function DomainSearchResults({
 
   return (
     <div className="space-y-6">
-      {/* Promotional Cards - Show first, even while loading */}
+      {/* Promotional Cards - Show first, use separate loading state that doesn't change on tab switch */}
       {searchQuery && searchQuery.trim().length > 0 && (
         <PromotionalCards
           searchQuery={searchQuery.trim()}
           onAddToCart={onAddToCart}
           onRemoveFromCart={onRemoveFromCart}
           isDomainInCart={isDomainInCart}
-          isLoading={isLoading}
+          isLoading={isPromotionalLoading ?? isLoading}
+          promotionalResults={promotionalResults}
         />
       )}
 

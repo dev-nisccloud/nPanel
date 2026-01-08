@@ -37,6 +37,9 @@ interface PricingCache {
 const pricingCache = new Map<string, PricingCache>();
 const cacheExpiry = new Map<string, number>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// OPTIMIZATION: Limit cache size to prevent memory leaks (max 10 cache entries)
+const MAX_CACHE_ENTRIES = 10;
+const MAX_DOMAINS_PER_CACHE = 1000; // Max domains per cache entry
 
 // Helper to create a hash of TLD setting for cache key
 function getTldSettingHash(tldSetting: TldSetting | null): string {
@@ -318,11 +321,23 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
       };
     });
 
+    // OPTIMIZATION: Limit cache size per entry
+    const cacheKeys = Object.keys(currentCache);
+    if (cacheKeys.length > MAX_DOMAINS_PER_CACHE) {
+      // Keep only the most recent entries
+      const sortedKeys = cacheKeys.slice(-MAX_DOMAINS_PER_CACHE);
+      const limitedCache: PricingCache = {};
+      sortedKeys.forEach(key => {
+        limitedCache[key] = currentCache[key]!;
+      });
+      currentCache = limitedCache;
+    }
+
     // Store in cache with stable key
     pricingCache.set(cacheKey, currentCache);
     cacheExpiry.set(cacheKey, now);
 
-    // Clean up old cache entries (older than CACHE_DURATION)
+    // Clean up old cache entries (older than CACHE_DURATION) and enforce size limit
     const expiredKeys = Array.from(cacheExpiry.entries())
       .filter(([_, expiry]) => now - expiry > CACHE_DURATION)
       .map(([key]) => key);
@@ -331,6 +346,19 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
       pricingCache.delete(key);
       cacheExpiry.delete(key);
     });
+
+    // OPTIMIZATION: Enforce maximum cache entries (LRU eviction)
+    if (pricingCache.size > MAX_CACHE_ENTRIES) {
+      // Remove oldest entries (based on expiry time)
+      const sortedEntries = Array.from(cacheExpiry.entries())
+        .sort(([, a], [, b]) => a - b);
+      
+      const entriesToRemove = sortedEntries.slice(0, pricingCache.size - MAX_CACHE_ENTRIES);
+      entriesToRemove.forEach(([key]) => {
+        pricingCache.delete(key);
+        cacheExpiry.delete(key);
+      });
+    }
 
     return processedResults;
   }, [defaultTldSetting, calculatePrice, selectedCurrency, isConversionAvailable, convertPricesBatch]);
