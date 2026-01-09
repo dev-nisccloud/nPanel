@@ -118,7 +118,7 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/agency/my-account")}>
                 <CircleUser />
                 My Account
               </DropdownMenuItem>

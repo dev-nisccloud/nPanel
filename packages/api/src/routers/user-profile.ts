@@ -251,27 +251,8 @@ export const userProfileRouter = router({
       }
 
       const userId = session.user.id;
-      
-      // Get current session token from headers
-      const currentUser = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          sessions: {
-            where: {
-              expiresAt: {
-                gt: new Date(),
-              },
-            },
-            orderBy: {
-              updatedAt: "desc",
-            },
-            take: 1,
-          },
-        },
-      });
-      
-      const currentSessionToken = currentUser?.sessions[0]?.token;
 
+      // Get all active sessions in a single query
       const sessions = await prisma.session.findMany({
         where: { 
           userId,
@@ -280,11 +261,15 @@ export const userProfileRouter = router({
           },
         },
         orderBy: {
-          createdAt: "desc",
+          updatedAt: "desc", // Most recently updated first
         },
       });
 
-      return sessions.map((s) => ({
+      // The first session (most recently updated) is likely the current one
+      // This is more efficient than doing a separate query
+      const currentSessionToken = sessions.length > 0 ? sessions[0].token : null;
+
+      return sessions.map((s, index) => ({
         id: s.id,
         token: s.token.substring(0, 10) + "...", // Only show partial token for security
         ipAddress: s.ipAddress,
@@ -292,7 +277,8 @@ export const userProfileRouter = router({
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,
         expiresAt: s.expiresAt,
-        isCurrent: s.token === currentSessionToken,
+        // Mark the most recently updated session as current
+        isCurrent: index === 0 && s.token === currentSessionToken,
       }));
     }),
 
