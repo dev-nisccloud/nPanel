@@ -203,6 +203,7 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Site, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "Registration", url: "/agency/domains", },
+          { title: "TLDs", url: "/agency/tlds", },
           { title: "Transfer", url: "/agency/domain-transfer", },
           { title: "Domains Portfolio", url: "/agency/domains-portfolio", },
         ],
