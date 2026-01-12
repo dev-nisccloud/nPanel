@@ -65,7 +65,7 @@ export function CategoryTabs({ value, onValueChange, className }: CategoryTabsPr
                 <TabsTrigger 
                   key={category.value}
                   value={category.value} 
-                  className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-4 sm:px-5 md:px-6 text-xs sm:text-sm font-medium min-w-[70px] sm:min-w-[90px] md:min-w-[110px] lg:min-w-[130px] transition-all duration-200 hover:bg-background/50 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md whitespace-nowrap flex-shrink-0"
+                  className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-4 sm:px-5 md:px-6 text-xs sm:text-sm font-medium min-w-[70px] sm:min-w-[90px] md:min-w-[110px] lg:min-w-[130px] transition-all duration-200 hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-md whitespace-nowrap flex-shrink-0"
                 >
                   <Icon className="h-4 w-4 sm:h-4 sm:w-4 md:h-5 md:w-5 flex-shrink-0" />
                   <span className="text-[10px] sm:text-xs md:text-sm leading-tight text-center">
