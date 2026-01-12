@@ -129,6 +129,8 @@ export const ModelName = {
   MetaAdsCampaignActivityLog: 'MetaAdsCampaignActivityLog',
   MetaAdsAdSetActivityLog: 'MetaAdsAdSetActivityLog',
   MetaAdsAdActivityLog: 'MetaAdsAdActivityLog',
+  PaymentTransaction: 'PaymentTransaction',
+  PaymentTransactionActivityLog: 'PaymentTransactionActivityLog',
   ServiceSubscription: 'ServiceSubscription',
   ServiceSubscriptionRenewal: 'ServiceSubscriptionRenewal',
   ServiceSubscriptionActivityLog: 'ServiceSubscriptionActivityLog',
@@ -1642,6 +1644,53 @@ export const MetaAdsAdActivityLogScalarFieldEnum = {
 } as const
 
 export type MetaAdsAdActivityLogScalarFieldEnum = (typeof MetaAdsAdActivityLogScalarFieldEnum)[keyof typeof MetaAdsAdActivityLogScalarFieldEnum]
+
+
+export const PaymentTransactionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  gateway: 'gateway',
+  gatewayStatus: 'gatewayStatus',
+  gatewayMessage: 'gatewayMessage',
+  gatewayTransactionId: 'gatewayTransactionId',
+  merchantRequestId: 'merchantRequestId',
+  checkoutRequestId: 'checkoutRequestId',
+  receiptNumber: 'receiptNumber',
+  amount: 'amount',
+  currency: 'currency',
+  accountReference: 'accountReference',
+  transactionDesc: 'transactionDesc',
+  phoneNumber: 'phoneNumber',
+  status: 'status',
+  rawResponse: 'rawResponse',
+  rawError: 'rawError',
+  initiatedAt: 'initiatedAt',
+  processedAt: 'processedAt',
+  failedAt: 'failedAt',
+  refundedAt: 'refundedAt',
+  notes: 'notes',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PaymentTransactionScalarFieldEnum = (typeof PaymentTransactionScalarFieldEnum)[keyof typeof PaymentTransactionScalarFieldEnum]
+
+
+export const PaymentTransactionActivityLogScalarFieldEnum = {
+  id: 'id',
+  transactionId: 'transactionId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type PaymentTransactionActivityLogScalarFieldEnum = (typeof PaymentTransactionActivityLogScalarFieldEnum)[keyof typeof PaymentTransactionActivityLogScalarFieldEnum]
 
 
 export const ServiceSubscriptionScalarFieldEnum = {

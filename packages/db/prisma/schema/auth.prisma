@@ -540,6 +540,7 @@ model Team {
   serviceSubscriptions  ServiceSubscription[]
   // ImageGen Studio Relations
   imageGenProjects      ImageGenProject[]
+  PaymentTransaction    PaymentTransaction[]
 
   @@index([slug])
   @@index([createdById])

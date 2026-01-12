@@ -422,6 +422,30 @@ export const MetaAdsCampaignObjective = {
 export type MetaAdsCampaignObjective = (typeof MetaAdsCampaignObjective)[keyof typeof MetaAdsCampaignObjective]
 
 
+export const PaymentGateway = {
+  MPESA: 'MPESA',
+  STRIPE: 'STRIPE',
+  PAYPAL: 'PAYPAL',
+  FLUTTERWAVE: 'FLUTTERWAVE',
+  OTHER: 'OTHER'
+} as const
+
+export type PaymentGateway = (typeof PaymentGateway)[keyof typeof PaymentGateway]
+
+
+export const PaymentTransactionStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
+  PARTIALLY_REFUNDED: 'PARTIALLY_REFUNDED'
+} as const
+
+export type PaymentTransactionStatus = (typeof PaymentTransactionStatus)[keyof typeof PaymentTransactionStatus]
+
+
 export const ServiceSubscriptionStatus = {
   ACTIVE: 'ACTIVE',
   PENDING: 'PENDING',

@@ -422,6 +422,16 @@ export type MetaAdsAdSetActivityLog = Prisma.MetaAdsAdSetActivityLogModel
  */
 export type MetaAdsAdActivityLog = Prisma.MetaAdsAdActivityLogModel
 /**
+ * Model PaymentTransaction
+ * 
+ */
+export type PaymentTransaction = Prisma.PaymentTransactionModel
+/**
+ * Model PaymentTransactionActivityLog
+ * 
+ */
+export type PaymentTransactionActivityLog = Prisma.PaymentTransactionActivityLogModel
+/**
  * Model ServiceSubscription
  * 
  */

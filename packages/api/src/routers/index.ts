@@ -57,6 +57,7 @@ import { metaAdsRouter } from "./meta-ads";
 import { linkedInAdsRouter } from "./linkedin-ads";
 import { imageGenStudioRouter } from "./imagegen-studio";
 import { stabilityAiRouter } from "./stability-ai";
+import { paymentGatewayRouter } from "./payment-gateway";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -160,5 +161,7 @@ export const appRouter = router({
 	imageGenStudio: imageGenStudioRouter,
 	// Stability AI Image Generation
 	stabilityAi: stabilityAiRouter,
+	// Payment Gateway Integration
+	paymentGateway: paymentGatewayRouter,
 });
 export type AppRouter = typeof appRouter;

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { HelpCircle, Shield, Mail, Server, Globe, Check } from "lucide-react";
+import { HelpCircle, Shield, Mail, Globe, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +34,7 @@ interface BuyNowDialogProps {
   domain: DomainSearchResult | null;
 }
 
-type Step = "domain" | "addons" | "nameservers" | "hosting" | "plan-selection" | "review";
+type Step = "domain" | "hosting" | "plan-selection" | "review";
 
 interface DomainAddon {
   id: string;
@@ -98,7 +98,6 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
     { id: "id-protection", name: "ID Protection", description: "Protect your personal information", price: 650, currency: "KES", selected: false },
     { id: "email-forwarding", name: "Email Forwarding", description: "Forward emails to your existing address", price: 0, currency: "KES", selected: false },
   ]);
-  const [nameservers, setNameservers] = React.useState<string[]>(["", "", "", "", ""]);
   const [selectedHostingPlans, setSelectedHostingPlans] = React.useState<SelectedHostingPlan[]>([]);
   const [hostingPlanType, setHostingPlanType] = React.useState<"web" | "email" | null>(null);
   const [selectedBillingCycles, setSelectedBillingCycles] = React.useState<Record<string, "MONTHLY" | "YEARLY" | "BIENNIALLY">>({});
@@ -170,11 +169,6 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
     );
   };
 
-  const handleNameserverChange = (index: number, value: string) => {
-    const newNameservers = [...nameservers];
-    newNameservers[index] = value;
-    setNameservers(newNameservers);
-  };
 
   const handleHostingCardClick = (type: "web" | "email") => {
     setHostingPlanType(type);
@@ -222,10 +216,6 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
 
   const handleNext = () => {
     if (currentStep === "domain") {
-      setCurrentStep("addons");
-    } else if (currentStep === "addons") {
-      setCurrentStep("nameservers");
-    } else if (currentStep === "nameservers") {
       setCurrentStep("hosting");
     } else if (currentStep === "hosting") {
       setCurrentStep("review");
@@ -233,12 +223,8 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
   };
 
   const handleBack = () => {
-    if (currentStep === "addons") {
+    if (currentStep === "hosting") {
       setCurrentStep("domain");
-    } else if (currentStep === "nameservers") {
-      setCurrentStep("addons");
-    } else if (currentStep === "hosting") {
-      setCurrentStep("nameservers");
     } else if (currentStep === "plan-selection") {
       setCurrentStep("hosting");
     } else if (currentStep === "review") {
@@ -259,7 +245,6 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
         couponCode, 
         total,
         addons: selectedAddons.filter(a => a.selected),
-        nameservers: nameservers.filter(n => n.trim() !== ""),
         hostingPlans: selectedHostingPlans,
       });
     } catch (error) {
@@ -278,7 +263,6 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
         { id: "id-protection", name: "ID Protection", description: "Protect your personal information", price: 650, currency: "KES", selected: false },
         { id: "email-forwarding", name: "Email Forwarding", description: "Forward emails to your existing address", price: 0, currency: "KES", selected: false },
       ]);
-      setNameservers(["", "", "", "", ""]);
       setSelectedHostingPlans([]);
       setHostingPlanType(null);
       setSelectedBillingCycles({});
@@ -302,133 +286,108 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                 Complete your purchase and unlock powerful features
               </p>
             </div>
-            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium truncate">{domain.domain}</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help flex-shrink-0" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>This domain is by default registered for 1 year. Edit the duration below.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Select
-                    value={duration.toString()}
-                    onValueChange={(value) => setDuration(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue>
-                        {duration} {duration === 1 ? 'year' : 'years'}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 year</SelectItem>
-                      <SelectItem value="2">2 years</SelectItem>
-                      <SelectItem value="3">3 years</SelectItem>
-                      <SelectItem value="4">4 years</SelectItem>
-                      <SelectItem value="5">5 years</SelectItem>
-                      <SelectItem value="10">10 years</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="font-semibold text-lg">
-                    {formatPrice(basePrice, displayCurrency)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "addons":
-        return (
-          <div className="space-y-4">
-            <div className="text-center py-2">
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                Domain Add-ons
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Enhance your domain with these optional features
-              </p>
-            </div>
-            <div className="space-y-3">
-              {selectedAddons.map((addon) => (
-                <button
-                  key={addon.id}
-                  onClick={() => handleAddonToggle(addon.id)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                    addon.selected
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-card hover:border-primary/50"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className={`mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center ${
-                        addon.selected ? "border-primary bg-primary" : "border-muted-foreground"
-                      }`}>
-                        {addon.selected && <Check className="h-3 w-3 text-primary-foreground" />}
+            <ScrollArea className="h-[400px] w-full">
+              <div className="space-y-4 pr-4">
+                <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-medium truncate">{domain.domain}</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help flex-shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>This domain is by default registered for 1 year. Edit the duration below.</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          {addon.id === "id-protection" ? (
-                            <Shield className="h-4 w-4 text-primary" />
-                          ) : (
-                            <Mail className="h-4 w-4 text-primary" />
-                          )}
-                          <span className="font-medium text-foreground">{addon.name}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground line-clamp-3 break-words">{addon.description}</p>
-                      </div>
+                      <Select
+                        value={duration.toString()}
+                        onValueChange={(value) => setDuration(parseInt(value))}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue>
+                            {duration} {duration === 1 ? 'year' : 'years'}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 year</SelectItem>
+                          <SelectItem value="2">2 years</SelectItem>
+                          <SelectItem value="3">3 years</SelectItem>
+                          <SelectItem value="4">4 years</SelectItem>
+                          <SelectItem value="5">5 years</SelectItem>
+                          <SelectItem value="10">10 years</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      {addon.price === 0 ? (
-                        <span className="text-sm font-medium text-primary">Free</span>
-                      ) : (
-                        <span className="text-sm font-medium text-foreground">
-                          {formatPrice(addon.price, addon.currency)}
-                          {addon.id === "id-protection" ? "/yr" : ""}
-                        </span>
-                      )}
+                      <div className="font-semibold text-lg">
+                        {formatPrice(basePrice, displayCurrency)}
+                      </div>
                     </div>
                   </div>
-                </button>
-              ))}
-            </div>
+                </div>
+
+                {/* Domain Add-ons */}
+                <div className="space-y-3">
+                  <div className="text-center py-2">
+                    <h4 className="text-base font-semibold text-foreground mb-1">
+                      Domain Add-ons
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Enhance your domain with these optional features
+                    </p>
+                  </div>
+                  {selectedAddons.map((addon) => (
+                    <button
+                      key={addon.id}
+                      onClick={() => handleAddonToggle(addon.id)}
+                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                        addon.selected
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className={`mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                            addon.selected ? "border-primary bg-primary" : "border-muted-foreground"
+                          }`}>
+                            {addon.selected && <Check className="h-3 w-3 text-primary-foreground" />}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              {addon.id === "id-protection" ? (
+                                <Shield className="h-4 w-4 text-primary" />
+                              ) : (
+                                <Mail className="h-4 w-4 text-primary" />
+                              )}
+                              <span className="font-medium text-foreground">{addon.name}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-3 break-words">{addon.description}</p>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          {addon.price === 0 ? (
+                            <span className="text-sm font-medium text-primary">Free</span>
+                          ) : (
+                            <span className="text-sm font-medium text-foreground">
+                              {formatPrice(addon.price, addon.currency)}
+                              {addon.id === "id-protection" ? "/yr" : ""}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
           </div>
         );
 
-      case "nameservers":
-        return (
-          <div className="space-y-4">
-            <div className="text-center py-2">
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                Custom Nameservers (Optional)
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Configure custom nameservers for your domain
-              </p>
-            </div>
-            <div className="space-y-3">
-              {nameservers.map((ns, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Server className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <Input
-                    placeholder={`Nameserver ${index + 1} (optional)`}
-                    value={ns}
-                    onChange={(e) => handleNameserverChange(index, e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        );
 
       case "hosting":
         return (
@@ -815,7 +774,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                   <Input
                     placeholder="Enter coupon code"
                     value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCouponCode(e.target.value)}
                     className="flex-1"
                   />
                   <Button
@@ -885,8 +844,6 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
           </DialogTitle>
           <DialogDescription className="min-w-0 w-full max-w-full">
             {currentStep === "domain" && "Get the best of your domain"}
-            {currentStep === "addons" && "Enhance your domain with add-ons"}
-            {currentStep === "nameservers" && "Configure custom nameservers"}
             {currentStep === "hosting" && "Add hosting services to your domain"}
             {currentStep === "plan-selection" && "Select a hosting plan"}
             {currentStep === "review" && "Review your order and proceed to checkout"}

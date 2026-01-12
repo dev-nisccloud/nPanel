@@ -469,6 +469,8 @@ export const ModelName = {
   MetaAdsCampaignActivityLog: 'MetaAdsCampaignActivityLog',
   MetaAdsAdSetActivityLog: 'MetaAdsAdSetActivityLog',
   MetaAdsAdActivityLog: 'MetaAdsAdActivityLog',
+  PaymentTransaction: 'PaymentTransaction',
+  PaymentTransactionActivityLog: 'PaymentTransactionActivityLog',
   ServiceSubscription: 'ServiceSubscription',
   ServiceSubscriptionRenewal: 'ServiceSubscriptionRenewal',
   ServiceSubscriptionActivityLog: 'ServiceSubscriptionActivityLog',
@@ -498,7 +500,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -6496,6 +6498,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PaymentTransaction: {
+      payload: Prisma.$PaymentTransactionPayload<ExtArgs>
+      fields: Prisma.PaymentTransactionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PaymentTransactionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PaymentTransactionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload>
+        }
+        findFirst: {
+          args: Prisma.PaymentTransactionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PaymentTransactionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload>
+        }
+        findMany: {
+          args: Prisma.PaymentTransactionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload>[]
+        }
+        create: {
+          args: Prisma.PaymentTransactionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload>
+        }
+        createMany: {
+          args: Prisma.PaymentTransactionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PaymentTransactionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload>[]
+        }
+        delete: {
+          args: Prisma.PaymentTransactionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload>
+        }
+        update: {
+          args: Prisma.PaymentTransactionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload>
+        }
+        deleteMany: {
+          args: Prisma.PaymentTransactionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PaymentTransactionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PaymentTransactionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload>[]
+        }
+        upsert: {
+          args: Prisma.PaymentTransactionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionPayload>
+        }
+        aggregate: {
+          args: Prisma.PaymentTransactionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePaymentTransaction>
+        }
+        groupBy: {
+          args: Prisma.PaymentTransactionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PaymentTransactionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PaymentTransactionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PaymentTransactionCountAggregateOutputType> | number
+        }
+      }
+    }
+    PaymentTransactionActivityLog: {
+      payload: Prisma.$PaymentTransactionActivityLogPayload<ExtArgs>
+      fields: Prisma.PaymentTransactionActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PaymentTransactionActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PaymentTransactionActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.PaymentTransactionActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PaymentTransactionActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.PaymentTransactionActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.PaymentTransactionActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.PaymentTransactionActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PaymentTransactionActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.PaymentTransactionActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload>
+        }
+        update: {
+          args: Prisma.PaymentTransactionActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.PaymentTransactionActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PaymentTransactionActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PaymentTransactionActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.PaymentTransactionActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PaymentTransactionActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.PaymentTransactionActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePaymentTransactionActivityLog>
+        }
+        groupBy: {
+          args: Prisma.PaymentTransactionActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PaymentTransactionActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PaymentTransactionActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PaymentTransactionActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
     ServiceSubscription: {
       payload: Prisma.$ServiceSubscriptionPayload<ExtArgs>
       fields: Prisma.ServiceSubscriptionFieldRefs
@@ -9054,6 +9204,53 @@ export const MetaAdsAdActivityLogScalarFieldEnum = {
 export type MetaAdsAdActivityLogScalarFieldEnum = (typeof MetaAdsAdActivityLogScalarFieldEnum)[keyof typeof MetaAdsAdActivityLogScalarFieldEnum]
 
 
+export const PaymentTransactionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  gateway: 'gateway',
+  gatewayStatus: 'gatewayStatus',
+  gatewayMessage: 'gatewayMessage',
+  gatewayTransactionId: 'gatewayTransactionId',
+  merchantRequestId: 'merchantRequestId',
+  checkoutRequestId: 'checkoutRequestId',
+  receiptNumber: 'receiptNumber',
+  amount: 'amount',
+  currency: 'currency',
+  accountReference: 'accountReference',
+  transactionDesc: 'transactionDesc',
+  phoneNumber: 'phoneNumber',
+  status: 'status',
+  rawResponse: 'rawResponse',
+  rawError: 'rawError',
+  initiatedAt: 'initiatedAt',
+  processedAt: 'processedAt',
+  failedAt: 'failedAt',
+  refundedAt: 'refundedAt',
+  notes: 'notes',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PaymentTransactionScalarFieldEnum = (typeof PaymentTransactionScalarFieldEnum)[keyof typeof PaymentTransactionScalarFieldEnum]
+
+
+export const PaymentTransactionActivityLogScalarFieldEnum = {
+  id: 'id',
+  transactionId: 'transactionId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type PaymentTransactionActivityLogScalarFieldEnum = (typeof PaymentTransactionActivityLogScalarFieldEnum)[keyof typeof PaymentTransactionActivityLogScalarFieldEnum]
+
+
 export const ServiceSubscriptionScalarFieldEnum = {
   id: 'id',
   niscServicePlanId: 'niscServicePlanId',
@@ -9965,6 +10162,34 @@ export type ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel> = FieldRefInputTy
 
 
 /**
+ * Reference to a field of type 'PaymentGateway'
+ */
+export type EnumPaymentGatewayFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentGateway'>
+    
+
+
+/**
+ * Reference to a field of type 'PaymentGateway[]'
+ */
+export type ListEnumPaymentGatewayFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentGateway[]'>
+    
+
+
+/**
+ * Reference to a field of type 'PaymentTransactionStatus'
+ */
+export type EnumPaymentTransactionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentTransactionStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'PaymentTransactionStatus[]'
+ */
+export type ListEnumPaymentTransactionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentTransactionStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'ServiceSubscriptionStatus'
  */
 export type EnumServiceSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ServiceSubscriptionStatus'>
@@ -10229,6 +10454,8 @@ export type GlobalOmitConfig = {
   metaAdsCampaignActivityLog?: Prisma.MetaAdsCampaignActivityLogOmit
   metaAdsAdSetActivityLog?: Prisma.MetaAdsAdSetActivityLogOmit
   metaAdsAdActivityLog?: Prisma.MetaAdsAdActivityLogOmit
+  paymentTransaction?: Prisma.PaymentTransactionOmit
+  paymentTransactionActivityLog?: Prisma.PaymentTransactionActivityLogOmit
   serviceSubscription?: Prisma.ServiceSubscriptionOmit
   serviceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalOmit
   serviceSubscriptionActivityLog?: Prisma.ServiceSubscriptionActivityLogOmit
