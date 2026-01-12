@@ -257,7 +257,7 @@ export const agencysidebarItems: NavGroup[] = [
       //     { title: "Audiences", url: "/agency/audiences", },
       //     // { title: "Segments", url: "/agency/segments", },
       //     { title: "Templates", url: "/agency/templates", },
-      //     { title: "Domains", url: "/agency/domains", },
+      //     { title: "Domains", url: "/agency/domain-configuration", },
       //     { title: "Email Builder", url: "/agency/email-builder", },
       //   ],
       // },
@@ -292,6 +292,11 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/gen-ai/background-remover",
         icon: (props: any) => React.createElement(Icons.BackgroundRemover, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
+      // {
+      //   title: "AI Image Editor",
+      //   url: "/agency/gen-ai/ai-image-editor",
+      //   icon: (props: any) => React.createElement(Icons.BackgroundRemover, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
     ],
   },
   {

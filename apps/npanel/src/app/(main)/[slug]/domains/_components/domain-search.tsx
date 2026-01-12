@@ -18,6 +18,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { DomainSearchResults } from "./domain-search-results";
 import { CurrencySelector } from "./currency-selector";
 import { CurrencyProvider } from "./currency-context";
+import { TLDPricingCards } from "./tld-pricing-cards";
 
 // Import custom hooks
 import { useDomainSearch } from "./use-domain-search";
@@ -54,8 +55,8 @@ function DomainSearchContent() {
         <CardContent className="p-6">
           <div className="space-y-4">
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold text-gray-900">Find Your Perfect Domain</h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">
+              <h2 className="text-2xl font-bold text-foreground">Find Your Perfect Domain</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
                 Search for available domain names and find the perfect match for your business.
               </p>
             </div>
@@ -91,6 +92,9 @@ function DomainSearchContent() {
                 )}
               </Button>
             </div>
+            
+            {/* TLD Pricing Cards */}
+            <TLDPricingCards />
           </div>
         </CardContent>
       </Card>

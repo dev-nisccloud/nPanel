@@ -842,9 +842,11 @@ function BundleBuyNowDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Buy {domains.map(d => d.domain).join(' + ')}</DialogTitle>
+      <DialogContent className="sm:max-w-[500px] overflow-x-hidden w-full">
+        <DialogHeader className="min-w-0 w-full">
+          <DialogTitle className="line-clamp-1 break-words truncate min-w-0 w-full max-w-full">
+            Buy {domains.map(d => d.domain).join(' + ')}
+          </DialogTitle>
           <DialogDescription>
             Review the details and proceed to checkout.
           </DialogDescription>

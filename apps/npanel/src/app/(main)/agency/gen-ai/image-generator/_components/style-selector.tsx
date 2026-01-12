@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles, Search, X, ChevronDown } from "lucide-react";
+import { Sparkles, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,8 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 type StylePreset =
@@ -60,26 +59,6 @@ interface StyleSelectorProps {
 
 export function StyleSelector({ selectedStyle, onStyleSelect, disabled }: StyleSelectorProps) {
   const [open, setOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const [activeTab, setActiveTab] = React.useState<"all" | "photography" | "artistic">("all");
-
-  const filteredStyles = React.useMemo(() => {
-    let styles = STYLE_PRESETS;
-
-    // Filter by category
-    if (activeTab !== "all") {
-      styles = styles.filter((style) => style.category === activeTab);
-    }
-
-    // Filter by search
-    if (searchQuery) {
-      styles = styles.filter((style) =>
-        style.label.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    return styles;
-  }, [activeTab, searchQuery]);
 
   const selectedStyleData = selectedStyle
     ? STYLE_PRESETS.find((s) => s.value === selectedStyle)
@@ -99,68 +78,39 @@ export function StyleSelector({ selectedStyle, onStyleSelect, disabled }: StyleS
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b">
-            <div className="flex items-center justify-between">
-              <DialogTitle>Apply visual style</DialogTitle>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Search className="h-4 w-4" />
-                  <kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded">⌘ K</kbd>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+        <DialogContent className="max-w-7xl w-[95vw] max-h-[90vh] h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="px-8 pt-8 pb-6 border-b flex-shrink-0">
+            <DialogTitle className="text-primary text-2xl font-semibold">Apply visual style</DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-6 pt-4 border-b">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="photography">Photography</TabsTrigger>
-                  <TabsTrigger value="artistic">Artistic</TabsTrigger>
-                  <TabsTrigger value="my-styles" disabled>My styles</TabsTrigger>
-                </TabsList>
-              </div>
-
-              <div className="px-6 py-4">
-                <Input
-                  placeholder="Search styles..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="mb-4"
-                />
-              </div>
-
-              <TabsContent value={activeTab} className="flex-1 overflow-y-auto px-6 pb-6 m-0">
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {/* None option */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="px-6 py-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+                  {/* No style option */}
                   <button
                     onClick={() => {
                       onStyleSelect(null);
                       setOpen(false);
                     }}
                     className={cn(
-                      "flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all hover:border-primary",
+                      "relative w-full aspect-square rounded-2xl border-2 transition-all overflow-hidden group",
                       !selectedStyle
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:bg-muted"
+                        ? "border-primary ring-2 ring-primary ring-offset-2"
+                        : "border-border hover:border-primary"
                     )}
                   >
-                    <div className="w-full aspect-square rounded-md bg-muted flex items-center justify-center">
-                      <span className="text-xs text-muted-foreground">None</span>
+                    <div className="w-full h-full bg-muted flex items-end justify-center pb-4">
+                      <span className="text-base font-semibold text-muted-foreground">No style</span>
                     </div>
-                    <span className="text-xs font-medium">None</span>
+                    <div className="hidden md:block absolute top-0 left-0 right-0 bottom-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                        <span className="text-sm font-semibold text-white px-4 py-2 bg-primary rounded-lg shadow-lg whitespace-nowrap">Apply style</span>
+                      </div>
+                    </div>
                   </button>
 
-                  {filteredStyles.map((style) => (
+                  {STYLE_PRESETS.map((style) => (
                     <button
                       key={style.value}
                       onClick={() => {
@@ -168,25 +118,33 @@ export function StyleSelector({ selectedStyle, onStyleSelect, disabled }: StyleS
                         setOpen(false);
                       }}
                       className={cn(
-                        "flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all hover:border-primary",
+                        "relative w-full aspect-square rounded-2xl border-2 transition-all overflow-hidden group",
                         selectedStyle === style.value
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:bg-muted"
+                          ? "border-primary ring-2 ring-primary ring-offset-2"
+                          : "border-border hover:border-primary"
                       )}
                     >
-                      <div className="w-full aspect-square rounded-md overflow-hidden">
+                      <div className="w-full h-full">
                         <img
                           src={style.image}
                           alt={style.label}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <span className="text-xs font-medium text-center">{style.label}</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end justify-center pb-4 z-0">
+                        <span className="text-base font-semibold text-white drop-shadow-lg text-center px-4">{style.label}</span>
+                      </div>
+                      <div className="hidden md:block absolute top-0 left-0 right-0 bottom-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                          <span className="text-sm font-semibold text-white px-4 py-2 bg-primary rounded-lg shadow-lg whitespace-nowrap">Apply style</span>
+                        </div>
+                      </div>
                     </button>
                   ))}
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
           </div>
         </DialogContent>
       </Dialog>

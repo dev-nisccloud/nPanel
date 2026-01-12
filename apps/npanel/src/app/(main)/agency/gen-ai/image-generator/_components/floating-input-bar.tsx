@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles, Image as ImageIcon, Wand2, X, ChevronDown, Plus } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Wand2, X, ChevronDown, Plus, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StyleSelector } from "./style-selector";
@@ -19,6 +19,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 
 type AspectRatio = "1:1" | "4:5" | "2:3" | "9:16" | "16:9" | "21:9" | "3:2" | "5:4" | "9:21";
@@ -291,26 +296,66 @@ export function FloatingInputBar({
                   {/* Left Side Controls */}
                   <div className="flex items-center gap-2">
                     {/* Image Picker */}
-                    <label
-                      className={cn(
-                        "flex cursor-pointer items-center justify-center rounded-lg p-2 transition-colors",
-                        "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
-                        "text-muted-foreground hover:text-foreground",
-                        "focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
-                        selectedImages.length >= 3 && "opacity-50 cursor-not-allowed"
-                      )}
-                      aria-label="Upload images"
-                    >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageSelect}
-                        disabled={selectedImages.length >= 3 || isGenerating}
-                        className="hidden"
-                      />
-                      <ImageIcon className="h-4 w-4" />
-                    </label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <label
+                          className={cn(
+                            "flex cursor-pointer items-center justify-center rounded-lg p-2 transition-colors",
+                            "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
+                            "text-muted-foreground hover:text-foreground",
+                            "focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
+                            selectedImages.length >= 3 && "opacity-50 cursor-not-allowed"
+                          )}
+                          aria-label="Upload images"
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImageSelect}
+                            disabled={selectedImages.length >= 3 || isGenerating}
+                            className="hidden"
+                          />
+                          <ImageIcon className="h-4 w-4" />
+                        </label>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p>Add reference images that the AI can use to guide the generation process</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    {/* Upload Sketch */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <label
+                          className={cn(
+                            "flex cursor-pointer items-center justify-center rounded-lg p-2 transition-colors",
+                            "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
+                            "text-muted-foreground hover:text-foreground",
+                            "focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
+                            isGenerating && "opacity-50 cursor-not-allowed"
+                          )}
+                          aria-label="Upload sketch"
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={() => {}}
+                            disabled={isGenerating}
+                            className="hidden"
+                          />
+                          <PenTool className="h-4 w-4" />
+                        </label>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-sm">
+                        <div className="space-y-2">
+                          <p className="font-semibold">Sketch</p>
+                          <p className="text-xs">
+                            This service offers an ideal solution for design projects that require brainstorming and frequent iterations. It upgrades rough hand-drawn sketches to refined outputs with precise control. For non-sketch images, it allows detailed manipulation of the final appearance by leveraging the contour lines and edges within the image.
+                          </p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
 
                     <div className="h-4 w-px bg-border mx-0.5" />
 
