@@ -22,6 +22,7 @@ MPESA_CONSUMER_SECRET=your_consumer_secret
 MPESA_SHORTCODE=your_shortcode
 MPESA_PASSKEY=your_passkey
 MPESA_PARTY_B=your_party_b
+MPESA_TRANSACTION_TYPE=CustomerPayBillOnline  # or "CustomerBuyGoodsOnline" for Buy Goods/Tills
 MPESA_CALLBACK_URL=https://yourdomain.com/api/webhooks/mpesa
 
 # Note: MPESA_ACCOUNT_REFERENCE is NOT required in env variables.
@@ -98,6 +99,22 @@ const queryPayment = trpc.paymentGateway.mpesa.queryStkPush.useQuery({
   - Optional
   - Must be a valid URL
   - Defaults to `MPESA_CALLBACK_URL` from environment
+
+### Transaction Type
+
+The `MPESA_TRANSACTION_TYPE` environment variable determines the type of M-Pesa transaction:
+
+- **CustomerPayBillOnline**: Use for Pay Bill transactions (default for most businesses)
+  - Use when `MPESA_PARTY_B` is a Pay Bill number
+  - Example: `MPESA_TRANSACTION_TYPE=CustomerPayBillOnline`
+
+- **CustomerBuyGoodsOnline**: Use for Buy Goods/Till Number transactions
+  - Use when `MPESA_PARTY_B` is a Till Number
+  - Example: `MPESA_TRANSACTION_TYPE=CustomerBuyGoodsOnline`
+
+**Important:** The transaction type must match your `MPESA_PARTY_B` value:
+- If `MPESA_PARTY_B` is a Pay Bill number → Use `CustomerPayBillOnline`
+- If `MPESA_PARTY_B` is a Till Number → Use `CustomerBuyGoodsOnline`
 
 ## Error Handling
 

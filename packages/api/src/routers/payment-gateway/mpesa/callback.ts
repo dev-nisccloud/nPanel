@@ -12,6 +12,11 @@ export function parseCallbackMetadata(
 	const metadata: ParsedCallbackMetadata = {};
 
 	for (const item of items) {
+		// Skip items without values
+		if (item.Value === undefined || item.Value === null) {
+			continue;
+		}
+
 		switch (item.Name) {
 			case "Amount":
 				metadata.amount = typeof item.Value === "number" ? item.Value : parseFloat(String(item.Value));
@@ -56,7 +61,12 @@ export function validateMpesaCallback(payload: unknown): z.infer<typeof MpesaCal
  * Check if callback indicates successful payment
  */
 export function isPaymentSuccessful(callback: z.infer<typeof MpesaCallbackSchema>): boolean {
-	return callback.Body.stkCallback.ResultCode === 0;
+	const resultCode = callback.Body.stkCallback.ResultCode;
+	// Handle both number and string (0 or "0" means success)
+	if (typeof resultCode === "number") {
+		return resultCode === 0;
+	}
+	return resultCode === "0";
 }
 
 /**
@@ -70,7 +80,11 @@ export function getPaymentStatus(callback: z.infer<typeof MpesaCallbackSchema>):
 	metadata?: ParsedCallbackMetadata;
 } {
 	const stkCallback = callback.Body.stkCallback;
-	const success = stkCallback.ResultCode === 0;
+	// Ensure ResultCode is a number (schema transform should handle this, but double-check)
+	const resultCode = typeof stkCallback.ResultCode === "string" 
+		? parseInt(stkCallback.ResultCode, 10) 
+		: stkCallback.ResultCode;
+	const success = resultCode === 0;
 
 	const resultCodeInfo = getMpesaResultCodeInfo(stkCallback.ResultCode);
 
@@ -82,13 +96,20 @@ export function getPaymentStatus(callback: z.infer<typeof MpesaCallbackSchema>):
 		metadata?: ParsedCallbackMetadata;
 	} = {
 		success,
-		resultCode: stkCallback.ResultCode,
+		resultCode,
 		resultDesc: stkCallback.ResultDesc,
 		resultCodeInfo: resultCodeInfo || undefined,
 	};
 
 	if (success && stkCallback.CallbackMetadata?.Item) {
-		result.metadata = parseCallbackMetadata(stkCallback.CallbackMetadata.Item);
+		// Filter out items with undefined values before parsing
+		const itemsWithValues = stkCallback.CallbackMetadata.Item.filter(
+			(item): item is { Name: string; Value: string | number } => 
+				item.Value !== undefined && item.Value !== null
+		);
+		if (itemsWithValues.length > 0) {
+			result.metadata = parseCallbackMetadata(itemsWithValues);
+		}
 	}
 
 	return result;

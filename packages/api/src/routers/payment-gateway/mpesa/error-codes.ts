@@ -182,3 +182,79 @@ export function getRetryDelay(errorCode: string | number): number {
 	const errorInfo = getMpesaErrorInfo(errorCode);
 	return errorInfo?.retryAfter || 0;
 }
+
+/**
+ * Terminal result codes that indicate the transaction is complete (success or failure)
+ * These codes should stop polling immediately
+ */
+const TERMINAL_RESULT_CODES = new Set([
+	0, // Success
+	1, // Insufficient balance
+	2, // Below minimum
+	3, // Above maximum
+	4, // Exceeds daily limit
+	8, // Exceeds maximum balance
+	17, // Rule limited
+	1019, // Transaction expired
+	1025, // Error sending push
+	1032, // Request cancelled by user
+	2001, // Invalid PIN
+	2028, // Request not permitted
+	8006, // Security credential locked
+]);
+
+/**
+ * Processing result codes that indicate the transaction is still being processed
+ * These codes should continue polling
+ */
+const PROCESSING_RESULT_CODES = new Set([
+	4999, // Request processing
+]);
+
+/**
+ * Check if a result code is terminal (transaction is complete)
+ * Terminal codes mean we should stop polling
+ */
+export function isTerminalResultCode(resultCode: string | number): boolean {
+	const code = typeof resultCode === "string" ? parseInt(resultCode, 10) : resultCode;
+	return TERMINAL_RESULT_CODES.has(code);
+}
+
+/**
+ * Check if a result code indicates processing (should continue polling)
+ */
+export function isProcessingResultCode(resultCode: string | number): boolean {
+	const code = typeof resultCode === "string" ? parseInt(resultCode, 10) : resultCode;
+	return PROCESSING_RESULT_CODES.has(code);
+}
+
+/**
+ * Get user-friendly error message for a result code
+ */
+export function getUserFriendlyErrorMessage(resultCode: string | number): string {
+	const code = typeof resultCode === "string" ? parseInt(resultCode, 10) : resultCode;
+	const codeInfo = getMpesaResultCodeInfo(code);
+	
+	if (codeInfo) {
+		return codeInfo.description;
+	}
+	
+	// Fallback messages for common codes
+	const fallbackMessages: Record<number, string> = {
+		0: "Payment completed successfully",
+		1: "Insufficient balance in your M-Pesa account",
+		2: "Amount is below the minimum transaction limit",
+		3: "Amount exceeds the maximum transaction limit",
+		4: "Transaction would exceed your daily transfer limit",
+		8: "Transaction would exceed account balance limit",
+		17: "Too many requests. Please wait a few minutes and try again",
+		1019: "Payment request expired. Please initiate a new payment",
+		1025: "Error sending payment request. Please try again",
+		1032: "Payment request was cancelled",
+		2001: "Incorrect M-Pesa PIN entered. Please try again with the correct PIN",
+		2028: "Payment request not permitted. Please contact support",
+		8006: "Your M-Pesa account is locked. Please contact M-Pesa customer care",
+	};
+	
+	return fallbackMessages[code] || `Payment failed with error code ${code}`;
+}

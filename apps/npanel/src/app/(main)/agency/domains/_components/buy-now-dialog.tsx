@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { HelpCircle, Shield, Mail, Globe, Check } from "lucide-react";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +26,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Card } from "@/components/ui/card";
 import { trpc } from "@/utils/trpc";
+import { toast } from "sonner";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 
 interface BuyNowDialogProps {
@@ -34,7 +43,7 @@ interface BuyNowDialogProps {
   domain: DomainSearchResult | null;
 }
 
-type Step = "domain" | "hosting" | "plan-selection" | "review";
+type Step = "domain" | "hosting" | "plan-selection" | "review" | "payment" | "success" | "error";
 
 interface DomainAddon {
   id: string;
@@ -101,6 +110,17 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
   const [selectedHostingPlans, setSelectedHostingPlans] = React.useState<SelectedHostingPlan[]>([]);
   const [hostingPlanType, setHostingPlanType] = React.useState<"web" | "email" | null>(null);
   const [selectedBillingCycles, setSelectedBillingCycles] = React.useState<Record<string, "MONTHLY" | "YEARLY" | "BIENNIALLY">>({});
+  
+  // Payment state
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<string | null>(null);
+  const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
+  const [paymentAmount, setPaymentAmount] = React.useState<string>("");
+  const [accountReference, setAccountReference] = React.useState<string>("");
+  
+  // Validation errors
+  const [accountRefError, setAccountRefError] = React.useState<string>("");
+  const [phoneError, setPhoneError] = React.useState<string>("");
+  const [amountError, setAmountError] = React.useState<string>("");
 
   // Fetch hosting plans
   const { data: webHostingPlans = [], isLoading: isLoadingWeb } = trpc.hostingPlans.getAll.useQuery(
@@ -219,6 +239,20 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
       setCurrentStep("hosting");
     } else if (currentStep === "hosting") {
       setCurrentStep("review");
+    } else if (currentStep === "review") {
+      setCurrentStep("payment");
+      // Initialize payment amount with total
+      setPaymentAmount(total.toString());
+      // Generate account reference - max 12 chars, alphanumeric only
+      // Format: DOM{timestamp} (e.g., DOM123456)
+      const timestamp = Date.now().toString().slice(-9); // Last 9 digits
+      const domainShort = domain?.domain?.replace(/\./g, "").substring(0, 3).toUpperCase() || "DOM"; // First 3 chars of domain
+      const ref = `${domainShort}${timestamp}`.substring(0, 12); // Max 12 chars
+      setAccountReference(ref);
+      // Clear validation errors
+      setAccountRefError("");
+      setPhoneError("");
+      setAmountError("");
     }
   };
 
@@ -229,26 +263,382 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
       setCurrentStep("hosting");
     } else if (currentStep === "review") {
       setCurrentStep("hosting");
+    } else if (currentStep === "payment") {
+      setCurrentStep("review");
     }
   };
 
-  const handlePayment = () => {
-    // TODO: Implement payment flow
-    try {
-      if (!domain || !domain.domain) {
-        console.error('Cannot proceed to payment: invalid domain', domain);
+  // Payment status
+  const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
+  const [paymentError, setPaymentError] = React.useState<string | null>(null);
+  const [shouldStopPolling, setShouldStopPolling] = React.useState(false); // State to control polling - updates immediately
+  const pollingStartTimeRef = React.useRef<number | null>(null); // Track when polling started
+  const pollingAttemptsRef = React.useRef(0); // Track number of polling attempts for exponential backoff
+  const terminalStateDetectedRef = React.useRef(false); // Track if terminal state detected - for immediate UI update
+  const immediateStepRef = React.useRef<Step | null>(null); // Track step immediately for instant UI updates
+  const immediatePaymentErrorRef = React.useRef<string | null>(null); // Track payment error immediately
+
+  // Helper function to get user-friendly error messages
+  const getUserFriendlyError = (resultCode: string | number, resultDesc?: string): string => {
+    const code = typeof resultCode === "string" ? parseInt(resultCode, 10) : resultCode;
+    
+    const errorMessages: Record<number, string> = {
+      0: "Payment completed successfully",
+      1: "Insufficient balance in your M-Pesa account",
+      2: "Amount is below the minimum transaction limit",
+      3: "Amount exceeds the maximum transaction limit",
+      4: "Transaction would exceed your daily transfer limit",
+      8: "Transaction would exceed account balance limit",
+      17: "Too many requests. Please wait a few minutes and try again",
+      1019: "Payment request expired. Please initiate a new payment",
+      1025: "Error sending payment request. Please try again",
+      1032: "Payment request was cancelled",
+      2001: "Incorrect M-Pesa PIN entered. Please try again with the correct PIN",
+      2028: "Payment request not permitted. Please contact support",
+      8006: "Your M-Pesa account is locked. Please contact M-Pesa customer care",
+    };
+    
+    return errorMessages[code] || resultDesc || `Payment failed with error code ${code}`;
+  };
+
+  // Helper function to check if result code is terminal (should stop polling)
+  // Must match TERMINAL_RESULT_CODES in packages/api/src/routers/payment-gateway/mpesa/error-codes.ts
+  const isTerminalResultCode = (resultCode: string | number): boolean => {
+    const code = typeof resultCode === "string" ? parseInt(resultCode, 10) : resultCode;
+    
+    // Skip if not a valid number
+    if (isNaN(code)) return false;
+    
+    // Explicit terminal result codes (from M-Pesa Daraja API documentation)
+    const TERMINAL_CODES = new Set([
+      0,    // Success
+      1,    // Insufficient balance
+      2,    // Below minimum transaction amount
+      3,    // Above maximum transaction amount
+      4,    // Exceeds daily transfer limit
+      8,    // Exceeds maximum balance
+      17,   // Rule limited (too many requests)
+      1019, // Transaction expired
+      1025, // Error sending push request
+      1032, // Request cancelled by user
+      2001, // Invalid PIN
+      2028, // Request not permitted
+      8006, // Security credential locked
+    ]);
+    
+    // Processing codes (continue polling)
+    const PROCESSING_CODES = new Set([
+      1037, // DS timeout user cannot be reached (but webhook may treat as terminal)
+      4999, // Request processing
+    ]);
+    
+    // If it's a processing code, it's not terminal
+    if (PROCESSING_CODES.has(code)) {
+      return false;
+    }
+    
+    // If it's explicitly a terminal code, it's terminal
+    if (TERMINAL_CODES.has(code)) {
+      return true;
+    }
+    
+    // Unknown codes: treat as terminal to be safe (stop polling)
+    // This handles any new error codes that might be added
+    return true;
+  };
+
+  // M-Pesa STK Push mutation
+  const initiateMpesaPayment = trpc.paymentGateway.mpesa.initiateStkPush.useMutation({
+    onSuccess: (response) => {
+      // Response structure: { success: true, data: { checkoutRequestId, ... } }
+      const checkoutId = response.data?.checkoutRequestId;
+      
+      if (!checkoutId) {
+        console.error("M-Pesa payment initiated but no CheckoutRequestID received:", response);
+        toast.error("Payment request sent but failed to get transaction ID. Please try again.");
         return;
       }
-      console.log("Proceeding to payment", { 
-        domain: domain.domain, 
-        duration, 
-        couponCode, 
-        total,
-        addons: selectedAddons.filter(a => a.selected),
-        hostingPlans: selectedHostingPlans,
+      
+      // Don't show toast here - we'll show it when payment is confirmed
+      setShouldStopPolling(false); // Reset stop flag
+      pollingStartTimeRef.current = Date.now(); // Record polling start time
+      pollingAttemptsRef.current = 0; // Reset polling attempts
+      setCheckoutRequestId(checkoutId);
+      setPaymentError(null);
+      // Start polling for payment status
+      startPaymentStatusPolling(checkoutId);
+    },
+    onError: (error) => {
+      const errorMessage = error.message || "Failed to initiate payment. Please try again.";
+      
+      // Immediate UI update via refs (synchronous)
+      terminalStateDetectedRef.current = true;
+      immediateStepRef.current = "error";
+      immediatePaymentErrorRef.current = errorMessage;
+      
+      // Update state (async, but refs already updated)
+      toast.error(errorMessage);
+      setCheckoutRequestId(null);
+      setPaymentError(errorMessage);
+      setShouldStopPolling(true);
+      pollingStartTimeRef.current = null;
+      pollingAttemptsRef.current = 0;
+      setCurrentStep("error");
+    },
+  });
+
+  // Poll payment status
+  const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
+    { checkoutRequestId: checkoutRequestId! },
+    {
+      enabled: !!checkoutRequestId && currentStep === "payment" && !shouldStopPolling,
+      staleTime: 0, // Always consider data stale - never use cache for payment status
+      gcTime: 0, // Don't cache payment queries - we need real-time data
+      refetchOnMount: "always", // Always refetch on mount, even if data exists
+      refetchOnWindowFocus: false, // Don't refetch on window focus
+      refetchOnReconnect: true, // Refetch when reconnecting
+      notifyOnChangeProps: ["data", "error", "status"], // Notify on all changes for immediate updates
+      refetchInterval: (query) => {
+        // Check if we should stop polling (state-based, updates immediately)
+        if (shouldStopPolling) {
+          return false; // Stop polling immediately
+        }
+        
+        // Check for maximum polling duration (10 minutes = 600000ms)
+        const MAX_POLLING_DURATION = 10 * 60 * 1000; // 10 minutes
+        if (pollingStartTimeRef.current) {
+          const elapsed = Date.now() - pollingStartTimeRef.current;
+          if (elapsed >= MAX_POLLING_DURATION) {
+            // Immediate UI update via refs (synchronous)
+            const timeoutErrorMessage = "Payment is taking longer than expected. Please check your M-Pesa account or try again.";
+            terminalStateDetectedRef.current = true;
+            immediateStepRef.current = "error";
+            immediatePaymentErrorRef.current = timeoutErrorMessage;
+            
+            // Update state (async, but refs already updated)
+            setShouldStopPolling(true);
+            setCheckoutRequestId(null);
+            setPaymentError(timeoutErrorMessage);
+            setCurrentStep("error");
+            toast.error(timeoutErrorMessage);
+            return false;
+          }
+        }
+        
+        // Handle query errors (non-terminal errors that should continue polling)
+        if (query.state.error) {
+          const errorMessage = query.state.error.message || "";
+          const isRateLimit = errorMessage.includes("429") || errorMessage.includes("rate limit");
+          const isRequestNotFound = errorMessage.includes("500.001.1001") || errorMessage.includes("request not found");
+          const isNetworkError = errorMessage.includes("timeout") || errorMessage.includes("network");
+          
+          // Continue polling for rate limits, request not found, and network errors
+          if (isRateLimit || isRequestNotFound || isNetworkError) {
+            pollingAttemptsRef.current += 1;
+            const intervals = [2000, 5000, 10000, 30000];
+            const intervalIndex = Math.min(pollingAttemptsRef.current - 1, intervals.length - 1);
+            return intervals[intervalIndex];
+          }
+          
+          // For other errors, stop polling immediately
+          // Immediate UI update via refs (synchronous)
+          const finalErrorMessage = errorMessage || "Payment query failed";
+          terminalStateDetectedRef.current = true;
+          immediateStepRef.current = "error";
+          immediatePaymentErrorRef.current = finalErrorMessage;
+          
+          // Update state (async, but refs already updated)
+          setShouldStopPolling(true);
+          setCheckoutRequestId(null);
+          setPaymentError(finalErrorMessage);
+          pollingStartTimeRef.current = null;
+          pollingAttemptsRef.current = 0;
+          setCurrentStep("error");
+          toast.error(finalErrorMessage);
+          return false;
+        }
+        
+        // CRITICAL: Check the query data for terminal states BEFORE continuing
+        // Use query.state.dataUpdatedAt to ensure we're checking the latest data
+        const response = query.state.data;
+        
+        if (response?.data?.resultCode !== undefined && response?.data?.resultCode !== null) {
+          const resultCode = response.data.resultCode;
+          const numericResultCode = typeof resultCode === "string" ? parseInt(resultCode, 10) : resultCode;
+          
+          // Skip if not a valid number
+          if (isNaN(numericResultCode)) {
+            // Invalid code, continue polling
+            pollingAttemptsRef.current += 1;
+            const intervals = [2000, 5000, 10000, 30000];
+            const intervalIndex = Math.min(pollingAttemptsRef.current - 1, intervals.length - 1);
+            return intervals[intervalIndex];
+          }
+          
+          // Check if this is a terminal result code (should stop polling)
+          if (isTerminalResultCode(numericResultCode)) {
+            // Mark terminal state detected immediately (synchronous)
+            terminalStateDetectedRef.current = true;
+            
+            // Handle success case (ResultCode 0)
+            if (numericResultCode === 0) {
+              // Immediate UI update via refs (synchronous)
+              immediateStepRef.current = "success";
+              immediatePaymentErrorRef.current = null;
+              
+              // Update state (async, but refs already updated for immediate UI feedback)
+              setShouldStopPolling(true);
+              setCheckoutRequestId(null);
+              setPaymentError(null);
+              pollingStartTimeRef.current = null;
+              pollingAttemptsRef.current = 0;
+              setCurrentStep("success");
+              toast.success("Payment completed successfully!");
+            } else {
+              // Handle error cases (all other terminal codes)
+              const errorMessage = getUserFriendlyError(numericResultCode, response.data.resultDesc);
+              
+              // Immediate UI update via refs (synchronous)
+              immediateStepRef.current = "error";
+              immediatePaymentErrorRef.current = errorMessage;
+              
+              // Update state (async, but refs already updated for immediate UI feedback)
+              setShouldStopPolling(true);
+              setCheckoutRequestId(null);
+              setPaymentError(errorMessage);
+              pollingStartTimeRef.current = null;
+              pollingAttemptsRef.current = 0;
+              setCurrentStep("error");
+              toast.error(errorMessage);
+            }
+            return false; // Stop polling immediately
+          }
+        }
+        
+        // Stop polling if we've moved to success or error step
+        if (currentStep === "success" || currentStep === "error") {
+          return false;
+        }
+        
+        // Exponential backoff: 2s -> 5s -> 10s -> 30s (max)
+        pollingAttemptsRef.current += 1;
+        const intervals = [2000, 5000, 10000, 30000]; // 2s, 5s, 10s, 30s
+        const intervalIndex = Math.min(pollingAttemptsRef.current - 1, intervals.length - 1);
+        const interval = intervals[intervalIndex];
+        
+        return interval;
+      },
+    }
+  );
+
+
+  const startPaymentStatusPolling = (checkoutId: string) => {
+    setCheckoutRequestId(checkoutId);
+    setShouldStopPolling(false); // Reset stop flag when starting new poll
+    pollingStartTimeRef.current = Date.now();
+    pollingAttemptsRef.current = 0;
+  };
+
+  // Validate account reference
+  const validateAccountReference = (value: string): string => {
+    if (!value || !value.trim()) {
+      return "Account reference is required";
+    }
+    if (value.length > 12) {
+      return "Account reference must be at most 12 characters";
+    }
+    if (!/^[a-zA-Z0-9]+$/.test(value)) {
+      return "Account reference must be alphanumeric only (no spaces or special characters)";
+    }
+    return "";
+  };
+
+  // Validate phone number
+  const validatePhoneNumber = (value: string): string => {
+    if (!value || !value.trim()) {
+      return "Phone number is required";
+    }
+    // Remove spaces and dashes for validation
+    const cleaned = value.replace(/[\s-]/g, "");
+    // Check if it's a valid Kenyan phone number format
+    if (!/^(?:254|0)[17]\d{8}$/.test(cleaned)) {
+      return "Please enter a valid Kenyan phone number (e.g., 0712345678 or 254712345678)";
+    }
+    return "";
+  };
+
+  // Validate amount
+  const validateAmount = (value: string): string => {
+    if (!value || !value.trim()) {
+      return "Amount is required";
+    }
+    const amount = parseFloat(value);
+    if (isNaN(amount) || amount <= 0) {
+      return "Please enter a valid amount greater than 0";
+    }
+    return "";
+  };
+
+  // Handle account reference change with validation
+  const handleAccountReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    // Remove any non-alphanumeric characters
+    value = value.replace(/[^a-zA-Z0-9]/g, "");
+    // Limit to 12 characters
+    value = value.substring(0, 12);
+    setAccountReference(value);
+    setAccountRefError(validateAccountReference(value));
+  };
+
+  // Handle phone number change with validation
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMpesaPhoneNumber(value);
+    setPhoneError(validatePhoneNumber(value));
+  };
+
+  // Handle amount change with validation
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPaymentAmount(value);
+    setAmountError(validateAmount(value));
+  };
+
+  const handleMpesaPayment = async () => {
+    // Validate all fields
+    const accountRefErr = validateAccountReference(accountReference);
+    const phoneErr = validatePhoneNumber(mpesaPhoneNumber);
+    const amountErr = validateAmount(paymentAmount);
+
+    setAccountRefError(accountRefErr);
+    setPhoneError(phoneErr);
+    setAmountError(amountErr);
+
+    if (accountRefErr || phoneErr || amountErr) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+
+    const amount = parseFloat(paymentAmount);
+    
+    // Generate transaction description - max 13 chars
+    // Format: DOM{domain} (e.g., DOMexample)
+    if (!domain) {
+      toast.error("Domain information is missing. Please try again.");
+      return;
+    }
+    const domainShort = domain.domain.replace(/\./g, "").substring(0, 9).toUpperCase();
+    const transactionDesc = `DOM${domainShort}`.substring(0, 13);
+
+    try {
+      await initiateMpesaPayment.mutateAsync({
+        phoneNumber: mpesaPhoneNumber.trim(),
+        amount: amount,
+        accountReference: accountReference.trim(),
+        transactionDesc: transactionDesc,
       });
     } catch (error) {
-      console.error('Error in payment handler:', error);
+      // Error is handled by mutation onError
     }
   };
 
@@ -266,6 +656,22 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
       setSelectedHostingPlans([]);
       setHostingPlanType(null);
       setSelectedBillingCycles({});
+      // Reset payment state
+      setSelectedPaymentMethod(null);
+      setMpesaPhoneNumber("");
+      setPaymentAmount("");
+      setAccountReference("");
+      setAccountRefError("");
+      setPhoneError("");
+      setAmountError("");
+      setCheckoutRequestId(null);
+      setPaymentError(null);
+      setShouldStopPolling(false); // Reset stop polling flag
+      pollingStartTimeRef.current = null;
+      pollingAttemptsRef.current = 0;
+      terminalStateDetectedRef.current = false; // Reset terminal state flag
+      immediateStepRef.current = null; // Reset immediate step
+      immediatePaymentErrorRef.current = null; // Reset immediate error
     }
   }, [open]);
 
@@ -274,7 +680,9 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
   }
 
   const renderStep = () => {
-    switch (currentStep) {
+    // Use immediate ref for instant UI updates (before React state batching)
+    const effectiveStep = immediateStepRef.current || currentStep;
+    switch (effectiveStep) {
       case "domain":
         return (
           <div className="space-y-4">
@@ -830,6 +1238,248 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
           </div>
         );
 
+      case "payment":
+        return (
+          <div className="space-y-4">
+            <div className="text-center py-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Choose Payment Method
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Select your preferred payment method to complete your purchase
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Accordion type="single" collapsible className="w-full" value={selectedPaymentMethod || undefined}>
+                <AccordionItem value="mpesa" className="border rounded-lg">
+                  <Card className="border-0 shadow-none">
+                    <AccordionTrigger
+                      className="px-4 py-4 hover:no-underline"
+                      onClick={() => setSelectedPaymentMethod(selectedPaymentMethod === "mpesa" ? null : "mpesa")}
+                    >
+                      <div className="flex items-center gap-4 w-full">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/20">
+                          <span className="text-2xl font-bold text-green-600 dark:text-green-400">M</span>
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-foreground">M-Pesa</div>
+                          <div className="text-sm text-muted-foreground">
+                            Secured by Nisc Cloud
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      {(initiateMpesaPayment.isPending || (checkoutRequestId && (immediateStepRef.current === "payment" || currentStep === "payment") && !immediatePaymentErrorRef.current && !paymentError && !shouldStopPolling && !terminalStateDetectedRef.current)) ? (
+                        <div className="space-y-4 pt-2">
+                          <div className="flex flex-col items-center justify-center py-8">
+                            <Spinner variant="ellipsis" size={48} className="mb-4 text-primary" />
+                            <p className="text-sm font-medium text-foreground mb-2">
+                              {initiateMpesaPayment.isPending 
+                                ? "Sending payment request..." 
+                                : "Waiting for payment confirmation..."}
+                            </p>
+                            <p className="text-xs text-muted-foreground text-center">
+                              {initiateMpesaPayment.isPending
+                                ? "Please wait while we send the payment request to your phone."
+                                : "Please complete the payment on your phone. We'll update you once the payment is confirmed."}
+                            </p>
+                            {checkoutRequestId && (queryPaymentStatus.isFetching || queryPaymentStatus.isLoading) && (
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Checking payment status...
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4 pt-2">
+                          <div className="space-y-2">
+                            <label htmlFor="mpesa-phone" className="text-sm font-medium text-foreground">
+                              Phone Number <span className="text-destructive">*</span>
+                            </label>
+                            <Input
+                              id="mpesa-phone"
+                              placeholder="0712345678 or 254712345678"
+                              value={mpesaPhoneNumber}
+                              onChange={handlePhoneNumberChange}
+                              className={`w-full ${phoneError ? "border-destructive" : ""}`}
+                            />
+                            {phoneError ? (
+                              <p className="text-xs text-destructive">{phoneError}</p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                Enter your M-Pesa registered phone number
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <label htmlFor="payment-amount" className="text-sm font-medium text-foreground">
+                              Amount (KES) <span className="text-destructive">*</span>
+                            </label>
+                            <Input
+                              id="payment-amount"
+                              type="number"
+                              placeholder="Enter amount"
+                              value={paymentAmount}
+                              onChange={handleAmountChange}
+                              className={`w-full ${amountError ? "border-destructive" : ""}`}
+                              min="1"
+                              step="1"
+                            />
+                            {amountError ? (
+                              <p className="text-xs text-destructive">{amountError}</p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                Cart total: {formatPrice(total, displayCurrency)} (editable for testing)
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <label htmlFor="account-reference" className="text-sm font-medium text-foreground">
+                              Account Reference <span className="text-destructive">*</span>
+                            </label>
+                            <Input
+                              id="account-reference"
+                              placeholder="Enter account reference"
+                              value={accountReference}
+                              onChange={handleAccountReferenceChange}
+                              className={`w-full ${accountRefError ? "border-destructive" : ""}`}
+                              maxLength={12}
+                            />
+                            {accountRefError ? (
+                              <p className="text-xs text-destructive">{accountRefError}</p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                Max 12 characters, alphanumeric only ({accountReference.length}/12)
+                              </p>
+                            )}
+                          </div>
+
+                          <Button
+                            onClick={handleMpesaPayment}
+                            disabled={
+                              initiateMpesaPayment.isPending ||
+                              !mpesaPhoneNumber ||
+                              !paymentAmount ||
+                              !accountReference ||
+                              !!accountRefError ||
+                              !!phoneError ||
+                              !!amountError ||
+                              terminalStateDetectedRef.current ||
+                              immediateStepRef.current === "error" ||
+                              immediateStepRef.current === "success"
+                            }
+                            className="w-full bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                          >
+                            {initiateMpesaPayment.isPending ? "Processing..." : "Pay with M-Pesa"}
+                          </Button>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </Card>
+                </AccordionItem>
+              </Accordion>
+            </div>
+
+            {/* Order Summary */}
+            <div className="border-t pt-4 mt-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>{formatPrice(subtotal, displayCurrency)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Taxes & fees</span>
+                  <span>{formatPrice(taxes, displayCurrency)}</span>
+                </div>
+                <div className="flex items-center justify-between font-bold text-lg border-t pt-2">
+                  <span>Total</span>
+                  <span>{formatPrice(total, displayCurrency)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "success":
+        return (
+          <div className="space-y-4">
+            <div className="text-center py-4">
+              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/20 mx-auto mb-4">
+                <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Payment Successful!
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Your order has been successfully received
+              </p>
+            </div>
+
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <div className="space-y-2">
+                <p className="text-sm text-foreground">
+                  Your domain <span className="font-semibold">{domain.domain}</span> will be issued on your dashboard in a few minutes.
+                </p>
+                {selectedAddons.filter(a => a.selected).length > 0 && (
+                  <p className="text-sm text-foreground">
+                    Your selected add-ons will be activated automatically.
+                  </p>
+                )}
+                {selectedHostingPlans.length > 0 && (
+                  <p className="text-sm text-foreground">
+                    Your hosting services will be set up shortly.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-muted-foreground">Order Total</span>
+                <span className="font-semibold">{formatPrice(total, displayCurrency)}</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "error":
+        // Use immediate error ref for instant display
+        const displayError = immediatePaymentErrorRef.current || paymentError || "An error occurred while processing your payment";
+        return (
+          <div className="space-y-4">
+            <div className="text-center py-4">
+              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 mx-auto mb-4">
+                <span className="text-2xl text-red-600 dark:text-red-400">✕</span>
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Payment Failed
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {displayError}
+              </p>
+            </div>
+
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <div className="space-y-2">
+                <p className="text-sm text-foreground">
+                  Your payment could not be processed. Please try again or contact support if the issue persists.
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-muted-foreground">Order Total</span>
+                <span className="font-semibold">{formatPrice(total, displayCurrency)}</span>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -847,6 +1497,9 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
             {currentStep === "hosting" && "Add hosting services to your domain"}
             {currentStep === "plan-selection" && "Select a hosting plan"}
             {currentStep === "review" && "Review your order and proceed to checkout"}
+            {currentStep === "payment" && "Complete your payment"}
+            {currentStep === "success" && "Order Confirmed"}
+            {currentStep === "error" && "Payment Failed"}
           </DialogDescription>
         </DialogHeader>
 
@@ -898,13 +1551,56 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
           )}
           {currentStep === "review" && (
             <Button
-              onClick={handlePayment}
+              onClick={handleNext}
               className="bg-primary text-primary-foreground"
             >
               Choose payment method
             </Button>
           )}
-          {currentStep !== "plan-selection" && currentStep !== "hosting" && currentStep !== "review" && (
+          {currentStep === "payment" && (
+            <Button
+              onClick={() => onOpenChange(false)}
+              variant="outline"
+            >
+              Cancel
+            </Button>
+          )}
+          {currentStep === "success" && (
+            <Button
+              onClick={() => onOpenChange(false)}
+              className="bg-primary text-primary-foreground w-full"
+            >
+              Close
+            </Button>
+          )}
+          {currentStep === "error" && (
+            <>
+              <Button
+                onClick={() => {
+                  // Reset all payment-related state and refs
+                  setCurrentStep("payment");
+                  setPaymentError(null);
+                  setCheckoutRequestId(null);
+                  setShouldStopPolling(false);
+                  terminalStateDetectedRef.current = false;
+                  immediateStepRef.current = null;
+                  immediatePaymentErrorRef.current = null;
+                  pollingStartTimeRef.current = null;
+                  pollingAttemptsRef.current = 0;
+                }}
+                variant="outline"
+              >
+                Try Again
+              </Button>
+              <Button
+                onClick={() => onOpenChange(false)}
+                className="bg-primary text-primary-foreground"
+              >
+                Close
+              </Button>
+            </>
+          )}
+          {currentStep !== "plan-selection" && currentStep !== "hosting" && currentStep !== "review" && currentStep !== "payment" && currentStep !== "success" && currentStep !== "error" && (
             <Button
               onClick={handleNext}
               className="bg-primary text-primary-foreground"

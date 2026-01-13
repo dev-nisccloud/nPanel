@@ -14,6 +14,7 @@ export interface MpesaConfig {
 	shortcode: string;
 	passkey: string;
 	partyB: string;
+	transactionType: "CustomerPayBillOnline" | "CustomerBuyGoodsOnline";
 	accountReference?: string; // Optional - should be provided per transaction
 	environment: MpesaEnvironment;
 	callbackUrl: string;
@@ -82,24 +83,43 @@ export interface MpesaStkPushQueryResponse {
 
 /**
  * M-Pesa callback payload (STK Push result)
+ * 
+ * M-Pesa sends callbacks in this structure:
+ * {
+ *   Body: {
+ *     stkCallback: {
+ *       MerchantRequestID: string,
+ *       CheckoutRequestID: string,
+ *       ResultCode: number,
+ *       ResultDesc: string,
+ *       CallbackMetadata?: {
+ *         Item: Array<{ Name: string, Value: string | number }>
+ *       }
+ *     }
+ *   }
+ * }
  */
 export const MpesaCallbackSchema = z.object({
 	Body: z.object({
 		stkCallback: z.object({
 			MerchantRequestID: z.string(),
 			CheckoutRequestID: z.string(),
-			ResultCode: z.number(),
+			ResultCode: z.union([z.number(), z.string()]).transform((val) => {
+				// Handle both string and number ResultCode
+				return typeof val === "string" ? parseInt(val, 10) : val;
+			}),
 			ResultDesc: z.string(),
 			CallbackMetadata: z
 				.object({
 					Item: z.array(
 						z.object({
 							Name: z.string(),
-							Value: z.union([z.string(), z.number()]),
+							Value: z.union([z.string(), z.number()]).optional(), // Value is optional (e.g., Balance may not have value)
 						})
 					),
 				})
-				.optional(),
+				.optional()
+				.nullable(),
 		}),
 	}),
 });

@@ -1,5 +1,5 @@
 import { render } from '@react-email/render';
-import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail, AccountCreatedEmail, AgencyUserCreatedEmail, InvoiceDeliveryEmail, OrderConfirmationEmail } from 'react-email-starter/emails';
+import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail, AccountCreatedEmail, AgencyUserCreatedEmail, InvoiceDeliveryEmail, OrderConfirmationEmail, PaymentReceiptEmail } from 'react-email-starter/emails';
 
 export async function renderResetPasswordEmail({
   userFirstname,
@@ -182,5 +182,36 @@ export async function renderOrderConfirmationEmail({
     supportEmail,
     supportPhone,
     orderLink,
+  }));
+}
+
+export async function renderPaymentReceiptEmail({
+  customerName,
+  receiptNumber,
+  transactionDate,
+  amount,
+  currency,
+  paymentMethod,
+  supportEmail,
+  supportPhone,
+}: {
+  customerName?: string;
+  receiptNumber?: string;
+  transactionDate?: string;
+  amount?: string;
+  currency?: string;
+  paymentMethod?: string;
+  supportEmail?: string;
+  supportPhone?: string;
+}) {
+  return render(PaymentReceiptEmail({
+    customerName,
+    receiptNumber,
+    transactionDate,
+    amount,
+    currency,
+    paymentMethod,
+    supportEmail,
+    supportPhone,
   }));
 }

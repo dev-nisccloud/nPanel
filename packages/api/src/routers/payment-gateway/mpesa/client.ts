@@ -121,12 +121,17 @@ export class MpesaClient {
 	}
 
 	/**
-	 * Generate password for STK Push (Base64 encoded shortcode + passkey + timestamp)
+	 * Generate password for STK Push
+	 * Format: Base64(BusinessShortCode + PassKey + Timestamp)
+	 * 
+	 * @param timestamp - The timestamp in M-Pesa format (YYYYMMDDHHmmss)
+	 * @returns Base64 encoded string of (shortcode + passkey + timestamp)
 	 */
 	private generatePassword(timestamp: string): string {
-		return Buffer.from(`${this.config.shortcode}${this.config.passkey}${timestamp}`).toString(
-			"base64"
-		);
+		// Concatenate: BusinessShortCode + PassKey + Timestamp
+		const passwordString = `${this.config.shortcode}${this.config.passkey}${timestamp}`;
+		// Base64 encode the concatenated string
+		return Buffer.from(passwordString).toString("base64");
 	}
 
 	/**
@@ -209,7 +214,7 @@ export class MpesaClient {
 				BusinessShortCode: this.config.shortcode,
 				Password: password,
 				Timestamp: timestamp,
-				TransactionType: "CustomerPayBillOnline",
+				TransactionType: this.config.transactionType,
 				Amount: amount.toString(), // M-Pesa accepts string or numeric
 				PartyA: formattedPhone,
 				PartyB: this.config.partyB,
@@ -398,6 +403,7 @@ export class MpesaClient {
 		return {
 			shortcode: this.config.shortcode,
 			partyB: this.config.partyB,
+			transactionType: this.config.transactionType,
 			accountReference: this.config.accountReference, // May be undefined
 			environment: this.config.environment,
 			callbackUrl: this.config.callbackUrl,
@@ -417,6 +423,7 @@ export function createMpesaClientFromEnv(): MpesaClient {
 		"MPESA_SHORTCODE",
 		"MPESA_PASSKEY",
 		"MPESA_PARTY_B",
+		"MPESA_TRANSACTION_TYPE",
 		"MPESA_CALLBACK_URL",
 	];
 
@@ -428,12 +435,21 @@ export function createMpesaClientFromEnv(): MpesaClient {
 		);
 	}
 
+	const transactionType = process.env.MPESA_TRANSACTION_TYPE as "CustomerPayBillOnline" | "CustomerBuyGoodsOnline";
+	
+	if (transactionType !== "CustomerPayBillOnline" && transactionType !== "CustomerBuyGoodsOnline") {
+		throw new Error(
+			`Invalid MPESA_TRANSACTION_TYPE: ${transactionType}. Must be either "CustomerPayBillOnline" or "CustomerBuyGoodsOnline"`
+		);
+	}
+
 	const config: MpesaConfig = {
 		consumerKey: process.env.MPESA_CONSUMER_KEY!,
 		consumerSecret: process.env.MPESA_CONSUMER_SECRET!,
 		shortcode: process.env.MPESA_SHORTCODE!,
 		passkey: process.env.MPESA_PASSKEY!,
 		partyB: process.env.MPESA_PARTY_B!,
+		transactionType,
 		accountReference: process.env.MPESA_ACCOUNT_REFERENCE, // Optional - for backward compatibility only
 		environment,
 		callbackUrl: process.env.MPESA_CALLBACK_URL!,

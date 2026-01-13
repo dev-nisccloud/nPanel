@@ -17,3 +17,4 @@ export { TeamInviteEmail } from './team-invite';
 export { AccountCreatedEmail } from './account-created-email';
 export { AgencyUserCreatedEmail } from './agency-user-created-email';
 export { OrderConfirmationEmail } from './order-confirmation';
+export { PaymentReceiptEmail } from './payment-receipt';
