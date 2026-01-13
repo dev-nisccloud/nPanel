@@ -7,7 +7,6 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { WordPressCardsList } from "./wordpress-cards";
 import { wordpressInstallationSchema } from "./schema";
@@ -29,67 +28,35 @@ function WordPressTableSkeleton() {
       </div>
 
             {/* Cards skeleton */}
-            <div className="rounded-lg border bg-card">
-              <ScrollArea className="h-[600px]">
-                <div className="p-4">
-                  <div className="space-y-4">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <div key={i} className="rounded-lg border p-6">
-                        {/* Card header skeleton */}
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <Skeleton className="h-4 w-4 flex-shrink-0" />
-                            <Skeleton className="h-5 w-48" />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="h-6 w-16" />
-                            <Skeleton className="h-8 w-8" />
-                          </div>
-                        </div>
-
-                        {/* Card content skeleton - single column layout */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <Skeleton className="h-3 w-16" />
-                              <Skeleton className="h-4 w-24" />
-                            </div>
-                            <div className="space-y-1">
-                              <Skeleton className="h-3 w-20" />
-                              <Skeleton className="h-4 w-20" />
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <Skeleton className="h-3 w-20" />
-                              <div className="flex items-center gap-1">
-                                <Skeleton className="h-3 w-3" />
-                                <Skeleton className="h-4 w-16" />
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <Skeleton className="h-3 w-16" />
-                              <Skeleton className="h-4 w-24" />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Additional info skeleton */}
-                        <div className="mt-4 pt-4 border-t space-y-2">
-                          <div className="space-y-1">
-                            <Skeleton className="h-3 w-16" />
-                            <Skeleton className="h-4 w-32" />
-                          </div>
-                          <div className="space-y-1">
-                            <Skeleton className="h-3 w-24" />
-                            <Skeleton className="h-4 w-20" />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-lg border p-4">
+                  {/* Card header skeleton */}
+                  <div className="flex items-start justify-between mb-4">
+                    <Skeleton className="h-5 w-32 flex-1" />
+                    <Skeleton className="h-6 w-16 ml-2" />
+                  </div>
+                  {/* Card content skeleton */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
                   </div>
                 </div>
-              </ScrollArea>
+              ))}
             </div>
     </div>
   );
@@ -206,20 +173,14 @@ export function WordPressDataTable() {
         </div>
 
       {/* Cards implementation */}
-      <div className="rounded-lg border bg-card">
-        <ScrollArea className="h-[600px]">
-          <div className="p-4">
-                  <WordPressCardsList
-                    data={filteredData}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onCopy={handleCopy}
-                    onSettings={handleSettings}
-                    cols={1} // Display single column layout like hosting
-                  />
-        </div>
-        </ScrollArea>
-        </div>
+      <WordPressCardsList
+        data={filteredData}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onCopy={handleCopy}
+        onSettings={handleSettings}
+        cols={3}
+      />
         </div>
   );
 }
