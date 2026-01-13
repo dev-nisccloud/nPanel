@@ -5,25 +5,21 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Trash2, Globe, Shield, Code, FolderOpen, ExternalLink } from "lucide-react";
+import { Trash2, Globe, ExternalLink } from "lucide-react";
 import { subdomainSchema } from "./subdomains-schema";
 
 interface SubdomainCardProps {
   data: z.infer<typeof subdomainSchema>;
+  onView?: (data: z.infer<typeof subdomainSchema>) => void;
   onDelete?: (id: number | undefined) => void;
   className?: string;
 }
 
 export function SubdomainCard({ 
   data, 
+  onView,
   onDelete,
   className 
 }: SubdomainCardProps) {
@@ -31,6 +27,17 @@ export function SubdomainCard({
     e.stopPropagation();
     if (onDelete) {
       onDelete(data.id);
+    }
+  };
+
+  const handleOpenInNewTab = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.open(`https://${data.name}`, '_blank');
+  };
+
+  const handleCardClick = () => {
+    if (onView) {
+      onView(data);
     }
   };
 
@@ -44,66 +51,66 @@ export function SubdomainCard({
     return "Inactive";
   };
 
-  const getPhpVersion = () => {
-    if (!data.properties?.php_handler_id) return "N/A";
-    // Extract version from handler ID like "plesk-php83-fpm-dedicated"
-    const match = data.properties.php_handler_id.match(/php(\d+)/);
-    return match ? `PHP ${match[1]}` : data.properties.php_handler_id;
-  };
-
   return (
     <Card 
-      className={cn("group cursor-pointer transition-all hover:shadow-md", className)}
+      className={cn("group cursor-pointer transition-all hover:shadow-md hover:border-primary/50", className)}
+      onClick={handleCardClick}
     >
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <CardTitle className="text-lg font-bold truncate">
+            <CardTitle className="text-base font-semibold truncate">
               {data.name || "Unknown Subdomain"}
             </CardTitle>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Badge variant={getStatusBadgeVariant()}>
               {getStatusText()}
             </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   className="h-8 w-8 p-0"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={handleOpenInNewTab}
                 >
-                  <MoreHorizontal className="h-4 w-4" />
+                  <ExternalLink className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem onClick={() => window.open(`https://${data.name}`, '_blank')}>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Open in New Tab
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={handleDelete}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Open in new tab</p>
+              </TooltipContent>
+            </Tooltip>
+            {onDelete && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Delete subdomain (this action cannot be reversed)</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="pt-0">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Parent Domain
             </p>
-            <p className="text-sm font-medium truncate">
+            <p className="text-sm font-semibold truncate" title={data.parent || "N/A"}>
               {data.parent || "N/A"}
             </p>
           </div>
@@ -112,60 +119,23 @@ export function SubdomainCard({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               SSL Security
             </p>
-            <div className="flex items-center gap-1">
-              <Shield className="h-3 w-3 text-muted-foreground" />
-              <Badge 
-                variant={data.properties?.ssl ? "default" : "secondary"}
-                className="text-xs"
-              >
-                {data.properties?.ssl ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
+            <Badge 
+              variant={data.properties?.ssl ? "default" : "secondary"}
+              className="text-xs w-fit"
+            >
+              {data.properties?.ssl ? "Enabled" : "Disabled"}
+            </Badge>
           </div>
           
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Document Root
             </p>
-            <div className="flex items-center gap-1">
-              <FolderOpen className="h-3 w-3 text-muted-foreground" />
-              <p className="text-sm font-medium truncate">
-                {data.properties?.www_root ? data.properties.www_root.split('/').pop() : "N/A"}
-              </p>
-            </div>
+            <p className="text-sm font-semibold truncate" title={data.properties?.www_root || "N/A"}>
+              {data.properties?.www_root ? data.properties.www_root.split('/').pop() : "N/A"}
+            </p>
           </div>
         </div>
-
-        {/* Additional Information */}
-        {(data.properties?.webstat || data.properties?.fastcgi || data.properties?.cgi || data.properties?.perl || data.properties?.python) && (
-          <div className="mt-4 pt-4 border-t space-y-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Web Statistics
-                </p>
-                <Badge variant="outline" className="text-xs">
-                  {data.properties?.webstat || "None"}
-                </Badge>
-              </div>
-              
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Additional Features
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {data.properties?.fastcgi && <Badge variant="secondary" className="text-xs">FastCGI</Badge>}
-                  {data.properties?.cgi && <Badge variant="secondary" className="text-xs">CGI</Badge>}
-                  {data.properties?.perl && <Badge variant="secondary" className="text-xs">Perl</Badge>}
-                  {data.properties?.python && <Badge variant="secondary" className="text-xs">Python</Badge>}
-                  {!data.properties?.fastcgi && !data.properties?.cgi && !data.properties?.perl && !data.properties?.python && (
-                    <Badge variant="outline" className="text-xs">None</Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -174,6 +144,7 @@ export function SubdomainCard({
 // Subdomain Cards List Component
 interface SubdomainCardsListProps {
   data: z.infer<typeof subdomainSchema>[];
+  onView?: (data: z.infer<typeof subdomainSchema>) => void;
   onDelete?: (id: number | undefined) => void;
   cols?: 1 | 2 | 3 | 4;
   className?: string;
@@ -181,8 +152,9 @@ interface SubdomainCardsListProps {
 
 export function SubdomainCardsList({ 
   data, 
+  onView,
   onDelete,
-  cols = 1,
+  cols = 3,
   className 
 }: SubdomainCardsListProps) {
   return (
@@ -200,6 +172,7 @@ export function SubdomainCardsList({
         <SubdomainCard
           key={subdomain.id || `subdomain-${index}`}
           data={subdomain}
+          onView={onView}
           onDelete={onDelete}
         />
       ))}

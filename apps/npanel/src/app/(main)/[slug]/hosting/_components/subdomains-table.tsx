@@ -13,6 +13,7 @@ import { SubdomainCardsList } from "./subdomains-cards";
 import { subdomainSchema } from "./subdomains-schema";
 import { useSubdomainsByDomain } from "./use-subdomains-by-domain";
 import { AddSubdomainSheet } from "./add-subdomain-sheet";
+import { ViewSubdomainSheet } from "./view-subdomain-sheet";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
@@ -144,6 +145,8 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [isAddSubdomainOpen, setIsAddSubdomainOpen] = React.useState(false);
+  const [isViewSubdomainOpen, setIsViewSubdomainOpen] = React.useState(false);
+  const [subdomainToView, setSubdomainToView] = React.useState<z.infer<typeof subdomainSchema> | null>(null);
   
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -209,6 +212,11 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
 
     return filtered;
   }, [subdomainsData, searchTerm, statusFilter]);
+
+  const handleView = (data: z.infer<typeof subdomainSchema>) => {
+    setSubdomainToView(data);
+    setIsViewSubdomainOpen(true);
+  };
 
   const handleDelete = (id: number | undefined) => {
     // Find the subdomain data to get the name
@@ -286,16 +294,14 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
         </div>
       </div>
 
-      {/* Cards implementation */}
-      <div className="rounded-lg border bg-card">
-        <ScrollArea className="h-[600px]">
-          <div className="p-4">
-            <SubdomainCardsList
-              data={filteredData}
-              onDelete={handleDelete}
-            />
-          </div>
-        </ScrollArea>
+      {/* Cards grid implementation */}
+      <div className="p-4">
+        <SubdomainCardsList
+          data={filteredData}
+          onView={handleView}
+          onDelete={handleDelete}
+          cols={3}
+        />
       </div>
 
       {/* Add Subdomain Sheet */}
@@ -304,6 +310,19 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
         onOpenChange={setIsAddSubdomainOpen}
         domainName={domainName}
         onSuccess={refetch}
+      />
+
+      {/* View Subdomain Sheet */}
+      <ViewSubdomainSheet
+        open={isViewSubdomainOpen}
+        onOpenChange={(newOpen) => {
+          setIsViewSubdomainOpen(newOpen);
+          if (!newOpen) {
+            // Clear the subdomain data when sheet closes
+            setSubdomainToView(null);
+          }
+        }}
+        data={subdomainToView}
       />
 
       {/* Delete Confirmation Dialog */}

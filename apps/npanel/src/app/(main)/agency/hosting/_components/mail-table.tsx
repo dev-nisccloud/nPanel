@@ -268,10 +268,6 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
     }
   };
 
-  const handleCopy = (data: z.infer<typeof emailAccountSchema>) => {
-    console.log("Copy email settings:", data);
-    // TODO: Implement copy functionality
-  };
 
   if (isLoading) {
     return <MailTableSkeleton />;
@@ -339,19 +335,15 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
         </div>
       </div>
 
-      {/* Cards implementation */}
-      <div className="rounded-lg border bg-card">
-        <ScrollArea className="h-[600px]">
-          <div className="p-4">
-            <MailCardsList
-              data={filteredData}
-              domainName={domainName}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onCopy={handleCopy}
-            />
-          </div>
-        </ScrollArea>
+      {/* Cards grid implementation */}
+      <div className="p-4">
+        <MailCardsList
+          data={filteredData}
+          domainName={domainName}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          cols={3}
+        />
       </div>
 
       {/* Table implementation (commented out for performance) */}
@@ -367,6 +359,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
         onOpenChange={(open) => { 
           setIsAddMailOpen(open); 
           if (!open) {
+            // Reset all states when sheet closes
             setSheetInitial(null);
             setSheetMode('create');
           }
@@ -377,6 +370,9 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
         onSuccess={() => {
           // Refetch email data after successful creation/update
           refetch();
+          // Reset states after successful operation
+          setSheetInitial(null);
+          setSheetMode('create');
         }}
       />
 

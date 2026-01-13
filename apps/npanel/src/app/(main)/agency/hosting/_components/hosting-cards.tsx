@@ -37,29 +37,29 @@ export function HostingCard({
 
   return (
     <Card 
-      className={cn("group cursor-pointer transition-all hover:shadow-md", className)}
+      className={cn("group cursor-pointer transition-all hover:shadow-md hover:border-primary/50", className)}
       onClick={handleViewDetails}
     >
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-bold truncate">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
             {data.subscriptionName}
           </CardTitle>
-          <Badge variant={getStatusBadgeVariant(data.status)}>
+          <Badge variant={getStatusBadgeVariant(data.status)} className="flex-shrink-0">
             {getStatusDisplayText(data.status)}
           </Badge>
         </div>
       </CardHeader>
 
       <CardContent className="pt-0">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               SSL Security
             </p>
             <Badge 
               variant={data.sslEnabled ? "default" : "destructive"}
-              className="text-xs"
+              className="text-xs w-fit"
             >
               {data.sslEnabled ? "Enabled" : "Disabled"}
             </Badge>
@@ -67,52 +67,18 @@ export function HostingCard({
           
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Previous Day Traffic
-            </p>
-            <p className="text-sm font-medium">{formatFileSize(data.trafficPrevDay)}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Disk Usage
             </p>
-            <p className="text-sm font-medium">{formatFileSize(data.realSize)}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Setup Date
-            </p>
-            <p className="text-sm font-medium">{new Date(data.setupDate).toLocaleDateString()}</p>
+            <p className="text-sm font-semibold">{formatFileSize(data.realSize)}</p>
           </div>
           
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Total Traffic
             </p>
-            <p className="text-sm font-medium">{formatFileSize(data.traffic)}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              DNS IP
-            </p>
-            <p className="text-sm font-medium">{data.dnsIpAddress}</p>
+            <p className="text-sm font-semibold">{formatFileSize(data.traffic)}</p>
           </div>
         </div>
-
-        {data.description && (
-          <div className="mt-4 pt-4 border-t">
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Description
-              </p>
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {data.description}
-              </p>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

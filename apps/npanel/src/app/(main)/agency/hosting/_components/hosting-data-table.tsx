@@ -200,19 +200,16 @@ export function HostingDataTable() {
         </div>
       </div>
       
-      {/* Cards implementation */}
-      <div className="rounded-lg border bg-card">
-        <ScrollArea className="h-[600px]">
-          <div className="p-4">
-            <HostingCardsList
-              data={filteredData}
-              onViewDetails={handleViewDetails}
-              onEdit={handleEdit}
-              onSuspend={handleSuspend}
-              onCancel={handleCancel}
-            />
-          </div>
-        </ScrollArea>
+      {/* Cards grid implementation */}
+      <div className="p-4">
+        <HostingCardsList
+          data={filteredData}
+          onViewDetails={handleViewDetails}
+          onEdit={handleEdit}
+          onSuspend={handleSuspend}
+          onCancel={handleCancel}
+          cols={3}
+        />
       </div>
 
       {/* Table implementation (commented out for performance) */}

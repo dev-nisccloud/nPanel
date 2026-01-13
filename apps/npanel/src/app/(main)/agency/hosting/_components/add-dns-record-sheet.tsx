@@ -20,6 +20,7 @@ import {
 } from "@/components/npanel-ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
@@ -95,6 +96,26 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: Add
     },
   });
 
+  // Reset form and states when sheet closes
+  React.useEffect(() => {
+    if (!open) {
+      // Reset all form fields to defaults
+      form.reset({
+        host: "",
+        ttl: 3600,
+        recordType: undefined,
+        value: "",
+        priority: undefined,
+        weight: undefined,
+        port: undefined,
+      });
+      // Reset other states
+      setSelectedRecordType("");
+      setIsSubmitting(false);
+      form.clearErrors();
+    }
+  }, [open, form]);
+
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setIsSubmitting(true);
     
@@ -154,8 +175,8 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: Add
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader className="mb-6 flex justify-between items-center flex-row">
+      <SheetContent className="flex flex-col">
+        <SheetHeader className="mb-6 flex-shrink-0 flex justify-between items-center flex-row">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-primary/10 rounded-full">
               <Globe className="h-6 w-6 text-primary" />
@@ -178,9 +199,10 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: Add
           </SheetClose>
         </SheetHeader>
 
-        <div className="px-1 pb-1">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <ScrollArea className="flex-1 min-h-0 pr-4">
+          <div className="px-1 pb-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Basic Information */}
               <Card>
                 <CardHeader>
@@ -393,9 +415,10 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: Add
                   )}
                 </Button>
               </SheetFooter>
-            </form>
-          </Form>
-        </div>
+              </form>
+            </Form>
+          </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

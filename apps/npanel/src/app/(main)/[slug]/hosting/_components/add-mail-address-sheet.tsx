@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 
@@ -169,9 +170,37 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
     },
   });
 
+  // Reset form and states when sheet closes
+  React.useEffect(() => {
+    if (!open) {
+      // Reset all form fields to defaults
+      form.reset({
+        name: "",
+        password: "",
+        description: "",
+        mailboxEnabled: true,
+        quota: 53687091200,
+        forwardingEnabled: false,
+        forwardingAddresses: "",
+        aliases: "",
+        autoresponderEnabled: false,
+        autoresponderSubject: "",
+        autoresponderText: "",
+        autoresponderEndDate: "",
+        antivir: "off",
+        maxOutgoingMessages: 100,
+      });
+      // Reset other states
+      setShowPassword(false);
+      setIsSubmitting(false);
+      form.clearErrors();
+    }
+  }, [open, form]);
+
   // When opening for edit, prefill values without changing the UI structure
   React.useEffect(() => {
     if (!open) return;
+    if (mode === 'create') return; // Don't prefill in create mode
     if (!initialValues) return;
     const current = form.getValues();
     form.reset({
@@ -186,8 +215,9 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
       autoresponderEnabled: initialValues.autoresponderEnabled ?? current.autoresponderEnabled,
       antivir: initialValues.antivir ?? current.antivir,
       maxOutgoingMessages: initialValues.maxOutgoingMessages ?? current.maxOutgoingMessages,
+      password: "", // Always clear password in edit mode
     });
-  }, [open, initialValues]);
+  }, [open, initialValues, mode, form]);
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
@@ -311,8 +341,8 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto">
-        <SheetHeader className="mb-6 flex justify-between items-center flex-row">
+      <SheetContent className="flex flex-col">
+        <SheetHeader className="mb-6 flex-shrink-0 flex justify-between items-center flex-row">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-primary/10 rounded-full">
               <Mail className="h-6 w-6 text-primary" />
@@ -337,9 +367,10 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
           </SheetClose>
         </SheetHeader>
 
-        <div className="px-1 pb-1">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <ScrollArea className="flex-1 min-h-0 pr-4">
+          <div className="px-1 pb-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {form.formState.errors.root?.message && (
                 <div className="text-sm text-destructive">
                   {form.formState.errors.root.message}
@@ -797,9 +828,10 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
                   )}
                 </Button>
               </SheetFooter>
-            </form>
-          </Form>
-        </div>
+              </form>
+            </Form>
+          </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

@@ -20,6 +20,7 @@ import {
 } from "@/components/npanel-ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -149,8 +150,8 @@ export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }:
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto">
-        <SheetHeader className="mb-6 flex justify-between items-center flex-row">
+      <SheetContent className="flex flex-col">
+        <SheetHeader className="mb-6 flex-shrink-0 flex justify-between items-center flex-row">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-primary/10 rounded-full">
               <Globe className="h-6 w-6 text-primary" />
@@ -173,9 +174,10 @@ export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }:
           </SheetClose>
         </SheetHeader>
 
-        <div className="px-1 pb-1">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <ScrollArea className="flex-1 min-h-0 pr-4">
+          <div className="px-1 pb-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* General Settings */}
               <Card>
                 <CardHeader>
@@ -421,7 +423,8 @@ export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }:
             </SheetFooter>
           </form>
         </Form>
-        </div>
+          </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

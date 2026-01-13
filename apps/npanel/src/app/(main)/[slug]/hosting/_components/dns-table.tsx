@@ -36,6 +36,7 @@ import { DnsCardsList } from "./dns-cards";
 import { dnsRecordSchema } from "./dns-schema";
 import { useDnsBySiteId } from "./use-dns-by-site-id";
 import { AddDnsRecordSheet } from "./add-dns-record-sheet";
+import { ViewDnsRecordSheet } from "./view-dns-record-sheet";
 
 interface DnsTableProps {
   siteId: number;
@@ -123,6 +124,8 @@ export function DnsTable({ siteId }: DnsTableProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [recordTypeFilter, setRecordTypeFilter] = React.useState("all");
   const [isAddRecordOpen, setIsAddRecordOpen] = React.useState(false);
+  const [isViewRecordOpen, setIsViewRecordOpen] = React.useState(false);
+  const [recordToView, setRecordToView] = React.useState<z.infer<typeof dnsRecordSchema> | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [recordToDelete, setRecordToDelete] = React.useState<{ id: number; host: string; type: string } | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -198,9 +201,9 @@ export function DnsTable({ siteId }: DnsTableProps) {
   //   table.resetRowSelection();
   // };
 
-  const handleEdit = (id: number | undefined) => {
-    console.log("Edit DNS record:", id);
-    // TODO: Implement edit functionality
+  const handleView = (data: z.infer<typeof dnsRecordSchema>) => {
+    setRecordToView(data);
+    setIsViewRecordOpen(true);
   };
 
   const handleDelete = (id: number | undefined) => {
@@ -232,10 +235,6 @@ export function DnsTable({ siteId }: DnsTableProps) {
     // Note: isDeleting is reset in the mutation callbacks (onSuccess/onError)
   };
 
-  const handleCopy = (data: z.infer<typeof dnsRecordSchema>) => {
-    console.log("Copy DNS record:", data);
-    // TODO: Implement copy functionality
-  };
 
   if (isLoading) {
     return <DnsTableSkeleton />;
@@ -304,18 +303,14 @@ export function DnsTable({ siteId }: DnsTableProps) {
         </div>
       </div>
 
-      {/* Cards implementation */}
-      <div className="rounded-lg border bg-card">
-        <ScrollArea className="h-[600px]">
-          <div className="p-4">
-            <DnsCardsList
-              data={filteredData}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onCopy={handleCopy}
-            />
-          </div>
-        </ScrollArea>
+      {/* Cards grid implementation */}
+      <div className="p-4">
+        <DnsCardsList
+          data={filteredData}
+          onView={handleView}
+          onDelete={handleDelete}
+          cols={3}
+        />
       </div>
 
       {/* Table implementation (commented out for performance) */}
@@ -334,6 +329,19 @@ export function DnsTable({ siteId }: DnsTableProps) {
           // Refetch DNS data after successful creation
           refetch();
         }}
+      />
+
+      {/* View Record Sheet */}
+      <ViewDnsRecordSheet
+        open={isViewRecordOpen}
+        onOpenChange={(newOpen) => {
+          setIsViewRecordOpen(newOpen);
+          if (!newOpen) {
+            // Clear the record data when sheet closes
+            setRecordToView(null);
+          }
+        }}
+        data={recordToView}
       />
 
       {/* Delete Confirmation Dialog */}
