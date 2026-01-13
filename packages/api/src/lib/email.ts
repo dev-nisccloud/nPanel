@@ -1,11 +1,25 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /**
  * Helper function to delay execution
  */
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Get or create Resend client instance (lazy initialization)
+ * This prevents initialization during build time when env vars may not be available
+ */
+let resendClient: Resend | null = null;
+function getResendClient(): Resend {
+  if (!resendClient) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY environment variable is not set");
+    }
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
+}
 
 /**
  * Send an email with automatic retry on rate limit errors
@@ -54,8 +68,28 @@ export async function sendEmail({
         emailData.text = text;
       }
 
+      // Get Resend client (lazy initialization)
+      const resend = getResendClient();
+
+      // Ensure at least html or text is provided
+      if (!emailData.html && !emailData.text) {
+        throw new Error("Either html or text must be provided");
+      }
+
       // Type the payload explicitly for HTML/text emails (not React Email)
-      const emailPayload = {
+      // Using type assertion to tell TypeScript this is the HTML/text variant
+      const emailPayload: {
+        from: string;
+        to: string[];
+        subject: string;
+        html?: string;
+        text?: string;
+        attachments?: Array<{
+          filename: string;
+          content: Buffer | string;
+          contentType?: string;
+        }>;
+      } = {
         from: emailData.from,
         to: emailData.to,
         subject: emailData.subject,
@@ -70,9 +104,11 @@ export async function sendEmail({
             ...(att.contentType && { contentType: att.contentType }),
           })),
         }),
-      } as Parameters<typeof resend.emails.send>[0];
+      };
 
-      const { data, error } = await resend.emails.send(emailPayload);
+      // Type assertion to ensure TypeScript uses the HTML/text variant, not React Email variant
+      // Cast to 'any' first, then to the correct type to bypass the React Email overload
+      const { data, error } = await resend.emails.send(emailPayload as any);
 
       if (error) {
         // Check if it's a rate limit error
