@@ -78,6 +78,16 @@ export const imageGenTemplatesRouter = router({
         take: limit,
         skip: (page - 1) * limit,
         orderBy: { updatedAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          width: true,
+          height: true,
+          thumbnailUrl: true,
+          json: true, // Keep json for templates as it's needed when creating a project from template
+          createdAt: true,
+          updatedAt: true,
+        },
       });
 
       return { data: templates };

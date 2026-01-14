@@ -100,6 +100,18 @@ export const imageGenProjectsRouter = router({
         take: limit,
         skip: (page - 1) * limit,
         orderBy: { updatedAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          width: true,
+          height: true,
+          thumbnailUrl: true,
+          createdAt: true,
+          updatedAt: true,
+          userId: true,
+          teamId: true,
+          // Exclude json field to improve performance
+        },
       });
 
       return {

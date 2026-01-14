@@ -71,10 +71,46 @@ export const deleteTemplateSchema = z.object({
 // AI schemas
 export const generateImageSchema = z.object({
   prompt: z.string().min(1),
+  referenceImageUrls: z.array(z.string().url()).max(14).optional().default([]),
+  teamId: z.string().optional(),
 });
 
 export const removeBgSchema = z.object({
   image: z.string(),
+});
+
+// AI Generation schemas
+export const getAiGenerationsSchema = z.object({
+  page: z.number().int().positive().default(1),
+  limit: z.number().int().positive().default(20),
+  teamId: z.string().optional(),
+});
+
+export const deleteAiGenerationSchema = z.object({
+  id: z.string(),
+});
+
+// Upload schemas
+export const createUploadSchema = z.object({
+  fileUrl: z.string().url(),
+  fileKey: z.string(),
+  fileName: z.string().min(1),
+  fileSize: z.number().int().positive(),
+  mimeType: z.string().refine((val) => val.startsWith("image/"), {
+    message: "Only image files are allowed",
+  }),
+  fileMetadata: z.record(z.string(), z.any()).optional(),
+  teamId: z.string().optional(),
+});
+
+export const getUploadsSchema = z.object({
+  page: z.number().int().positive().default(1),
+  limit: z.number().int().positive().default(20),
+  teamId: z.string().optional(),
+});
+
+export const deleteUploadSchema = z.object({
+  id: z.string(),
 });
 
 

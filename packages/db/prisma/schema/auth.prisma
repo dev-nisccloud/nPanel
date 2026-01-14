@@ -461,6 +461,8 @@ model User {
   // ImageGen Studio Relations
   imageGenProjects            ImageGenProject[]
   imageGenTemplates           ImageGenTemplate[]
+  ImageGenUpload              ImageGenUpload[]
+  imageGenAiGenerations       ImageGenAiGeneration[]
 
   @@unique([email])
   @@index([role])
@@ -541,6 +543,8 @@ model Team {
   // ImageGen Studio Relations
   imageGenProjects      ImageGenProject[]
   PaymentTransaction    PaymentTransaction[]
+  ImageGenUpload        ImageGenUpload[]
+  imageGenAiGenerations ImageGenAiGeneration[]
 
   @@index([slug])
   @@index([createdById])

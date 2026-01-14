@@ -279,7 +279,7 @@ export const agencysidebarItems: NavGroup[] = [
     items: [
       {
         title: "Visual Studio",
-        url: "/gen-ai/image-gen-studio",
+        url: "/agency/gen-ai/image-gen-studio",
         icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {

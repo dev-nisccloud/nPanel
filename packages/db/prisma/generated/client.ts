@@ -364,6 +364,26 @@ export type ImageGenProjectActivityLog = Prisma.ImageGenProjectActivityLogModel
  */
 export type ImageGenTemplateActivityLog = Prisma.ImageGenTemplateActivityLogModel
 /**
+ * Model ImageGenUpload
+ * 
+ */
+export type ImageGenUpload = Prisma.ImageGenUploadModel
+/**
+ * Model ImageGenUploadActivityLog
+ * 
+ */
+export type ImageGenUploadActivityLog = Prisma.ImageGenUploadActivityLogModel
+/**
+ * Model ImageGenAiGeneration
+ * 
+ */
+export type ImageGenAiGeneration = Prisma.ImageGenAiGenerationModel
+/**
+ * Model ImageGenAiGenerationActivityLog
+ * 
+ */
+export type ImageGenAiGenerationActivityLog = Prisma.ImageGenAiGenerationActivityLogModel
+/**
  * Model Invoice
  * 
  */

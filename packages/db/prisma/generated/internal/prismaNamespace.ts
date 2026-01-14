@@ -452,6 +452,10 @@ export const ModelName = {
   ImageGenTemplate: 'ImageGenTemplate',
   ImageGenProjectActivityLog: 'ImageGenProjectActivityLog',
   ImageGenTemplateActivityLog: 'ImageGenTemplateActivityLog',
+  ImageGenUpload: 'ImageGenUpload',
+  ImageGenUploadActivityLog: 'ImageGenUploadActivityLog',
+  ImageGenAiGeneration: 'ImageGenAiGeneration',
+  ImageGenAiGenerationActivityLog: 'ImageGenAiGenerationActivityLog',
   Invoice: 'Invoice',
   InvoiceLineItem: 'InvoiceLineItem',
   InvoiceTransaction: 'InvoiceTransaction',
@@ -500,7 +504,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5240,6 +5244,302 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ImageGenUpload: {
+      payload: Prisma.$ImageGenUploadPayload<ExtArgs>
+      fields: Prisma.ImageGenUploadFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ImageGenUploadFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ImageGenUploadFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload>
+        }
+        findFirst: {
+          args: Prisma.ImageGenUploadFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ImageGenUploadFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload>
+        }
+        findMany: {
+          args: Prisma.ImageGenUploadFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload>[]
+        }
+        create: {
+          args: Prisma.ImageGenUploadCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload>
+        }
+        createMany: {
+          args: Prisma.ImageGenUploadCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ImageGenUploadCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload>[]
+        }
+        delete: {
+          args: Prisma.ImageGenUploadDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload>
+        }
+        update: {
+          args: Prisma.ImageGenUploadUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload>
+        }
+        deleteMany: {
+          args: Prisma.ImageGenUploadDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ImageGenUploadUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ImageGenUploadUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload>[]
+        }
+        upsert: {
+          args: Prisma.ImageGenUploadUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadPayload>
+        }
+        aggregate: {
+          args: Prisma.ImageGenUploadAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateImageGenUpload>
+        }
+        groupBy: {
+          args: Prisma.ImageGenUploadGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImageGenUploadGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ImageGenUploadCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImageGenUploadCountAggregateOutputType> | number
+        }
+      }
+    }
+    ImageGenUploadActivityLog: {
+      payload: Prisma.$ImageGenUploadActivityLogPayload<ExtArgs>
+      fields: Prisma.ImageGenUploadActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ImageGenUploadActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ImageGenUploadActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.ImageGenUploadActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ImageGenUploadActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.ImageGenUploadActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.ImageGenUploadActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.ImageGenUploadActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ImageGenUploadActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.ImageGenUploadActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload>
+        }
+        update: {
+          args: Prisma.ImageGenUploadActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.ImageGenUploadActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ImageGenUploadActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ImageGenUploadActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.ImageGenUploadActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenUploadActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.ImageGenUploadActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateImageGenUploadActivityLog>
+        }
+        groupBy: {
+          args: Prisma.ImageGenUploadActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImageGenUploadActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ImageGenUploadActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImageGenUploadActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    ImageGenAiGeneration: {
+      payload: Prisma.$ImageGenAiGenerationPayload<ExtArgs>
+      fields: Prisma.ImageGenAiGenerationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ImageGenAiGenerationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ImageGenAiGenerationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload>
+        }
+        findFirst: {
+          args: Prisma.ImageGenAiGenerationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ImageGenAiGenerationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload>
+        }
+        findMany: {
+          args: Prisma.ImageGenAiGenerationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload>[]
+        }
+        create: {
+          args: Prisma.ImageGenAiGenerationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload>
+        }
+        createMany: {
+          args: Prisma.ImageGenAiGenerationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ImageGenAiGenerationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload>[]
+        }
+        delete: {
+          args: Prisma.ImageGenAiGenerationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload>
+        }
+        update: {
+          args: Prisma.ImageGenAiGenerationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload>
+        }
+        deleteMany: {
+          args: Prisma.ImageGenAiGenerationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ImageGenAiGenerationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ImageGenAiGenerationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload>[]
+        }
+        upsert: {
+          args: Prisma.ImageGenAiGenerationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationPayload>
+        }
+        aggregate: {
+          args: Prisma.ImageGenAiGenerationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateImageGenAiGeneration>
+        }
+        groupBy: {
+          args: Prisma.ImageGenAiGenerationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImageGenAiGenerationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ImageGenAiGenerationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImageGenAiGenerationCountAggregateOutputType> | number
+        }
+      }
+    }
+    ImageGenAiGenerationActivityLog: {
+      payload: Prisma.$ImageGenAiGenerationActivityLogPayload<ExtArgs>
+      fields: Prisma.ImageGenAiGenerationActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ImageGenAiGenerationActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ImageGenAiGenerationActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.ImageGenAiGenerationActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ImageGenAiGenerationActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.ImageGenAiGenerationActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.ImageGenAiGenerationActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.ImageGenAiGenerationActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ImageGenAiGenerationActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.ImageGenAiGenerationActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload>
+        }
+        update: {
+          args: Prisma.ImageGenAiGenerationActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.ImageGenAiGenerationActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ImageGenAiGenerationActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ImageGenAiGenerationActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.ImageGenAiGenerationActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageGenAiGenerationActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.ImageGenAiGenerationActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateImageGenAiGenerationActivityLog>
+        }
+        groupBy: {
+          args: Prisma.ImageGenAiGenerationActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImageGenAiGenerationActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ImageGenAiGenerationActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImageGenAiGenerationActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
     Invoice: {
       payload: Prisma.$InvoicePayload<ExtArgs>
       fields: Prisma.InvoiceFieldRefs
@@ -8886,6 +9186,74 @@ export const ImageGenTemplateActivityLogScalarFieldEnum = {
 export type ImageGenTemplateActivityLogScalarFieldEnum = (typeof ImageGenTemplateActivityLogScalarFieldEnum)[keyof typeof ImageGenTemplateActivityLogScalarFieldEnum]
 
 
+export const ImageGenUploadScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  fileUrl: 'fileUrl',
+  fileKey: 'fileKey',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  mimeType: 'mimeType',
+  fileMetadata: 'fileMetadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ImageGenUploadScalarFieldEnum = (typeof ImageGenUploadScalarFieldEnum)[keyof typeof ImageGenUploadScalarFieldEnum]
+
+
+export const ImageGenUploadActivityLogScalarFieldEnum = {
+  id: 'id',
+  imageGenUploadId: 'imageGenUploadId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ImageGenUploadActivityLogScalarFieldEnum = (typeof ImageGenUploadActivityLogScalarFieldEnum)[keyof typeof ImageGenUploadActivityLogScalarFieldEnum]
+
+
+export const ImageGenAiGenerationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  prompt: 'prompt',
+  referenceImageUrls: 'referenceImageUrls',
+  imageUrl: 'imageUrl',
+  imageKey: 'imageKey',
+  imageFileName: 'imageFileName',
+  imageSize: 'imageSize',
+  imageMimeType: 'imageMimeType',
+  imageMetadata: 'imageMetadata',
+  modelId: 'modelId',
+  modelName: 'modelName',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ImageGenAiGenerationScalarFieldEnum = (typeof ImageGenAiGenerationScalarFieldEnum)[keyof typeof ImageGenAiGenerationScalarFieldEnum]
+
+
+export const ImageGenAiGenerationActivityLogScalarFieldEnum = {
+  id: 'id',
+  imageGenAiGenerationId: 'imageGenAiGenerationId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ImageGenAiGenerationActivityLogScalarFieldEnum = (typeof ImageGenAiGenerationActivityLogScalarFieldEnum)[keyof typeof ImageGenAiGenerationActivityLogScalarFieldEnum]
+
+
 export const InvoiceScalarFieldEnum = {
   id: 'id',
   teamId: 'teamId',
@@ -10437,6 +10805,10 @@ export type GlobalOmitConfig = {
   imageGenTemplate?: Prisma.ImageGenTemplateOmit
   imageGenProjectActivityLog?: Prisma.ImageGenProjectActivityLogOmit
   imageGenTemplateActivityLog?: Prisma.ImageGenTemplateActivityLogOmit
+  imageGenUpload?: Prisma.ImageGenUploadOmit
+  imageGenUploadActivityLog?: Prisma.ImageGenUploadActivityLogOmit
+  imageGenAiGeneration?: Prisma.ImageGenAiGenerationOmit
+  imageGenAiGenerationActivityLog?: Prisma.ImageGenAiGenerationActivityLogOmit
   invoice?: Prisma.InvoiceOmit
   invoiceLineItem?: Prisma.InvoiceLineItemOmit
   invoiceTransaction?: Prisma.InvoiceTransactionOmit

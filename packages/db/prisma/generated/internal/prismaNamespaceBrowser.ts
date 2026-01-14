@@ -112,6 +112,10 @@ export const ModelName = {
   ImageGenTemplate: 'ImageGenTemplate',
   ImageGenProjectActivityLog: 'ImageGenProjectActivityLog',
   ImageGenTemplateActivityLog: 'ImageGenTemplateActivityLog',
+  ImageGenUpload: 'ImageGenUpload',
+  ImageGenUploadActivityLog: 'ImageGenUploadActivityLog',
+  ImageGenAiGeneration: 'ImageGenAiGeneration',
+  ImageGenAiGenerationActivityLog: 'ImageGenAiGenerationActivityLog',
   Invoice: 'Invoice',
   InvoiceLineItem: 'InvoiceLineItem',
   InvoiceTransaction: 'InvoiceTransaction',
@@ -1326,6 +1330,74 @@ export const ImageGenTemplateActivityLogScalarFieldEnum = {
 } as const
 
 export type ImageGenTemplateActivityLogScalarFieldEnum = (typeof ImageGenTemplateActivityLogScalarFieldEnum)[keyof typeof ImageGenTemplateActivityLogScalarFieldEnum]
+
+
+export const ImageGenUploadScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  fileUrl: 'fileUrl',
+  fileKey: 'fileKey',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  mimeType: 'mimeType',
+  fileMetadata: 'fileMetadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ImageGenUploadScalarFieldEnum = (typeof ImageGenUploadScalarFieldEnum)[keyof typeof ImageGenUploadScalarFieldEnum]
+
+
+export const ImageGenUploadActivityLogScalarFieldEnum = {
+  id: 'id',
+  imageGenUploadId: 'imageGenUploadId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ImageGenUploadActivityLogScalarFieldEnum = (typeof ImageGenUploadActivityLogScalarFieldEnum)[keyof typeof ImageGenUploadActivityLogScalarFieldEnum]
+
+
+export const ImageGenAiGenerationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  prompt: 'prompt',
+  referenceImageUrls: 'referenceImageUrls',
+  imageUrl: 'imageUrl',
+  imageKey: 'imageKey',
+  imageFileName: 'imageFileName',
+  imageSize: 'imageSize',
+  imageMimeType: 'imageMimeType',
+  imageMetadata: 'imageMetadata',
+  modelId: 'modelId',
+  modelName: 'modelName',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ImageGenAiGenerationScalarFieldEnum = (typeof ImageGenAiGenerationScalarFieldEnum)[keyof typeof ImageGenAiGenerationScalarFieldEnum]
+
+
+export const ImageGenAiGenerationActivityLogScalarFieldEnum = {
+  id: 'id',
+  imageGenAiGenerationId: 'imageGenAiGenerationId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ImageGenAiGenerationActivityLogScalarFieldEnum = (typeof ImageGenAiGenerationActivityLogScalarFieldEnum)[keyof typeof ImageGenAiGenerationActivityLogScalarFieldEnum]
 
 
 export const InvoiceScalarFieldEnum = {

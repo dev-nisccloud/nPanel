@@ -28,7 +28,7 @@ export const ourFileRouter = {
     }),
 
   // Image upload endpoint (optimized for images)
-  imageUploader: f({ image: { maxFileSize: "16MB", maxFileCount: 5 } })
+  imageUploader: f({ image: { maxFileSize: "16MB", maxFileCount: 20 } })
     .middleware(async ({ req }) => {
       const session = await auth.api.getSession({
         headers: req.headers,

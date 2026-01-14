@@ -30,7 +30,7 @@ export default function ImageGeneratorPage() {
               variant="link"
               className="h-auto p-0 text-primary underline"
             >
-              <Link href="/gen-ai/image-gen-studio">Visual Studio</Link>
+              <Link href="/agency/gen-ai/image-gen-studio">Visual Studio</Link>
             </Button>{" "}
             feature.
           </p>
