@@ -125,7 +125,7 @@ export const Navbar = ({
   // });
 
   return (
-    <nav className="w-full flex items-center p-4 h-[68px] gap-x-4 border-b">
+    <nav className="w-full flex items-center p-4 h-[68px] gap-x-4 border-b bg-background shrink-0">
       {/* Back Button */}
       <Link href="/agency/gen-ai/image-gen-studio">
         <Button size="icon" variant="ghost" className="h-8 w-8">
@@ -247,13 +247,14 @@ export const Navbar = ({
         <div className="ml-auto flex items-center gap-x-4">
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="ghost">
+              <Button size="sm" variant="default" className="rounded-full">
                 Export
                 <Download className="size-4 ml-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-60">
-              <DropdownMenuItem
+              {/* JSON export - commented out for now, may be needed in the future */}
+              {/* <DropdownMenuItem
                 className="flex items-center gap-x-2"
                 onClick={() => editor?.saveJson()}
               >
@@ -264,7 +265,7 @@ export const Navbar = ({
                     Save for later editing
                   </p>
                 </div>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuItem
                 className="flex items-center gap-x-2"
                 onClick={() => editor?.savePng()}

@@ -38,30 +38,31 @@ export const FontSidebar = ({
         title="Font"
         description="Change the text font"
       />
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-1">
-          {fonts.map((font) => (
-            <Button
-              key={font}
-              variant="secondary"
-              size="lg"
-              className={cn(
-                "w-full h-16 justify-start text-left",
-                value === font && "border-2 border-blue-500",
-              )}
-              style={{
-                fontFamily: font,
-                fontSize: "16px",
-                padding: "8px 16px"
-              }}
-              onClick={() => editor?.changeFontFamily(font)}
-            >
-              {font}
-            </Button>
-          ))}
-        </div>
-        <ScrollBar orientation="vertical" />
-      </ScrollArea>
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-4 space-y-1">
+            {fonts.map((font) => (
+              <Button
+                key={font}
+                variant="secondary"
+                size="lg"
+                className={cn(
+                  "w-full h-16 justify-start text-left",
+                  value === font && "border-2 border-blue-500",
+                )}
+                style={{
+                  fontFamily: font,
+                  fontSize: "16px",
+                  padding: "8px 16px"
+                }}
+                onClick={() => editor?.changeFontFamily(font)}
+              >
+                {font}
+              </Button>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
       <ToolSidebarClose onClick={onClose} />
     </aside>
   );

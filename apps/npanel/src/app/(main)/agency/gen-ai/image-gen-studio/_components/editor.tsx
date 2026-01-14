@@ -132,7 +132,7 @@ export const Editor = ({ initialData }: EditorProps) => {
         activeTool={activeTool}
         onChangeActiveTool={onChangeActiveTool}
       />
-      <div className="absolute h-[calc(100%-68px)] w-full top-[68px] flex">
+      <div className="flex-1 flex overflow-hidden">
         <Sidebar
           activeTool={activeTool}
           onChangeActiveTool={onChangeActiveTool}

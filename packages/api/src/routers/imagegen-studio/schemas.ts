@@ -113,6 +113,13 @@ export const deleteUploadSchema = z.object({
   id: z.string(),
 });
 
+// Images schemas
+export const getImagesSchema = z.object({
+  page: z.number().int().positive().default(1),
+  perPage: z.number().int().positive().max(30).default(20),
+  query: z.string().optional(),
+});
+
 
 
 
