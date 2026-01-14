@@ -317,6 +317,21 @@ export type GoogleAdsIntegrationActivityLog = Prisma.GoogleAdsIntegrationActivit
  */
 export type GoogleAdsAccountActivityLog = Prisma.GoogleAdsAccountActivityLogModel
 /**
+ * Model ImageGeneratorGeneration
+ * 
+ */
+export type ImageGeneratorGeneration = Prisma.ImageGeneratorGenerationModel
+/**
+ * Model ImageGeneratorVariation
+ * 
+ */
+export type ImageGeneratorVariation = Prisma.ImageGeneratorVariationModel
+/**
+ * Model ImageGeneratorGenerationActivityLog
+ * 
+ */
+export type ImageGeneratorGenerationActivityLog = Prisma.ImageGeneratorGenerationActivityLogModel
+/**
  * Model ImageGenProject
  * 
  */

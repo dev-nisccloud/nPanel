@@ -108,6 +108,9 @@ export const ModelName = {
   GoogleAdsAccount: 'GoogleAdsAccount',
   GoogleAdsIntegrationActivityLog: 'GoogleAdsIntegrationActivityLog',
   GoogleAdsAccountActivityLog: 'GoogleAdsAccountActivityLog',
+  ImageGeneratorGeneration: 'ImageGeneratorGeneration',
+  ImageGeneratorVariation: 'ImageGeneratorVariation',
+  ImageGeneratorGenerationActivityLog: 'ImageGeneratorGenerationActivityLog',
   ImageGenProject: 'ImageGenProject',
   ImageGenTemplate: 'ImageGenTemplate',
   ImageGenProjectActivityLog: 'ImageGenProjectActivityLog',
@@ -1268,6 +1271,57 @@ export const GoogleAdsAccountActivityLogScalarFieldEnum = {
 } as const
 
 export type GoogleAdsAccountActivityLogScalarFieldEnum = (typeof GoogleAdsAccountActivityLogScalarFieldEnum)[keyof typeof GoogleAdsAccountActivityLogScalarFieldEnum]
+
+
+export const ImageGeneratorGenerationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  prompt: 'prompt',
+  referenceImageUrls: 'referenceImageUrls',
+  aspectRatio: 'aspectRatio',
+  outputFormat: 'outputFormat',
+  resolution: 'resolution',
+  variationsCount: 'variationsCount',
+  modelId: 'modelId',
+  modelName: 'modelName',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ImageGeneratorGenerationScalarFieldEnum = (typeof ImageGeneratorGenerationScalarFieldEnum)[keyof typeof ImageGeneratorGenerationScalarFieldEnum]
+
+
+export const ImageGeneratorVariationScalarFieldEnum = {
+  id: 'id',
+  imageGeneratorGenerationId: 'imageGeneratorGenerationId',
+  variationIndex: 'variationIndex',
+  imageUrl: 'imageUrl',
+  imageKey: 'imageKey',
+  imageFileName: 'imageFileName',
+  imageSize: 'imageSize',
+  imageMimeType: 'imageMimeType',
+  imageMetadata: 'imageMetadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ImageGeneratorVariationScalarFieldEnum = (typeof ImageGeneratorVariationScalarFieldEnum)[keyof typeof ImageGeneratorVariationScalarFieldEnum]
+
+
+export const ImageGeneratorGenerationActivityLogScalarFieldEnum = {
+  id: 'id',
+  imageGeneratorGenerationId: 'imageGeneratorGenerationId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type ImageGeneratorGenerationActivityLogScalarFieldEnum = (typeof ImageGeneratorGenerationActivityLogScalarFieldEnum)[keyof typeof ImageGeneratorGenerationActivityLogScalarFieldEnum]
 
 
 export const ImageGenProjectScalarFieldEnum = {

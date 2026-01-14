@@ -463,6 +463,8 @@ model User {
   imageGenTemplates           ImageGenTemplate[]
   ImageGenUpload              ImageGenUpload[]
   imageGenAiGenerations       ImageGenAiGeneration[]
+  // Image Generator Relations
+  imageGeneratorGenerations   ImageGeneratorGeneration[]
 
   @@unique([email])
   @@index([role])
@@ -506,45 +508,47 @@ model Account {
 }
 
 model Team {
-  id                    String                 @id @map("_id")
-  name                  String
-  slug                  String                 @unique
-  baseCurrency          String                 @default("KES")
-  logoUrl               String?
-  isActive              Boolean                @default(true)
-  createdAt             DateTime
-  updatedAt             DateTime
-  createdById           String
-  members               TeamMember[]
-  invites               TeamInvite[]
-  domainRegistrations   DomainRegistration[]
-  hostingSubscriptions  HostingSubscription[]
-  wordpressInstances    WordPressInstance[]
-  promos                Promo[]
-  orders                Order[]
+  id                        String                     @id @map("_id")
+  name                      String
+  slug                      String                     @unique
+  baseCurrency              String                     @default("KES")
+  logoUrl                   String?
+  isActive                  Boolean                    @default(true)
+  createdAt                 DateTime
+  updatedAt                 DateTime
+  createdById               String
+  members                   TeamMember[]
+  invites                   TeamInvite[]
+  domainRegistrations       DomainRegistration[]
+  hostingSubscriptions      HostingSubscription[]
+  wordpressInstances        WordPressInstance[]
+  promos                    Promo[]
+  orders                    Order[]
   // Email Marketing Relations
-  emailDomains          EmailDomain[]
-  emailCampaigns        EmailCampaign[]
-  audiences             Audience[]
+  emailDomains              EmailDomain[]
+  emailCampaigns            EmailCampaign[]
+  audiences                 Audience[]
   // Creative Assets Relations
-  creativeAssets        CreativeAsset[]
+  creativeAssets            CreativeAsset[]
   // Invoicing Relations
-  invoices              Invoice[]
-  creditNotes           CreditNote[]
-  billingSettings       TeamBillingSettings?
+  invoices                  Invoice[]
+  creditNotes               CreditNote[]
+  billingSettings           TeamBillingSettings?
   // Social Media Marketing Relations (page ownership)
-  socialMediaPageTokens SocialMediaPageToken[]
+  socialMediaPageTokens     SocialMediaPageToken[]
   // Google Ads Relations (account ownership)
-  googleAdsAccounts     GoogleAdsAccount[]
+  googleAdsAccounts         GoogleAdsAccount[]
   // Meta Ads Relations (account ownership)
-  metaAdsAccounts       MetaAdsAccount[]
+  metaAdsAccounts           MetaAdsAccount[]
   // Service Subscriptions Relations
-  serviceSubscriptions  ServiceSubscription[]
+  serviceSubscriptions      ServiceSubscription[]
   // ImageGen Studio Relations
-  imageGenProjects      ImageGenProject[]
-  PaymentTransaction    PaymentTransaction[]
-  ImageGenUpload        ImageGenUpload[]
-  imageGenAiGenerations ImageGenAiGeneration[]
+  imageGenProjects          ImageGenProject[]
+  PaymentTransaction        PaymentTransaction[]
+  ImageGenUpload            ImageGenUpload[]
+  imageGenAiGenerations     ImageGenAiGeneration[]
+  // Image Generator Relations
+  imageGeneratorGenerations ImageGeneratorGeneration[]
 
   @@index([slug])
   @@index([createdById])

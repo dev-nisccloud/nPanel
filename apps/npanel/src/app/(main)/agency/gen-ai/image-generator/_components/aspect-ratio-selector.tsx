@@ -10,18 +10,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type AspectRatio = "1:1" | "4:5" | "2:3" | "9:16" | "16:9" | "21:9" | "3:2" | "5:4" | "9:21";
+// Supported aspect ratios for Replicate nano-banana
+export type AspectRatio = "1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "4:5" | "5:4" | "9:16" | "16:9" | "21:9";
 
 const ASPECT_RATIOS: { value: AspectRatio; label: string; display: string }[] = [
-  { value: "1:1", label: "Square", display: "Square" },
-  { value: "4:5", label: "Portrait", display: "Portrait" },
-  { value: "9:16", label: "Portrait (Tall)", display: "Portrait" },
-  { value: "16:9", label: "Landscape", display: "Landscape" },
-  { value: "21:9", label: "Landscape (Wide)", display: "Landscape" },
-  { value: "3:2", label: "Photo", display: "Photo" },
-  { value: "5:4", label: "Classic", display: "Classic" },
-  { value: "2:3", label: "Portrait (Classic)", display: "Portrait" },
-  { value: "9:21", label: "Portrait (Ultra)", display: "Portrait" },
+  { value: "1:1", label: "Square (1:1)", display: "Square" },
+  { value: "2:3", label: "Portrait (2:3)", display: "Portrait" },
+  { value: "3:2", label: "Landscape (3:2)", display: "Landscape" },
+  { value: "3:4", label: "Portrait (3:4)", display: "Portrait" },
+  { value: "4:3", label: "Landscape (4:3)", display: "Landscape" },
+  { value: "4:5", label: "Portrait (4:5)", display: "Portrait" },
+  { value: "5:4", label: "Landscape (5:4)", display: "Landscape" },
+  { value: "9:16", label: "Portrait (9:16)", display: "Portrait" },
+  { value: "16:9", label: "Landscape (16:9)", display: "Landscape" },
+  { value: "21:9", label: "Ultra Wide (21:9)", display: "Ultra Wide" },
 ];
 
 interface AspectRatioSelectorProps {
@@ -34,7 +36,7 @@ export function AspectRatioSelector({ value, onChange, disabled }: AspectRatioSe
   const [open, setOpen] = React.useState(false);
 
   const selectedRatio = ASPECT_RATIOS.find((r) => r.value === value);
-  const displayLabel = selectedRatio?.display || "Square";
+  const displayLabel = selectedRatio?.display || "Landscape";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

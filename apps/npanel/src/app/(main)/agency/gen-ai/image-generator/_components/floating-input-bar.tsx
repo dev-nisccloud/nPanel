@@ -1,53 +1,26 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles, Image as ImageIcon, Wand2, X, ChevronDown, Plus, PenTool } from "lucide-react";
+import { Image as ImageIcon, Wand2, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { StyleSelector } from "./style-selector";
-import { AspectRatioSelector } from "./aspect-ratio-selector";
-import { FormatSelector } from "./format-selector";
-import { ModelSelector } from "./model-selector";
+import { AspectRatioSelector, type AspectRatio } from "./aspect-ratio-selector";
+import { FormatSelector, type OutputFormat } from "./format-selector";
+import { ResolutionSelector } from "./resolution-selector";
 import { VariationsSelector } from "./variations-selector";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { motion, AnimatePresence } from "framer-motion";
+import { uploadFiles } from "@/hooks/use-uploadthing";
+import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
 
-type AspectRatio = "1:1" | "4:5" | "2:3" | "9:16" | "16:9" | "21:9" | "3:2" | "5:4" | "9:21";
-type OutputFormat = "webp" | "jpeg" | "png";
-type ModelType = "ultra" | "core" | "sd3";
-type StylePreset =
-  | "3d-model"
-  | "analog-film"
-  | "anime"
-  | "cinematic"
-  | "comic-book"
-  | "digital-art"
-  | "enhance"
-  | "fantasy-art"
-  | "isometric"
-  | "line-art"
-  | "low-poly"
-  | "modeling-compound"
-  | "neon-punk"
-  | "origami"
-  | "photographic"
-  | "pixel-art"
-  | "tile-texture"
-  | null;
+type Resolution = "1K" | "2K" | "4K";
 
 function useAutoResizeTextarea({
   minHeight,
@@ -111,12 +84,10 @@ export function FloatingInputBar({
   onGenerationEnd 
 }: FloatingInputBarProps) {
   const [prompt, setPrompt] = React.useState("");
-  const [selectedStyle, setSelectedStyle] = React.useState<StylePreset>(null);
-  const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>("1:1");
+  const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>("4:3");
   const [outputFormat, setOutputFormat] = React.useState<OutputFormat>("png");
-  const [model, setModel] = React.useState<ModelType>("core");
-  const [sd3Model, setSd3Model] = React.useState<"sd3.5-large" | "sd3.5-large-turbo" | "sd3.5-medium" | "sd3.5-flash">("sd3.5-large");
-  const [variations, setVariations] = React.useState<number>(3);
+  const [resolution, setResolution] = React.useState<Resolution>("2K");
+  const [variations, setVariations] = React.useState<number>(2);
   const [selectedImages, setSelectedImages] = React.useState<File[]>([]);
   const [isGenerating, setIsGenerating] = React.useState(false);
 
@@ -126,6 +97,8 @@ export function FloatingInputBar({
   });
 
   const utils = trpc.useUtils();
+  const generateMutation = trpc.imageGenerator.generateImage.useMutation();
+  const updateVariationMutation = trpc.imageGenerator.updateVariationAfterUpload.useMutation();
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -134,51 +107,118 @@ export function FloatingInputBar({
     }
 
     setIsGenerating(true);
+    // Show skeleton loaders for all variations immediately
     onGenerationStart(variations);
 
     try {
-      const baseParams = {
-        prompt: prompt.trim(),
-        negativePrompt: undefined,
-        model,
-        ...(model === "sd3" && sd3Model ? { sd3Model } : {}),
-        aspectRatio,
-        stylePreset: selectedStyle || undefined,
-        outputFormat,
-        seed: 0,
-      };
-
-      const generatedImagesList: any[] = [];
+      // Step 1: Upload reference images to UploadThing first (if any)
+      let referenceImageUrls: string[] = [];
       
-      // Generate variations sequentially to show progress
-      for (let index = 0; index < variations; index++) {
+      if (selectedImages.length > 0) {
         try {
-          const variationSeed = 0; // Random seed
-          const result = await utils.client.stabilityAi.generate.mutate({
-            ...baseParams,
-            seed: variationSeed,
+          // Disable removing images during generation
+          const uploadPromises = selectedImages.map(async (file) => {
+            const response = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
+              files: [file],
+            });
+
+            if (!response || response.length === 0) {
+              throw new Error(`Failed to upload ${file.name}`);
+            }
+
+            const uploadedFile = response[0];
+            const fileUrl = uploadedFile.ufsUrl || uploadedFile.url || "";
+            
+            if (!fileUrl) {
+              throw new Error("File URL not found in upload response");
+            }
+
+            return fileUrl;
           });
 
+          referenceImageUrls = await Promise.all(uploadPromises);
+        } catch (error: any) {
+          console.error("Error uploading reference images:", error);
+          toast.error(`Failed to upload reference images: ${error.message}`);
+          setIsGenerating(false);
+          onGenerationEnd();
+          return;
+        }
+      }
+
+      // Step 2: Generate images with variations using Replicate
+      const result = await generateMutation.mutateAsync({
+        prompt: prompt.trim(),
+        referenceImageUrls: referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
+        aspectRatio,
+        outputFormat,
+        resolution,
+        variations,
+      });
+
+      if (!result || !result.variations || result.variations.length === 0) {
+        throw new Error("No images were generated");
+      }
+
+      // Step 3: Process each variation as it's generated
+      // Download each image, upload to UploadThing, and update the variation record
+      const generatedImagesList: any[] = [];
+
+      for (const variation of result.variations) {
+        try {
+          // Download the generated image from Replicate
+          const imageResponse = await fetch(variation.imageUrl);
+          if (!imageResponse.ok) {
+            throw new Error(`Failed to download image: ${imageResponse.statusText}`);
+          }
+
+          const blob = await imageResponse.blob();
+          const file = new File([blob], variation.imageFileName, { 
+            type: variation.imageMimeType || `image/${outputFormat}` 
+          });
+
+          // Upload to UploadThing
+          const uploadResponse = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
+            files: [file],
+          });
+
+          if (!uploadResponse || uploadResponse.length === 0) {
+            throw new Error("Failed to upload generated image to UploadThing");
+          }
+
+          const uploadedFile = uploadResponse[0];
+          const finalImageUrl = uploadedFile.ufsUrl || uploadedFile.url || "";
+
+          if (!finalImageUrl) {
+            throw new Error("No URL returned from UploadThing");
+          }
+
+          // Update variation record with UploadThing data
+          await updateVariationMutation.mutateAsync({
+            variationId: variation.id,
+            imageUrl: finalImageUrl,
+            imageKey: uploadedFile.key || "",
+            imageFileName: uploadedFile.name || file.name,
+            imageSize: uploadedFile.size || file.size,
+            imageMimeType: uploadedFile.type || file.type,
+          });
+
+          // Create image data for display
           const imageData = {
-            dataUrl: `data:${result.mimeType};base64,${result.image}`,
-            mimeType: result.mimeType,
-            seed: result.seed,
+            dataUrl: finalImageUrl,
+            mimeType: variation.imageMimeType,
             prompt: prompt.trim(),
             timestamp: new Date().toISOString(),
+            variationId: variation.id,
+            variationIndex: variation.variationIndex,
           };
 
-          console.log(`Generated image ${index + 1}:`, {
-            hasImage: !!result.image,
-            imageLength: result.image?.length,
-            mimeType: result.mimeType,
-          });
-
           generatedImagesList.push(imageData);
-          // Show each image as it's generated
+          // Show each image as it's processed
           onGenerate([imageData]);
         } catch (error: any) {
-          console.error(`Error generating variation ${index + 1}:`, error);
-          toast.error(`Failed to generate variation ${index + 1}: ${error.message || "Unknown error"}`);
+          console.error(`Error processing variation ${variation.variationIndex}:`, error);
+          toast.error(`Failed to process variation ${variation.variationIndex}: ${error.message || "Unknown error"}`);
         }
       }
 
@@ -210,8 +250,8 @@ export function FloatingInputBar({
   };
 
   const handleEnhancePrompt = () => {
-    // TODO: Implement prompt enhancement
-    toast.info("Prompt enhancement coming soon");
+    // Disabled for now
+    toast.info("Prompt enhancement is currently disabled");
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,20 +268,8 @@ export function FloatingInputBar({
   };
 
   const removeImage = (index: number) => {
+    if (isGenerating) return; // Disable removal during generation
     setSelectedImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // Get aspect ratio display label
-  const aspectRatioLabels: Record<AspectRatio, string> = {
-    "1:1": "Square",
-    "4:5": "Portrait",
-    "2:3": "Portrait",
-    "9:16": "Portrait",
-    "16:9": "Landscape",
-    "21:9": "Landscape",
-    "3:2": "Photo",
-    "5:4": "Classic",
-    "9:21": "Portrait",
   };
 
   return (
@@ -259,7 +287,11 @@ export function FloatingInputBar({
                 />
                 <button
                   onClick={() => removeImage(index)}
-                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground transition-colors hover:bg-destructive/90"
+                  disabled={isGenerating}
+                  className={cn(
+                    "absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground transition-colors hover:bg-destructive/90",
+                    isGenerating && "opacity-50 cursor-not-allowed"
+                  )}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -304,7 +336,7 @@ export function FloatingInputBar({
                             "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
                             "text-muted-foreground hover:text-foreground",
                             "focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
-                            selectedImages.length >= 3 && "opacity-50 cursor-not-allowed"
+                            (selectedImages.length >= 3 || isGenerating) && "opacity-50 cursor-not-allowed"
                           )}
                           aria-label="Upload images"
                         >
@@ -324,47 +356,7 @@ export function FloatingInputBar({
                       </TooltipContent>
                     </Tooltip>
 
-                    {/* Upload Sketch */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <label
-                          className={cn(
-                            "flex cursor-pointer items-center justify-center rounded-lg p-2 transition-colors",
-                            "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
-                            "text-muted-foreground hover:text-foreground",
-                            "focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
-                            isGenerating && "opacity-50 cursor-not-allowed"
-                          )}
-                          aria-label="Upload sketch"
-                        >
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={() => {}}
-                            disabled={isGenerating}
-                            className="hidden"
-                          />
-                          <PenTool className="h-4 w-4" />
-                        </label>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-sm">
-                        <div className="space-y-2">
-                          <p className="font-semibold">Sketch</p>
-                          <p className="text-xs">
-                            This service offers an ideal solution for design projects that require brainstorming and frequent iterations. It upgrades rough hand-drawn sketches to refined outputs with precise control. For non-sketch images, it allows detailed manipulation of the final appearance by leveraging the contour lines and edges within the image.
-                          </p>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-
                     <div className="h-4 w-px bg-border mx-0.5" />
-
-                    {/* Style Selector */}
-                    <StyleSelector
-                      selectedStyle={selectedStyle}
-                      onStyleSelect={setSelectedStyle}
-                      disabled={isGenerating}
-                    />
 
                     {/* Aspect Ratio */}
                     <AspectRatioSelector
@@ -387,30 +379,28 @@ export function FloatingInputBar({
                       disabled={isGenerating}
                     />
 
-                    {/* Model */}
-                    <ModelSelector
-                      value={model}
-                      sd3Model={sd3Model}
-                      onModelChange={setModel}
-                      onSd3ModelChange={setSd3Model}
+                    {/* Resolution */}
+                    <ResolutionSelector
+                      value={resolution}
+                      onChange={setResolution}
                       disabled={isGenerating}
                     />
                   </div>
 
                   {/* Right Side Actions */}
                   <div className="flex items-center gap-2">
-                    {/* Enhance Prompt */}
+                    {/* Enhance Prompt - Disabled */}
                     <button
                       onClick={handleEnhancePrompt}
-                      disabled={isGenerating}
+                      disabled={true}
                       className={cn(
                         "rounded-lg p-2 transition-colors",
-                        "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
-                        "text-muted-foreground hover:text-foreground",
+                        "bg-black/5 dark:bg-white/5",
+                        "text-muted-foreground",
                         "focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
-                        "disabled:opacity-50 disabled:cursor-not-allowed"
+                        "opacity-50 cursor-not-allowed"
                       )}
-                      aria-label="Enhance prompt"
+                      aria-label="Enhance prompt (disabled)"
                     >
                       <Wand2 className="h-4 w-4" />
                     </button>

@@ -57,6 +57,7 @@ import { metaAdsRouter } from "./meta-ads";
 import { linkedInAdsRouter } from "./linkedin-ads";
 import { imageGenStudioRouter } from "./imagegen-studio";
 import { stabilityAiRouter } from "./stability-ai";
+import { imageGeneratorRouter } from "./image-generator";
 import { paymentGatewayRouter } from "./payment-gateway";
 
 export const appRouter = router({
@@ -161,6 +162,8 @@ export const appRouter = router({
 	imageGenStudio: imageGenStudioRouter,
 	// Stability AI Image Generation
 	stabilityAi: stabilityAiRouter,
+	// Image Generator
+	imageGenerator: imageGeneratorRouter,
 	// Payment Gateway Integration
 	paymentGateway: paymentGatewayRouter,
 });

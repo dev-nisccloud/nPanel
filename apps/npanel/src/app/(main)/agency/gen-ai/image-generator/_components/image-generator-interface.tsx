@@ -3,11 +3,21 @@
 import * as React from "react";
 import { GeneratedImagesView } from "./generated-images-view";
 import { FloatingInputBar } from "./floating-input-bar";
+import { useGetGenerations } from "../_api/use-get-generations";
+import { trpc } from "@/utils/trpc";
 
 export function ImageGeneratorInterface() {
   const [generatedImages, setGeneratedImages] = React.useState<any[]>([]);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [generatingCount, setGeneratingCount] = React.useState({ current: 0, total: 0 });
+
+  // Fetch generation history from database
+  const { data: generationsData, isLoading: isLoadingHistory, refetch: refetchGenerations } = useGetGenerations({
+    page: 1,
+    limit: 50, // Load more history
+  });
+
+  const utils = trpc.useUtils();
 
   const handleGenerationStart = (total: number) => {
     setIsGenerating(true);
@@ -27,11 +37,33 @@ export function ImageGeneratorInterface() {
   const handleGenerationEnd = () => {
     setIsGenerating(false);
     setGeneratingCount({ current: 0, total: 0 });
+    // Refetch generations to show the newly created ones in history
+    // The generation is already saved to DB, so it will appear in history
+    // Current session images remain visible
+    refetchGenerations();
+    utils.imageGenerator.getGenerations.invalidate();
   };
 
   const handleClearAll = () => {
     setGeneratedImages([]);
   };
+
+  // Transform database generations to the format expected by the view
+  const generations = React.useMemo(() => {
+    if (!generationsData?.data) return [];
+    
+    return generationsData.data.map((gen) => ({
+      id: gen.id,
+      prompt: gen.prompt,
+      createdAt: new Date(gen.createdAt),
+      variations: gen.variations.map((variation) => ({
+        id: variation.id,
+        variationIndex: variation.variationIndex,
+        imageUrl: variation.imageUrl,
+        imageMimeType: variation.imageMimeType,
+      })),
+    }));
+  }, [generationsData]);
 
   return (
     <div className="flex flex-col h-full">
@@ -40,8 +72,10 @@ export function ImageGeneratorInterface() {
         <div className="max-w-4xl mx-auto w-full">
           <GeneratedImagesView 
             images={generatedImages}
+            generations={generations}
             isGenerating={isGenerating}
             generatingCount={generatingCount}
+            isLoadingHistory={isLoadingHistory}
           />
         </div>
       </div>

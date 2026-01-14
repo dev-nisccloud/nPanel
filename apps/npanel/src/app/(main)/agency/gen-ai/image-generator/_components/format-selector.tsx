@@ -9,12 +9,11 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
-type OutputFormat = "webp" | "jpeg" | "png";
+export type OutputFormat = "png" | "jpg";
 
 const FORMATS: { value: OutputFormat; label: string }[] = [
   { value: "png", label: "PNG" },
-  { value: "jpeg", label: "JPEG" },
-  { value: "webp", label: "WebP" },
+  { value: "jpg", label: "JPG" },
 ];
 
 interface FormatSelectorProps {

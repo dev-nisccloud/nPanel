@@ -1,0 +1,84 @@
+// Image Generator - AI Image Generation Schema
+// Stores prompts and generations for the image generator feature
+
+// Image Generator - AI Generations (prompts and generation metadata)
+// One generation can have multiple variations
+model ImageGeneratorGeneration {
+  id     String  @id @map("_id")
+  userId String // User who generated the image
+  teamId String? // Optional team ownership (null = personal generation)
+
+  // Generation Details
+  prompt             String // The text prompt used
+  referenceImageUrls Json? // Array of reference image URLs (stored as JSON array)
+
+  // Generation Settings
+  aspectRatio     String // e.g., "1:1", "16:9", etc.
+  outputFormat    String // e.g., "png", "jpg"
+  resolution      String // e.g., "1K", "2K", "4K"
+  variationsCount Int // Number of variations requested
+
+  // Model Information
+  modelId   String // e.g., "google/nano-banana-pro"
+  modelName String? // Human-readable model name
+
+  createdAt DateTime
+  updatedAt DateTime
+
+  user         User                                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team         Team?                                 @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  variations   ImageGeneratorVariation[]
+  activityLogs ImageGeneratorGenerationActivityLog[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([createdAt])
+  @@index([modelId])
+  @@map("image_generator_generation")
+}
+
+// Image Generator - Individual Variation Images
+// Each variation is a separate generated image from the same prompt
+model ImageGeneratorVariation {
+  id                         String                   @id @map("_id")
+  imageGeneratorGenerationId String
+  imageGeneratorGeneration   ImageGeneratorGeneration @relation(fields: [imageGeneratorGenerationId], references: [id], onDelete: Cascade)
+
+  // Variation Index (1, 2, 3, etc.)
+  variationIndex Int
+
+  // Generated Image Storage (UploadThing)
+  imageUrl      String // UploadThing file URL for the generated image
+  imageKey      String // UploadThing file key for deletion
+  imageFileName String // Generated file name
+  imageSize     Int // File size in bytes
+  imageMimeType String // File MIME type (should be image/*)
+  imageMetadata Json? // Additional metadata (dimensions, seed, etc.)
+
+  createdAt DateTime
+  updatedAt DateTime
+
+  @@index([imageGeneratorGenerationId])
+  @@index([variationIndex])
+  @@map("image_generator_variation")
+}
+
+// Activity logging for Image Generator generation actions
+model ImageGeneratorGenerationActivityLog {
+  id                         String                   @id @map("_id")
+  imageGeneratorGenerationId String
+  imageGeneratorGeneration   ImageGeneratorGeneration @relation(fields: [imageGeneratorGenerationId], references: [id], onDelete: Cascade)
+  userId                     String
+  action                     String // e.g., "GENERATE", "DELETE", "DOWNLOAD", "SHARE"
+  description                String?
+  metadata                   Json?
+  ipAddress                  String?
+  userAgent                  String?
+  createdAt                  DateTime
+
+  @@index([imageGeneratorGenerationId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("image_generator_generation_activity_log")
+}

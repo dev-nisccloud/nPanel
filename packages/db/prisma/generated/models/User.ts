@@ -251,6 +251,7 @@ export type UserWhereInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateListRelationFilter
   ImageGenUpload?: Prisma.ImageGenUploadListRelationFilter
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationListRelationFilter
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -287,6 +288,7 @@ export type UserOrderByWithRelationInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateOrderByRelationAggregateInput
   ImageGenUpload?: Prisma.ImageGenUploadOrderByRelationAggregateInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationOrderByRelationAggregateInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -326,6 +328,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   imageGenTemplates?: Prisma.ImageGenTemplateListRelationFilter
   ImageGenUpload?: Prisma.ImageGenUploadListRelationFilter
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationListRelationFilter
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -396,6 +399,7 @@ export type UserCreateInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -432,6 +436,7 @@ export type UserUncheckedCreateInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -468,6 +473,7 @@ export type UserUpdateInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -504,6 +510,7 @@ export type UserUncheckedUpdateInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -748,6 +755,20 @@ export type UserUpdateOneRequiredWithoutGoogleAdsIntegrationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutGoogleAdsIntegrationsInput, Prisma.UserUpdateWithoutGoogleAdsIntegrationsInput>, Prisma.UserUncheckedUpdateWithoutGoogleAdsIntegrationsInput>
 }
 
+export type UserCreateNestedOneWithoutImageGeneratorGenerationsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutImageGeneratorGenerationsInput, Prisma.UserUncheckedCreateWithoutImageGeneratorGenerationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutImageGeneratorGenerationsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutImageGeneratorGenerationsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutImageGeneratorGenerationsInput, Prisma.UserUncheckedCreateWithoutImageGeneratorGenerationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutImageGeneratorGenerationsInput
+  upsert?: Prisma.UserUpsertWithoutImageGeneratorGenerationsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutImageGeneratorGenerationsInput, Prisma.UserUpdateWithoutImageGeneratorGenerationsInput>, Prisma.UserUncheckedUpdateWithoutImageGeneratorGenerationsInput>
+}
+
 export type UserCreateNestedOneWithoutImageGenProjectsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutImageGenProjectsInput, Prisma.UserUncheckedCreateWithoutImageGenProjectsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutImageGenProjectsInput
@@ -951,6 +972,7 @@ export type UserCreateWithoutCustomerIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
@@ -986,6 +1008,7 @@ export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCustomerIntegrationsInput = {
@@ -1037,6 +1060,7 @@ export type UserUpdateWithoutCustomerIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
@@ -1072,6 +1096,7 @@ export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSessionsInput = {
@@ -1107,6 +1132,7 @@ export type UserCreateWithoutSessionsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -1142,6 +1168,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -1193,6 +1220,7 @@ export type UserUpdateWithoutSessionsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1228,6 +1256,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -1263,6 +1292,7 @@ export type UserCreateWithoutAccountsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -1298,6 +1328,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -1349,6 +1380,7 @@ export type UserUpdateWithoutAccountsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -1384,6 +1416,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTeamMembershipsInput = {
@@ -1419,6 +1452,7 @@ export type UserCreateWithoutTeamMembershipsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTeamMembershipsInput = {
@@ -1454,6 +1488,7 @@ export type UserUncheckedCreateWithoutTeamMembershipsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTeamMembershipsInput = {
@@ -1505,6 +1540,7 @@ export type UserUpdateWithoutTeamMembershipsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
@@ -1540,6 +1576,7 @@ export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutProfileInput = {
@@ -1575,6 +1612,7 @@ export type UserCreateWithoutProfileInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutProfileInput = {
@@ -1610,6 +1648,7 @@ export type UserUncheckedCreateWithoutProfileInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProfileInput = {
@@ -1661,6 +1700,7 @@ export type UserUpdateWithoutProfileInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProfileInput = {
@@ -1696,6 +1736,7 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutActivityLogsInput = {
@@ -1731,6 +1772,7 @@ export type UserCreateWithoutActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutActivityLogsInput = {
@@ -1766,6 +1808,7 @@ export type UserUncheckedCreateWithoutActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutActivityLogsInput = {
@@ -1817,6 +1860,7 @@ export type UserUpdateWithoutActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutActivityLogsInput = {
@@ -1852,6 +1896,7 @@ export type UserUncheckedUpdateWithoutActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEmailDomainsInput = {
@@ -1887,6 +1932,7 @@ export type UserCreateWithoutEmailDomainsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailDomainsInput = {
@@ -1922,6 +1968,7 @@ export type UserUncheckedCreateWithoutEmailDomainsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailDomainsInput = {
@@ -1973,6 +2020,7 @@ export type UserUpdateWithoutEmailDomainsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailDomainsInput = {
@@ -2008,6 +2056,7 @@ export type UserUncheckedUpdateWithoutEmailDomainsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEmailCampaignsInput = {
@@ -2043,6 +2092,7 @@ export type UserCreateWithoutEmailCampaignsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailCampaignsInput = {
@@ -2078,6 +2128,7 @@ export type UserUncheckedCreateWithoutEmailCampaignsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailCampaignsInput = {
@@ -2129,6 +2180,7 @@ export type UserUpdateWithoutEmailCampaignsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailCampaignsInput = {
@@ -2164,6 +2216,7 @@ export type UserUncheckedUpdateWithoutEmailCampaignsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAudiencesInput = {
@@ -2199,6 +2252,7 @@ export type UserCreateWithoutAudiencesInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAudiencesInput = {
@@ -2234,6 +2288,7 @@ export type UserUncheckedCreateWithoutAudiencesInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAudiencesInput = {
@@ -2285,6 +2340,7 @@ export type UserUpdateWithoutAudiencesInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAudiencesInput = {
@@ -2320,6 +2376,7 @@ export type UserUncheckedUpdateWithoutAudiencesInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutGoogleAdsIntegrationsInput = {
@@ -2355,6 +2412,7 @@ export type UserCreateWithoutGoogleAdsIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutGoogleAdsIntegrationsInput = {
@@ -2390,6 +2448,7 @@ export type UserUncheckedCreateWithoutGoogleAdsIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutGoogleAdsIntegrationsInput = {
@@ -2441,6 +2500,7 @@ export type UserUpdateWithoutGoogleAdsIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutGoogleAdsIntegrationsInput = {
@@ -2468,6 +2528,167 @@ export type UserUncheckedUpdateWithoutGoogleAdsIntegrationsInput = {
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedUpdateManyWithoutUserNestedInput
   LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutImageGeneratorGenerationsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
+  emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutImageGeneratorGenerationsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutImageGeneratorGenerationsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutImageGeneratorGenerationsInput, Prisma.UserUncheckedCreateWithoutImageGeneratorGenerationsInput>
+}
+
+export type UserUpsertWithoutImageGeneratorGenerationsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutImageGeneratorGenerationsInput, Prisma.UserUncheckedUpdateWithoutImageGeneratorGenerationsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutImageGeneratorGenerationsInput, Prisma.UserUncheckedCreateWithoutImageGeneratorGenerationsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutImageGeneratorGenerationsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutImageGeneratorGenerationsInput, Prisma.UserUncheckedUpdateWithoutImageGeneratorGenerationsInput>
+}
+
+export type UserUpdateWithoutImageGeneratorGenerationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedUpdateManyWithoutUserNestedInput
   metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedUpdateManyWithoutUserNestedInput
   metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedUpdateManyWithoutUserNestedInput
   metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedUpdateManyWithoutUserNestedInput
@@ -2511,6 +2732,7 @@ export type UserCreateWithoutImageGenProjectsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenProjectsInput = {
@@ -2546,6 +2768,7 @@ export type UserUncheckedCreateWithoutImageGenProjectsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenProjectsInput = {
@@ -2597,6 +2820,7 @@ export type UserUpdateWithoutImageGenProjectsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenProjectsInput = {
@@ -2632,6 +2856,7 @@ export type UserUncheckedUpdateWithoutImageGenProjectsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenTemplatesInput = {
@@ -2667,6 +2892,7 @@ export type UserCreateWithoutImageGenTemplatesInput = {
   imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenTemplatesInput = {
@@ -2702,6 +2928,7 @@ export type UserUncheckedCreateWithoutImageGenTemplatesInput = {
   imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenTemplatesInput = {
@@ -2753,6 +2980,7 @@ export type UserUpdateWithoutImageGenTemplatesInput = {
   imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenTemplatesInput = {
@@ -2788,6 +3016,7 @@ export type UserUncheckedUpdateWithoutImageGenTemplatesInput = {
   imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenUploadInput = {
@@ -2823,6 +3052,7 @@ export type UserCreateWithoutImageGenUploadInput = {
   imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutUserInput
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenUploadInput = {
@@ -2858,6 +3088,7 @@ export type UserUncheckedCreateWithoutImageGenUploadInput = {
   imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutUserInput
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenUploadInput = {
@@ -2909,6 +3140,7 @@ export type UserUpdateWithoutImageGenUploadInput = {
   imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutUserNestedInput
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenUploadInput = {
@@ -2944,6 +3176,7 @@ export type UserUncheckedUpdateWithoutImageGenUploadInput = {
   imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutUserNestedInput
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenAiGenerationsInput = {
@@ -2979,6 +3212,7 @@ export type UserCreateWithoutImageGenAiGenerationsInput = {
   imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutUserInput
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenAiGenerationsInput = {
@@ -3014,6 +3248,7 @@ export type UserUncheckedCreateWithoutImageGenAiGenerationsInput = {
   imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutUserInput
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenAiGenerationsInput = {
@@ -3065,6 +3300,7 @@ export type UserUpdateWithoutImageGenAiGenerationsInput = {
   imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutUserNestedInput
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenAiGenerationsInput = {
@@ -3100,6 +3336,7 @@ export type UserUncheckedUpdateWithoutImageGenAiGenerationsInput = {
   imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutUserNestedInput
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsAccountActivityLogsInput = {
@@ -3135,6 +3372,7 @@ export type UserCreateWithoutMetaAdsAccountActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsAccountActivityLogsInput = {
@@ -3170,6 +3408,7 @@ export type UserUncheckedCreateWithoutMetaAdsAccountActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsAccountActivityLogsInput = {
@@ -3221,6 +3460,7 @@ export type UserUpdateWithoutMetaAdsAccountActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsAccountActivityLogsInput = {
@@ -3256,6 +3496,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAccountActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsCampaignActivityLogsInput = {
@@ -3291,6 +3532,7 @@ export type UserCreateWithoutMetaAdsCampaignActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsCampaignActivityLogsInput = {
@@ -3326,6 +3568,7 @@ export type UserUncheckedCreateWithoutMetaAdsCampaignActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsCampaignActivityLogsInput = {
@@ -3377,6 +3620,7 @@ export type UserUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsCampaignActivityLogsInput = {
@@ -3412,6 +3656,7 @@ export type UserUncheckedUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsAdSetActivityLogsInput = {
@@ -3447,6 +3692,7 @@ export type UserCreateWithoutMetaAdsAdSetActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsAdSetActivityLogsInput = {
@@ -3482,6 +3728,7 @@ export type UserUncheckedCreateWithoutMetaAdsAdSetActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsAdSetActivityLogsInput = {
@@ -3533,6 +3780,7 @@ export type UserUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsAdSetActivityLogsInput = {
@@ -3568,6 +3816,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsAdActivityLogsInput = {
@@ -3603,6 +3852,7 @@ export type UserCreateWithoutMetaAdsAdActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsAdActivityLogsInput = {
@@ -3638,6 +3888,7 @@ export type UserUncheckedCreateWithoutMetaAdsAdActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsAdActivityLogsInput = {
@@ -3689,6 +3940,7 @@ export type UserUpdateWithoutMetaAdsAdActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsAdActivityLogsInput = {
@@ -3724,6 +3976,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAdActivityLogsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSocialMediaIntegrationsInput = {
@@ -3759,6 +4012,7 @@ export type UserCreateWithoutSocialMediaIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSocialMediaIntegrationsInput = {
@@ -3794,6 +4048,7 @@ export type UserUncheckedCreateWithoutSocialMediaIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSocialMediaIntegrationsInput = {
@@ -3845,6 +4100,7 @@ export type UserUpdateWithoutSocialMediaIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSocialMediaIntegrationsInput = {
@@ -3880,6 +4136,7 @@ export type UserUncheckedUpdateWithoutSocialMediaIntegrationsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSocialMediaPageTokensInput = {
@@ -3915,6 +4172,7 @@ export type UserCreateWithoutSocialMediaPageTokensInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSocialMediaPageTokensInput = {
@@ -3950,6 +4208,7 @@ export type UserUncheckedCreateWithoutSocialMediaPageTokensInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSocialMediaPageTokensInput = {
@@ -4001,6 +4260,7 @@ export type UserUpdateWithoutSocialMediaPageTokensInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSocialMediaPageTokensInput = {
@@ -4036,6 +4296,7 @@ export type UserUncheckedUpdateWithoutSocialMediaPageTokensInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaContentCalendarPostsInput = {
@@ -4071,6 +4332,7 @@ export type UserCreateWithoutMetaContentCalendarPostsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaContentCalendarPostsInput = {
@@ -4106,6 +4368,7 @@ export type UserUncheckedCreateWithoutMetaContentCalendarPostsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaContentCalendarPostsInput = {
@@ -4157,6 +4420,7 @@ export type UserUpdateWithoutMetaContentCalendarPostsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaContentCalendarPostsInput = {
@@ -4192,6 +4456,7 @@ export type UserUncheckedUpdateWithoutMetaContentCalendarPostsInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutLinkedInContentCalendarInput = {
@@ -4227,6 +4492,7 @@ export type UserCreateWithoutLinkedInContentCalendarInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutLinkedInContentCalendarInput = {
@@ -4262,6 +4528,7 @@ export type UserUncheckedCreateWithoutLinkedInContentCalendarInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutLinkedInContentCalendarInput = {
@@ -4313,6 +4580,7 @@ export type UserUpdateWithoutLinkedInContentCalendarInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutLinkedInContentCalendarInput = {
@@ -4348,6 +4616,7 @@ export type UserUncheckedUpdateWithoutLinkedInContentCalendarInput = {
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -4377,6 +4646,7 @@ export type UserCountOutputType = {
   imageGenTemplates: number
   ImageGenUpload: number
   imageGenAiGenerations: number
+  imageGeneratorGenerations: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -4401,6 +4671,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   imageGenTemplates?: boolean | UserCountOutputTypeCountImageGenTemplatesArgs
   ImageGenUpload?: boolean | UserCountOutputTypeCountImageGenUploadArgs
   imageGenAiGenerations?: boolean | UserCountOutputTypeCountImageGenAiGenerationsArgs
+  imageGeneratorGenerations?: boolean | UserCountOutputTypeCountImageGeneratorGenerationsArgs
 }
 
 /**
@@ -4560,6 +4831,13 @@ export type UserCountOutputTypeCountImageGenAiGenerationsArgs<ExtArgs extends ru
   where?: Prisma.ImageGenAiGenerationWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountImageGeneratorGenerationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ImageGeneratorGenerationWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -4595,6 +4873,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   imageGenTemplates?: boolean | Prisma.User$imageGenTemplatesArgs<ExtArgs>
   ImageGenUpload?: boolean | Prisma.User$ImageGenUploadArgs<ExtArgs>
   imageGenAiGenerations?: boolean | Prisma.User$imageGenAiGenerationsArgs<ExtArgs>
+  imageGeneratorGenerations?: boolean | Prisma.User$imageGeneratorGenerationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -4664,6 +4943,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   imageGenTemplates?: boolean | Prisma.User$imageGenTemplatesArgs<ExtArgs>
   ImageGenUpload?: boolean | Prisma.User$ImageGenUploadArgs<ExtArgs>
   imageGenAiGenerations?: boolean | Prisma.User$imageGenAiGenerationsArgs<ExtArgs>
+  imageGeneratorGenerations?: boolean | Prisma.User$imageGeneratorGenerationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -4694,6 +4974,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     imageGenTemplates: Prisma.$ImageGenTemplatePayload<ExtArgs>[]
     ImageGenUpload: Prisma.$ImageGenUploadPayload<ExtArgs>[]
     imageGenAiGenerations: Prisma.$ImageGenAiGenerationPayload<ExtArgs>[]
+    imageGeneratorGenerations: Prisma.$ImageGeneratorGenerationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -5123,6 +5404,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   imageGenTemplates<T extends Prisma.User$imageGenTemplatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$imageGenTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImageGenTemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ImageGenUpload<T extends Prisma.User$ImageGenUploadArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ImageGenUploadArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImageGenUploadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   imageGenAiGenerations<T extends Prisma.User$imageGenAiGenerationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$imageGenAiGenerationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImageGenAiGenerationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  imageGeneratorGenerations<T extends Prisma.User$imageGeneratorGenerationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$imageGeneratorGenerationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImageGeneratorGenerationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -6071,6 +6353,30 @@ export type User$imageGenAiGenerationsArgs<ExtArgs extends runtime.Types.Extensi
   take?: number
   skip?: number
   distinct?: Prisma.ImageGenAiGenerationScalarFieldEnum | Prisma.ImageGenAiGenerationScalarFieldEnum[]
+}
+
+/**
+ * User.imageGeneratorGenerations
+ */
+export type User$imageGeneratorGenerationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ImageGeneratorGeneration
+   */
+  select?: Prisma.ImageGeneratorGenerationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ImageGeneratorGeneration
+   */
+  omit?: Prisma.ImageGeneratorGenerationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ImageGeneratorGenerationInclude<ExtArgs> | null
+  where?: Prisma.ImageGeneratorGenerationWhereInput
+  orderBy?: Prisma.ImageGeneratorGenerationOrderByWithRelationInput | Prisma.ImageGeneratorGenerationOrderByWithRelationInput[]
+  cursor?: Prisma.ImageGeneratorGenerationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ImageGeneratorGenerationScalarFieldEnum | Prisma.ImageGeneratorGenerationScalarFieldEnum[]
 }
 
 /**
