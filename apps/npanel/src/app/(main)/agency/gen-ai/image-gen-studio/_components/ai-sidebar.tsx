@@ -353,7 +353,9 @@ export const AiSidebar = ({
             <ScrollArea className="flex-1">
               <div className="p-4">
                 <div className="grid grid-cols-2 gap-4">
-                  {generationsData.data.map((generation) => (
+                  {/* Type assertion to work around TypeScript's "Type instantiation is excessively deep" error */}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {((generationsData?.data as any) || []).map((generation: { id: string; imageUrl: string; prompt: string }) => (
                     <div
                       key={generation.id}
                       onClick={() => handleImageClick(generation.imageUrl)}
