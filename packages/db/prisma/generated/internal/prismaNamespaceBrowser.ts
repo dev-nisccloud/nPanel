@@ -95,6 +95,9 @@ export const ModelName = {
   CreativeAssetComment: 'CreativeAssetComment',
   CreativeAssetActivityLog: 'CreativeAssetActivityLog',
   CreativeAssetVersionActivityLog: 'CreativeAssetVersionActivityLog',
+  CreativeBrief: 'CreativeBrief',
+  CreativeBriefReferenceImage: 'CreativeBriefReferenceImage',
+  CreativeBriefActivityLog: 'CreativeBriefActivityLog',
   EmailDomain: 'EmailDomain',
   EmailCampaign: 'EmailCampaign',
   Audience: 'Audience',
@@ -1052,6 +1055,60 @@ export const CreativeAssetVersionActivityLogScalarFieldEnum = {
 } as const
 
 export type CreativeAssetVersionActivityLogScalarFieldEnum = (typeof CreativeAssetVersionActivityLogScalarFieldEnum)[keyof typeof CreativeAssetVersionActivityLogScalarFieldEnum]
+
+
+export const CreativeBriefScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  userId: 'userId',
+  teamId: 'teamId',
+  status: 'status',
+  background: 'background',
+  objectives: 'objectives',
+  requirements: 'requirements',
+  comments: 'comments',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  rejectedBy: 'rejectedBy',
+  rejectedAt: 'rejectedAt',
+  timelineStartDate: 'timelineStartDate',
+  timelineEndDate: 'timelineEndDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CreativeBriefScalarFieldEnum = (typeof CreativeBriefScalarFieldEnum)[keyof typeof CreativeBriefScalarFieldEnum]
+
+
+export const CreativeBriefReferenceImageScalarFieldEnum = {
+  id: 'id',
+  creativeBriefId: 'creativeBriefId',
+  fileUrl: 'fileUrl',
+  fileKey: 'fileKey',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  mimeType: 'mimeType',
+  fileMetadata: 'fileMetadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CreativeBriefReferenceImageScalarFieldEnum = (typeof CreativeBriefReferenceImageScalarFieldEnum)[keyof typeof CreativeBriefReferenceImageScalarFieldEnum]
+
+
+export const CreativeBriefActivityLogScalarFieldEnum = {
+  id: 'id',
+  creativeBriefId: 'creativeBriefId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type CreativeBriefActivityLogScalarFieldEnum = (typeof CreativeBriefActivityLogScalarFieldEnum)[keyof typeof CreativeBriefActivityLogScalarFieldEnum]
 
 
 export const EmailDomainScalarFieldEnum = {

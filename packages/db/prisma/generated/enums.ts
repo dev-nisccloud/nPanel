@@ -254,6 +254,16 @@ export const VersionApprovalStatus = {
 export type VersionApprovalStatus = (typeof VersionApprovalStatus)[keyof typeof VersionApprovalStatus]
 
 
+export const CreativeBriefStatus = {
+  DRAFT: 'DRAFT',
+  REVIEWING: 'REVIEWING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type CreativeBriefStatus = (typeof CreativeBriefStatus)[keyof typeof CreativeBriefStatus]
+
+
 export const EmailDomainVerificationStatus = {
   PENDING: 'PENDING',
   VERIFYING: 'VERIFYING',

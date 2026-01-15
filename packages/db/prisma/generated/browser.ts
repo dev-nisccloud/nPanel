@@ -252,6 +252,21 @@ export type CreativeAssetActivityLog = Prisma.CreativeAssetActivityLogModel
  */
 export type CreativeAssetVersionActivityLog = Prisma.CreativeAssetVersionActivityLogModel
 /**
+ * Model CreativeBrief
+ * 
+ */
+export type CreativeBrief = Prisma.CreativeBriefModel
+/**
+ * Model CreativeBriefReferenceImage
+ * 
+ */
+export type CreativeBriefReferenceImage = Prisma.CreativeBriefReferenceImageModel
+/**
+ * Model CreativeBriefActivityLog
+ * 
+ */
+export type CreativeBriefActivityLog = Prisma.CreativeBriefActivityLogModel
+/**
  * Model EmailDomain
  * 
  */

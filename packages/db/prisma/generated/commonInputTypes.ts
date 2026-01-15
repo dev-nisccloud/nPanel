@@ -700,6 +700,23 @@ export type EnumVersionApprovalStatusWithAggregatesFilter<$PrismaModel = never> 
   _max?: Prisma.NestedEnumVersionApprovalStatusFilter<$PrismaModel>
 }
 
+export type EnumCreativeBriefStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.CreativeBriefStatus | Prisma.EnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.CreativeBriefStatus[] | Prisma.ListEnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CreativeBriefStatus[] | Prisma.ListEnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCreativeBriefStatusFilter<$PrismaModel> | $Enums.CreativeBriefStatus
+}
+
+export type EnumCreativeBriefStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CreativeBriefStatus | Prisma.EnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.CreativeBriefStatus[] | Prisma.ListEnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CreativeBriefStatus[] | Prisma.ListEnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCreativeBriefStatusWithAggregatesFilter<$PrismaModel> | $Enums.CreativeBriefStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCreativeBriefStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCreativeBriefStatusFilter<$PrismaModel>
+}
+
 export type EnumEmailDomainVerificationStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.EmailDomainVerificationStatus | Prisma.EnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
   in?: $Enums.EmailDomainVerificationStatus[] | Prisma.ListEnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
@@ -1819,6 +1836,23 @@ export type NestedEnumVersionApprovalStatusWithAggregatesFilter<$PrismaModel = n
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumVersionApprovalStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumVersionApprovalStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumCreativeBriefStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.CreativeBriefStatus | Prisma.EnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.CreativeBriefStatus[] | Prisma.ListEnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CreativeBriefStatus[] | Prisma.ListEnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCreativeBriefStatusFilter<$PrismaModel> | $Enums.CreativeBriefStatus
+}
+
+export type NestedEnumCreativeBriefStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CreativeBriefStatus | Prisma.EnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.CreativeBriefStatus[] | Prisma.ListEnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CreativeBriefStatus[] | Prisma.ListEnumCreativeBriefStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCreativeBriefStatusWithAggregatesFilter<$PrismaModel> | $Enums.CreativeBriefStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCreativeBriefStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCreativeBriefStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumEmailDomainVerificationStatusFilter<$PrismaModel = never> = {

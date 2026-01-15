@@ -41,6 +41,7 @@ import { currencyConversionRouter } from "./currency-conversion";
 import { teamsRouter } from "./teams";
 import { userProfileRouter } from "./user-profile";
 import { creativeAssetsRouter } from "./creative-assets";
+import { creativeBriefsRouter } from "./creative-briefs";
 import { hostingRouter } from "./hosting";
 import { hostingPlansRouter } from "./hosting-plans";
 import { wordpressSubscriptionsRouter } from "./wordpress-subscriptions";
@@ -130,6 +131,8 @@ export const appRouter = router({
 	userProfile: userProfileRouter,
 	// Creative Assets Management
 	creativeAssets: creativeAssetsRouter,
+	// Creative Briefs Management
+	creativeBriefs: creativeBriefsRouter,
 	// Hosting Management
 	hosting: hostingRouter,
 	// Hosting Plans Management

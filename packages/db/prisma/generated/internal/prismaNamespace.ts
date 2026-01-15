@@ -435,6 +435,9 @@ export const ModelName = {
   CreativeAssetComment: 'CreativeAssetComment',
   CreativeAssetActivityLog: 'CreativeAssetActivityLog',
   CreativeAssetVersionActivityLog: 'CreativeAssetVersionActivityLog',
+  CreativeBrief: 'CreativeBrief',
+  CreativeBriefReferenceImage: 'CreativeBriefReferenceImage',
+  CreativeBriefActivityLog: 'CreativeBriefActivityLog',
   EmailDomain: 'EmailDomain',
   EmailCampaign: 'EmailCampaign',
   Audience: 'Audience',
@@ -509,7 +512,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3988,6 +3991,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CreativeAssetVersionActivityLogCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CreativeAssetVersionActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    CreativeBrief: {
+      payload: Prisma.$CreativeBriefPayload<ExtArgs>
+      fields: Prisma.CreativeBriefFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CreativeBriefFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CreativeBriefFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload>
+        }
+        findFirst: {
+          args: Prisma.CreativeBriefFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CreativeBriefFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload>
+        }
+        findMany: {
+          args: Prisma.CreativeBriefFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload>[]
+        }
+        create: {
+          args: Prisma.CreativeBriefCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload>
+        }
+        createMany: {
+          args: Prisma.CreativeBriefCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CreativeBriefCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload>[]
+        }
+        delete: {
+          args: Prisma.CreativeBriefDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload>
+        }
+        update: {
+          args: Prisma.CreativeBriefUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload>
+        }
+        deleteMany: {
+          args: Prisma.CreativeBriefDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CreativeBriefUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CreativeBriefUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload>[]
+        }
+        upsert: {
+          args: Prisma.CreativeBriefUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefPayload>
+        }
+        aggregate: {
+          args: Prisma.CreativeBriefAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCreativeBrief>
+        }
+        groupBy: {
+          args: Prisma.CreativeBriefGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CreativeBriefGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CreativeBriefCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CreativeBriefCountAggregateOutputType> | number
+        }
+      }
+    }
+    CreativeBriefReferenceImage: {
+      payload: Prisma.$CreativeBriefReferenceImagePayload<ExtArgs>
+      fields: Prisma.CreativeBriefReferenceImageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CreativeBriefReferenceImageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CreativeBriefReferenceImageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload>
+        }
+        findFirst: {
+          args: Prisma.CreativeBriefReferenceImageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CreativeBriefReferenceImageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload>
+        }
+        findMany: {
+          args: Prisma.CreativeBriefReferenceImageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload>[]
+        }
+        create: {
+          args: Prisma.CreativeBriefReferenceImageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload>
+        }
+        createMany: {
+          args: Prisma.CreativeBriefReferenceImageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CreativeBriefReferenceImageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload>[]
+        }
+        delete: {
+          args: Prisma.CreativeBriefReferenceImageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload>
+        }
+        update: {
+          args: Prisma.CreativeBriefReferenceImageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload>
+        }
+        deleteMany: {
+          args: Prisma.CreativeBriefReferenceImageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CreativeBriefReferenceImageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CreativeBriefReferenceImageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload>[]
+        }
+        upsert: {
+          args: Prisma.CreativeBriefReferenceImageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefReferenceImagePayload>
+        }
+        aggregate: {
+          args: Prisma.CreativeBriefReferenceImageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCreativeBriefReferenceImage>
+        }
+        groupBy: {
+          args: Prisma.CreativeBriefReferenceImageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CreativeBriefReferenceImageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CreativeBriefReferenceImageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CreativeBriefReferenceImageCountAggregateOutputType> | number
+        }
+      }
+    }
+    CreativeBriefActivityLog: {
+      payload: Prisma.$CreativeBriefActivityLogPayload<ExtArgs>
+      fields: Prisma.CreativeBriefActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CreativeBriefActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CreativeBriefActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.CreativeBriefActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CreativeBriefActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.CreativeBriefActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.CreativeBriefActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.CreativeBriefActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CreativeBriefActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.CreativeBriefActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload>
+        }
+        update: {
+          args: Prisma.CreativeBriefActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.CreativeBriefActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CreativeBriefActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CreativeBriefActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.CreativeBriefActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreativeBriefActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.CreativeBriefActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCreativeBriefActivityLog>
+        }
+        groupBy: {
+          args: Prisma.CreativeBriefActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CreativeBriefActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CreativeBriefActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CreativeBriefActivityLogCountAggregateOutputType> | number
         }
       }
     }
@@ -9278,6 +9503,60 @@ export const CreativeAssetVersionActivityLogScalarFieldEnum = {
 export type CreativeAssetVersionActivityLogScalarFieldEnum = (typeof CreativeAssetVersionActivityLogScalarFieldEnum)[keyof typeof CreativeAssetVersionActivityLogScalarFieldEnum]
 
 
+export const CreativeBriefScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  userId: 'userId',
+  teamId: 'teamId',
+  status: 'status',
+  background: 'background',
+  objectives: 'objectives',
+  requirements: 'requirements',
+  comments: 'comments',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  rejectedBy: 'rejectedBy',
+  rejectedAt: 'rejectedAt',
+  timelineStartDate: 'timelineStartDate',
+  timelineEndDate: 'timelineEndDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CreativeBriefScalarFieldEnum = (typeof CreativeBriefScalarFieldEnum)[keyof typeof CreativeBriefScalarFieldEnum]
+
+
+export const CreativeBriefReferenceImageScalarFieldEnum = {
+  id: 'id',
+  creativeBriefId: 'creativeBriefId',
+  fileUrl: 'fileUrl',
+  fileKey: 'fileKey',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  mimeType: 'mimeType',
+  fileMetadata: 'fileMetadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CreativeBriefReferenceImageScalarFieldEnum = (typeof CreativeBriefReferenceImageScalarFieldEnum)[keyof typeof CreativeBriefReferenceImageScalarFieldEnum]
+
+
+export const CreativeBriefActivityLogScalarFieldEnum = {
+  id: 'id',
+  creativeBriefId: 'creativeBriefId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type CreativeBriefActivityLogScalarFieldEnum = (typeof CreativeBriefActivityLogScalarFieldEnum)[keyof typeof CreativeBriefActivityLogScalarFieldEnum]
+
+
 export const EmailDomainScalarFieldEnum = {
   id: 'id',
   teamId: 'teamId',
@@ -10786,6 +11065,20 @@ export type ListEnumVersionApprovalStatusFieldRefInput<$PrismaModel> = FieldRefI
 
 
 /**
+ * Reference to a field of type 'CreativeBriefStatus'
+ */
+export type EnumCreativeBriefStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CreativeBriefStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'CreativeBriefStatus[]'
+ */
+export type ListEnumCreativeBriefStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CreativeBriefStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'EmailDomainVerificationStatus'
  */
 export type EnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailDomainVerificationStatus'>
@@ -11254,6 +11547,9 @@ export type GlobalOmitConfig = {
   creativeAssetComment?: Prisma.CreativeAssetCommentOmit
   creativeAssetActivityLog?: Prisma.CreativeAssetActivityLogOmit
   creativeAssetVersionActivityLog?: Prisma.CreativeAssetVersionActivityLogOmit
+  creativeBrief?: Prisma.CreativeBriefOmit
+  creativeBriefReferenceImage?: Prisma.CreativeBriefReferenceImageOmit
+  creativeBriefActivityLog?: Prisma.CreativeBriefActivityLogOmit
   emailDomain?: Prisma.EmailDomainOmit
   emailCampaign?: Prisma.EmailCampaignOmit
   audience?: Prisma.AudienceOmit

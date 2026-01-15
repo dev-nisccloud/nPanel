@@ -466,6 +466,8 @@ model User {
   // Image Generator Relations
   imageGeneratorGenerations    ImageGeneratorGeneration[]
   backgroundRemoverGenerations BackgroundRemoverGeneration[]
+  // Creative Briefs Relations
+  creativeBriefs               CreativeBrief[]
 
   @@unique([email])
   @@index([role])
@@ -552,6 +554,8 @@ model Team {
   imageGeneratorGenerations    ImageGeneratorGeneration[]
   // Background Remover Relations
   backgroundRemoverGenerations BackgroundRemoverGeneration[]
+  // Creative Briefs Relations
+  creativeBriefs               CreativeBrief[]
 
   @@index([slug])
   @@index([createdById])
