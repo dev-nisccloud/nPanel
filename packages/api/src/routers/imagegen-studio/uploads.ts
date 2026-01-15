@@ -2,11 +2,31 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import prisma from "@nPanel/db";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   createUploadSchema,
   getUploadsSchema,
   deleteUploadSchema,
+  getUploadsResponseSchema,
+  imageGenUploadSchema,
 } from "./schemas";
+
+/**
+ * Transform function to ensure clean data (no Prisma types leak)
+ * Converts Prisma types to plain types for API layer
+ */
+function transformUpload(upload: any): z.infer<typeof imageGenUploadSchema> {
+  return {
+    id: upload.id,
+    fileUrl: upload.fileUrl,
+    fileName: upload.fileName,
+    fileSize: upload.fileSize,
+    mimeType: upload.mimeType,
+    fileMetadata: upload.fileMetadata ?? null,
+    createdAt: upload.createdAt,
+    updatedAt: upload.updatedAt,
+  };
+}
 
 export const imageGenUploadsRouter = router({
   // Create a new upload
@@ -65,6 +85,7 @@ export const imageGenUploadsRouter = router({
   // List uploads with pagination
   list: protectedProcedure
     .input(getUploadsSchema)
+    .output(getUploadsResponseSchema)
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -104,8 +125,9 @@ export const imageGenUploadsRouter = router({
         },
       });
 
+      // Transform Prisma data to clean API response
       return {
-        data: uploads,
+        data: uploads.map(transformUpload),
         nextPage: uploads.length === limit ? page + 1 : null,
       };
     }),

@@ -4,7 +4,13 @@ import Replicate from "replicate";
 import prisma from "@nPanel/db";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { generateImageSchema, removeBgSchema } from "./schemas";
+import {
+  generateImageSchema,
+  removeBgSchema,
+  generateImageResponseSchema,
+  updateGenerationAfterUploadResponseSchema,
+  removeBgResponseSchema,
+} from "./schemas";
 import { fetch } from "undici";
 
 const replicate = new Replicate({
@@ -84,6 +90,7 @@ export const imageGenAiRouter = router({
   // Generate an image from a prompt with optional reference images
   generateImage: protectedProcedure
     .input(generateImageSchema)
+    .output(generateImageResponseSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -210,6 +217,7 @@ export const imageGenAiRouter = router({
         imageMimeType: z.string(),
       })
     )
+    .output(updateGenerationAfterUploadResponseSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -247,6 +255,7 @@ export const imageGenAiRouter = router({
   // Remove background from an image
   removeBg: protectedProcedure
     .input(removeBgSchema)
+    .output(removeBgResponseSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {

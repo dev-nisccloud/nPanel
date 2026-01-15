@@ -2,15 +2,54 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import prisma from "@nPanel/db";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   getAiGenerationsSchema,
   deleteAiGenerationSchema,
+  getAiGenerationsResponseSchema,
+  imageGenAiGenerationSchema,
 } from "./schemas";
+
+/**
+ * Transform function to ensure clean data (no Prisma types leak)
+ * Converts Prisma types to plain types for API layer
+ */
+function transformAiGeneration(gen: any): z.infer<typeof imageGenAiGenerationSchema> {
+  // Parse referenceImageUrls if it's a JSON string
+  let referenceImageUrls: string[] = [];
+  if (gen.referenceImageUrls) {
+    if (typeof gen.referenceImageUrls === "string") {
+      try {
+        referenceImageUrls = JSON.parse(gen.referenceImageUrls) as string[];
+      } catch {
+        referenceImageUrls = [];
+      }
+    } else if (Array.isArray(gen.referenceImageUrls)) {
+      referenceImageUrls = gen.referenceImageUrls;
+    }
+  }
+
+  return {
+    id: gen.id,
+    prompt: gen.prompt,
+    referenceImageUrls,
+    imageUrl: gen.imageUrl,
+    imageFileName: gen.imageFileName,
+    imageSize: gen.imageSize,
+    imageMimeType: gen.imageMimeType,
+    imageMetadata: gen.imageMetadata ?? null,
+    modelId: gen.modelId,
+    modelName: gen.modelName,
+    createdAt: gen.createdAt,
+    updatedAt: gen.updatedAt,
+  };
+}
 
 export const imageGenAiGenerationsRouter = router({
   // List AI generations with pagination
   list: protectedProcedure
     .input(getAiGenerationsSchema)
+    .output(getAiGenerationsResponseSchema)
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -54,13 +93,9 @@ export const imageGenAiGenerationsRouter = router({
         },
       });
 
+      // Transform Prisma data to clean API response
       return {
-        data: generations.map((gen) => ({
-          ...gen,
-          referenceImageUrls: gen.referenceImageUrls
-            ? (JSON.parse(gen.referenceImageUrls as string) as string[])
-            : [],
-        })),
+        data: generations.map(transformAiGeneration),
         nextPage: generations.length === limit ? page + 1 : null,
       };
     }),

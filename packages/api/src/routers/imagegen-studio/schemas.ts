@@ -120,6 +120,59 @@ export const getImagesSchema = z.object({
   query: z.string().optional(),
 });
 
+// Response schemas for parsing DB data
+export const imageGenAiGenerationSchema = z.object({
+  id: z.string(),
+  prompt: z.string(),
+  referenceImageUrls: z.array(z.string().url()),
+  imageUrl: z.string().url(),
+  imageFileName: z.string(),
+  imageSize: z.number().int(),
+  imageMimeType: z.string(),
+  imageMetadata: z.record(z.string(), z.any()).nullable(),
+  modelId: z.string(),
+  modelName: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const getAiGenerationsResponseSchema = z.object({
+  data: z.array(imageGenAiGenerationSchema),
+  nextPage: z.number().int().nullable(),
+});
+
+export const imageGenUploadSchema = z.object({
+  id: z.string(),
+  fileUrl: z.string().url(),
+  fileName: z.string(),
+  fileSize: z.number().int(),
+  mimeType: z.string(),
+  fileMetadata: z.record(z.string(), z.any()).nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const getUploadsResponseSchema = z.object({
+  data: z.array(imageGenUploadSchema),
+  nextPage: z.number().int().nullable(),
+});
+
+// AI Generation response schemas
+export const generateImageResponseSchema = z.object({
+  data: z.string().url(), // Generated image URL from Replicate
+  generationId: z.string(), // ID for updating after UploadThing upload
+});
+
+export const updateGenerationAfterUploadResponseSchema = z.object({
+  data: z.object({
+    id: z.string(),
+  }),
+});
+
+export const removeBgResponseSchema = z.object({
+  data: z.string().url(), // Image URL with background removed
+});
+
 
 
 

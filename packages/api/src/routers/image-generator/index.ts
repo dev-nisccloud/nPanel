@@ -9,6 +9,9 @@ import {
   updateVariationAfterUploadSchema,
   getGenerationsSchema,
   deleteGenerationSchema,
+  getGenerationsResponseSchema,
+  imageGeneratorVariationSchema,
+  imageGeneratorGenerationSchema,
 } from "./schemas";
 import { fetch } from "undici";
 
@@ -96,6 +99,59 @@ function convertOutputFormat(format: string): string {
     jpg: "jpeg",
   };
   return formatMap[format] || "png";
+}
+
+/**
+ * Transform functions to ensure clean data (no Prisma types leak)
+ * These convert Prisma types to plain types for API layer
+ */
+function transformVariation(variation: any): z.infer<typeof imageGeneratorVariationSchema> {
+  return {
+    id: variation.id,
+    imageGeneratorGenerationId: variation.imageGeneratorGenerationId,
+    variationIndex: variation.variationIndex,
+    imageUrl: variation.imageUrl,
+    imageKey: variation.imageKey,
+    imageFileName: variation.imageFileName,
+    imageSize: variation.imageSize,
+    imageMimeType: variation.imageMimeType,
+    imageMetadata: variation.imageMetadata ?? null,
+    createdAt: variation.createdAt,
+    updatedAt: variation.updatedAt,
+  };
+}
+
+function transformGeneration(generation: any): z.infer<typeof imageGeneratorGenerationSchema> {
+  // Parse referenceImageUrls if it's a JSON string
+  let referenceImageUrls: string[] | null = null;
+  if (generation.referenceImageUrls) {
+    if (typeof generation.referenceImageUrls === "string") {
+      try {
+        referenceImageUrls = JSON.parse(generation.referenceImageUrls) as string[];
+      } catch {
+        referenceImageUrls = null;
+      }
+    } else if (Array.isArray(generation.referenceImageUrls)) {
+      referenceImageUrls = generation.referenceImageUrls;
+    }
+  }
+
+  return {
+    id: generation.id,
+    userId: generation.userId,
+    teamId: generation.teamId,
+    prompt: generation.prompt,
+    referenceImageUrls,
+    aspectRatio: generation.aspectRatio,
+    outputFormat: generation.outputFormat,
+    resolution: generation.resolution,
+    variationsCount: generation.variationsCount,
+    modelId: generation.modelId,
+    modelName: generation.modelName,
+    createdAt: generation.createdAt,
+    updatedAt: generation.updatedAt,
+    variations: generation.variations?.map(transformVariation) ?? [],
+  };
 }
 
 export const imageGeneratorRouter = router({
@@ -317,6 +373,7 @@ export const imageGeneratorRouter = router({
   // Get generations
   getGenerations: protectedProcedure
     .input(getGenerationsSchema)
+    .output(getGenerationsResponseSchema)
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -350,8 +407,9 @@ export const imageGeneratorRouter = router({
         prisma.imageGeneratorGeneration.count({ where }),
       ]);
 
+      // Transform Prisma data to clean API response
       return {
-        data: generations,
+        data: generations.map(transformGeneration),
         pagination: {
           page: input.page,
           limit: input.limit,

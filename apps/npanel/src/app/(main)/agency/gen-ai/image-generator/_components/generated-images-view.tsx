@@ -200,33 +200,33 @@ export function GeneratedImagesView({
             <div>
               <h3 className="text-lg font-semibold">Current Session</h3>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-              {images.map((image, index) => (
-                <div
-                  key={`${image.timestamp}-${index}`}
-                  className="relative group aspect-square rounded-lg border overflow-hidden bg-card animate-in fade-in cursor-pointer"
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+        {images.map((image, index) => (
+          <div
+            key={`${image.timestamp}-${index}`}
+            className="relative group aspect-square rounded-lg border overflow-hidden bg-card animate-in fade-in cursor-pointer"
                   onClick={() => handleImageClick("current-session", index + 1)}
-                >
-                  <img
-                    src={image.dataUrl}
-                    alt={`Generated image ${index + 1}`}
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
+          >
+            <img
+              src={image.dataUrl}
+              alt={`Generated image ${index + 1}`}
+              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+            />
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
                         handleDownload(image.dataUrl, image.prompt);
-                      }}
-                      className="h-8 w-8"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                }}
+                className="h-8 w-8"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
             </div>
           </div>
         )}
@@ -251,11 +251,11 @@ export function GeneratedImagesView({
             {/* Variations Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
               {generation.variations.map((variation) => (
-                <div
+            <div
                   key={variation.id}
                   className="relative group aspect-square rounded-lg border overflow-hidden bg-card cursor-pointer"
                   onClick={() => handleImageClick(generation.id, variation.variationIndex)}
-                >
+            >
                     <img
                       src={variation.imageUrl}
                       alt={`Variation ${variation.variationIndex}`}
@@ -277,8 +277,8 @@ export function GeneratedImagesView({
                   </div>
               ))}
             </div>
-          </div>
-        ))}
+            </div>
+          ))}
       </div>
 
       {/* Image Preview Dialog */}

@@ -163,7 +163,7 @@ export function FloatingInputBar({
       // Step 3: Process each variation as it's generated
       // Download each image, upload to UploadThing, and update the variation record
       const generatedImagesList: any[] = [];
-
+      
       for (const variation of result.variations) {
         try {
           // Download the generated image from Replicate

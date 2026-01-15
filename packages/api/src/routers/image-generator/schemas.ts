@@ -52,3 +52,45 @@ export const getGenerationsSchema = z.object({
 export const deleteGenerationSchema = z.object({
   id: z.string(),
 });
+
+// Response schemas for parsing DB data
+export const imageGeneratorVariationSchema = z.object({
+  id: z.string(),
+  imageGeneratorGenerationId: z.string(),
+  variationIndex: z.number().int(),
+  imageUrl: z.string().url(),
+  imageKey: z.string(),
+  imageFileName: z.string(),
+  imageSize: z.number().int(),
+  imageMimeType: z.string(),
+  imageMetadata: z.record(z.string(), z.any()).nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const imageGeneratorGenerationSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  teamId: z.string().nullable(),
+  prompt: z.string(),
+  referenceImageUrls: z.array(z.string().url()).nullable(),
+  aspectRatio: z.string(),
+  outputFormat: z.string(),
+  resolution: z.string(),
+  variationsCount: z.number().int(),
+  modelId: z.string(),
+  modelName: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  variations: z.array(imageGeneratorVariationSchema),
+});
+
+export const getGenerationsResponseSchema = z.object({
+  data: z.array(imageGeneratorGenerationSchema),
+  pagination: z.object({
+    page: z.number().int(),
+    limit: z.number().int(),
+    total: z.number().int(),
+    totalPages: z.number().int(),
+  }),
+});
