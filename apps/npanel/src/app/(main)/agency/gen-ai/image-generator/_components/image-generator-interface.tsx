@@ -34,6 +34,8 @@ export function ImageGeneratorInterface() {
   const handleGenerationStart = (total: number) => {
     setIsGenerating(true);
     setGeneratingCount({ current: 0, total });
+    // Clear previous current session images when starting a new generation
+    setGeneratedImages([]);
   };
 
   const handleImagesGenerated = (images: any[]) => {

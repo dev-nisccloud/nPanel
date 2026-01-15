@@ -49,23 +49,32 @@ export function GeneratedImagesView({
   isLoadingHistory = false,
   onClearAll 
 }: GeneratedImagesViewProps) {
-  const [selectedImageIndex, setSelectedImageIndex] = React.useState<number | null>(null);
-  const [selectedGenerationId, setSelectedGenerationId] = React.useState<string | null>(null);
+  const [selectedGenerationId, setSelectedGenerationId] = React.useState<string | "current-session" | null>(null);
   const [selectedVariationIndex, setSelectedVariationIndex] = React.useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
-  // Combine all images for the dialog navigation (current session + DB generations)
-  const allImages: Array<{ url: string; prompt: string; generationId?: string; variationIndex?: number }> = [
-    ...images.map(img => ({ url: img.dataUrl, prompt: img.prompt })),
-    ...generations.flatMap(gen => 
-      gen.variations.map(variation => ({
-        url: variation.imageUrl,
-        prompt: gen.prompt,
-        generationId: gen.id,
-        variationIndex: variation.variationIndex,
-      }))
-    ),
-  ];
+  // Get variations for the selected generation
+  const getSelectedGenerationVariations = React.useMemo(() => {
+    if (selectedGenerationId === "current-session") {
+      // Current session variations
+      return images.map((img, index) => ({
+        url: img.dataUrl,
+        prompt: img.prompt,
+        variationIndex: index + 1,
+      }));
+    } else if (selectedGenerationId) {
+      // DB generation variations
+      const generation = generations.find(gen => gen.id === selectedGenerationId);
+      if (generation) {
+        return generation.variations.map(variation => ({
+          url: variation.imageUrl,
+          prompt: generation.prompt,
+          variationIndex: variation.variationIndex,
+        }));
+      }
+    }
+    return [];
+  }, [selectedGenerationId, images, generations]);
 
   const handleDownload = (imageUrl: string, prompt: string) => {
     const link = document.createElement("a");
@@ -77,28 +86,27 @@ export function GeneratedImagesView({
     document.body.removeChild(link);
   };
 
-  const handleImageClick = (generationId: string | null, variationIndex: number | null, imageIndex: number) => {
+  const handleImageClick = (generationId: string | "current-session" | null, variationIndex: number | null) => {
     setSelectedGenerationId(generationId);
     setSelectedVariationIndex(variationIndex);
-    setSelectedImageIndex(imageIndex);
     setIsDialogOpen(true);
   };
 
   const handlePrevious = () => {
-    if (selectedImageIndex !== null && selectedImageIndex > 0) {
-      setSelectedImageIndex(selectedImageIndex - 1);
+    if (selectedVariationIndex !== null && selectedVariationIndex > 1) {
+      setSelectedVariationIndex(selectedVariationIndex - 1);
     }
   };
 
   const handleNext = () => {
-    if (selectedImageIndex !== null && selectedImageIndex < allImages.length - 1) {
-      setSelectedImageIndex(selectedImageIndex + 1);
+    const maxVariations = getSelectedGenerationVariations.length;
+    if (selectedVariationIndex !== null && selectedVariationIndex < maxVariations) {
+      setSelectedVariationIndex(selectedVariationIndex + 1);
     }
   };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
-    setSelectedImageIndex(null);
     setSelectedGenerationId(null);
     setSelectedVariationIndex(null);
   };
@@ -113,7 +121,10 @@ export function GeneratedImagesView({
     }
   };
 
-  const selectedImage = selectedImageIndex !== null ? allImages[selectedImageIndex] : null;
+  // Get the currently selected image from the selected generation's variations
+  const selectedImage = selectedVariationIndex !== null && selectedVariationIndex > 0
+    ? getSelectedGenerationVariations[selectedVariationIndex - 1]
+    : null;
 
   const hasContent = images.length > 0 || generations.length > 0 || isGenerating;
 
@@ -194,7 +205,7 @@ export function GeneratedImagesView({
                 <div
                   key={`${image.timestamp}-${index}`}
                   className="relative group aspect-square rounded-lg border overflow-hidden bg-card animate-in fade-in cursor-pointer"
-                  onClick={() => handleImageClick(null, null, index)}
+                  onClick={() => handleImageClick("current-session", index + 1)}
                 >
                   <img
                     src={image.dataUrl}
@@ -239,19 +250,12 @@ export function GeneratedImagesView({
 
             {/* Variations Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-              {generation.variations.map((variation) => {
-                const imageIndex = images.length + 
-                  generations
-                    .slice(0, generations.indexOf(generation))
-                    .reduce((acc, gen) => acc + gen.variations.length, 0) +
-                  generation.variations.indexOf(variation);
-
-                return (
-                  <div
-                    key={variation.id}
-                    className="relative group aspect-square rounded-lg border overflow-hidden bg-card cursor-pointer"
-                    onClick={() => handleImageClick(generation.id, variation.variationIndex, imageIndex)}
-                  >
+              {generation.variations.map((variation) => (
+                <div
+                  key={variation.id}
+                  className="relative group aspect-square rounded-lg border overflow-hidden bg-card cursor-pointer"
+                  onClick={() => handleImageClick(generation.id, variation.variationIndex)}
+                >
                     <img
                       src={variation.imageUrl}
                       alt={`Variation ${variation.variationIndex}`}
@@ -271,8 +275,7 @@ export function GeneratedImagesView({
                       </Button>
                     </div>
                   </div>
-                );
-              })}
+              ))}
             </div>
           </div>
         ))}
@@ -297,8 +300,8 @@ export function GeneratedImagesView({
                 <X className="h-5 w-5" />
               </Button>
 
-              {/* Previous Button */}
-              {selectedImageIndex !== null && selectedImageIndex > 0 && (
+              {/* Previous Button - Only show if not first variation */}
+              {selectedVariationIndex !== null && selectedVariationIndex > 1 && (
                 <Button
                   variant="secondary"
                   size="icon"
@@ -309,8 +312,8 @@ export function GeneratedImagesView({
                 </Button>
               )}
 
-              {/* Next Button */}
-              {selectedImageIndex !== null && selectedImageIndex < allImages.length - 1 && (
+              {/* Next Button - Only show if not last variation */}
+              {selectedVariationIndex !== null && selectedVariationIndex < getSelectedGenerationVariations.length && (
                 <Button
                   variant="secondary"
                   size="icon"
@@ -335,14 +338,14 @@ export function GeneratedImagesView({
               <div className="relative w-full h-full flex items-center justify-center bg-background/95 backdrop-blur rounded-lg overflow-hidden">
                 <img
                   src={selectedImage.url}
-                  alt={`Generated image ${selectedImageIndex !== null ? selectedImageIndex + 1 : ""}`}
+                  alt={`Variation ${selectedVariationIndex !== null ? selectedVariationIndex : ""}`}
                   className="max-w-full max-h-full object-contain"
                 />
               </div>
 
-              {/* Image Counter */}
+              {/* Image Counter - Shows variation number within generation */}
               <div className="absolute bottom-4 left-4 z-50 bg-background/80 backdrop-blur px-3 py-1.5 rounded-md text-sm">
-                {selectedImageIndex !== null ? selectedImageIndex + 1 : 0} / {allImages.length}
+                {selectedVariationIndex !== null ? selectedVariationIndex : 0} / {getSelectedGenerationVariations.length}
               </div>
             </div>
           )}
