@@ -58,6 +58,7 @@ import { linkedInAdsRouter } from "./linkedin-ads";
 import { imageGenStudioRouter } from "./imagegen-studio";
 import { stabilityAiRouter } from "./stability-ai";
 import { imageGeneratorRouter } from "./image-generator";
+import { backgroundRemoverRouter } from "./background-remover";
 import { paymentGatewayRouter } from "./payment-gateway";
 
 export const appRouter = router({
@@ -164,6 +165,8 @@ export const appRouter = router({
 	stabilityAi: stabilityAiRouter,
 	// Image Generator
 	imageGenerator: imageGeneratorRouter,
+	// Background Remover
+	backgroundRemover: backgroundRemoverRouter,
 	// Payment Gateway Integration
 	paymentGateway: paymentGatewayRouter,
 });

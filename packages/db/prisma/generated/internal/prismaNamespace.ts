@@ -451,6 +451,8 @@ export const ModelName = {
   ImageGeneratorGeneration: 'ImageGeneratorGeneration',
   ImageGeneratorVariation: 'ImageGeneratorVariation',
   ImageGeneratorGenerationActivityLog: 'ImageGeneratorGenerationActivityLog',
+  BackgroundRemoverGeneration: 'BackgroundRemoverGeneration',
+  BackgroundRemoverGenerationActivityLog: 'BackgroundRemoverGenerationActivityLog',
   ImageGenProject: 'ImageGenProject',
   ImageGenTemplate: 'ImageGenTemplate',
   ImageGenProjectActivityLog: 'ImageGenProjectActivityLog',
@@ -507,7 +509,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5173,6 +5175,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BackgroundRemoverGeneration: {
+      payload: Prisma.$BackgroundRemoverGenerationPayload<ExtArgs>
+      fields: Prisma.BackgroundRemoverGenerationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BackgroundRemoverGenerationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BackgroundRemoverGenerationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload>
+        }
+        findFirst: {
+          args: Prisma.BackgroundRemoverGenerationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BackgroundRemoverGenerationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload>
+        }
+        findMany: {
+          args: Prisma.BackgroundRemoverGenerationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload>[]
+        }
+        create: {
+          args: Prisma.BackgroundRemoverGenerationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload>
+        }
+        createMany: {
+          args: Prisma.BackgroundRemoverGenerationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BackgroundRemoverGenerationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload>[]
+        }
+        delete: {
+          args: Prisma.BackgroundRemoverGenerationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload>
+        }
+        update: {
+          args: Prisma.BackgroundRemoverGenerationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload>
+        }
+        deleteMany: {
+          args: Prisma.BackgroundRemoverGenerationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BackgroundRemoverGenerationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BackgroundRemoverGenerationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload>[]
+        }
+        upsert: {
+          args: Prisma.BackgroundRemoverGenerationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationPayload>
+        }
+        aggregate: {
+          args: Prisma.BackgroundRemoverGenerationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBackgroundRemoverGeneration>
+        }
+        groupBy: {
+          args: Prisma.BackgroundRemoverGenerationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackgroundRemoverGenerationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BackgroundRemoverGenerationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackgroundRemoverGenerationCountAggregateOutputType> | number
+        }
+      }
+    }
+    BackgroundRemoverGenerationActivityLog: {
+      payload: Prisma.$BackgroundRemoverGenerationActivityLogPayload<ExtArgs>
+      fields: Prisma.BackgroundRemoverGenerationActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload>
+        }
+        update: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundRemoverGenerationActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBackgroundRemoverGenerationActivityLog>
+        }
+        groupBy: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackgroundRemoverGenerationActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BackgroundRemoverGenerationActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackgroundRemoverGenerationActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
     ImageGenProject: {
       payload: Prisma.$ImageGenProjectPayload<ExtArgs>
       fields: Prisma.ImageGenProjectFieldRefs
@@ -9400,6 +9550,46 @@ export const ImageGeneratorGenerationActivityLogScalarFieldEnum = {
 export type ImageGeneratorGenerationActivityLogScalarFieldEnum = (typeof ImageGeneratorGenerationActivityLogScalarFieldEnum)[keyof typeof ImageGeneratorGenerationActivityLogScalarFieldEnum]
 
 
+export const BackgroundRemoverGenerationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  originalImageUrl: 'originalImageUrl',
+  originalImageKey: 'originalImageKey',
+  originalImageFileName: 'originalImageFileName',
+  originalImageSize: 'originalImageSize',
+  originalImageMimeType: 'originalImageMimeType',
+  originalImageMetadata: 'originalImageMetadata',
+  processedImageUrl: 'processedImageUrl',
+  processedImageKey: 'processedImageKey',
+  processedImageFileName: 'processedImageFileName',
+  processedImageSize: 'processedImageSize',
+  processedImageMimeType: 'processedImageMimeType',
+  processedImageMetadata: 'processedImageMetadata',
+  modelId: 'modelId',
+  modelName: 'modelName',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BackgroundRemoverGenerationScalarFieldEnum = (typeof BackgroundRemoverGenerationScalarFieldEnum)[keyof typeof BackgroundRemoverGenerationScalarFieldEnum]
+
+
+export const BackgroundRemoverGenerationActivityLogScalarFieldEnum = {
+  id: 'id',
+  backgroundRemoverGenerationId: 'backgroundRemoverGenerationId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type BackgroundRemoverGenerationActivityLogScalarFieldEnum = (typeof BackgroundRemoverGenerationActivityLogScalarFieldEnum)[keyof typeof BackgroundRemoverGenerationActivityLogScalarFieldEnum]
+
+
 export const ImageGenProjectScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -11080,6 +11270,8 @@ export type GlobalOmitConfig = {
   imageGeneratorGeneration?: Prisma.ImageGeneratorGenerationOmit
   imageGeneratorVariation?: Prisma.ImageGeneratorVariationOmit
   imageGeneratorGenerationActivityLog?: Prisma.ImageGeneratorGenerationActivityLogOmit
+  backgroundRemoverGeneration?: Prisma.BackgroundRemoverGenerationOmit
+  backgroundRemoverGenerationActivityLog?: Prisma.BackgroundRemoverGenerationActivityLogOmit
   imageGenProject?: Prisma.ImageGenProjectOmit
   imageGenTemplate?: Prisma.ImageGenTemplateOmit
   imageGenProjectActivityLog?: Prisma.ImageGenProjectActivityLogOmit

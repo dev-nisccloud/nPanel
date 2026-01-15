@@ -359,6 +359,16 @@ export type ImageGeneratorVariation = Prisma.ImageGeneratorVariationModel
  */
 export type ImageGeneratorGenerationActivityLog = Prisma.ImageGeneratorGenerationActivityLogModel
 /**
+ * Model BackgroundRemoverGeneration
+ * 
+ */
+export type BackgroundRemoverGeneration = Prisma.BackgroundRemoverGenerationModel
+/**
+ * Model BackgroundRemoverGenerationActivityLog
+ * 
+ */
+export type BackgroundRemoverGenerationActivityLog = Prisma.BackgroundRemoverGenerationActivityLogModel
+/**
  * Model ImageGenProject
  * 
  */

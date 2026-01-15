@@ -82,3 +82,64 @@ model ImageGeneratorGenerationActivityLog {
   @@index([createdAt])
   @@map("image_generator_generation_activity_log")
 }
+
+// Background Remover - Background Removal History
+// Stores original images and their background-removed versions
+model BackgroundRemoverGeneration {
+  id     String  @id @map("_id")
+  userId String // User who removed the background
+  teamId String? // Optional team ownership (null = personal generation)
+
+  // Original Image Storage (UploadThing)
+  originalImageUrl      String // UploadThing file URL for the original image
+  originalImageKey      String // UploadThing file key for deletion
+  originalImageFileName String // Original file name
+  originalImageSize     Int // File size in bytes
+  originalImageMimeType String // File MIME type (should be image/*)
+  originalImageMetadata Json? // Additional metadata (dimensions, etc.)
+
+  // Background-Removed Image Storage (UploadThing)
+  processedImageUrl      String // UploadThing file URL for the processed image
+  processedImageKey      String // UploadThing file key for deletion
+  processedImageFileName String // Processed file name
+  processedImageSize     Int // File size in bytes
+  processedImageMimeType String // File MIME type (should be image/*)
+  processedImageMetadata Json? // Additional metadata (dimensions, model used, etc.)
+
+  // Model Information
+  modelId   String // e.g., "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003"
+  modelName String? // Human-readable model name
+
+  createdAt DateTime
+  updatedAt DateTime
+
+  user         User                                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team         Team?                                    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  activityLogs BackgroundRemoverGenerationActivityLog[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([createdAt])
+  @@index([modelId])
+  @@map("background_remover_generation")
+}
+
+// Activity logging for Background Remover generation actions
+model BackgroundRemoverGenerationActivityLog {
+  id                            String                      @id @map("_id")
+  backgroundRemoverGenerationId String
+  backgroundRemoverGeneration   BackgroundRemoverGeneration @relation(fields: [backgroundRemoverGenerationId], references: [id], onDelete: Cascade)
+  userId                        String
+  action                        String // e.g., "GENERATE", "DELETE", "DOWNLOAD", "SHARE"
+  description                   String?
+  metadata                      Json?
+  ipAddress                     String?
+  userAgent                     String?
+  createdAt                     DateTime
+
+  @@index([backgroundRemoverGenerationId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("background_remover_generation_activity_log")
+}

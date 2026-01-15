@@ -236,6 +236,7 @@ export type TeamWhereInput = {
   ImageGenUpload?: Prisma.ImageGenUploadListRelationFilter
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationListRelationFilter
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationListRelationFilter
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationListRelationFilter
 }
 
 export type TeamOrderByWithRelationInput = {
@@ -271,6 +272,7 @@ export type TeamOrderByWithRelationInput = {
   ImageGenUpload?: Prisma.ImageGenUploadOrderByRelationAggregateInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationOrderByRelationAggregateInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationOrderByRelationAggregateInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationOrderByRelationAggregateInput
 }
 
 export type TeamWhereUniqueInput = Prisma.AtLeast<{
@@ -309,6 +311,7 @@ export type TeamWhereUniqueInput = Prisma.AtLeast<{
   ImageGenUpload?: Prisma.ImageGenUploadListRelationFilter
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationListRelationFilter
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationListRelationFilter
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationListRelationFilter
 }, "id" | "slug">
 
 export type TeamOrderByWithAggregationInput = {
@@ -374,6 +377,7 @@ export type TeamCreateInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateInput = {
@@ -409,6 +413,7 @@ export type TeamUncheckedCreateInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUpdateInput = {
@@ -444,6 +449,7 @@ export type TeamUpdateInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateInput = {
@@ -479,6 +485,7 @@ export type TeamUncheckedUpdateInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateManyInput = {
@@ -775,6 +782,22 @@ export type TeamUpdateOneWithoutImageGeneratorGenerationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutImageGeneratorGenerationsInput, Prisma.TeamUpdateWithoutImageGeneratorGenerationsInput>, Prisma.TeamUncheckedUpdateWithoutImageGeneratorGenerationsInput>
 }
 
+export type TeamCreateNestedOneWithoutBackgroundRemoverGenerationsInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutBackgroundRemoverGenerationsInput, Prisma.TeamUncheckedCreateWithoutBackgroundRemoverGenerationsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutBackgroundRemoverGenerationsInput
+  connect?: Prisma.TeamWhereUniqueInput
+}
+
+export type TeamUpdateOneWithoutBackgroundRemoverGenerationsNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutBackgroundRemoverGenerationsInput, Prisma.TeamUncheckedCreateWithoutBackgroundRemoverGenerationsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutBackgroundRemoverGenerationsInput
+  upsert?: Prisma.TeamUpsertWithoutBackgroundRemoverGenerationsInput
+  disconnect?: Prisma.TeamWhereInput | boolean
+  delete?: Prisma.TeamWhereInput | boolean
+  connect?: Prisma.TeamWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutBackgroundRemoverGenerationsInput, Prisma.TeamUpdateWithoutBackgroundRemoverGenerationsInput>, Prisma.TeamUncheckedUpdateWithoutBackgroundRemoverGenerationsInput>
+}
+
 export type TeamCreateNestedOneWithoutImageGenProjectsInput = {
   create?: Prisma.XOR<Prisma.TeamCreateWithoutImageGenProjectsInput, Prisma.TeamUncheckedCreateWithoutImageGenProjectsInput>
   connectOrCreate?: Prisma.TeamCreateOrConnectWithoutImageGenProjectsInput
@@ -951,6 +974,7 @@ export type TeamCreateWithoutWordpressInstancesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutWordpressInstancesInput = {
@@ -985,6 +1009,7 @@ export type TeamUncheckedCreateWithoutWordpressInstancesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutWordpressInstancesInput = {
@@ -1035,6 +1060,7 @@ export type TeamUpdateWithoutWordpressInstancesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutWordpressInstancesInput = {
@@ -1069,6 +1095,7 @@ export type TeamUncheckedUpdateWithoutWordpressInstancesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutOrdersInput = {
@@ -1103,6 +1130,7 @@ export type TeamCreateWithoutOrdersInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutOrdersInput = {
@@ -1137,6 +1165,7 @@ export type TeamUncheckedCreateWithoutOrdersInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutOrdersInput = {
@@ -1187,6 +1216,7 @@ export type TeamUpdateWithoutOrdersInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutOrdersInput = {
@@ -1221,6 +1251,7 @@ export type TeamUncheckedUpdateWithoutOrdersInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutPromosInput = {
@@ -1255,6 +1286,7 @@ export type TeamCreateWithoutPromosInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutPromosInput = {
@@ -1289,6 +1321,7 @@ export type TeamUncheckedCreateWithoutPromosInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutPromosInput = {
@@ -1339,6 +1372,7 @@ export type TeamUpdateWithoutPromosInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutPromosInput = {
@@ -1373,6 +1407,7 @@ export type TeamUncheckedUpdateWithoutPromosInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutMembersInput = {
@@ -1407,6 +1442,7 @@ export type TeamCreateWithoutMembersInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutMembersInput = {
@@ -1441,6 +1477,7 @@ export type TeamUncheckedCreateWithoutMembersInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutMembersInput = {
@@ -1491,6 +1528,7 @@ export type TeamUpdateWithoutMembersInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutMembersInput = {
@@ -1525,6 +1563,7 @@ export type TeamUncheckedUpdateWithoutMembersInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutInvitesInput = {
@@ -1559,6 +1598,7 @@ export type TeamCreateWithoutInvitesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutInvitesInput = {
@@ -1593,6 +1633,7 @@ export type TeamUncheckedCreateWithoutInvitesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutInvitesInput = {
@@ -1643,6 +1684,7 @@ export type TeamUpdateWithoutInvitesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutInvitesInput = {
@@ -1677,6 +1719,7 @@ export type TeamUncheckedUpdateWithoutInvitesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutBillingSettingsInput = {
@@ -1711,6 +1754,7 @@ export type TeamCreateWithoutBillingSettingsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutBillingSettingsInput = {
@@ -1745,6 +1789,7 @@ export type TeamUncheckedCreateWithoutBillingSettingsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutBillingSettingsInput = {
@@ -1795,6 +1840,7 @@ export type TeamUpdateWithoutBillingSettingsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutBillingSettingsInput = {
@@ -1829,6 +1875,7 @@ export type TeamUncheckedUpdateWithoutBillingSettingsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutHostingSubscriptionsInput = {
@@ -1863,6 +1910,7 @@ export type TeamCreateWithoutHostingSubscriptionsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutHostingSubscriptionsInput = {
@@ -1897,6 +1945,7 @@ export type TeamUncheckedCreateWithoutHostingSubscriptionsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutHostingSubscriptionsInput = {
@@ -1947,6 +1996,7 @@ export type TeamUpdateWithoutHostingSubscriptionsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutHostingSubscriptionsInput = {
@@ -1981,6 +2031,7 @@ export type TeamUncheckedUpdateWithoutHostingSubscriptionsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutDomainRegistrationsInput = {
@@ -2015,6 +2066,7 @@ export type TeamCreateWithoutDomainRegistrationsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutDomainRegistrationsInput = {
@@ -2049,6 +2101,7 @@ export type TeamUncheckedCreateWithoutDomainRegistrationsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutDomainRegistrationsInput = {
@@ -2099,6 +2152,7 @@ export type TeamUpdateWithoutDomainRegistrationsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutDomainRegistrationsInput = {
@@ -2133,6 +2187,7 @@ export type TeamUncheckedUpdateWithoutDomainRegistrationsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutCreativeAssetsInput = {
@@ -2167,6 +2222,7 @@ export type TeamCreateWithoutCreativeAssetsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutCreativeAssetsInput = {
@@ -2201,6 +2257,7 @@ export type TeamUncheckedCreateWithoutCreativeAssetsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutCreativeAssetsInput = {
@@ -2251,6 +2308,7 @@ export type TeamUpdateWithoutCreativeAssetsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutCreativeAssetsInput = {
@@ -2285,6 +2343,7 @@ export type TeamUncheckedUpdateWithoutCreativeAssetsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutEmailDomainsInput = {
@@ -2319,6 +2378,7 @@ export type TeamCreateWithoutEmailDomainsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutEmailDomainsInput = {
@@ -2353,6 +2413,7 @@ export type TeamUncheckedCreateWithoutEmailDomainsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutEmailDomainsInput = {
@@ -2403,6 +2464,7 @@ export type TeamUpdateWithoutEmailDomainsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutEmailDomainsInput = {
@@ -2437,6 +2499,7 @@ export type TeamUncheckedUpdateWithoutEmailDomainsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutEmailCampaignsInput = {
@@ -2471,6 +2534,7 @@ export type TeamCreateWithoutEmailCampaignsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutEmailCampaignsInput = {
@@ -2505,6 +2569,7 @@ export type TeamUncheckedCreateWithoutEmailCampaignsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutEmailCampaignsInput = {
@@ -2555,6 +2620,7 @@ export type TeamUpdateWithoutEmailCampaignsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutEmailCampaignsInput = {
@@ -2589,6 +2655,7 @@ export type TeamUncheckedUpdateWithoutEmailCampaignsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutAudiencesInput = {
@@ -2623,6 +2690,7 @@ export type TeamCreateWithoutAudiencesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutAudiencesInput = {
@@ -2657,6 +2725,7 @@ export type TeamUncheckedCreateWithoutAudiencesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutAudiencesInput = {
@@ -2707,6 +2776,7 @@ export type TeamUpdateWithoutAudiencesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutAudiencesInput = {
@@ -2741,6 +2811,7 @@ export type TeamUncheckedUpdateWithoutAudiencesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutGoogleAdsAccountsInput = {
@@ -2775,6 +2846,7 @@ export type TeamCreateWithoutGoogleAdsAccountsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutGoogleAdsAccountsInput = {
@@ -2809,6 +2881,7 @@ export type TeamUncheckedCreateWithoutGoogleAdsAccountsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutGoogleAdsAccountsInput = {
@@ -2859,6 +2932,7 @@ export type TeamUpdateWithoutGoogleAdsAccountsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutGoogleAdsAccountsInput = {
@@ -2893,6 +2967,7 @@ export type TeamUncheckedUpdateWithoutGoogleAdsAccountsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutImageGeneratorGenerationsInput = {
@@ -2927,6 +3002,7 @@ export type TeamCreateWithoutImageGeneratorGenerationsInput = {
   PaymentTransaction?: Prisma.PaymentTransactionCreateNestedManyWithoutTeamInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutImageGeneratorGenerationsInput = {
@@ -2961,6 +3037,7 @@ export type TeamUncheckedCreateWithoutImageGeneratorGenerationsInput = {
   PaymentTransaction?: Prisma.PaymentTransactionUncheckedCreateNestedManyWithoutTeamInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutImageGeneratorGenerationsInput = {
@@ -3011,6 +3088,7 @@ export type TeamUpdateWithoutImageGeneratorGenerationsInput = {
   PaymentTransaction?: Prisma.PaymentTransactionUpdateManyWithoutTeamNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
@@ -3045,6 +3123,163 @@ export type TeamUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
   PaymentTransaction?: Prisma.PaymentTransactionUncheckedUpdateManyWithoutTeamNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamCreateWithoutBackgroundRemoverGenerationsInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteCreateNestedManyWithoutTeamInput
+  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutTeamInput
+  emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutTeamInput
+  audiences?: Prisma.AudienceCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
+  imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutTeamInput
+  PaymentTransaction?: Prisma.PaymentTransactionCreateNestedManyWithoutTeamInput
+  ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+}
+
+export type TeamUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteUncheckedCreateNestedManyWithoutTeamInput
+  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutTeamInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutTeamInput
+  audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutTeamInput
+  PaymentTransaction?: Prisma.PaymentTransactionUncheckedCreateNestedManyWithoutTeamInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+}
+
+export type TeamCreateOrConnectWithoutBackgroundRemoverGenerationsInput = {
+  where: Prisma.TeamWhereUniqueInput
+  create: Prisma.XOR<Prisma.TeamCreateWithoutBackgroundRemoverGenerationsInput, Prisma.TeamUncheckedCreateWithoutBackgroundRemoverGenerationsInput>
+}
+
+export type TeamUpsertWithoutBackgroundRemoverGenerationsInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutBackgroundRemoverGenerationsInput, Prisma.TeamUncheckedUpdateWithoutBackgroundRemoverGenerationsInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutBackgroundRemoverGenerationsInput, Prisma.TeamUncheckedCreateWithoutBackgroundRemoverGenerationsInput>
+  where?: Prisma.TeamWhereInput
+}
+
+export type TeamUpdateToOneWithWhereWithoutBackgroundRemoverGenerationsInput = {
+  where?: Prisma.TeamWhereInput
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutBackgroundRemoverGenerationsInput, Prisma.TeamUncheckedUpdateWithoutBackgroundRemoverGenerationsInput>
+}
+
+export type TeamUpdateWithoutBackgroundRemoverGenerationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUpdateManyWithoutTeamNestedInput
+  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutTeamNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutTeamNestedInput
+  audiences?: Prisma.AudienceUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutTeamNestedInput
+  PaymentTransaction?: Prisma.PaymentTransactionUpdateManyWithoutTeamNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUncheckedUpdateManyWithoutTeamNestedInput
+  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutTeamNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutTeamNestedInput
+  audiences?: Prisma.AudienceUncheckedUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutTeamNestedInput
+  PaymentTransaction?: Prisma.PaymentTransactionUncheckedUpdateManyWithoutTeamNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutImageGenProjectsInput = {
@@ -3079,6 +3314,7 @@ export type TeamCreateWithoutImageGenProjectsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutImageGenProjectsInput = {
@@ -3113,6 +3349,7 @@ export type TeamUncheckedCreateWithoutImageGenProjectsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutImageGenProjectsInput = {
@@ -3163,6 +3400,7 @@ export type TeamUpdateWithoutImageGenProjectsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutImageGenProjectsInput = {
@@ -3197,6 +3435,7 @@ export type TeamUncheckedUpdateWithoutImageGenProjectsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutImageGenUploadInput = {
@@ -3231,6 +3470,7 @@ export type TeamCreateWithoutImageGenUploadInput = {
   PaymentTransaction?: Prisma.PaymentTransactionCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutImageGenUploadInput = {
@@ -3265,6 +3505,7 @@ export type TeamUncheckedCreateWithoutImageGenUploadInput = {
   PaymentTransaction?: Prisma.PaymentTransactionUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutImageGenUploadInput = {
@@ -3315,6 +3556,7 @@ export type TeamUpdateWithoutImageGenUploadInput = {
   PaymentTransaction?: Prisma.PaymentTransactionUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutImageGenUploadInput = {
@@ -3349,6 +3591,7 @@ export type TeamUncheckedUpdateWithoutImageGenUploadInput = {
   PaymentTransaction?: Prisma.PaymentTransactionUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutImageGenAiGenerationsInput = {
@@ -3383,6 +3626,7 @@ export type TeamCreateWithoutImageGenAiGenerationsInput = {
   PaymentTransaction?: Prisma.PaymentTransactionCreateNestedManyWithoutTeamInput
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutImageGenAiGenerationsInput = {
@@ -3417,6 +3661,7 @@ export type TeamUncheckedCreateWithoutImageGenAiGenerationsInput = {
   PaymentTransaction?: Prisma.PaymentTransactionUncheckedCreateNestedManyWithoutTeamInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutImageGenAiGenerationsInput = {
@@ -3467,6 +3712,7 @@ export type TeamUpdateWithoutImageGenAiGenerationsInput = {
   PaymentTransaction?: Prisma.PaymentTransactionUpdateManyWithoutTeamNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutImageGenAiGenerationsInput = {
@@ -3501,6 +3747,7 @@ export type TeamUncheckedUpdateWithoutImageGenAiGenerationsInput = {
   PaymentTransaction?: Prisma.PaymentTransactionUncheckedUpdateManyWithoutTeamNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutInvoicesInput = {
@@ -3535,6 +3782,7 @@ export type TeamCreateWithoutInvoicesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutInvoicesInput = {
@@ -3569,6 +3817,7 @@ export type TeamUncheckedCreateWithoutInvoicesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutInvoicesInput = {
@@ -3619,6 +3868,7 @@ export type TeamUpdateWithoutInvoicesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutInvoicesInput = {
@@ -3653,6 +3903,7 @@ export type TeamUncheckedUpdateWithoutInvoicesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutCreditNotesInput = {
@@ -3687,6 +3938,7 @@ export type TeamCreateWithoutCreditNotesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutCreditNotesInput = {
@@ -3721,6 +3973,7 @@ export type TeamUncheckedCreateWithoutCreditNotesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutCreditNotesInput = {
@@ -3771,6 +4024,7 @@ export type TeamUpdateWithoutCreditNotesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutCreditNotesInput = {
@@ -3805,6 +4059,7 @@ export type TeamUncheckedUpdateWithoutCreditNotesInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutMetaAdsAccountsInput = {
@@ -3839,6 +4094,7 @@ export type TeamCreateWithoutMetaAdsAccountsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutMetaAdsAccountsInput = {
@@ -3873,6 +4129,7 @@ export type TeamUncheckedCreateWithoutMetaAdsAccountsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutMetaAdsAccountsInput = {
@@ -3923,6 +4180,7 @@ export type TeamUpdateWithoutMetaAdsAccountsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutMetaAdsAccountsInput = {
@@ -3957,6 +4215,7 @@ export type TeamUncheckedUpdateWithoutMetaAdsAccountsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutPaymentTransactionInput = {
@@ -3991,6 +4250,7 @@ export type TeamCreateWithoutPaymentTransactionInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutPaymentTransactionInput = {
@@ -4025,6 +4285,7 @@ export type TeamUncheckedCreateWithoutPaymentTransactionInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutPaymentTransactionInput = {
@@ -4075,6 +4336,7 @@ export type TeamUpdateWithoutPaymentTransactionInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutPaymentTransactionInput = {
@@ -4109,6 +4371,7 @@ export type TeamUncheckedUpdateWithoutPaymentTransactionInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutServiceSubscriptionsInput = {
@@ -4143,6 +4406,7 @@ export type TeamCreateWithoutServiceSubscriptionsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutServiceSubscriptionsInput = {
@@ -4177,6 +4441,7 @@ export type TeamUncheckedCreateWithoutServiceSubscriptionsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutServiceSubscriptionsInput = {
@@ -4227,6 +4492,7 @@ export type TeamUpdateWithoutServiceSubscriptionsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutServiceSubscriptionsInput = {
@@ -4261,6 +4527,7 @@ export type TeamUncheckedUpdateWithoutServiceSubscriptionsInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutSocialMediaPageTokensInput = {
@@ -4295,6 +4562,7 @@ export type TeamCreateWithoutSocialMediaPageTokensInput = {
   ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutSocialMediaPageTokensInput = {
@@ -4329,6 +4597,7 @@ export type TeamUncheckedCreateWithoutSocialMediaPageTokensInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutSocialMediaPageTokensInput = {
@@ -4379,6 +4648,7 @@ export type TeamUpdateWithoutSocialMediaPageTokensInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutSocialMediaPageTokensInput = {
@@ -4413,6 +4683,7 @@ export type TeamUncheckedUpdateWithoutSocialMediaPageTokensInput = {
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 
@@ -4443,6 +4714,7 @@ export type TeamCountOutputType = {
   ImageGenUpload: number
   imageGenAiGenerations: number
   imageGeneratorGenerations: number
+  backgroundRemoverGenerations: number
 }
 
 export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -4468,6 +4740,7 @@ export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   ImageGenUpload?: boolean | TeamCountOutputTypeCountImageGenUploadArgs
   imageGenAiGenerations?: boolean | TeamCountOutputTypeCountImageGenAiGenerationsArgs
   imageGeneratorGenerations?: boolean | TeamCountOutputTypeCountImageGeneratorGenerationsArgs
+  backgroundRemoverGenerations?: boolean | TeamCountOutputTypeCountBackgroundRemoverGenerationsArgs
 }
 
 /**
@@ -4634,6 +4907,13 @@ export type TeamCountOutputTypeCountImageGeneratorGenerationsArgs<ExtArgs extend
   where?: Prisma.ImageGeneratorGenerationWhereInput
 }
 
+/**
+ * TeamCountOutputType without action
+ */
+export type TeamCountOutputTypeCountBackgroundRemoverGenerationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BackgroundRemoverGenerationWhereInput
+}
+
 
 export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -4668,6 +4948,7 @@ export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   ImageGenUpload?: boolean | Prisma.Team$ImageGenUploadArgs<ExtArgs>
   imageGenAiGenerations?: boolean | Prisma.Team$imageGenAiGenerationsArgs<ExtArgs>
   imageGeneratorGenerations?: boolean | Prisma.Team$imageGeneratorGenerationsArgs<ExtArgs>
+  backgroundRemoverGenerations?: boolean | Prisma.Team$backgroundRemoverGenerationsArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["team"]>
 
@@ -4732,6 +5013,7 @@ export type TeamInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   ImageGenUpload?: boolean | Prisma.Team$ImageGenUploadArgs<ExtArgs>
   imageGenAiGenerations?: boolean | Prisma.Team$imageGenAiGenerationsArgs<ExtArgs>
   imageGeneratorGenerations?: boolean | Prisma.Team$imageGeneratorGenerationsArgs<ExtArgs>
+  backgroundRemoverGenerations?: boolean | Prisma.Team$backgroundRemoverGenerationsArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TeamIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -4763,6 +5045,7 @@ export type $TeamPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     ImageGenUpload: Prisma.$ImageGenUploadPayload<ExtArgs>[]
     imageGenAiGenerations: Prisma.$ImageGenAiGenerationPayload<ExtArgs>[]
     imageGeneratorGenerations: Prisma.$ImageGeneratorGenerationPayload<ExtArgs>[]
+    backgroundRemoverGenerations: Prisma.$BackgroundRemoverGenerationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -5191,6 +5474,7 @@ export interface Prisma__TeamClient<T, Null = never, ExtArgs extends runtime.Typ
   ImageGenUpload<T extends Prisma.Team$ImageGenUploadArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$ImageGenUploadArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImageGenUploadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   imageGenAiGenerations<T extends Prisma.Team$imageGenAiGenerationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$imageGenAiGenerationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImageGenAiGenerationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   imageGeneratorGenerations<T extends Prisma.Team$imageGeneratorGenerationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$imageGeneratorGenerationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImageGeneratorGenerationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  backgroundRemoverGenerations<T extends Prisma.Team$backgroundRemoverGenerationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$backgroundRemoverGenerationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BackgroundRemoverGenerationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -6161,6 +6445,30 @@ export type Team$imageGeneratorGenerationsArgs<ExtArgs extends runtime.Types.Ext
   take?: number
   skip?: number
   distinct?: Prisma.ImageGeneratorGenerationScalarFieldEnum | Prisma.ImageGeneratorGenerationScalarFieldEnum[]
+}
+
+/**
+ * Team.backgroundRemoverGenerations
+ */
+export type Team$backgroundRemoverGenerationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BackgroundRemoverGeneration
+   */
+  select?: Prisma.BackgroundRemoverGenerationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BackgroundRemoverGeneration
+   */
+  omit?: Prisma.BackgroundRemoverGenerationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BackgroundRemoverGenerationInclude<ExtArgs> | null
+  where?: Prisma.BackgroundRemoverGenerationWhereInput
+  orderBy?: Prisma.BackgroundRemoverGenerationOrderByWithRelationInput | Prisma.BackgroundRemoverGenerationOrderByWithRelationInput[]
+  cursor?: Prisma.BackgroundRemoverGenerationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BackgroundRemoverGenerationScalarFieldEnum | Prisma.BackgroundRemoverGenerationScalarFieldEnum[]
 }
 
 /**

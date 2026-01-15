@@ -111,6 +111,8 @@ export const ModelName = {
   ImageGeneratorGeneration: 'ImageGeneratorGeneration',
   ImageGeneratorVariation: 'ImageGeneratorVariation',
   ImageGeneratorGenerationActivityLog: 'ImageGeneratorGenerationActivityLog',
+  BackgroundRemoverGeneration: 'BackgroundRemoverGeneration',
+  BackgroundRemoverGenerationActivityLog: 'BackgroundRemoverGenerationActivityLog',
   ImageGenProject: 'ImageGenProject',
   ImageGenTemplate: 'ImageGenTemplate',
   ImageGenProjectActivityLog: 'ImageGenProjectActivityLog',
@@ -1322,6 +1324,46 @@ export const ImageGeneratorGenerationActivityLogScalarFieldEnum = {
 } as const
 
 export type ImageGeneratorGenerationActivityLogScalarFieldEnum = (typeof ImageGeneratorGenerationActivityLogScalarFieldEnum)[keyof typeof ImageGeneratorGenerationActivityLogScalarFieldEnum]
+
+
+export const BackgroundRemoverGenerationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  originalImageUrl: 'originalImageUrl',
+  originalImageKey: 'originalImageKey',
+  originalImageFileName: 'originalImageFileName',
+  originalImageSize: 'originalImageSize',
+  originalImageMimeType: 'originalImageMimeType',
+  originalImageMetadata: 'originalImageMetadata',
+  processedImageUrl: 'processedImageUrl',
+  processedImageKey: 'processedImageKey',
+  processedImageFileName: 'processedImageFileName',
+  processedImageSize: 'processedImageSize',
+  processedImageMimeType: 'processedImageMimeType',
+  processedImageMetadata: 'processedImageMetadata',
+  modelId: 'modelId',
+  modelName: 'modelName',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BackgroundRemoverGenerationScalarFieldEnum = (typeof BackgroundRemoverGenerationScalarFieldEnum)[keyof typeof BackgroundRemoverGenerationScalarFieldEnum]
+
+
+export const BackgroundRemoverGenerationActivityLogScalarFieldEnum = {
+  id: 'id',
+  backgroundRemoverGenerationId: 'backgroundRemoverGenerationId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type BackgroundRemoverGenerationActivityLogScalarFieldEnum = (typeof BackgroundRemoverGenerationActivityLogScalarFieldEnum)[keyof typeof BackgroundRemoverGenerationActivityLogScalarFieldEnum]
 
 
 export const ImageGenProjectScalarFieldEnum = {
