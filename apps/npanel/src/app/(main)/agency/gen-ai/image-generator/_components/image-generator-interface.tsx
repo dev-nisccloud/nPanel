@@ -6,6 +6,18 @@ import { FloatingInputBar } from "./floating-input-bar";
 import { useGetGenerations } from "../_api/use-get-generations";
 import { trpc } from "@/utils/trpc";
 
+type GenerationView = {
+  id: string;
+  prompt: string;
+  createdAt: Date;
+  variations: Array<{
+    id: string;
+    variationIndex: number;
+    imageUrl: string;
+    imageMimeType: string;
+  }>;
+};
+
 export function ImageGeneratorInterface() {
   const [generatedImages, setGeneratedImages] = React.useState<any[]>([]);
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -49,20 +61,34 @@ export function ImageGeneratorInterface() {
   };
 
   // Transform database generations to the format expected by the view
-  const generations = React.useMemo(() => {
-    if (!generationsData?.data) return [];
+  const generations = React.useMemo((): GenerationView[] => {
+    // Extract data early to avoid deep type inference
+    const rawData = generationsData?.data;
+    if (!rawData) return [];
     
-    return generationsData.data.map((gen) => ({
-      id: gen.id,
-      prompt: gen.prompt,
-      createdAt: new Date(gen.createdAt),
-      variations: gen.variations.map((variation) => ({
-        id: variation.id,
-        variationIndex: variation.variationIndex,
-        imageUrl: variation.imageUrl,
-        imageMimeType: variation.imageMimeType,
-      })),
-    }));
+    // Use 'as any' to completely bypass TypeScript inference
+    const data = rawData as any;
+    
+    const result: GenerationView[] = [];
+    for (let i = 0; i < data.length; i++) {
+      const gen = data[i];
+      result.push({
+        id: String(gen?.id || ''),
+        prompt: String(gen?.prompt || ''),
+        createdAt: gen?.createdAt instanceof Date 
+          ? gen.createdAt 
+          : new Date(gen?.createdAt || Date.now()),
+        variations: Array.isArray(gen?.variations) 
+          ? gen.variations.map((variation: any) => ({
+              id: String(variation?.id || ''),
+              variationIndex: Number(variation?.variationIndex || 0),
+              imageUrl: String(variation?.imageUrl || ''),
+              imageMimeType: String(variation?.imageMimeType || ''),
+            }))
+          : [],
+      });
+    }
+    return result;
   }, [generationsData]);
 
   return (
