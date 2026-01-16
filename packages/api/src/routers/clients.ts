@@ -199,7 +199,18 @@ const sendEmailVerificationOutputSchema = z.object({
 // HELPER FUNCTIONS
 // ============================================================================
 
-async function getUserRole(userId: string): Promise<string> {
+/**
+ * Get user role - optimized to use session role when available
+ * Falls back to database query if role not in session
+ */
+async function getUserRole(userId: string, sessionUser?: { role?: string }): Promise<string> {
+	// Optimize: Use role from session if available (set by auth hooks)
+	// This avoids unnecessary database queries
+	if (sessionUser?.role) {
+		return sessionUser.role;
+	}
+
+	// Fallback: Query database if role not in session
 	const dbUser = await prisma.user.findUnique({
 		where: { id: userId },
 		select: { role: true },
@@ -234,7 +245,8 @@ export const clientsRouter = router({
 			}
 
 			// Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to view clients
-			const userRole = await getUserRole(session.user.id);
+			// Optimize: Pass session user to avoid database query if role is in session
+			const userRole = await getUserRole(session.user.id, session.user as { role?: string });
 			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -328,12 +340,13 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Get the created user
-			const user = await prisma.user.findUnique({
+			// Batch: Get user, update role if needed, and get updated user
+			// This reduces connection usage from 3 sequential queries to 1-2 queries
+			let updatedUser = await prisma.user.findUnique({
 				where: { email: input.email },
 			});
 
-			if (!user) {
+			if (!updatedUser) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "User was created but could not be retrieved",
@@ -341,19 +354,14 @@ export const clientsRouter = router({
 			}
 
 			// Update user role to the specified role (Better Auth defaults to CUSTOMER)
-			if (input.role && input.role !== user.role) {
-				await prisma.user.update({
-					where: { id: user.id },
+			if (input.role && input.role !== updatedUser.role) {
+				updatedUser = await prisma.user.update({
+					where: { id: updatedUser.id },
 					data: {
 						role: input.role,
 					},
 				});
 			}
-
-			// Get updated user with correct role
-			const updatedUser = await prisma.user.findUnique({
-				where: { id: user.id },
-			});
 
 			if (!updatedUser) {
 				throw new TRPCError({
@@ -439,10 +447,22 @@ export const clientsRouter = router({
 
 			const userId = session.user.id;
 
-			// Find the user
-			const existingUser = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			// Batch: Find user and check email availability in parallel (if email is being changed)
+			const [existingUser, emailExists] = await Promise.all([
+				prisma.user.findUnique({
+					where: { id: input.userId },
+				}),
+				// Only check email if it's being changed
+				input.email
+					? prisma.user
+							.findUnique({
+								where: { email: input.email },
+								select: { id: true },
+							})
+							.then((user) => user !== null)
+							.catch(() => false)
+					: Promise.resolve(false),
+			]);
 
 			if (!existingUser) {
 				throw new TRPCError({
@@ -452,17 +472,11 @@ export const clientsRouter = router({
 			}
 
 			// Check if email is being changed and if it's already taken
-			if (input.email && input.email !== existingUser.email) {
-				const emailExists = await prisma.user.findUnique({
-					where: { email: input.email },
+			if (input.email && input.email !== existingUser.email && emailExists) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A user with this email already exists",
 				});
-
-				if (emailExists) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "A user with this email already exists",
-					});
-				}
 			}
 
 			// Build update data
@@ -482,37 +496,41 @@ export const clientsRouter = router({
 				updateData.role = input.role;
 			}
 
-			// Update the user
-			const updatedUser = await prisma.user.update({
-				where: { id: input.userId },
-				data: updateData,
-			});
-
-			// Log activity
+			// Batch: Update user and log activity in a transaction
 			const changedFields = Object.keys(updateData).filter(key => key !== "updatedAt");
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: updatedUser.id,
-					action: "ACCOUNT_UPDATED_BY_ADMIN",
-					description: `Account updated by admin: ${session.user.email}`,
-					metadata: {
-						updatedBy: userId,
-						updatedByEmail: session.user.email,
-						changedFields,
-						previousValues: {
-							name: existingUser.name,
-							email: existingUser.email,
-							role: existingUser.role,
+			const updatedUser = await prisma.$transaction(async (tx) => {
+				const updated = await tx.user.update({
+					where: { id: input.userId },
+					data: updateData,
+				});
+
+				// Log activity
+				await tx.userActivityLog.create({
+					data: {
+						id: crypto.randomUUID(),
+						userId: updated.id,
+						action: "ACCOUNT_UPDATED_BY_ADMIN",
+						description: `Account updated by admin: ${session.user!.email}`,
+						metadata: {
+							updatedBy: userId,
+							updatedByEmail: session.user!.email,
+							changedFields,
+							previousValues: {
+								name: existingUser.name,
+								email: existingUser.email,
+								role: existingUser.role,
+							},
+							newValues: {
+								name: updated.name,
+								email: updated.email,
+								role: updated.role,
+							},
 						},
-						newValues: {
-							name: updatedUser.name,
-							email: updatedUser.email,
-							role: updatedUser.role,
-						},
+						createdAt: new Date(),
 					},
-					createdAt: new Date(),
-				},
+				});
+
+				return updated;
 			});
 
 			return {
@@ -565,15 +583,7 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Update status
-			const updatedUser = await prisma.user.update({
-				where: { id: input.userId },
-				data: {
-					status: input.status,
-					updatedAt: new Date(),
-				},
-			});
-
+			// Batch: Update status and log activity in a transaction
 			// Determine specific action type based on status change
 			let actionType = "STATUS_CHANGED_BY_ADMIN";
 			let actionDescription = `Status changed from ${existingUser.status} to ${input.status} by admin: ${session.user.email}`;
@@ -598,21 +608,32 @@ export const clientsRouter = router({
 				actionDescription = `Account unsuspended by admin: ${session.user.email}`;
 			}
 
-			// Log activity with specific action type
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: updatedUser.id,
-					action: actionType,
-					description: actionDescription,
-					metadata: {
-						changedBy: userId,
-						changedByEmail: session.user.email,
-						previousStatus: existingUser.status,
-						newStatus: input.status,
+			// Batch: Update status and log activity in a transaction
+			await prisma.$transaction(async (tx) => {
+				const updated = await tx.user.update({
+					where: { id: input.userId },
+					data: {
+						status: input.status,
+						updatedAt: new Date(),
 					},
-					createdAt: new Date(),
-				},
+				});
+
+				// Log activity with specific action type
+				await tx.userActivityLog.create({
+					data: {
+						id: crypto.randomUUID(),
+						userId: updated.id,
+						action: actionType,
+						description: actionDescription,
+						metadata: {
+							changedBy: userId,
+							changedByEmail: session.user!.email,
+							previousStatus: existingUser.status,
+							newStatus: input.status,
+						},
+						createdAt: new Date(),
+					},
+				});
 			});
 
 			return {
@@ -845,76 +866,78 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Separate user fields from profile fields
+			// Batch: Update user name, profile, and log activity in a transaction
 			const { name, firstName, lastName, phone, address, city, state, country, postalCode } = input;
+			const changedFields = Object.keys(input).filter(key => key !== "userId");
 
-			// Update user name if provided
-			if (name) {
-				await prisma.user.update({
-					where: { id: input.userId },
-					data: {
-						name,
-						updatedAt: new Date(),
-					},
-				});
-			}
+			await prisma.$transaction(async (tx) => {
+				// Update user name if provided
+				if (name) {
+					await tx.user.update({
+						where: { id: input.userId },
+						data: {
+							name,
+							updatedAt: new Date(),
+						},
+					});
+				}
 
-			// Prepare profile data
-			const profileData = {
-				firstName,
-				lastName,
-				phone,
-				address,
-				city,
-				state,
-				country,
-				postalCode,
-				updatedAt: new Date(),
-			};
+				// Prepare profile data
+				const profileData = {
+					firstName,
+					lastName,
+					phone,
+					address,
+					city,
+					state,
+					country,
+					postalCode,
+					updatedAt: new Date(),
+				};
 
-			// Update or create profile
-			if (existingUser.profile) {
-				await prisma.userProfile.update({
-					where: { userId: input.userId },
-					data: profileData,
-				});
-			} else {
-				await prisma.userProfile.create({
+				// Update or create profile
+				if (existingUser.profile) {
+					await tx.userProfile.update({
+						where: { userId: input.userId },
+						data: profileData,
+					});
+				} else {
+					await tx.userProfile.create({
+						data: {
+							id: crypto.randomUUID(),
+							userId: input.userId,
+							...profileData,
+							createdAt: new Date(),
+						},
+					});
+				}
+
+				// Log activity
+				await tx.userActivityLog.create({
 					data: {
 						id: crypto.randomUUID(),
 						userId: input.userId,
-						...profileData,
+					action: "PROFILE_UPDATED_BY_ADMIN",
+					description: `Profile updated by admin: ${session.user!.email}`,
+					metadata: {
+						updatedBy: userId,
+						updatedByEmail: session.user!.email,
+							changedFields,
+							previousValues: {
+								name: existingUser.name,
+								firstName: existingUser.profile?.firstName || null,
+								lastName: existingUser.profile?.lastName || null,
+								phone: existingUser.profile?.phone || null,
+								address: existingUser.profile?.address || null,
+								city: existingUser.profile?.city || null,
+								state: existingUser.profile?.state || null,
+								country: existingUser.profile?.country || null,
+								postalCode: existingUser.profile?.postalCode || null,
+							},
+						},
 						createdAt: new Date(),
 					},
 				});
-			}
-
-			// Log activity
-			const changedFields = Object.keys(input).filter(key => key !== "userId");
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: input.userId,
-					action: "PROFILE_UPDATED_BY_ADMIN",
-					description: `Profile updated by admin: ${session.user.email}`,
-					metadata: {
-						updatedBy: userId,
-						updatedByEmail: session.user.email,
-						changedFields,
-						previousValues: {
-							name: existingUser.name,
-							firstName: existingUser.profile?.firstName || null,
-							lastName: existingUser.profile?.lastName || null,
-							phone: existingUser.profile?.phone || null,
-							address: existingUser.profile?.address || null,
-							city: existingUser.profile?.city || null,
-							state: existingUser.profile?.state || null,
-							country: existingUser.profile?.country || null,
-							postalCode: existingUser.profile?.postalCode || null,
-						},
-					},
-					createdAt: new Date(),
-				},
 			});
 
 			return {
@@ -1284,56 +1307,60 @@ export const clientsRouter = router({
 					}
 				}
 
-				// Create integration record
-				const integration = await prisma.customerIntegration.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: input.userId,
-						platform: input.platform,
-						platformCustomerId,
-						isActive: true,
-						isCreated: true,
-						createdBy: userId,
-						createdAt: new Date(),
-						updatedAt: new Date(),
-						platformData,
-					},
-				});
-
-				// Log activity
-				await prisma.customerIntegrationActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: input.userId,
-						customerIntegrationId: integration.id,
-						action: "CREATE",
-						description: `Customer integration created for ${input.platform} by admin: ${session.user.email}`,
-						metadata: {
-							createdBy: userId,
-							createdByEmail: session.user.email,
+				// Batch: Create integration and log activities in a transaction
+				const integration = await prisma.$transaction(async (tx) => {
+					const integration = await tx.customerIntegration.create({
+						data: {
+							id: crypto.randomUUID(),
+							userId: input.userId,
 							platform: input.platform,
 							platformCustomerId,
-						},
-						createdAt: new Date(),
-					},
-				});
-
-				// Also log in user activity log
-				await prisma.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: input.userId,
-						action: "CUSTOMER_INTEGRATION_CREATED_BY_ADMIN",
-						description: `Customer integration created for ${input.platform} by admin: ${session.user.email}`,
-						metadata: {
+							isActive: true,
+							isCreated: true,
 							createdBy: userId,
-							createdByEmail: session.user.email,
-							platform: input.platform,
-							platformCustomerId,
-							integrationId: integration.id,
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							platformData,
 						},
-						createdAt: new Date(),
-					},
+					});
+
+					// Log activities in parallel
+					await Promise.all([
+						tx.customerIntegrationActivityLog.create({
+							data: {
+								id: crypto.randomUUID(),
+								userId: input.userId,
+								customerIntegrationId: integration.id,
+								action: "CREATE",
+							description: `Customer integration created for ${input.platform} by admin: ${session.user!.email}`,
+							metadata: {
+								createdBy: userId,
+								createdByEmail: session.user!.email,
+									platform: input.platform,
+									platformCustomerId,
+								},
+								createdAt: new Date(),
+							},
+						}),
+						tx.userActivityLog.create({
+							data: {
+								id: crypto.randomUUID(),
+								userId: input.userId,
+								action: "CUSTOMER_INTEGRATION_CREATED_BY_ADMIN",
+							description: `Customer integration created for ${input.platform} by admin: ${session.user!.email}`,
+							metadata: {
+								createdBy: userId,
+								createdByEmail: session.user!.email,
+									platform: input.platform,
+									platformCustomerId,
+									integrationId: integration.id,
+								},
+								createdAt: new Date(),
+							},
+						}),
+					]);
+
+					return integration;
 				});
 
 				return {
@@ -1585,45 +1612,47 @@ export const clientsRouter = router({
 					? "Verification email is already in progress. Please check your email inbox."
 					: "Email verification sent successfully";
 
-				// Log activity
-				await prisma.customerIntegrationActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: input.userId,
-						customerIntegrationId: integration.id,
-						action: "SEND_EMAIL_VERIFICATION",
-						description: `Email verification sent for OpenProvider integration by admin: ${session.user.email}`,
-						metadata: {
-							sentBy: userId,
-							sentByEmail: session.user.email,
-							platform: "OPENPROVIDER",
-							email: integration.user.email,
-							handle: integration.platformCustomerId,
-							language: input.language || "en",
-							verificationId: response.data?.id || null,
-						},
-						createdAt: new Date(),
-					},
-				});
-
-				// Also log in user activity log
-				await prisma.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: input.userId,
-						action: "OPENPROVIDER_EMAIL_VERIFICATION_SENT_BY_ADMIN",
-						description: `Email verification sent for OpenProvider integration by admin: ${session.user.email}`,
-						metadata: {
-							sentBy: userId,
-							sentByEmail: session.user.email,
-							platform: "OPENPROVIDER",
-							integrationId: integration.id,
-							email: integration.user.email,
-							handle: integration.platformCustomerId,
-							verificationId: response.data?.id || null,
-						},
-						createdAt: new Date(),
-					},
+				// Batch: Log activities in a transaction
+				await prisma.$transaction(async (tx) => {
+					await Promise.all([
+						tx.customerIntegrationActivityLog.create({
+							data: {
+								id: crypto.randomUUID(),
+								userId: input.userId,
+								customerIntegrationId: integration.id,
+								action: "SEND_EMAIL_VERIFICATION",
+								description: `Email verification sent for OpenProvider integration by admin: ${session.user!.email}`,
+								metadata: {
+									sentBy: userId,
+									sentByEmail: session.user!.email,
+									platform: "OPENPROVIDER",
+									email: integration.user.email,
+									handle: integration.platformCustomerId,
+									language: input.language || "en",
+									verificationId: response.data?.id || null,
+								},
+								createdAt: new Date(),
+							},
+						}),
+						tx.userActivityLog.create({
+							data: {
+								id: crypto.randomUUID(),
+								userId: input.userId,
+								action: "OPENPROVIDER_EMAIL_VERIFICATION_SENT_BY_ADMIN",
+								description: `Email verification sent for OpenProvider integration by admin: ${session.user!.email}`,
+								metadata: {
+									sentBy: userId,
+									sentByEmail: session.user!.email,
+									platform: "OPENPROVIDER",
+									integrationId: integration.id,
+									email: integration.user.email,
+									handle: integration.platformCustomerId,
+									verificationId: response.data?.id || null,
+								},
+								createdAt: new Date(),
+							},
+						}),
+					]);
 				});
 
 				return {
@@ -1641,47 +1670,49 @@ export const clientsRouter = router({
 				if (error instanceof OpenProviderApiError && error.code === 20001) {
 					const successMessage = "Verification email is already in progress. Please check your email inbox.";
 					
-					// Log activity for the "in progress" case
-					await prisma.customerIntegrationActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: input.userId,
-							customerIntegrationId: integration.id,
-							action: "SEND_EMAIL_VERIFICATION",
-							description: `Email verification already in progress for OpenProvider integration by admin: ${session.user.email}`,
-							metadata: {
-								sentBy: userId,
-								sentByEmail: session.user.email,
-								platform: "OPENPROVIDER",
-								email: integration.user.email,
-								handle: integration.platformCustomerId,
-								language: input.language || "en",
-								status: "already_in_progress",
-								errorCode: 20001,
-							},
-							createdAt: new Date(),
-						},
-					});
-
-					// Also log in user activity log
-					await prisma.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: input.userId,
-							action: "OPENPROVIDER_EMAIL_VERIFICATION_SENT_BY_ADMIN",
-							description: `Email verification already in progress for OpenProvider integration by admin: ${session.user.email}`,
-							metadata: {
-								sentBy: userId,
-								sentByEmail: session.user.email,
-								platform: "OPENPROVIDER",
-								integrationId: integration.id,
-								email: integration.user.email,
-								handle: integration.platformCustomerId,
-								status: "already_in_progress",
-								errorCode: 20001,
-							},
-							createdAt: new Date(),
-						},
+					// Batch: Log activities for "in progress" case in a transaction
+					await prisma.$transaction(async (tx) => {
+						await Promise.all([
+							tx.customerIntegrationActivityLog.create({
+								data: {
+									id: crypto.randomUUID(),
+									userId: input.userId,
+									customerIntegrationId: integration.id,
+									action: "SEND_EMAIL_VERIFICATION",
+									description: `Email verification already in progress for OpenProvider integration by admin: ${session.user!.email}`,
+									metadata: {
+										sentBy: userId,
+										sentByEmail: session.user!.email,
+										platform: "OPENPROVIDER",
+										email: integration.user.email,
+										handle: integration.platformCustomerId,
+										language: input.language || "en",
+										status: "already_in_progress",
+										errorCode: 20001,
+									},
+									createdAt: new Date(),
+								},
+							}),
+							tx.userActivityLog.create({
+								data: {
+									id: crypto.randomUUID(),
+									userId: input.userId,
+									action: "OPENPROVIDER_EMAIL_VERIFICATION_SENT_BY_ADMIN",
+									description: `Email verification already in progress for OpenProvider integration by admin: ${session.user!.email}`,
+									metadata: {
+										sentBy: userId,
+										sentByEmail: session.user!.email,
+										platform: "OPENPROVIDER",
+										integrationId: integration.id,
+										email: integration.user.email,
+										handle: integration.platformCustomerId,
+										status: "already_in_progress",
+										errorCode: 20001,
+									},
+									createdAt: new Date(),
+								},
+							}),
+						]);
 					});
 
 					return {

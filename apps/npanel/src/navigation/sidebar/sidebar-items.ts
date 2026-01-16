@@ -58,6 +58,11 @@ export const sidebarItems: NavGroup[] = [
         title: "Domains",
         url: "/dashboard/domains",
         icon: (props: any) => React.createElement(Icons.Site, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Get a Domain", url: "/dashboard/domains", },
+          { title: "Transfer", url: "/dashboard/domain-transfer", },
+          { title: "My Domains", url: "/dashboard/domains-portfolio", },
+        ],
       },
       {
         title: "Hosting",
@@ -68,6 +73,11 @@ export const sidebarItems: NavGroup[] = [
         title: "Emails",
         url: "/dashboard/emails",
         icon: (props: any) => React.createElement(Icons.Mail, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+      {
+        title: "WordPress",
+        url: "/dashboard/wordpress",
+        icon: (props: any) => React.createElement(Icons.Wordpress, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       // {
       //   title: "Files",
@@ -88,28 +98,6 @@ export const sidebarItems: NavGroup[] = [
   },
   {
     id: 2,
-    label: "Creatives",
-    items: [
-      {
-        title: "Creative Assets",
-        url: "/dashboard/creative-assets",
-        icon: (props: any) => React.createElement(Icons.CreativeAssets, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
-    ],
-  },
-  {
-    id: 3,
-    label: "Gen AI Tools",
-    items: [
-      {
-        title: "ImageGen Studio",
-        url: "/gen-ai/image-gen-studio",
-        icon: (props: any) => React.createElement(Icons.AIImage, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
-    ],
-  },
-  {
-    id: 4,
     label: "Digital Marketing",
     items: [
       {
@@ -118,7 +106,7 @@ export const sidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.SocialMediaMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "Facebook", url: "/dashboard/social-media/facebook", },
-          { title: "LinkedIn", url: "/dashboard/social-media-marketing/linkedin", },
+          // { title: "LinkedIn", url: "/dashboard/social-media-marketing/linkedin", },
         ],
       },
       {
@@ -136,21 +124,40 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/seo",
         icon: (props: any) => React.createElement(Icons.Seo, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
-      // {
-      //   title: "Authentication",
-      //   url: "/auth",
-      //   icon: Fingerprint,
-      //   subItems: [
-      //     { title: "Login v1", url: "/auth/v1/login", newTab: true },
-      //     { title: "Login v2", url: "/auth/v2/login", newTab: true },
-      //     { title: "Register v1", url: "/auth/v1/register", newTab: true },
-      //     { title: "Register v2", url: "/auth/v2/register", newTab: true },
-      //   ],
-      // },
+      {
+        title: "Creatives",
+        url: "/dashboard/creative-assets",
+        icon: (props: any) => React.createElement(Icons.CreativeAssets, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Visual Creatives", url: "/dashboard/creative-assets", },
+          { title: "Creative Briefs", url: "/dashboard/creative-briefs", },
+        ],
+      },
     ],
   },
   {
-    id: 5,
+    id: 3,
+    label: "Gen AI Tools",
+    items: [
+      {
+        title: "Visual Studio",
+        url: "/dashboard/gen-ai/image-gen-studio",
+        icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+      {
+        title: "Image Generator",
+        url: "/dashboard/gen-ai/image-generator",
+        icon: (props: any) => React.createElement(Icons.AIImage, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+      {
+        title: "Background Remover",
+        url: "/dashboard/gen-ai/background-remover",
+        icon: (props: any) => React.createElement(Icons.BackgroundRemover, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+    ],
+  },
+  {
+    id: 4,
     label: "Billing",
     items: [
       {
@@ -166,7 +173,7 @@ export const sidebarItems: NavGroup[] = [
     ],
   },
   {
-    id: 6,
+    id: 5,
     label: "Account Settings",
     items: [
       {

@@ -217,9 +217,9 @@ export const AiSidebar = ({
   const handleImageClick = useCallback(
     (imageUrl: string) => {
       editor?.addImage(imageUrl);
-    },
+        },
     [editor]
-  );
+    );
 
   const handleDeleteGeneration = useCallback(
     async (generationId: string, e: React.MouseEvent) => {
@@ -250,12 +250,12 @@ export const AiSidebar = ({
         <div className="flex-shrink-0 p-4 border-b space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Prompt</label>
-            <Textarea
+          <Textarea
               ref={textareaRef}
               disabled={isGenerating}
-              placeholder="An astronaut riding a horse on mars, hd, dramatic lighting"
-              required
-              minLength={3}
+            placeholder="An astronaut riding a horse on mars, hd, dramatic lighting"
+            required
+            minLength={3}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="resize-none min-h-[80px] max-h-[200px] overflow-y-auto"
@@ -322,7 +322,7 @@ export const AiSidebar = ({
             ) : (
               <>
                 <Sparkles className="size-4 mr-2" />
-                Generate
+            Generate
               </>
             )}
           </Button>
@@ -378,7 +378,7 @@ export const AiSidebar = ({
                 </div>
               </div>
               <ScrollBar orientation="vertical" />
-            </ScrollArea>
+      </ScrollArea>
           )}
         </div>
       </div>

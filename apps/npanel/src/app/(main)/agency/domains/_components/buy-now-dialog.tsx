@@ -813,7 +813,9 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
               <div className={`rounded-lg border-2 p-4 transition-all ${
                 selectedHostingPlans.find(p => p.type === "web")
                   ? "border-primary bg-primary/5"
-                  : "border-border bg-card hover:border-primary/50"
+                  : selectedHostingPlans.find(p => p.type === "email")
+                    ? "border-border bg-muted/30 opacity-60 cursor-not-allowed"
+                    : "border-border bg-card hover:border-primary/50"
               }`}>
                 {selectedHostingPlans.find(p => p.type === "web") ? (
                   <div className="space-y-2">
@@ -879,6 +881,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                       <Button
                         onClick={() => handleHostingCardClick("web")}
                         className="bg-primary text-primary-foreground"
+                        disabled={!!selectedHostingPlans.find(p => p.type === "email")}
                       >
                         Get deal
                       </Button>
@@ -891,7 +894,9 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
               <div className={`rounded-lg border-2 p-4 transition-all ${
                 selectedHostingPlans.find(p => p.type === "email")
                   ? "border-primary bg-primary/5"
-                  : "border-border bg-card hover:border-primary/50"
+                  : selectedHostingPlans.find(p => p.type === "web")
+                    ? "border-border bg-muted/30 opacity-60 cursor-not-allowed"
+                    : "border-border bg-card hover:border-primary/50"
               }`}>
                 {selectedHostingPlans.find(p => p.type === "email") ? (
                   <div className="space-y-2">
@@ -957,6 +962,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                       <Button
                         onClick={() => handleHostingCardClick("email")}
                         className="bg-primary text-primary-foreground"
+                        disabled={!!selectedHostingPlans.find(p => p.type === "web")}
                       >
                         Get deal
                       </Button>
@@ -965,17 +971,6 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                 )}
               </div>
 
-              {/* Skip Card */}
-              <div className="rounded-lg border-2 border-border bg-card p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-lg text-foreground">Skip for now</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    You can add hosting services later from your dashboard
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         );
@@ -1259,8 +1254,8 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                       onClick={() => setSelectedPaymentMethod(selectedPaymentMethod === "mpesa" ? null : "mpesa")}
                     >
                       <div className="flex items-center gap-4 w-full">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/20">
-                          <span className="text-2xl font-bold text-green-600 dark:text-green-400">M</span>
+                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/20 overflow-hidden">
+                          <img src="/mpesa.png" alt="M-Pesa" className="w-full h-full object-contain" />
                         </div>
                         <div className="flex-1 text-left">
                           <div className="font-semibold text-foreground">M-Pesa</div>

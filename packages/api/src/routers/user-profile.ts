@@ -169,67 +169,70 @@ export const userProfileRouter = router({
 
       const userId = session.user.id;
 
-      // Separate user fields from profile fields
+      // Batch: Update user name, profile, and log activity in a transaction
+      // This reduces connection usage from 3-4 sequential queries to 1 transaction
       const { name, firstName, lastName, phone, address, city, state, country, postalCode } = input;
 
-      // Update user name if provided
-      if (name) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: { 
-            name,
-            updatedAt: new Date(),
-          },
-        });
-      }
+      await prisma.$transaction(async (tx) => {
+        // Update user name if provided
+        if (name) {
+          await tx.user.update({
+            where: { id: userId },
+            data: { 
+              name,
+              updatedAt: new Date(),
+            },
+          });
+        }
 
-      // Check if profile exists
-      const existingProfile = await prisma.userProfile.findUnique({
-        where: { userId },
-      });
-
-      const profileData = {
-        firstName,
-        lastName,
-        phone,
-        address,
-        city,
-        state,
-        country,
-        postalCode,
-        updatedAt: new Date(),
-      };
-
-      if (existingProfile) {
-        // Update existing profile
-        await prisma.userProfile.update({
+        // Check if profile exists
+        const existingProfile = await tx.userProfile.findUnique({
           where: { userId },
-          data: profileData,
         });
-      } else {
-        // Create new profile
-        await prisma.userProfile.create({
+
+        const profileData = {
+          firstName,
+          lastName,
+          phone,
+          address,
+          city,
+          state,
+          country,
+          postalCode,
+          updatedAt: new Date(),
+        };
+
+        if (existingProfile) {
+          // Update existing profile
+          await tx.userProfile.update({
+            where: { userId },
+            data: profileData,
+          });
+        } else {
+          // Create new profile
+          await tx.userProfile.create({
+            data: {
+              id: crypto.randomUUID(),
+              userId,
+              ...profileData,
+              createdAt: new Date(),
+            },
+          });
+        }
+
+        // Log the profile update
+        await tx.userActivityLog.create({
           data: {
             id: crypto.randomUUID(),
             userId,
-            ...profileData,
+            action: "PROFILE_UPDATED",
+            description: "User updated their profile information",
+            metadata: {
+              updatedFields: Object.keys(input),
+            },
             createdAt: new Date(),
           },
         });
-      }
-
-      // Log the profile update
-      await prisma.userActivityLog.create({
-        data: {
-          id: crypto.randomUUID(),
-          userId,
-          action: "PROFILE_UPDATED",
-          description: "User updated their profile information",
-          metadata: {
-            updatedFields: Object.keys(input),
-          },
-          createdAt: new Date(),
-        },
       });
 
       return {
@@ -297,56 +300,60 @@ export const userProfileRouter = router({
 
       const userId = session.user.id;
 
-      // Find the session to revoke
-      const sessionToRevoke = await prisma.session.findUnique({
-        where: { id: input.sessionId },
-      });
+      // Batch: Find session, verify access, check current session, delete, and log in a transaction
+      // This reduces connection usage from 4 sequential queries to 1 transaction
+      await prisma.$transaction(async (tx) => {
+        // Find the session to revoke
+        const sessionToRevoke = await tx.session.findUnique({
+          where: { id: input.sessionId },
+        });
 
-      if (!sessionToRevoke) {
-        throw new Error("Session not found");
-      }
+        if (!sessionToRevoke) {
+          throw new Error("Session not found");
+        }
 
-      // Verify session belongs to current user
-      if (sessionToRevoke.userId !== userId) {
-        throw new Error("You can only revoke your own sessions");
-      }
+        // Verify session belongs to current user
+        if (sessionToRevoke.userId !== userId) {
+          throw new Error("You can only revoke your own sessions");
+        }
 
-      // Get the most recent session to prevent revoking current one
-      const currentSession = await prisma.session.findFirst({
-        where: {
-          userId,
-          expiresAt: {
-            gt: new Date(),
+        // Get the most recent session to prevent revoking current one
+        const currentSession = await tx.session.findFirst({
+          where: {
+            userId,
+            expiresAt: {
+              gt: new Date(),
+            },
           },
-        },
-        orderBy: {
-          updatedAt: "desc",
-        },
-      });
-
-      // Prevent revoking current session
-      if (currentSession && sessionToRevoke.token === currentSession.token) {
-        throw new Error("You cannot revoke your current session. Please log out instead.");
-      }
-
-      // Delete the session
-      await prisma.session.delete({
-        where: { id: input.sessionId },
-      });
-
-      // Log the session revocation
-      await prisma.userActivityLog.create({
-        data: {
-          id: crypto.randomUUID(),
-          userId,
-          action: "SESSION_REVOKED",
-          description: "User revoked a session",
-          metadata: {
-            sessionId: input.sessionId,
-            ipAddress: sessionToRevoke.ipAddress,
+          orderBy: {
+            updatedAt: "desc",
           },
-          createdAt: new Date(),
-        },
+        });
+
+        // Prevent revoking current session
+        if (currentSession && sessionToRevoke.token === currentSession.token) {
+          throw new Error("You cannot revoke your current session. Please log out instead.");
+        }
+
+        // Delete the session
+        await tx.session.delete({
+          where: { id: input.sessionId },
+        });
+
+        // Log the session revocation
+        await tx.userActivityLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            userId,
+            action: "SESSION_REVOKED",
+            description: "User revoked a session",
+            metadata: {
+              sessionId: input.sessionId,
+              ipAddress: sessionToRevoke.ipAddress,
+            },
+            createdAt: new Date(),
+          },
+        });
       });
 
       return {

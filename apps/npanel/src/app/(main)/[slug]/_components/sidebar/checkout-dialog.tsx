@@ -593,8 +593,8 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
                       onClick={() => setSelectedPaymentMethod(selectedPaymentMethod === "mpesa" ? null : "mpesa")}
                     >
                       <div className="flex items-center gap-4 w-full">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/20">
-                          <span className="text-2xl font-bold text-green-600 dark:text-green-400">M</span>
+                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/20 overflow-hidden">
+                          <img src="/mpesa.png" alt="M-Pesa" className="w-full h-full object-contain" />
                         </div>
                         <div className="flex-1 text-left">
                           <div className="font-semibold text-foreground">M-Pesa</div>

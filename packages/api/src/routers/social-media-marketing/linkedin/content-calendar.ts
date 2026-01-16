@@ -238,9 +238,10 @@ function isAgencyUser(role: string): boolean {
 }
 
 /**
- * Get authenticated user with role
+ * Get authenticated user - optimized to use session role when available
+ * Falls back to database query if role not in session
  */
-async function getAuthenticatedUser(ctx: { session?: { user?: { id: string } } | null }) {
+async function getAuthenticatedUser(ctx: { session?: { user?: { id: string; role?: string } } | null }) {
 	const user = ctx.session?.user;
 	if (!user?.id) {
 		throw new TRPCError({
@@ -249,6 +250,16 @@ async function getAuthenticatedUser(ctx: { session?: { user?: { id: string } } |
 		});
 	}
 
+	// Optimize: Use role from session if available (set by auth hooks)
+	// This avoids unnecessary database queries
+	const sessionRole = user.role;
+	
+	if (sessionRole) {
+		// Role is in session, no need to query database
+		return { id: user.id, role: sessionRole };
+	}
+
+	// Fallback: Query database only if role not in session
 	const dbUser = await prisma.user.findUnique({
 		where: { id: user.id },
 		select: { id: true, role: true },

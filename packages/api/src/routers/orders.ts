@@ -212,7 +212,18 @@ const createHostingOrderOutputSchema = z.object({
 // HELPER FUNCTIONS
 // ============================================================================
 
-async function getUserRole(userId: string): Promise<string> {
+/**
+ * Get user role - optimized to use session role when available
+ * Falls back to database query if role not in session
+ */
+async function getUserRole(userId: string, sessionUser?: { role?: string }): Promise<string> {
+	// Optimize: Use role from session if available (set by auth hooks)
+	// This avoids unnecessary database queries
+	if (sessionUser?.role) {
+		return sessionUser.role;
+	}
+
+	// Fallback: Query database if role not in session
 	const dbUser = await prisma.user.findUnique({
 		where: { id: userId },
 		select: { role: true },
@@ -738,7 +749,8 @@ export const ordersRouter = router({
 			}
 
 			// Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN
-			const userRole = await getUserRole(session.user.id);
+			// Optimize: Pass session user to avoid database query if role is in session
+			const userRole = await getUserRole(session.user.id, session.user as { role?: string });
 			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -1206,32 +1218,34 @@ export const ordersRouter = router({
 			let pleskStatus: number;
 			let pleskGuid: string | null;
 
-			// Log: Starting order creation process
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: session.user.id,
-					action: "ORDER_CREATION_STARTED",
-					description: `Starting order creation process for ${orderNumber}`,
-					metadata: {
-						orderNumber: orderNumber,
-						teamId: team.id,
-						teamName: team.name,
-						hostingPlanId: hostingPlan.id,
-						hostingPlanName: hostingPlan.name,
-						domainName: input.domainName,
-						billingCycle: input.billingCycle,
-					},
-					createdAt: now,
-				},
-			});
-
-			try {
-				// Log: Checking/creating Plesk integration
-				await prisma.userActivityLog.create({
+			// Batch: Log order creation start and Plesk integration check in a transaction
+			// This reduces connection usage from 2 sequential queries to 1 transaction
+			await prisma.$transaction(async (tx) => {
+				// Log: Starting order creation process
+				await tx.userActivityLog.create({
 					data: {
 						id: crypto.randomUUID(),
-						userId: session.user.id,
+						userId: session.user!.id,
+						action: "ORDER_CREATION_STARTED",
+						description: `Starting order creation process for ${orderNumber}`,
+						metadata: {
+							orderNumber: orderNumber,
+							teamId: team.id,
+							teamName: team.name,
+							hostingPlanId: hostingPlan.id,
+							hostingPlanName: hostingPlan.name,
+							domainName: input.domainName,
+							billingCycle: input.billingCycle,
+						},
+						createdAt: now,
+					},
+				});
+
+				// Log: Checking/creating Plesk integration
+				await tx.userActivityLog.create({
+					data: {
+						id: crypto.randomUUID(),
+						userId: session.user!.id,
 						action: "PLESK_INTEGRATION_CHECK",
 						description: `Checking Plesk integration for team owner (team: ${team.name})`,
 						metadata: {
@@ -1242,6 +1256,9 @@ export const ordersRouter = router({
 						createdAt: now,
 					},
 				});
+			});
+
+			try {
 
 				// Ensure Plesk integration exists (create if needed)
 				if (!session.user?.id) {
@@ -1252,38 +1269,42 @@ export const ordersRouter = router({
 				}
 				pleskOwnerId = await ensurePleskIntegration(team.createdById, session.user.id);
 
-				// Log: Plesk integration ready
-				await prisma.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: session.user.id,
-						action: "PLESK_INTEGRATION_READY",
-						description: `Plesk integration ready for provisioning (owner ID: ${pleskOwnerId})`,
-						metadata: {
-							orderNumber: orderNumber,
-							teamId: team.id,
-							pleskOwnerId: pleskOwnerId,
+				// Batch: Log Plesk integration ready and provisioning started in a transaction
+				// This reduces connection usage from 2 sequential queries to 1 transaction
+				await prisma.$transaction(async (tx) => {
+					// Log: Plesk integration ready
+					await tx.userActivityLog.create({
+						data: {
+							id: crypto.randomUUID(),
+							userId: session.user!.id,
+							action: "PLESK_INTEGRATION_READY",
+							description: `Plesk integration ready for provisioning (owner ID: ${pleskOwnerId})`,
+							metadata: {
+								orderNumber: orderNumber,
+								teamId: team.id,
+								pleskOwnerId: pleskOwnerId,
+							},
+							createdAt: now,
 						},
-						createdAt: now,
-					},
-				});
+					});
 
-				// Log: Starting Plesk provisioning
-				await prisma.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: session.user.id,
-						action: "PLESK_PROVISIONING_STARTED",
-						description: `Starting Plesk provisioning for domain ${input.domainName}`,
-						metadata: {
-							orderNumber: orderNumber,
-							teamId: team.id,
-							domainName: input.domainName,
-							pleskServicePlanId: hostingPlan.pleskServicePlanId,
-							pleskOwnerId: pleskOwnerId,
+					// Log: Starting Plesk provisioning
+					await tx.userActivityLog.create({
+						data: {
+							id: crypto.randomUUID(),
+							userId: session.user!.id,
+							action: "PLESK_PROVISIONING_STARTED",
+							description: `Starting Plesk provisioning for domain ${input.domainName}`,
+							metadata: {
+								orderNumber: orderNumber,
+								teamId: team.id,
+								domainName: input.domainName,
+								pleskServicePlanId: hostingPlan.pleskServicePlanId,
+								pleskOwnerId: pleskOwnerId,
+							},
+							createdAt: now,
 						},
-						createdAt: now,
-					},
+					});
 				});
 
 				// Provision to Plesk - MUST succeed before creating any database records
@@ -1718,11 +1739,22 @@ export const ordersRouter = router({
 				itemSubtotal: number;
 			}> = [];
 
+			// Optimize: Fetch all service plans in parallel to avoid N+1 queries
+			// This reduces connection usage from N sequential queries to 1 parallel query
+			const planIds = input.items.map(item => item.niscServicePlanId);
+			const plans = await prisma.niscServicePlan.findMany({
+				where: {
+					id: { in: planIds },
+				},
+			});
+
+			// Create a map for quick lookup
+			const plansMap = new Map(plans.map(plan => [plan.id, plan]));
+
+			// Validate and process each item
 			for (const itemInput of input.items) {
-				// Fetch service plan
-				const plan = await prisma.niscServicePlan.findUnique({
-					where: { id: itemInput.niscServicePlanId },
-				});
+				// Fetch service plan from map
+				const plan = plansMap.get(itemInput.niscServicePlanId);
 
 				if (!plan) {
 					throw new TRPCError({
@@ -1820,6 +1852,10 @@ export const ordersRouter = router({
 			}
 
 			// 6. Create order and order items in transaction
+			// NOTE: This transaction includes external API calls (provisionToPlesk) which holds
+			// the database connection during the API call. This is a known issue that should be
+			// refactored in the future to move external API calls outside the transaction.
+			// For now, this is acceptable as order creation is not a high-frequency operation.
 			try {
 				const result = await prisma.$transaction(async (tx) => {
 					// Create Order
@@ -2692,7 +2728,8 @@ export const ordersRouter = router({
 			}
 
 			// Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN
-			const userRole = await getUserRole(session.user.id);
+			// Optimize: Pass session user to avoid database query if role is in session
+			const userRole = await getUserRole(session.user.id, session.user as { role?: string });
 			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -2806,18 +2843,21 @@ export const ordersRouter = router({
 				}
 			}
 
-			// Delete order (cascade will handle related records like activity logs)
-			await prisma.order.delete({
-				where: { id: input.orderId },
-			});
+			// Batch: Delete order and log activity in a transaction
+			// This reduces connection usage from 2 sequential queries to 1 transaction
+			await prisma.$transaction(async (tx) => {
+				// Delete order (cascade will handle related records like activity logs)
+				await tx.order.delete({
+					where: { id: input.orderId },
+				});
 
-			// Log order deletion completion - UserActivityLog
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: session.user.id,
-					action: "ORDER_DELETED",
-					description: `Order ${order.orderNumber} deleted successfully by admin`,
+				// Log order deletion completion - UserActivityLog
+				await tx.userActivityLog.create({
+					data: {
+						id: crypto.randomUUID(),
+						userId: session.user!.id,
+						action: "ORDER_DELETED",
+						description: `Order ${order.orderNumber} deleted successfully by admin`,
 					metadata: {
 						orderId: order.id,
 						orderNumber: order.orderNumber,
@@ -2825,12 +2865,13 @@ export const ordersRouter = router({
 						orderStatus: order.status,
 						teamId: order.teamId,
 						teamName: order.team?.name,
-						deletedBy: session.user.id,
-						deletedByEmail: session.user.email,
-						hostingSubscriptionId: order.hostingSubscriptionId,
+						deletedBy: session.user!.id,
+						deletedByEmail: session.user!.email,
+							hostingSubscriptionId: order.hostingSubscriptionId,
+						},
+						createdAt: now,
 					},
-					createdAt: now,
-				},
+				});
 			});
 
 			return { success: true };

@@ -509,6 +509,16 @@ export type MetaAdsAdSetActivityLog = Prisma.MetaAdsAdSetActivityLogModel
  */
 export type MetaAdsAdActivityLog = Prisma.MetaAdsAdActivityLogModel
 /**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel
+/**
+ * Model NotificationActivityLog
+ * 
+ */
+export type NotificationActivityLog = Prisma.NotificationActivityLogModel
+/**
  * Model PaymentTransaction
  * 
  */

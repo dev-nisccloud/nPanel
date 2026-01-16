@@ -42,6 +42,7 @@ import { teamsRouter } from "./teams";
 import { userProfileRouter } from "./user-profile";
 import { creativeAssetsRouter } from "./creative-assets";
 import { creativeBriefsRouter } from "./creative-briefs";
+import { notificationsRouter } from "./notifications";
 import { hostingRouter } from "./hosting";
 import { hostingPlansRouter } from "./hosting-plans";
 import { wordpressSubscriptionsRouter } from "./wordpress-subscriptions";
@@ -133,6 +134,8 @@ export const appRouter = router({
 	creativeAssets: creativeAssetsRouter,
 	// Creative Briefs Management
 	creativeBriefs: creativeBriefsRouter,
+	// Notifications Management
+	notifications: notificationsRouter,
 	// Hosting Management
 	hosting: hostingRouter,
 	// Hosting Plans Management

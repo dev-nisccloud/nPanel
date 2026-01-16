@@ -254,6 +254,7 @@ export type UserWhereInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationListRelationFilter
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationListRelationFilter
   creativeBriefs?: Prisma.CreativeBriefListRelationFilter
+  notifications?: Prisma.NotificationListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -293,6 +294,7 @@ export type UserOrderByWithRelationInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationOrderByRelationAggregateInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationOrderByRelationAggregateInput
   creativeBriefs?: Prisma.CreativeBriefOrderByRelationAggregateInput
+  notifications?: Prisma.NotificationOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -335,6 +337,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationListRelationFilter
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationListRelationFilter
   creativeBriefs?: Prisma.CreativeBriefListRelationFilter
+  notifications?: Prisma.NotificationListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -408,6 +411,7 @@ export type UserCreateInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -447,6 +451,7 @@ export type UserUncheckedCreateInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -486,6 +491,7 @@ export type UserUpdateInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -525,6 +531,7 @@ export type UserUncheckedUpdateInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -923,6 +930,20 @@ export type UserUpdateOneRequiredWithoutMetaAdsAdActivityLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMetaAdsAdActivityLogsInput, Prisma.UserUpdateWithoutMetaAdsAdActivityLogsInput>, Prisma.UserUncheckedUpdateWithoutMetaAdsAdActivityLogsInput>
 }
 
+export type UserCreateNestedOneWithoutNotificationsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutNotificationsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutNotificationsInput
+  upsert?: Prisma.UserUpsertWithoutNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutNotificationsInput, Prisma.UserUpdateWithoutNotificationsInput>, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+}
+
 export type UserCreateNestedOneWithoutSocialMediaIntegrationsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutSocialMediaIntegrationsInput, Prisma.UserUncheckedCreateWithoutSocialMediaIntegrationsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutSocialMediaIntegrationsInput
@@ -1017,6 +1038,7 @@ export type UserCreateWithoutCustomerIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
@@ -1055,6 +1077,7 @@ export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCustomerIntegrationsInput = {
@@ -1109,6 +1132,7 @@ export type UserUpdateWithoutCustomerIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
@@ -1147,6 +1171,7 @@ export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSessionsInput = {
@@ -1185,6 +1210,7 @@ export type UserCreateWithoutSessionsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -1223,6 +1249,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -1277,6 +1304,7 @@ export type UserUpdateWithoutSessionsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1315,6 +1343,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -1353,6 +1382,7 @@ export type UserCreateWithoutAccountsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -1391,6 +1421,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -1445,6 +1476,7 @@ export type UserUpdateWithoutAccountsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -1483,6 +1515,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTeamMembershipsInput = {
@@ -1521,6 +1554,7 @@ export type UserCreateWithoutTeamMembershipsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTeamMembershipsInput = {
@@ -1559,6 +1593,7 @@ export type UserUncheckedCreateWithoutTeamMembershipsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTeamMembershipsInput = {
@@ -1613,6 +1648,7 @@ export type UserUpdateWithoutTeamMembershipsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
@@ -1651,6 +1687,7 @@ export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutProfileInput = {
@@ -1689,6 +1726,7 @@ export type UserCreateWithoutProfileInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutProfileInput = {
@@ -1727,6 +1765,7 @@ export type UserUncheckedCreateWithoutProfileInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProfileInput = {
@@ -1781,6 +1820,7 @@ export type UserUpdateWithoutProfileInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProfileInput = {
@@ -1819,6 +1859,7 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutActivityLogsInput = {
@@ -1857,6 +1898,7 @@ export type UserCreateWithoutActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutActivityLogsInput = {
@@ -1895,6 +1937,7 @@ export type UserUncheckedCreateWithoutActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutActivityLogsInput = {
@@ -1949,6 +1992,7 @@ export type UserUpdateWithoutActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutActivityLogsInput = {
@@ -1987,6 +2031,7 @@ export type UserUncheckedUpdateWithoutActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCreativeBriefsInput = {
@@ -2025,6 +2070,7 @@ export type UserCreateWithoutCreativeBriefsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCreativeBriefsInput = {
@@ -2063,6 +2109,7 @@ export type UserUncheckedCreateWithoutCreativeBriefsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCreativeBriefsInput = {
@@ -2117,6 +2164,7 @@ export type UserUpdateWithoutCreativeBriefsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreativeBriefsInput = {
@@ -2155,6 +2203,7 @@ export type UserUncheckedUpdateWithoutCreativeBriefsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEmailDomainsInput = {
@@ -2193,6 +2242,7 @@ export type UserCreateWithoutEmailDomainsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailDomainsInput = {
@@ -2231,6 +2281,7 @@ export type UserUncheckedCreateWithoutEmailDomainsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailDomainsInput = {
@@ -2285,6 +2336,7 @@ export type UserUpdateWithoutEmailDomainsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailDomainsInput = {
@@ -2323,6 +2375,7 @@ export type UserUncheckedUpdateWithoutEmailDomainsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEmailCampaignsInput = {
@@ -2361,6 +2414,7 @@ export type UserCreateWithoutEmailCampaignsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailCampaignsInput = {
@@ -2399,6 +2453,7 @@ export type UserUncheckedCreateWithoutEmailCampaignsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailCampaignsInput = {
@@ -2453,6 +2508,7 @@ export type UserUpdateWithoutEmailCampaignsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailCampaignsInput = {
@@ -2491,6 +2547,7 @@ export type UserUncheckedUpdateWithoutEmailCampaignsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAudiencesInput = {
@@ -2529,6 +2586,7 @@ export type UserCreateWithoutAudiencesInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAudiencesInput = {
@@ -2567,6 +2625,7 @@ export type UserUncheckedCreateWithoutAudiencesInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAudiencesInput = {
@@ -2621,6 +2680,7 @@ export type UserUpdateWithoutAudiencesInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAudiencesInput = {
@@ -2659,6 +2719,7 @@ export type UserUncheckedUpdateWithoutAudiencesInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutGoogleAdsIntegrationsInput = {
@@ -2697,6 +2758,7 @@ export type UserCreateWithoutGoogleAdsIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutGoogleAdsIntegrationsInput = {
@@ -2735,6 +2797,7 @@ export type UserUncheckedCreateWithoutGoogleAdsIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutGoogleAdsIntegrationsInput = {
@@ -2789,6 +2852,7 @@ export type UserUpdateWithoutGoogleAdsIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutGoogleAdsIntegrationsInput = {
@@ -2827,6 +2891,7 @@ export type UserUncheckedUpdateWithoutGoogleAdsIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGeneratorGenerationsInput = {
@@ -2865,6 +2930,7 @@ export type UserCreateWithoutImageGeneratorGenerationsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGeneratorGenerationsInput = {
@@ -2903,6 +2969,7 @@ export type UserUncheckedCreateWithoutImageGeneratorGenerationsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGeneratorGenerationsInput = {
@@ -2957,6 +3024,7 @@ export type UserUpdateWithoutImageGeneratorGenerationsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
@@ -2995,6 +3063,7 @@ export type UserUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutBackgroundRemoverGenerationsInput = {
@@ -3033,6 +3102,7 @@ export type UserCreateWithoutBackgroundRemoverGenerationsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
@@ -3071,6 +3141,7 @@ export type UserUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutBackgroundRemoverGenerationsInput = {
@@ -3125,6 +3196,7 @@ export type UserUpdateWithoutBackgroundRemoverGenerationsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
@@ -3163,6 +3235,7 @@ export type UserUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenProjectsInput = {
@@ -3201,6 +3274,7 @@ export type UserCreateWithoutImageGenProjectsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenProjectsInput = {
@@ -3239,6 +3313,7 @@ export type UserUncheckedCreateWithoutImageGenProjectsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenProjectsInput = {
@@ -3293,6 +3368,7 @@ export type UserUpdateWithoutImageGenProjectsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenProjectsInput = {
@@ -3331,6 +3407,7 @@ export type UserUncheckedUpdateWithoutImageGenProjectsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenTemplatesInput = {
@@ -3369,6 +3446,7 @@ export type UserCreateWithoutImageGenTemplatesInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenTemplatesInput = {
@@ -3407,6 +3485,7 @@ export type UserUncheckedCreateWithoutImageGenTemplatesInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenTemplatesInput = {
@@ -3461,6 +3540,7 @@ export type UserUpdateWithoutImageGenTemplatesInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenTemplatesInput = {
@@ -3499,6 +3579,7 @@ export type UserUncheckedUpdateWithoutImageGenTemplatesInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenUploadInput = {
@@ -3537,6 +3618,7 @@ export type UserCreateWithoutImageGenUploadInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenUploadInput = {
@@ -3575,6 +3657,7 @@ export type UserUncheckedCreateWithoutImageGenUploadInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenUploadInput = {
@@ -3629,6 +3712,7 @@ export type UserUpdateWithoutImageGenUploadInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenUploadInput = {
@@ -3667,6 +3751,7 @@ export type UserUncheckedUpdateWithoutImageGenUploadInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenAiGenerationsInput = {
@@ -3705,6 +3790,7 @@ export type UserCreateWithoutImageGenAiGenerationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenAiGenerationsInput = {
@@ -3743,6 +3829,7 @@ export type UserUncheckedCreateWithoutImageGenAiGenerationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenAiGenerationsInput = {
@@ -3797,6 +3884,7 @@ export type UserUpdateWithoutImageGenAiGenerationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenAiGenerationsInput = {
@@ -3835,6 +3923,7 @@ export type UserUncheckedUpdateWithoutImageGenAiGenerationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsAccountActivityLogsInput = {
@@ -3873,6 +3962,7 @@ export type UserCreateWithoutMetaAdsAccountActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsAccountActivityLogsInput = {
@@ -3911,6 +4001,7 @@ export type UserUncheckedCreateWithoutMetaAdsAccountActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsAccountActivityLogsInput = {
@@ -3965,6 +4056,7 @@ export type UserUpdateWithoutMetaAdsAccountActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsAccountActivityLogsInput = {
@@ -4003,6 +4095,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAccountActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsCampaignActivityLogsInput = {
@@ -4041,6 +4134,7 @@ export type UserCreateWithoutMetaAdsCampaignActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsCampaignActivityLogsInput = {
@@ -4079,6 +4173,7 @@ export type UserUncheckedCreateWithoutMetaAdsCampaignActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsCampaignActivityLogsInput = {
@@ -4133,6 +4228,7 @@ export type UserUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsCampaignActivityLogsInput = {
@@ -4171,6 +4267,7 @@ export type UserUncheckedUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsAdSetActivityLogsInput = {
@@ -4209,6 +4306,7 @@ export type UserCreateWithoutMetaAdsAdSetActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsAdSetActivityLogsInput = {
@@ -4247,6 +4345,7 @@ export type UserUncheckedCreateWithoutMetaAdsAdSetActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsAdSetActivityLogsInput = {
@@ -4301,6 +4400,7 @@ export type UserUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsAdSetActivityLogsInput = {
@@ -4339,6 +4439,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsAdActivityLogsInput = {
@@ -4377,6 +4478,7 @@ export type UserCreateWithoutMetaAdsAdActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsAdActivityLogsInput = {
@@ -4415,6 +4517,7 @@ export type UserUncheckedCreateWithoutMetaAdsAdActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsAdActivityLogsInput = {
@@ -4469,6 +4572,7 @@ export type UserUpdateWithoutMetaAdsAdActivityLogsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsAdActivityLogsInput = {
@@ -4500,6 +4604,179 @@ export type UserUncheckedUpdateWithoutMetaAdsAdActivityLogsInput = {
   metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedUpdateManyWithoutUserNestedInput
   metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedUpdateManyWithoutUserNestedInput
   metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutNotificationsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
+  emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  audiences?: Prisma.AudienceCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
+  creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutNotificationsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutNotificationsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+}
+
+export type UserUpsertWithoutNotificationsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutNotificationsInput, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutNotificationsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutNotificationsInput, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+}
+
+export type UserUpdateWithoutNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  audiences?: Prisma.AudienceUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  audiences?: Prisma.AudienceUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedUpdateManyWithoutUserNestedInput
   imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutUserNestedInput
   imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
@@ -4545,6 +4822,7 @@ export type UserCreateWithoutSocialMediaIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSocialMediaIntegrationsInput = {
@@ -4583,6 +4861,7 @@ export type UserUncheckedCreateWithoutSocialMediaIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSocialMediaIntegrationsInput = {
@@ -4637,6 +4916,7 @@ export type UserUpdateWithoutSocialMediaIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSocialMediaIntegrationsInput = {
@@ -4675,6 +4955,7 @@ export type UserUncheckedUpdateWithoutSocialMediaIntegrationsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSocialMediaPageTokensInput = {
@@ -4713,6 +4994,7 @@ export type UserCreateWithoutSocialMediaPageTokensInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSocialMediaPageTokensInput = {
@@ -4751,6 +5033,7 @@ export type UserUncheckedCreateWithoutSocialMediaPageTokensInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSocialMediaPageTokensInput = {
@@ -4805,6 +5088,7 @@ export type UserUpdateWithoutSocialMediaPageTokensInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSocialMediaPageTokensInput = {
@@ -4843,6 +5127,7 @@ export type UserUncheckedUpdateWithoutSocialMediaPageTokensInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaContentCalendarPostsInput = {
@@ -4881,6 +5166,7 @@ export type UserCreateWithoutMetaContentCalendarPostsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaContentCalendarPostsInput = {
@@ -4919,6 +5205,7 @@ export type UserUncheckedCreateWithoutMetaContentCalendarPostsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaContentCalendarPostsInput = {
@@ -4973,6 +5260,7 @@ export type UserUpdateWithoutMetaContentCalendarPostsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaContentCalendarPostsInput = {
@@ -5011,6 +5299,7 @@ export type UserUncheckedUpdateWithoutMetaContentCalendarPostsInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutLinkedInContentCalendarInput = {
@@ -5049,6 +5338,7 @@ export type UserCreateWithoutLinkedInContentCalendarInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutLinkedInContentCalendarInput = {
@@ -5087,6 +5377,7 @@ export type UserUncheckedCreateWithoutLinkedInContentCalendarInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutLinkedInContentCalendarInput = {
@@ -5141,6 +5432,7 @@ export type UserUpdateWithoutLinkedInContentCalendarInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutLinkedInContentCalendarInput = {
@@ -5179,6 +5471,7 @@ export type UserUncheckedUpdateWithoutLinkedInContentCalendarInput = {
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -5211,6 +5504,7 @@ export type UserCountOutputType = {
   imageGeneratorGenerations: number
   backgroundRemoverGenerations: number
   creativeBriefs: number
+  notifications: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -5238,6 +5532,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   imageGeneratorGenerations?: boolean | UserCountOutputTypeCountImageGeneratorGenerationsArgs
   backgroundRemoverGenerations?: boolean | UserCountOutputTypeCountBackgroundRemoverGenerationsArgs
   creativeBriefs?: boolean | UserCountOutputTypeCountCreativeBriefsArgs
+  notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
 }
 
 /**
@@ -5418,6 +5713,13 @@ export type UserCountOutputTypeCountCreativeBriefsArgs<ExtArgs extends runtime.T
   where?: Prisma.CreativeBriefWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.NotificationWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -5456,6 +5758,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   imageGeneratorGenerations?: boolean | Prisma.User$imageGeneratorGenerationsArgs<ExtArgs>
   backgroundRemoverGenerations?: boolean | Prisma.User$backgroundRemoverGenerationsArgs<ExtArgs>
   creativeBriefs?: boolean | Prisma.User$creativeBriefsArgs<ExtArgs>
+  notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -5528,6 +5831,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   imageGeneratorGenerations?: boolean | Prisma.User$imageGeneratorGenerationsArgs<ExtArgs>
   backgroundRemoverGenerations?: boolean | Prisma.User$backgroundRemoverGenerationsArgs<ExtArgs>
   creativeBriefs?: boolean | Prisma.User$creativeBriefsArgs<ExtArgs>
+  notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -5561,6 +5865,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     imageGeneratorGenerations: Prisma.$ImageGeneratorGenerationPayload<ExtArgs>[]
     backgroundRemoverGenerations: Prisma.$BackgroundRemoverGenerationPayload<ExtArgs>[]
     creativeBriefs: Prisma.$CreativeBriefPayload<ExtArgs>[]
+    notifications: Prisma.$NotificationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -5993,6 +6298,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   imageGeneratorGenerations<T extends Prisma.User$imageGeneratorGenerationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$imageGeneratorGenerationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImageGeneratorGenerationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   backgroundRemoverGenerations<T extends Prisma.User$backgroundRemoverGenerationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$backgroundRemoverGenerationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BackgroundRemoverGenerationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   creativeBriefs<T extends Prisma.User$creativeBriefsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$creativeBriefsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CreativeBriefPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7013,6 +7319,30 @@ export type User$creativeBriefsArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.CreativeBriefScalarFieldEnum | Prisma.CreativeBriefScalarFieldEnum[]
+}
+
+/**
+ * User.notifications
+ */
+export type User$notificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Notification
+   */
+  select?: Prisma.NotificationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Notification
+   */
+  omit?: Prisma.NotificationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.NotificationInclude<ExtArgs> | null
+  where?: Prisma.NotificationWhereInput
+  orderBy?: Prisma.NotificationOrderByWithRelationInput | Prisma.NotificationOrderByWithRelationInput[]
+  cursor?: Prisma.NotificationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.NotificationScalarFieldEnum | Prisma.NotificationScalarFieldEnum[]
 }
 
 /**

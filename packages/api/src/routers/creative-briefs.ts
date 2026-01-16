@@ -110,6 +110,7 @@ const creativeBriefSchema = z.object({
 });
 
 // Input schemas
+// Note: Dates come as strings from tRPC serialization, so we need to convert them
 const createCreativeBriefInputSchema = z.object({
   name: z.string().min(1).max(255),
   teamId: z.string().optional(),
@@ -117,8 +118,30 @@ const createCreativeBriefInputSchema = z.object({
   objectives: z.string().min(1),
   requirements: z.string().min(1),
   comments: z.string().optional(),
-  timelineStartDate: z.date().optional(),
-  timelineEndDate: z.date().optional(),
+  timelineStartDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
+  timelineEndDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
   referenceImages: z.array(z.object({
     fileUrl: z.string(),
     fileKey: z.string(),
@@ -137,8 +160,30 @@ const updateCreativeBriefInputSchema = z.object({
   objectives: z.string().min(1).optional(),
   requirements: z.string().min(1).optional(),
   comments: z.string().optional(),
-  timelineStartDate: z.date().optional(),
-  timelineEndDate: z.date().optional(),
+  timelineStartDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
+  timelineEndDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
   referenceImages: z.array(z.object({
     fileUrl: z.string(),
     fileKey: z.string(),
@@ -233,7 +278,10 @@ function transformBrief(brief: DbCreativeBrief) {
   return result;
 }
 
-// Helper to get authenticated user from context
+/**
+ * Get authenticated user - optimized to use session data
+ * Only queries database to verify user exists if needed
+ */
 async function getAuthenticatedUser(ctx: { session: { user?: { id: string } } | null }) {
   const user = ctx.session?.user;
   if (!user?.id) {
@@ -243,18 +291,14 @@ async function getAuthenticatedUser(ctx: { session: { user?: { id: string } } | 
     });
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { id: true },
-  });
-
-  if (!dbUser) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "User not found",
-    });
-  }
-
+  // Optimize: If user.id is in session, we can trust it (set by auth hooks)
+  // Only need to verify user exists if we're doing additional validation
+  // For most cases, we can just return the session user id
+  // If we need to verify existence, we can query, but it's usually not necessary
+  // since the session is already authenticated by the auth middleware
+  
+  // Return session user id directly - no need to query database
+  // The session is already validated by the auth middleware
   return { id: user.id };
 }
 
@@ -371,85 +415,56 @@ export const creativeBriefsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const user = await getAuthenticatedUser(ctx);
 
-      // Validate team if provided
-      if (input.teamId) {
-        const team = await prisma.team.findUnique({
-          where: { id: input.teamId },
+      // Batch: Validate team and date range in parallel (if both are needed)
+      // This reduces connection usage when both validations are needed
+      const [team, dateRangeValid] = await Promise.all([
+        // Only query team if teamId is provided
+        input.teamId
+          ? prisma.team.findUnique({
+              where: { id: input.teamId },
+            })
+          : Promise.resolve(null),
+        // Validate date range (synchronous check, no DB query)
+        Promise.resolve(
+          input.timelineStartDate && input.timelineEndDate
+            ? input.timelineEndDate >= input.timelineStartDate
+            : true
+        ),
+      ]);
+
+      if (input.teamId && !team) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team not found",
         });
-
-        if (!team) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Team not found",
-          });
-        }
       }
 
-      // Validate date range
-      if (input.timelineStartDate && input.timelineEndDate) {
-        if (input.timelineEndDate < input.timelineStartDate) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "End date must be after start date",
-          });
-        }
+      if (!dateRangeValid) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "End date must be after start date",
+        });
       }
 
-      const brief = await prisma.creativeBrief.create({
-        data: {
-          id: crypto.randomUUID(),
-          name: input.name,
-          userId: user.id,
-          teamId: input.teamId ?? null,
-          status: "DRAFT",
-          background: input.background,
-          objectives: input.objectives,
-          requirements: input.requirements,
-          comments: input.comments ?? null,
-          timelineStartDate: input.timelineStartDate ?? null,
-          timelineEndDate: input.timelineEndDate ?? null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          team: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          referenceImages: true,
-        },
-      });
-
-      // Create reference images if provided
-      if (input.referenceImages && input.referenceImages.length > 0) {
-        await prisma.creativeBriefReferenceImage.createMany({
-          data: input.referenceImages.map((img) => ({
+      // Batch: Create brief, reference images, and log activity in a transaction
+      // This reduces connection usage from 3-4 sequential queries to 1 transaction
+      const brief = await prisma.$transaction(async (tx) => {
+        const brief = await tx.creativeBrief.create({
+          data: {
             id: crypto.randomUUID(),
-            creativeBriefId: brief.id,
-            fileUrl: img.fileUrl,
-            fileKey: img.fileKey,
-            fileName: img.fileName,
-            fileSize: img.fileSize,
-            mimeType: img.mimeType,
-            fileMetadata: img.fileMetadata ?? null,
+            name: input.name,
+            userId: user.id,
+            teamId: input.teamId ?? null,
+            status: "DRAFT",
+            background: input.background,
+            objectives: input.objectives,
+            requirements: input.requirements,
+            comments: input.comments ?? null,
+            timelineStartDate: input.timelineStartDate ?? null,
+            timelineEndDate: input.timelineEndDate ?? null,
             createdAt: new Date(),
             updatedAt: new Date(),
-          })) as any, // Type assertion for JsonValue compatibility
-        });
-
-        // Reload brief with reference images
-        const updatedBrief = await prisma.creativeBrief.findUnique({
-          where: { id: brief.id },
+          },
           include: {
             user: {
               select: {
@@ -465,139 +480,16 @@ export const creativeBriefsRouter = router({
                 slug: true,
               },
             },
-            referenceImages: {
-              orderBy: {
-                createdAt: "asc",
-              },
-            },
+            referenceImages: true,
           },
         });
 
-        if (updatedBrief) {
-          // Log activity
-          await logActivity(
-            brief.id,
-            user.id,
-            "CREATE",
-            `Created creative brief "${brief.name}"`,
-            { referenceImagesCount: input.referenceImages.length },
-          );
-
-          return transformBrief(updatedBrief);
-        }
-      }
-
-      // Log activity
-      await logActivity(
-        brief.id,
-        user.id,
-        "CREATE",
-        `Created creative brief "${brief.name}"`,
-      );
-
-      return transformBrief(brief);
-    }),
-
-  // Update a creative brief
-  update: protectedProcedure
-    .input(updateCreativeBriefInputSchema)
-    .output(creativeBriefSchema)
-    .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
-
-      // Check if brief exists and user owns it
-      const existingBrief = await prisma.creativeBrief.findFirst({
-        where: {
-          id: input.id,
-          userId: user.id,
-        },
-      });
-
-      if (!existingBrief) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Creative brief not found",
-        });
-      }
-
-      // Validate team if provided
-      if (input.teamId) {
-        const team = await prisma.team.findUnique({
-          where: { id: input.teamId },
-        });
-
-        if (!team) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Team not found",
-          });
-        }
-      }
-
-      // Validate date range
-      const timelineStartDate = input.timelineStartDate ?? existingBrief.timelineStartDate;
-      const timelineEndDate = input.timelineEndDate ?? existingBrief.timelineEndDate;
-      if (timelineStartDate && timelineEndDate) {
-        if (timelineEndDate < timelineStartDate) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "End date must be after start date",
-          });
-        }
-      }
-
-      // Update brief
-      const updatedBrief = await prisma.creativeBrief.update({
-        where: { id: input.id },
-        data: {
-          ...(input.name !== undefined && { name: input.name }),
-          ...(input.teamId !== undefined && { teamId: input.teamId ?? null }),
-          ...(input.background !== undefined && { background: input.background }),
-          ...(input.objectives !== undefined && { objectives: input.objectives }),
-          ...(input.requirements !== undefined && { requirements: input.requirements }),
-          ...(input.comments !== undefined && { comments: input.comments ?? null }),
-          ...(input.timelineStartDate !== undefined && { timelineStartDate: input.timelineStartDate ?? null }),
-          ...(input.timelineEndDate !== undefined && { timelineEndDate: input.timelineEndDate ?? null }),
-          updatedAt: new Date(),
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          team: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          referenceImages: {
-            orderBy: {
-              createdAt: "asc",
-            },
-          },
-        },
-      });
-
-      // Handle reference images update
-      if (input.referenceImages !== undefined) {
-        // Delete existing reference images
-        await prisma.creativeBriefReferenceImage.deleteMany({
-          where: {
-            creativeBriefId: input.id,
-          },
-        });
-
-        // Create new reference images
-        if (input.referenceImages.length > 0) {
-          await prisma.creativeBriefReferenceImage.createMany({
+        // Create reference images if provided
+        if (input.referenceImages && input.referenceImages.length > 0) {
+          await tx.creativeBriefReferenceImage.createMany({
             data: input.referenceImages.map((img) => ({
               id: crypto.randomUUID(),
-              creativeBriefId: input.id,
+              creativeBriefId: brief.id,
               fileUrl: img.fileUrl,
               fileKey: img.fileKey,
               fileName: img.fileName,
@@ -610,8 +502,170 @@ export const creativeBriefsRouter = router({
           });
         }
 
-        // Reload brief with updated reference images
-        const reloadedBrief = await prisma.creativeBrief.findUnique({
+        // Log activity
+        await tx.creativeBriefActivityLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            creativeBriefId: brief.id,
+            userId: user.id,
+            action: "CREATE",
+            description: `Created creative brief "${brief.name}"`,
+            metadata: input.referenceImages && input.referenceImages.length > 0
+              ? { referenceImagesCount: input.referenceImages.length }
+              : null,
+            createdAt: new Date(),
+          } as any,
+        });
+
+        // Reload brief with reference images if they were created
+        if (input.referenceImages && input.referenceImages.length > 0) {
+          const updatedBrief = await tx.creativeBrief.findUnique({
+            where: { id: brief.id },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              team: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+              referenceImages: {
+                orderBy: {
+                  createdAt: "asc",
+                },
+              },
+            },
+          });
+          return updatedBrief || brief;
+        }
+
+        return brief;
+      });
+
+      return transformBrief(brief);
+    }),
+
+  // Update a creative brief
+  update: protectedProcedure
+    .input(updateCreativeBriefInputSchema)
+    .output(creativeBriefSchema)
+    .mutation(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+
+      // Batch: Check brief existence, validate team, and date range
+      // This reduces connection usage by parallelizing independent checks
+      const [existingBrief, team] = await Promise.all([
+        prisma.creativeBrief.findFirst({
+          where: {
+            id: input.id,
+            userId: user.id,
+          },
+        }),
+        // Only query team if teamId is provided
+        input.teamId
+          ? prisma.team.findUnique({
+              where: { id: input.teamId },
+            })
+          : Promise.resolve(null),
+      ]);
+
+      if (!existingBrief) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Creative brief not found",
+        });
+      }
+
+      if (input.teamId && !team) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team not found",
+        });
+      }
+
+      // Validate date range (synchronous check, no DB query)
+      const timelineStartDate = input.timelineStartDate ?? existingBrief.timelineStartDate;
+      const timelineEndDate = input.timelineEndDate ?? existingBrief.timelineEndDate;
+      if (timelineStartDate && timelineEndDate) {
+        if (timelineEndDate < timelineStartDate) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "End date must be after start date",
+          });
+        }
+      }
+
+      // Batch: Update brief, handle reference images, and log activity in a transaction
+      // This reduces connection usage from 3-4 sequential queries to 1 transaction
+      const updatedBrief = await prisma.$transaction(async (tx) => {
+        // Update brief
+        const updated = await tx.creativeBrief.update({
+          where: { id: input.id },
+          data: {
+            ...(input.name !== undefined && { name: input.name }),
+            ...(input.teamId !== undefined && { teamId: input.teamId ?? null }),
+            ...(input.background !== undefined && { background: input.background }),
+            ...(input.objectives !== undefined && { objectives: input.objectives }),
+            ...(input.requirements !== undefined && { requirements: input.requirements }),
+            ...(input.comments !== undefined && { comments: input.comments ?? null }),
+            ...(input.timelineStartDate !== undefined && { timelineStartDate: input.timelineStartDate ?? null }),
+            ...(input.timelineEndDate !== undefined && { timelineEndDate: input.timelineEndDate ?? null }),
+            updatedAt: new Date(),
+          },
+        });
+
+        // Handle reference images update
+        if (input.referenceImages !== undefined) {
+          // Delete existing reference images
+          await tx.creativeBriefReferenceImage.deleteMany({
+            where: {
+              creativeBriefId: input.id,
+            },
+          });
+
+          // Create new reference images
+          if (input.referenceImages.length > 0) {
+            await tx.creativeBriefReferenceImage.createMany({
+              data: input.referenceImages.map((img) => ({
+                id: crypto.randomUUID(),
+                creativeBriefId: input.id,
+                fileUrl: img.fileUrl,
+                fileKey: img.fileKey,
+                fileName: img.fileName,
+                fileSize: img.fileSize,
+                mimeType: img.mimeType,
+                fileMetadata: img.fileMetadata ?? null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              })) as any, // Type assertion for JsonValue compatibility
+            });
+          }
+        }
+
+        // Log activity
+        await tx.creativeBriefActivityLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            creativeBriefId: updated.id,
+            userId: user.id,
+            action: "UPDATE",
+            description: "Creative brief updated",
+            metadata: {
+              updatedFields: Object.keys(input).filter(key => key !== "id" && key !== "referenceImages"),
+            },
+            createdAt: new Date(),
+          } as any,
+        });
+
+        // Reload brief with updated reference images and relations
+        const reloadedBrief = await tx.creativeBrief.findUnique({
           where: { id: input.id },
           include: {
             user: {
@@ -636,27 +690,8 @@ export const creativeBriefsRouter = router({
           },
         });
 
-        if (reloadedBrief) {
-          // Log activity
-          await logActivity(
-            input.id,
-            user.id,
-            "UPDATE",
-            `Updated creative brief "${updatedBrief.name}"`,
-            { referenceImagesCount: input.referenceImages.length },
-          );
-
-          return transformBrief(reloadedBrief);
-        }
-      }
-
-      // Log activity
-      await logActivity(
-        input.id,
-        user.id,
-        "UPDATE",
-        `Updated creative brief "${updatedBrief.name}"`,
-      );
+        return reloadedBrief || updated;
+      });
 
       return transformBrief(updatedBrief);
     }),

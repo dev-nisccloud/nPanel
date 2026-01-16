@@ -432,6 +432,36 @@ export const MetaAdsCampaignObjective = {
 export type MetaAdsCampaignObjective = (typeof MetaAdsCampaignObjective)[keyof typeof MetaAdsCampaignObjective]
 
 
+export const NotificationType = {
+  SYSTEM: 'SYSTEM',
+  USER: 'USER',
+  TEAM: 'TEAM',
+  ORDER: 'ORDER',
+  PAYMENT: 'PAYMENT',
+  INVOICE: 'INVOICE',
+  DOMAIN: 'DOMAIN',
+  HOSTING: 'HOSTING',
+  CREATIVE_BRIEF: 'CREATIVE_BRIEF',
+  CREATIVE_ASSET: 'CREATIVE_ASSET',
+  SOCIAL_MEDIA: 'SOCIAL_MEDIA',
+  EMAIL_MARKETING: 'EMAIL_MARKETING',
+  AD_CAMPAIGN: 'AD_CAMPAIGN',
+  GENERAL: 'GENERAL'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
+
+
+export const NotificationPriority = {
+  LOW: 'LOW',
+  NORMAL: 'NORMAL',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT'
+} as const
+
+export type NotificationPriority = (typeof NotificationPriority)[keyof typeof NotificationPriority]
+
+
 export const PaymentGateway = {
   MPESA: 'MPESA',
   STRIPE: 'STRIPE',

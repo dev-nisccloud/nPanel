@@ -308,12 +308,13 @@ export const manageUsersRouter = router({
 				});
 			}
 
-			// Get the created user
-			const user = await prisma.user.findUnique({
+			// Batch: Get user, update role, and return updated user
+			// This reduces connection usage from 3 sequential queries to 1-2 queries
+			let updatedUser = await prisma.user.findUnique({
 				where: { email: input.email },
 			});
 
-			if (!user) {
+			if (!updatedUser) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "User was created but could not be retrieved",
@@ -321,16 +322,11 @@ export const manageUsersRouter = router({
 			}
 
 			// Update user role to the specified role (Better Auth defaults to CUSTOMER)
-			await prisma.user.update({
-				where: { id: user.id },
+			updatedUser = await prisma.user.update({
+				where: { id: updatedUser.id },
 				data: {
 					role: input.role,
 				},
-			});
-
-			// Get updated user with correct role
-			const updatedUser = await prisma.user.findUnique({
-				where: { id: user.id },
 			});
 
 			if (!updatedUser) {
@@ -416,10 +412,22 @@ export const manageUsersRouter = router({
 
 			const userId = session.user.id;
 
-			// Find the user
-			const existingUser = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			// Batch: Find user and check email availability in parallel (if email is being changed)
+			const [existingUser, emailExists] = await Promise.all([
+				prisma.user.findUnique({
+					where: { id: input.userId },
+				}),
+				// Only check email if it's being changed
+				input.email
+					? prisma.user
+							.findUnique({
+								where: { email: input.email },
+								select: { id: true },
+							})
+							.then((user) => user !== null)
+							.catch(() => false)
+					: Promise.resolve(false),
+			]);
 
 			if (!existingUser) {
 				throw new TRPCError({
@@ -437,17 +445,11 @@ export const manageUsersRouter = router({
 			}
 
 			// Check if email is being changed and if it's already taken
-			if (input.email && input.email !== existingUser.email) {
-				const emailExists = await prisma.user.findUnique({
-					where: { email: input.email },
+			if (input.email && input.email !== existingUser.email && emailExists) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A user with this email already exists",
 				});
-
-				if (emailExists) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "A user with this email already exists",
-					});
-				}
 			}
 
 			// Build update data
@@ -467,37 +469,41 @@ export const manageUsersRouter = router({
 				updateData.role = input.role;
 			}
 
-			// Update the user
-			const updatedUser = await prisma.user.update({
-				where: { id: input.userId },
-				data: updateData,
-			});
-
-			// Log activity
+			// Batch: Update user and log activity in a transaction
 			const changedFields = Object.keys(updateData).filter(key => key !== "updatedAt");
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: updatedUser.id,
+			const updatedUser = await prisma.$transaction(async (tx) => {
+				const updated = await tx.user.update({
+					where: { id: input.userId },
+					data: updateData,
+				});
+
+				// Log activity
+				await tx.userActivityLog.create({
+					data: {
+						id: crypto.randomUUID(),
+						userId: updated.id,
 					action: "AGENCY_USER_UPDATED_BY_ADMIN",
-					description: `Agency user account updated by admin: ${session.user.email}`,
+					description: `Agency user account updated by admin: ${session.user!.email}`,
 					metadata: {
 						updatedBy: userId,
-						updatedByEmail: session.user.email,
-						changedFields,
-						previousValues: {
-							name: existingUser.name,
-							email: existingUser.email,
-							role: existingUser.role,
+						updatedByEmail: session.user!.email,
+							changedFields,
+							previousValues: {
+								name: existingUser.name,
+								email: existingUser.email,
+								role: existingUser.role,
+							},
+							newValues: {
+								name: updated.name,
+								email: updated.email,
+								role: updated.role,
+							},
 						},
-						newValues: {
-							name: updatedUser.name,
-							email: updatedUser.email,
-							role: updatedUser.role,
-						},
+						createdAt: new Date(),
 					},
-					createdAt: new Date(),
-				},
+				});
+
+				return updated;
 			});
 
 			return {
@@ -558,15 +564,6 @@ export const manageUsersRouter = router({
 				});
 			}
 
-			// Update status
-			const updatedUser = await prisma.user.update({
-				where: { id: input.userId },
-				data: {
-					status: input.status,
-					updatedAt: new Date(),
-				},
-			});
-
 			// Determine specific action type based on status change
 			let actionType = "AGENCY_USER_STATUS_CHANGED_BY_ADMIN";
 			let actionDescription = `Status changed from ${existingUser.status} to ${input.status} by admin: ${session.user.email}`;
@@ -591,21 +588,32 @@ export const manageUsersRouter = router({
 				actionDescription = `Agency user account unsuspended by admin: ${session.user.email}`;
 			}
 
-			// Log activity with specific action type
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: updatedUser.id,
-					action: actionType,
-					description: actionDescription,
-					metadata: {
-						changedBy: userId,
-						changedByEmail: session.user.email,
-						previousStatus: existingUser.status,
-						newStatus: input.status,
+			// Batch: Update status and log activity in a transaction
+			await prisma.$transaction(async (tx) => {
+				const updated = await tx.user.update({
+					where: { id: input.userId },
+					data: {
+						status: input.status,
+						updatedAt: new Date(),
 					},
-					createdAt: new Date(),
-				},
+				});
+
+				// Log activity with specific action type
+				await tx.userActivityLog.create({
+					data: {
+						id: crypto.randomUUID(),
+						userId: updated.id,
+						action: actionType,
+						description: actionDescription,
+						metadata: {
+							changedBy: userId,
+							changedByEmail: session.user!.email,
+							previousStatus: existingUser.status,
+							newStatus: input.status,
+						},
+						createdAt: new Date(),
+					},
+				});
 			});
 
 			return {
@@ -853,76 +861,78 @@ export const manageUsersRouter = router({
 				});
 			}
 
-			// Separate user fields from profile fields
+			// Batch: Update user name, profile, and log activity in a transaction
 			const { name, firstName, lastName, phone, address, city, state, country, postalCode } = input;
+			const changedFields = Object.keys(input).filter(key => key !== "userId");
 
-			// Update user name if provided
-			if (name) {
-				await prisma.user.update({
-					where: { id: input.userId },
-					data: {
-						name,
-						updatedAt: new Date(),
-					},
-				});
-			}
+			await prisma.$transaction(async (tx) => {
+				// Update user name if provided
+				if (name) {
+					await tx.user.update({
+						where: { id: input.userId },
+						data: {
+							name,
+							updatedAt: new Date(),
+						},
+					});
+				}
 
-			// Prepare profile data
-			const profileData = {
-				firstName,
-				lastName,
-				phone,
-				address,
-				city,
-				state,
-				country,
-				postalCode,
-				updatedAt: new Date(),
-			};
+				// Prepare profile data
+				const profileData = {
+					firstName,
+					lastName,
+					phone,
+					address,
+					city,
+					state,
+					country,
+					postalCode,
+					updatedAt: new Date(),
+				};
 
-			// Update or create profile
-			if (existingUser.profile) {
-				await prisma.userProfile.update({
-					where: { userId: input.userId },
-					data: profileData,
-				});
-			} else {
-				await prisma.userProfile.create({
+				// Update or create profile
+				if (existingUser.profile) {
+					await tx.userProfile.update({
+						where: { userId: input.userId },
+						data: profileData,
+					});
+				} else {
+					await tx.userProfile.create({
+						data: {
+							id: crypto.randomUUID(),
+							userId: input.userId,
+							...profileData,
+							createdAt: new Date(),
+						},
+					});
+				}
+
+				// Log activity
+				await tx.userActivityLog.create({
 					data: {
 						id: crypto.randomUUID(),
 						userId: input.userId,
-						...profileData,
+					action: "AGENCY_USER_PROFILE_UPDATED_BY_ADMIN",
+					description: `Agency user profile updated by admin: ${session.user!.email}`,
+					metadata: {
+						updatedBy: userId,
+						updatedByEmail: session.user!.email,
+							changedFields,
+							previousValues: {
+								name: existingUser.name,
+								firstName: existingUser.profile?.firstName || null,
+								lastName: existingUser.profile?.lastName || null,
+								phone: existingUser.profile?.phone || null,
+								address: existingUser.profile?.address || null,
+								city: existingUser.profile?.city || null,
+								state: existingUser.profile?.state || null,
+								country: existingUser.profile?.country || null,
+								postalCode: existingUser.profile?.postalCode || null,
+							},
+						},
 						createdAt: new Date(),
 					},
 				});
-			}
-
-			// Log activity
-			const changedFields = Object.keys(input).filter(key => key !== "userId");
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: input.userId,
-					action: "AGENCY_USER_PROFILE_UPDATED_BY_ADMIN",
-					description: `Agency user profile updated by admin: ${session.user.email}`,
-					metadata: {
-						updatedBy: userId,
-						updatedByEmail: session.user.email,
-						changedFields,
-						previousValues: {
-							name: existingUser.name,
-							firstName: existingUser.profile?.firstName || null,
-							lastName: existingUser.profile?.lastName || null,
-							phone: existingUser.profile?.phone || null,
-							address: existingUser.profile?.address || null,
-							city: existingUser.profile?.city || null,
-							state: existingUser.profile?.state || null,
-							country: existingUser.profile?.country || null,
-							postalCode: existingUser.profile?.postalCode || null,
-						},
-					},
-					createdAt: new Date(),
-				},
 			});
 
 			return {

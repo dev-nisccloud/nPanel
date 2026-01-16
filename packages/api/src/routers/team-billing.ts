@@ -78,11 +78,34 @@ const isBillingSettingsComplete = (
 	});
 };
 
-const getAuthenticatedUser = async (session: { user?: { id?: string } } | null) => {
+/**
+ * Get authenticated user - optimized to use session role when available
+ * Falls back to database query if role not in session
+ */
+const getAuthenticatedUser = async (session: { user?: { id?: string; role?: string } } | null) => {
 	if (!session?.user?.id) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 
+	// Optimize: Use role from session if available (set by auth hooks)
+	// This avoids unnecessary database queries
+	const sessionRole = session.user.role;
+	
+	if (sessionRole) {
+		// Role is in session, only need to verify user exists
+		const dbUser = await prisma.user.findUnique({
+			where: { id: session.user.id },
+			select: { id: true },
+		});
+
+		if (!dbUser) {
+			throw new TRPCError({ code: "UNAUTHORIZED" });
+		}
+
+		return { id: dbUser.id, role: sessionRole };
+	}
+
+	// Fallback: Query database for role if not in session
 	const dbUser = await prisma.user.findUnique({
 		where: { id: session.user.id },
 		select: { id: true, role: true },

@@ -481,6 +481,8 @@ export const ModelName = {
   MetaAdsCampaignActivityLog: 'MetaAdsCampaignActivityLog',
   MetaAdsAdSetActivityLog: 'MetaAdsAdSetActivityLog',
   MetaAdsAdActivityLog: 'MetaAdsAdActivityLog',
+  Notification: 'Notification',
+  NotificationActivityLog: 'NotificationActivityLog',
   PaymentTransaction: 'PaymentTransaction',
   PaymentTransactionActivityLog: 'PaymentTransactionActivityLog',
   ServiceSubscription: 'ServiceSubscription',
@@ -512,7 +514,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -7398,6 +7400,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Notification: {
+      payload: Prisma.$NotificationPayload<ExtArgs>
+      fields: Prisma.NotificationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.NotificationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.NotificationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        findFirst: {
+          args: Prisma.NotificationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.NotificationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        findMany: {
+          args: Prisma.NotificationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>[]
+        }
+        create: {
+          args: Prisma.NotificationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        createMany: {
+          args: Prisma.NotificationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.NotificationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>[]
+        }
+        delete: {
+          args: Prisma.NotificationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        update: {
+          args: Prisma.NotificationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        deleteMany: {
+          args: Prisma.NotificationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.NotificationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.NotificationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>[]
+        }
+        upsert: {
+          args: Prisma.NotificationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        aggregate: {
+          args: Prisma.NotificationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateNotification>
+        }
+        groupBy: {
+          args: Prisma.NotificationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NotificationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.NotificationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NotificationCountAggregateOutputType> | number
+        }
+      }
+    }
+    NotificationActivityLog: {
+      payload: Prisma.$NotificationActivityLogPayload<ExtArgs>
+      fields: Prisma.NotificationActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.NotificationActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.NotificationActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.NotificationActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.NotificationActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.NotificationActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.NotificationActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.NotificationActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.NotificationActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.NotificationActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload>
+        }
+        update: {
+          args: Prisma.NotificationActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.NotificationActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.NotificationActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.NotificationActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.NotificationActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.NotificationActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateNotificationActivityLog>
+        }
+        groupBy: {
+          args: Prisma.NotificationActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NotificationActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.NotificationActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NotificationActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
     PaymentTransaction: {
       payload: Prisma.$PaymentTransactionPayload<ExtArgs>
       fields: Prisma.PaymentTransactionFieldRefs
@@ -10317,6 +10467,40 @@ export const MetaAdsAdActivityLogScalarFieldEnum = {
 export type MetaAdsAdActivityLogScalarFieldEnum = (typeof MetaAdsAdActivityLogScalarFieldEnum)[keyof typeof MetaAdsAdActivityLogScalarFieldEnum]
 
 
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  type: 'type',
+  priority: 'priority',
+  title: 'title',
+  message: 'message',
+  link: 'link',
+  metadata: 'metadata',
+  seen: 'seen',
+  readAt: 'readAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const NotificationActivityLogScalarFieldEnum = {
+  id: 'id',
+  notificationId: 'notificationId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type NotificationActivityLogScalarFieldEnum = (typeof NotificationActivityLogScalarFieldEnum)[keyof typeof NotificationActivityLogScalarFieldEnum]
+
+
 export const PaymentTransactionScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -11289,6 +11473,34 @@ export type ListEnumMetaAdsAdStatusFieldRefInput<$PrismaModel> = FieldRefInputTy
 
 
 /**
+ * Reference to a field of type 'NotificationType'
+ */
+export type EnumNotificationTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationType'>
+    
+
+
+/**
+ * Reference to a field of type 'NotificationType[]'
+ */
+export type ListEnumNotificationTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'NotificationPriority'
+ */
+export type EnumNotificationPriorityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationPriority'>
+    
+
+
+/**
+ * Reference to a field of type 'NotificationPriority[]'
+ */
+export type ListEnumNotificationPriorityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationPriority[]'>
+    
+
+
+/**
  * Reference to a field of type 'PaymentGateway'
  */
 export type EnumPaymentGatewayFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentGateway'>
@@ -11593,6 +11805,8 @@ export type GlobalOmitConfig = {
   metaAdsCampaignActivityLog?: Prisma.MetaAdsCampaignActivityLogOmit
   metaAdsAdSetActivityLog?: Prisma.MetaAdsAdSetActivityLogOmit
   metaAdsAdActivityLog?: Prisma.MetaAdsAdActivityLogOmit
+  notification?: Prisma.NotificationOmit
+  notificationActivityLog?: Prisma.NotificationActivityLogOmit
   paymentTransaction?: Prisma.PaymentTransactionOmit
   paymentTransactionActivityLog?: Prisma.PaymentTransactionActivityLogOmit
   serviceSubscription?: Prisma.ServiceSubscriptionOmit

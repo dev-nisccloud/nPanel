@@ -25,6 +25,7 @@ import { LayoutControls } from "./_components/sidebar/layout-controls";
 import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 import { CartSwitcher } from "./_components/sidebar/cart-switcher";
+import { NotificationSwitcher } from "./_components/sidebar/notification-switcher";
 import { NavigationLoader } from "@/components/navigation-loader";
 
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
@@ -78,6 +79,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
                 <SearchDialog />
               </div>
               <div className="flex items-center gap-2">
+                <NotificationSwitcher />
                 <CartSwitcher />
                 {/* <LayoutControls {...layoutPreferences} /> */}
                 <ThemeSwitcher />

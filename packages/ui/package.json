@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "sideEffects": false,
-  "files": ["tailwind.config.ts", "postcss.config.js", "globals.css"],
+  "files": [
+    "tailwind.config.ts",
+    "postcss.config.js",
+    "globals.css"
+  ],
   "scripts": {
     "clean": "rm -rf .turbo node_modules",
     "lint": "biome check .",
@@ -98,9 +102,9 @@
     "@tiptap/core": "^2.12.0",
     "@tiptap/extension-bold": "^2.12.0",
     "@tiptap/extension-italic": "^2.12.0",
-    "@tiptap/extension-strike": "^2.12.0",
     "@tiptap/extension-link": "^2.12.0",
     "@tiptap/extension-placeholder": "^2.12.0",
+    "@tiptap/extension-strike": "^2.12.0",
     "@tiptap/extension-underline": "^2.12.0",
     "@tiptap/pm": "^2.12.0",
     "@tiptap/react": "^2.12.0",
@@ -125,11 +129,11 @@
     "vaul": "^1.1.2"
   },
   "devDependencies": {
-    "@types/react": "^19.1.17",
-    "@types/react-dom": "^19.1.17",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.21",
-    "react": "19.1.1",
-    "react-dom": "19.1.1",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
     "typescript": "^5.9.2"
   }
 }

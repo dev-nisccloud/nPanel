@@ -141,6 +141,8 @@ export const ModelName = {
   MetaAdsCampaignActivityLog: 'MetaAdsCampaignActivityLog',
   MetaAdsAdSetActivityLog: 'MetaAdsAdSetActivityLog',
   MetaAdsAdActivityLog: 'MetaAdsAdActivityLog',
+  Notification: 'Notification',
+  NotificationActivityLog: 'NotificationActivityLog',
   PaymentTransaction: 'PaymentTransaction',
   PaymentTransactionActivityLog: 'PaymentTransactionActivityLog',
   ServiceSubscription: 'ServiceSubscription',
@@ -1869,6 +1871,40 @@ export const MetaAdsAdActivityLogScalarFieldEnum = {
 } as const
 
 export type MetaAdsAdActivityLogScalarFieldEnum = (typeof MetaAdsAdActivityLogScalarFieldEnum)[keyof typeof MetaAdsAdActivityLogScalarFieldEnum]
+
+
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  type: 'type',
+  priority: 'priority',
+  title: 'title',
+  message: 'message',
+  link: 'link',
+  metadata: 'metadata',
+  seen: 'seen',
+  readAt: 'readAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const NotificationActivityLogScalarFieldEnum = {
+  id: 'id',
+  notificationId: 'notificationId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type NotificationActivityLogScalarFieldEnum = (typeof NotificationActivityLogScalarFieldEnum)[keyof typeof NotificationActivityLogScalarFieldEnum]
 
 
 export const PaymentTransactionScalarFieldEnum = {

@@ -88,34 +88,34 @@ export const ImageSidebar = ({ editor, activeTool, onChangeActiveTool }: ImageSi
       {!isLoading && !isError && (
         <div className="flex-1 overflow-hidden flex flex-col">
           <ScrollArea className="flex-1">
-            <div className="p-4">
+          <div className="p-4">
               {data?.data && data.data.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
                     {data.data.map((image) => {
-                      return (
-                        <button
-                          onClick={() => editor?.addImage(image.urls.regular)}
-                          key={image.id}
-                          className="relative w-full h-[100px] group hover:opacity-75 transition bg-muted rounded-sm overflow-hidden border"
-                        >
-                          <img
-                            src={image?.urls?.small || image?.urls?.thumb}
-                            alt={image.alt_description || "Image"}
+                  return (
+                    <button
+                      onClick={() => editor?.addImage(image.urls.regular)}
+                      key={image.id}
+                      className="relative w-full h-[100px] group hover:opacity-75 transition bg-muted rounded-sm overflow-hidden border"
+                    >
+                      <img
+                        src={image?.urls?.small || image?.urls?.thumb}
+                        alt={image.alt_description || "Image"}
                             className="object-cover w-full h-full"
-                            loading="lazy"
-                          />
-                          <Link
-                            target="_blank"
-                            href={image.links.html}
-                            className="opacity-0 group-hover:opacity-100 absolute left-0 bottom-0 w-full text-[10px] truncate text-white hover:underline p-1 bg-black/50 text-left"
-                          >
-                            {image.user.name}
-                          </Link>
-                        </button>
-                      );
-                    })}
-                  </div>
+                        loading="lazy"
+                      />
+                      <Link
+                        target="_blank"
+                        href={image.links.html}
+                        className="opacity-0 group-hover:opacity-100 absolute left-0 bottom-0 w-full text-[10px] truncate text-white hover:underline p-1 bg-black/50 text-left"
+                      >
+                        {image.user.name}
+                      </Link>
+                    </button>
+                  );
+                })}
+            </div>
                   {hasMore && data.data.length > 0 && (
                     <div className="mt-4 flex justify-center">
                       <Button
@@ -142,9 +142,9 @@ export const ImageSidebar = ({ editor, activeTool, onChangeActiveTool }: ImageSi
                   <p className="text-muted-foreground text-xs">No images available</p>
                 </div>
               )}
-            </div>
-          </ScrollArea>
-        </div>
+          </div>
+        </ScrollArea>
+      </div>
       )}
       <ToolSidebarClose onClick={onClose} />
     </aside>

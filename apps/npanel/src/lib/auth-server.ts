@@ -276,6 +276,8 @@ export async function isAgency() {
  * Verify user has access to a team by its slug
  * Updates lastAccessedTeamId if valid
  * Returns team data if accessible, null otherwise
+ * 
+ * Optimized: Batches database queries to reduce connection usage
  */
 export async function verifyTeamAccess(slug: string) {
   const user = await getCurrentUser();
@@ -314,28 +316,33 @@ export async function verifyTeamAccess(slug: string) {
   if (!membership) return null;
   
   // Update lastAccessedTeamId if different from current
+  // Batch: Update user and log activity in a single transaction
+  // This reduces connection usage from 2 sequential queries to 1 transaction
   const currentLastAccessedTeamId = (user as UserWithStatus).lastAccessedTeamId;
   if (currentLastAccessedTeamId !== team.id) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { lastAccessedTeamId: team.id },
-    });
-    
-    // Log the team access
-    await prisma.userActivityLog.create({
-      data: {
-        id: crypto.randomUUID(),
-        userId: userId,
-        action: "TEAM_SWITCHED",
-        description: `User switched to team: ${team.name}`,
-        metadata: {
-          teamId: team.id,
-          teamName: team.name,
-          teamSlug: team.slug,
-          fromUrl: true,
+    // Batch user update and activity log in a transaction
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { lastAccessedTeamId: team.id },
+      });
+      
+      // Log the team access
+      await tx.userActivityLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: userId,
+          action: "TEAM_SWITCHED",
+          description: `User switched to team: ${team.name}`,
+          metadata: {
+            teamId: team.id,
+            teamName: team.name,
+            teamSlug: team.slug,
+            fromUrl: true,
+          },
+          createdAt: new Date(),
         },
-        createdAt: new Date(),
-      },
+      });
     });
   }
   
@@ -350,6 +357,8 @@ export async function verifyTeamAccess(slug: string) {
  * Redirects to /create-team if user has no teams
  * Sets lastAccessedTeamId to first team if not set
  * Returns team slug for URL routing
+ * 
+ * Optimized: Batches database queries to reduce connection usage
  */
 export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<string> {
   const userId = user.id;
@@ -411,27 +420,31 @@ export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<strin
   const teamId = firstTeam.team.id;
   const teamSlug = firstTeam.team.slug;
   
-  // Update user's lastAccessedTeamId
-  await prisma.user.update({
-    where: { id: userId },
-    data: { lastAccessedTeamId: teamId },
-  });
-  
-  // Log the team access
-  await prisma.userActivityLog.create({
-    data: {
-      id: crypto.randomUUID(),
-      userId: userId,
-      action: "TEAM_ACCESSED",
-      description: `User accessed team: ${firstTeam.team.name}`,
-      metadata: {
-        teamId: teamId,
-        teamName: firstTeam.team.name,
-        teamSlug: teamSlug,
-        autoSet: !lastAccessedTeamId, // Track if it was auto-set
+  // Batch: Update user's lastAccessedTeamId and log activity in a single transaction
+  // This reduces connection usage from 2 queries to 1 transaction
+  await prisma.$transaction(async (tx) => {
+    // Update user's lastAccessedTeamId
+    await tx.user.update({
+      where: { id: userId },
+      data: { lastAccessedTeamId: teamId },
+    });
+    
+    // Log the team access
+    await tx.userActivityLog.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId: userId,
+        action: "TEAM_ACCESSED",
+        description: `User accessed team: ${firstTeam.team.name}`,
+        metadata: {
+          teamId: teamId,
+          teamName: firstTeam.team.name,
+          teamSlug: teamSlug,
+          autoSet: !lastAccessedTeamId, // Track if it was auto-set
+        },
+        createdAt: new Date(),
       },
-      createdAt: new Date(),
-    },
+    });
   });
   
   return teamSlug;

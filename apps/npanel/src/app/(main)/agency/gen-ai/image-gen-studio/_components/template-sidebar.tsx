@@ -80,34 +80,34 @@ export const TemplateSidebar = ({
       )}
       {!isLoading && !isError && data?.data && data.data.length > 0 && (
         <ScrollArea className="flex-1">
-          <div className="p-4">
-            <div className="grid grid-cols-2 gap-4">
+        <div className="p-4">
+          <div className="grid grid-cols-2 gap-4">
               {data.data.map((template) => {
-                return (
-                  <button
-                    style={{
-                      aspectRatio: `${template.width}/${template.height}`,
-                    }}
-                    onClick={() => onClick(template)}
-                    key={template.id}
-                    className="bg-muted group relative w-full overflow-hidden rounded-sm border transition hover:opacity-75"
-                  >
-                    <Image
-                      fill
-                      src={template.thumbnailUrl || ""}
-                      alt={template.name || "Template"}
-                      className="object-cover"
-                    />
-                    <div className="absolute bottom-0 left-0 w-full truncate bg-black/50 p-1 text-left text-[10px] text-white opacity-0 group-hover:opacity-100">
-                      {template.name}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+              return (
+                <button
+                  style={{
+                    aspectRatio: `${template.width}/${template.height}`,
+                  }}
+                  onClick={() => onClick(template)}
+                  key={template.id}
+                  className="bg-muted group relative w-full overflow-hidden rounded-sm border transition hover:opacity-75"
+                >
+                  <Image
+                    fill
+                    src={template.thumbnailUrl || ""}
+                    alt={template.name || "Template"}
+                    className="object-cover"
+                  />
+                  <div className="absolute bottom-0 left-0 w-full truncate bg-black/50 p-1 text-left text-[10px] text-white opacity-0 group-hover:opacity-100">
+                    {template.name}
+                  </div>
+                </button>
+              );
+            })}
           </div>
+        </div>
           <ScrollBar orientation="vertical" />
-        </ScrollArea>
+      </ScrollArea>
       )}
       <ToolSidebarClose onClick={onClose} />
     </aside>

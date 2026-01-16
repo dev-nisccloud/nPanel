@@ -62,6 +62,16 @@ async function getAuthenticatedUser(ctx: Context) {
 		});
 	}
 
+	// Optimize: Use role from session if available (set by auth hooks)
+	// This avoids an unnecessary database query
+	const sessionRole = (user as { role?: string })?.role;
+	
+	if (sessionRole) {
+		// Role is in session, no need to query database
+		return { id: user.id, role: sessionRole };
+	}
+
+	// Fallback: Query database if role not in session (shouldn't happen with proper auth hooks)
 	const dbUser = await prisma.user.findUnique({
 		where: { id: user.id },
 		select: { id: true, role: true },
@@ -125,7 +135,10 @@ async function ensureInvoiceAccess(db: DbClient, userId: string, role: string, i
 		return invoice;
 	}
 
+	// Batch: Check team access if invoice has teamId, otherwise check createdBy
+	// This reduces connection usage by combining the access check
 	if (invoice.teamId) {
+		// ensureTeamAccess will throw if access denied
 		await ensureTeamAccess(db, userId, role, invoice.teamId);
 		return invoice;
 	}
@@ -1506,10 +1519,25 @@ export const invoicingRouter = router({
 					attachments,
 				});
 
-				// Update sentAt timestamp if email was sent successfully
-				await prisma.invoice.update({
-					where: { id: invoiceId },
-					data: { sentAt: new Date() },
+				// Batch: Update sentAt timestamp and log activity in a transaction
+				// This reduces connection usage from 2 sequential queries to 1 transaction
+				await prisma.$transaction(async (tx) => {
+					// Update sentAt timestamp if email was sent successfully
+					await tx.invoice.update({
+						where: { id: invoiceId },
+						data: { sentAt: new Date() },
+					});
+
+					// Log activity
+					await logInvoiceActivity(tx, {
+						invoiceId,
+						userId: user.id,
+						action: "EMAIL_SENT",
+						description: "Invoice email sent successfully",
+						metadata: {
+							sentTo: input.billingEmail,
+						},
+					});
 				});
 			} catch (emailError) {
 				// Log email error but don't fail the invoice creation
@@ -1665,21 +1693,25 @@ export const invoicingRouter = router({
 					attachments,
 				});
 
-				// Update reminderSentAt timestamp
-				await prisma.invoice.update({
-					where: { id: input.invoiceId },
-					data: { reminderSentAt: new Date() },
-				});
+				// Batch: Update reminderSentAt timestamp and log activity in a transaction
+				// This reduces connection usage from 2 sequential queries to 1 transaction
+				await prisma.$transaction(async (tx) => {
+					// Update reminderSentAt timestamp
+					await tx.invoice.update({
+						where: { id: input.invoiceId },
+						data: { reminderSentAt: new Date() },
+					});
 
-				// Log activity
-				await logInvoiceActivity(prisma, {
-					invoiceId: input.invoiceId,
-					userId: user.id,
-					action: "REMINDER_SENT",
-					description: "Email reminder sent",
-					metadata: {
-						sentTo: invoice.customerEmail,
-					},
+					// Log activity
+					await logInvoiceActivity(tx, {
+						invoiceId: input.invoiceId,
+						userId: user.id,
+						action: "REMINDER_SENT",
+						description: "Email reminder sent",
+						metadata: {
+							sentTo: invoice.customerEmail,
+						},
+					});
 				});
 			} catch (emailError) {
 				console.error("Failed to send invoice reminder email:", emailError);

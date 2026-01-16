@@ -40,8 +40,30 @@ const FormSchema = z.object({
   objectives: z.string().min(1, { message: "Objectives are required." }),
   requirements: z.string().min(1, { message: "Requirements are required." }),
   comments: z.string().optional(),
-  timelineStartDate: z.date().optional(),
-  timelineEndDate: z.date().optional(),
+  timelineStartDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
+  timelineEndDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
   referenceImages: z.array(z.object({
     fileUrl: z.string(),
     fileKey: z.string(),
@@ -56,6 +78,11 @@ interface CreateBriefSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreateBrief?: () => void;
+}
+
+interface SelectedFile {
+  file: File;
+  preview: string;
 }
 
 interface ReferenceImage {
@@ -79,7 +106,11 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
     onSuccess: () => {
       toast.success("Creative brief created successfully!");
       form.reset();
-      setReferenceImages([]);
+      // Clean up preview URLs
+      selectedFiles.forEach((item) => {
+        URL.revokeObjectURL(item.preview);
+      });
+      setSelectedFiles([]);
       setDateRange(undefined);
       onOpenChange(false);
       onCreateBrief?.();
@@ -106,7 +137,7 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
     },
   });
 
-  const [referenceImages, setReferenceImages] = React.useState<ReferenceImage[]>([]);
+  const [selectedFiles, setSelectedFiles] = React.useState<SelectedFile[]>([]);
   const [isUploadingImages, setIsUploadingImages] = React.useState(false);
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
@@ -122,52 +153,31 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
     }));
   }, [teams]);
 
-  // Handle file drop
-  const handleDrop = async (acceptedFiles: File[]) => {
-    if (referenceImages.length + acceptedFiles.length > 5) {
+  // Handle file drop - just add to local state, don't upload yet
+  const handleDrop = (acceptedFiles: File[]) => {
+    if (selectedFiles.length + acceptedFiles.length > 5) {
       toast.error("Maximum 5 reference images allowed");
       return;
     }
 
-    setIsUploadingImages(true);
-    try {
-      const filesToUpload = acceptedFiles.slice(0, 5 - referenceImages.length);
-      
-      const response = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
-        files: filesToUpload,
-      });
+    if (isSubmitting) return;
 
-      if (!response || response.length === 0) {
-        throw new Error("No files were uploaded");
-      }
+    const filesToAdd = acceptedFiles.slice(0, 5 - selectedFiles.length);
+    const newFiles: SelectedFile[] = filesToAdd.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
 
-      const newImages: ReferenceImage[] = response.map((file) => ({
-        fileUrl: file.ufsUrl || file.url || "",
-        fileKey: file.key || "",
-        fileName: file.name || "",
-        fileSize: file.size || 0,
-        mimeType: file.type || "",
-        fileMetadata: undefined,
-      }));
-
-      setReferenceImages((prev) => [...prev, ...newImages]);
-      form.setValue("referenceImages", [...referenceImages, ...newImages]);
-    } catch (error) {
-      console.error("Error uploading images:", error);
-      toast.error("Failed to upload images", {
-        description: error instanceof Error ? error.message : "Unknown error",
-      });
-    } finally {
-      setIsUploadingImages(false);
-    }
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
   };
 
   // Remove reference image
   const handleRemoveImage = (index: number) => {
     if (isSubmitting) return;
-    const newImages = referenceImages.filter((_, i) => i !== index);
-    setReferenceImages(newImages);
-    form.setValue("referenceImages", newImages);
+    const fileToRemove = selectedFiles[index];
+    URL.revokeObjectURL(fileToRemove.preview);
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(newFiles);
   };
 
   // Update date range
@@ -182,23 +192,83 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
   }, [dateRange, form]);
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    createBriefMutation.mutate({
-      name: data.name,
-      teamId: data.teamId || undefined,
-      background: data.background,
-      objectives: data.objectives,
-      requirements: data.requirements,
-      comments: data.comments || undefined,
-      timelineStartDate: data.timelineStartDate,
-      timelineEndDate: data.timelineEndDate,
-      referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
-    });
+    setIsUploadingImages(true);
+    try {
+      // Upload files to UploadThing first
+      let uploadedImages: ReferenceImage[] = [];
+      if (selectedFiles.length > 0) {
+        const filesToUpload = selectedFiles.map((item) => item.file);
+        const response = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
+          files: filesToUpload,
+        });
+
+        if (!response || response.length === 0) {
+          throw new Error("No files were uploaded");
+        }
+
+        uploadedImages = response.map((file) => ({
+          fileUrl: file.ufsUrl || file.url || "",
+          fileKey: file.key || "",
+          fileName: file.name || "",
+          fileSize: file.size || 0,
+          mimeType: file.type || "",
+          fileMetadata: undefined,
+        }));
+      }
+
+      // Now create the brief with uploaded images
+      // Ensure dates are Date objects (not strings)
+      const timelineStartDate = data.timelineStartDate instanceof Date 
+        ? data.timelineStartDate 
+        : data.timelineStartDate 
+          ? new Date(data.timelineStartDate) 
+          : undefined;
+      const timelineEndDate = data.timelineEndDate instanceof Date 
+        ? data.timelineEndDate 
+        : data.timelineEndDate 
+          ? new Date(data.timelineEndDate) 
+          : undefined;
+
+      createBriefMutation.mutate({
+        name: data.name,
+        teamId: data.teamId || undefined,
+        background: data.background,
+        objectives: data.objectives,
+        requirements: data.requirements,
+        comments: data.comments || undefined,
+        timelineStartDate,
+        timelineEndDate,
+        referenceImages: uploadedImages.length > 0 ? uploadedImages : undefined,
+      });
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      toast.error("Failed to upload images", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsUploadingImages(false);
+    }
   };
+
+  // Reset form and clean up when sheet closes
+  React.useEffect(() => {
+    if (!open) {
+      form.reset();
+      // Clean up preview URLs
+      setSelectedFiles((prev) => {
+        prev.forEach((item) => {
+          URL.revokeObjectURL(item.preview);
+        });
+        return [];
+      });
+      setDateRange(undefined);
+    }
+  }, [open, form]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto">
-        <SheetHeader className="mb-6 flex justify-between items-center flex-row">
+      <SheetContent className="flex flex-col overflow-hidden">
+        <SheetHeader className="mb-6 flex justify-between items-center flex-row flex-shrink-0">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-primary/10 rounded-full">
               <FileText className="h-6 w-6 text-primary" />
@@ -222,10 +292,11 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
           </SheetClose>
         </SheetHeader>
 
-        <div className="px-1 pb-1">
-          <ScrollArea className="h-[calc(100vh-200px)]">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="px-1 pb-1">
+              <Form {...form}>
+                <form id="create-brief-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Brief Information */}
                 <Card>
                   <CardHeader>
@@ -398,6 +469,11 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
                           selected={dateRange}
                           onSelect={setDateRange}
                           numberOfMonths={2}
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return date < today;
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
@@ -416,14 +492,14 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {referenceImages.length < 5 && (
+                    {selectedFiles.length < 5 && (
                       <Dropzone
                         onDrop={handleDrop}
-                        maxFiles={5 - referenceImages.length}
+                        maxFiles={5 - selectedFiles.length}
                         maxSize={16 * 1024 * 1024} // 16MB
                         accept={{ "image/*": [] }}
-                        disabled={isSubmitting || isUploadingImages}
-                        className="w-full border-2 border-dashed transition-colors"
+                        disabled={isSubmitting}
+                        className="w-full border-2 border-dashed transition-colors min-w-0"
                       >
                         <DropzoneEmptyState>
                           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -443,24 +519,24 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
                     )}
 
                     {/* Selected Images */}
-                    {referenceImages.length > 0 && (
+                    {selectedFiles.length > 0 && (
                       <div className="space-y-2">
-                        {referenceImages.map((image, index) => (
+                        {selectedFiles.map((item, index) => (
                           <div
                             key={index}
-                            className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border"
+                            className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border min-w-0"
                           >
                             <div className="flex-shrink-0">
                               <img
-                                src={image.fileUrl}
-                                alt={image.fileName}
+                                src={item.preview}
+                                alt={item.file.name}
                                 className="h-12 w-12 object-cover rounded"
                               />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{image.fileName}</p>
+                              <p className="text-sm font-medium truncate">{item.file.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {(image.fileSize / 1024 / 1024).toFixed(2)} MB
+                                {(item.file.size / 1024 / 1024).toFixed(2)} MB
                               </p>
                             </div>
                             <Button
@@ -507,31 +583,32 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
                     />
                   </CardContent>
                 </Card>
-
-                <SheetFooter className="gap-2 sm:gap-0">
-                  <SheetClose asChild>
-                    <Button type="button" variant="outline" disabled={isSubmitting}>
-                      Cancel
-                    </Button>
-                  </SheetClose>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Spinner variant="ellipsis" className="mr-2" size="sm" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Create Brief
-                      </>
-                    )}
-                  </Button>
-                </SheetFooter>
-              </form>
-            </Form>
+                </form>
+              </Form>
+            </div>
           </ScrollArea>
         </div>
+
+        <SheetFooter className="gap-2 sm:gap-0 flex-shrink-0 border-t pt-4 mt-4">
+          <SheetClose asChild>
+            <Button type="button" variant="outline" disabled={isSubmitting}>
+              Cancel
+            </Button>
+          </SheetClose>
+          <Button type="submit" form="create-brief-form" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Spinner variant="ellipsis" className="mr-2" size="sm" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Create Brief
+              </>
+            )}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

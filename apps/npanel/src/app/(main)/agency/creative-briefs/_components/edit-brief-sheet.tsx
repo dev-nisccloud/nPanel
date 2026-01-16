@@ -42,8 +42,30 @@ const EditFormSchema = z.object({
   objectives: z.string().min(1, { message: "Objectives are required." }).optional(),
   requirements: z.string().min(1, { message: "Requirements are required." }).optional(),
   comments: z.string().optional(),
-  timelineStartDate: z.date().optional(),
-  timelineEndDate: z.date().optional(),
+  timelineStartDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
+  timelineEndDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
   referenceImages: z.array(z.object({
     fileUrl: z.string(),
     fileKey: z.string(),
@@ -88,6 +110,18 @@ interface ReferenceImage {
   fileMetadata?: unknown;
 }
 
+interface SelectedFile {
+  file: File;
+  preview: string;
+}
+
+interface ExistingImage {
+  id: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+}
+
 export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditBriefSheetProps) {
   // Fetch teams
   const { data: teams, isLoading: isLoadingTeams } = trpc.teams.getUserTeams.useQuery(undefined, {
@@ -100,7 +134,12 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
     onSuccess: () => {
       toast.success("Creative brief updated successfully!");
       form.reset();
-      setReferenceImages([]);
+      // Clean up preview URLs
+      selectedFiles.forEach((item) => {
+        URL.revokeObjectURL(item.preview);
+      });
+      setSelectedFiles([]);
+      setExistingImages([]);
       setDateRange(undefined);
       onOpenChange(false);
       onEditBrief?.();
@@ -128,36 +167,57 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
     },
   });
 
-  // Initialize reference images from brief
+  // Initialize form and state when brief changes or sheet opens
   React.useEffect(() => {
-    if (brief?.referenceImages && brief.referenceImages.length > 0) {
-      const images: ReferenceImage[] = brief.referenceImages.map((img) => ({
-        fileUrl: img.fileUrl,
-        fileKey: img.fileKey,
-        fileName: img.fileName,
-        fileSize: img.fileSize,
-        mimeType: img.mimeType,
-        fileMetadata: img.fileMetadata,
-      }));
-      setReferenceImages(images);
-      form.setValue("referenceImages", images);
-    } else {
-      setReferenceImages([]);
-      form.setValue("referenceImages", []);
-    }
-
-    // Initialize date range
-    if (brief?.timelineStartDate && brief?.timelineEndDate) {
-      setDateRange({
-        from: brief.timelineStartDate,
-        to: brief.timelineEndDate,
+    if (brief && open) {
+      // Reset form with brief data
+      form.reset({
+        name: brief.name || "",
+        teamId: brief.teamId || "",
+        background: brief.background || "",
+        objectives: brief.objectives || "",
+        requirements: brief.requirements || "",
+        comments: brief.comments || "",
+        timelineStartDate: brief.timelineStartDate || undefined,
+        timelineEndDate: brief.timelineEndDate || undefined,
+        referenceImages: [],
       });
-    } else {
-      setDateRange(undefined);
-    }
-  }, [brief, form]);
 
-  const [referenceImages, setReferenceImages] = React.useState<ReferenceImage[]>([]);
+      // Initialize reference images from brief
+      if (brief.referenceImages && brief.referenceImages.length > 0) {
+        const images: ExistingImage[] = brief.referenceImages.map((img) => ({
+          id: img.id,
+          fileUrl: img.fileUrl,
+          fileName: img.fileName,
+          fileSize: img.fileSize,
+        }));
+        setExistingImages(images);
+      } else {
+        setExistingImages([]);
+      }
+
+      // Initialize date range
+      if (brief.timelineStartDate && brief.timelineEndDate) {
+        setDateRange({
+          from: brief.timelineStartDate,
+          to: brief.timelineEndDate,
+        });
+      } else {
+        setDateRange(undefined);
+      }
+
+      // Clear any selected files when opening a new brief
+      setSelectedFiles((prev) => {
+        prev.forEach((item) => {
+          URL.revokeObjectURL(item.preview);
+        });
+        return [];
+      });
+    }
+  }, [brief, open, form]);
+
+  const [existingImages, setExistingImages] = React.useState<ExistingImage[]>([]);
+  const [selectedFiles, setSelectedFiles] = React.useState<SelectedFile[]>([]);
   const [isUploadingImages, setIsUploadingImages] = React.useState(false);
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
@@ -173,52 +233,39 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
     }));
   }, [teams]);
 
-  // Handle file drop
-  const handleDrop = async (acceptedFiles: File[]) => {
-    if (referenceImages.length + acceptedFiles.length > 5) {
+  // Handle file drop - just add to local state, don't upload yet
+  const handleDrop = (acceptedFiles: File[]) => {
+    const totalImages = existingImages.length + selectedFiles.length;
+    if (totalImages + acceptedFiles.length > 5) {
       toast.error("Maximum 5 reference images allowed");
       return;
     }
 
-    setIsUploadingImages(true);
-    try {
-      const filesToUpload = acceptedFiles.slice(0, 5 - referenceImages.length);
-      
-      const response = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
-        files: filesToUpload,
-      });
+    if (isSubmitting) return;
 
-      if (!response || response.length === 0) {
-        throw new Error("No files were uploaded");
-      }
+    const filesToAdd = acceptedFiles.slice(0, 5 - totalImages);
+    const newFiles: SelectedFile[] = filesToAdd.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
 
-      const newImages: ReferenceImage[] = response.map((file) => ({
-        fileUrl: file.ufsUrl || file.url || "",
-        fileKey: file.key || "",
-        fileName: file.name || "",
-        fileSize: file.size || 0,
-        mimeType: file.type || "",
-        fileMetadata: undefined,
-      }));
-
-      setReferenceImages((prev) => [...prev, ...newImages]);
-      form.setValue("referenceImages", [...referenceImages, ...newImages]);
-    } catch (error) {
-      console.error("Error uploading images:", error);
-      toast.error("Failed to upload images", {
-        description: error instanceof Error ? error.message : "Unknown error",
-      });
-    } finally {
-      setIsUploadingImages(false);
-    }
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
   };
 
-  // Remove reference image
-  const handleRemoveImage = (index: number) => {
+  // Remove existing image (from database)
+  const handleRemoveExistingImage = (index: number) => {
     if (isSubmitting) return;
-    const newImages = referenceImages.filter((_, i) => i !== index);
-    setReferenceImages(newImages);
-    form.setValue("referenceImages", newImages);
+    const newImages = existingImages.filter((_, i) => i !== index);
+    setExistingImages(newImages);
+  };
+
+  // Remove selected file (new upload)
+  const handleRemoveSelectedFile = (index: number) => {
+    if (isSubmitting) return;
+    const fileToRemove = selectedFiles[index];
+    URL.revokeObjectURL(fileToRemove.preview);
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(newFiles);
   };
 
   // Update date range
@@ -235,50 +282,101 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
   const onSubmit = async (data: z.infer<typeof EditFormSchema>) => {
     if (!brief) return;
 
-    // Only send fields that have changed
-    const updateData: {
-      id: string;
-      name?: string;
-      teamId?: string;
-      background?: string;
-      objectives?: string;
-      requirements?: string;
-      comments?: string;
-      timelineStartDate?: Date;
-      timelineEndDate?: Date;
-      referenceImages?: ReferenceImage[];
-    } = {
-      id: brief.id,
-    };
+    setIsUploadingImages(true);
+    try {
+      // Upload new files to UploadThing first
+      let uploadedNewImages: ReferenceImage[] = [];
+      if (selectedFiles.length > 0) {
+        const filesToUpload = selectedFiles.map((item) => item.file);
+        const response = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
+          files: filesToUpload,
+        });
 
-    if (data.name !== undefined && data.name !== brief.name) {
-      updateData.name = data.name;
-    }
-    if (data.teamId !== undefined && data.teamId !== brief.teamId) {
-      updateData.teamId = data.teamId || undefined;
-    }
-    if (data.background !== undefined && data.background !== brief.background) {
-      updateData.background = data.background;
-    }
-    if (data.objectives !== undefined && data.objectives !== brief.objectives) {
-      updateData.objectives = data.objectives;
-    }
-    if (data.requirements !== undefined && data.requirements !== brief.requirements) {
-      updateData.requirements = data.requirements;
-    }
-    if (data.comments !== undefined && data.comments !== brief.comments) {
-      updateData.comments = data.comments || undefined;
-    }
-    if (data.timelineStartDate !== undefined || data.timelineEndDate !== undefined) {
-      updateData.timelineStartDate = data.timelineStartDate;
-      updateData.timelineEndDate = data.timelineEndDate;
-    }
-    if (data.referenceImages !== undefined) {
-      updateData.referenceImages = referenceImages.length > 0 ? referenceImages : [];
-    }
+        if (!response || response.length === 0) {
+          throw new Error("No files were uploaded");
+        }
 
-    updateBriefMutation.mutate(updateData);
+        uploadedNewImages = response.map((file) => ({
+          fileUrl: file.ufsUrl || file.url || "",
+          fileKey: file.key || "",
+          fileName: file.name || "",
+          fileSize: file.size || 0,
+          mimeType: file.type || "",
+          fileMetadata: undefined,
+        }));
+      }
+
+      // Combine existing images (from brief) with newly uploaded images
+      const allReferenceImages: ReferenceImage[] = [
+        // Keep existing images that weren't removed
+        ...(brief.referenceImages || [])
+          .filter((img) => existingImages.some((existing) => existing.id === img.id))
+          .map((img) => ({
+            fileUrl: img.fileUrl,
+            fileKey: img.fileKey,
+            fileName: img.fileName,
+            fileSize: img.fileSize,
+            mimeType: img.mimeType,
+            fileMetadata: img.fileMetadata,
+          })),
+        // Add newly uploaded images
+        ...uploadedNewImages,
+      ];
+
+      // Only send fields that have changed
+      // Type assertion needed because tRPC infers timelineStartDate/timelineEndDate as required
+      // but they're actually optional in the schema
+      const updateData = {
+        id: brief.id,
+        ...(data.name !== undefined && data.name !== brief.name && { name: data.name }),
+        ...(data.teamId !== undefined && data.teamId !== brief.teamId && { teamId: data.teamId || undefined }),
+        ...(data.background !== undefined && data.background !== brief.background && { background: data.background }),
+        ...(data.objectives !== undefined && data.objectives !== brief.objectives && { objectives: data.objectives }),
+        ...(data.requirements !== undefined && data.requirements !== brief.requirements && { requirements: data.requirements }),
+        ...(data.comments !== undefined && data.comments !== brief.comments && { comments: data.comments || undefined }),
+        ...(data.timelineStartDate !== undefined || data.timelineEndDate !== undefined ? {
+          timelineStartDate: data.timelineStartDate instanceof Date 
+            ? data.timelineStartDate 
+            : data.timelineStartDate 
+              ? new Date(data.timelineStartDate) 
+              : undefined,
+          timelineEndDate: data.timelineEndDate instanceof Date 
+            ? data.timelineEndDate 
+            : data.timelineEndDate 
+              ? new Date(data.timelineEndDate) 
+              : undefined,
+        } : {}),
+        ...(selectedFiles.length > 0 || existingImages.length !== (brief.referenceImages?.length || 0) ? {
+          referenceImages: allReferenceImages,
+        } : {}),
+      } as Parameters<typeof updateBriefMutation.mutate>[0];
+
+      updateBriefMutation.mutate(updateData);
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      toast.error("Failed to upload images", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsUploadingImages(false);
+    }
   };
+
+  // Reset form and clean up when sheet closes
+  React.useEffect(() => {
+    if (!open) {
+      // Clean up preview URLs
+      setSelectedFiles((prev) => {
+        prev.forEach((item) => {
+          URL.revokeObjectURL(item.preview);
+        });
+        return [];
+      });
+      setExistingImages([]);
+      setDateRange(undefined);
+      // Don't reset form here - let it reset when brief changes
+    }
+  }, [open]);
 
   if (!brief) {
     return null;
@@ -286,8 +384,8 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto">
-        <SheetHeader className="mb-6 flex justify-between items-center flex-row">
+      <SheetContent className="flex flex-col overflow-hidden">
+        <SheetHeader className="mb-6 flex justify-between items-center flex-row flex-shrink-0">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-primary/10 rounded-full">
               <FileText className="h-6 w-6 text-primary" />
@@ -311,10 +409,11 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
           </SheetClose>
         </SheetHeader>
 
-        <div className="px-1 pb-1">
-          <ScrollArea className="h-[calc(100vh-200px)]">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="px-1 pb-1">
+              <Form {...form}>
+                <form id="edit-brief-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Brief Information */}
                 <Card>
                   <CardHeader>
@@ -487,6 +586,11 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
                           selected={dateRange}
                           onSelect={setDateRange}
                           numberOfMonths={2}
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return date < today;
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
@@ -505,14 +609,14 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {referenceImages.length < 5 && (
+                    {(existingImages.length + selectedFiles.length) < 5 && (
                       <Dropzone
                         onDrop={handleDrop}
-                        maxFiles={5 - referenceImages.length}
+                        maxFiles={5 - (existingImages.length + selectedFiles.length)}
                         maxSize={16 * 1024 * 1024} // 16MB
                         accept={{ "image/*": [] }}
-                        disabled={isSubmitting || isUploadingImages}
-                        className="w-full border-2 border-dashed transition-colors"
+                        disabled={isSubmitting}
+                        className="w-full border-2 border-dashed transition-colors min-w-0"
                       >
                         <DropzoneEmptyState>
                           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -531,13 +635,16 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
                       </Dropzone>
                     )}
 
-                    {/* Selected Images */}
-                    {referenceImages.length > 0 && (
+                    {/* Existing Images from Database */}
+                    {existingImages.length > 0 && (
                       <div className="space-y-2">
-                        {referenceImages.map((image, index) => (
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Existing Images
+                        </p>
+                        {existingImages.map((image, index) => (
                           <div
-                            key={index}
-                            className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border"
+                            key={image.id}
+                            className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border min-w-0"
                           >
                             <div className="flex-shrink-0">
                               <img
@@ -557,7 +664,48 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => handleRemoveImage(index)}
+                              onClick={() => handleRemoveExistingImage(index)}
+                              disabled={isSubmitting}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Newly Selected Images */}
+                    {selectedFiles.length > 0 && (
+                      <div className="space-y-2">
+                        {existingImages.length > 0 && (
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                            New Images
+                          </p>
+                        )}
+                        {selectedFiles.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border min-w-0"
+                          >
+                            <div className="flex-shrink-0">
+                              <img
+                                src={item.preview}
+                                alt={item.file.name}
+                                className="h-12 w-12 object-cover rounded"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{item.file.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleRemoveSelectedFile(index)}
                               disabled={isSubmitting}
                             >
                               <X className="h-4 w-4" />
@@ -596,31 +744,32 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
                     />
                   </CardContent>
                 </Card>
-
-                <SheetFooter className="gap-2 sm:gap-0">
-                  <SheetClose asChild>
-                    <Button type="button" variant="outline" disabled={isSubmitting}>
-                      Cancel
-                    </Button>
-                  </SheetClose>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Spinner variant="ellipsis" className="mr-2" size="sm" />
-                        Updating...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Update Brief
-                      </>
-                    )}
-                  </Button>
-                </SheetFooter>
-              </form>
-            </Form>
+                </form>
+              </Form>
+            </div>
           </ScrollArea>
         </div>
+
+        <SheetFooter className="gap-2 sm:gap-0 flex-shrink-0 border-t pt-4 mt-4">
+          <SheetClose asChild>
+            <Button type="button" variant="outline" disabled={isSubmitting}>
+              Cancel
+            </Button>
+          </SheetClose>
+          <Button type="submit" form="edit-brief-form" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Spinner variant="ellipsis" className="mr-2" size="sm" />
+                Updating...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Update Brief
+              </>
+            )}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

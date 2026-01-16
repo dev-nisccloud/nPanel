@@ -26,21 +26,22 @@ function CreativeBriefsListingSkeleton() {
         <Skeleton className="h-9 w-32" />
       </div>
       
-      {/* List skeleton */}
-      <div className="space-y-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="rounded-lg border p-4">
+      {/* Grid skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="rounded-lg border p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <Skeleton className="h-5 w-48 flex-shrink-0" />
-                <Skeleton className="h-4 w-32 flex-shrink-0" />
-                <Skeleton className="h-4 w-24 flex-shrink-0" />
+              <Skeleton className="h-5 w-16" />
+              <div className="flex items-center gap-1">
+                <Skeleton className="h-7 w-7" />
+                <Skeleton className="h-7 w-7" />
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Skeleton className="h-6 w-16" />
-                <Skeleton className="h-8 w-8" />
-                <Skeleton className="h-8 w-8" />
-              </div>
+            </div>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <div className="space-y-2 pt-2">
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-2/3" />
             </div>
           </div>
         ))}
@@ -204,27 +205,26 @@ function CreativeBriefCard({
 
   return (
     <Card
-      className={cn("group cursor-pointer transition-all hover:shadow-md hover:border-primary/50", className)}
+      className={cn("group cursor-pointer transition-all hover:shadow-md hover:border-primary/50 flex flex-col", className)}
       onClick={handleCardClick}
     >
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          {/* Top row with status and actions */}
-          <div className="flex-1 min-w-0" />
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Badge variant={getStatusBadgeVariant(data.status)}>
-              {getStatusText(data.status)}
-            </Badge>
+        {/* Top row: Status badge and action icons */}
+        <div className="flex items-center justify-between gap-2">
+          <Badge variant={getStatusBadgeVariant(data.status)} className="text-xs">
+            {getStatusText(data.status)}
+          </Badge>
+          <div className="flex items-center gap-1 flex-shrink-0">
             {onEdit && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0"
+                    className="h-7 w-7 p-0"
                     onClick={handleEdit}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -238,14 +238,14 @@ function CreativeBriefCard({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={handleDelete}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Delete creative brief (this action cannot be reversed)</p>
+                  <p>Delete creative brief</p>
                 </TooltipContent>
               </Tooltip>
             )}
@@ -253,24 +253,23 @@ function CreativeBriefCard({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
-        {/* List view columns */}
-        <div className="flex items-center gap-6">
-          {/* Brief Name Column - Fixed width with ellipsis */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate" title={data.name}>
-              {data.name}
-            </p>
-          </div>
+      <CardContent className="pt-0 flex-1 flex flex-col">
+        {/* Brief Name */}
+        <div className="mb-3">
+          <p className="text-sm font-semibold line-clamp-2" title={data.name}>
+            {data.name}
+          </p>
+        </div>
 
-          {/* Timeline Column */}
-          <div className="w-64 flex-shrink-0">
-            <p className="text-sm text-muted-foreground">{formatTimeline()}</p>
+        {/* Timeline and Submitted Date */}
+        <div className="mt-auto space-y-1.5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-medium">Timeline:</span>
+            <span className="truncate">{formatTimeline()}</span>
           </div>
-
-          {/* Submitted Column */}
-          <div className="w-32 flex-shrink-0">
-            <p className="text-sm text-muted-foreground">{formatSubmitted()}</p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-medium">Submitted:</span>
+            <span>{formatSubmitted()}</span>
           </div>
         </div>
       </CardContent>
@@ -333,12 +332,12 @@ export function CreativeBriefsListing({
         )}
       </div>
 
-      {/* List view cards */}
+      {/* Grid view cards */}
       <div className="rounded-lg border bg-card">
         <ScrollArea className="h-[600px]">
           <div className="p-4">
             {filteredData.length > 0 ? (
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredData.map((brief) => (
                   <CreativeBriefCard
                     key={brief.id}

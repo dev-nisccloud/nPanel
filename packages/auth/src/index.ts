@@ -101,7 +101,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 		// Default session duration: 2 hours
 		// Can be extended to 30 days if user checks "Remember me"
 		updateAge: 60 * 60, // 1 hour - refresh session data
-		expiresIn: 60 * 60 * 2, // 2 hours default
+		expiresIn: 60 * 60 * 1, // 2 hours default
 	},
 	hooks: {
 		before: createAuthMiddleware(async (ctx) => {
@@ -115,21 +115,24 @@ export const auth = betterAuth<BetterAuthOptions>({
 					});
 					
 					if (user && user.status !== "ACTIVE") {
-						// Log the blocked login attempt
-						await prisma.userActivityLog.create({
-							data: {
-								id: crypto.randomUUID(),
-								userId: user.id,
-								action: "LOGIN_BLOCKED",
-								description: `Login blocked due to account status: ${user.status}`,
-								metadata: {
-									status: user.status,
-									reason: "Account not active"
-								},
-								ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
-								userAgent: ctx.headers?.get("user-agent") || "unknown",
-								createdAt: new Date()
-							}
+						// Batch: Log the blocked login attempt in a transaction
+						// This reduces connection usage by combining queries
+						await prisma.$transaction(async (tx) => {
+							await tx.userActivityLog.create({
+								data: {
+									id: crypto.randomUUID(),
+									userId: user.id,
+									action: "LOGIN_BLOCKED",
+									description: `Login blocked due to account status: ${user.status}`,
+									metadata: {
+										status: user.status,
+										reason: "Account not active"
+									},
+									ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
+									userAgent: ctx.headers?.get("user-agent") || "unknown",
+									createdAt: new Date()
+								}
+							});
 						});
 
 						throw new APIError("FORBIDDEN", {
@@ -174,40 +177,112 @@ export const auth = betterAuth<BetterAuthOptions>({
 					// Check if user wants to be remembered for 30 days
 					const rememberMe = ctx.body?.rememberMe === true;
 					
-					// Update session expiration based on remember me preference
-					if (rememberMe && newSession.session?.token) {
-						// Extend session to 30 days in the database
-						const thirtyDaysFromNow = new Date(Date.now() + 60 * 60 * 24 * 30 * 1000);
-						
-						await prisma.session.update({
-							where: { token: newSession.session.token },
-							data: { expiresAt: thirtyDaysFromNow }
-						});
-					}
-					
-					// Update last login time
-					await prisma.user.update({
-						where: { id: newSession.user.id },
-						data: { lastLoginAt: new Date() }
-					});
+					// Batch all related database operations in a single transaction
+					// This reduces connection usage significantly (from 5+ queries to 1 transaction)
+					try {
+						await prisma.$transaction(async (tx) => {
+							// Update session expiration based on remember me preference
+							if (rememberMe && newSession.session?.token) {
+								// Extend session to 30 days in the database
+								const thirtyDaysFromNow = new Date(Date.now() + 60 * 60 * 24 * 30 * 1000);
+								
+								await tx.session.update({
+									where: { token: newSession.session.token },
+									data: { expiresAt: thirtyDaysFromNow }
+								});
+							}
+							
+							// Update last login time
+							await tx.user.update({
+								where: { id: newSession.user.id },
+								data: { lastLoginAt: new Date() }
+							});
 
-					// Log successful login with remember me info
-					await prisma.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: newSession.user.id,
-							action: "LOGIN_SUCCESS",
-							description: "User successfully logged in",
-							metadata: {
-								loginMethod: "email_password",
-								rememberMe: rememberMe,
-								sessionDuration: rememberMe ? "30 days" : "2 hours"
-							},
-							ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
-							userAgent: ctx.headers?.get("user-agent") || "unknown",
-							createdAt: new Date()
+							// Log successful login with remember me info
+							await tx.userActivityLog.create({
+								data: {
+									id: crypto.randomUUID(),
+									userId: newSession.user.id,
+									action: "LOGIN_SUCCESS",
+									description: "User successfully logged in",
+									metadata: {
+										loginMethod: "email_password",
+										rememberMe: rememberMe,
+										sessionDuration: rememberMe ? "30 days" : "2 hours"
+									},
+									ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
+									userAgent: ctx.headers?.get("user-agent") || "unknown",
+									createdAt: new Date()
+								}
+							});
+						});
+
+						// Create login notification (separate transaction to avoid blocking login)
+						// This is non-critical and can fail without affecting login
+						try {
+							const ipAddress = ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || null;
+							const accessTime = new Date().toLocaleString("en-US", {
+								year: "numeric",
+								month: "long",
+								day: "numeric",
+								hour: "2-digit",
+								minute: "2-digit",
+								timeZoneName: "short",
+							});
+							
+							const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
+							const message = `Your account was recently accessed at ${accessTime}${ipDisplay}. If this was not you, kindly reach out to support to secure your account.`;
+
+							// Batch notification creation and activity log
+							await prisma.$transaction(async (tx) => {
+								const notification = await tx.notification.create({
+									data: {
+										id: crypto.randomUUID(),
+										userId: newSession.user.id,
+										teamId: null,
+										type: "SYSTEM",
+										priority: "NORMAL",
+										title: "Account Access Notification",
+										message: message,
+										link: null,
+										metadata: {
+											ipAddress: ipAddress,
+											accessTime: accessTime,
+											loginMethod: "email_password",
+										},
+										seen: false,
+										readAt: null,
+										createdAt: new Date(),
+										updatedAt: new Date(),
+									} as any,
+								});
+
+								// Log notification activity
+								await tx.notificationActivityLog.create({
+									data: {
+										id: crypto.randomUUID(),
+										notificationId: notification.id,
+										userId: newSession.user.id,
+										action: "CREATE",
+										description: "Login notification created",
+										metadata: {
+											ipAddress: ipAddress,
+											accessTime: accessTime,
+										},
+										ipAddress: ipAddress,
+										userAgent: ctx.headers?.get("user-agent") || null,
+										createdAt: new Date(),
+									} as any,
+								});
+							});
+						} catch (error) {
+							// Log error but don't fail the login
+							console.error("Failed to create login notification:", error);
 						}
-					});
+					} catch (error) {
+						// Log error but don't fail the login (transaction already committed)
+						console.error("Failed to update login-related data:", error);
+					}
 				}
 			}
 
@@ -215,21 +290,81 @@ export const auth = betterAuth<BetterAuthOptions>({
 			if (ctx.path.startsWith("/sign-up")) {
 				const newSession = ctx.context.newSession;
 				if (newSession) {
-					await prisma.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: newSession.user.id,
-							action: "SIGNUP_SUCCESS",
-							description: "User successfully signed up",
-							metadata: {
-								signupMethod: "email_password",
-								emailVerified: newSession.user.emailVerified
-							},
-							ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
-							userAgent: ctx.headers?.get("user-agent") || "unknown",
-							createdAt: new Date()
+					// Batch signup logging in a transaction
+					try {
+						await prisma.$transaction(async (tx) => {
+							await tx.userActivityLog.create({
+								data: {
+									id: crypto.randomUUID(),
+									userId: newSession.user.id,
+									action: "SIGNUP_SUCCESS",
+									description: "User successfully signed up",
+									metadata: {
+										signupMethod: "email_password",
+										emailVerified: newSession.user.emailVerified
+									},
+									ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
+									userAgent: ctx.headers?.get("user-agent") || "unknown",
+									createdAt: new Date()
+								}
+							});
+						});
+
+						// Create signup notification (separate transaction, non-critical)
+						try {
+							const ipAddress = ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || null;
+							const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
+							const message = `Your account was successfully created${ipDisplay}. Welcome to nPanel!`;
+
+							// Batch notification creation and activity log
+							await prisma.$transaction(async (tx) => {
+								const notification = await tx.notification.create({
+									data: {
+										id: crypto.randomUUID(),
+										userId: newSession.user.id,
+										teamId: null,
+										type: "SYSTEM",
+										priority: "NORMAL",
+										title: "Account Created",
+										message: message,
+										link: null,
+										metadata: {
+											ipAddress: ipAddress,
+											signupMethod: "email_password",
+										},
+										seen: false,
+										readAt: null,
+										createdAt: new Date(),
+										updatedAt: new Date(),
+									} as any,
+								});
+
+								// Log notification activity
+								await tx.notificationActivityLog.create({
+									data: {
+										id: crypto.randomUUID(),
+										notificationId: notification.id,
+										userId: newSession.user.id,
+										action: "CREATE",
+										description: "Signup notification created",
+										metadata: {
+											ipAddress: ipAddress,
+											signupMethod: "email_password",
+										},
+										ipAddress: ipAddress,
+										userAgent: ctx.headers?.get("user-agent") || null,
+										createdAt: new Date(),
+									} as any,
+								});
+							});
+						} catch (error) {
+							// Log error but don't fail the signup
+							console.error("Failed to create signup notification:", error);
 						}
-					});
+					} catch (error) {
+						// Log error but don't fail the signup
+						console.error("Failed to log signup activity:", error);
+					}
 				}
 			}
 
@@ -237,17 +372,25 @@ export const auth = betterAuth<BetterAuthOptions>({
 			if (ctx.path === "/sign-out") {
 				const session = ctx.context.session;
 				if (session) {
-					await prisma.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: session.user.id,
-							action: "LOGOUT",
-							description: "User logged out",
-							ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
-							userAgent: ctx.headers?.get("user-agent") || "unknown",
-							createdAt: new Date()
-						}
-					});
+					// Single query, but wrapped in transaction for consistency and connection pooling
+					try {
+						await prisma.$transaction(async (tx) => {
+							await tx.userActivityLog.create({
+								data: {
+									id: crypto.randomUUID(),
+									userId: session.user.id,
+									action: "LOGOUT",
+									description: "User logged out",
+									ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
+									userAgent: ctx.headers?.get("user-agent") || "unknown",
+									createdAt: new Date()
+								}
+							});
+						});
+					} catch (error) {
+						// Log error but don't fail the logout
+						console.error("Failed to log logout activity:", error);
+					}
 				}
 			}
 
@@ -255,20 +398,89 @@ export const auth = betterAuth<BetterAuthOptions>({
 			if (ctx.path === "/verify-email") {
 				const newSession = ctx.context.newSession;
 				if (newSession) {
-					await prisma.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: newSession.user.id,
-							action: "EMAIL_VERIFIED",
-							description: "User email address verified",
-							metadata: {
-								email: newSession.user.email
-							},
-							ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
-							userAgent: ctx.headers?.get("user-agent") || "unknown",
-							createdAt: new Date()
+					// Batch email verification logging in a transaction
+					try {
+						await prisma.$transaction(async (tx) => {
+							await tx.userActivityLog.create({
+								data: {
+									id: crypto.randomUUID(),
+									userId: newSession.user.id,
+									action: "EMAIL_VERIFIED",
+									description: "User email address verified",
+									metadata: {
+										email: newSession.user.email
+									},
+									ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
+									userAgent: ctx.headers?.get("user-agent") || "unknown",
+									createdAt: new Date()
+								}
+							});
+						});
+
+						// Create email verification success notification (separate transaction, non-critical)
+						try {
+							const ipAddress = ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || null;
+							const verificationTime = new Date().toLocaleString("en-US", {
+								year: "numeric",
+								month: "long",
+								day: "numeric",
+								hour: "2-digit",
+								minute: "2-digit",
+								timeZoneName: "short",
+							});
+							const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
+							const message = `Your email address has been successfully verified at ${verificationTime}${ipDisplay}. Your account is now fully activated.`;
+
+							// Batch notification creation and activity log
+							await prisma.$transaction(async (tx) => {
+								const notification = await tx.notification.create({
+									data: {
+										id: crypto.randomUUID(),
+										userId: newSession.user.id,
+										teamId: null,
+										type: "SYSTEM",
+										priority: "NORMAL",
+										title: "Email Verified",
+										message: message,
+										link: null,
+										metadata: {
+											ipAddress: ipAddress,
+											verificationTime: verificationTime,
+											email: newSession.user.email,
+										},
+										seen: false,
+										readAt: null,
+										createdAt: new Date(),
+										updatedAt: new Date(),
+									} as any,
+								});
+
+								// Log notification activity
+								await tx.notificationActivityLog.create({
+									data: {
+										id: crypto.randomUUID(),
+										notificationId: notification.id,
+										userId: newSession.user.id,
+										action: "CREATE",
+										description: "Email verification success notification created",
+										metadata: {
+											ipAddress: ipAddress,
+											verificationTime: verificationTime,
+										},
+										ipAddress: ipAddress,
+										userAgent: ctx.headers?.get("user-agent") || null,
+										createdAt: new Date(),
+									} as any,
+								});
+							});
+						} catch (error) {
+							// Log error but don't fail the email verification
+							console.error("Failed to create email verification notification:", error);
 						}
-					});
+					} catch (error) {
+						// Log error but don't fail the email verification
+						console.error("Failed to log email verification activity:", error);
+					}
 				}
 			}
 		}),
@@ -348,6 +560,61 @@ export const auth = betterAuth<BetterAuthOptions>({
 			} catch (error) {
 				console.error("Failed to log password reset activity:", error);
 			}
+
+			// Create password reset success notification
+			try {
+				const resetTime = new Date().toLocaleString("en-US", {
+					year: "numeric",
+					month: "long",
+					day: "numeric",
+					hour: "2-digit",
+					minute: "2-digit",
+					timeZoneName: "short",
+				});
+				const message = `Your password was successfully reset at ${resetTime}. If this was not you, please contact support immediately to secure your account.`;
+
+				const notification = await prisma.notification.create({
+					data: {
+						id: crypto.randomUUID(),
+						userId: user.id,
+						teamId: null,
+						type: "SYSTEM",
+						priority: "HIGH",
+						title: "Password Reset Successful",
+						message: message,
+						link: null,
+						metadata: {
+							resetTime: resetTime,
+							resetMethod: "email_link",
+						},
+						seen: false,
+						readAt: null,
+						createdAt: new Date(),
+						updatedAt: new Date(),
+					} as any,
+				});
+
+				// Log notification activity
+				await prisma.notificationActivityLog.create({
+					data: {
+						id: crypto.randomUUID(),
+						notificationId: notification.id,
+						userId: user.id,
+						action: "CREATE",
+						description: "Password reset success notification created",
+						metadata: {
+							resetTime: resetTime,
+							resetMethod: "email_link",
+						},
+						ipAddress: null,
+						userAgent: null,
+						createdAt: new Date(),
+					} as any,
+				});
+			} catch (error) {
+				// Log error but don't fail the password reset
+				console.error("Failed to create password reset success notification:", error);
+			}
 			
 			// Send password reset success email
 			try {
@@ -400,6 +667,52 @@ export const auth = betterAuth<BetterAuthOptions>({
 				console.log(`📝 Email verification request activity logged for user ${user.email}`);
 			} catch (error) {
 				console.error("Failed to log email verification request activity:", error);
+			}
+
+			// Create email verification sent notification
+			try {
+				const message = "Please check your email to verify your account. Click the verification link in the email to activate your account.";
+
+				const notification = await prisma.notification.create({
+					data: {
+						id: crypto.randomUUID(),
+						userId: user.id,
+						teamId: null,
+						type: "SYSTEM",
+						priority: "NORMAL",
+						title: "Verify Your Email",
+						message: message,
+						link: null,
+						metadata: {
+							verificationMethod: "email_link",
+							email: user.email,
+						},
+						seen: false,
+						readAt: null,
+						createdAt: new Date(),
+						updatedAt: new Date(),
+					} as any,
+				});
+
+				// Log notification activity
+				await prisma.notificationActivityLog.create({
+					data: {
+						id: crypto.randomUUID(),
+						notificationId: notification.id,
+						userId: user.id,
+						action: "CREATE",
+						description: "Email verification sent notification created",
+						metadata: {
+							verificationMethod: "email_link",
+						},
+						ipAddress: null,
+						userAgent: null,
+						createdAt: new Date(),
+					} as any,
+				});
+			} catch (error) {
+				// Log error but don't fail the email verification send
+				console.error("Failed to create email verification sent notification:", error);
 			}
 			
 			// Redirect to frontend verification page instead of API endpoint

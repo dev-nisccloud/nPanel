@@ -55,7 +55,7 @@ export function AccountSwitcher({
             </div>
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
+        {/* <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <BadgeCheck />
@@ -69,7 +69,7 @@ export function AccountSwitcher({
             <Bell />
             Notifications
           </DropdownMenuItem>
-        </DropdownMenuGroup>
+        </DropdownMenuGroup> */}
         <DropdownMenuSeparator />
         <DropdownMenuItem>
           <LogOut />

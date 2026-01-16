@@ -74,3 +74,18 @@ This project includes a `bts.jsonc` configuration file that stores your Better-T
 - Turborepo handles build caching and parallel execution
 - Use `pnpx
 create-better-t-stack add` to add more features later
+
+## Database Optimization Rules
+
+**CRITICAL**: All database queries MUST follow the optimization rules defined in `.ruler/database-optimization.md`. These rules are mandatory for:
+- Preventing database connection exhaustion
+- Ensuring optimal performance
+- Maintaining code consistency
+
+Key principles:
+- Batch related operations in transactions
+- Use session data instead of querying when available
+- Parallelize independent queries with `Promise.all()`
+- Minimize connection usage at all times
+
+See `.ruler/database-optimization.md` for complete guidelines and examples.

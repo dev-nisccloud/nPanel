@@ -22,6 +22,7 @@ import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { TeamSwitcher } from "./_components/sidebar/team-switcher";
 import { CartSwitcher } from "./_components/sidebar/cart-switcher";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
+import { NotificationSwitcher } from "./_components/sidebar/notification-switcher";
 import { PrefetchTeams } from "./_components/prefetch-teams";
 import { NavigationLoader } from "@/components/navigation-loader";
 
@@ -37,12 +38,9 @@ export default async function TeamLayout({
   // Await params in Next.js 15+
   const { slug } = await params;
   
-  console.log("[TeamLayout] Layout executing for slug:", slug);
-  
   // CRITICAL: Prevent /agency routes from ever matching this [slug] layout
   // This must be the FIRST check to prevent Next.js from compiling this route for /agency
   if (slug === "agency") {
-    console.log("[TeamLayout] Slug is 'agency', redirecting to /agency/default");
     // Redirect immediately to prevent this layout from executing
     redirect("/agency/default");
   }
@@ -51,11 +49,8 @@ export default async function TeamLayout({
   // This prevents agency users from accessing customer routes
   const user = await getCurrentUser();
   if (user && (user as { role?: string }).role?.includes("AGENCY")) {
-    console.log("[TeamLayout] User has agency role, redirecting to /agency/default");
     redirect("/agency/default");
   }
-  
-  console.log("[TeamLayout] Proceeding with CUSTOMER role check for slug:", slug);
   
   // Server-side auth check - redirects if not authenticated or not a customer
   await requireRole(["CUSTOMER"]);
@@ -112,6 +107,7 @@ export default async function TeamLayout({
               </div>
               <div className="flex items-center gap-2">
                 <TeamSwitcher />
+                <NotificationSwitcher />
                 <CartSwitcher />
                 {/* <LayoutControls {...layoutPreferences} /> */}
                 <ThemeSwitcher />

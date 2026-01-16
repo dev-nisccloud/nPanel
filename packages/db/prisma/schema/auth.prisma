@@ -468,6 +468,8 @@ model User {
   backgroundRemoverGenerations BackgroundRemoverGeneration[]
   // Creative Briefs Relations
   creativeBriefs               CreativeBrief[]
+  // Notifications Relations
+  notifications                Notification[]
 
   @@unique([email])
   @@index([role])
@@ -556,6 +558,8 @@ model Team {
   backgroundRemoverGenerations BackgroundRemoverGeneration[]
   // Creative Briefs Relations
   creativeBriefs               CreativeBrief[]
+  // Notifications Relations
+  notifications                Notification[]
 
   @@index([slug])
   @@index([createdById])
