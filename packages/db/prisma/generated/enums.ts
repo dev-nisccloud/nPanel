@@ -224,16 +224,6 @@ export const DomainCycle = {
 export type DomainCycle = (typeof DomainCycle)[keyof typeof DomainCycle]
 
 
-export const DomainOperation = {
-  REGISTRATION: 'REGISTRATION',
-  RENEWAL: 'RENEWAL',
-  TRANSFER: 'TRANSFER',
-  RESTORATION: 'RESTORATION'
-} as const
-
-export type DomainOperation = (typeof DomainOperation)[keyof typeof DomainOperation]
-
-
 export const CreativeAssetStatus = {
   DRAFT: 'DRAFT',
   IN_REVIEW: 'IN_REVIEW',

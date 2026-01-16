@@ -222,7 +222,7 @@ export const nameserverGroupsRouter = router({
             _count: {
               select: {
                 tldSettings: true,
-                domainRegistrations: true,
+                domains: true,
                 domainTransfers: true,
               },
             },
@@ -285,7 +285,7 @@ export const nameserverGroupsRouter = router({
             _count: {
               select: {
                 tldSettings: true,
-                domainRegistrations: true,
+                domains: true,
                 domainTransfers: true,
               },
             },
@@ -342,7 +342,7 @@ export const nameserverGroupsRouter = router({
               _count: {
                 select: {
                   tldSettings: true,
-                  domainRegistrations: true,
+                  domains: true,
                   domainTransfers: true,
                 },
               },
@@ -464,7 +464,7 @@ export const nameserverGroupsRouter = router({
             _count: {
               select: {
                 tldSettings: true,
-                domainRegistrations: true,
+                domains: true,
                 domainTransfers: true,
               },
             },
@@ -521,7 +521,7 @@ export const nameserverGroupsRouter = router({
             _count: {
               select: {
                 tldSettings: true,
-                domainRegistrations: true,
+                domains: true,
                 domainTransfers: true,
               },
             },
@@ -536,9 +536,9 @@ export const nameserverGroupsRouter = router({
         }
 
         // Check if group is being used
-        const totalUsage = existingGroup._count.tldSettings + 
-                         existingGroup._count.domainRegistrations + 
-                         existingGroup._count.domainTransfers;
+        const totalUsage = existingGroup._count.tldSettings +
+                          existingGroup._count.domains +
+                          existingGroup._count.domainTransfers;
 
         if (totalUsage > 0) {
           throw new TRPCError({

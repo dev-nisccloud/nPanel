@@ -170,6 +170,7 @@ const getNotificationsInputSchema = z.object({
     "GENERAL",
   ]).optional(),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional(),
+  since: z.string().optional(), // ISO timestamp for change detection - only fetch notifications updated after this time
   limit: z.number().min(1).max(100).optional().default(50),
   offset: z.number().min(0).optional().default(0),
 });
@@ -309,6 +310,21 @@ export const notificationsRouter = router({
 
       if (input.priority) {
         where.priority = input.priority;
+      }
+
+      // Change detection: only fetch notifications updated after 'since' timestamp
+      if (input.since) {
+        try {
+          const sinceDate = new Date(input.since);
+          if (!isNaN(sinceDate.getTime())) {
+            where.updatedAt = {
+              gt: sinceDate,
+            };
+          }
+        } catch (error) {
+          // Invalid date, ignore since parameter
+          console.warn("Invalid 'since' parameter in notifications query:", input.since);
+        }
       }
 
       const notifications = await prisma.notification.findMany({
@@ -650,7 +666,23 @@ export const notificationsRouter = router({
         return notification;
       });
 
-      return transformNotification(updatedNotification);
+      const transformed = transformNotification(updatedNotification);
+
+      // Broadcast unseen count update via event
+      if (typeof globalThis !== 'undefined') {
+        const unseenCount = await prisma.notification.count({
+          where: {
+            userId: user.id,
+            seen: false,
+          },
+        });
+        const eventName = `notification:unseen_count:${user.id}`;
+        if (globalThis.dispatchEvent) {
+          globalThis.dispatchEvent(new CustomEvent(eventName, { detail: { count: unseenCount } }));
+        }
+      }
+
+      return transformed;
     }),
 
   // Mark notification as unseen

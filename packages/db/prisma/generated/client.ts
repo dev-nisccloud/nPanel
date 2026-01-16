@@ -219,10 +219,10 @@ export type NameserverActivityLog = Prisma.NameserverActivityLogModel
  */
 export type NameserverGroupActivityLog = Prisma.NameserverGroupActivityLogModel
 /**
- * Model DomainRegistration
+ * Model Domain
  * 
  */
-export type DomainRegistration = Prisma.DomainRegistrationModel
+export type Domain = Prisma.DomainModel
 /**
  * Model DomainRenewal
  * 
@@ -234,10 +234,10 @@ export type DomainRenewal = Prisma.DomainRenewalModel
  */
 export type DomainTransfer = Prisma.DomainTransferModel
 /**
- * Model DomainRegistrationActivityLog
+ * Model DomainActivityLog
  * 
  */
-export type DomainRegistrationActivityLog = Prisma.DomainRegistrationActivityLogModel
+export type DomainActivityLog = Prisma.DomainActivityLogModel
 /**
  * Model DomainRenewalActivityLog
  * 

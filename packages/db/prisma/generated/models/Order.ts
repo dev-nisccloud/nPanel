@@ -41,7 +41,7 @@ export type OrderMinAggregateOutputType = {
   type: $Enums.OrderType | null
   status: $Enums.OrderStatus | null
   description: string | null
-  domainRegistrationId: string | null
+  domainId: string | null
   domainRenewalId: string | null
   domainTransferId: string | null
   hostingSubscriptionId: string | null
@@ -73,7 +73,7 @@ export type OrderMaxAggregateOutputType = {
   type: $Enums.OrderType | null
   status: $Enums.OrderStatus | null
   description: string | null
-  domainRegistrationId: string | null
+  domainId: string | null
   domainRenewalId: string | null
   domainTransferId: string | null
   hostingSubscriptionId: string | null
@@ -105,7 +105,7 @@ export type OrderCountAggregateOutputType = {
   type: number
   status: number
   description: number
-  domainRegistrationId: number
+  domainId: number
   domainRenewalId: number
   domainTransferId: number
   hostingSubscriptionId: number
@@ -148,7 +148,7 @@ export type OrderMinAggregateInputType = {
   type?: true
   status?: true
   description?: true
-  domainRegistrationId?: true
+  domainId?: true
   domainRenewalId?: true
   domainTransferId?: true
   hostingSubscriptionId?: true
@@ -180,7 +180,7 @@ export type OrderMaxAggregateInputType = {
   type?: true
   status?: true
   description?: true
-  domainRegistrationId?: true
+  domainId?: true
   domainRenewalId?: true
   domainTransferId?: true
   hostingSubscriptionId?: true
@@ -212,7 +212,7 @@ export type OrderCountAggregateInputType = {
   type?: true
   status?: true
   description?: true
-  domainRegistrationId?: true
+  domainId?: true
   domainRenewalId?: true
   domainTransferId?: true
   hostingSubscriptionId?: true
@@ -332,7 +332,7 @@ export type OrderGroupByOutputType = {
   type: $Enums.OrderType
   status: $Enums.OrderStatus
   description: string | null
-  domainRegistrationId: string | null
+  domainId: string | null
   domainRenewalId: string | null
   domainTransferId: string | null
   hostingSubscriptionId: string | null
@@ -388,7 +388,7 @@ export type OrderWhereInput = {
   type?: Prisma.EnumOrderTypeFilter<"Order"> | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
   description?: Prisma.StringNullableFilter<"Order"> | string | null
-  domainRegistrationId?: Prisma.StringNullableFilter<"Order"> | string | null
+  domainId?: Prisma.StringNullableFilter<"Order"> | string | null
   domainRenewalId?: Prisma.StringNullableFilter<"Order"> | string | null
   domainTransferId?: Prisma.StringNullableFilter<"Order"> | string | null
   hostingSubscriptionId?: Prisma.StringNullableFilter<"Order"> | string | null
@@ -412,7 +412,7 @@ export type OrderWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Order"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Order"> | Date | string
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
-  domainRegistration?: Prisma.XOR<Prisma.DomainRegistrationNullableScalarRelationFilter, Prisma.DomainRegistrationWhereInput> | null
+  domain?: Prisma.XOR<Prisma.DomainNullableScalarRelationFilter, Prisma.DomainWhereInput> | null
   domainRenewal?: Prisma.XOR<Prisma.DomainRenewalNullableScalarRelationFilter, Prisma.DomainRenewalWhereInput> | null
   domainTransfer?: Prisma.XOR<Prisma.DomainTransferNullableScalarRelationFilter, Prisma.DomainTransferWhereInput> | null
   hostingSubscription?: Prisma.XOR<Prisma.HostingSubscriptionNullableScalarRelationFilter, Prisma.HostingSubscriptionWhereInput> | null
@@ -433,7 +433,7 @@ export type OrderOrderByWithRelationInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  domainRegistrationId?: Prisma.SortOrderInput | Prisma.SortOrder
+  domainId?: Prisma.SortOrderInput | Prisma.SortOrder
   domainRenewalId?: Prisma.SortOrderInput | Prisma.SortOrder
   domainTransferId?: Prisma.SortOrderInput | Prisma.SortOrder
   hostingSubscriptionId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -457,7 +457,7 @@ export type OrderOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   team?: Prisma.TeamOrderByWithRelationInput
-  domainRegistration?: Prisma.DomainRegistrationOrderByWithRelationInput
+  domain?: Prisma.DomainOrderByWithRelationInput
   domainRenewal?: Prisma.DomainRenewalOrderByWithRelationInput
   domainTransfer?: Prisma.DomainTransferOrderByWithRelationInput
   hostingSubscription?: Prisma.HostingSubscriptionOrderByWithRelationInput
@@ -481,7 +481,7 @@ export type OrderWhereUniqueInput = Prisma.AtLeast<{
   type?: Prisma.EnumOrderTypeFilter<"Order"> | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
   description?: Prisma.StringNullableFilter<"Order"> | string | null
-  domainRegistrationId?: Prisma.StringNullableFilter<"Order"> | string | null
+  domainId?: Prisma.StringNullableFilter<"Order"> | string | null
   domainRenewalId?: Prisma.StringNullableFilter<"Order"> | string | null
   domainTransferId?: Prisma.StringNullableFilter<"Order"> | string | null
   hostingSubscriptionId?: Prisma.StringNullableFilter<"Order"> | string | null
@@ -505,7 +505,7 @@ export type OrderWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Order"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Order"> | Date | string
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
-  domainRegistration?: Prisma.XOR<Prisma.DomainRegistrationNullableScalarRelationFilter, Prisma.DomainRegistrationWhereInput> | null
+  domain?: Prisma.XOR<Prisma.DomainNullableScalarRelationFilter, Prisma.DomainWhereInput> | null
   domainRenewal?: Prisma.XOR<Prisma.DomainRenewalNullableScalarRelationFilter, Prisma.DomainRenewalWhereInput> | null
   domainTransfer?: Prisma.XOR<Prisma.DomainTransferNullableScalarRelationFilter, Prisma.DomainTransferWhereInput> | null
   hostingSubscription?: Prisma.XOR<Prisma.HostingSubscriptionNullableScalarRelationFilter, Prisma.HostingSubscriptionWhereInput> | null
@@ -526,7 +526,7 @@ export type OrderOrderByWithAggregationInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  domainRegistrationId?: Prisma.SortOrderInput | Prisma.SortOrder
+  domainId?: Prisma.SortOrderInput | Prisma.SortOrder
   domainRenewalId?: Prisma.SortOrderInput | Prisma.SortOrder
   domainTransferId?: Prisma.SortOrderInput | Prisma.SortOrder
   hostingSubscriptionId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -567,7 +567,7 @@ export type OrderScalarWhereWithAggregatesInput = {
   type?: Prisma.EnumOrderTypeWithAggregatesFilter<"Order"> | $Enums.OrderType
   status?: Prisma.EnumOrderStatusWithAggregatesFilter<"Order"> | $Enums.OrderStatus
   description?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
-  domainRegistrationId?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
+  domainId?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   domainRenewalId?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   domainTransferId?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   hostingSubscriptionId?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
@@ -616,7 +616,7 @@ export type OrderCreateInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
@@ -637,7 +637,7 @@ export type OrderUncheckedCreateInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -690,7 +690,7 @@ export type OrderUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
@@ -711,7 +711,7 @@ export type OrderUncheckedUpdateInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -748,7 +748,7 @@ export type OrderCreateManyInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -806,7 +806,7 @@ export type OrderUncheckedUpdateManyInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -839,7 +839,7 @@ export type OrderCountOrderByAggregateInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  domainRegistrationId?: Prisma.SortOrder
+  domainId?: Prisma.SortOrder
   domainRenewalId?: Prisma.SortOrder
   domainTransferId?: Prisma.SortOrder
   hostingSubscriptionId?: Prisma.SortOrder
@@ -876,7 +876,7 @@ export type OrderMaxOrderByAggregateInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  domainRegistrationId?: Prisma.SortOrder
+  domainId?: Prisma.SortOrder
   domainRenewalId?: Prisma.SortOrder
   domainTransferId?: Prisma.SortOrder
   hostingSubscriptionId?: Prisma.SortOrder
@@ -908,7 +908,7 @@ export type OrderMinOrderByAggregateInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  domainRegistrationId?: Prisma.SortOrder
+  domainId?: Prisma.SortOrder
   domainRenewalId?: Prisma.SortOrder
   domainTransferId?: Prisma.SortOrder
   hostingSubscriptionId?: Prisma.SortOrder
@@ -1172,45 +1172,45 @@ export type OrderUpdateOneRequiredWithoutActivityLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrderUpdateToOneWithWhereWithoutActivityLogsInput, Prisma.OrderUpdateWithoutActivityLogsInput>, Prisma.OrderUncheckedUpdateWithoutActivityLogsInput>
 }
 
-export type OrderCreateNestedManyWithoutDomainRegistrationInput = {
-  create?: Prisma.XOR<Prisma.OrderCreateWithoutDomainRegistrationInput, Prisma.OrderUncheckedCreateWithoutDomainRegistrationInput> | Prisma.OrderCreateWithoutDomainRegistrationInput[] | Prisma.OrderUncheckedCreateWithoutDomainRegistrationInput[]
-  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutDomainRegistrationInput | Prisma.OrderCreateOrConnectWithoutDomainRegistrationInput[]
-  createMany?: Prisma.OrderCreateManyDomainRegistrationInputEnvelope
+export type OrderCreateNestedManyWithoutDomainInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutDomainInput, Prisma.OrderUncheckedCreateWithoutDomainInput> | Prisma.OrderCreateWithoutDomainInput[] | Prisma.OrderUncheckedCreateWithoutDomainInput[]
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutDomainInput | Prisma.OrderCreateOrConnectWithoutDomainInput[]
+  createMany?: Prisma.OrderCreateManyDomainInputEnvelope
   connect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
 }
 
-export type OrderUncheckedCreateNestedManyWithoutDomainRegistrationInput = {
-  create?: Prisma.XOR<Prisma.OrderCreateWithoutDomainRegistrationInput, Prisma.OrderUncheckedCreateWithoutDomainRegistrationInput> | Prisma.OrderCreateWithoutDomainRegistrationInput[] | Prisma.OrderUncheckedCreateWithoutDomainRegistrationInput[]
-  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutDomainRegistrationInput | Prisma.OrderCreateOrConnectWithoutDomainRegistrationInput[]
-  createMany?: Prisma.OrderCreateManyDomainRegistrationInputEnvelope
+export type OrderUncheckedCreateNestedManyWithoutDomainInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutDomainInput, Prisma.OrderUncheckedCreateWithoutDomainInput> | Prisma.OrderCreateWithoutDomainInput[] | Prisma.OrderUncheckedCreateWithoutDomainInput[]
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutDomainInput | Prisma.OrderCreateOrConnectWithoutDomainInput[]
+  createMany?: Prisma.OrderCreateManyDomainInputEnvelope
   connect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
 }
 
-export type OrderUpdateManyWithoutDomainRegistrationNestedInput = {
-  create?: Prisma.XOR<Prisma.OrderCreateWithoutDomainRegistrationInput, Prisma.OrderUncheckedCreateWithoutDomainRegistrationInput> | Prisma.OrderCreateWithoutDomainRegistrationInput[] | Prisma.OrderUncheckedCreateWithoutDomainRegistrationInput[]
-  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutDomainRegistrationInput | Prisma.OrderCreateOrConnectWithoutDomainRegistrationInput[]
-  upsert?: Prisma.OrderUpsertWithWhereUniqueWithoutDomainRegistrationInput | Prisma.OrderUpsertWithWhereUniqueWithoutDomainRegistrationInput[]
-  createMany?: Prisma.OrderCreateManyDomainRegistrationInputEnvelope
+export type OrderUpdateManyWithoutDomainNestedInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutDomainInput, Prisma.OrderUncheckedCreateWithoutDomainInput> | Prisma.OrderCreateWithoutDomainInput[] | Prisma.OrderUncheckedCreateWithoutDomainInput[]
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutDomainInput | Prisma.OrderCreateOrConnectWithoutDomainInput[]
+  upsert?: Prisma.OrderUpsertWithWhereUniqueWithoutDomainInput | Prisma.OrderUpsertWithWhereUniqueWithoutDomainInput[]
+  createMany?: Prisma.OrderCreateManyDomainInputEnvelope
   set?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
   disconnect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
   delete?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
   connect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
-  update?: Prisma.OrderUpdateWithWhereUniqueWithoutDomainRegistrationInput | Prisma.OrderUpdateWithWhereUniqueWithoutDomainRegistrationInput[]
-  updateMany?: Prisma.OrderUpdateManyWithWhereWithoutDomainRegistrationInput | Prisma.OrderUpdateManyWithWhereWithoutDomainRegistrationInput[]
+  update?: Prisma.OrderUpdateWithWhereUniqueWithoutDomainInput | Prisma.OrderUpdateWithWhereUniqueWithoutDomainInput[]
+  updateMany?: Prisma.OrderUpdateManyWithWhereWithoutDomainInput | Prisma.OrderUpdateManyWithWhereWithoutDomainInput[]
   deleteMany?: Prisma.OrderScalarWhereInput | Prisma.OrderScalarWhereInput[]
 }
 
-export type OrderUncheckedUpdateManyWithoutDomainRegistrationNestedInput = {
-  create?: Prisma.XOR<Prisma.OrderCreateWithoutDomainRegistrationInput, Prisma.OrderUncheckedCreateWithoutDomainRegistrationInput> | Prisma.OrderCreateWithoutDomainRegistrationInput[] | Prisma.OrderUncheckedCreateWithoutDomainRegistrationInput[]
-  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutDomainRegistrationInput | Prisma.OrderCreateOrConnectWithoutDomainRegistrationInput[]
-  upsert?: Prisma.OrderUpsertWithWhereUniqueWithoutDomainRegistrationInput | Prisma.OrderUpsertWithWhereUniqueWithoutDomainRegistrationInput[]
-  createMany?: Prisma.OrderCreateManyDomainRegistrationInputEnvelope
+export type OrderUncheckedUpdateManyWithoutDomainNestedInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutDomainInput, Prisma.OrderUncheckedCreateWithoutDomainInput> | Prisma.OrderCreateWithoutDomainInput[] | Prisma.OrderUncheckedCreateWithoutDomainInput[]
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutDomainInput | Prisma.OrderCreateOrConnectWithoutDomainInput[]
+  upsert?: Prisma.OrderUpsertWithWhereUniqueWithoutDomainInput | Prisma.OrderUpsertWithWhereUniqueWithoutDomainInput[]
+  createMany?: Prisma.OrderCreateManyDomainInputEnvelope
   set?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
   disconnect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
   delete?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
   connect?: Prisma.OrderWhereUniqueInput | Prisma.OrderWhereUniqueInput[]
-  update?: Prisma.OrderUpdateWithWhereUniqueWithoutDomainRegistrationInput | Prisma.OrderUpdateWithWhereUniqueWithoutDomainRegistrationInput[]
-  updateMany?: Prisma.OrderUpdateManyWithWhereWithoutDomainRegistrationInput | Prisma.OrderUpdateManyWithWhereWithoutDomainRegistrationInput[]
+  update?: Prisma.OrderUpdateWithWhereUniqueWithoutDomainInput | Prisma.OrderUpdateWithWhereUniqueWithoutDomainInput[]
+  updateMany?: Prisma.OrderUpdateManyWithWhereWithoutDomainInput | Prisma.OrderUpdateManyWithWhereWithoutDomainInput[]
   deleteMany?: Prisma.OrderScalarWhereInput | Prisma.OrderScalarWhereInput[]
 }
 
@@ -1396,7 +1396,7 @@ export type OrderCreateWithoutOrderItemsInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
@@ -1416,7 +1416,7 @@ export type OrderUncheckedCreateWithoutOrderItemsInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -1484,7 +1484,7 @@ export type OrderUpdateWithoutOrderItemsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
@@ -1504,7 +1504,7 @@ export type OrderUncheckedUpdateWithoutOrderItemsInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1556,7 +1556,7 @@ export type OrderCreateWithoutPromoInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
@@ -1576,7 +1576,7 @@ export type OrderUncheckedCreateWithoutPromoInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -1641,7 +1641,7 @@ export type OrderScalarWhereInput = {
   type?: Prisma.EnumOrderTypeFilter<"Order"> | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
   description?: Prisma.StringNullableFilter<"Order"> | string | null
-  domainRegistrationId?: Prisma.StringNullableFilter<"Order"> | string | null
+  domainId?: Prisma.StringNullableFilter<"Order"> | string | null
   domainRenewalId?: Prisma.StringNullableFilter<"Order"> | string | null
   domainTransferId?: Prisma.StringNullableFilter<"Order"> | string | null
   hostingSubscriptionId?: Prisma.StringNullableFilter<"Order"> | string | null
@@ -1689,7 +1689,7 @@ export type OrderCreateWithoutTeamInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
@@ -1709,7 +1709,7 @@ export type OrderUncheckedCreateWithoutTeamInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -1788,7 +1788,7 @@ export type OrderCreateWithoutHostingSubscriptionInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
@@ -1808,7 +1808,7 @@ export type OrderUncheckedCreateWithoutHostingSubscriptionInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingRenewalId?: string | null
@@ -1886,7 +1886,7 @@ export type OrderCreateWithoutHostingRenewalInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
@@ -1906,7 +1906,7 @@ export type OrderUncheckedCreateWithoutHostingRenewalInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -1984,7 +1984,7 @@ export type OrderCreateWithoutActivityLogsInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
@@ -2004,7 +2004,7 @@ export type OrderUncheckedCreateWithoutActivityLogsInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -2072,7 +2072,7 @@ export type OrderUpdateWithoutActivityLogsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
@@ -2092,7 +2092,7 @@ export type OrderUncheckedUpdateWithoutActivityLogsInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2120,7 +2120,7 @@ export type OrderUncheckedUpdateWithoutActivityLogsInput = {
   ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
-export type OrderCreateWithoutDomainRegistrationInput = {
+export type OrderCreateWithoutDomainInput = {
   id: string
   orderNumber: string
   createdBy?: string | null
@@ -2156,7 +2156,7 @@ export type OrderCreateWithoutDomainRegistrationInput = {
   ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalCreateNestedManyWithoutOrderInput
 }
 
-export type OrderUncheckedCreateWithoutDomainRegistrationInput = {
+export type OrderUncheckedCreateWithoutDomainInput = {
   id: string
   orderNumber: string
   teamId: string
@@ -2192,30 +2192,30 @@ export type OrderUncheckedCreateWithoutDomainRegistrationInput = {
   ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedCreateNestedManyWithoutOrderInput
 }
 
-export type OrderCreateOrConnectWithoutDomainRegistrationInput = {
+export type OrderCreateOrConnectWithoutDomainInput = {
   where: Prisma.OrderWhereUniqueInput
-  create: Prisma.XOR<Prisma.OrderCreateWithoutDomainRegistrationInput, Prisma.OrderUncheckedCreateWithoutDomainRegistrationInput>
+  create: Prisma.XOR<Prisma.OrderCreateWithoutDomainInput, Prisma.OrderUncheckedCreateWithoutDomainInput>
 }
 
-export type OrderCreateManyDomainRegistrationInputEnvelope = {
-  data: Prisma.OrderCreateManyDomainRegistrationInput | Prisma.OrderCreateManyDomainRegistrationInput[]
+export type OrderCreateManyDomainInputEnvelope = {
+  data: Prisma.OrderCreateManyDomainInput | Prisma.OrderCreateManyDomainInput[]
   skipDuplicates?: boolean
 }
 
-export type OrderUpsertWithWhereUniqueWithoutDomainRegistrationInput = {
+export type OrderUpsertWithWhereUniqueWithoutDomainInput = {
   where: Prisma.OrderWhereUniqueInput
-  update: Prisma.XOR<Prisma.OrderUpdateWithoutDomainRegistrationInput, Prisma.OrderUncheckedUpdateWithoutDomainRegistrationInput>
-  create: Prisma.XOR<Prisma.OrderCreateWithoutDomainRegistrationInput, Prisma.OrderUncheckedCreateWithoutDomainRegistrationInput>
+  update: Prisma.XOR<Prisma.OrderUpdateWithoutDomainInput, Prisma.OrderUncheckedUpdateWithoutDomainInput>
+  create: Prisma.XOR<Prisma.OrderCreateWithoutDomainInput, Prisma.OrderUncheckedCreateWithoutDomainInput>
 }
 
-export type OrderUpdateWithWhereUniqueWithoutDomainRegistrationInput = {
+export type OrderUpdateWithWhereUniqueWithoutDomainInput = {
   where: Prisma.OrderWhereUniqueInput
-  data: Prisma.XOR<Prisma.OrderUpdateWithoutDomainRegistrationInput, Prisma.OrderUncheckedUpdateWithoutDomainRegistrationInput>
+  data: Prisma.XOR<Prisma.OrderUpdateWithoutDomainInput, Prisma.OrderUncheckedUpdateWithoutDomainInput>
 }
 
-export type OrderUpdateManyWithWhereWithoutDomainRegistrationInput = {
+export type OrderUpdateManyWithWhereWithoutDomainInput = {
   where: Prisma.OrderScalarWhereInput
-  data: Prisma.XOR<Prisma.OrderUpdateManyMutationInput, Prisma.OrderUncheckedUpdateManyWithoutDomainRegistrationInput>
+  data: Prisma.XOR<Prisma.OrderUpdateManyMutationInput, Prisma.OrderUncheckedUpdateManyWithoutDomainInput>
 }
 
 export type OrderCreateWithoutDomainRenewalInput = {
@@ -2242,7 +2242,7 @@ export type OrderCreateWithoutDomainRenewalInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
@@ -2262,7 +2262,7 @@ export type OrderUncheckedCreateWithoutDomainRenewalInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
   hostingRenewalId?: string | null
@@ -2340,7 +2340,7 @@ export type OrderCreateWithoutDomainTransferInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
   hostingRenewal?: Prisma.HostingRenewalCreateNestedOneWithoutOrdersInput
@@ -2360,7 +2360,7 @@ export type OrderUncheckedCreateWithoutDomainTransferInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   hostingSubscriptionId?: string | null
   hostingRenewalId?: string | null
@@ -2438,7 +2438,7 @@ export type OrderCreateWithoutInvoiceInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
@@ -2458,7 +2458,7 @@ export type OrderUncheckedCreateWithoutInvoiceInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -2536,7 +2536,7 @@ export type OrderCreateWithoutServiceSubscriptionsInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
@@ -2556,7 +2556,7 @@ export type OrderUncheckedCreateWithoutServiceSubscriptionsInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -2624,7 +2624,7 @@ export type OrderUpdateWithoutServiceSubscriptionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
@@ -2644,7 +2644,7 @@ export type OrderUncheckedUpdateWithoutServiceSubscriptionsInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2696,7 +2696,7 @@ export type OrderCreateWithoutServiceSubscriptionRenewalInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team: Prisma.TeamCreateNestedOneWithoutOrdersInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutOrdersInput
+  domain?: Prisma.DomainCreateNestedOneWithoutOrdersInput
   domainRenewal?: Prisma.DomainRenewalCreateNestedOneWithoutOrdersInput
   domainTransfer?: Prisma.DomainTransferCreateNestedOneWithoutOrdersInput
   hostingSubscription?: Prisma.HostingSubscriptionCreateNestedOneWithoutOrdersInput
@@ -2716,7 +2716,7 @@ export type OrderUncheckedCreateWithoutServiceSubscriptionRenewalInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -2784,7 +2784,7 @@ export type OrderUpdateWithoutServiceSubscriptionRenewalInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
@@ -2804,7 +2804,7 @@ export type OrderUncheckedUpdateWithoutServiceSubscriptionRenewalInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2840,7 +2840,7 @@ export type OrderCreateManyPromoInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -2888,7 +2888,7 @@ export type OrderUpdateWithoutPromoInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
@@ -2908,7 +2908,7 @@ export type OrderUncheckedUpdateWithoutPromoInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2944,7 +2944,7 @@ export type OrderUncheckedUpdateManyWithoutPromoInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2975,7 +2975,7 @@ export type OrderCreateManyTeamInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -3023,7 +3023,7 @@ export type OrderUpdateWithoutTeamInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
@@ -3043,7 +3043,7 @@ export type OrderUncheckedUpdateWithoutTeamInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3079,7 +3079,7 @@ export type OrderUncheckedUpdateManyWithoutTeamInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3112,7 +3112,7 @@ export type OrderCreateManyHostingSubscriptionInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingRenewalId?: string | null
@@ -3160,7 +3160,7 @@ export type OrderUpdateWithoutHostingSubscriptionInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
@@ -3180,7 +3180,7 @@ export type OrderUncheckedUpdateWithoutHostingSubscriptionInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3216,7 +3216,7 @@ export type OrderUncheckedUpdateManyWithoutHostingSubscriptionInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3248,7 +3248,7 @@ export type OrderCreateManyHostingRenewalInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -3296,7 +3296,7 @@ export type OrderUpdateWithoutHostingRenewalInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
@@ -3316,7 +3316,7 @@ export type OrderUncheckedUpdateWithoutHostingRenewalInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3352,7 +3352,7 @@ export type OrderUncheckedUpdateManyWithoutHostingRenewalInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3376,7 +3376,7 @@ export type OrderUncheckedUpdateManyWithoutHostingRenewalInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type OrderCreateManyDomainRegistrationInput = {
+export type OrderCreateManyDomainInput = {
   id: string
   orderNumber: string
   teamId: string
@@ -3408,7 +3408,7 @@ export type OrderCreateManyDomainRegistrationInput = {
   updatedAt: Date | string
 }
 
-export type OrderUpdateWithoutDomainRegistrationInput = {
+export type OrderUpdateWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3444,7 +3444,7 @@ export type OrderUpdateWithoutDomainRegistrationInput = {
   ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUpdateManyWithoutOrderNestedInput
 }
 
-export type OrderUncheckedUpdateWithoutDomainRegistrationInput = {
+export type OrderUncheckedUpdateWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -3480,7 +3480,7 @@ export type OrderUncheckedUpdateWithoutDomainRegistrationInput = {
   ServiceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalUncheckedUpdateManyWithoutOrderNestedInput
 }
 
-export type OrderUncheckedUpdateManyWithoutDomainRegistrationInput = {
+export type OrderUncheckedUpdateManyWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   orderNumber?: Prisma.StringFieldUpdateOperationsInput | string
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -3520,7 +3520,7 @@ export type OrderCreateManyDomainRenewalInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
   hostingRenewalId?: string | null
@@ -3568,7 +3568,7 @@ export type OrderUpdateWithoutDomainRenewalInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
@@ -3588,7 +3588,7 @@ export type OrderUncheckedUpdateWithoutDomainRenewalInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3624,7 +3624,7 @@ export type OrderUncheckedUpdateManyWithoutDomainRenewalInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3656,7 +3656,7 @@ export type OrderCreateManyDomainTransferInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   hostingSubscriptionId?: string | null
   hostingRenewalId?: string | null
@@ -3704,7 +3704,7 @@ export type OrderUpdateWithoutDomainTransferInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
   hostingRenewal?: Prisma.HostingRenewalUpdateOneWithoutOrdersNestedInput
@@ -3724,7 +3724,7 @@ export type OrderUncheckedUpdateWithoutDomainTransferInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3760,7 +3760,7 @@ export type OrderUncheckedUpdateManyWithoutDomainTransferInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3792,7 +3792,7 @@ export type OrderCreateManyInvoiceInput = {
   type: $Enums.OrderType
   status?: $Enums.OrderStatus
   description?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   domainRenewalId?: string | null
   domainTransferId?: string | null
   hostingSubscriptionId?: string | null
@@ -3840,7 +3840,7 @@ export type OrderUpdateWithoutInvoiceInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutOrdersNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutOrdersNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutOrdersNestedInput
   domainRenewal?: Prisma.DomainRenewalUpdateOneWithoutOrdersNestedInput
   domainTransfer?: Prisma.DomainTransferUpdateOneWithoutOrdersNestedInput
   hostingSubscription?: Prisma.HostingSubscriptionUpdateOneWithoutOrdersNestedInput
@@ -3860,7 +3860,7 @@ export type OrderUncheckedUpdateWithoutInvoiceInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3896,7 +3896,7 @@ export type OrderUncheckedUpdateManyWithoutInvoiceInput = {
   type?: Prisma.EnumOrderTypeFieldUpdateOperationsInput | $Enums.OrderType
   status?: Prisma.EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainRenewalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainTransferId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hostingSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3986,7 +3986,7 @@ export type OrderSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   type?: boolean
   status?: boolean
   description?: boolean
-  domainRegistrationId?: boolean
+  domainId?: boolean
   domainRenewalId?: boolean
   domainTransferId?: boolean
   hostingSubscriptionId?: boolean
@@ -4010,7 +4010,7 @@ export type OrderSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   createdAt?: boolean
   updatedAt?: boolean
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.Order$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.Order$domainArgs<ExtArgs>
   domainRenewal?: boolean | Prisma.Order$domainRenewalArgs<ExtArgs>
   domainTransfer?: boolean | Prisma.Order$domainTransferArgs<ExtArgs>
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
@@ -4032,7 +4032,7 @@ export type OrderSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   type?: boolean
   status?: boolean
   description?: boolean
-  domainRegistrationId?: boolean
+  domainId?: boolean
   domainRenewalId?: boolean
   domainTransferId?: boolean
   hostingSubscriptionId?: boolean
@@ -4056,7 +4056,7 @@ export type OrderSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   createdAt?: boolean
   updatedAt?: boolean
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.Order$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.Order$domainArgs<ExtArgs>
   domainRenewal?: boolean | Prisma.Order$domainRenewalArgs<ExtArgs>
   domainTransfer?: boolean | Prisma.Order$domainTransferArgs<ExtArgs>
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
@@ -4073,7 +4073,7 @@ export type OrderSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   type?: boolean
   status?: boolean
   description?: boolean
-  domainRegistrationId?: boolean
+  domainId?: boolean
   domainRenewalId?: boolean
   domainTransferId?: boolean
   hostingSubscriptionId?: boolean
@@ -4097,7 +4097,7 @@ export type OrderSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   createdAt?: boolean
   updatedAt?: boolean
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.Order$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.Order$domainArgs<ExtArgs>
   domainRenewal?: boolean | Prisma.Order$domainRenewalArgs<ExtArgs>
   domainTransfer?: boolean | Prisma.Order$domainTransferArgs<ExtArgs>
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
@@ -4114,7 +4114,7 @@ export type OrderSelectScalar = {
   type?: boolean
   status?: boolean
   description?: boolean
-  domainRegistrationId?: boolean
+  domainId?: boolean
   domainRenewalId?: boolean
   domainTransferId?: boolean
   hostingSubscriptionId?: boolean
@@ -4139,10 +4139,10 @@ export type OrderSelectScalar = {
   updatedAt?: boolean
 }
 
-export type OrderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "orderNumber" | "teamId" | "createdBy" | "type" | "status" | "description" | "domainRegistrationId" | "domainRenewalId" | "domainTransferId" | "hostingSubscriptionId" | "hostingRenewalId" | "subtotal" | "discount" | "isTaxable" | "taxPercentage" | "taxAmount" | "total" | "currency" | "promoCode" | "promoId" | "invoiceNumber" | "invoiceId" | "processedBy" | "processedAt" | "completedAt" | "notes" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
+export type OrderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "orderNumber" | "teamId" | "createdBy" | "type" | "status" | "description" | "domainId" | "domainRenewalId" | "domainTransferId" | "hostingSubscriptionId" | "hostingRenewalId" | "subtotal" | "discount" | "isTaxable" | "taxPercentage" | "taxAmount" | "total" | "currency" | "promoCode" | "promoId" | "invoiceNumber" | "invoiceId" | "processedBy" | "processedAt" | "completedAt" | "notes" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
 export type OrderInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.Order$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.Order$domainArgs<ExtArgs>
   domainRenewal?: boolean | Prisma.Order$domainRenewalArgs<ExtArgs>
   domainTransfer?: boolean | Prisma.Order$domainTransferArgs<ExtArgs>
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
@@ -4157,7 +4157,7 @@ export type OrderInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
 }
 export type OrderIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.Order$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.Order$domainArgs<ExtArgs>
   domainRenewal?: boolean | Prisma.Order$domainRenewalArgs<ExtArgs>
   domainTransfer?: boolean | Prisma.Order$domainTransferArgs<ExtArgs>
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
@@ -4167,7 +4167,7 @@ export type OrderIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
 }
 export type OrderIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.Order$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.Order$domainArgs<ExtArgs>
   domainRenewal?: boolean | Prisma.Order$domainRenewalArgs<ExtArgs>
   domainTransfer?: boolean | Prisma.Order$domainTransferArgs<ExtArgs>
   hostingSubscription?: boolean | Prisma.Order$hostingSubscriptionArgs<ExtArgs>
@@ -4180,7 +4180,7 @@ export type $OrderPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   name: "Order"
   objects: {
     team: Prisma.$TeamPayload<ExtArgs>
-    domainRegistration: Prisma.$DomainRegistrationPayload<ExtArgs> | null
+    domain: Prisma.$DomainPayload<ExtArgs> | null
     domainRenewal: Prisma.$DomainRenewalPayload<ExtArgs> | null
     domainTransfer: Prisma.$DomainTransferPayload<ExtArgs> | null
     hostingSubscription: Prisma.$HostingSubscriptionPayload<ExtArgs> | null
@@ -4200,7 +4200,7 @@ export type $OrderPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     type: $Enums.OrderType
     status: $Enums.OrderStatus
     description: string | null
-    domainRegistrationId: string | null
+    domainId: string | null
     domainRenewalId: string | null
     domainTransferId: string | null
     hostingSubscriptionId: string | null
@@ -4618,7 +4618,7 @@ readonly fields: OrderFieldRefs;
 export interface Prisma__OrderClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   team<T extends Prisma.TeamDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TeamDefaultArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  domainRegistration<T extends Prisma.Order$domainRegistrationArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$domainRegistrationArgs<ExtArgs>>): Prisma.Prisma__DomainRegistrationClient<runtime.Types.Result.GetResult<Prisma.$DomainRegistrationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  domain<T extends Prisma.Order$domainArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$domainArgs<ExtArgs>>): Prisma.Prisma__DomainClient<runtime.Types.Result.GetResult<Prisma.$DomainPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   domainRenewal<T extends Prisma.Order$domainRenewalArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$domainRenewalArgs<ExtArgs>>): Prisma.Prisma__DomainRenewalClient<runtime.Types.Result.GetResult<Prisma.$DomainRenewalPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   domainTransfer<T extends Prisma.Order$domainTransferArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$domainTransferArgs<ExtArgs>>): Prisma.Prisma__DomainTransferClient<runtime.Types.Result.GetResult<Prisma.$DomainTransferPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   hostingSubscription<T extends Prisma.Order$hostingSubscriptionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$hostingSubscriptionArgs<ExtArgs>>): Prisma.Prisma__HostingSubscriptionClient<runtime.Types.Result.GetResult<Prisma.$HostingSubscriptionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -4665,7 +4665,7 @@ export interface OrderFieldRefs {
   readonly type: Prisma.FieldRef<"Order", 'OrderType'>
   readonly status: Prisma.FieldRef<"Order", 'OrderStatus'>
   readonly description: Prisma.FieldRef<"Order", 'String'>
-  readonly domainRegistrationId: Prisma.FieldRef<"Order", 'String'>
+  readonly domainId: Prisma.FieldRef<"Order", 'String'>
   readonly domainRenewalId: Prisma.FieldRef<"Order", 'String'>
   readonly domainTransferId: Prisma.FieldRef<"Order", 'String'>
   readonly hostingSubscriptionId: Prisma.FieldRef<"Order", 'String'>
@@ -5084,22 +5084,22 @@ export type OrderDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 /**
- * Order.domainRegistration
+ * Order.domain
  */
-export type Order$domainRegistrationArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Order$domainArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the DomainRegistration
+   * Select specific fields to fetch from the Domain
    */
-  select?: Prisma.DomainRegistrationSelect<ExtArgs> | null
+  select?: Prisma.DomainSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the DomainRegistration
+   * Omit specific fields from the Domain
    */
-  omit?: Prisma.DomainRegistrationOmit<ExtArgs> | null
+  omit?: Prisma.DomainOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.DomainRegistrationInclude<ExtArgs> | null
-  where?: Prisma.DomainRegistrationWhereInput
+  include?: Prisma.DomainInclude<ExtArgs> | null
+  where?: Prisma.DomainWhereInput
 }
 
 /**

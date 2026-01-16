@@ -70,7 +70,7 @@ export const orderSchema = z.object({
 	type: orderTypeSchema,
 	status: orderStatusSchema,
 	description: z.string().nullable(),
-	domainRegistrationId: z.string().nullable(),
+	domainId: z.string().nullable(),
 	hostingSubscriptionId: z.string().nullable(),
 	subtotal: z.string().nullable(),
 	discount: z.string().nullable(),

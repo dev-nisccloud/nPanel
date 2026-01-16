@@ -226,7 +226,7 @@ export type CustomerIntegrationWhereInput = {
   platformData?: Prisma.JsonNullableFilter<"CustomerIntegration">
   updatedAt?: Prisma.DateTimeFilter<"CustomerIntegration"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  domainRegistrations?: Prisma.DomainRegistrationListRelationFilter
+  domains?: Prisma.DomainListRelationFilter
   hostingSubscriptions?: Prisma.HostingSubscriptionListRelationFilter
   activityLogs?: Prisma.CustomerIntegrationActivityLogListRelationFilter
 }
@@ -244,7 +244,7 @@ export type CustomerIntegrationOrderByWithRelationInput = {
   platformData?: Prisma.SortOrderInput | Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
-  domainRegistrations?: Prisma.DomainRegistrationOrderByRelationAggregateInput
+  domains?: Prisma.DomainOrderByRelationAggregateInput
   hostingSubscriptions?: Prisma.HostingSubscriptionOrderByRelationAggregateInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogOrderByRelationAggregateInput
 }
@@ -266,7 +266,7 @@ export type CustomerIntegrationWhereUniqueInput = Prisma.AtLeast<{
   platformData?: Prisma.JsonNullableFilter<"CustomerIntegration">
   updatedAt?: Prisma.DateTimeFilter<"CustomerIntegration"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  domainRegistrations?: Prisma.DomainRegistrationListRelationFilter
+  domains?: Prisma.DomainListRelationFilter
   hostingSubscriptions?: Prisma.HostingSubscriptionListRelationFilter
   activityLogs?: Prisma.CustomerIntegrationActivityLogListRelationFilter
 }, "id" | "userId_platform">
@@ -317,7 +317,7 @@ export type CustomerIntegrationCreateInput = {
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt: Date | string
   user: Prisma.UserCreateNestedOneWithoutCustomerIntegrationsInput
-  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutCustomerIntegrationInput
+  domains?: Prisma.DomainCreateNestedManyWithoutCustomerIntegrationInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutCustomerIntegrationInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogCreateNestedManyWithoutCustomerIntegrationInput
 }
@@ -334,7 +334,7 @@ export type CustomerIntegrationUncheckedCreateInput = {
   lastSyncedAt?: Date | string | null
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt: Date | string
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutCustomerIntegrationInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutCustomerIntegrationInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutCustomerIntegrationInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogUncheckedCreateNestedManyWithoutCustomerIntegrationInput
 }
@@ -351,7 +351,7 @@ export type CustomerIntegrationUpdateInput = {
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCustomerIntegrationsNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutCustomerIntegrationNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutCustomerIntegrationNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutCustomerIntegrationNestedInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogUpdateManyWithoutCustomerIntegrationNestedInput
 }
@@ -368,7 +368,7 @@ export type CustomerIntegrationUncheckedUpdateInput = {
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
 }
@@ -575,20 +575,20 @@ export type CustomerIntegrationUpdateOneRequiredWithoutActivityLogsNestedInput =
   update?: Prisma.XOR<Prisma.XOR<Prisma.CustomerIntegrationUpdateToOneWithWhereWithoutActivityLogsInput, Prisma.CustomerIntegrationUpdateWithoutActivityLogsInput>, Prisma.CustomerIntegrationUncheckedUpdateWithoutActivityLogsInput>
 }
 
-export type CustomerIntegrationCreateNestedOneWithoutDomainRegistrationsInput = {
-  create?: Prisma.XOR<Prisma.CustomerIntegrationCreateWithoutDomainRegistrationsInput, Prisma.CustomerIntegrationUncheckedCreateWithoutDomainRegistrationsInput>
-  connectOrCreate?: Prisma.CustomerIntegrationCreateOrConnectWithoutDomainRegistrationsInput
+export type CustomerIntegrationCreateNestedOneWithoutDomainsInput = {
+  create?: Prisma.XOR<Prisma.CustomerIntegrationCreateWithoutDomainsInput, Prisma.CustomerIntegrationUncheckedCreateWithoutDomainsInput>
+  connectOrCreate?: Prisma.CustomerIntegrationCreateOrConnectWithoutDomainsInput
   connect?: Prisma.CustomerIntegrationWhereUniqueInput
 }
 
-export type CustomerIntegrationUpdateOneWithoutDomainRegistrationsNestedInput = {
-  create?: Prisma.XOR<Prisma.CustomerIntegrationCreateWithoutDomainRegistrationsInput, Prisma.CustomerIntegrationUncheckedCreateWithoutDomainRegistrationsInput>
-  connectOrCreate?: Prisma.CustomerIntegrationCreateOrConnectWithoutDomainRegistrationsInput
-  upsert?: Prisma.CustomerIntegrationUpsertWithoutDomainRegistrationsInput
+export type CustomerIntegrationUpdateOneWithoutDomainsNestedInput = {
+  create?: Prisma.XOR<Prisma.CustomerIntegrationCreateWithoutDomainsInput, Prisma.CustomerIntegrationUncheckedCreateWithoutDomainsInput>
+  connectOrCreate?: Prisma.CustomerIntegrationCreateOrConnectWithoutDomainsInput
+  upsert?: Prisma.CustomerIntegrationUpsertWithoutDomainsInput
   disconnect?: Prisma.CustomerIntegrationWhereInput | boolean
   delete?: Prisma.CustomerIntegrationWhereInput | boolean
   connect?: Prisma.CustomerIntegrationWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.CustomerIntegrationUpdateToOneWithWhereWithoutDomainRegistrationsInput, Prisma.CustomerIntegrationUpdateWithoutDomainRegistrationsInput>, Prisma.CustomerIntegrationUncheckedUpdateWithoutDomainRegistrationsInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CustomerIntegrationUpdateToOneWithWhereWithoutDomainsInput, Prisma.CustomerIntegrationUpdateWithoutDomainsInput>, Prisma.CustomerIntegrationUncheckedUpdateWithoutDomainsInput>
 }
 
 export type CustomerIntegrationCreateWithoutUserInput = {
@@ -602,7 +602,7 @@ export type CustomerIntegrationCreateWithoutUserInput = {
   lastSyncedAt?: Date | string | null
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt: Date | string
-  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutCustomerIntegrationInput
+  domains?: Prisma.DomainCreateNestedManyWithoutCustomerIntegrationInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutCustomerIntegrationInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogCreateNestedManyWithoutCustomerIntegrationInput
 }
@@ -618,7 +618,7 @@ export type CustomerIntegrationUncheckedCreateWithoutUserInput = {
   lastSyncedAt?: Date | string | null
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt: Date | string
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutCustomerIntegrationInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutCustomerIntegrationInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutCustomerIntegrationInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogUncheckedCreateNestedManyWithoutCustomerIntegrationInput
 }
@@ -678,7 +678,7 @@ export type CustomerIntegrationCreateWithoutHostingSubscriptionsInput = {
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt: Date | string
   user: Prisma.UserCreateNestedOneWithoutCustomerIntegrationsInput
-  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutCustomerIntegrationInput
+  domains?: Prisma.DomainCreateNestedManyWithoutCustomerIntegrationInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogCreateNestedManyWithoutCustomerIntegrationInput
 }
 
@@ -694,7 +694,7 @@ export type CustomerIntegrationUncheckedCreateWithoutHostingSubscriptionsInput =
   lastSyncedAt?: Date | string | null
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt: Date | string
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutCustomerIntegrationInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutCustomerIntegrationInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogUncheckedCreateNestedManyWithoutCustomerIntegrationInput
 }
 
@@ -726,7 +726,7 @@ export type CustomerIntegrationUpdateWithoutHostingSubscriptionsInput = {
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCustomerIntegrationsNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutCustomerIntegrationNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutCustomerIntegrationNestedInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogUpdateManyWithoutCustomerIntegrationNestedInput
 }
 
@@ -742,7 +742,7 @@ export type CustomerIntegrationUncheckedUpdateWithoutHostingSubscriptionsInput =
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
 }
 
@@ -758,7 +758,7 @@ export type CustomerIntegrationCreateWithoutActivityLogsInput = {
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt: Date | string
   user: Prisma.UserCreateNestedOneWithoutCustomerIntegrationsInput
-  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutCustomerIntegrationInput
+  domains?: Prisma.DomainCreateNestedManyWithoutCustomerIntegrationInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutCustomerIntegrationInput
 }
 
@@ -774,7 +774,7 @@ export type CustomerIntegrationUncheckedCreateWithoutActivityLogsInput = {
   lastSyncedAt?: Date | string | null
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt: Date | string
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutCustomerIntegrationInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutCustomerIntegrationInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutCustomerIntegrationInput
 }
 
@@ -806,7 +806,7 @@ export type CustomerIntegrationUpdateWithoutActivityLogsInput = {
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCustomerIntegrationsNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutCustomerIntegrationNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutCustomerIntegrationNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutCustomerIntegrationNestedInput
 }
 
@@ -822,11 +822,11 @@ export type CustomerIntegrationUncheckedUpdateWithoutActivityLogsInput = {
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
 }
 
-export type CustomerIntegrationCreateWithoutDomainRegistrationsInput = {
+export type CustomerIntegrationCreateWithoutDomainsInput = {
   id: string
   platform: $Enums.CustomerPlatform
   platformCustomerId?: string | null
@@ -842,7 +842,7 @@ export type CustomerIntegrationCreateWithoutDomainRegistrationsInput = {
   activityLogs?: Prisma.CustomerIntegrationActivityLogCreateNestedManyWithoutCustomerIntegrationInput
 }
 
-export type CustomerIntegrationUncheckedCreateWithoutDomainRegistrationsInput = {
+export type CustomerIntegrationUncheckedCreateWithoutDomainsInput = {
   id: string
   userId: string
   platform: $Enums.CustomerPlatform
@@ -858,23 +858,23 @@ export type CustomerIntegrationUncheckedCreateWithoutDomainRegistrationsInput = 
   activityLogs?: Prisma.CustomerIntegrationActivityLogUncheckedCreateNestedManyWithoutCustomerIntegrationInput
 }
 
-export type CustomerIntegrationCreateOrConnectWithoutDomainRegistrationsInput = {
+export type CustomerIntegrationCreateOrConnectWithoutDomainsInput = {
   where: Prisma.CustomerIntegrationWhereUniqueInput
-  create: Prisma.XOR<Prisma.CustomerIntegrationCreateWithoutDomainRegistrationsInput, Prisma.CustomerIntegrationUncheckedCreateWithoutDomainRegistrationsInput>
+  create: Prisma.XOR<Prisma.CustomerIntegrationCreateWithoutDomainsInput, Prisma.CustomerIntegrationUncheckedCreateWithoutDomainsInput>
 }
 
-export type CustomerIntegrationUpsertWithoutDomainRegistrationsInput = {
-  update: Prisma.XOR<Prisma.CustomerIntegrationUpdateWithoutDomainRegistrationsInput, Prisma.CustomerIntegrationUncheckedUpdateWithoutDomainRegistrationsInput>
-  create: Prisma.XOR<Prisma.CustomerIntegrationCreateWithoutDomainRegistrationsInput, Prisma.CustomerIntegrationUncheckedCreateWithoutDomainRegistrationsInput>
+export type CustomerIntegrationUpsertWithoutDomainsInput = {
+  update: Prisma.XOR<Prisma.CustomerIntegrationUpdateWithoutDomainsInput, Prisma.CustomerIntegrationUncheckedUpdateWithoutDomainsInput>
+  create: Prisma.XOR<Prisma.CustomerIntegrationCreateWithoutDomainsInput, Prisma.CustomerIntegrationUncheckedCreateWithoutDomainsInput>
   where?: Prisma.CustomerIntegrationWhereInput
 }
 
-export type CustomerIntegrationUpdateToOneWithWhereWithoutDomainRegistrationsInput = {
+export type CustomerIntegrationUpdateToOneWithWhereWithoutDomainsInput = {
   where?: Prisma.CustomerIntegrationWhereInput
-  data: Prisma.XOR<Prisma.CustomerIntegrationUpdateWithoutDomainRegistrationsInput, Prisma.CustomerIntegrationUncheckedUpdateWithoutDomainRegistrationsInput>
+  data: Prisma.XOR<Prisma.CustomerIntegrationUpdateWithoutDomainsInput, Prisma.CustomerIntegrationUncheckedUpdateWithoutDomainsInput>
 }
 
-export type CustomerIntegrationUpdateWithoutDomainRegistrationsInput = {
+export type CustomerIntegrationUpdateWithoutDomainsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumCustomerPlatformFieldUpdateOperationsInput | $Enums.CustomerPlatform
   platformCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -890,7 +890,7 @@ export type CustomerIntegrationUpdateWithoutDomainRegistrationsInput = {
   activityLogs?: Prisma.CustomerIntegrationActivityLogUpdateManyWithoutCustomerIntegrationNestedInput
 }
 
-export type CustomerIntegrationUncheckedUpdateWithoutDomainRegistrationsInput = {
+export type CustomerIntegrationUncheckedUpdateWithoutDomainsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumCustomerPlatformFieldUpdateOperationsInput | $Enums.CustomerPlatform
@@ -930,7 +930,7 @@ export type CustomerIntegrationUpdateWithoutUserInput = {
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutCustomerIntegrationNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutCustomerIntegrationNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutCustomerIntegrationNestedInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogUpdateManyWithoutCustomerIntegrationNestedInput
 }
@@ -946,7 +946,7 @@ export type CustomerIntegrationUncheckedUpdateWithoutUserInput = {
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   platformData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
   activityLogs?: Prisma.CustomerIntegrationActivityLogUncheckedUpdateManyWithoutCustomerIntegrationNestedInput
 }
@@ -970,13 +970,13 @@ export type CustomerIntegrationUncheckedUpdateManyWithoutUserInput = {
  */
 
 export type CustomerIntegrationCountOutputType = {
-  domainRegistrations: number
+  domains: number
   hostingSubscriptions: number
   activityLogs: number
 }
 
 export type CustomerIntegrationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  domainRegistrations?: boolean | CustomerIntegrationCountOutputTypeCountDomainRegistrationsArgs
+  domains?: boolean | CustomerIntegrationCountOutputTypeCountDomainsArgs
   hostingSubscriptions?: boolean | CustomerIntegrationCountOutputTypeCountHostingSubscriptionsArgs
   activityLogs?: boolean | CustomerIntegrationCountOutputTypeCountActivityLogsArgs
 }
@@ -994,8 +994,8 @@ export type CustomerIntegrationCountOutputTypeDefaultArgs<ExtArgs extends runtim
 /**
  * CustomerIntegrationCountOutputType without action
  */
-export type CustomerIntegrationCountOutputTypeCountDomainRegistrationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.DomainRegistrationWhereInput
+export type CustomerIntegrationCountOutputTypeCountDomainsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DomainWhereInput
 }
 
 /**
@@ -1026,7 +1026,7 @@ export type CustomerIntegrationSelect<ExtArgs extends runtime.Types.Extensions.I
   platformData?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  domainRegistrations?: boolean | Prisma.CustomerIntegration$domainRegistrationsArgs<ExtArgs>
+  domains?: boolean | Prisma.CustomerIntegration$domainsArgs<ExtArgs>
   hostingSubscriptions?: boolean | Prisma.CustomerIntegration$hostingSubscriptionsArgs<ExtArgs>
   activityLogs?: boolean | Prisma.CustomerIntegration$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.CustomerIntegrationCountOutputTypeDefaultArgs<ExtArgs>
@@ -1079,7 +1079,7 @@ export type CustomerIntegrationSelectScalar = {
 export type CustomerIntegrationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "platform" | "platformCustomerId" | "isActive" | "isCreated" | "createdBy" | "createdAt" | "lastSyncedAt" | "platformData" | "updatedAt", ExtArgs["result"]["customerIntegration"]>
 export type CustomerIntegrationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  domainRegistrations?: boolean | Prisma.CustomerIntegration$domainRegistrationsArgs<ExtArgs>
+  domains?: boolean | Prisma.CustomerIntegration$domainsArgs<ExtArgs>
   hostingSubscriptions?: boolean | Prisma.CustomerIntegration$hostingSubscriptionsArgs<ExtArgs>
   activityLogs?: boolean | Prisma.CustomerIntegration$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.CustomerIntegrationCountOutputTypeDefaultArgs<ExtArgs>
@@ -1095,7 +1095,7 @@ export type $CustomerIntegrationPayload<ExtArgs extends runtime.Types.Extensions
   name: "CustomerIntegration"
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
-    domainRegistrations: Prisma.$DomainRegistrationPayload<ExtArgs>[]
+    domains: Prisma.$DomainPayload<ExtArgs>[]
     hostingSubscriptions: Prisma.$HostingSubscriptionPayload<ExtArgs>[]
     activityLogs: Prisma.$CustomerIntegrationActivityLogPayload<ExtArgs>[]
   }
@@ -1506,7 +1506,7 @@ readonly fields: CustomerIntegrationFieldRefs;
 export interface Prisma__CustomerIntegrationClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  domainRegistrations<T extends Prisma.CustomerIntegration$domainRegistrationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CustomerIntegration$domainRegistrationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainRegistrationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  domains<T extends Prisma.CustomerIntegration$domainsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CustomerIntegration$domainsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   hostingSubscriptions<T extends Prisma.CustomerIntegration$hostingSubscriptionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CustomerIntegration$hostingSubscriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$HostingSubscriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityLogs<T extends Prisma.CustomerIntegration$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CustomerIntegration$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CustomerIntegrationActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1945,27 +1945,27 @@ export type CustomerIntegrationDeleteManyArgs<ExtArgs extends runtime.Types.Exte
 }
 
 /**
- * CustomerIntegration.domainRegistrations
+ * CustomerIntegration.domains
  */
-export type CustomerIntegration$domainRegistrationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type CustomerIntegration$domainsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the DomainRegistration
+   * Select specific fields to fetch from the Domain
    */
-  select?: Prisma.DomainRegistrationSelect<ExtArgs> | null
+  select?: Prisma.DomainSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the DomainRegistration
+   * Omit specific fields from the Domain
    */
-  omit?: Prisma.DomainRegistrationOmit<ExtArgs> | null
+  omit?: Prisma.DomainOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.DomainRegistrationInclude<ExtArgs> | null
-  where?: Prisma.DomainRegistrationWhereInput
-  orderBy?: Prisma.DomainRegistrationOrderByWithRelationInput | Prisma.DomainRegistrationOrderByWithRelationInput[]
-  cursor?: Prisma.DomainRegistrationWhereUniqueInput
+  include?: Prisma.DomainInclude<ExtArgs> | null
+  where?: Prisma.DomainWhereInput
+  orderBy?: Prisma.DomainOrderByWithRelationInput | Prisma.DomainOrderByWithRelationInput[]
+  cursor?: Prisma.DomainWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.DomainRegistrationScalarFieldEnum | Prisma.DomainRegistrationScalarFieldEnum[]
+  distinct?: Prisma.DomainScalarFieldEnum | Prisma.DomainScalarFieldEnum[]
 }
 
 /**

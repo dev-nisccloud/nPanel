@@ -423,10 +423,10 @@ export const ModelName = {
   TldSettingsActivityLog: 'TldSettingsActivityLog',
   NameserverActivityLog: 'NameserverActivityLog',
   NameserverGroupActivityLog: 'NameserverGroupActivityLog',
-  DomainRegistration: 'DomainRegistration',
+  Domain: 'Domain',
   DomainRenewal: 'DomainRenewal',
   DomainTransfer: 'DomainTransfer',
-  DomainRegistrationActivityLog: 'DomainRegistrationActivityLog',
+  DomainActivityLog: 'DomainActivityLog',
   DomainRenewalActivityLog: 'DomainRenewalActivityLog',
   DomainTransferActivityLog: 'DomainTransferActivityLog',
   CreativeAsset: 'CreativeAsset',
@@ -514,7 +514,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domainRegistration" | "domainRenewal" | "domainTransfer" | "domainRegistrationActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3108,77 +3108,77 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    DomainRegistration: {
-      payload: Prisma.$DomainRegistrationPayload<ExtArgs>
-      fields: Prisma.DomainRegistrationFieldRefs
+    Domain: {
+      payload: Prisma.$DomainPayload<ExtArgs>
+      fields: Prisma.DomainFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.DomainRegistrationFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload> | null
+          args: Prisma.DomainFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.DomainRegistrationFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload>
+          args: Prisma.DomainFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload>
         }
         findFirst: {
-          args: Prisma.DomainRegistrationFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload> | null
+          args: Prisma.DomainFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.DomainRegistrationFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload>
+          args: Prisma.DomainFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload>
         }
         findMany: {
-          args: Prisma.DomainRegistrationFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload>[]
+          args: Prisma.DomainFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload>[]
         }
         create: {
-          args: Prisma.DomainRegistrationCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload>
+          args: Prisma.DomainCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload>
         }
         createMany: {
-          args: Prisma.DomainRegistrationCreateManyArgs<ExtArgs>
+          args: Prisma.DomainCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.DomainRegistrationCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload>[]
+          args: Prisma.DomainCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload>[]
         }
         delete: {
-          args: Prisma.DomainRegistrationDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload>
+          args: Prisma.DomainDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload>
         }
         update: {
-          args: Prisma.DomainRegistrationUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload>
+          args: Prisma.DomainUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload>
         }
         deleteMany: {
-          args: Prisma.DomainRegistrationDeleteManyArgs<ExtArgs>
+          args: Prisma.DomainDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.DomainRegistrationUpdateManyArgs<ExtArgs>
+          args: Prisma.DomainUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.DomainRegistrationUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload>[]
+          args: Prisma.DomainUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload>[]
         }
         upsert: {
-          args: Prisma.DomainRegistrationUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationPayload>
+          args: Prisma.DomainUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainPayload>
         }
         aggregate: {
-          args: Prisma.DomainRegistrationAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateDomainRegistration>
+          args: Prisma.DomainAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDomain>
         }
         groupBy: {
-          args: Prisma.DomainRegistrationGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.DomainRegistrationGroupByOutputType>[]
+          args: Prisma.DomainGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DomainGroupByOutputType>[]
         }
         count: {
-          args: Prisma.DomainRegistrationCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.DomainRegistrationCountAggregateOutputType> | number
+          args: Prisma.DomainCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DomainCountAggregateOutputType> | number
         }
       }
     }
@@ -3330,77 +3330,77 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    DomainRegistrationActivityLog: {
-      payload: Prisma.$DomainRegistrationActivityLogPayload<ExtArgs>
-      fields: Prisma.DomainRegistrationActivityLogFieldRefs
+    DomainActivityLog: {
+      payload: Prisma.$DomainActivityLogPayload<ExtArgs>
+      fields: Prisma.DomainActivityLogFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.DomainRegistrationActivityLogFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload> | null
+          args: Prisma.DomainActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.DomainRegistrationActivityLogFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload>
+          args: Prisma.DomainActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload>
         }
         findFirst: {
-          args: Prisma.DomainRegistrationActivityLogFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload> | null
+          args: Prisma.DomainActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.DomainRegistrationActivityLogFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload>
+          args: Prisma.DomainActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload>
         }
         findMany: {
-          args: Prisma.DomainRegistrationActivityLogFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload>[]
+          args: Prisma.DomainActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload>[]
         }
         create: {
-          args: Prisma.DomainRegistrationActivityLogCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload>
+          args: Prisma.DomainActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload>
         }
         createMany: {
-          args: Prisma.DomainRegistrationActivityLogCreateManyArgs<ExtArgs>
+          args: Prisma.DomainActivityLogCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.DomainRegistrationActivityLogCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload>[]
+          args: Prisma.DomainActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload>[]
         }
         delete: {
-          args: Prisma.DomainRegistrationActivityLogDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload>
+          args: Prisma.DomainActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload>
         }
         update: {
-          args: Prisma.DomainRegistrationActivityLogUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload>
+          args: Prisma.DomainActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload>
         }
         deleteMany: {
-          args: Prisma.DomainRegistrationActivityLogDeleteManyArgs<ExtArgs>
+          args: Prisma.DomainActivityLogDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.DomainRegistrationActivityLogUpdateManyArgs<ExtArgs>
+          args: Prisma.DomainActivityLogUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.DomainRegistrationActivityLogUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload>[]
+          args: Prisma.DomainActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload>[]
         }
         upsert: {
-          args: Prisma.DomainRegistrationActivityLogUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainRegistrationActivityLogPayload>
+          args: Prisma.DomainActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainActivityLogPayload>
         }
         aggregate: {
-          args: Prisma.DomainRegistrationActivityLogAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateDomainRegistrationActivityLog>
+          args: Prisma.DomainActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDomainActivityLog>
         }
         groupBy: {
-          args: Prisma.DomainRegistrationActivityLogGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.DomainRegistrationActivityLogGroupByOutputType>[]
+          args: Prisma.DomainActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DomainActivityLogGroupByOutputType>[]
         }
         count: {
-          args: Prisma.DomainRegistrationActivityLogCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.DomainRegistrationActivityLogCountAggregateOutputType> | number
+          args: Prisma.DomainActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DomainActivityLogCountAggregateOutputType> | number
         }
       }
     }
@@ -8808,7 +8808,7 @@ export const OrderScalarFieldEnum = {
   type: 'type',
   status: 'status',
   description: 'description',
-  domainRegistrationId: 'domainRegistrationId',
+  domainId: 'domainId',
   domainRenewalId: 'domainRenewalId',
   domainTransferId: 'domainTransferId',
   hostingSubscriptionId: 'hostingSubscriptionId',
@@ -9158,7 +9158,7 @@ export const HostingSubscriptionScalarFieldEnum = {
   pleskFtpLogin: 'pleskFtpLogin',
   pleskFtpPassword: 'pleskFtpPassword',
   primaryDomain: 'primaryDomain',
-  domainRegistrationId: 'domainRegistrationId',
+  domainId: 'domainId',
   operation: 'operation',
   provisioningMethod: 'provisioningMethod',
   status: 'status',
@@ -9391,62 +9391,35 @@ export const NameserverGroupActivityLogScalarFieldEnum = {
 export type NameserverGroupActivityLogScalarFieldEnum = (typeof NameserverGroupActivityLogScalarFieldEnum)[keyof typeof NameserverGroupActivityLogScalarFieldEnum]
 
 
-export const DomainRegistrationScalarFieldEnum = {
+export const DomainScalarFieldEnum = {
   id: 'id',
   domainName: 'domainName',
+  userId: 'userId',
   teamId: 'teamId',
-  registeredBy: 'registeredBy',
   openProviderId: 'openProviderId',
-  operation: 'operation',
-  authCode: 'authCode',
   activationDate: 'activationDate',
   expirationDate: 'expirationDate',
   renewalDate: 'renewalDate',
-  ownerHandle: 'ownerHandle',
-  adminHandle: 'adminHandle',
-  techHandle: 'techHandle',
-  billingHandle: 'billingHandle',
-  resellerHandle: 'resellerHandle',
   registrationDate: 'registrationDate',
-  expiryDate: 'expiryDate',
-  nextRenewalDate: 'nextRenewalDate',
-  renewalCycle: 'renewalCycle',
-  period: 'period',
-  status: 'status',
   openProviderPrice: 'openProviderPrice',
-  openProviderCurrency: 'openProviderCurrency',
   niscPrice: 'niscPrice',
-  niscCurrency: 'niscCurrency',
-  invoiceNumber: 'invoiceNumber',
-  customerIntegrationId: 'customerIntegrationId',
-  tldSettingId: 'tldSettingId',
-  nameserverGroupId: 'nameserverGroupId',
-  dnsRecords: 'dnsRecords',
-  autoRenew: 'autoRenew',
-  transferRequestedAt: 'transferRequestedAt',
-  transferCompletedAt: 'transferCompletedAt',
-  previousRegistrar: 'previousRegistrar',
+  notes: 'notes',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  customerIntegrationId: 'customerIntegrationId',
+  nameserverGroupId: 'nameserverGroupId'
 } as const
 
-export type DomainRegistrationScalarFieldEnum = (typeof DomainRegistrationScalarFieldEnum)[keyof typeof DomainRegistrationScalarFieldEnum]
+export type DomainScalarFieldEnum = (typeof DomainScalarFieldEnum)[keyof typeof DomainScalarFieldEnum]
 
 
 export const DomainRenewalScalarFieldEnum = {
   id: 'id',
-  domainRegistrationId: 'domainRegistrationId',
+  domainId: 'domainId',
   renewedBy: 'renewedBy',
   renewalDate: 'renewalDate',
-  expiryDate: 'expiryDate',
-  renewalCycle: 'renewalCycle',
-  status: 'status',
   openProviderPrice: 'openProviderPrice',
-  openProviderCurrency: 'openProviderCurrency',
   niscPrice: 'niscPrice',
-  niscCurrency: 'niscCurrency',
-  invoiceNumber: 'invoiceNumber',
-  notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -9456,38 +9429,27 @@ export type DomainRenewalScalarFieldEnum = (typeof DomainRenewalScalarFieldEnum)
 
 export const DomainTransferScalarFieldEnum = {
   id: 'id',
-  domainRegistrationId: 'domainRegistrationId',
+  domainId: 'domainId',
   transferredBy: 'transferredBy',
   authCode: 'authCode',
   status: 'status',
   transferRequestedAt: 'transferRequestedAt',
   transferCompletedAt: 'transferCompletedAt',
-  previousRegistrar: 'previousRegistrar',
-  previousExpiryDate: 'previousExpiryDate',
-  ownerHandle: 'ownerHandle',
-  adminHandle: 'adminHandle',
-  techHandle: 'techHandle',
-  billingHandle: 'billingHandle',
-  nameserverGroupId: 'nameserverGroupId',
-  autoRenew: 'autoRenew',
   openProviderPrice: 'openProviderPrice',
-  openProviderCurrency: 'openProviderCurrency',
   niscPrice: 'niscPrice',
-  niscCurrency: 'niscCurrency',
-  invoiceNumber: 'invoiceNumber',
   notes: 'notes',
-  failureReason: 'failureReason',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  nameserverGroupId: 'nameserverGroupId'
 } as const
 
 export type DomainTransferScalarFieldEnum = (typeof DomainTransferScalarFieldEnum)[keyof typeof DomainTransferScalarFieldEnum]
 
 
-export const DomainRegistrationActivityLogScalarFieldEnum = {
+export const DomainActivityLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  domainRegistrationId: 'domainRegistrationId',
+  domainId: 'domainId',
   action: 'action',
   description: 'description',
   metadata: 'metadata',
@@ -9496,7 +9458,7 @@ export const DomainRegistrationActivityLogScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type DomainRegistrationActivityLogScalarFieldEnum = (typeof DomainRegistrationActivityLogScalarFieldEnum)[keyof typeof DomainRegistrationActivityLogScalarFieldEnum]
+export type DomainActivityLogScalarFieldEnum = (typeof DomainActivityLogScalarFieldEnum)[keyof typeof DomainActivityLogScalarFieldEnum]
 
 
 export const DomainRenewalActivityLogScalarFieldEnum = {
@@ -11179,34 +11141,6 @@ export type ListEnumMarginTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$P
 
 
 /**
- * Reference to a field of type 'DomainOperation'
- */
-export type EnumDomainOperationFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DomainOperation'>
-    
-
-
-/**
- * Reference to a field of type 'DomainOperation[]'
- */
-export type ListEnumDomainOperationFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DomainOperation[]'>
-    
-
-
-/**
- * Reference to a field of type 'DomainCycle'
- */
-export type EnumDomainCycleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DomainCycle'>
-    
-
-
-/**
- * Reference to a field of type 'DomainCycle[]'
- */
-export type ListEnumDomainCycleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DomainCycle[]'>
-    
-
-
-/**
  * Reference to a field of type 'DomainStatus'
  */
 export type EnumDomainStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DomainStatus'>
@@ -11747,10 +11681,10 @@ export type GlobalOmitConfig = {
   tldSettingsActivityLog?: Prisma.TldSettingsActivityLogOmit
   nameserverActivityLog?: Prisma.NameserverActivityLogOmit
   nameserverGroupActivityLog?: Prisma.NameserverGroupActivityLogOmit
-  domainRegistration?: Prisma.DomainRegistrationOmit
+  domain?: Prisma.DomainOmit
   domainRenewal?: Prisma.DomainRenewalOmit
   domainTransfer?: Prisma.DomainTransferOmit
-  domainRegistrationActivityLog?: Prisma.DomainRegistrationActivityLogOmit
+  domainActivityLog?: Prisma.DomainActivityLogOmit
   domainRenewalActivityLog?: Prisma.DomainRenewalActivityLogOmit
   domainTransferActivityLog?: Prisma.DomainTransferActivityLogOmit
   creativeAsset?: Prisma.CreativeAssetOmit

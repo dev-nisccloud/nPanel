@@ -37,6 +37,7 @@ import { pleskHealthCheckRouter } from "./plesk/health-check";
 import { openProviderRouter } from "./openprovider";
 import { nameserverGroupsRouter } from "./nameserver-groups";
 import { tldSettingsRouter } from "./tld-settings";
+import { domainsRouter as niscDomainsRouter } from "./domains";
 import { currencyConversionRouter } from "./currency-conversion";
 import { teamsRouter } from "./teams";
 import { userProfileRouter } from "./user-profile";
@@ -124,6 +125,8 @@ export const appRouter = router({
 	nameserverGroups: nameserverGroupsRouter,
 	// TLD Settings management
 	tldSettings: tldSettingsRouter,
+	// Domains Management (NISC)
+	domains: niscDomainsRouter,
 	// Currency Conversion
 	currency: currencyConversionRouter,
 	// Teams Management

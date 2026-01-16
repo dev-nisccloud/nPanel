@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "sonner";
+import { useNotificationsSSE } from "@/hooks/use-notifications-sse";
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
@@ -36,29 +37,114 @@ const getPriorityColor = (priority: string) => {
 export function NotificationSwitcher() {
   const router = useRouter();
   const [isOpen, setIsOpen] = React.useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = React.useState<Date | null>(null);
+  const [sseUnseenCount, setSseUnseenCount] = React.useState<number | null>(null);
+  const [expandedNotifications, setExpandedNotifications] = React.useState<Set<string>>(new Set());
+  const notificationsRef = React.useRef<Array<{
+    id: string;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+    [key: string]: unknown;
+  }>>([]);
 
-  // Fetch notifications
+  // Helper to check if message is long enough to need truncation
+  // Rough estimate: ~100 characters typically fits in 2 lines at 14px font
+  const isLongMessage = (message: string) => {
+    return message.length > 100;
+  };
+
+  const toggleExpand = (notificationId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent notification click handler
+    setExpandedNotifications((prev) => {
+      const next = new Set(prev);
+      if (next.has(notificationId)) {
+        next.delete(notificationId);
+      } else {
+        next.add(notificationId);
+      }
+      return next;
+    });
+  };
+
+  // Fetch notifications with change detection
   const { data: notifications = [], isLoading, refetch } = trpc.notifications.getAll.useQuery(
     {
       limit: 50,
       offset: 0,
+      since: lastUpdatedAt?.toISOString(),
     },
     {
-      refetchInterval: isOpen ? 10000 : 30000, // Refetch every 10s when open, 30s when closed
+      // Smart polling: only when tab is visible and popover is open
+      refetchInterval: (query) => {
+        // Don't poll if tab is hidden
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+          return false;
+        }
+        // Poll more frequently when popover is open
+        return isOpen ? 15000 : 60000; // 15s when open, 60s when closed
+      },
       refetchOnWindowFocus: true,
     }
   );
 
-  // Fetch unseen count
-  const { data: unseenCountData } = trpc.notifications.getUnseenCount.useQuery(
+  // Update notifications ref and last updated timestamp when data changes
+  React.useEffect(() => {
+    if (notifications) {
+      // Update last updated timestamp if we got new data
+      if (notifications.length > 0) {
+        const latest = notifications[0];
+        let latestDate: Date;
+        if (typeof latest.updatedAt === 'string') {
+          latestDate = new Date(latest.updatedAt);
+        } else if (latest.updatedAt && typeof latest.updatedAt === 'object' && 'getTime' in latest.updatedAt) {
+          latestDate = latest.updatedAt as Date;
+        } else {
+          latestDate = new Date();
+        }
+        if (!lastUpdatedAt || latestDate > lastUpdatedAt) {
+          setLastUpdatedAt(latestDate);
+        }
+      }
+      notificationsRef.current = notifications as Array<{ id: string; createdAt: Date | string; updatedAt: Date | string; [key: string]: unknown; }>;
+    }
+  }, [notifications, lastUpdatedAt]);
+
+  // Fetch unseen count with smart polling
+  const { data: unseenCountData, refetch: refetchUnseenCount } = trpc.notifications.getUnseenCount.useQuery(
     undefined,
     {
-      refetchInterval: 10000, // Refetch every 10s
+      refetchInterval: (query) => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+          return false;
+        }
+        return 20000; // 20s polling for count
+      },
       refetchOnWindowFocus: true,
     }
   );
 
-  const unseenCount = unseenCountData?.count ?? 0;
+  // SSE for real-time updates (when popover is open)
+  const { isConnected: sseConnected } = useNotificationsSSE(
+      (notification) => {
+        // New notification received via SSE
+        // Add to the beginning of the list
+        const updated = [notification as unknown as { id: string; createdAt: Date | string; updatedAt: Date | string; [key: string]: unknown; }, ...notificationsRef.current.filter(n => n.id !== notification.id)];
+        notificationsRef.current = updated;
+      refetch(); // Refresh to get full data
+      toast.info(notification.title || "New notification", {
+        description: notification.message,
+      });
+    },
+    (count) => {
+      // Unseen count updated via SSE
+      setSseUnseenCount(count);
+      refetchUnseenCount();
+    },
+    isOpen // Only enable SSE when popover is open
+  );
+
+  // Use SSE count if available, otherwise use polling count
+  const unseenCount = sseUnseenCount !== null ? sseUnseenCount : (unseenCountData?.count ?? 0);
 
   // Mark as seen mutation
   const markAsSeenMutation = trpc.notifications.markAsSeen.useMutation({
@@ -176,9 +262,27 @@ export function NotificationSwitcher() {
                             {notification.title}
                           </p>
                         )}
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {notification.message}
-                        </p>
+                        <div className="space-y-1">
+                          <p
+                            className={cn(
+                              "text-sm text-muted-foreground",
+                              !expandedNotifications.has(notification.id) && isLongMessage(notification.message)
+                                ? "line-clamp-2"
+                                : ""
+                            )}
+                          >
+                            {notification.message}
+                          </p>
+                          {isLongMessage(notification.message) && (
+                            <button
+                              type="button"
+                              onClick={(e) => toggleExpand(notification.id, e)}
+                              className="text-xs text-primary hover:underline focus:outline-none"
+                            >
+                              {expandedNotifications.has(notification.id) ? "Show less" : "Show more"}
+                            </button>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground mt-1.5">
                           {formatDistanceToNow(createdAt, {
                             addSuffix: true,

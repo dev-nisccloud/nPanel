@@ -776,9 +776,6 @@ export function AddOrderSheet({ open, onOpenChange, onSuccess }: AddOrderSheetPr
 																									)}
 																								/>
 																								<span className="font-medium">{domain.domainName}</span>
-																								<Badge variant="outline" className="ml-2 text-xs">
-																									{domain.status}
-																								</Badge>
 																							</CommandItem>
 																						))}
 																					</CommandGroup>

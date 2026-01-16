@@ -88,7 +88,7 @@ const orderOutputSchema = z.object({
 	type: orderTypeSchema,
 	status: orderStatusSchema,
 	description: z.string().nullable(),
-	domainRegistrationId: z.string().nullable(),
+	domainId: z.string().nullable(),
 	hostingSubscriptionId: z.string().nullable(),
 	subtotal: z.string().nullable(),
 	discount: z.string().nullable(),
@@ -847,7 +847,7 @@ export const ordersRouter = router({
 						type: order.type,
 						status: order.status,
 						description: order.description,
-						domainRegistrationId: order.domainRegistrationId,
+						domainId: order.domainId,
 						hostingSubscriptionId: order.hostingSubscriptionId,
 						subtotal: calculatedSubtotal,
 						discount: order.discount,
@@ -1009,7 +1009,7 @@ export const ordersRouter = router({
 				type: order.type,
 				status: order.status,
 				description: order.description,
-				domainRegistrationId: order.domainRegistrationId,
+				domainId: order.domainId ?? null,
 				hostingSubscriptionId: order.hostingSubscriptionId,
 				subtotal: calculatedSubtotal,
 				discount: order.discount,
@@ -1080,7 +1080,6 @@ export const ordersRouter = router({
 		.output(z.array(z.object({
 			id: z.string(),
 			domainName: z.string(),
-			status: z.string(),
 		})))
 		.query(async ({ ctx, input }) => {
 			const session = ctx.session;
@@ -1099,14 +1098,13 @@ export const ordersRouter = router({
 				});
 			}
 
-			const domains = await prisma.domainRegistration.findMany({
+			const domains = await prisma.domain.findMany({
 				where: {
 					teamId: input.teamId,
 				},
 				select: {
 					id: true,
 					domainName: true,
-					status: true,
 				},
 				orderBy: {
 					domainName: "asc",
@@ -1116,7 +1114,6 @@ export const ordersRouter = router({
 			return domains.map((domain) => ({
 				id: domain.id,
 				domainName: domain.domainName,
-				status: domain.status,
 			}));
 		}),
 
@@ -1573,6 +1570,7 @@ export const ordersRouter = router({
 					return {
 						order: {
 							...order,
+							domainId: order.domainId ?? null,
 							hostingSubscription: {
 								id: subscription.id,
 								pleskName: subscription.pleskName,
@@ -1586,7 +1584,10 @@ export const ordersRouter = router({
 
 				return {
 					success: true,
-					order: result.order,
+					order: {
+						...result.order,
+						domainId: result.order.domainId ?? null,
+					},
 					hostingSubscription: {
 						id: result.subscription.id,
 						pleskServiceId: result.subscription.pleskServiceId,
@@ -2685,7 +2686,10 @@ export const ordersRouter = router({
 
 				return {
 					success: true,
-					order: result.order,
+					order: {
+						...result.order,
+						domainId: result.order.domainId ?? null,
+					},
 					orderItems: orderItemsWithDetails,
 					message: invoiceCreated
 						? (result.requiresProvisioning

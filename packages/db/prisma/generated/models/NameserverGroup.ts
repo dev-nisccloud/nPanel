@@ -199,7 +199,7 @@ export type NameserverGroupWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"NameserverGroup"> | Date | string
   nameservers?: Prisma.NameserverListRelationFilter
   tldSettings?: Prisma.TldSettingsListRelationFilter
-  domainRegistrations?: Prisma.DomainRegistrationListRelationFilter
+  domains?: Prisma.DomainListRelationFilter
   domainTransfers?: Prisma.DomainTransferListRelationFilter
   activityLogs?: Prisma.NameserverGroupActivityLogListRelationFilter
 }
@@ -214,7 +214,7 @@ export type NameserverGroupOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   nameservers?: Prisma.NameserverOrderByRelationAggregateInput
   tldSettings?: Prisma.TldSettingsOrderByRelationAggregateInput
-  domainRegistrations?: Prisma.DomainRegistrationOrderByRelationAggregateInput
+  domains?: Prisma.DomainOrderByRelationAggregateInput
   domainTransfers?: Prisma.DomainTransferOrderByRelationAggregateInput
   activityLogs?: Prisma.NameserverGroupActivityLogOrderByRelationAggregateInput
 }
@@ -232,7 +232,7 @@ export type NameserverGroupWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"NameserverGroup"> | Date | string
   nameservers?: Prisma.NameserverListRelationFilter
   tldSettings?: Prisma.TldSettingsListRelationFilter
-  domainRegistrations?: Prisma.DomainRegistrationListRelationFilter
+  domains?: Prisma.DomainListRelationFilter
   domainTransfers?: Prisma.DomainTransferListRelationFilter
   activityLogs?: Prisma.NameserverGroupActivityLogListRelationFilter
 }, "id">
@@ -273,7 +273,7 @@ export type NameserverGroupCreateInput = {
   updatedAt: Date | string
   nameservers?: Prisma.NameserverCreateNestedManyWithoutNameserverGroupInput
   tldSettings?: Prisma.TldSettingsCreateNestedManyWithoutNameserverGroupInput
-  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutNameserverGroupInput
+  domains?: Prisma.DomainCreateNestedManyWithoutNameserverGroupInput
   domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutNameserverGroupInput
   activityLogs?: Prisma.NameserverGroupActivityLogCreateNestedManyWithoutNameserverGroupInput
 }
@@ -288,7 +288,7 @@ export type NameserverGroupUncheckedCreateInput = {
   updatedAt: Date | string
   nameservers?: Prisma.NameserverUncheckedCreateNestedManyWithoutNameserverGroupInput
   tldSettings?: Prisma.TldSettingsUncheckedCreateNestedManyWithoutNameserverGroupInput
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutNameserverGroupInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutNameserverGroupInput
   domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutNameserverGroupInput
   activityLogs?: Prisma.NameserverGroupActivityLogUncheckedCreateNestedManyWithoutNameserverGroupInput
 }
@@ -303,7 +303,7 @@ export type NameserverGroupUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nameservers?: Prisma.NameserverUpdateManyWithoutNameserverGroupNestedInput
   tldSettings?: Prisma.TldSettingsUpdateManyWithoutNameserverGroupNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutNameserverGroupNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutNameserverGroupNestedInput
   domainTransfers?: Prisma.DomainTransferUpdateManyWithoutNameserverGroupNestedInput
   activityLogs?: Prisma.NameserverGroupActivityLogUpdateManyWithoutNameserverGroupNestedInput
 }
@@ -318,7 +318,7 @@ export type NameserverGroupUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nameservers?: Prisma.NameserverUncheckedUpdateManyWithoutNameserverGroupNestedInput
   tldSettings?: Prisma.TldSettingsUncheckedUpdateManyWithoutNameserverGroupNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutNameserverGroupNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutNameserverGroupNestedInput
   domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutNameserverGroupNestedInput
   activityLogs?: Prisma.NameserverGroupActivityLogUncheckedUpdateManyWithoutNameserverGroupNestedInput
 }
@@ -437,20 +437,20 @@ export type NameserverGroupUpdateOneRequiredWithoutActivityLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.NameserverGroupUpdateToOneWithWhereWithoutActivityLogsInput, Prisma.NameserverGroupUpdateWithoutActivityLogsInput>, Prisma.NameserverGroupUncheckedUpdateWithoutActivityLogsInput>
 }
 
-export type NameserverGroupCreateNestedOneWithoutDomainRegistrationsInput = {
-  create?: Prisma.XOR<Prisma.NameserverGroupCreateWithoutDomainRegistrationsInput, Prisma.NameserverGroupUncheckedCreateWithoutDomainRegistrationsInput>
-  connectOrCreate?: Prisma.NameserverGroupCreateOrConnectWithoutDomainRegistrationsInput
+export type NameserverGroupCreateNestedOneWithoutDomainsInput = {
+  create?: Prisma.XOR<Prisma.NameserverGroupCreateWithoutDomainsInput, Prisma.NameserverGroupUncheckedCreateWithoutDomainsInput>
+  connectOrCreate?: Prisma.NameserverGroupCreateOrConnectWithoutDomainsInput
   connect?: Prisma.NameserverGroupWhereUniqueInput
 }
 
-export type NameserverGroupUpdateOneWithoutDomainRegistrationsNestedInput = {
-  create?: Prisma.XOR<Prisma.NameserverGroupCreateWithoutDomainRegistrationsInput, Prisma.NameserverGroupUncheckedCreateWithoutDomainRegistrationsInput>
-  connectOrCreate?: Prisma.NameserverGroupCreateOrConnectWithoutDomainRegistrationsInput
-  upsert?: Prisma.NameserverGroupUpsertWithoutDomainRegistrationsInput
+export type NameserverGroupUpdateOneWithoutDomainsNestedInput = {
+  create?: Prisma.XOR<Prisma.NameserverGroupCreateWithoutDomainsInput, Prisma.NameserverGroupUncheckedCreateWithoutDomainsInput>
+  connectOrCreate?: Prisma.NameserverGroupCreateOrConnectWithoutDomainsInput
+  upsert?: Prisma.NameserverGroupUpsertWithoutDomainsInput
   disconnect?: Prisma.NameserverGroupWhereInput | boolean
   delete?: Prisma.NameserverGroupWhereInput | boolean
   connect?: Prisma.NameserverGroupWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.NameserverGroupUpdateToOneWithWhereWithoutDomainRegistrationsInput, Prisma.NameserverGroupUpdateWithoutDomainRegistrationsInput>, Prisma.NameserverGroupUncheckedUpdateWithoutDomainRegistrationsInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.NameserverGroupUpdateToOneWithWhereWithoutDomainsInput, Prisma.NameserverGroupUpdateWithoutDomainsInput>, Prisma.NameserverGroupUncheckedUpdateWithoutDomainsInput>
 }
 
 export type NameserverGroupCreateNestedOneWithoutDomainTransfersInput = {
@@ -478,7 +478,7 @@ export type NameserverGroupCreateWithoutNameserversInput = {
   createdAt: Date | string
   updatedAt: Date | string
   tldSettings?: Prisma.TldSettingsCreateNestedManyWithoutNameserverGroupInput
-  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutNameserverGroupInput
+  domains?: Prisma.DomainCreateNestedManyWithoutNameserverGroupInput
   domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutNameserverGroupInput
   activityLogs?: Prisma.NameserverGroupActivityLogCreateNestedManyWithoutNameserverGroupInput
 }
@@ -492,7 +492,7 @@ export type NameserverGroupUncheckedCreateWithoutNameserversInput = {
   createdAt: Date | string
   updatedAt: Date | string
   tldSettings?: Prisma.TldSettingsUncheckedCreateNestedManyWithoutNameserverGroupInput
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutNameserverGroupInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutNameserverGroupInput
   domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutNameserverGroupInput
   activityLogs?: Prisma.NameserverGroupActivityLogUncheckedCreateNestedManyWithoutNameserverGroupInput
 }
@@ -522,7 +522,7 @@ export type NameserverGroupUpdateWithoutNameserversInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tldSettings?: Prisma.TldSettingsUpdateManyWithoutNameserverGroupNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutNameserverGroupNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutNameserverGroupNestedInput
   domainTransfers?: Prisma.DomainTransferUpdateManyWithoutNameserverGroupNestedInput
   activityLogs?: Prisma.NameserverGroupActivityLogUpdateManyWithoutNameserverGroupNestedInput
 }
@@ -536,7 +536,7 @@ export type NameserverGroupUncheckedUpdateWithoutNameserversInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tldSettings?: Prisma.TldSettingsUncheckedUpdateManyWithoutNameserverGroupNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutNameserverGroupNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutNameserverGroupNestedInput
   domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutNameserverGroupNestedInput
   activityLogs?: Prisma.NameserverGroupActivityLogUncheckedUpdateManyWithoutNameserverGroupNestedInput
 }
@@ -550,7 +550,7 @@ export type NameserverGroupCreateWithoutTldSettingsInput = {
   createdAt: Date | string
   updatedAt: Date | string
   nameservers?: Prisma.NameserverCreateNestedManyWithoutNameserverGroupInput
-  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutNameserverGroupInput
+  domains?: Prisma.DomainCreateNestedManyWithoutNameserverGroupInput
   domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutNameserverGroupInput
   activityLogs?: Prisma.NameserverGroupActivityLogCreateNestedManyWithoutNameserverGroupInput
 }
@@ -564,7 +564,7 @@ export type NameserverGroupUncheckedCreateWithoutTldSettingsInput = {
   createdAt: Date | string
   updatedAt: Date | string
   nameservers?: Prisma.NameserverUncheckedCreateNestedManyWithoutNameserverGroupInput
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutNameserverGroupInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutNameserverGroupInput
   domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutNameserverGroupInput
   activityLogs?: Prisma.NameserverGroupActivityLogUncheckedCreateNestedManyWithoutNameserverGroupInput
 }
@@ -594,7 +594,7 @@ export type NameserverGroupUpdateWithoutTldSettingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nameservers?: Prisma.NameserverUpdateManyWithoutNameserverGroupNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutNameserverGroupNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutNameserverGroupNestedInput
   domainTransfers?: Prisma.DomainTransferUpdateManyWithoutNameserverGroupNestedInput
   activityLogs?: Prisma.NameserverGroupActivityLogUpdateManyWithoutNameserverGroupNestedInput
 }
@@ -608,7 +608,7 @@ export type NameserverGroupUncheckedUpdateWithoutTldSettingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nameservers?: Prisma.NameserverUncheckedUpdateManyWithoutNameserverGroupNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutNameserverGroupNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutNameserverGroupNestedInput
   domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutNameserverGroupNestedInput
   activityLogs?: Prisma.NameserverGroupActivityLogUncheckedUpdateManyWithoutNameserverGroupNestedInput
 }
@@ -623,7 +623,7 @@ export type NameserverGroupCreateWithoutActivityLogsInput = {
   updatedAt: Date | string
   nameservers?: Prisma.NameserverCreateNestedManyWithoutNameserverGroupInput
   tldSettings?: Prisma.TldSettingsCreateNestedManyWithoutNameserverGroupInput
-  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutNameserverGroupInput
+  domains?: Prisma.DomainCreateNestedManyWithoutNameserverGroupInput
   domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutNameserverGroupInput
 }
 
@@ -637,7 +637,7 @@ export type NameserverGroupUncheckedCreateWithoutActivityLogsInput = {
   updatedAt: Date | string
   nameservers?: Prisma.NameserverUncheckedCreateNestedManyWithoutNameserverGroupInput
   tldSettings?: Prisma.TldSettingsUncheckedCreateNestedManyWithoutNameserverGroupInput
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutNameserverGroupInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutNameserverGroupInput
   domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutNameserverGroupInput
 }
 
@@ -667,7 +667,7 @@ export type NameserverGroupUpdateWithoutActivityLogsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nameservers?: Prisma.NameserverUpdateManyWithoutNameserverGroupNestedInput
   tldSettings?: Prisma.TldSettingsUpdateManyWithoutNameserverGroupNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutNameserverGroupNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutNameserverGroupNestedInput
   domainTransfers?: Prisma.DomainTransferUpdateManyWithoutNameserverGroupNestedInput
 }
 
@@ -681,11 +681,11 @@ export type NameserverGroupUncheckedUpdateWithoutActivityLogsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nameservers?: Prisma.NameserverUncheckedUpdateManyWithoutNameserverGroupNestedInput
   tldSettings?: Prisma.TldSettingsUncheckedUpdateManyWithoutNameserverGroupNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutNameserverGroupNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutNameserverGroupNestedInput
   domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutNameserverGroupNestedInput
 }
 
-export type NameserverGroupCreateWithoutDomainRegistrationsInput = {
+export type NameserverGroupCreateWithoutDomainsInput = {
   id: string
   name: string
   description?: string | null
@@ -699,7 +699,7 @@ export type NameserverGroupCreateWithoutDomainRegistrationsInput = {
   activityLogs?: Prisma.NameserverGroupActivityLogCreateNestedManyWithoutNameserverGroupInput
 }
 
-export type NameserverGroupUncheckedCreateWithoutDomainRegistrationsInput = {
+export type NameserverGroupUncheckedCreateWithoutDomainsInput = {
   id: string
   name: string
   description?: string | null
@@ -713,23 +713,23 @@ export type NameserverGroupUncheckedCreateWithoutDomainRegistrationsInput = {
   activityLogs?: Prisma.NameserverGroupActivityLogUncheckedCreateNestedManyWithoutNameserverGroupInput
 }
 
-export type NameserverGroupCreateOrConnectWithoutDomainRegistrationsInput = {
+export type NameserverGroupCreateOrConnectWithoutDomainsInput = {
   where: Prisma.NameserverGroupWhereUniqueInput
-  create: Prisma.XOR<Prisma.NameserverGroupCreateWithoutDomainRegistrationsInput, Prisma.NameserverGroupUncheckedCreateWithoutDomainRegistrationsInput>
+  create: Prisma.XOR<Prisma.NameserverGroupCreateWithoutDomainsInput, Prisma.NameserverGroupUncheckedCreateWithoutDomainsInput>
 }
 
-export type NameserverGroupUpsertWithoutDomainRegistrationsInput = {
-  update: Prisma.XOR<Prisma.NameserverGroupUpdateWithoutDomainRegistrationsInput, Prisma.NameserverGroupUncheckedUpdateWithoutDomainRegistrationsInput>
-  create: Prisma.XOR<Prisma.NameserverGroupCreateWithoutDomainRegistrationsInput, Prisma.NameserverGroupUncheckedCreateWithoutDomainRegistrationsInput>
+export type NameserverGroupUpsertWithoutDomainsInput = {
+  update: Prisma.XOR<Prisma.NameserverGroupUpdateWithoutDomainsInput, Prisma.NameserverGroupUncheckedUpdateWithoutDomainsInput>
+  create: Prisma.XOR<Prisma.NameserverGroupCreateWithoutDomainsInput, Prisma.NameserverGroupUncheckedCreateWithoutDomainsInput>
   where?: Prisma.NameserverGroupWhereInput
 }
 
-export type NameserverGroupUpdateToOneWithWhereWithoutDomainRegistrationsInput = {
+export type NameserverGroupUpdateToOneWithWhereWithoutDomainsInput = {
   where?: Prisma.NameserverGroupWhereInput
-  data: Prisma.XOR<Prisma.NameserverGroupUpdateWithoutDomainRegistrationsInput, Prisma.NameserverGroupUncheckedUpdateWithoutDomainRegistrationsInput>
+  data: Prisma.XOR<Prisma.NameserverGroupUpdateWithoutDomainsInput, Prisma.NameserverGroupUncheckedUpdateWithoutDomainsInput>
 }
 
-export type NameserverGroupUpdateWithoutDomainRegistrationsInput = {
+export type NameserverGroupUpdateWithoutDomainsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -743,7 +743,7 @@ export type NameserverGroupUpdateWithoutDomainRegistrationsInput = {
   activityLogs?: Prisma.NameserverGroupActivityLogUpdateManyWithoutNameserverGroupNestedInput
 }
 
-export type NameserverGroupUncheckedUpdateWithoutDomainRegistrationsInput = {
+export type NameserverGroupUncheckedUpdateWithoutDomainsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -767,7 +767,7 @@ export type NameserverGroupCreateWithoutDomainTransfersInput = {
   updatedAt: Date | string
   nameservers?: Prisma.NameserverCreateNestedManyWithoutNameserverGroupInput
   tldSettings?: Prisma.TldSettingsCreateNestedManyWithoutNameserverGroupInput
-  domainRegistrations?: Prisma.DomainRegistrationCreateNestedManyWithoutNameserverGroupInput
+  domains?: Prisma.DomainCreateNestedManyWithoutNameserverGroupInput
   activityLogs?: Prisma.NameserverGroupActivityLogCreateNestedManyWithoutNameserverGroupInput
 }
 
@@ -781,7 +781,7 @@ export type NameserverGroupUncheckedCreateWithoutDomainTransfersInput = {
   updatedAt: Date | string
   nameservers?: Prisma.NameserverUncheckedCreateNestedManyWithoutNameserverGroupInput
   tldSettings?: Prisma.TldSettingsUncheckedCreateNestedManyWithoutNameserverGroupInput
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedCreateNestedManyWithoutNameserverGroupInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutNameserverGroupInput
   activityLogs?: Prisma.NameserverGroupActivityLogUncheckedCreateNestedManyWithoutNameserverGroupInput
 }
 
@@ -811,7 +811,7 @@ export type NameserverGroupUpdateWithoutDomainTransfersInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nameservers?: Prisma.NameserverUpdateManyWithoutNameserverGroupNestedInput
   tldSettings?: Prisma.TldSettingsUpdateManyWithoutNameserverGroupNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUpdateManyWithoutNameserverGroupNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutNameserverGroupNestedInput
   activityLogs?: Prisma.NameserverGroupActivityLogUpdateManyWithoutNameserverGroupNestedInput
 }
 
@@ -825,7 +825,7 @@ export type NameserverGroupUncheckedUpdateWithoutDomainTransfersInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nameservers?: Prisma.NameserverUncheckedUpdateManyWithoutNameserverGroupNestedInput
   tldSettings?: Prisma.TldSettingsUncheckedUpdateManyWithoutNameserverGroupNestedInput
-  domainRegistrations?: Prisma.DomainRegistrationUncheckedUpdateManyWithoutNameserverGroupNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutNameserverGroupNestedInput
   activityLogs?: Prisma.NameserverGroupActivityLogUncheckedUpdateManyWithoutNameserverGroupNestedInput
 }
 
@@ -837,7 +837,7 @@ export type NameserverGroupUncheckedUpdateWithoutDomainTransfersInput = {
 export type NameserverGroupCountOutputType = {
   nameservers: number
   tldSettings: number
-  domainRegistrations: number
+  domains: number
   domainTransfers: number
   activityLogs: number
 }
@@ -845,7 +845,7 @@ export type NameserverGroupCountOutputType = {
 export type NameserverGroupCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   nameservers?: boolean | NameserverGroupCountOutputTypeCountNameserversArgs
   tldSettings?: boolean | NameserverGroupCountOutputTypeCountTldSettingsArgs
-  domainRegistrations?: boolean | NameserverGroupCountOutputTypeCountDomainRegistrationsArgs
+  domains?: boolean | NameserverGroupCountOutputTypeCountDomainsArgs
   domainTransfers?: boolean | NameserverGroupCountOutputTypeCountDomainTransfersArgs
   activityLogs?: boolean | NameserverGroupCountOutputTypeCountActivityLogsArgs
 }
@@ -877,8 +877,8 @@ export type NameserverGroupCountOutputTypeCountTldSettingsArgs<ExtArgs extends r
 /**
  * NameserverGroupCountOutputType without action
  */
-export type NameserverGroupCountOutputTypeCountDomainRegistrationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.DomainRegistrationWhereInput
+export type NameserverGroupCountOutputTypeCountDomainsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DomainWhereInput
 }
 
 /**
@@ -906,7 +906,7 @@ export type NameserverGroupSelect<ExtArgs extends runtime.Types.Extensions.Inter
   updatedAt?: boolean
   nameservers?: boolean | Prisma.NameserverGroup$nameserversArgs<ExtArgs>
   tldSettings?: boolean | Prisma.NameserverGroup$tldSettingsArgs<ExtArgs>
-  domainRegistrations?: boolean | Prisma.NameserverGroup$domainRegistrationsArgs<ExtArgs>
+  domains?: boolean | Prisma.NameserverGroup$domainsArgs<ExtArgs>
   domainTransfers?: boolean | Prisma.NameserverGroup$domainTransfersArgs<ExtArgs>
   activityLogs?: boolean | Prisma.NameserverGroup$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.NameserverGroupCountOutputTypeDefaultArgs<ExtArgs>
@@ -946,7 +946,7 @@ export type NameserverGroupOmit<ExtArgs extends runtime.Types.Extensions.Interna
 export type NameserverGroupInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   nameservers?: boolean | Prisma.NameserverGroup$nameserversArgs<ExtArgs>
   tldSettings?: boolean | Prisma.NameserverGroup$tldSettingsArgs<ExtArgs>
-  domainRegistrations?: boolean | Prisma.NameserverGroup$domainRegistrationsArgs<ExtArgs>
+  domains?: boolean | Prisma.NameserverGroup$domainsArgs<ExtArgs>
   domainTransfers?: boolean | Prisma.NameserverGroup$domainTransfersArgs<ExtArgs>
   activityLogs?: boolean | Prisma.NameserverGroup$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.NameserverGroupCountOutputTypeDefaultArgs<ExtArgs>
@@ -959,7 +959,7 @@ export type $NameserverGroupPayload<ExtArgs extends runtime.Types.Extensions.Int
   objects: {
     nameservers: Prisma.$NameserverPayload<ExtArgs>[]
     tldSettings: Prisma.$TldSettingsPayload<ExtArgs>[]
-    domainRegistrations: Prisma.$DomainRegistrationPayload<ExtArgs>[]
+    domains: Prisma.$DomainPayload<ExtArgs>[]
     domainTransfers: Prisma.$DomainTransferPayload<ExtArgs>[]
     activityLogs: Prisma.$NameserverGroupActivityLogPayload<ExtArgs>[]
   }
@@ -1367,7 +1367,7 @@ export interface Prisma__NameserverGroupClient<T, Null = never, ExtArgs extends 
   readonly [Symbol.toStringTag]: "PrismaPromise"
   nameservers<T extends Prisma.NameserverGroup$nameserversArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.NameserverGroup$nameserversArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NameserverPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   tldSettings<T extends Prisma.NameserverGroup$tldSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.NameserverGroup$tldSettingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TldSettingsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  domainRegistrations<T extends Prisma.NameserverGroup$domainRegistrationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.NameserverGroup$domainRegistrationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainRegistrationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  domains<T extends Prisma.NameserverGroup$domainsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.NameserverGroup$domainsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   domainTransfers<T extends Prisma.NameserverGroup$domainTransfersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.NameserverGroup$domainTransfersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityLogs<T extends Prisma.NameserverGroup$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.NameserverGroup$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NameserverGroupActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1842,27 +1842,27 @@ export type NameserverGroup$tldSettingsArgs<ExtArgs extends runtime.Types.Extens
 }
 
 /**
- * NameserverGroup.domainRegistrations
+ * NameserverGroup.domains
  */
-export type NameserverGroup$domainRegistrationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type NameserverGroup$domainsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the DomainRegistration
+   * Select specific fields to fetch from the Domain
    */
-  select?: Prisma.DomainRegistrationSelect<ExtArgs> | null
+  select?: Prisma.DomainSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the DomainRegistration
+   * Omit specific fields from the Domain
    */
-  omit?: Prisma.DomainRegistrationOmit<ExtArgs> | null
+  omit?: Prisma.DomainOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.DomainRegistrationInclude<ExtArgs> | null
-  where?: Prisma.DomainRegistrationWhereInput
-  orderBy?: Prisma.DomainRegistrationOrderByWithRelationInput | Prisma.DomainRegistrationOrderByWithRelationInput[]
-  cursor?: Prisma.DomainRegistrationWhereUniqueInput
+  include?: Prisma.DomainInclude<ExtArgs> | null
+  where?: Prisma.DomainWhereInput
+  orderBy?: Prisma.DomainOrderByWithRelationInput | Prisma.DomainOrderByWithRelationInput[]
+  cursor?: Prisma.DomainWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.DomainRegistrationScalarFieldEnum | Prisma.DomainRegistrationScalarFieldEnum[]
+  distinct?: Prisma.DomainScalarFieldEnum | Prisma.DomainScalarFieldEnum[]
 }
 
 /**

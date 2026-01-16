@@ -83,10 +83,10 @@ export const ModelName = {
   TldSettingsActivityLog: 'TldSettingsActivityLog',
   NameserverActivityLog: 'NameserverActivityLog',
   NameserverGroupActivityLog: 'NameserverGroupActivityLog',
-  DomainRegistration: 'DomainRegistration',
+  Domain: 'Domain',
   DomainRenewal: 'DomainRenewal',
   DomainTransfer: 'DomainTransfer',
-  DomainRegistrationActivityLog: 'DomainRegistrationActivityLog',
+  DomainActivityLog: 'DomainActivityLog',
   DomainRenewalActivityLog: 'DomainRenewalActivityLog',
   DomainTransferActivityLog: 'DomainTransferActivityLog',
   CreativeAsset: 'CreativeAsset',
@@ -214,7 +214,7 @@ export const OrderScalarFieldEnum = {
   type: 'type',
   status: 'status',
   description: 'description',
-  domainRegistrationId: 'domainRegistrationId',
+  domainId: 'domainId',
   domainRenewalId: 'domainRenewalId',
   domainTransferId: 'domainTransferId',
   hostingSubscriptionId: 'hostingSubscriptionId',
@@ -564,7 +564,7 @@ export const HostingSubscriptionScalarFieldEnum = {
   pleskFtpLogin: 'pleskFtpLogin',
   pleskFtpPassword: 'pleskFtpPassword',
   primaryDomain: 'primaryDomain',
-  domainRegistrationId: 'domainRegistrationId',
+  domainId: 'domainId',
   operation: 'operation',
   provisioningMethod: 'provisioningMethod',
   status: 'status',
@@ -797,62 +797,35 @@ export const NameserverGroupActivityLogScalarFieldEnum = {
 export type NameserverGroupActivityLogScalarFieldEnum = (typeof NameserverGroupActivityLogScalarFieldEnum)[keyof typeof NameserverGroupActivityLogScalarFieldEnum]
 
 
-export const DomainRegistrationScalarFieldEnum = {
+export const DomainScalarFieldEnum = {
   id: 'id',
   domainName: 'domainName',
+  userId: 'userId',
   teamId: 'teamId',
-  registeredBy: 'registeredBy',
   openProviderId: 'openProviderId',
-  operation: 'operation',
-  authCode: 'authCode',
   activationDate: 'activationDate',
   expirationDate: 'expirationDate',
   renewalDate: 'renewalDate',
-  ownerHandle: 'ownerHandle',
-  adminHandle: 'adminHandle',
-  techHandle: 'techHandle',
-  billingHandle: 'billingHandle',
-  resellerHandle: 'resellerHandle',
   registrationDate: 'registrationDate',
-  expiryDate: 'expiryDate',
-  nextRenewalDate: 'nextRenewalDate',
-  renewalCycle: 'renewalCycle',
-  period: 'period',
-  status: 'status',
   openProviderPrice: 'openProviderPrice',
-  openProviderCurrency: 'openProviderCurrency',
   niscPrice: 'niscPrice',
-  niscCurrency: 'niscCurrency',
-  invoiceNumber: 'invoiceNumber',
-  customerIntegrationId: 'customerIntegrationId',
-  tldSettingId: 'tldSettingId',
-  nameserverGroupId: 'nameserverGroupId',
-  dnsRecords: 'dnsRecords',
-  autoRenew: 'autoRenew',
-  transferRequestedAt: 'transferRequestedAt',
-  transferCompletedAt: 'transferCompletedAt',
-  previousRegistrar: 'previousRegistrar',
+  notes: 'notes',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  customerIntegrationId: 'customerIntegrationId',
+  nameserverGroupId: 'nameserverGroupId'
 } as const
 
-export type DomainRegistrationScalarFieldEnum = (typeof DomainRegistrationScalarFieldEnum)[keyof typeof DomainRegistrationScalarFieldEnum]
+export type DomainScalarFieldEnum = (typeof DomainScalarFieldEnum)[keyof typeof DomainScalarFieldEnum]
 
 
 export const DomainRenewalScalarFieldEnum = {
   id: 'id',
-  domainRegistrationId: 'domainRegistrationId',
+  domainId: 'domainId',
   renewedBy: 'renewedBy',
   renewalDate: 'renewalDate',
-  expiryDate: 'expiryDate',
-  renewalCycle: 'renewalCycle',
-  status: 'status',
   openProviderPrice: 'openProviderPrice',
-  openProviderCurrency: 'openProviderCurrency',
   niscPrice: 'niscPrice',
-  niscCurrency: 'niscCurrency',
-  invoiceNumber: 'invoiceNumber',
-  notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -862,38 +835,27 @@ export type DomainRenewalScalarFieldEnum = (typeof DomainRenewalScalarFieldEnum)
 
 export const DomainTransferScalarFieldEnum = {
   id: 'id',
-  domainRegistrationId: 'domainRegistrationId',
+  domainId: 'domainId',
   transferredBy: 'transferredBy',
   authCode: 'authCode',
   status: 'status',
   transferRequestedAt: 'transferRequestedAt',
   transferCompletedAt: 'transferCompletedAt',
-  previousRegistrar: 'previousRegistrar',
-  previousExpiryDate: 'previousExpiryDate',
-  ownerHandle: 'ownerHandle',
-  adminHandle: 'adminHandle',
-  techHandle: 'techHandle',
-  billingHandle: 'billingHandle',
-  nameserverGroupId: 'nameserverGroupId',
-  autoRenew: 'autoRenew',
   openProviderPrice: 'openProviderPrice',
-  openProviderCurrency: 'openProviderCurrency',
   niscPrice: 'niscPrice',
-  niscCurrency: 'niscCurrency',
-  invoiceNumber: 'invoiceNumber',
   notes: 'notes',
-  failureReason: 'failureReason',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  nameserverGroupId: 'nameserverGroupId'
 } as const
 
 export type DomainTransferScalarFieldEnum = (typeof DomainTransferScalarFieldEnum)[keyof typeof DomainTransferScalarFieldEnum]
 
 
-export const DomainRegistrationActivityLogScalarFieldEnum = {
+export const DomainActivityLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  domainRegistrationId: 'domainRegistrationId',
+  domainId: 'domainId',
   action: 'action',
   description: 'description',
   metadata: 'metadata',
@@ -902,7 +864,7 @@ export const DomainRegistrationActivityLogScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type DomainRegistrationActivityLogScalarFieldEnum = (typeof DomainRegistrationActivityLogScalarFieldEnum)[keyof typeof DomainRegistrationActivityLogScalarFieldEnum]
+export type DomainActivityLogScalarFieldEnum = (typeof DomainActivityLogScalarFieldEnum)[keyof typeof DomainActivityLogScalarFieldEnum]
 
 
 export const DomainRenewalActivityLogScalarFieldEnum = {

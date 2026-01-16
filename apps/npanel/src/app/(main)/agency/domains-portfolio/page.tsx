@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Plus, RefreshCw, Search, Globe } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
@@ -12,6 +13,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 
 export default function DomainsPortfolioPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [limit] = React.useState(100);
   const [offset, setOffset] = React.useState(0);
@@ -107,7 +109,7 @@ export default function DomainsPortfolioPage() {
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
-          <Button onClick={() => {/* TODO: Navigate to domain registration */}}>
+          <Button onClick={() => router.push("/agency/domains")}>
             <Plus className="mr-2 h-4 w-4" />
             Register Domain
           </Button>

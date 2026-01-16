@@ -207,6 +207,7 @@ export default function OrdersPage() {
 			) : (
 				<OrdersList orders={filteredOrders.map(order => ({
 					...order,
+					domainId: order.domainId ?? null,
 					metadata: order.metadata ?? null,
 					processedAt: order.processedAt ? (typeof order.processedAt === 'string' ? new Date(order.processedAt) : order.processedAt) : null,
 					completedAt: order.completedAt ? (typeof order.completedAt === 'string' ? new Date(order.completedAt) : order.completedAt) : null,

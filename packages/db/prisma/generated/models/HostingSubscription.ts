@@ -48,7 +48,7 @@ export type HostingSubscriptionMinAggregateOutputType = {
   pleskFtpLogin: string | null
   pleskFtpPassword: string | null
   primaryDomain: string | null
-  domainRegistrationId: string | null
+  domainId: string | null
   operation: $Enums.HostingOperation | null
   provisioningMethod: $Enums.ProvisioningMethod | null
   status: $Enums.HostingStatus | null
@@ -81,7 +81,7 @@ export type HostingSubscriptionMaxAggregateOutputType = {
   pleskFtpLogin: string | null
   pleskFtpPassword: string | null
   primaryDomain: string | null
-  domainRegistrationId: string | null
+  domainId: string | null
   operation: $Enums.HostingOperation | null
   provisioningMethod: $Enums.ProvisioningMethod | null
   status: $Enums.HostingStatus | null
@@ -114,7 +114,7 @@ export type HostingSubscriptionCountAggregateOutputType = {
   pleskFtpLogin: number
   pleskFtpPassword: number
   primaryDomain: number
-  domainRegistrationId: number
+  domainId: number
   operation: number
   provisioningMethod: number
   status: number
@@ -157,7 +157,7 @@ export type HostingSubscriptionMinAggregateInputType = {
   pleskFtpLogin?: true
   pleskFtpPassword?: true
   primaryDomain?: true
-  domainRegistrationId?: true
+  domainId?: true
   operation?: true
   provisioningMethod?: true
   status?: true
@@ -190,7 +190,7 @@ export type HostingSubscriptionMaxAggregateInputType = {
   pleskFtpLogin?: true
   pleskFtpPassword?: true
   primaryDomain?: true
-  domainRegistrationId?: true
+  domainId?: true
   operation?: true
   provisioningMethod?: true
   status?: true
@@ -223,7 +223,7 @@ export type HostingSubscriptionCountAggregateInputType = {
   pleskFtpLogin?: true
   pleskFtpPassword?: true
   primaryDomain?: true
-  domainRegistrationId?: true
+  domainId?: true
   operation?: true
   provisioningMethod?: true
   status?: true
@@ -343,7 +343,7 @@ export type HostingSubscriptionGroupByOutputType = {
   pleskFtpLogin: string | null
   pleskFtpPassword: string | null
   primaryDomain: string | null
-  domainRegistrationId: string | null
+  domainId: string | null
   operation: $Enums.HostingOperation
   provisioningMethod: $Enums.ProvisioningMethod
   status: $Enums.HostingStatus
@@ -399,7 +399,7 @@ export type HostingSubscriptionWhereInput = {
   pleskFtpLogin?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
   pleskFtpPassword?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
   primaryDomain?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
-  domainRegistrationId?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
+  domainId?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
   operation?: Prisma.EnumHostingOperationFilter<"HostingSubscription"> | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFilter<"HostingSubscription"> | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFilter<"HostingSubscription"> | $Enums.HostingStatus
@@ -417,7 +417,7 @@ export type HostingSubscriptionWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"HostingSubscription"> | Date | string
   hostingPlan?: Prisma.XOR<Prisma.HostingPlanScalarRelationFilter, Prisma.HostingPlanWhereInput>
   team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
-  domainRegistration?: Prisma.XOR<Prisma.DomainRegistrationNullableScalarRelationFilter, Prisma.DomainRegistrationWhereInput> | null
+  domain?: Prisma.XOR<Prisma.DomainNullableScalarRelationFilter, Prisma.DomainWhereInput> | null
   renewals?: Prisma.HostingRenewalListRelationFilter
   orders?: Prisma.OrderListRelationFilter
   orderItems?: Prisma.OrderItemListRelationFilter
@@ -442,7 +442,7 @@ export type HostingSubscriptionOrderByWithRelationInput = {
   pleskFtpLogin?: Prisma.SortOrderInput | Prisma.SortOrder
   pleskFtpPassword?: Prisma.SortOrderInput | Prisma.SortOrder
   primaryDomain?: Prisma.SortOrderInput | Prisma.SortOrder
-  domainRegistrationId?: Prisma.SortOrderInput | Prisma.SortOrder
+  domainId?: Prisma.SortOrderInput | Prisma.SortOrder
   operation?: Prisma.SortOrder
   provisioningMethod?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -460,7 +460,7 @@ export type HostingSubscriptionOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   hostingPlan?: Prisma.HostingPlanOrderByWithRelationInput
   team?: Prisma.TeamOrderByWithRelationInput
-  domainRegistration?: Prisma.DomainRegistrationOrderByWithRelationInput
+  domain?: Prisma.DomainOrderByWithRelationInput
   renewals?: Prisma.HostingRenewalOrderByRelationAggregateInput
   orders?: Prisma.OrderOrderByRelationAggregateInput
   orderItems?: Prisma.OrderItemOrderByRelationAggregateInput
@@ -488,7 +488,7 @@ export type HostingSubscriptionWhereUniqueInput = Prisma.AtLeast<{
   pleskFtpLogin?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
   pleskFtpPassword?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
   primaryDomain?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
-  domainRegistrationId?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
+  domainId?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
   operation?: Prisma.EnumHostingOperationFilter<"HostingSubscription"> | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFilter<"HostingSubscription"> | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFilter<"HostingSubscription"> | $Enums.HostingStatus
@@ -506,7 +506,7 @@ export type HostingSubscriptionWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"HostingSubscription"> | Date | string
   hostingPlan?: Prisma.XOR<Prisma.HostingPlanScalarRelationFilter, Prisma.HostingPlanWhereInput>
   team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
-  domainRegistration?: Prisma.XOR<Prisma.DomainRegistrationNullableScalarRelationFilter, Prisma.DomainRegistrationWhereInput> | null
+  domain?: Prisma.XOR<Prisma.DomainNullableScalarRelationFilter, Prisma.DomainWhereInput> | null
   renewals?: Prisma.HostingRenewalListRelationFilter
   orders?: Prisma.OrderListRelationFilter
   orderItems?: Prisma.OrderItemListRelationFilter
@@ -531,7 +531,7 @@ export type HostingSubscriptionOrderByWithAggregationInput = {
   pleskFtpLogin?: Prisma.SortOrderInput | Prisma.SortOrder
   pleskFtpPassword?: Prisma.SortOrderInput | Prisma.SortOrder
   primaryDomain?: Prisma.SortOrderInput | Prisma.SortOrder
-  domainRegistrationId?: Prisma.SortOrderInput | Prisma.SortOrder
+  domainId?: Prisma.SortOrderInput | Prisma.SortOrder
   operation?: Prisma.SortOrder
   provisioningMethod?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -572,7 +572,7 @@ export type HostingSubscriptionScalarWhereWithAggregatesInput = {
   pleskFtpLogin?: Prisma.StringNullableWithAggregatesFilter<"HostingSubscription"> | string | null
   pleskFtpPassword?: Prisma.StringNullableWithAggregatesFilter<"HostingSubscription"> | string | null
   primaryDomain?: Prisma.StringNullableWithAggregatesFilter<"HostingSubscription"> | string | null
-  domainRegistrationId?: Prisma.StringNullableWithAggregatesFilter<"HostingSubscription"> | string | null
+  domainId?: Prisma.StringNullableWithAggregatesFilter<"HostingSubscription"> | string | null
   operation?: Prisma.EnumHostingOperationWithAggregatesFilter<"HostingSubscription"> | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodWithAggregatesFilter<"HostingSubscription"> | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusWithAggregatesFilter<"HostingSubscription"> | $Enums.HostingStatus
@@ -619,7 +619,7 @@ export type HostingSubscriptionCreateInput = {
   updatedAt: Date | string
   hostingPlan: Prisma.HostingPlanCreateNestedOneWithoutSubscriptionsInput
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  domain?: Prisma.DomainCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
@@ -644,7 +644,7 @@ export type HostingSubscriptionUncheckedCreateInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -697,7 +697,7 @@ export type HostingSubscriptionUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   hostingPlan?: Prisma.HostingPlanUpdateOneRequiredWithoutSubscriptionsNestedInput
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
@@ -722,7 +722,7 @@ export type HostingSubscriptionUncheckedUpdateInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -761,7 +761,7 @@ export type HostingSubscriptionCreateManyInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -823,7 +823,7 @@ export type HostingSubscriptionUncheckedUpdateManyInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -871,7 +871,7 @@ export type HostingSubscriptionCountOrderByAggregateInput = {
   pleskFtpLogin?: Prisma.SortOrder
   pleskFtpPassword?: Prisma.SortOrder
   primaryDomain?: Prisma.SortOrder
-  domainRegistrationId?: Prisma.SortOrder
+  domainId?: Prisma.SortOrder
   operation?: Prisma.SortOrder
   provisioningMethod?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -908,7 +908,7 @@ export type HostingSubscriptionMaxOrderByAggregateInput = {
   pleskFtpLogin?: Prisma.SortOrder
   pleskFtpPassword?: Prisma.SortOrder
   primaryDomain?: Prisma.SortOrder
-  domainRegistrationId?: Prisma.SortOrder
+  domainId?: Prisma.SortOrder
   operation?: Prisma.SortOrder
   provisioningMethod?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -941,7 +941,7 @@ export type HostingSubscriptionMinOrderByAggregateInput = {
   pleskFtpLogin?: Prisma.SortOrder
   pleskFtpPassword?: Prisma.SortOrder
   primaryDomain?: Prisma.SortOrder
-  domainRegistrationId?: Prisma.SortOrder
+  domainId?: Prisma.SortOrder
   operation?: Prisma.SortOrder
   provisioningMethod?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -1182,45 +1182,45 @@ export type HostingSubscriptionUpdateOneRequiredWithoutActivityLogsNestedInput =
   update?: Prisma.XOR<Prisma.XOR<Prisma.HostingSubscriptionUpdateToOneWithWhereWithoutActivityLogsInput, Prisma.HostingSubscriptionUpdateWithoutActivityLogsInput>, Prisma.HostingSubscriptionUncheckedUpdateWithoutActivityLogsInput>
 }
 
-export type HostingSubscriptionCreateNestedManyWithoutDomainRegistrationInput = {
-  create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainRegistrationInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput> | Prisma.HostingSubscriptionCreateWithoutDomainRegistrationInput[] | Prisma.HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput[]
-  connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutDomainRegistrationInput | Prisma.HostingSubscriptionCreateOrConnectWithoutDomainRegistrationInput[]
-  createMany?: Prisma.HostingSubscriptionCreateManyDomainRegistrationInputEnvelope
+export type HostingSubscriptionCreateNestedManyWithoutDomainInput = {
+  create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainInput> | Prisma.HostingSubscriptionCreateWithoutDomainInput[] | Prisma.HostingSubscriptionUncheckedCreateWithoutDomainInput[]
+  connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutDomainInput | Prisma.HostingSubscriptionCreateOrConnectWithoutDomainInput[]
+  createMany?: Prisma.HostingSubscriptionCreateManyDomainInputEnvelope
   connect?: Prisma.HostingSubscriptionWhereUniqueInput | Prisma.HostingSubscriptionWhereUniqueInput[]
 }
 
-export type HostingSubscriptionUncheckedCreateNestedManyWithoutDomainRegistrationInput = {
-  create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainRegistrationInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput> | Prisma.HostingSubscriptionCreateWithoutDomainRegistrationInput[] | Prisma.HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput[]
-  connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutDomainRegistrationInput | Prisma.HostingSubscriptionCreateOrConnectWithoutDomainRegistrationInput[]
-  createMany?: Prisma.HostingSubscriptionCreateManyDomainRegistrationInputEnvelope
+export type HostingSubscriptionUncheckedCreateNestedManyWithoutDomainInput = {
+  create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainInput> | Prisma.HostingSubscriptionCreateWithoutDomainInput[] | Prisma.HostingSubscriptionUncheckedCreateWithoutDomainInput[]
+  connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutDomainInput | Prisma.HostingSubscriptionCreateOrConnectWithoutDomainInput[]
+  createMany?: Prisma.HostingSubscriptionCreateManyDomainInputEnvelope
   connect?: Prisma.HostingSubscriptionWhereUniqueInput | Prisma.HostingSubscriptionWhereUniqueInput[]
 }
 
-export type HostingSubscriptionUpdateManyWithoutDomainRegistrationNestedInput = {
-  create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainRegistrationInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput> | Prisma.HostingSubscriptionCreateWithoutDomainRegistrationInput[] | Prisma.HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput[]
-  connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutDomainRegistrationInput | Prisma.HostingSubscriptionCreateOrConnectWithoutDomainRegistrationInput[]
-  upsert?: Prisma.HostingSubscriptionUpsertWithWhereUniqueWithoutDomainRegistrationInput | Prisma.HostingSubscriptionUpsertWithWhereUniqueWithoutDomainRegistrationInput[]
-  createMany?: Prisma.HostingSubscriptionCreateManyDomainRegistrationInputEnvelope
+export type HostingSubscriptionUpdateManyWithoutDomainNestedInput = {
+  create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainInput> | Prisma.HostingSubscriptionCreateWithoutDomainInput[] | Prisma.HostingSubscriptionUncheckedCreateWithoutDomainInput[]
+  connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutDomainInput | Prisma.HostingSubscriptionCreateOrConnectWithoutDomainInput[]
+  upsert?: Prisma.HostingSubscriptionUpsertWithWhereUniqueWithoutDomainInput | Prisma.HostingSubscriptionUpsertWithWhereUniqueWithoutDomainInput[]
+  createMany?: Prisma.HostingSubscriptionCreateManyDomainInputEnvelope
   set?: Prisma.HostingSubscriptionWhereUniqueInput | Prisma.HostingSubscriptionWhereUniqueInput[]
   disconnect?: Prisma.HostingSubscriptionWhereUniqueInput | Prisma.HostingSubscriptionWhereUniqueInput[]
   delete?: Prisma.HostingSubscriptionWhereUniqueInput | Prisma.HostingSubscriptionWhereUniqueInput[]
   connect?: Prisma.HostingSubscriptionWhereUniqueInput | Prisma.HostingSubscriptionWhereUniqueInput[]
-  update?: Prisma.HostingSubscriptionUpdateWithWhereUniqueWithoutDomainRegistrationInput | Prisma.HostingSubscriptionUpdateWithWhereUniqueWithoutDomainRegistrationInput[]
-  updateMany?: Prisma.HostingSubscriptionUpdateManyWithWhereWithoutDomainRegistrationInput | Prisma.HostingSubscriptionUpdateManyWithWhereWithoutDomainRegistrationInput[]
+  update?: Prisma.HostingSubscriptionUpdateWithWhereUniqueWithoutDomainInput | Prisma.HostingSubscriptionUpdateWithWhereUniqueWithoutDomainInput[]
+  updateMany?: Prisma.HostingSubscriptionUpdateManyWithWhereWithoutDomainInput | Prisma.HostingSubscriptionUpdateManyWithWhereWithoutDomainInput[]
   deleteMany?: Prisma.HostingSubscriptionScalarWhereInput | Prisma.HostingSubscriptionScalarWhereInput[]
 }
 
-export type HostingSubscriptionUncheckedUpdateManyWithoutDomainRegistrationNestedInput = {
-  create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainRegistrationInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput> | Prisma.HostingSubscriptionCreateWithoutDomainRegistrationInput[] | Prisma.HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput[]
-  connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutDomainRegistrationInput | Prisma.HostingSubscriptionCreateOrConnectWithoutDomainRegistrationInput[]
-  upsert?: Prisma.HostingSubscriptionUpsertWithWhereUniqueWithoutDomainRegistrationInput | Prisma.HostingSubscriptionUpsertWithWhereUniqueWithoutDomainRegistrationInput[]
-  createMany?: Prisma.HostingSubscriptionCreateManyDomainRegistrationInputEnvelope
+export type HostingSubscriptionUncheckedUpdateManyWithoutDomainNestedInput = {
+  create?: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainInput> | Prisma.HostingSubscriptionCreateWithoutDomainInput[] | Prisma.HostingSubscriptionUncheckedCreateWithoutDomainInput[]
+  connectOrCreate?: Prisma.HostingSubscriptionCreateOrConnectWithoutDomainInput | Prisma.HostingSubscriptionCreateOrConnectWithoutDomainInput[]
+  upsert?: Prisma.HostingSubscriptionUpsertWithWhereUniqueWithoutDomainInput | Prisma.HostingSubscriptionUpsertWithWhereUniqueWithoutDomainInput[]
+  createMany?: Prisma.HostingSubscriptionCreateManyDomainInputEnvelope
   set?: Prisma.HostingSubscriptionWhereUniqueInput | Prisma.HostingSubscriptionWhereUniqueInput[]
   disconnect?: Prisma.HostingSubscriptionWhereUniqueInput | Prisma.HostingSubscriptionWhereUniqueInput[]
   delete?: Prisma.HostingSubscriptionWhereUniqueInput | Prisma.HostingSubscriptionWhereUniqueInput[]
   connect?: Prisma.HostingSubscriptionWhereUniqueInput | Prisma.HostingSubscriptionWhereUniqueInput[]
-  update?: Prisma.HostingSubscriptionUpdateWithWhereUniqueWithoutDomainRegistrationInput | Prisma.HostingSubscriptionUpdateWithWhereUniqueWithoutDomainRegistrationInput[]
-  updateMany?: Prisma.HostingSubscriptionUpdateManyWithWhereWithoutDomainRegistrationInput | Prisma.HostingSubscriptionUpdateManyWithWhereWithoutDomainRegistrationInput[]
+  update?: Prisma.HostingSubscriptionUpdateWithWhereUniqueWithoutDomainInput | Prisma.HostingSubscriptionUpdateWithWhereUniqueWithoutDomainInput[]
+  updateMany?: Prisma.HostingSubscriptionUpdateManyWithWhereWithoutDomainInput | Prisma.HostingSubscriptionUpdateManyWithWhereWithoutDomainInput[]
   deleteMany?: Prisma.HostingSubscriptionScalarWhereInput | Prisma.HostingSubscriptionScalarWhereInput[]
 }
 
@@ -1269,7 +1269,7 @@ export type HostingSubscriptionCreateWithoutCustomerIntegrationInput = {
   updatedAt: Date | string
   hostingPlan: Prisma.HostingPlanCreateNestedOneWithoutSubscriptionsInput
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  domain?: Prisma.DomainCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
@@ -1293,7 +1293,7 @@ export type HostingSubscriptionUncheckedCreateWithoutCustomerIntegrationInput = 
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -1360,7 +1360,7 @@ export type HostingSubscriptionScalarWhereInput = {
   pleskFtpLogin?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
   pleskFtpPassword?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
   primaryDomain?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
-  domainRegistrationId?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
+  domainId?: Prisma.StringNullableFilter<"HostingSubscription"> | string | null
   operation?: Prisma.EnumHostingOperationFilter<"HostingSubscription"> | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFilter<"HostingSubscription"> | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFilter<"HostingSubscription"> | $Enums.HostingStatus
@@ -1407,7 +1407,7 @@ export type HostingSubscriptionCreateWithoutWordpressInstancesInput = {
   updatedAt: Date | string
   hostingPlan: Prisma.HostingPlanCreateNestedOneWithoutSubscriptionsInput
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  domain?: Prisma.DomainCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
@@ -1431,7 +1431,7 @@ export type HostingSubscriptionUncheckedCreateWithoutWordpressInstancesInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -1499,7 +1499,7 @@ export type HostingSubscriptionUpdateWithoutWordpressInstancesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   hostingPlan?: Prisma.HostingPlanUpdateOneRequiredWithoutSubscriptionsNestedInput
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
@@ -1523,7 +1523,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutWordpressInstancesInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -1575,7 +1575,7 @@ export type HostingSubscriptionCreateWithoutOrdersInput = {
   updatedAt: Date | string
   hostingPlan: Prisma.HostingPlanCreateNestedOneWithoutSubscriptionsInput
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  domain?: Prisma.DomainCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
@@ -1599,7 +1599,7 @@ export type HostingSubscriptionUncheckedCreateWithoutOrdersInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -1667,7 +1667,7 @@ export type HostingSubscriptionUpdateWithoutOrdersInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   hostingPlan?: Prisma.HostingPlanUpdateOneRequiredWithoutSubscriptionsNestedInput
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
@@ -1691,7 +1691,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutOrdersInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -1743,7 +1743,7 @@ export type HostingSubscriptionCreateWithoutOrderItemsInput = {
   updatedAt: Date | string
   hostingPlan: Prisma.HostingPlanCreateNestedOneWithoutSubscriptionsInput
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  domain?: Prisma.DomainCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
@@ -1767,7 +1767,7 @@ export type HostingSubscriptionUncheckedCreateWithoutOrderItemsInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -1835,7 +1835,7 @@ export type HostingSubscriptionUpdateWithoutOrderItemsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   hostingPlan?: Prisma.HostingPlanUpdateOneRequiredWithoutSubscriptionsNestedInput
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
@@ -1859,7 +1859,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutOrderItemsInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -1910,7 +1910,7 @@ export type HostingSubscriptionCreateWithoutTeamInput = {
   createdAt: Date | string
   updatedAt: Date | string
   hostingPlan: Prisma.HostingPlanCreateNestedOneWithoutSubscriptionsInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  domain?: Prisma.DomainCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
@@ -1934,7 +1934,7 @@ export type HostingSubscriptionUncheckedCreateWithoutTeamInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -2012,7 +2012,7 @@ export type HostingSubscriptionCreateWithoutHostingPlanInput = {
   createdAt: Date | string
   updatedAt: Date | string
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  domain?: Prisma.DomainCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
@@ -2036,7 +2036,7 @@ export type HostingSubscriptionUncheckedCreateWithoutHostingPlanInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -2115,7 +2115,7 @@ export type HostingSubscriptionCreateWithoutRenewalsInput = {
   updatedAt: Date | string
   hostingPlan: Prisma.HostingPlanCreateNestedOneWithoutSubscriptionsInput
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  domain?: Prisma.DomainCreateNestedOneWithoutHostingSubscriptionsInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
   customerIntegration?: Prisma.CustomerIntegrationCreateNestedOneWithoutHostingSubscriptionsInput
@@ -2139,7 +2139,7 @@ export type HostingSubscriptionUncheckedCreateWithoutRenewalsInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -2207,7 +2207,7 @@ export type HostingSubscriptionUpdateWithoutRenewalsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   hostingPlan?: Prisma.HostingPlanUpdateOneRequiredWithoutSubscriptionsNestedInput
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutHostingSubscriptionsNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
   customerIntegration?: Prisma.CustomerIntegrationUpdateOneWithoutHostingSubscriptionsNestedInput
@@ -2231,7 +2231,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutRenewalsInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -2283,7 +2283,7 @@ export type HostingSubscriptionCreateWithoutActivityLogsInput = {
   updatedAt: Date | string
   hostingPlan: Prisma.HostingPlanCreateNestedOneWithoutSubscriptionsInput
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  domain?: Prisma.DomainCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
@@ -2307,7 +2307,7 @@ export type HostingSubscriptionUncheckedCreateWithoutActivityLogsInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -2375,7 +2375,7 @@ export type HostingSubscriptionUpdateWithoutActivityLogsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   hostingPlan?: Prisma.HostingPlanUpdateOneRequiredWithoutSubscriptionsNestedInput
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
@@ -2399,7 +2399,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutActivityLogsInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -2422,7 +2422,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutActivityLogsInput = {
   serviceSubscription?: Prisma.ServiceSubscriptionUncheckedUpdateOneWithoutHostingSubscriptionNestedInput
 }
 
-export type HostingSubscriptionCreateWithoutDomainRegistrationInput = {
+export type HostingSubscriptionCreateWithoutDomainInput = {
   id: string
   provisionedBy?: string | null
   pleskFilterId: string
@@ -2460,7 +2460,7 @@ export type HostingSubscriptionCreateWithoutDomainRegistrationInput = {
   serviceSubscription?: Prisma.ServiceSubscriptionCreateNestedOneWithoutHostingSubscriptionInput
 }
 
-export type HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput = {
+export type HostingSubscriptionUncheckedCreateWithoutDomainInput = {
   id: string
   hostingPlanId: string
   teamId?: string | null
@@ -2498,30 +2498,30 @@ export type HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput = {
   serviceSubscription?: Prisma.ServiceSubscriptionUncheckedCreateNestedOneWithoutHostingSubscriptionInput
 }
 
-export type HostingSubscriptionCreateOrConnectWithoutDomainRegistrationInput = {
+export type HostingSubscriptionCreateOrConnectWithoutDomainInput = {
   where: Prisma.HostingSubscriptionWhereUniqueInput
-  create: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainRegistrationInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput>
+  create: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainInput>
 }
 
-export type HostingSubscriptionCreateManyDomainRegistrationInputEnvelope = {
-  data: Prisma.HostingSubscriptionCreateManyDomainRegistrationInput | Prisma.HostingSubscriptionCreateManyDomainRegistrationInput[]
+export type HostingSubscriptionCreateManyDomainInputEnvelope = {
+  data: Prisma.HostingSubscriptionCreateManyDomainInput | Prisma.HostingSubscriptionCreateManyDomainInput[]
   skipDuplicates?: boolean
 }
 
-export type HostingSubscriptionUpsertWithWhereUniqueWithoutDomainRegistrationInput = {
+export type HostingSubscriptionUpsertWithWhereUniqueWithoutDomainInput = {
   where: Prisma.HostingSubscriptionWhereUniqueInput
-  update: Prisma.XOR<Prisma.HostingSubscriptionUpdateWithoutDomainRegistrationInput, Prisma.HostingSubscriptionUncheckedUpdateWithoutDomainRegistrationInput>
-  create: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainRegistrationInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainRegistrationInput>
+  update: Prisma.XOR<Prisma.HostingSubscriptionUpdateWithoutDomainInput, Prisma.HostingSubscriptionUncheckedUpdateWithoutDomainInput>
+  create: Prisma.XOR<Prisma.HostingSubscriptionCreateWithoutDomainInput, Prisma.HostingSubscriptionUncheckedCreateWithoutDomainInput>
 }
 
-export type HostingSubscriptionUpdateWithWhereUniqueWithoutDomainRegistrationInput = {
+export type HostingSubscriptionUpdateWithWhereUniqueWithoutDomainInput = {
   where: Prisma.HostingSubscriptionWhereUniqueInput
-  data: Prisma.XOR<Prisma.HostingSubscriptionUpdateWithoutDomainRegistrationInput, Prisma.HostingSubscriptionUncheckedUpdateWithoutDomainRegistrationInput>
+  data: Prisma.XOR<Prisma.HostingSubscriptionUpdateWithoutDomainInput, Prisma.HostingSubscriptionUncheckedUpdateWithoutDomainInput>
 }
 
-export type HostingSubscriptionUpdateManyWithWhereWithoutDomainRegistrationInput = {
+export type HostingSubscriptionUpdateManyWithWhereWithoutDomainInput = {
   where: Prisma.HostingSubscriptionScalarWhereInput
-  data: Prisma.XOR<Prisma.HostingSubscriptionUpdateManyMutationInput, Prisma.HostingSubscriptionUncheckedUpdateManyWithoutDomainRegistrationInput>
+  data: Prisma.XOR<Prisma.HostingSubscriptionUpdateManyMutationInput, Prisma.HostingSubscriptionUncheckedUpdateManyWithoutDomainInput>
 }
 
 export type HostingSubscriptionCreateWithoutServiceSubscriptionInput = {
@@ -2553,7 +2553,7 @@ export type HostingSubscriptionCreateWithoutServiceSubscriptionInput = {
   updatedAt: Date | string
   hostingPlan: Prisma.HostingPlanCreateNestedOneWithoutSubscriptionsInput
   team?: Prisma.TeamCreateNestedOneWithoutHostingSubscriptionsInput
-  domainRegistration?: Prisma.DomainRegistrationCreateNestedOneWithoutHostingSubscriptionsInput
+  domain?: Prisma.DomainCreateNestedOneWithoutHostingSubscriptionsInput
   renewals?: Prisma.HostingRenewalCreateNestedManyWithoutHostingSubscriptionInput
   orders?: Prisma.OrderCreateNestedManyWithoutHostingSubscriptionInput
   orderItems?: Prisma.OrderItemCreateNestedManyWithoutHostingSubscriptionInput
@@ -2577,7 +2577,7 @@ export type HostingSubscriptionUncheckedCreateWithoutServiceSubscriptionInput = 
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -2645,7 +2645,7 @@ export type HostingSubscriptionUpdateWithoutServiceSubscriptionInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   hostingPlan?: Prisma.HostingPlanUpdateOneRequiredWithoutSubscriptionsNestedInput
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
@@ -2669,7 +2669,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutServiceSubscriptionInput = 
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -2707,7 +2707,7 @@ export type HostingSubscriptionCreateManyCustomerIntegrationInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -2753,7 +2753,7 @@ export type HostingSubscriptionUpdateWithoutCustomerIntegrationInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   hostingPlan?: Prisma.HostingPlanUpdateOneRequiredWithoutSubscriptionsNestedInput
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
@@ -2777,7 +2777,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutCustomerIntegrationInput = 
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -2815,7 +2815,7 @@ export type HostingSubscriptionUncheckedUpdateManyWithoutCustomerIntegrationInpu
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -2846,7 +2846,7 @@ export type HostingSubscriptionCreateManyTeamInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -2892,7 +2892,7 @@ export type HostingSubscriptionUpdateWithoutTeamInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   hostingPlan?: Prisma.HostingPlanUpdateOneRequiredWithoutSubscriptionsNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
@@ -2916,7 +2916,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutTeamInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -2954,7 +2954,7 @@ export type HostingSubscriptionUncheckedUpdateManyWithoutTeamInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -2986,7 +2986,7 @@ export type HostingSubscriptionCreateManyHostingPlanInput = {
   pleskFtpLogin?: string | null
   pleskFtpPassword?: string | null
   primaryDomain?: string | null
-  domainRegistrationId?: string | null
+  domainId?: string | null
   operation?: $Enums.HostingOperation
   provisioningMethod?: $Enums.ProvisioningMethod
   status?: $Enums.HostingStatus
@@ -3032,7 +3032,7 @@ export type HostingSubscriptionUpdateWithoutHostingPlanInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneWithoutHostingSubscriptionsNestedInput
-  domainRegistration?: Prisma.DomainRegistrationUpdateOneWithoutHostingSubscriptionsNestedInput
+  domain?: Prisma.DomainUpdateOneWithoutHostingSubscriptionsNestedInput
   renewals?: Prisma.HostingRenewalUpdateManyWithoutHostingSubscriptionNestedInput
   orders?: Prisma.OrderUpdateManyWithoutHostingSubscriptionNestedInput
   orderItems?: Prisma.OrderItemUpdateManyWithoutHostingSubscriptionNestedInput
@@ -3056,7 +3056,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutHostingPlanInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -3094,7 +3094,7 @@ export type HostingSubscriptionUncheckedUpdateManyWithoutHostingPlanInput = {
   pleskFtpLogin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFtpPassword?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryDomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  domainRegistrationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  domainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   operation?: Prisma.EnumHostingOperationFieldUpdateOperationsInput | $Enums.HostingOperation
   provisioningMethod?: Prisma.EnumProvisioningMethodFieldUpdateOperationsInput | $Enums.ProvisioningMethod
   status?: Prisma.EnumHostingStatusFieldUpdateOperationsInput | $Enums.HostingStatus
@@ -3112,7 +3112,7 @@ export type HostingSubscriptionUncheckedUpdateManyWithoutHostingPlanInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type HostingSubscriptionCreateManyDomainRegistrationInput = {
+export type HostingSubscriptionCreateManyDomainInput = {
   id: string
   hostingPlanId: string
   teamId?: string | null
@@ -3144,7 +3144,7 @@ export type HostingSubscriptionCreateManyDomainRegistrationInput = {
   updatedAt: Date | string
 }
 
-export type HostingSubscriptionUpdateWithoutDomainRegistrationInput = {
+export type HostingSubscriptionUpdateWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   provisionedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pleskFilterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -3182,7 +3182,7 @@ export type HostingSubscriptionUpdateWithoutDomainRegistrationInput = {
   serviceSubscription?: Prisma.ServiceSubscriptionUpdateOneWithoutHostingSubscriptionNestedInput
 }
 
-export type HostingSubscriptionUncheckedUpdateWithoutDomainRegistrationInput = {
+export type HostingSubscriptionUncheckedUpdateWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   hostingPlanId?: Prisma.StringFieldUpdateOperationsInput | string
   teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3220,7 +3220,7 @@ export type HostingSubscriptionUncheckedUpdateWithoutDomainRegistrationInput = {
   serviceSubscription?: Prisma.ServiceSubscriptionUncheckedUpdateOneWithoutHostingSubscriptionNestedInput
 }
 
-export type HostingSubscriptionUncheckedUpdateManyWithoutDomainRegistrationInput = {
+export type HostingSubscriptionUncheckedUpdateManyWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   hostingPlanId?: Prisma.StringFieldUpdateOperationsInput | string
   teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3334,7 +3334,7 @@ export type HostingSubscriptionSelect<ExtArgs extends runtime.Types.Extensions.I
   pleskFtpLogin?: boolean
   pleskFtpPassword?: boolean
   primaryDomain?: boolean
-  domainRegistrationId?: boolean
+  domainId?: boolean
   operation?: boolean
   provisioningMethod?: boolean
   status?: boolean
@@ -3352,7 +3352,7 @@ export type HostingSubscriptionSelect<ExtArgs extends runtime.Types.Extensions.I
   updatedAt?: boolean
   hostingPlan?: boolean | Prisma.HostingPlanDefaultArgs<ExtArgs>
   team?: boolean | Prisma.HostingSubscription$teamArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.HostingSubscription$domainArgs<ExtArgs>
   renewals?: boolean | Prisma.HostingSubscription$renewalsArgs<ExtArgs>
   orders?: boolean | Prisma.HostingSubscription$ordersArgs<ExtArgs>
   orderItems?: boolean | Prisma.HostingSubscription$orderItemsArgs<ExtArgs>
@@ -3378,7 +3378,7 @@ export type HostingSubscriptionSelectCreateManyAndReturn<ExtArgs extends runtime
   pleskFtpLogin?: boolean
   pleskFtpPassword?: boolean
   primaryDomain?: boolean
-  domainRegistrationId?: boolean
+  domainId?: boolean
   operation?: boolean
   provisioningMethod?: boolean
   status?: boolean
@@ -3396,7 +3396,7 @@ export type HostingSubscriptionSelectCreateManyAndReturn<ExtArgs extends runtime
   updatedAt?: boolean
   hostingPlan?: boolean | Prisma.HostingPlanDefaultArgs<ExtArgs>
   team?: boolean | Prisma.HostingSubscription$teamArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.HostingSubscription$domainArgs<ExtArgs>
   customerIntegration?: boolean | Prisma.HostingSubscription$customerIntegrationArgs<ExtArgs>
 }, ExtArgs["result"]["hostingSubscription"]>
 
@@ -3415,7 +3415,7 @@ export type HostingSubscriptionSelectUpdateManyAndReturn<ExtArgs extends runtime
   pleskFtpLogin?: boolean
   pleskFtpPassword?: boolean
   primaryDomain?: boolean
-  domainRegistrationId?: boolean
+  domainId?: boolean
   operation?: boolean
   provisioningMethod?: boolean
   status?: boolean
@@ -3433,7 +3433,7 @@ export type HostingSubscriptionSelectUpdateManyAndReturn<ExtArgs extends runtime
   updatedAt?: boolean
   hostingPlan?: boolean | Prisma.HostingPlanDefaultArgs<ExtArgs>
   team?: boolean | Prisma.HostingSubscription$teamArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.HostingSubscription$domainArgs<ExtArgs>
   customerIntegration?: boolean | Prisma.HostingSubscription$customerIntegrationArgs<ExtArgs>
 }, ExtArgs["result"]["hostingSubscription"]>
 
@@ -3452,7 +3452,7 @@ export type HostingSubscriptionSelectScalar = {
   pleskFtpLogin?: boolean
   pleskFtpPassword?: boolean
   primaryDomain?: boolean
-  domainRegistrationId?: boolean
+  domainId?: boolean
   operation?: boolean
   provisioningMethod?: boolean
   status?: boolean
@@ -3470,11 +3470,11 @@ export type HostingSubscriptionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type HostingSubscriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "hostingPlanId" | "teamId" | "provisionedBy" | "pleskFilterId" | "pleskOwnerId" | "pleskServiceId" | "pleskName" | "pleskStatus" | "pleskDescription" | "pleskAdminDescription" | "pleskFtpLogin" | "pleskFtpPassword" | "primaryDomain" | "domainRegistrationId" | "operation" | "provisioningMethod" | "status" | "hostingType" | "billingCycle" | "nextRenewalDate" | "expiryDate" | "niscPrice" | "niscCurrency" | "invoiceNumber" | "customerIntegrationId" | "notes" | "autoRenew" | "createdAt" | "updatedAt", ExtArgs["result"]["hostingSubscription"]>
+export type HostingSubscriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "hostingPlanId" | "teamId" | "provisionedBy" | "pleskFilterId" | "pleskOwnerId" | "pleskServiceId" | "pleskName" | "pleskStatus" | "pleskDescription" | "pleskAdminDescription" | "pleskFtpLogin" | "pleskFtpPassword" | "primaryDomain" | "domainId" | "operation" | "provisioningMethod" | "status" | "hostingType" | "billingCycle" | "nextRenewalDate" | "expiryDate" | "niscPrice" | "niscCurrency" | "invoiceNumber" | "customerIntegrationId" | "notes" | "autoRenew" | "createdAt" | "updatedAt", ExtArgs["result"]["hostingSubscription"]>
 export type HostingSubscriptionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   hostingPlan?: boolean | Prisma.HostingPlanDefaultArgs<ExtArgs>
   team?: boolean | Prisma.HostingSubscription$teamArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.HostingSubscription$domainArgs<ExtArgs>
   renewals?: boolean | Prisma.HostingSubscription$renewalsArgs<ExtArgs>
   orders?: boolean | Prisma.HostingSubscription$ordersArgs<ExtArgs>
   orderItems?: boolean | Prisma.HostingSubscription$orderItemsArgs<ExtArgs>
@@ -3487,13 +3487,13 @@ export type HostingSubscriptionInclude<ExtArgs extends runtime.Types.Extensions.
 export type HostingSubscriptionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   hostingPlan?: boolean | Prisma.HostingPlanDefaultArgs<ExtArgs>
   team?: boolean | Prisma.HostingSubscription$teamArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.HostingSubscription$domainArgs<ExtArgs>
   customerIntegration?: boolean | Prisma.HostingSubscription$customerIntegrationArgs<ExtArgs>
 }
 export type HostingSubscriptionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   hostingPlan?: boolean | Prisma.HostingPlanDefaultArgs<ExtArgs>
   team?: boolean | Prisma.HostingSubscription$teamArgs<ExtArgs>
-  domainRegistration?: boolean | Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs>
+  domain?: boolean | Prisma.HostingSubscription$domainArgs<ExtArgs>
   customerIntegration?: boolean | Prisma.HostingSubscription$customerIntegrationArgs<ExtArgs>
 }
 
@@ -3502,7 +3502,7 @@ export type $HostingSubscriptionPayload<ExtArgs extends runtime.Types.Extensions
   objects: {
     hostingPlan: Prisma.$HostingPlanPayload<ExtArgs>
     team: Prisma.$TeamPayload<ExtArgs> | null
-    domainRegistration: Prisma.$DomainRegistrationPayload<ExtArgs> | null
+    domain: Prisma.$DomainPayload<ExtArgs> | null
     renewals: Prisma.$HostingRenewalPayload<ExtArgs>[]
     orders: Prisma.$OrderPayload<ExtArgs>[]
     orderItems: Prisma.$OrderItemPayload<ExtArgs>[]
@@ -3526,7 +3526,7 @@ export type $HostingSubscriptionPayload<ExtArgs extends runtime.Types.Extensions
     pleskFtpLogin: string | null
     pleskFtpPassword: string | null
     primaryDomain: string | null
-    domainRegistrationId: string | null
+    domainId: string | null
     operation: $Enums.HostingOperation
     provisioningMethod: $Enums.ProvisioningMethod
     status: $Enums.HostingStatus
@@ -3938,7 +3938,7 @@ export interface Prisma__HostingSubscriptionClient<T, Null = never, ExtArgs exte
   readonly [Symbol.toStringTag]: "PrismaPromise"
   hostingPlan<T extends Prisma.HostingPlanDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingPlanDefaultArgs<ExtArgs>>): Prisma.Prisma__HostingPlanClient<runtime.Types.Result.GetResult<Prisma.$HostingPlanPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   team<T extends Prisma.HostingSubscription$teamArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$teamArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  domainRegistration<T extends Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$domainRegistrationArgs<ExtArgs>>): Prisma.Prisma__DomainRegistrationClient<runtime.Types.Result.GetResult<Prisma.$DomainRegistrationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  domain<T extends Prisma.HostingSubscription$domainArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$domainArgs<ExtArgs>>): Prisma.Prisma__DomainClient<runtime.Types.Result.GetResult<Prisma.$DomainPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   renewals<T extends Prisma.HostingSubscription$renewalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$renewalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$HostingRenewalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   orders<T extends Prisma.HostingSubscription$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   orderItems<T extends Prisma.HostingSubscription$orderItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HostingSubscription$orderItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -3989,7 +3989,7 @@ export interface HostingSubscriptionFieldRefs {
   readonly pleskFtpLogin: Prisma.FieldRef<"HostingSubscription", 'String'>
   readonly pleskFtpPassword: Prisma.FieldRef<"HostingSubscription", 'String'>
   readonly primaryDomain: Prisma.FieldRef<"HostingSubscription", 'String'>
-  readonly domainRegistrationId: Prisma.FieldRef<"HostingSubscription", 'String'>
+  readonly domainId: Prisma.FieldRef<"HostingSubscription", 'String'>
   readonly operation: Prisma.FieldRef<"HostingSubscription", 'HostingOperation'>
   readonly provisioningMethod: Prisma.FieldRef<"HostingSubscription", 'ProvisioningMethod'>
   readonly status: Prisma.FieldRef<"HostingSubscription", 'HostingStatus'>
@@ -4420,22 +4420,22 @@ export type HostingSubscription$teamArgs<ExtArgs extends runtime.Types.Extension
 }
 
 /**
- * HostingSubscription.domainRegistration
+ * HostingSubscription.domain
  */
-export type HostingSubscription$domainRegistrationArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type HostingSubscription$domainArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the DomainRegistration
+   * Select specific fields to fetch from the Domain
    */
-  select?: Prisma.DomainRegistrationSelect<ExtArgs> | null
+  select?: Prisma.DomainSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the DomainRegistration
+   * Omit specific fields from the Domain
    */
-  omit?: Prisma.DomainRegistrationOmit<ExtArgs> | null
+  omit?: Prisma.DomainOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.DomainRegistrationInclude<ExtArgs> | null
-  where?: Prisma.DomainRegistrationWhereInput
+  include?: Prisma.DomainInclude<ExtArgs> | null
+  where?: Prisma.DomainWhereInput
 }
 
 /**

@@ -164,7 +164,7 @@ model CustomerIntegration {
 
   // Relations
   user                 User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  domainRegistrations  DomainRegistration[]
+  domains              Domain[]
   hostingSubscriptions HostingSubscription[]
   activityLogs         CustomerIntegrationActivityLog[]
 
@@ -214,7 +214,7 @@ model Order {
 
   // Service References (flexible for different service types)
   // These are kept for backward compatibility with single-item orders
-  domainRegistrationId  String? // Reference to domain registration
+  domainId              String? // Reference to domain
   domainRenewalId       String? // Reference to domain renewal
   domainTransferId      String? // Reference to domain transfer
   hostingSubscriptionId String? // Reference to hosting subscription
@@ -252,7 +252,7 @@ model Order {
 
   // Relations
   team                       Team                         @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  domainRegistration         DomainRegistration?          @relation(fields: [domainRegistrationId], references: [id], onDelete: SetNull)
+  domain                     Domain?                      @relation(fields: [domainId], references: [id], onDelete: SetNull)
   domainRenewal              DomainRenewal?               @relation(fields: [domainRenewalId], references: [id], onDelete: SetNull)
   domainTransfer             DomainTransfer?              @relation(fields: [domainTransferId], references: [id], onDelete: SetNull)
   hostingSubscription        HostingSubscription?         @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
@@ -417,13 +417,6 @@ enum DomainCycle {
   CUSTOM
 }
 
-enum DomainOperation {
-  REGISTRATION
-  RENEWAL
-  TRANSFER
-  RESTORATION
-}
-
 model User {
   id                           String                        @id @map("_id")
   name                         String
@@ -441,6 +434,7 @@ model User {
   teamMemberships              TeamMember[]
   profile                      UserProfile?
   customerIntegrations         CustomerIntegration[]
+  domains                      Domain[]
   activityLogs                 UserActivityLog[]
   // Email Marketing Relations
   emailDomains                 EmailDomain[]
@@ -524,7 +518,7 @@ model Team {
   createdById                  String
   members                      TeamMember[]
   invites                      TeamInvite[]
-  domainRegistrations          DomainRegistration[]
+  domains                      Domain[]
   hostingSubscriptions         HostingSubscription[]
   wordpressInstances           WordPressInstance[]
   promos                       Promo[]
@@ -834,8 +828,8 @@ model HostingSubscription {
   pleskFtpPassword String? // Auto-generated FTP password
 
   // Domain Integration
-  primaryDomain        String? // Primary domain for this hosting
-  domainRegistrationId String? // Reference to domain registration
+  primaryDomain String? // Primary domain for this hosting
+  domainId      String? // Reference to domain
 
   // Service Details
   operation          HostingOperation   @default(PROVISION)
@@ -869,7 +863,7 @@ model HostingSubscription {
   // Relations
   hostingPlan         HostingPlan                      @relation(fields: [hostingPlanId], references: [id], onDelete: Restrict)
   team                Team?                            @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  domainRegistration  DomainRegistration?              @relation(fields: [domainRegistrationId], references: [id], onDelete: SetNull)
+  domain              Domain?                          @relation(fields: [domainId], references: [id], onDelete: SetNull)
   renewals            HostingRenewal[]
   orders              Order[]
   orderItems          OrderItem[] // Order items that reference this subscription
@@ -1098,11 +1092,11 @@ model NameserverGroup {
   updatedAt DateTime
 
   // Relations
-  nameservers         Nameserver[] // Array of nameserver records
-  tldSettings         TldSettings[]
-  domainRegistrations DomainRegistration[]
-  domainTransfers     DomainTransfer[]
-  activityLogs        NameserverGroupActivityLog[]
+  nameservers     Nameserver[] // Array of nameserver records
+  tldSettings     TldSettings[]
+  domains         Domain[]
+  domainTransfers DomainTransfer[]
+  activityLogs    NameserverGroupActivityLog[]
 
   @@index([userId])
   @@index([isDefault])
@@ -1194,196 +1188,134 @@ model NameserverGroupActivityLog {
   @@map("nameserver_group_activity_log")
 }
 
-// Core domain registration information
-model DomainRegistration {
-  id           String  @id @map("_id")
-  domainName   String  @unique
-  teamId       String?
-  registeredBy String? // User ID who registered the domain
+// Domain information - stores domains registered via OpenProvider
+model Domain {
+  id             String  @id @map("_id")
+  domainName     String  @unique
+  userId         String // User ID who made this record (not the registrant)
+  teamId         String? // Optional team association
+  openProviderId Int // OpenProvider domain ID (required, always provided by OpenProvider)
 
-  // OpenProvider Integration Fields
-  openProviderId Int? // OpenProvider domain ID
-  operation      DomainOperation @default(REGISTRATION) // REGISTRATION, TRANSFER, etc.
-  authCode       String? // Auth code for transfers
-  activationDate DateTime? // OpenProvider activation date
-  expirationDate DateTime? // OpenProvider expiration date
-  renewalDate    DateTime? // OpenProvider renewal date
+  // Dates
+  activationDate   DateTime? // OpenProvider activation date
+  expirationDate   DateTime? // OpenProvider expiration date
+  renewalDate      DateTime? // OpenProvider renewal date
+  registrationDate DateTime // When domain was first registered
 
-  // Contact Handles (OpenProvider)
-  ownerHandle    String? // OpenProvider owner contact handle
-  adminHandle    String? // OpenProvider admin contact handle
-  techHandle     String? // OpenProvider tech contact handle
-  billingHandle  String? // OpenProvider billing contact handle
-  resellerHandle String? // OpenProvider reseller contact handle
+  // Pricing information (KES only, no currency field needed)
+  openProviderPrice String? // Price from OpenProvider in KES
+  niscPrice         String? // Price we sold it for in KES
 
-  // Domain Details
-  registrationDate DateTime? // When domain was first registered
-  expiryDate       DateTime? // Current expiry date
-  nextRenewalDate  DateTime? // When next renewal is due
-  renewalCycle     DomainCycle  @default(ANNUAL)
-  period           Int? // Registration period (1 = 1 year, etc.)
-  status           DomainStatus @default(PENDING)
-
-  // Pricing information - OpenProvider (provider) vs NISC (selling) prices
-  openProviderPrice    String? // Price from OpenProvider for registration
-  openProviderCurrency String? @default("USD") // OpenProvider currency
-  niscPrice            String? // Price we sold it for
-  niscCurrency         String? @default("KES") // Our selling currency
-
-  // Invoice tracking
-  invoiceNumber String? // Invoice number for this registration
-
-  // Customer Integration
-  customerIntegrationId String? // Reference to customer integration (OpenProvider)
-
-  // TLD settings reference
-  tldSettingId String?
-
-  // Nameserver Management
-  nameserverGroupId String? // Reference to nameserver group
-  dnsRecords        Json? // DNS records as JSON
-  autoRenew         String? // "on", "off", "default" - OpenProvider format
-
-  // Transfer specific fields
-  transferRequestedAt DateTime? // When transfer was requested
-  transferCompletedAt DateTime? // When transfer was completed
-  previousRegistrar   String? // Previous registrar for transfers
+  // Notes
+  notes String? // Additional notes
 
   // Timestamps
   createdAt DateTime
   updatedAt DateTime
 
   // Relations
-  team                 Team?                           @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  nameserverGroup      NameserverGroup?                @relation(fields: [nameserverGroupId], references: [id], onDelete: SetNull)
-  renewals             DomainRenewal[]
-  transfers            DomainTransfer[]
-  hostingSubscriptions HostingSubscription[]
-  orders               Order[]
-  customerIntegration  CustomerIntegration?            @relation(fields: [customerIntegrationId], references: [id], onDelete: SetNull)
-  activityLogs         DomainRegistrationActivityLog[]
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team                  Team?                 @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  renewals              DomainRenewal[]
+  transfers             DomainTransfer[]
+  hostingSubscriptions  HostingSubscription[]
+  orders                Order[]
+  activityLogs          DomainActivityLog[]
+  CustomerIntegration   CustomerIntegration?  @relation(fields: [customerIntegrationId], references: [id])
+  customerIntegrationId String?
+  NameserverGroup       NameserverGroup?      @relation(fields: [nameserverGroupId], references: [id])
+  nameserverGroupId     String?
 
   @@index([domainName])
+  @@index([userId])
   @@index([teamId])
-  @@index([nameserverGroupId])
-  @@index([status])
-  @@index([expiryDate])
-  @@index([nextRenewalDate])
-  @@index([registeredBy])
   @@index([openProviderId])
-  @@index([operation])
-  @@map("domain_registration")
+  @@index([registrationDate])
+  @@index([expirationDate])
+  @@map("domain")
 }
 
-// Individual renewal records
+// Individual renewal records - tracks renewal history independently
 model DomainRenewal {
-  id                   String       @id @map("_id")
-  domainRegistrationId String
-  renewedBy            String? // User ID who renewed the domain
-  renewalDate          DateTime // When renewal was processed
-  expiryDate           DateTime // New expiry date after renewal
-  renewalCycle         DomainCycle // Cycle for this renewal
-  status               DomainStatus @default(ACTIVE)
+  id          String   @id @map("_id")
+  domainId    String   @unique // Reference to domain (unique - one renewal record per domain)
+  renewedBy   String? // User ID who renewed the domain
+  renewalDate DateTime // When renewal was processed
 
-  // Pricing information - OpenProvider (provider) vs NISC (selling) prices
-  openProviderPrice    String // Price from OpenProvider for renewal
-  openProviderCurrency String @default("USD") // OpenProvider currency
-  niscPrice            String // Price we sold renewal for
-  niscCurrency         String @default("KES") // Our selling currency
-
-  // Additional renewal info
-  invoiceNumber String? // Invoice number for this renewal
-  notes         String? // Additional notes
+  // Pricing information (KES only, no currency field needed)
+  openProviderPrice String? // Price from OpenProvider in KES
+  niscPrice         String? // Price we sold renewal for in KES
 
   // Timestamps
   createdAt DateTime
   updatedAt DateTime
 
   // Relations
-  domainRegistration DomainRegistration         @relation(fields: [domainRegistrationId], references: [id], onDelete: Cascade)
-  orders             Order[]
-  activityLogs       DomainRenewalActivityLog[]
+  domain       Domain                     @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  orders       Order[]
+  activityLogs DomainRenewalActivityLog[]
 
-  @@index([domainRegistrationId])
+  @@index([domainId])
   @@index([renewalDate])
-  @@index([expiryDate])
   @@index([renewedBy])
   @@map("domain_renewal")
 }
 
 // Domain transfer tracking
 model DomainTransfer {
-  id                   String       @id @map("_id")
-  domainRegistrationId String
-  transferredBy        String? // User ID who initiated transfer
-  authCode             String // Auth code for transfer
-  status               DomainStatus @default(PENDING_TRANSFER)
+  id            String       @id @map("_id")
+  domainId      String // Reference to domain
+  transferredBy String? // User ID who initiated transfer
+  authCode      String // Auth code for transfer
+  status        DomainStatus @default(PENDING_TRANSFER)
 
   // Transfer details
   transferRequestedAt DateTime // When transfer was requested
   transferCompletedAt DateTime? // When transfer was completed
-  previousRegistrar   String? // Previous registrar
-  previousExpiryDate  DateTime? // Expiry date at previous registrar
 
-  // Contact handles for transfer
-  ownerHandle   String? // Owner contact handle
-  adminHandle   String? // Admin contact handle
-  techHandle    String? // Tech contact handle
-  billingHandle String? // Billing contact handle
-
-  // Nameservers for transfer
-  nameserverGroupId String? // Reference to nameserver group
-  autoRenew         String? // "on", "off", "default"
-
-  // Pricing information
-  openProviderPrice    String? // Price from OpenProvider for transfer
-  openProviderCurrency String? @default("USD")
-  niscPrice            String? // Price we charged for transfer
-  niscCurrency         String? @default("KES")
-
-  // Invoice tracking
-  invoiceNumber String? // Invoice number for this transfer
+  // Pricing information (KES only, no currency field needed)
+  openProviderPrice String? // Price from OpenProvider in KES
+  niscPrice         String? // Price we charged for transfer in KES
 
   // Additional info
-  notes         String? // Additional notes
-  failureReason String? // Reason if transfer failed
+  notes String? // Additional notes
 
   // Timestamps
   createdAt DateTime
   updatedAt DateTime
 
   // Relations
-  domainRegistration DomainRegistration          @relation(fields: [domainRegistrationId], references: [id], onDelete: Cascade)
-  nameserverGroup    NameserverGroup?            @relation(fields: [nameserverGroupId], references: [id], onDelete: SetNull)
-  orders             Order[]
-  activityLogs       DomainTransferActivityLog[]
+  domain            Domain                      @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  orders            Order[]
+  activityLogs      DomainTransferActivityLog[]
+  NameserverGroup   NameserverGroup?            @relation(fields: [nameserverGroupId], references: [id])
+  nameserverGroupId String?
 
-  @@index([domainRegistrationId])
-  @@index([nameserverGroupId])
+  @@index([domainId])
   @@index([status])
   @@index([transferRequestedAt])
   @@index([transferredBy])
   @@map("domain_transfer")
 }
 
-// Activity logging for domain registration actions
-model DomainRegistrationActivityLog {
-  id                   String             @id @map("_id")
-  userId               String
-  domainRegistrationId String
-  domainRegistration   DomainRegistration @relation(fields: [domainRegistrationId], references: [id], onDelete: Cascade)
-  action               String // e.g., "REGISTER", "UPDATE", "SUSPEND", "TRANSFER", "DELETE"
-  description          String?
-  metadata             Json? // Additional data about the action
-  ipAddress            String?
-  userAgent            String?
-  createdAt            DateTime
+// Activity logging for domain actions
+model DomainActivityLog {
+  id          String   @id @map("_id")
+  userId      String
+  domainId    String
+  domain      Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  action      String // e.g., "CREATE", "UPDATE", "LINK_TEAM", "UNLINK_TEAM", "DELETE"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime
 
   @@index([userId])
-  @@index([domainRegistrationId])
+  @@index([domainId])
   @@index([action])
   @@index([createdAt])
-  @@map("domain_registration_activity_log")
+  @@map("domain_activity_log")
 }
 
 // Activity logging for domain renewal actions
