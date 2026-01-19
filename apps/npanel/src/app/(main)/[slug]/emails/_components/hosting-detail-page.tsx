@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, MoreVertical, Edit, Unlink } from "lucide-react";
+import { ArrowLeft, MoreVertical, Edit, Unlink, LayoutDashboard, Mail, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { z } from "zod";
@@ -223,9 +223,33 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="mail">Mail</TabsTrigger>
+        <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-2 h-auto p-0 bg-transparent">
+          <TabsTrigger 
+            value="overview"
+            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+          >
+            <div className="flex items-center justify-between w-full">
+              <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col items-start gap-1 w-full">
+              <span className="font-semibold text-sm">Overview</span>
+              <span className="text-xs text-muted-foreground">Details</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="mail"
+            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+          >
+            <div className="flex items-center justify-between w-full">
+              <Mail className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col items-start gap-1 w-full">
+              <span className="font-semibold text-sm">Mail</span>
+              <span className="text-xs text-muted-foreground">Accounts</span>
+            </div>
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="mt-6">
