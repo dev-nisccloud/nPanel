@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Search, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Search, RefreshCw, Grid3X3, List, EllipsisVertical } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 
@@ -22,6 +22,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 // Table imports (commented out for performance)
@@ -123,6 +145,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
   
   const [searchTerm, setSearchTerm] = React.useState("");
   const [recordTypeFilter, setRecordTypeFilter] = React.useState("all");
+  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
   const [isAddRecordOpen, setIsAddRecordOpen] = React.useState(false);
   const [isViewRecordOpen, setIsViewRecordOpen] = React.useState(false);
   const [recordToView, setRecordToView] = React.useState<z.infer<typeof dnsRecordSchema> | null>(null);
@@ -235,6 +258,115 @@ export function DnsTable({ siteId }: DnsTableProps) {
     // Note: isDeleting is reset in the mutation callbacks (onSuccess/onError)
   };
 
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "A":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "AAAA":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      case "CNAME":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "MX":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      case "TXT":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case "NS":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "SRV":
+        return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200";
+      case "CAA":
+        return "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+    }
+  };
+
+  const TableView = () => (
+    <div className="overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Host</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Value</TableHead>
+            <TableHead className="w-12"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredData.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                No DNS records found
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredData.map((record) => (
+              <TableRow 
+                key={record.id}
+                className="cursor-pointer"
+                onClick={() => handleView(record)}
+              >
+                <TableCell className="font-medium">
+                  {record.host === "@" ? "@" : record.host || "Unknown Host"}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={getTypeColor(record.type || "A")}>
+                    {record.type || "A"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="font-mono text-sm max-w-[200px] truncate">
+                  {record.value || "Unknown Value"}
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
+                              <EllipsisVertical className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem onClick={() => handleView(record)}>
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              variant="destructive"
+                              onClick={() => handleDelete(record.id)}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Actions</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const CardView = () => (
+    <div className="p-4">
+      <DnsCardsList
+        data={filteredData}
+        onView={handleView}
+        onDelete={handleDelete}
+        cols={3}
+      />
+    </div>
+  );
+
 
   if (isLoading) {
     return <DnsTableSkeleton />;
@@ -277,19 +409,26 @@ export function DnsTable({ siteId }: DnsTableProps) {
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
-          {/* <DataTableViewOptions table={table} /> */}
-          {/* {selectedCount > 0 && (
-            <Button 
-              variant="destructive" 
+          {/* View Mode Toggle */}
+          <div className="flex items-center border rounded-md">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
               size="sm"
-              onClick={handleDeleteSelected}
-              className="flex-shrink-0"
+              onClick={() => setViewMode("card")}
+              className="rounded-r-none"
             >
-              <Trash2 className="h-4 w-4 @sm/main:mr-2" />
-              <span className="hidden @sm/main:inline">Remove ({selectedCount})</span>
-              <span className="@sm/main:hidden">Remove</span>
+              <Grid3X3 className="h-4 w-4" />
             </Button>
-          )} */}
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+          
           <Button 
             variant="outline" 
             size="sm"
@@ -303,15 +442,8 @@ export function DnsTable({ siteId }: DnsTableProps) {
         </div>
       </div>
 
-      {/* Cards grid implementation */}
-      <div className="p-4">
-        <DnsCardsList
-          data={filteredData}
-          onView={handleView}
-          onDelete={handleDelete}
-          cols={3}
-        />
-      </div>
+      {/* Content */}
+      {viewMode === "card" ? <CardView /> : <TableView />}
 
       {/* Table implementation (commented out for performance) */}
       {/* <div className="overflow-hidden rounded-lg border">

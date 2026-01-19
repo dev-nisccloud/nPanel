@@ -272,15 +272,36 @@ export const openProviderDnsRouter = router({
           with_history: input.withHistory,
         });
 
+        // According to OpenProvider API docs, code 0 means success
         if (response.code !== 0) {
+          // Handle zone not found (872) as a valid state, not an error
+          // This is expected when a domain doesn't have a DNS zone configured yet
+          if (response.code === 872) {
+            return {
+              success: false,
+              zoneNotFound: true,
+              data: null,
+              message: 'DNS zone not found. The domain may not have a DNS zone configured in OpenProvider yet.',
+              meta: {
+                retrieved_at: new Date().toISOString(),
+                zone_name: input.zoneName,
+                with_records: input.withRecords,
+                with_history: input.withHistory,
+                error_code: 872,
+              },
+            };
+          }
+          
+          // For other errors, throw a proper error
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message: response.desc,
+            message: response.desc || `OpenProvider API error: ${response.code}`,
           });
         }
 
         return {
           success: true,
+          zoneNotFound: false,
           data: response.data,
           meta: {
             retrieved_at: new Date().toISOString(),
@@ -292,17 +313,39 @@ export const openProviderDnsRouter = router({
       } catch (error) {
         console.error('OpenProvider DNS zone retrieval error:', error);
 
+        // Handle OpenProviderApiError - check for zone not found (872)
         if (error instanceof OpenProviderApiError) {
+          if (error.code === 872) {
+            // Return a valid response indicating zone not found
+            // This is not an error condition - it's a valid state
+            return {
+              success: false,
+              zoneNotFound: true,
+              data: null,
+              message: 'DNS zone not found. The domain may not have a DNS zone configured in OpenProvider yet.',
+              meta: {
+                retrieved_at: new Date().toISOString(),
+                zone_name: input.zoneName,
+                with_records: input.withRecords,
+                with_history: input.withHistory,
+                error_code: 872,
+              },
+            };
+          }
+          
+          // For other OpenProvider API errors, throw proper error
           throw new TRPCError({
             code: error.code >= 400 && error.code < 500 ? 'BAD_REQUEST' : 'INTERNAL_SERVER_ERROR',
             message: error.description,
           });
         }
 
+        // Re-throw TRPCErrors as-is
         if (error instanceof TRPCError) {
           throw error;
         }
 
+        // Unknown errors
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Internal server error',

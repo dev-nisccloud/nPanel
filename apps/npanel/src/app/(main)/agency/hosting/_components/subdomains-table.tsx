@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Search, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Search, RefreshCw, Grid3X3, List, EllipsisVertical } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,28 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { SubdomainCardsList } from "./subdomains-cards";
 import { subdomainSchema } from "./subdomains-schema";
 import { useSubdomainsByDomain } from "./use-subdomains-by-domain";
@@ -144,6 +166,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
   const { data: subdomainsData, isLoading, isError, error, refetch } = useSubdomainsByDomain(domainName);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
+  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
   const [isAddSubdomainOpen, setIsAddSubdomainOpen] = React.useState(false);
   const [isViewSubdomainOpen, setIsViewSubdomainOpen] = React.useState(false);
   const [subdomainToView, setSubdomainToView] = React.useState<z.infer<typeof subdomainSchema> | null>(null);
@@ -244,6 +267,106 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
     }
   };
 
+  const TableView = () => (
+    <div className="overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Subdomain Name</TableHead>
+            <TableHead>Parent Domain</TableHead>
+            <TableHead>PHP Version</TableHead>
+            <TableHead>SSL Status</TableHead>
+            <TableHead className="w-12"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredData.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                No subdomains found
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredData.map((subdomain) => {
+              const phpHandler = subdomain.properties?.php_handler_id ?? "";
+              const phpVersion = phpHandler.includes("php82") ? "8.2" : 
+                               phpHandler.includes("php81") ? "8.1" : 
+                               phpHandler.includes("php80") ? "8.0" : 
+                               phpHandler.includes("php74") ? "7.4" : "Unknown";
+              
+              return (
+                <TableRow 
+                  key={subdomain.id}
+                  className="cursor-pointer"
+                  onClick={() => handleView(subdomain)}
+                >
+                  <TableCell className="font-medium">
+                    {subdomain.name}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {subdomain.parent}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      PHP {phpVersion}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={subdomain.properties?.ssl ? "default" : "secondary"}>
+                      {subdomain.properties?.ssl ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
+                                <EllipsisVertical className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-32">
+                              <DropdownMenuItem onClick={() => handleView(subdomain)}>
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                variant="destructive"
+                                onClick={() => handleDelete(subdomain.id)}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Actions</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const CardView = () => (
+    <div className="p-4">
+      <SubdomainCardsList
+        data={filteredData}
+        onView={handleView}
+        onDelete={handleDelete}
+        cols={3}
+      />
+    </div>
+  );
+
   if (isLoading) {
     return <SubdomainsTableSkeleton />;
   }
@@ -281,6 +404,26 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
         </div>
         
         <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
+          {/* View Mode Toggle */}
+          <div className="flex items-center border rounded-md">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("card")}
+              className="rounded-r-none"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+          
           <Button 
             variant="outline" 
             size="sm"
@@ -294,15 +437,8 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
         </div>
       </div>
 
-      {/* Cards grid implementation */}
-      <div className="p-4">
-        <SubdomainCardsList
-          data={filteredData}
-          onView={handleView}
-          onDelete={handleDelete}
-          cols={3}
-        />
-      </div>
+      {/* Content */}
+      {viewMode === "card" ? <CardView /> : <TableView />}
 
       {/* Add Subdomain Sheet */}
       <AddSubdomainSheet 

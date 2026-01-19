@@ -11,7 +11,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Grid3X3, List, EllipsisVertical } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import Link from "next/link";
 // import { useDataTableInstance } from "@/hooks/use-data-table-instance";
 
 // Table imports (commented out for performance)
@@ -19,7 +41,7 @@ import { Search } from "lucide-react";
 // import { DataTablePagination } from "../../../../../components/data-table/data-table-pagination";
 // import { DataTableViewOptions } from "../../../../../components/data-table/data-table-view-options";
 // import { hostingColumns } from "./columns";
-// import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
+import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 
 import { HostingCardsList } from "./hosting-cards";
 import { useHostingSubscriptions } from "./use-hosting-subscriptions";
@@ -109,6 +131,7 @@ export function HostingDataTable() {
   
   const { data, isLoading, isError, error, refetch, hasServiceSubscriptions, rawData } = useHostingSubscriptions();
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
 
   // Filter data based on search query
   const filteredData = React.useMemo(() => {
@@ -203,6 +226,98 @@ export function HostingDataTable() {
     }
   }
 
+  const TableView = () => (
+    <div className="overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Subscription Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="w-12"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredData.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                No subscriptions found
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredData.map((subscription) => (
+              <TableRow key={subscription.id}>
+                <TableCell>
+                  <Link 
+                    href={`/${teamSlug}/hosting/${subscription.id}`}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {subscription.subscriptionName}
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={getStatusBadgeVariant(subscription.status)}>
+                    {getStatusDisplayText(subscription.status)}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
+                              <EllipsisVertical className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/${teamSlug}/hosting/${subscription.id}`}>View details</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(subscription.id)}>
+                              Edit subscription
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>Renew</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleSuspend(subscription.id)}>
+                              Suspend
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              variant="destructive"
+                              onClick={() => handleCancel(subscription.id)}
+                            >
+                              Cancel
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Actions</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const CardView = () => (
+    <div className="p-4">
+      <HostingCardsList
+        data={filteredData}
+        onViewDetails={handleViewDetails}
+        onEdit={handleEdit}
+        onSuspend={handleSuspend}
+        onCancel={handleCancel}
+        cols={3}
+      />
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -222,25 +337,30 @@ export function HostingDataTable() {
             </Badge>
           )}
         </div>
+        
+        {/* View Mode Toggle */}
+        <div className="flex items-center border rounded-md">
+          <Button
+            variant={viewMode === "card" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("card")}
+            className="rounded-r-none"
+          >
+            <Grid3X3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("table")}
+            className="rounded-l-none"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       
-      {/* Cards grid implementation */}
-      <div className="p-4">
-        <HostingCardsList
-          data={filteredData}
-          onViewDetails={handleViewDetails}
-          onEdit={handleEdit}
-          onSuspend={handleSuspend}
-          onCancel={handleCancel}
-          cols={3}
-        />
-      </div>
-
-      {/* Table implementation (commented out for performance) */}
-      {/* <div className="overflow-hidden rounded-lg border">
-        <DataTableNew table={table} columns={columns} />
-      </div>
-      <DataTablePagination table={table} /> */}
+      {/* Content */}
+      {viewMode === "card" ? <CardView /> : <TableView />}
     </div>
   );
 }
