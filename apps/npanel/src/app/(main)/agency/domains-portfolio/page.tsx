@@ -1,23 +1,44 @@
 "use client";
 
 import * as React from "react";
-import { Plus, RefreshCw, Search, Globe } from "lucide-react";
+import { Plus, RefreshCw, Search, Globe, Grid3X3, List, EllipsisVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { DomainPortfolioCardsList, type DomainPortfolio } from "./_components/domain-portfolio-card";
 import { EmptyState } from "./_components/empty-state";
-import { DomainDetailsDialog } from "./_components/domain-details-dialog";
 import { trpc } from "@/utils/trpc";
-import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 export default function DomainsPortfolioPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [limit] = React.useState(100);
   const [offset, setOffset] = React.useState(0);
-  const [selectedDomainId, setSelectedDomainId] = React.useState<string | null>(null);
+  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
 
   // Fetch domains from OpenProvider
   const { 
@@ -78,8 +99,123 @@ export default function DomainsPortfolioPage() {
 
   const domains = domainsData?.data || [];
 
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      ACTIVE: "default",
+      PENDING: "secondary",
+      EXPIRED: "destructive",
+      SUSPENDED: "outline",
+      TRANSFERRING: "secondary",
+    };
+
+    const statusColors: Record<string, string> = {
+      ACTIVE: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300",
+      PENDING: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300",
+      EXPIRED: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300",
+      SUSPENDED: "bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300",
+      TRANSFERRING: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300",
+    };
+
+    return (
+      <Badge
+        variant={variants[status] || "secondary"}
+        className={`text-xs ${statusColors[status] || ""}`}
+      >
+        {status}
+      </Badge>
+    );
+  };
+
+  const TableView = () => (
+    <div className="overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Domain Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>Expiry Date</TableHead>
+            <TableHead className="w-12"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredDomains.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                No domains found
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredDomains.map((domain) => (
+              <TableRow 
+                key={domain.id}
+                className="cursor-pointer"
+                onClick={() => router.push(`/agency/domains-portfolio/${domain.id}`)}
+              >
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{domain.domain}</span>
+                  </div>
+                </TableCell>
+                <TableCell>{getStatusBadge(domain.status)}</TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    <div className="font-medium">{domain.clientName}</div>
+                    {domain.clientEmail && (
+                      <div className="text-muted-foreground text-xs">{domain.clientEmail}</div>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">
+                    {new Date(domain.expiryDate).toLocaleDateString()}
+                  </span>
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
+                              <EllipsisVertical className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/agency/domains-portfolio/${domain.id}`}>
+                                View Details
+                              </Link>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Actions</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const CardView = () => (
+    <DomainPortfolioCardsList
+      data={filteredDomains as DomainPortfolio[]}
+      cols={4}
+      onView={(id) => router.push(`/agency/domains-portfolio/${id}`)}
+    />
+  );
+
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6">
+    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Domains Portfolio</h1>
         <p className="text-muted-foreground">
@@ -100,6 +236,25 @@ export default function DomainsPortfolioPage() {
           />
         </div>
         <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center border rounded-md">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("card")}
+              className="rounded-r-none"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
           <Button
             variant="outline"
             size="icon"
@@ -138,11 +293,7 @@ export default function DomainsPortfolioPage() {
         </div>
       ) : (
         <>
-          <DomainPortfolioCardsList
-            data={filteredDomains as DomainPortfolio[]}
-            cols={4}
-            onView={(id) => setSelectedDomainId(id)}
-          />
+          {viewMode === "card" ? <CardView /> : <TableView />}
           {domainsData?.meta && domainsData.meta.total > filteredDomains.length && (
             <div className="text-center text-sm text-muted-foreground">
               Showing {filteredDomains.length} of {domainsData.meta.total} domains
@@ -150,24 +301,6 @@ export default function DomainsPortfolioPage() {
           )}
         </>
       )}
-
-      {/* Domain Details Dialog */}
-      <DomainDetailsDialog
-        open={selectedDomainId !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedDomainId(null);
-        }}
-        domain={filteredDomains.find((d) => d.id === selectedDomainId) || null}
-        onManage={(id) => {
-          toast.info("Manage domain functionality coming soon");
-        }}
-        onRenew={(id) => {
-          toast.info("Renew domain functionality coming soon");
-        }}
-        onTransfer={(id) => {
-          toast.info("Transfer domain functionality coming soon");
-        }}
-      />
     </div>
   );
 }
