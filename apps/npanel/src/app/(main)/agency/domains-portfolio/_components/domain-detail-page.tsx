@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, ExternalLink, Info, QrCode, Monitor, LayoutDashboard, Network, Server, Globe, ChevronRight, Code2, Palette } from "lucide-react";
+import { ArrowLeft, ExternalLink, Info, QrCode, Monitor, LayoutDashboard, Network, Server, Globe, ChevronRight, Code2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { HostingPlanDialog } from "./hosting-plan-dialog";
 import { ProtectBrandTab } from "./protect-brand-tab";
 import { DnsTab } from "./dns-tab";
 import { NameserversTab } from "./nameservers-tab";
+import { WebDesignContactDialog } from "./web-design-contact-dialog";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
 interface DomainDetailPageProps {
@@ -31,6 +32,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const [emailDialogOpen, setEmailDialogOpen] = React.useState(false);
   const [hostingPlanType, setHostingPlanType] = React.useState<"web" | "email" | null>(null);
   const [activeTab, setActiveTab] = React.useState("overview");
+  const [webDesignDialogOpen, setWebDesignDialogOpen] = React.useState(false);
   
   // Fetch domains list to find the specific domain
   const { data: domainsData, isLoading } = trpc.openProvider.domains.list.useQuery(
@@ -224,6 +226,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
               <ToolsSection 
                 domain={domain.domain} 
                 onQrCodeClick={() => setQrDialogOpen(true)}
+                onWebDesignClick={() => setWebDesignDialogOpen(true)}
               />
             </div>
 
@@ -257,7 +260,10 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         </TabsContent>
         
         <TabsContent value="protect-brand" className="mt-6">
-          <ProtectBrandTab domainNameWithoutTld={domainNameWithoutTld} />
+          <ProtectBrandTab 
+            domainNameWithoutTld={domainNameWithoutTld} 
+            isActive={activeTab === "protect-brand"}
+          />
         </TabsContent>
       </Tabs>
 
@@ -266,6 +272,10 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         open={qrDialogOpen} 
         onOpenChange={setQrDialogOpen}
         domain={domain.domain}
+      />
+      <WebDesignContactDialog
+        open={webDesignDialogOpen}
+        onOpenChange={setWebDesignDialogOpen}
       />
       <HostingPlanDialog
         open={hostingDialogOpen}
@@ -402,13 +412,13 @@ function ConnectedServicesSection() {
 // Tools Section Component
 function ToolsSection({ 
   domain, 
-  onQrCodeClick 
+  onQrCodeClick,
+  onWebDesignClick
 }: { 
   domain: string;
   onQrCodeClick: () => void;
+  onWebDesignClick: () => void;
 }) {
-  const router = useRouter();
-
   return (
     <Card>
       <CardContent className="p-6">
@@ -417,10 +427,7 @@ function ToolsSection({
           {/* Professional Web Design & Development */}
           <div className="flex items-start justify-between p-4 border rounded-lg">
             <div className="flex items-center gap-3 flex-1">
-              <div className="flex items-center gap-2">
-                <Code2 className="h-5 w-5 text-muted-foreground" />
-                <Palette className="h-5 w-5 text-muted-foreground" />
-              </div>
+              <Code2 className="h-5 w-5 text-muted-foreground shrink-0" />
               <div>
                 <h3 className="font-medium">Get professional web design and development</h3>
                 <p className="text-sm text-muted-foreground">
@@ -431,7 +438,7 @@ function ToolsSection({
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => router.push("/agency/service-plans")}
+              onClick={onWebDesignClick}
             >
               Learn More
             </Button>
@@ -505,10 +512,6 @@ function DomainHeaderCard({
                 Renew
               </Button>
             )}
-          </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="auto-renewal" className="text-sm">Auto-renewal</Label>
-            <Switch id="auto-renewal" checked={domain.autoRenewal} />
           </div>
         </div>
       </CardContent>
@@ -607,11 +610,6 @@ function ContactInformationCard({ domain }: { domain: DomainPortfolio }) {
               <span className="font-mono">{domain.ownerHandle}</span>
             </div>
           )}
-        </div>
-        <Separator className="my-4" />
-        <div className="flex items-center justify-between">
-          <Label htmlFor="privacy-protection" className="text-sm">Privacy protection</Label>
-          <Switch id="privacy-protection" checked={domain.isPrivateWhois ?? false} />
         </div>
       </CardContent>
     </Card>

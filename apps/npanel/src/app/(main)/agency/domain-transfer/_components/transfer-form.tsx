@@ -18,10 +18,11 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { trpc } from "@/utils/trpc";
 
 const transferFormSchema = z.object({
   domain: z.string().min(1, "Domain name is required").regex(/^[a-z0-9-]+$/i, "Invalid domain name format"),
-  extension: z.string().min(1, "Domain extension is required"),
+  extension: z.string().min(1, "Domain extension is required").regex(/^\.?[a-z0-9-]+$/i, "Invalid extension format"),
   authCode: z.string().min(1, "Authorization code is required"),
   ownerHandle: z.string().min(1, "Owner handle is required"),
   adminHandle: z.string().min(1, "Admin handle is required"),
@@ -53,28 +54,48 @@ export function TransferForm({ onSuccess }: TransferFormProps) {
     },
   });
 
-  const onSubmit = async (data: TransferFormValues) => {
-    try {
-      setIsSubmitting(true);
-      
-      // TODO: Replace with actual API call
-      // const result = await trpc.openProvider.domains.transfer.mutate(data);
-      
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
+  const transferMutation = trpc.openProvider.domains.transfer.useMutation({
+    onSuccess: (data) => {
       toast.success("Domain transfer initiated successfully", {
-        description: `Transfer request for ${data.domain}${data.extension} has been submitted.`,
+        description: `Transfer request for ${form.getValues("domain")}${form.getValues("extension")} has been submitted.`,
       });
-      
       form.reset();
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error) {
+    },
+    onError: (error) => {
       toast.error("Failed to initiate transfer", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
       });
+    },
+  });
+
+  const onSubmit = async (data: TransferFormValues) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Normalize extension (remove leading dot if present)
+      const extension = data.extension.startsWith(".") 
+        ? data.extension.slice(1) 
+        : data.extension;
+      
+      // Call the real OpenProvider API
+      await transferMutation.mutateAsync({
+        domain: {
+          name: data.domain,
+          extension: extension,
+        },
+        auth_code: data.authCode,
+        owner_handle: data.ownerHandle,
+        admin_handle: data.adminHandle,
+        tech_handle: data.techHandle,
+        billing_handle: data.billingHandle || undefined,
+        autorenew: data.autoRenew,
+      });
+    } catch (error) {
+      // Error is handled by mutation's onError callback
+      console.error("Transfer error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -240,8 +261,8 @@ export function TransferForm({ onSuccess }: TransferFormProps) {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
+              <Button type="submit" disabled={isSubmitting || transferMutation.isPending}>
+                {(isSubmitting || transferMutation.isPending) ? (
                   <div className="flex items-center gap-2">
                     <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
                     <span>Initiating Transfer...</span>
