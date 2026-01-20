@@ -5,6 +5,7 @@ import prisma from '@nPanel/db';
 import { randomUUID } from 'node:crypto';
 import { MetaAdsClient } from '../../lib/meta-ads-client';
 import { getStoredMetaAccessToken } from '../../lib/meta-credentials';
+import { handleMetaAdsOAuthError } from './error-handler';
 
 /**
  * Get user's Meta integration with valid tokens
@@ -13,6 +14,27 @@ async function getUserIntegration() {
 	const tokenData = await getStoredMetaAccessToken();
 
 	if (!tokenData) {
+		// Check if there's an expired integration that needs reconnection
+		const expiredIntegration = await prisma.socialMediaIntegration.findFirst({
+			where: {
+				platform: 'META_FACEBOOK' as const,
+				status: 'EXPIRED' as const,
+			},
+			orderBy: {
+				createdAt: 'desc',
+			},
+		});
+
+		if (expiredIntegration) {
+			throw new TRPCError({
+				code: 'UNAUTHORIZED',
+				message: 'Your Facebook session has been invalidated. Please reconnect your account.',
+				cause: {
+					requiresReconnect: true,
+				},
+			});
+		}
+
 		throw new TRPCError({
 			code: 'BAD_REQUEST',
 			message: 'No active Meta integration found. Please connect your account first.',
@@ -184,6 +206,12 @@ export const metaAdsAccountsRouter = router({
 		} catch (error) {
 			console.error('Meta Ads API list ad accounts error:', error);
 
+			// Handle OAuth token errors - delete credentials and require re-authentication
+			const oauthError = await handleMetaAdsOAuthError(error);
+			if (oauthError) {
+				throw oauthError;
+			}
+
 			if (error instanceof TRPCError) {
 				throw error;
 			}
@@ -238,6 +266,12 @@ export const metaAdsAccountsRouter = router({
 				};
 			} catch (error) {
 				console.error('Meta Ads API get account details error:', error);
+
+				// Handle OAuth token errors - delete credentials and require re-authentication
+				const oauthError = await handleMetaAdsOAuthError(error);
+				if (oauthError) {
+					throw oauthError;
+				}
 
 				if (error instanceof TRPCError) {
 					throw error;

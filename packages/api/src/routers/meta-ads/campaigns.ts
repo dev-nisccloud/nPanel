@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import { MetaAdsClient } from '../../lib/meta-ads-client';
 import { getStoredMetaAccessToken } from '../../lib/meta-credentials';
+import { handleMetaAdsOAuthError } from './error-handler';
 
 /**
  * Get user's Meta integration with valid tokens
@@ -219,6 +220,12 @@ export const metaAdsCampaignsRouter = router({
 			} catch (error) {
 				console.error('Meta Ads API list campaigns error:', error);
 
+				// Handle OAuth token errors - delete credentials and require re-authentication
+				const oauthError = await handleMetaAdsOAuthError(error);
+				if (oauthError) {
+					throw oauthError;
+				}
+
 				if (error instanceof TRPCError) {
 					throw error;
 				}
@@ -268,6 +275,12 @@ export const metaAdsCampaignsRouter = router({
 				};
 			} catch (error) {
 				console.error('Meta Ads API get campaign details error:', error);
+
+				// Handle OAuth token errors - delete credentials and require re-authentication
+				const oauthError = await handleMetaAdsOAuthError(error);
+				if (oauthError) {
+					throw oauthError;
+				}
 
 				if (error instanceof TRPCError) {
 					throw error;

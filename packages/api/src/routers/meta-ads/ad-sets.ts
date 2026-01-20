@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import { MetaAdsClient } from '../../lib/meta-ads-client';
 import { getStoredMetaAccessToken } from '../../lib/meta-credentials';
+import { handleMetaAdsOAuthError } from './error-handler';
 
 /**
  * Map Meta API status to our status format
@@ -206,6 +207,12 @@ export const metaAdsAdSetsRouter = router({
 			} catch (error: any) {
 				console.error('Meta Ads API list ad sets error:', error);
 				
+				// Handle OAuth token errors - delete credentials and require re-authentication
+				const oauthError = await handleMetaAdsOAuthError(error);
+				if (oauthError) {
+					throw oauthError;
+				}
+				
 				// Handle rate limit errors specifically
 				if (error.code === 17 || error.message?.includes('request limit') || error.message?.includes('rate limit')) {
 					throw new TRPCError({
@@ -285,9 +292,18 @@ export const metaAdsAdSetsRouter = router({
 				};
 			} catch (error: any) {
 				console.error('Meta Ads API get ad set details error:', error);
-				throw new Error(
-					error.message || 'Failed to fetch ad set details. Please try again.'
-				);
+				
+				// Handle OAuth token errors - delete credentials and require re-authentication
+				const oauthError = await handleMetaAdsOAuthError(error);
+				if (oauthError) {
+					throw oauthError;
+				}
+				
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: error.message || 'Failed to fetch ad set details. Please try again.',
+					cause: error,
+				});
 			}
 		}),
 });
