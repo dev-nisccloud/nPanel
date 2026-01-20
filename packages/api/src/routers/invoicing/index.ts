@@ -12,6 +12,7 @@ import {
 	invoiceLineItemOutputSchema,
 	invoiceListFiltersSchema,
 	invoiceListResponseSchema,
+	invoicePaymentStatusSchema,
 	invoiceStatusSchema,
 	invoiceSummarySchema,
 	invoiceTransactionInputSchema,
@@ -1732,6 +1733,106 @@ export const invoicingRouter = router({
 
 			const updatedInvoice = await fetchInvoiceDetail(prisma, input.invoiceId);
 			return mapInvoiceDetail(updatedInvoice);
+		}),
+
+	listTransactions: protectedProcedure
+		.input(
+			z.object({
+				limit: z.number().int().min(1).max(100).optional().default(50),
+				offset: z.number().int().min(0).optional().default(0),
+				status: invoicePaymentStatusSchema.optional(),
+			}),
+		)
+		.output(
+			z.object({
+				transactions: z.array(
+					invoiceTransactionOutputSchema.extend({
+						invoiceNumber: nullableStringSchema,
+					}),
+				),
+				total: z.number().int().nonnegative(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+
+			const filters: Record<string, unknown>[] = [];
+
+			// For agency users, show all transactions
+			// For customers, filter by their accessible invoices
+			if (!isAgencyUser(user.role)) {
+				const memberships = await prisma.teamMember.findMany({
+					where: { userId: user.id },
+					select: { teamId: true },
+				});
+
+				const accessibleTeams = memberships.map((membership) => membership.teamId);
+				const accessConditions: Record<string, unknown>[] = [];
+
+				if (accessibleTeams.length > 0) {
+					accessConditions.push({
+						invoice: {
+							teamId: { in: accessibleTeams },
+						},
+					});
+				}
+
+				accessConditions.push({
+					invoice: {
+						AND: [{ teamId: null }, { createdBy: user.id }],
+					},
+				});
+
+				filters.push({ OR: accessConditions });
+			}
+
+			if (input.status) {
+				filters.push({ status: input.status });
+			}
+
+			const where = filters.length > 0 ? { AND: filters } : undefined;
+
+			const [transactions, total] = await prisma.$transaction([
+				prisma.invoiceTransaction.findMany({
+					where,
+					include: {
+						invoice: {
+							select: {
+								invoiceNumber: true,
+							},
+						},
+					},
+					orderBy: { createdAt: "desc" },
+					skip: input.offset,
+					take: input.limit,
+				}),
+				prisma.invoiceTransaction.count({ where }),
+			]);
+
+			return {
+				transactions: transactions.map((t) => ({
+					...invoiceTransactionOutputSchema.parse({
+						id: t.id,
+						invoiceId: t.invoiceId,
+						reference: t.reference,
+						providerReference: t.providerReference,
+						status: t.status,
+						method: t.method,
+						amount: t.amount,
+						currency: t.currency,
+						paidAt: t.paidAt,
+						notes: t.notes,
+						metadata: t.metadata,
+						balanceBefore: t.balanceBefore,
+						balanceAfter: t.balanceAfter,
+						recordedBy: t.recordedBy,
+						createdAt: t.createdAt,
+						updatedAt: t.updatedAt,
+					}),
+					invoiceNumber: t.invoice.invoiceNumber,
+				})),
+				total,
+			};
 		}),
 });
 

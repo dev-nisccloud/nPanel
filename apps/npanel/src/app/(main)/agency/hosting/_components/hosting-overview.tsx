@@ -69,14 +69,14 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
 
   return (
     <div className="space-y-6">
-      {/* General Information */}
+      {/* General Information & Hosting Configuration - Combined */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
-            General Information
+            General Information & Configuration
           </CardTitle>
-          <CardDescription>Basic hosting account details</CardDescription>
+          <CardDescription>Basic hosting account details and server settings</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
@@ -105,87 +105,6 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <p className="text-sm font-medium text-muted-foreground">Hosting Type</p>
             <p className="text-lg font-semibold">{hostingData.gen_info?.htype || "Not Available"}</p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Resource Usage */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HardDrive className="h-5 w-5" />
-            Resource Usage
-          </CardTitle>
-          <CardDescription>Current usage and limits</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Disk Space */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Disk Space</span>
-              <span className="text-sm text-muted-foreground">
-                {formatBytes(hostingData.gen_info?.["real_size"] ?? 0)} / {formatBytes(getLimitValue("disk_space") || 0)}
-              </span>
-            </div>
-            <Progress value={getDiskUsagePercentage()} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {getDiskUsagePercentage()}% used
-            </p>
-          </div>
-
-          {/* Traffic */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Monthly Traffic</span>
-              <span className="text-sm text-muted-foreground">
-                {formatTraffic(hostingData.stat?.traffic ?? 0)} / {formatTraffic(getLimitValue("max_traffic") || 0)}
-              </span>
-            </div>
-            <Progress value={getTrafficUsagePercentage()} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {getTrafficUsagePercentage()}% used
-            </p>
-          </div>
-
-          {/* Mailboxes */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Mailboxes</span>
-              <span className="text-sm text-muted-foreground">
-                {hostingData.stat?.box ?? 0} / {getLimitValue("max_box") || 0}
-              </span>
-            </div>
-            <Progress value={getMailboxUsagePercentage()} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {getMailboxUsagePercentage()}% used
-            </p>
-          </div>
-
-          {/* Databases */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Databases</span>
-              <span className="text-sm text-muted-foreground">
-                {hostingData.stat?.db ?? 0} / {getLimitValue("max_db") || 0}
-              </span>
-            </div>
-            <Progress value={getDatabaseUsagePercentage()} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {getDatabaseUsagePercentage()}% used
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Hosting Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Cpu className="h-5 w-5" />
-            Hosting Configuration
-          </CardTitle>
-          <CardDescription>Server and application settings</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">SSL Certificate:</span>
             {getPropertyValue("ssl") ? (
@@ -223,44 +142,115 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
         </CardContent>
       </Card>
 
-      {/* Limits */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DatabaseIcon className="h-5 w-5" />
-            Resource Limits
-          </CardTitle>
-          <CardDescription>Maximum allowed resources</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Resource Usage & Resource Limits - Side by side in flexgrid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Resource Usage */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <HardDrive className="h-5 w-5" />
+              Resource Usage
+            </CardTitle>
+            <CardDescription>Current usage and limits</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Disk Space */}
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Max Sites</p>
-              <p className="text-lg font-semibold">{getLimitValue("max_site") || 0}</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Disk Space</span>
+                <span className="text-sm text-muted-foreground">
+                  {formatBytes(hostingData.gen_info?.["real_size"] ?? 0)} / {formatBytes(getLimitValue("disk_space") || 0)}
+                </span>
+              </div>
+              <Progress value={getDiskUsagePercentage()} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {getDiskUsagePercentage()}% used
+              </p>
             </div>
+
+            {/* Traffic */}
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Max Subdomains</p>
-              <p className="text-lg font-semibold">{getLimitValue("max_subdom") || 0}</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Monthly Traffic</span>
+                <span className="text-sm text-muted-foreground">
+                  {formatTraffic(hostingData.stat?.traffic ?? 0)} / {formatTraffic(getLimitValue("max_traffic") || 0)}
+                </span>
+              </div>
+              <Progress value={getTrafficUsagePercentage()} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {getTrafficUsagePercentage()}% used
+              </p>
             </div>
+
+            {/* Mailboxes */}
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Max Domain Aliases</p>
-              <p className="text-lg font-semibold">{getLimitValue("max_dom_aliases") || 0}</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Mailboxes</span>
+                <span className="text-sm text-muted-foreground">
+                  {hostingData.stat?.box ?? 0} / {getLimitValue("max_box") || 0}
+                </span>
+              </div>
+              <Progress value={getMailboxUsagePercentage()} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {getMailboxUsagePercentage()}% used
+              </p>
             </div>
+
+            {/* Databases */}
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Max FTP Users</p>
-              <p className="text-lg font-semibold">{getLimitValue("max_subftp_users") || 0}</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Databases</span>
+                <span className="text-sm text-muted-foreground">
+                  {hostingData.stat?.db ?? 0} / {getLimitValue("max_db") || 0}
+                </span>
+              </div>
+              <Progress value={getDatabaseUsagePercentage()} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {getDatabaseUsagePercentage()}% used
+              </p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Max Mail Lists</p>
-              <p className="text-lg font-semibold">{getLimitValue("max_maillists") || 0}</p>
+          </CardContent>
+        </Card>
+
+        {/* Resource Limits */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DatabaseIcon className="h-5 w-5" />
+              Resource Limits
+            </CardTitle>
+            <CardDescription>Maximum allowed resources</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Max Sites</p>
+                <p className="text-lg font-semibold">{getLimitValue("max_site") || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Max Subdomains</p>
+                <p className="text-lg font-semibold">{getLimitValue("max_subdom") || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Max Domain Aliases</p>
+                <p className="text-lg font-semibold">{getLimitValue("max_dom_aliases") || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Max FTP Users</p>
+                <p className="text-lg font-semibold">{getLimitValue("max_subftp_users") || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Max Mail Lists</p>
+                <p className="text-lg font-semibold">{getLimitValue("max_maillists") || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Max Web Users</p>
+                <p className="text-lg font-semibold">{getLimitValue("max_wu") || 0}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Max Web Users</p>
-              <p className="text-lg font-semibold">{getLimitValue("max_wu") || 0}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Databases */}
       <Card>

@@ -282,7 +282,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
   };
 
   const TableView = () => (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>

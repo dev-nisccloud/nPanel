@@ -437,7 +437,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
   );
 
   const TableView = () => (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>

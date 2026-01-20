@@ -131,27 +131,29 @@ export default function TldsPage() {
   if (error) {
     return (
       <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-        <Alert variant={isRateLimitError ? "default" : "destructive"}>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {isRateLimitError ? (
-              <>
-                Rate limit exceeded. You've made too many requests in a short time. 
-                Please wait a moment before refreshing again.
-              </>
-            ) : (
-              error.message || "Failed to load TLDs"
-            )}
-          </AlertDescription>
-        </Alert>
-        <div className="flex justify-center">
-          <Button 
-            onClick={() => refetch()} 
-            variant="outline"
-            disabled={isLoading}
-          >
-            {isLoading ? "Retrying..." : "Try Again"}
-          </Button>
+        <div className="w-full max-w-7xl mx-auto">
+          <Alert variant={isRateLimitError ? "default" : "destructive"}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {isRateLimitError ? (
+                <>
+                  Rate limit exceeded. You've made too many requests in a short time. 
+                  Please wait a moment before refreshing again.
+                </>
+              ) : (
+                error.message || "Failed to load TLDs"
+              )}
+            </AlertDescription>
+          </Alert>
+          <div className="flex justify-center mt-6">
+            <Button 
+              onClick={() => refetch()} 
+              variant="outline"
+              disabled={isLoading}
+            >
+              {isLoading ? "Retrying..." : "Try Again"}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -161,16 +163,17 @@ export default function TldsPage() {
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">TLDs</h1>
-        <p className="text-muted-foreground">
-          Browse and search available top-level domains (TLDs) with pricing and
-          registration information.
-        </p>
-      </div>
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">TLDs</h1>
+          <p className="text-muted-foreground">
+            Browse and search available top-level domains (TLDs) with pricing and
+            registration information.
+          </p>
+        </div>
 
-      {/* Search Box and Refresh Button */}
-      <div className="flex items-center gap-2">
+        {/* Search Box and Refresh Button */}
+        <div className="mt-6 flex items-center gap-2">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -190,9 +193,10 @@ export default function TldsPage() {
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
         </Button>
-      </div>
+        </div>
 
-      {/* Content */}
+        {/* Content */}
+        <div className="mt-6">
       {isLoading && !tldsData ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, index) => (
@@ -240,6 +244,8 @@ export default function TldsPage() {
           )}
         </>
       )}
+        </div>
+      </div>
 
       {/* TLD Details Sheet */}
       <TldDetailsSheet

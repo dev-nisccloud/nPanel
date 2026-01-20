@@ -52,32 +52,34 @@ interface HostingDetailPageProps {
 // Loading skeleton component
 function HostingDetailSkeleton() {
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6">
-      {/* Header skeleton */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-8 w-20" />
-          <div>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-32" />
+    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <div className="w-full max-w-7xl mx-auto">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-8 w-20" />
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-16" />
+            <Skeleton className="h-8 w-8" />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-6 w-16" />
-          <Skeleton className="h-8 w-8" />
-        </div>
-      </div>
 
-      {/* Tabs skeleton */}
-      <div className="space-y-4">
-        <div className="flex gap-2">
-          <Skeleton className="h-10 w-20" />
-          <Skeleton className="h-10 w-16" />
-          <Skeleton className="h-10 w-16" />
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
+        {/* Tabs skeleton */}
+        <div className="mt-6 space-y-4">
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-10 w-16" />
+            <Skeleton className="h-10 w-16" />
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+          <Skeleton className="h-64 w-full" />
         </div>
-        <Skeleton className="h-64 w-full" />
       </div>
     </div>
   );
@@ -86,52 +88,54 @@ function HostingDetailSkeleton() {
 // Error component
 function HostingDetailError({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/agency/hosting">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Error Loading Subscription</h1>
-            <p className="text-muted-foreground">Failed to load hosting subscription details</p>
+    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/agency/hosting">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">Error Loading Subscription</h1>
+              <p className="text-muted-foreground">Failed to load hosting subscription details</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="mb-4">
-          <svg
-            className="mx-auto h-12 w-12 text-muted-foreground"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-            />
-          </svg>
-        </div>
-        <h3 className="mb-2 text-lg font-semibold">Failed to load subscription</h3>
-        <p className="mb-4 text-sm text-muted-foreground">
-          {error.message || "An error occurred while fetching hosting subscription details."}
-        </p>
-        <div className="flex gap-2">
-          <Button onClick={onRetry} variant="outline">
-            Try Again
-          </Button>
-          <Link href="/agency/hosting">
-            <Button variant="ghost">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Hosting
+        <div className="mt-6 flex flex-col items-center justify-center py-12 text-center">
+          <div className="mb-4">
+            <svg
+              className="mx-auto h-12 w-12 text-muted-foreground"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+          </div>
+          <h3 className="mb-2 text-lg font-semibold">Failed to load subscription</h3>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {error.message || "An error occurred while fetching hosting subscription details."}
+          </p>
+          <div className="flex gap-2">
+            <Button onClick={onRetry} variant="outline">
+              Try Again
             </Button>
-          </Link>
+            <Link href="/agency/hosting">
+              <Button variant="ghost">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Hosting
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -208,8 +212,9 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="w-full max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/agency/hosting">
             <Button variant="ghost" size="sm">
@@ -304,6 +309,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
       </div>
 
       {/* Tabs */}
+      <div className="mt-6">
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-5 h-auto p-0 bg-transparent">
           <TabsTrigger 
@@ -393,6 +399,8 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           <SubdomainsTable domainName={hostingData.gen_info?.name || ""} />
         </TabsContent>
       </Tabs>
+      </div>
+      </div>
 
       {/* Link to Team Dialog */}
       <LinkToTeamDialog

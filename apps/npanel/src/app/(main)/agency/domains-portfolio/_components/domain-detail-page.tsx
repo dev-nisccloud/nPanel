@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, ExternalLink, Info, QrCode, Monitor, LayoutDashboard, Network, Server, Globe, ChevronRight, Code2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Info, QrCode, Monitor, LayoutDashboard, Network, Server, Globe, ChevronRight, Code2, AlertCircle, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/utils/trpc";
 import { QrCodeDialog } from "./qr-code-dialog";
 import { HostingPlanDialog } from "./hosting-plan-dialog";
@@ -82,14 +83,16 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   if (isLoading) {
     return (
       <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-32" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <Skeleton className="h-64" />
-          </div>
-          <div className="space-y-4">
-            <Skeleton className="h-64" />
+        <div className="w-full max-w-7xl mx-auto">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-32" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <Skeleton className="h-64" />
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-64" />
+            </div>
           </div>
         </div>
       </div>
@@ -99,11 +102,13 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   if (!domain) {
     return (
       <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-destructive mb-4">Domain not found</p>
-          <Button onClick={() => router.push("/agency/domains-portfolio")} variant="outline">
-            Back to Portfolio
-          </Button>
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-destructive mb-4">Domain not found</p>
+            <Button onClick={() => router.push("/agency/domains-portfolio")} variant="outline">
+              Back to Portfolio
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -138,22 +143,24 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/agency/domains-portfolio">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Domain Details</h1>
-          <p className="text-muted-foreground">Manage and monitor your domain</p>
+      <div className="w-full max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Link href="/agency/domains-portfolio">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Domain Details</h1>
+            <p className="text-muted-foreground">Manage and monitor your domain</p>
+          </div>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {/* Tabs */}
+        <div className="mt-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-4 h-auto p-0 bg-transparent">
           <TabsTrigger 
             value="overview"
@@ -266,6 +273,8 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
           />
         </TabsContent>
       </Tabs>
+        </div>
+      </div>
 
       {/* Dialogs */}
       <QrCodeDialog 
@@ -476,11 +485,23 @@ function DomainHeaderCard({
   shouldShowRenew: boolean;
 }) {
   const expiryDate = new Date(domain.expiryDate);
+  const now = new Date();
+  const daysUntilExpiry = Math.floor(
+    (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  const isNearExpiry = daysUntilExpiry <= 30;
+  
   const formattedDate = expiryDate.toLocaleDateString('en-US', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   });
+
+  // Calculate progress percentage for circular indicator (~75-80% filled)
+  const progressPercentage = 75; // Show 75% of the circle filled
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (progressPercentage / 100) * circumference;
 
   return (
     <Card>
@@ -501,17 +522,59 @@ function DomainHeaderCard({
         </div>
         <Separator className="my-4" />
         <div className="space-y-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm text-muted-foreground">Expiration date</span>
-              <Info className="h-3 w-3 text-muted-foreground" />
+          <div className="flex items-center gap-4">
+            {/* Circular Progress Indicator */}
+            <div className="relative flex-shrink-0">
+              <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
+                {/* Background circle (lighter shade - unfilled part) */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke={isNearExpiry ? "rgb(254 226 226)" : "rgb(220 252 231)"}
+                  strokeWidth="8"
+                />
+                {/* Progress circle (prominent color - filled part) */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke={isNearExpiry ? "rgb(239 68 68)" : "rgb(34 197 94)"}
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={offset}
+                />
+              </svg>
+              {/* Calendar icon in center */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Calendar className={`h-6 w-6 ${isNearExpiry ? "text-destructive" : "text-green-600"}`} />
+              </div>
             </div>
-            <div className="text-sm font-medium">{formattedDate}</div>
-            {shouldShowRenew && (
-              <Button variant="link" className="p-0 h-auto text-primary text-sm mt-1">
-                Renew
-              </Button>
-            )}
+            {/* Expiration Date Section */}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm text-muted-foreground">Expiration date</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>To avoid service interruptions it is recommended to renew your domain 30 days before expiry</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="text-base font-semibold">{formattedDate}</div>
+              {shouldShowRenew && (
+                <Button variant="link" className="p-0 h-auto text-primary text-sm mt-1">
+                  Renew
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>

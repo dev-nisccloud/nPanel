@@ -42,14 +42,14 @@ export default async function TeamLayout({
   // This must be the FIRST check to prevent Next.js from compiling this route for /agency
   if (slug === "agency") {
     // Redirect immediately to prevent this layout from executing
-    redirect("/agency/default");
+    redirect("/agency/dashboard");
   }
   
   // Check user role first - if they have an agency role, redirect to agency dashboard
   // This prevents agency users from accessing customer routes
   const user = await getCurrentUser();
   if (user && (user as { role?: string }).role?.includes("AGENCY")) {
-    redirect("/agency/default");
+    redirect("/agency/dashboard");
   }
   
   // Server-side auth check - redirects if not authenticated or not a customer

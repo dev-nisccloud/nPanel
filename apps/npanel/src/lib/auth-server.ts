@@ -230,8 +230,8 @@ export async function requireRole(allowedRoles: string[]) {
     }
     
     if (userRole.includes("AGENCY")) {
-      console.log("[Auth Server] requireRole() - Redirecting AGENCY user to /agency/default");
-      redirect("/agency/default");
+      console.log("[Auth Server] requireRole() - Redirecting AGENCY user to /agency/dashboard");
+      redirect("/agency/dashboard");
     }
     
     // Fallback - ensure team for customer
@@ -476,10 +476,10 @@ export async function redirectIfAuthenticated() {
     }
     
     if (userRole?.includes("AGENCY")) {
-      console.log("[Auth Server] Redirecting AGENCY to: /agency/default");
+      console.log("[Auth Server] Redirecting AGENCY to: /agency/dashboard");
       console.log("[Auth Server] About to call redirect() - this will throw a NEXT_REDIRECT error");
       // Use absolute URL to ensure redirect works correctly
-      const redirectUrl = "/agency/default";
+      const redirectUrl = "/agency/dashboard";
       console.log("[Auth Server] Calling redirect() with URL:", redirectUrl);
       // redirect() throws a NEXT_REDIRECT error that Next.js catches to perform the redirect
       redirect(redirectUrl);

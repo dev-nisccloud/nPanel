@@ -292,7 +292,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
   };
 
   const TableView = () => (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>

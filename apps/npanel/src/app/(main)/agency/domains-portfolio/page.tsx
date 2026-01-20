@@ -84,7 +84,7 @@ export default function DomainsPortfolioPage() {
   // Show error state
   if (error) {
     return (
-      <div className="@container/main flex flex-col gap-4 md:gap-6">
+      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <p className="text-destructive mb-4">
             {error.message || "Failed to load domains portfolio"}
@@ -127,7 +127,7 @@ export default function DomainsPortfolioPage() {
   };
 
   const TableView = () => (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>
@@ -216,15 +216,16 @@ export default function DomainsPortfolioPage() {
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Domains Portfolio</h1>
-        <p className="text-muted-foreground">
-          Manage and monitor all domains registered through your agency. View domain status, expiry dates, and client information.
-        </p>
-      </div>
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">Domains Portfolio</h1>
+          <p className="text-muted-foreground">
+            Manage and monitor all domains registered through your agency. View domain status, expiry dates, and client information.
+          </p>
+        </div>
 
-      {/* Search, Refresh, and Actions */}
-      <div className="flex items-center justify-between gap-4">
+        {/* Search, Refresh, and Actions */}
+        <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -271,6 +272,7 @@ export default function DomainsPortfolioPage() {
         </div>
       </div>
 
+      <div className="mt-6">
       {isLoading && !domainsData ? (
         <div className="flex items-center justify-center py-12">
           <Spinner size={32} />
@@ -301,6 +303,8 @@ export default function DomainsPortfolioPage() {
           )}
         </>
       )}
+      </div>
+      </div>
     </div>
   );
 }

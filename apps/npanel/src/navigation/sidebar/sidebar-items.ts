@@ -201,7 +201,7 @@ export const agencysidebarItems: NavGroup[] = [
     items: [
       {     
         title: "Home",
-        url: "/agency/default",
+        url: "/agency/dashboard",
         icon: (props: any) => React.createElement(Icons.Home, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {

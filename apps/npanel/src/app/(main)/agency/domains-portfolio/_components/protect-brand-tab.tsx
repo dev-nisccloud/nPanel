@@ -70,81 +70,71 @@ function ProtectBrandTabContent({ domainNameWithoutTld, isActive = true }: Prote
     return cartDomainSet.has(domainName);
   }, [cartDomainSet]);
 
-  // Process and calculate prices for results
-  const [processedResults, setProcessedResults] = React.useState<DomainSearchResult[]>([]);
-  const [isProcessingResults, setIsProcessingResults] = React.useState(false);
-  const lastProcessedDataHash = React.useRef<string>("");
-  const calculatePricesBatchRef = React.useRef(pricingHook.calculatePricesBatch);
-
-  // Update ref when function changes
-  React.useEffect(() => {
-    calculatePricesBatchRef.current = pricingHook.calculatePricesBatch;
-  }, [pricingHook.calculatePricesBatch]);
-
-  // Create a stable data hash to track when we need to reprocess
-  const searchDataHash = React.useMemo(() => {
-    if (!searchData?.success || !searchData?.data?.results) return "";
-    // Create a hash from the results data
-    return JSON.stringify(searchData.data.results.map((r: any) => ({
-      domain: r.domain,
-      status: r.status,
-      price: r.price,
-    })));
+  // Process results directly using useMemo - no useEffect for better performance
+  const rawResults = React.useMemo(() => {
+    if (!searchData?.success || !searchData?.data?.results) {
+      return [];
+    }
+    return searchData.data.results.map((result: any) => ({
+      domain: result.domain || 'unknown',
+      status: result.status || 'unknown',
+      reason: result.reason || '',
+      price: result.price || undefined,
+      whois: result.whois || undefined,
+    }));
   }, [searchData?.success, searchData?.data?.results]);
 
-  // Process results only when data actually changes
-  React.useEffect(() => {
-    if (!searchData?.success || !searchData?.data?.results) {
-      setProcessedResults([]);
-      lastProcessedDataHash.current = "";
-      return;
+  // Create processing promise - memoized to avoid recreating
+  const processingPromiseRef = React.useRef<Promise<DomainSearchResult[]> | null>(null);
+  const processingKeyRef = React.useRef<string>("");
+
+  // Create a stable key for processing
+  const processingKey = React.useMemo(() => {
+    if (!searchData?.success || !searchData?.data?.results || rawResults.length === 0) {
+      return "";
+    }
+    const dataHash = searchData.data.results
+      .map((r: any) => `${r.domain}:${r.status}:${r.price?.reseller?.price || 0}:${r.price?.reseller?.currency || 'USD'}`)
+      .join('|');
+    return `${dataHash}:${currencyContext.selectedCurrency}`;
+  }, [searchData?.success, searchData?.data?.results, currencyContext.selectedCurrency, rawResults.length]);
+
+  // Process results using useMemo to create promise, then unwrap with React.use()
+  const processedResultsPromise = React.useMemo(() => {
+    // Don't process if dependencies aren't ready
+    if (pricingHook.isLoadingTldSettings || currencyContext.isLoadingRates) {
+      return null;
     }
 
-    // Skip if we've already processed this data
-    if (lastProcessedDataHash.current === searchDataHash && searchDataHash !== "") {
-      return;
+    if (rawResults.length === 0) {
+      return null;
     }
 
-    let cancelled = false;
+    // If we already have a promise for this key, return it
+    if (processingPromiseRef.current && processingKeyRef.current === processingKey) {
+      return processingPromiseRef.current;
+    }
 
-    const processResults = async () => {
-      setIsProcessingResults(true);
+    // Create new promise
+    const promise = pricingHook.calculatePricesBatch(rawResults);
+    processingPromiseRef.current = promise;
+    processingKeyRef.current = processingKey;
+    return promise;
+  }, [
+    rawResults,
+    pricingHook.calculatePricesBatch,
+    pricingHook.isLoadingTldSettings,
+    currencyContext.isLoadingRates,
+    processingKey,
+  ]);
 
-      try {
-        // Map raw results to DomainSearchResult format
-        const rawResults: DomainSearchResult[] = searchData.data.results.map((result: any) => ({
-          domain: result.domain || 'unknown',
-          status: result.status || 'unknown',
-          reason: result.reason || '',
-          price: result.price || undefined,
-          whois: result.whois || undefined,
-        }));
-
-        // Calculate prices with margins and currency conversion using ref
-        const processed = await calculatePricesBatchRef.current(rawResults);
-        
-        if (!cancelled) {
-          setProcessedResults(processed);
-          lastProcessedDataHash.current = searchDataHash;
-        }
-      } catch (error) {
-        console.error('Error processing domain results:', error);
-        if (!cancelled) {
-          setProcessedResults([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsProcessingResults(false);
-        }
-      }
-    };
-
-    processResults();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [searchDataHash, searchData]);
+  // Use React.use() to unwrap promise synchronously - no useEffect needed
+  // React.use() will throw the promise if pending (for Suspense), or return the value if resolved
+  const processedResults: DomainSearchResult[] = processedResultsPromise 
+    ? React.use(processedResultsPromise) 
+    : [];
+  
+  const isProcessingResults = processedResultsPromise !== null && processedResults.length === 0 && rawResults.length > 0;
 
   // Handle adding domain to cart
   const handleAddToCart = React.useCallback((result: DomainSearchResult) => {
@@ -161,7 +151,11 @@ function ProtectBrandTabContent({ domainNameWithoutTld, isActive = true }: Prote
     removeDomainByName(domain);
   }, [removeDomainByName]);
 
-  const isLoadingResults = isLoading || isProcessingResults || pricingHook.isLoadingTldSettings;
+  // Show loading until all data is ready: domain search, TLD settings, exchange rates, and price processing
+  const isLoadingResults = isLoading || 
+                          isProcessingResults || 
+                          pricingHook.isLoadingTldSettings || 
+                          currencyContext.isLoadingRates;
   const errorMessage = error?.message || null;
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, MoreVertical, Unlink, Edit } from "lucide-react";
+import { ArrowLeft, MoreVertical, Unlink, Edit, LayoutDashboard, ChevronRight, Lock, Code, FileText } from "lucide-react";
 import Link from "next/link";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -196,7 +196,8 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
   };
 
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6">
+    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <div className="w-full max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -273,12 +274,61 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
       </div>
 
       {/* Tabs */}
+      <div className="mt-6">
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="site-credentials">Site Credentials</TabsTrigger>
-          <TabsTrigger value="plugins">Plugins</TabsTrigger>
-          <TabsTrigger value="themes">Themes</TabsTrigger>
+        <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-4 h-auto p-0 bg-transparent">
+          <TabsTrigger 
+            value="overview"
+            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+          >
+            <div className="flex items-center justify-between w-full">
+              <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col items-start gap-1 w-full">
+              <span className="font-semibold text-sm">Overview</span>
+              <span className="text-xs text-muted-foreground">Details</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="site-credentials"
+            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+          >
+            <div className="flex items-center justify-between w-full">
+              <Lock className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col items-start gap-1 w-full">
+              <span className="font-semibold text-sm">Site Credentials</span>
+              <span className="text-xs text-muted-foreground">Access</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="plugins"
+            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+          >
+            <div className="flex items-center justify-between w-full">
+              <Code className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col items-start gap-1 w-full">
+              <span className="font-semibold text-sm">Plugins</span>
+              <span className="text-xs text-muted-foreground">Extensions</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="themes"
+            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+          >
+            <div className="flex items-center justify-between w-full">
+              <FileText className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col items-start gap-1 w-full">
+              <span className="font-semibold text-sm">Themes</span>
+              <span className="text-xs text-muted-foreground">Designs</span>
+            </div>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -297,6 +347,8 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
           <WordPressThemes installationId={String(wpData.id)} />
         </TabsContent>
       </Tabs>
+      </div>
+      </div>
 
       {/* Link to Team Dialog */}
       <LinkToTeamDialog

@@ -63,6 +63,7 @@ import { stabilityAiRouter } from "./stability-ai";
 import { imageGeneratorRouter } from "./image-generator";
 import { backgroundRemoverRouter } from "./background-remover";
 import { paymentGatewayRouter } from "./payment-gateway";
+import { paymentTransactionsRouter } from "./payment-transactions";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -178,5 +179,7 @@ export const appRouter = router({
 	backgroundRemover: backgroundRemoverRouter,
 	// Payment Gateway Integration
 	paymentGateway: paymentGatewayRouter,
+	// Payment Transactions
+	paymentTransactions: paymentTransactionsRouter,
 });
 export type AppRouter = typeof appRouter;
