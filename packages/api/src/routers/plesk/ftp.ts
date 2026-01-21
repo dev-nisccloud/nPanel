@@ -2,8 +2,9 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { Client, FileInfo } from "basic-ftp";
 import archiver from "archiver";
-import { createWriteStream, createReadStream, unlinkSync, existsSync } from "fs";
-import { join } from "path";
+import AdmZip from "adm-zip";
+import { createWriteStream, createReadStream, unlinkSync, existsSync, mkdirSync, statSync } from "fs";
+import { join, dirname } from "path";
 import { tmpdir } from "os";
 
 import { protectedProcedure, router } from "../../trpc";
@@ -831,4 +832,342 @@ export const ftpRouter = router({
         client.close();
       }
     }),
+
+  // Read file content as text (for file viewer)
+  readFile: protectedProcedure
+    .input(z.object({
+      credentials: ftpConnectionSchema,
+      remotePath: z.string().min(1, "Remote path is required"),
+      maxSize: z.number().optional().default(5 * 1024 * 1024), // Default 5MB limit
+    }))
+    .mutation(async ({ input }) => {
+      const client = await createFtpClient(input.credentials);
+      let tempFilePath: string | null = null;
+      
+      try {
+        console.log(`Reading file: ${input.remotePath}`);
+        
+        // Check file size before downloading
+        const fileSize = await client.size(input.remotePath);
+        if (fileSize && fileSize > input.maxSize!) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `File size (${fileSize} bytes) exceeds the maximum viewing limit (${input.maxSize} bytes)`,
+          });
+        }
+        
+        // Create temporary file path
+        tempFilePath = createTempFilePath();
+        
+        // Download file with retry logic
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+          try {
+            await client.downloadTo(tempFilePath, input.remotePath);
+            break;
+          } catch (error) {
+            retryCount++;
+            if (retryCount >= maxRetries) {
+              throw error;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+            
+            if (error instanceof Error && error.message.includes('connection')) {
+              client.close();
+              await client.access({
+                host: input.credentials.host,
+                port: input.credentials.port,
+                user: input.credentials.user,
+                password: input.credentials.password,
+                secure: input.credentials.secure,
+              });
+            }
+          }
+        }
+        
+        // Read the downloaded file as text
+        return new Promise<{ success: boolean; content: string; filename: string; encoding: string }>((resolve, reject) => {
+          const fileBuffer = createReadStream(tempFilePath!);
+          const chunks: Buffer[] = [];
+          
+          fileBuffer.on('data', (chunk: string | Buffer) => {
+            if (Buffer.isBuffer(chunk)) {
+              chunks.push(chunk);
+            } else {
+              chunks.push(Buffer.from(chunk));
+            }
+          });
+          
+          fileBuffer.on('end', () => {
+            const buffer = Buffer.concat(chunks);
+            const filename = input.remotePath.split('/').pop() || 'file';
+            
+            // Try UTF-8 first, fallback to latin1
+            let content = '';
+            let encoding = 'utf-8';
+            
+            try {
+              content = buffer.toString('utf-8');
+              // Check if the text is valid UTF-8
+              if (content.includes('\uFFFD')) {
+                content = buffer.toString('latin1');
+                encoding = 'latin1';
+              }
+            } catch {
+              content = buffer.toString('latin1');
+              encoding = 'latin1';
+            }
+            
+            // Cleanup temp file
+            cleanupTempFile(tempFilePath!);
+            
+            resolve({
+              success: true,
+              content,
+              filename,
+              encoding,
+            });
+          });
+          
+          fileBuffer.on('error', (error) => {
+            cleanupTempFile(tempFilePath!);
+            reject(new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: `Failed to read file: ${error.message}`,
+            }));
+          });
+        });
+        
+      } catch (error) {
+        if (tempFilePath) {
+          cleanupTempFile(tempFilePath);
+        }
+        
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to read file: ${error instanceof Error ? error.message : "Unknown error"}`,
+        });
+      } finally {
+        client.close();
+      }
+    }),
+
+  // Extract zip file
+  extractZip: protectedProcedure
+    .input(z.object({
+      credentials: ftpConnectionSchema,
+      zipPath: z.string().min(1, "Zip file path is required"),
+      extractTo: z.string().optional().default(""), // Empty string means extract to same directory as zip
+      overwrite: z.boolean().default(false),
+      maxSize: z.number().optional().default(500 * 1024 * 1024), // Default 500MB limit
+    }))
+    .mutation(async ({ input }) => {
+      const client = await createFtpClient(input.credentials);
+      let tempZipPath: string | null = null;
+      let tempExtractPath: string | null = null;
+      
+      try {
+        // Check if zip file exists and get its size
+        const zipSize = await client.size(input.zipPath);
+        if (!zipSize) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Zip file not found or is empty",
+          });
+        }
+
+        // Check size limit
+        if (zipSize > input.maxSize!) {
+          throw new TRPCError({
+            code: "PAYLOAD_TOO_LARGE",
+            message: `Zip file size (${Math.round(zipSize / 1024 / 1024)}MB) exceeds the maximum allowed size (${Math.round(input.maxSize! / 1024 / 1024)}MB)`,
+          });
+        }
+
+        // Determine extraction directory
+        const zipDir = dirname(input.zipPath);
+        const extractToPath = input.extractTo || zipDir;
+        
+        // Create temporary file paths
+        tempZipPath = createTempFilePath("zip");
+        tempExtractPath = join(tmpdir(), `ftp-extract-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+        mkdirSync(tempExtractPath, { recursive: true });
+
+        console.log(`Downloading zip file: ${input.zipPath} to ${tempZipPath}`);
+        
+        // Download zip file with retry logic
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+          try {
+            await client.downloadTo(tempZipPath, input.zipPath);
+            break;
+          } catch (error) {
+            retryCount++;
+            if (retryCount >= maxRetries) {
+              throw error;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+            
+            if (error instanceof Error && error.message.includes('connection')) {
+              client.close();
+              await client.access({
+                host: input.credentials.host,
+                port: input.credentials.port,
+                user: input.credentials.user,
+                password: input.credentials.password,
+                secure: input.credentials.secure,
+              });
+            }
+          }
+        }
+
+        console.log(`Extracting zip file: ${tempZipPath} to ${tempExtractPath}`);
+        
+        // Extract zip file using adm-zip
+        const zip = new AdmZip(tempZipPath);
+        const zipEntries = zip.getEntries();
+        
+        if (zipEntries.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Zip file is empty",
+          });
+        }
+
+        // Extract all entries
+        zip.extractAllTo(tempExtractPath, true); // true = overwrite existing files
+        
+        console.log(`Extracted ${zipEntries.length} entries`);
+
+        // Upload extracted files to FTP
+        const uploadedFiles: string[] = [];
+        const failedFiles: string[] = [];
+        
+        // Helper function to recursively upload files
+        const uploadFileRecursive = async (localPath: string, remoteBasePath: string) => {
+          const fs = require('fs');
+          const stats = statSync(localPath);
+          
+          if (stats.isDirectory()) {
+            // Create directory on FTP
+            if (!tempExtractPath) {
+              throw new Error("Temporary extract path is not set");
+            }
+            const relativePath = localPath.replace(tempExtractPath, '').replace(/\\/g, '/');
+            const remoteDirPath = extractToPath === '/' 
+              ? `/${relativePath}` 
+              : `${extractToPath}${relativePath}`;
+            
+            try {
+              // Try to create directory (might already exist)
+              await client.ensureDir(remoteDirPath);
+            } catch (error) {
+              // Directory might already exist, continue
+              console.log(`Directory might already exist: ${remoteDirPath}`);
+            }
+            
+            // Recursively process directory contents
+            const entries = fs.readdirSync(localPath);
+            for (const entry of entries) {
+              await uploadFileRecursive(join(localPath, entry), remoteBasePath);
+            }
+          } else if (stats.isFile()) {
+            // Upload file
+            if (!tempExtractPath) {
+              throw new Error("Temporary extract path is not set");
+            }
+            const relativePath = localPath.replace(tempExtractPath, '').replace(/\\/g, '/');
+            const remoteFilePath = extractToPath === '/' 
+              ? `/${relativePath}` 
+              : `${extractToPath}${relativePath}`;
+            
+            try {
+              // Check if file exists and overwrite option
+              if (!input.overwrite) {
+                try {
+                  const existingSize = await client.size(remoteFilePath);
+                  if (existingSize !== undefined) {
+                    // File exists, skip
+                    console.log(`File already exists, skipping: ${remoteFilePath}`);
+                    failedFiles.push(remoteFilePath);
+                    return;
+                  }
+                } catch {
+                  // File doesn't exist, continue with upload
+                }
+              }
+              
+              await client.uploadFrom(localPath, remoteFilePath);
+              uploadedFiles.push(remoteFilePath);
+              console.log(`Uploaded: ${remoteFilePath}`);
+            } catch (error) {
+              console.error(`Failed to upload file ${remoteFilePath}:`, error);
+              failedFiles.push(remoteFilePath);
+            }
+          }
+        };
+
+        // Upload all extracted files
+        const fs = require('fs');
+        const entries = fs.readdirSync(tempExtractPath);
+        for (const entry of entries) {
+          await uploadFileRecursive(join(tempExtractPath, entry), extractToPath);
+        }
+
+        // Cleanup temp files
+        cleanupTempFile(tempZipPath);
+        cleanupTempDirectory(tempExtractPath);
+
+        return {
+          success: true,
+          extractedCount: uploadedFiles.length,
+          failedCount: failedFiles.length,
+          files: uploadedFiles,
+          failedFiles: failedFiles.length > 0 ? failedFiles : undefined,
+          message: `Successfully extracted ${uploadedFiles.length} file(s)${failedFiles.length > 0 ? `, ${failedFiles.length} file(s) failed` : ''}`,
+        };
+        
+      } catch (error) {
+        // Cleanup temp files on error
+        if (tempZipPath) {
+          cleanupTempFile(tempZipPath);
+        }
+        if (tempExtractPath) {
+          cleanupTempDirectory(tempExtractPath);
+        }
+        
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to extract zip file: ${error instanceof Error ? error.message : "Unknown error"}`,
+        });
+      } finally {
+        client.close();
+      }
+    }),
 });
+
+// Helper function to cleanup temporary directory
+function cleanupTempDirectory(dirPath: string) {
+  try {
+    if (existsSync(dirPath)) {
+      const fs = require('fs');
+      fs.rmSync(dirPath, { recursive: true, force: true });
+    }
+  } catch (error) {
+    console.error(`Failed to cleanup temp directory ${dirPath}:`, error);
+  }
+}

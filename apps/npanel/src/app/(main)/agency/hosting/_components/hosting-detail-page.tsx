@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ArrowLeft, MoreVertical, Edit, Unlink, LayoutDashboard, Network, Mail, Folder, Layers, ChevronRight, Database } from "lucide-react";
+import { Icons } from "@/components/icons";
 import Link from "next/link";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ import { MailTable } from "./mail-table";
 import { FileManager } from "./file-manager";
 import { SubdomainsTable } from "./subdomains-table";
 import { DatabasesTable } from "./databases-table";
+import { WordPressInstancesTable } from "./wordpress-instances-table";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
@@ -312,7 +314,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
       {/* Tabs */}
       <div className="mt-6">
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-6 h-auto p-0 bg-transparent">
+        <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-7 h-auto p-0 bg-transparent">
           <TabsTrigger 
             value="overview"
             className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
@@ -391,6 +393,19 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               <span className="text-xs text-muted-foreground">MySQL/PostgreSQL</span>
             </div>
           </TabsTrigger>
+          <TabsTrigger 
+            value="wordpress"
+            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+          >
+            <div className="flex items-center justify-between w-full">
+              <Icons.Wordpress className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col items-start gap-1 w-full">
+              <span className="font-semibold text-sm">WordPress</span>
+              <span className="text-xs text-muted-foreground">Instances</span>
+            </div>
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="mt-6">
@@ -415,6 +430,10 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         
         <TabsContent value="databases" className="mt-6">
           <DatabasesTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
+        </TabsContent>
+        
+        <TabsContent value="wordpress" className="mt-6">
+          <WordPressInstancesTable domainName={hostingData.gen_info?.name || ""} />
         </TabsContent>
       </Tabs>
       </div>

@@ -57,6 +57,8 @@ import { RenameFileDialog } from "./rename-file-dialog";
 import { MoveFileDialog } from "./move-file-dialog";
 import { NewFolderDialog } from "./new-folder-dialog";
 import { UploadFileSheet } from "./upload-file-sheet";
+import { FileViewerSheet, isViewableFile } from "./file-viewer-sheet";
+import { ExtractZipDialog } from "./extract-zip-dialog";
 
 interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
@@ -143,7 +145,11 @@ export function FileManager({ hostingData }: FileManagerProps) {
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false);
   const [uploadSheetOpen, setUploadSheetOpen] = useState(false);
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [extractZipDialogOpen, setExtractZipDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FileManagerItem | null>(null);
+  const [viewingFile, setViewingFile] = useState<FileManagerItem | null>(null);
+  const [extractingFile, setExtractingFile] = useState<FileManagerItem | null>(null);
   const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
 
   // Extract FTP credentials from hosting data
@@ -242,6 +248,42 @@ export function FileManager({ hostingData }: FileManagerProps) {
     const directories = (data?.items || []).filter(item => item.type === "folder");
     setAvailableDirectories(directories);
     setMoveDialogOpen(true);
+  };
+
+  const handleExtractClick = (item: FileManagerItem) => {
+    setExtractingFile(item);
+    setExtractZipDialogOpen(true);
+  };
+
+  // Check if file is a zip file
+  const isZipFile = (item: FileManagerItem): boolean => {
+    return item.type === "file" && 
+           (item.extension?.toLowerCase() === "zip" || 
+            item.name.toLowerCase().endsWith(".zip"));
+  };
+
+  // Check if selected items include a zip file
+  const hasSelectedZipFile = (): boolean => {
+    if (selectedItems.length === 0) return false;
+    return filteredItems.some(item => 
+      selectedItems.includes(item.id) && isZipFile(item)
+    );
+  };
+
+  // Get the first selected zip file
+  const getSelectedZipFile = (): FileManagerItem | null => {
+    if (selectedItems.length === 0) return null;
+    return filteredItems.find(item => 
+      selectedItems.includes(item.id) && isZipFile(item)
+    ) || null;
+  };
+
+  // Handle extract from selected items
+  const handleExtractSelected = () => {
+    const zipFile = getSelectedZipFile();
+    if (zipFile) {
+      handleExtractClick(zipFile);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -344,7 +386,12 @@ export function FileManager({ hostingData }: FileManagerProps) {
             onClick={() => {
               if (item.type === "folder") {
                 navigateToPath(item.path);
+              } else if (isViewableFile(item)) {
+                // Open file viewer for viewable files
+                setViewingFile(item);
+                setFileViewerOpen(true);
               } else {
+                // For non-viewable files, just select them
                 handleSelectItem(item.id, !selectedItems.includes(item.id));
               }
             }}
@@ -370,14 +417,25 @@ export function FileManager({ hostingData }: FileManagerProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Eye className="mr-2 h-4 w-4" />
-                      View
-                    </DropdownMenuItem>
+                    {isViewableFile(item) && (
+                      <DropdownMenuItem onClick={() => {
+                        setViewingFile(item);
+                        setFileViewerOpen(true);
+                      }}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => handleDownloadClick(item)}>
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </DropdownMenuItem>
+                    {isZipFile(item) && (
+                      <DropdownMenuItem onClick={() => handleExtractClick(item)}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        Extract
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => handleRenameClick(item)}>
                       <Edit className="mr-2 h-4 w-4" />
                       Rename
@@ -467,7 +525,12 @@ export function FileManager({ hostingData }: FileManagerProps) {
               onClick={() => {
                 if (item.type === "folder") {
                   navigateToPath(item.path);
+                } else if (isViewableFile(item)) {
+                  // Open file viewer for viewable files
+                  setViewingFile(item);
+                  setFileViewerOpen(true);
                 } else {
+                  // For non-viewable files, just select them
                   handleSelectItem(item.id, !selectedItems.includes(item.id));
                 }
               }}
@@ -630,6 +693,17 @@ export function FileManager({ hostingData }: FileManagerProps) {
           {/* Action Buttons */}
           {selectedItems.length > 0 && (
             <>
+              {hasSelectedZipFile() && (
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  className="flex-shrink-0"
+                  onClick={handleExtractSelected}
+                >
+                  <Archive className="h-4 w-4 @sm/main:mr-2" />
+                  <span className="hidden @sm/main:inline">Extract</span>
+                </Button>
+              )}
               <Button 
                 variant="destructive" 
                 size="sm"
@@ -795,6 +869,37 @@ export function FileManager({ hostingData }: FileManagerProps) {
           refreshCurrentPath(); // Refresh the file list after successful upload
         }}
       />
+
+      {/* File Viewer Sheet */}
+      {viewingFile && (
+        <FileViewerSheet
+          open={fileViewerOpen}
+          onOpenChange={setFileViewerOpen}
+          file={viewingFile}
+          hostingData={hostingData}
+        />
+      )}
+
+      {/* Extract Zip Dialog */}
+      {extractingFile && (
+        <ExtractZipDialog
+          open={extractZipDialogOpen}
+          onOpenChange={(open) => {
+            setExtractZipDialogOpen(open);
+            if (!open) {
+              setExtractingFile(null);
+            }
+          }}
+          file={extractingFile}
+          hostingData={hostingData}
+          currentPath={currentPath}
+          onSuccess={() => {
+            refreshCurrentPath();
+            setExtractZipDialogOpen(false);
+            setExtractingFile(null);
+          }}
+        />
+      )}
     </div>
   );
 }

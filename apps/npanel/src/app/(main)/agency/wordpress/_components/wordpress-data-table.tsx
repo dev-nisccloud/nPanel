@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search, RefreshCw, Grid3X3, List, EllipsisVertical } from "lucide-react";
+import { Search, RefreshCw, Grid3X3, List } from "lucide-react";
 import { z } from "zod";
 import Link from "next/link";
 
@@ -17,19 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 import { WordPressCardsList } from "./wordpress-cards";
 import { wordpressInstallationSchema } from "./schema";
@@ -180,13 +167,12 @@ export function WordPressDataTable() {
             <TableHead>Title</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Security</TableHead>
-            <TableHead className="w-12"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                 No WordPress installations found
               </TableCell>
             </TableRow>
@@ -214,37 +200,6 @@ export function WordPressDataTable() {
                 </TableCell>
                 <TableCell>
                   {getSecurityBadge(item)}
-                </TableCell>
-                <TableCell>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
-                              <EllipsisVertical className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/agency/wordpress/${item.id}`}>View details</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(item.id)}>
-                              Edit installation
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDelete(item.id)} variant="destructive">
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Actions</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </TableCell>
               </TableRow>
             ))

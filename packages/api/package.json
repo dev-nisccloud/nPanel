@@ -15,6 +15,7 @@
     "build": "tsdown"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
     "@types/archiver": "^6.0.3",
     "tsdown": "catalog:"
   },
@@ -33,6 +34,7 @@
     "@trpc/server": "catalog:",
     "@upstash/qstash": "^2.8.4",
     "@upstash/redis": "^1.35.6",
+    "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "aws-sdk": "^2.1692.0",
     "basic-ftp": "^5.0.5",
