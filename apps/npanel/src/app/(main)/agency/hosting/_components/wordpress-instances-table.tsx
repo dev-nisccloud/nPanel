@@ -20,6 +20,7 @@ import {
 
 import { wordpressInstallationSchema } from "../../wordpress/_components/schema";
 import { useWordPressInstances } from "../../wordpress/_components/use-wordpress-instances";
+import { Plus, RefreshCw } from "lucide-react";
 
 // Loading skeleton component
 function WordPressTableSkeleton() {
@@ -88,11 +89,23 @@ function WordPressTableError({ error, onRetry }: { error: Error; onRetry: () => 
 
 interface WordPressInstancesTableProps {
   domainName: string;
+  hostingData?: any; // Will be properly typed
+  onInstallClick?: () => void;
 }
 
-export function WordPressInstancesTable({ domainName }: WordPressInstancesTableProps) {
+export function WordPressInstancesTable({ domainName, onInstallClick }: WordPressInstancesTableProps) {
   const { data: wordpressData, isLoading, isError, error, refetch } = useWordPressInstances();
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Filter WordPress instances by domain name (including subdomains)
   const filteredData = React.useMemo(() => {
@@ -156,7 +169,7 @@ export function WordPressInstancesTable({ domainName }: WordPressInstancesTableP
 
   return (
     <div className="space-y-4">
-      {/* Header with search */}
+      {/* Header with search and install button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2 flex-1">
           <div className="relative flex-1 max-w-sm">
@@ -172,6 +185,23 @@ export function WordPressInstancesTable({ domainName }: WordPressInstancesTableP
             <Badge variant="outline" className="text-muted-foreground">
               {filteredData.length} of {wordpressData?.length || 0}
             </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing || isLoading}
+            title="Refresh WordPress instances"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          </Button>
+          {onInstallClick && (
+            <Button onClick={onInstallClick} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Install WordPress
+            </Button>
           )}
         </div>
       </div>

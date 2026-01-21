@@ -36,8 +36,8 @@ export const wordpressInstancesResponseSchema = z.object({
           installationsCount: z.number().optional(),
         }).optional(),
         screenshot: z.object({
-          createdAt: z.string().optional(),
-          url: z.string().optional(),
+          createdAt: z.string().nullable().optional(),
+          url: z.string().nullable().optional(),
         }).optional(),
         owner: z.object({
           id: z.number().optional(),

@@ -29,6 +29,7 @@ import { FileManager } from "./file-manager";
 import { SubdomainsTable } from "./subdomains-table";
 import { DatabasesTable } from "./databases-table";
 import { WordPressInstancesTable } from "./wordpress-instances-table";
+import { InstallWordPressSheet } from "./install-wordpress-sheet";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
@@ -149,6 +150,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   // Use batched endpoint - fetches both hosting data and subscription link in one request
   const { data: hostingData, subscription: subscriptionData, isLoading, isError, error, refetch, rawData } = useHostingDetailBatched(subscriptionId);
   const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
+  const [installWordPressOpen, setInstallWordPressOpen] = React.useState(false);
   const [isLinkToSubscriptionOpen, setIsLinkToSubscriptionOpen] = React.useState(false);
   const [isEditSubscriptionOpen, setIsEditSubscriptionOpen] = React.useState(false);
   const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
@@ -433,7 +435,11 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         </TabsContent>
         
         <TabsContent value="wordpress" className="mt-6">
-          <WordPressInstancesTable domainName={hostingData.gen_info?.name || ""} />
+          <WordPressInstancesTable 
+            domainName={hostingData.gen_info?.name || ""} 
+            hostingData={hostingData}
+            onInstallClick={() => setInstallWordPressOpen(true)}
+          />
         </TabsContent>
       </Tabs>
       </div>
@@ -452,6 +458,18 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           refetch();
         }}
       />
+
+      {/* Install WordPress Sheet */}
+      {hostingData && (
+        <InstallWordPressSheet
+          open={installWordPressOpen}
+          onOpenChange={setInstallWordPressOpen}
+          hostingData={hostingData}
+          onSuccess={() => {
+            refetch(); // Refresh to show new installation
+          }}
+        />
+      )}
 
       {/* Link to Subscription Dialog */}
       <LinkToSubscriptionDialog

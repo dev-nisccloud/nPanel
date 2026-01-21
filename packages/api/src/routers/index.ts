@@ -36,6 +36,7 @@ import { wpThemesListRouter } from "./plesk/wp-themes-list";
 import { wpThemesStatusRouter } from "./plesk/wp-themes-status";
 import { wpUpdatesInfoRouter } from "./plesk/wp-updates-info";
 import { wpUpdatesSettingsRouter } from "./plesk/wp-updates-settings";
+import { wpInstallRouter } from "./plesk/wp-install";
 import { ftpRouter } from "./plesk/ftp";
 import { pleskHealthCheckRouter } from "./plesk/health-check";
 import { openProviderRouter } from "./openprovider";
@@ -68,6 +69,7 @@ import { imageGeneratorRouter } from "./image-generator";
 import { backgroundRemoverRouter } from "./background-remover";
 import { paymentGatewayRouter } from "./payment-gateway";
 import { paymentTransactionsRouter } from "./payment-transactions";
+import { pagespeedInsightsRouter } from "./pagespeed-insights";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -125,6 +127,8 @@ export const appRouter = router({
 		// WordPress Toolkit - Updates
 		wpUpdatesInfo: wpUpdatesInfoRouter,
 		wpUpdatesSettings: wpUpdatesSettingsRouter,
+		// WordPress Toolkit - Installation
+		wpInstall: wpInstallRouter,
 		// FTP File Manager
 		ftp: ftpRouter,
 	}),
@@ -189,5 +193,7 @@ export const appRouter = router({
 	paymentGateway: paymentGatewayRouter,
 	// Payment Transactions
 	paymentTransactions: paymentTransactionsRouter,
+	// Google PageSpeed Insights
+	pagespeedInsights: pagespeedInsightsRouter,
 });
 export type AppRouter = typeof appRouter;
