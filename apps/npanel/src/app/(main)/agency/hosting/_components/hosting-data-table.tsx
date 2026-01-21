@@ -207,7 +207,7 @@ export function HostingDataTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Subscription Name</TableHead>
+            <TableHead className="pl-6">Subscription Name</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
@@ -222,7 +222,7 @@ export function HostingDataTable() {
           ) : (
             filteredData.map((subscription) => (
               <TableRow key={subscription.id}>
-                <TableCell>
+                <TableCell className="pl-6">
                   <Link 
                     href={`/agency/hosting/${subscription.id}`}
                     className="font-medium text-primary hover:underline"

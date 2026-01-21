@@ -131,7 +131,7 @@ export default function DomainsPortfolioPage() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Domain Name</TableHead>
+            <TableHead className="pl-6">Domain Name</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Expiry Date</TableHead>
@@ -152,7 +152,7 @@ export default function DomainsPortfolioPage() {
                 className="cursor-pointer"
                 onClick={() => router.push(`/agency/domains-portfolio/${domain.id}`)}
               >
-                <TableCell>
+                <TableCell className="pl-6">
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{domain.domain}</span>

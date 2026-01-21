@@ -450,7 +450,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
                 onChange={(e) => handleSelectAll((e.target as HTMLInputElement).checked)}
               />
             </TableHead>
-            <TableHead>Name</TableHead>
+            <TableHead className="pl-6">Name</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Size</TableHead>
             <TableHead>Modified</TableHead>
@@ -481,7 +481,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
                   }}
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="pl-6">
                 <div className="flex items-center space-x-2">
                   {item.type === "folder" ? (
                     <Icons.Folder className="h-4 w-4 text-muted-foreground" />

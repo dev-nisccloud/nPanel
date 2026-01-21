@@ -87,7 +87,7 @@ export const hostingSubscriptionSchema = z.object({
   id: z.number(),
   subscriptionName: z.string(),
   setupDate: z.string(),
-  status: z.number(), // From Plesk API
+  status: z.number().optional(), // From Plesk API - may be missing for some subscriptions
   dnsIpAddress: z.string(),
   hostingType: z.string(),
   realSize: z.number(),

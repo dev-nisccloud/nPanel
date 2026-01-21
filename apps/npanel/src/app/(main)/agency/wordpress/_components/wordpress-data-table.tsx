@@ -175,7 +175,7 @@ export function WordPressDataTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Site</TableHead>
+            <TableHead className="pl-6">Site</TableHead>
             <TableHead>Version</TableHead>
             <TableHead>Title</TableHead>
             <TableHead>Status</TableHead>
@@ -193,7 +193,7 @@ export function WordPressDataTable() {
           ) : (
             filteredData.map((item) => (
               <TableRow key={item.id}>
-                <TableCell>
+                <TableCell className="pl-6">
                   <Link 
                     href={`/agency/wordpress/${item.id}`}
                     className="font-medium text-primary hover:underline"

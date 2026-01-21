@@ -44,12 +44,26 @@ export function transformPleskSubscriptionsToTable(
     return subscriptions.map((subscription, index) => {
       const genInfo = subscription.data?.gen_info;
       
+      // Safely convert status to number
+      // If status field is missing or undefined, we'll use undefined to indicate unknown status
+      let status: number | undefined = undefined;
+      if (genInfo && 'status' in genInfo && genInfo.status !== undefined && genInfo.status !== null) {
+        // Convert to number if it's a string
+        status = typeof genInfo.status === 'string' 
+          ? parseInt(genInfo.status, 10) 
+          : Number(genInfo.status);
+        // If conversion failed, keep as undefined
+        if (isNaN(status)) {
+          status = undefined;
+        }
+      }
+      
       // Safely access nested properties with fallbacks
       return {
         id: subscription.id || index,
         subscriptionName: genInfo?.name || `Subscription ${subscription.id || index}`,
         setupDate: genInfo?.["cr_date"] || new Date().toISOString().split('T')[0],
-        status: genInfo?.status ?? 0, // Default to active if not specified
+        status: status,
         dnsIpAddress: genInfo?.["dns_ip_address"] || "0.0.0.0",
         hostingType: genInfo?.htype || "unknown",
         realSize: genInfo?.["real_size"] ?? 0,
@@ -68,31 +82,91 @@ export function transformPleskSubscriptionsToTable(
 }
 
 /**
- * Get status display text based on Plesk status number
+ * Plesk status codes (bitmask system):
+ * 0 = Active
+ * 1 = Suspended
+ * 2 = Suspended by parent object
+ * 4 = Suspended due to backup/restore
+ * 16 = Suspended by administrator
+ * 32 = Suspended by reseller
+ * 64 = Suspended by client
+ * 256 = Suspended due to expiration
+ * These can be combined (e.g., 3 = 1+2, 272 = 256+16)
  */
-export function getStatusDisplayText(status: number): string {
-  switch (status) {
-    case 0:
-      return "Active";
-    case 1:
-      return "Suspended";
-    default:
-      return "Unknown";
+
+/**
+ * Get status display text based on Plesk status number
+ * Note: Status field may be missing from gen_info for some subscriptions
+ */
+export function getStatusDisplayText(status: number | undefined | null): string {
+  // Handle undefined/null - status field is missing
+  if (status === undefined || status === null) {
+    return "Unknown";
   }
+
+  // Handle NaN
+  if (isNaN(status)) {
+    return "Unknown";
+  }
+
+  // Convert to number if it's a string
+  const statusNum = typeof status === 'string' ? parseInt(status, 10) : Number(status);
+  
+  // If conversion failed, return Unknown
+  if (isNaN(statusNum)) {
+    return "Unknown";
+  }
+
+  // Active status
+  if (statusNum === 0) {
+    return "Active";
+  }
+
+  // Build status description from bitmask
+  const statusParts: string[] = [];
+
+  // Check each status bit
+  if (statusNum & 1) statusParts.push("Suspended");
+  if (statusNum & 2) statusParts.push("Suspended by Parent");
+  if (statusNum & 4) statusParts.push("Suspended (Backup/Restore)");
+  if (statusNum & 16) statusParts.push("Suspended by Admin");
+  if (statusNum & 32) statusParts.push("Suspended by Reseller");
+  if (statusNum & 64) statusParts.push("Suspended by Client");
+  if (statusNum & 256) statusParts.push("Expired");
+
+  // If no known status bits are set, return the status number for debugging
+  if (statusParts.length === 0) {
+    return `Unknown (${statusNum})`;
+  }
+
+  // Return the first status (most important) or combined if multiple
+  return statusParts.length === 1 ? statusParts[0] : statusParts.join(", ");
 }
 
 /**
  * Get status badge variant based on Plesk status number
  */
-export function getStatusBadgeVariant(status: number): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case 0:
-      return "default";
-    case 1:
-      return "destructive";
-    default:
-      return "outline";
+export function getStatusBadgeVariant(status: number | undefined | null): "default" | "secondary" | "destructive" | "outline" {
+  // Handle undefined/null/NaN
+  if (status === undefined || status === null || isNaN(status)) {
+    return "outline";
   }
+
+  // Convert to number if it's a string
+  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
+
+  // Active status
+  if (statusNum === 0) {
+    return "default";
+  }
+
+  // Any suspended status (including expired) should be destructive
+  if (statusNum > 0) {
+    return "destructive";
+  }
+
+  // Fallback
+  return "outline";
 }
 
 /**

@@ -272,7 +272,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Subdomain Name</TableHead>
+            <TableHead className="pl-6">Subdomain Name</TableHead>
             <TableHead>Parent Domain</TableHead>
             <TableHead>PHP Version</TableHead>
             <TableHead>SSL Status</TableHead>
@@ -300,7 +300,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
                   className="cursor-pointer"
                   onClick={() => handleView(subdomain)}
                 >
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium pl-6">
                     {subdomain.name}
                   </TableCell>
                   <TableCell className="text-muted-foreground">

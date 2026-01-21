@@ -296,7 +296,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Email Address</TableHead>
+            <TableHead className="pl-6">Email Address</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Mailbox</TableHead>
             <TableHead>Usage</TableHead>
@@ -317,7 +317,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
                 className="cursor-pointer"
                 onClick={() => handleEdit(email.id)}
               >
-                <TableCell>
+                <TableCell className="pl-6">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">

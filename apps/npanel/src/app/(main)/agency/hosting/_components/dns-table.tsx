@@ -286,7 +286,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Host</TableHead>
+            <TableHead className="pl-6">Host</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Value</TableHead>
             <TableHead className="w-12"></TableHead>
@@ -306,7 +306,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
                 className="cursor-pointer"
                 onClick={() => handleView(record)}
               >
-                <TableCell className="font-medium">
+                <TableCell className="font-medium pl-6">
                   {record.host === "@" ? "@" : record.host || "Unknown Host"}
                 </TableCell>
                 <TableCell>
