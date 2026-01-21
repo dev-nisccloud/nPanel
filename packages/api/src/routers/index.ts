@@ -5,6 +5,10 @@ import { wordpressRouter } from "./plesk/wordpress";
 import { domainDnsRouter } from "./plesk/domain-dns";
 import { wpPluginsListRouter } from "./plesk/wp-plugins-list";
 import { databasesRouter } from "./plesk/databases";
+import { databasesCreateRouter } from "./plesk/databases-create";
+import { databasesDeleteRouter } from "./plesk/databases-delete";
+import { databasesSetUserRouter } from "./plesk/databases-set-user";
+import { databasesAssignRouter } from "./plesk/databases-assign";
 import { emailsRouter } from "./plesk/emails";
 import { subdomainsRouter } from "./plesk/subdomains";
 import { subscriptionsRouter } from "./plesk/subscriptions";
@@ -86,6 +90,10 @@ export const appRouter = router({
 		domainDns: domainDnsRouter,
 		wpPlugins: wpPluginsListRouter,
 		databases: databasesRouter,
+		databasesCreate: databasesCreateRouter,
+		databasesDelete: databasesDeleteRouter,
+		databasesSetUser: databasesSetUserRouter,
+		databasesAssign: databasesAssignRouter,
 		emails: emailsRouter,
 		subdomains: subdomainsRouter,
 		subscriptions: subscriptionsRouter,

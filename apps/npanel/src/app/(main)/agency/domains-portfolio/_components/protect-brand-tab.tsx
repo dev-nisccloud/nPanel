@@ -1,10 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ShoppingCart, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { DomainResultCard } from "../../domains/_components/domain-result-card";
+import { BuyNowDialog } from "../../domains/_components/buy-now-dialog";
 import { trpc } from "@/utils/trpc";
 import { useCartStore } from "@/stores/cart-store";
 import { useCurrency } from "../../domains/_components/currency-context";
@@ -151,6 +161,41 @@ function ProtectBrandTabContent({ domainNameWithoutTld, isActive = true }: Prote
     removeDomainByName(domain);
   }, [removeDomainByName]);
 
+  // Format price helper
+  const formatPrice = React.useCallback((price?: number, currency?: string) => {
+    if (!price) return "N/A";
+
+    const currencySymbols: Record<string, string> = {
+      'USD': '$',
+      'KES': 'KSh',
+      'EUR': '€',
+      'GBP': '£',
+      'CAD': 'C$',
+      'AUD': 'A$',
+      'JPY': '¥',
+      'INR': '₹',
+      'ZAR': 'R',
+      'NGN': '₦',
+    };
+
+    const symbol = currencySymbols[currency || 'USD'] || currency || '$';
+    const formattedNumber = new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price);
+    
+    return `${symbol} ${formattedNumber}`;
+  }, []);
+
+  // Buy Now dialog state
+  const [buyNowOpen, setBuyNowOpen] = React.useState(false);
+  const [selectedDomain, setSelectedDomain] = React.useState<DomainSearchResult | null>(null);
+
+  const handleBuyNow = React.useCallback((result: DomainSearchResult) => {
+    setSelectedDomain(result);
+    setBuyNowOpen(true);
+  }, []);
+
   // Show loading until all data is ready: domain search, TLD settings, exchange rates, and price processing
   const isLoadingResults = isLoading || 
                           isProcessingResults || 
@@ -173,30 +218,130 @@ function ProtectBrandTabContent({ domainNameWithoutTld, isActive = true }: Prote
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
       ) : isLoadingResults ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {Array.from({ length: BRAND_PROTECTION_TLDS.length }).map((_, index) => (
-            <div key={index} className="flex flex-col p-3 bg-card border border-border rounded-lg">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <Skeleton className="h-4 flex-1" />
-                <Skeleton className="h-5 w-16" />
-              </div>
-              <Skeleton className="h-6 w-24 mb-2" />
-              <Skeleton className="h-7 w-full mt-auto" />
-            </div>
-          ))}
+        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-6">Domain Name</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead className="w-[200px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: BRAND_PROTECTION_TLDS.length }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell className="pl-6">
+                    <Skeleton className="h-4 w-32" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-8 w-20" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       ) : processedResults.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {processedResults.map((result, index) => (
-            <DomainResultCard
-              key={`${result.domain}-${index}`}
-              result={result}
-              isDomainInCart={isDomainInCart}
-              onAddToCart={handleAddToCart}
-              onRemoveFromCart={handleRemoveFromCart}
+        <>
+          <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6">Domain Name</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead className="w-[200px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {processedResults.map((result, index) => {
+                  const calculated = result.price?.calculated;
+                  const displayPrice = calculated
+                    ? ((calculated as any).convertedPrice ?? calculated.finalPrice)
+                    : result.price?.reseller?.price;
+                  const displayCurrency = calculated
+                    ? ((calculated as any).displayCurrency ?? calculated.currency)
+                    : result.price?.reseller?.currency;
+                  const isInCart = isDomainInCart(result.domain);
+                  const isAvailable = result.status === 'free';
+
+                  return (
+                    <TableRow key={`${result.domain}-${index}`}>
+                      <TableCell className="pl-6 font-medium">
+                        {result.domain}
+                      </TableCell>
+                      <TableCell>
+                        {isAvailable && displayPrice ? (
+                          <span className="text-lg font-semibold">
+                            {formatPrice(displayPrice, displayCurrency)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {isAvailable ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => handleBuyNow(result)}
+                                className="text-xs"
+                              >
+                                Buy Now
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={isInCart ? "destructive" : "outline"}
+                                onClick={() => {
+                                  if (isInCart) {
+                                    handleRemoveFromCart(result.domain);
+                                  } else {
+                                    handleAddToCart(result);
+                                  }
+                                }}
+                                className="h-8 w-8 p-0"
+                                title={isInCart ? "Remove from cart" : "Add to cart"}
+                              >
+                                {isInCart ? (
+                                  <XCircle className="h-4 w-4" />
+                                ) : (
+                                  <ShoppingCart className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled
+                              className="text-xs"
+                            >
+                              Not Available
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+          {selectedDomain && (
+            <BuyNowDialog
+              open={buyNowOpen}
+              onOpenChange={setBuyNowOpen}
+              domain={selectedDomain}
             />
-          ))}
-        </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12">
           <div className="text-muted-foreground text-lg mb-2">No domains found</div>
