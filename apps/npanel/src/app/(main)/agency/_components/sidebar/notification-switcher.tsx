@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Bell } from "lucide-react";
+import { Bell, Check, Mail, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 
@@ -13,6 +13,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
@@ -37,9 +43,9 @@ const getPriorityColor = (priority: string) => {
 export function NotificationSwitcher() {
   const router = useRouter();
   const [isOpen, setIsOpen] = React.useState(false);
-  const [lastUpdatedAt, setLastUpdatedAt] = React.useState<Date | null>(null);
   const [sseUnseenCount, setSseUnseenCount] = React.useState<number | null>(null);
   const [expandedNotifications, setExpandedNotifications] = React.useState<Set<string>>(new Set());
+  const [updatingNotificationId, setUpdatingNotificationId] = React.useState<string | null>(null);
   const notificationsRef = React.useRef<Array<{
     id: string;
     createdAt: Date | string;
@@ -66,14 +72,18 @@ export function NotificationSwitcher() {
     });
   };
 
-  // Fetch notifications with change detection
+  // Fetch notifications - always fetch all notifications, don't filter by 'since'
+  // The 'since' parameter filters out old notifications, but we want to show all
   const { data: notifications = [], isLoading, refetch } = trpc.notifications.getAll.useQuery(
     {
       limit: 50,
       offset: 0,
-      since: lastUpdatedAt?.toISOString(),
+      // Don't use 'since' - we want all notifications including read ones
+      // since: undefined,
     },
     {
+      // Refetch when popover opens
+      enabled: true,
       // Smart polling: only when tab is visible and popover is open
       refetchInterval: (query) => {
         // Don't poll if tab is hidden
@@ -87,27 +97,20 @@ export function NotificationSwitcher() {
     }
   );
 
-  // Update notifications ref and last updated timestamp when data changes
+  // Refetch notifications when popover opens
+  React.useEffect(() => {
+    if (isOpen) {
+      // Refetch all notifications when popover opens
+      refetch();
+    }
+  }, [isOpen, refetch]);
+
+  // Update notifications ref when data changes
   React.useEffect(() => {
     if (notifications) {
-      // Update last updated timestamp if we got new data
-      if (notifications.length > 0) {
-        const latest = notifications[0];
-        let latestDate: Date;
-        if (typeof latest.updatedAt === 'string') {
-          latestDate = new Date(latest.updatedAt);
-        } else if (latest.updatedAt && typeof latest.updatedAt === 'object' && 'getTime' in latest.updatedAt) {
-          latestDate = latest.updatedAt as Date;
-        } else {
-          latestDate = new Date();
-        }
-        if (!lastUpdatedAt || latestDate > lastUpdatedAt) {
-          setLastUpdatedAt(latestDate);
-        }
-      }
       notificationsRef.current = notifications as Array<{ id: string; createdAt: Date | string; updatedAt: Date | string; [key: string]: unknown; }>;
     }
-  }, [notifications, lastUpdatedAt]);
+  }, [notifications]);
 
   // Fetch unseen count with smart polling
   const { data: unseenCountData, refetch: refetchUnseenCount } = trpc.notifications.getUnseenCount.useQuery(
@@ -148,13 +151,37 @@ export function NotificationSwitcher() {
 
   // Mark as seen mutation
   const markAsSeenMutation = trpc.notifications.markAsSeen.useMutation({
+    onMutate: (variables) => {
+      setUpdatingNotificationId(variables.id);
+    },
     onSuccess: () => {
       refetch();
+      refetchUnseenCount();
+      setUpdatingNotificationId(null);
     },
     onError: (error) => {
       toast.error("Failed to mark notification as read", {
         description: error.message,
       });
+      setUpdatingNotificationId(null);
+    },
+  });
+
+  // Mark as unseen mutation
+  const markAsUnseenMutation = trpc.notifications.markAsUnseen.useMutation({
+    onMutate: (variables) => {
+      setUpdatingNotificationId(variables.id);
+    },
+    onSuccess: () => {
+      refetch();
+      refetchUnseenCount();
+      setUpdatingNotificationId(null);
+    },
+    onError: (error) => {
+      toast.error("Failed to mark notification as unread", {
+        description: error.message,
+      });
+      setUpdatingNotificationId(null);
     },
   });
 
@@ -181,6 +208,16 @@ export function NotificationSwitcher() {
     if (notification.link) {
       router.push(notification.link);
       setIsOpen(false);
+    }
+  };
+
+  const handleToggleReadStatus = (e: React.MouseEvent<HTMLButtonElement>, notification: { id: string; seen: boolean }) => {
+    e.stopPropagation(); // Prevent triggering the notification click handler
+    e.preventDefault(); // Prevent any default button behavior
+    if (notification.seen) {
+      markAsUnseenMutation.mutate({ id: notification.id });
+    } else {
+      markAsSeenMutation.mutate({ id: notification.id });
     }
   };
 
@@ -241,11 +278,11 @@ export function NotificationSwitcher() {
                     : new Date(String(createdAtValue));
 
                 return (
-                  <button
+                  <div
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
                     className={cn(
-                      "w-full text-left px-4 py-3 hover:bg-accent transition-colors",
+                      "w-full text-left px-4 py-3 hover:bg-accent transition-colors cursor-pointer",
                       !notification.seen && "bg-accent/50"
                     )}
                   >
@@ -274,13 +311,12 @@ export function NotificationSwitcher() {
                             {notification.message}
                           </p>
                           {isLongMessage(notification.message) && (
-                            <button
-                              type="button"
+                            <span
                               onClick={(e) => toggleExpand(notification.id, e)}
-                              className="text-xs text-primary hover:underline focus:outline-none"
+                              className="text-xs text-primary hover:underline cursor-pointer focus:outline-none"
                             >
                               {expandedNotifications.has(notification.id) ? "Show less" : "Show more"}
-                            </button>
+                            </span>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1.5">
@@ -289,11 +325,38 @@ export function NotificationSwitcher() {
                           })}
                         </p>
                       </div>
-                      {!notification.seen && (
-                        <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
-                      )}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={(e) => handleToggleReadStatus(e, notification)}
+                                type="button"
+                                disabled={updatingNotificationId === notification.id}
+                              >
+                                {updatingNotificationId === notification.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : notification.seen ? (
+                                  <Mail className="h-3.5 w-3.5" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{notification.seen ? "Mark as unread" : "Mark as read"}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        {!notification.seen && (
+                          <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                        )}
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

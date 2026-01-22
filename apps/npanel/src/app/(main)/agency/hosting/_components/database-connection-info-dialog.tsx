@@ -83,7 +83,7 @@ export function DatabaseConnectionInfoDialog({
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Database Name</p>
             <div className="flex items-center gap-2">
-              <p className="text-base font-mono font-semibold flex-1">{dbName}</p>
+              <p className="text-base font-bold text-primary flex-1">{dbName}</p>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -107,7 +107,7 @@ export function DatabaseConnectionInfoDialog({
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Host</p>
             <div className="flex items-center gap-2">
-              <p className="text-base font-mono font-semibold flex-1">{dbHost}</p>
+              <p className="text-base font-bold text-primary flex-1">{dbHost}</p>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -130,14 +130,14 @@ export function DatabaseConnectionInfoDialog({
           {/* Port */}
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Port</p>
-            <p className="text-base font-mono font-semibold">{dbPort}</p>
+            <p className="text-base font-bold text-primary">{dbPort}</p>
           </div>
 
           {/* Username */}
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Username</p>
             <div className="flex items-center gap-2">
-              <p className="text-base font-mono font-semibold flex-1">{dbUsername}</p>
+              <p className="text-base font-bold text-primary flex-1">{dbUsername}</p>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>

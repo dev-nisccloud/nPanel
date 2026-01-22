@@ -107,7 +107,7 @@ export function DnsCard({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Value
             </p>
-            <p className="text-sm font-semibold font-mono truncate" title={data.value || "No value"}>
+            <p className="text-sm font-bold text-primary truncate" title={data.value || "No value"}>
               {data.value || "No value"}
             </p>
           </div>

@@ -111,7 +111,7 @@ export function ViewDnsRecordSheet({ open, onOpenChange, data }: ViewDnsRecordSh
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Host</p>
-                  <p className="text-base font-mono">
+                  <p className="text-base font-bold text-primary">
                     {data.host === "@" ? "@" : data.host || "Unknown Host"}
                   </p>
                 </div>
@@ -132,7 +132,7 @@ export function ViewDnsRecordSheet({ open, onOpenChange, data }: ViewDnsRecordSh
 
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Value</p>
-                  <p className="text-base font-mono break-all">
+                  <p className="text-base font-bold text-primary break-all">
                     {data.value || "No value"}
                   </p>
                 </div>
@@ -171,7 +171,7 @@ export function ViewDnsRecordSheet({ open, onOpenChange, data }: ViewDnsRecordSh
                   {data.opt && typeof data.opt === 'string' && !priority && (
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-muted-foreground">Options</p>
-                      <p className="text-base font-mono">{data.opt}</p>
+                      <p className="text-base font-bold text-primary">{data.opt}</p>
                     </div>
                   )}
                 </CardContent>

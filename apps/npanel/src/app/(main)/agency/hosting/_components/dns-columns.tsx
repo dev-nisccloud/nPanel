@@ -45,7 +45,7 @@ export const dnsColumns: ColumnDef<z.infer<typeof dnsRecordSchema>>[] = [
     accessorKey: "host",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Host" />,
     cell: ({ row }) => (
-      <div className="font-mono text-sm">
+      <div className="font-bold text-primary text-sm">
         {row.original.host === "@" ? "@" : row.original.host || "Unknown Host"}
       </div>
     ),
@@ -118,7 +118,7 @@ export const dnsColumns: ColumnDef<z.infer<typeof dnsRecordSchema>>[] = [
       }
 
       return (
-        <div className="font-mono text-sm max-w-[200px] truncate" title={displayValue}>
+        <div className="font-bold text-primary text-sm max-w-[200px] truncate" title={displayValue}>
           {displayValue}
         </div>
       );

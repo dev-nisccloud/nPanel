@@ -108,7 +108,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Domain Name</p>
               <div className="flex items-center gap-2">
-                <p className="text-base font-mono font-semibold flex-1">{domainName}</p>
+                <p className="text-base font-bold text-primary flex-1">{domainName}</p>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -151,7 +151,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">IP Address</p>
               <div className="flex items-center gap-2">
-                <p className="text-base font-mono font-semibold flex-1">{ipAddress}</p>
+                <p className="text-base font-bold text-primary flex-1">{ipAddress}</p>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -234,7 +234,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">FTP IP (Hostname)</p>
               <div className="flex items-center gap-2">
-                <p className="text-base font-mono font-semibold flex-1">{ftpHost}</p>
+                <p className="text-base font-bold text-primary flex-1">{ftpHost}</p>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -258,7 +258,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">FTP Username</p>
               <div className="flex items-center gap-2">
-                <p className="text-base font-mono font-semibold flex-1">{ftpLogin}</p>
+                <p className="text-base font-bold text-primary flex-1">{ftpLogin}</p>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -281,14 +281,14 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             {/* FTP Port */}
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">FTP Port</p>
-              <p className="text-base font-mono font-semibold">{ftpPort}</p>
+              <p className="text-base font-bold text-primary">{ftpPort}</p>
             </div>
 
             {/* FTP Password */}
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Password</p>
               <div className="flex items-center gap-2">
-                <p className="text-base font-mono font-semibold flex-1">
+                <p className="text-base font-bold text-primary flex-1">
                   {showPassword ? String(ftpPassword) : "••••••••"}
                 </p>
                 <TooltipProvider>

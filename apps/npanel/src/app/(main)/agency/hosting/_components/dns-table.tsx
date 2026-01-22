@@ -314,7 +314,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
                     {record.type || "A"}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-mono text-sm max-w-[200px] truncate">
+                <TableCell className="font-bold text-primary text-sm max-w-[200px] truncate">
                   {record.value || "Unknown Value"}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
