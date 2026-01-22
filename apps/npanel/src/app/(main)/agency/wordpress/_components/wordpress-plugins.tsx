@@ -5,17 +5,15 @@ import {
   Package, 
   Shield, 
   ShieldAlert, 
-  Download, 
   Settings,
   ExternalLink,
   RefreshCw,
   AlertTriangle,
   MoreHorizontal,
-  CheckSquare,
-  Square,
   ChevronDown,
   ChevronUp
 } from "lucide-react";
+import { PluginsTable } from "./plugins-table";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -445,6 +443,11 @@ function PluginCard({
 }
 
 export function WordPressPlugins({ installationId }: WordPressPluginsProps) {
+  return <PluginsTable installationId={installationId} />;
+}
+
+// Legacy component - keeping for reference but not used
+function WordPressPluginsLegacy({ installationId }: WordPressPluginsProps) {
   const { data: plugins, isLoading, isError, error, refetch } = useWordPressPlugins(installationId);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedPlugins, setSelectedPlugins] = React.useState<Set<string>>(new Set());

@@ -190,7 +190,11 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
       return <Badge variant="secondary">Unsupported</Badge>;
     }
     if (wpData.status?.alive) {
-    return <Badge variant="default">Online</Badge>;
+      return (
+        <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
+          Online
+        </Badge>
+      );
     }
     return <Badge variant="secondary">Offline</Badge>;
   };

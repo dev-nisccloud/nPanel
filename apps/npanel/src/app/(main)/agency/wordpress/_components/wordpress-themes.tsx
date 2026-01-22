@@ -3,19 +3,17 @@
 import * as React from "react";
 import { 
   Palette, 
-  Shield, 
   ShieldAlert, 
-  Download, 
+  Download,
   Settings,
   ExternalLink,
   RefreshCw,
   AlertTriangle,
   MoreHorizontal,
-  CheckSquare,
-  Square,
   ChevronDown,
   ChevronUp
 } from "lucide-react";
+import { ThemesTable } from "./themes-table";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -422,6 +420,11 @@ function ThemeCard({
 }
 
 export function WordPressThemes({ installationId }: WordPressThemesProps) {
+  return <ThemesTable installationId={installationId} />;
+}
+
+// Legacy component - keeping for reference but not used
+function WordPressThemesLegacy({ installationId }: WordPressThemesProps) {
   const { data: themes, isLoading, isError, error, refetch } = useWordPressThemes(installationId);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedThemes, setSelectedThemes] = React.useState<Set<string>>(new Set());
