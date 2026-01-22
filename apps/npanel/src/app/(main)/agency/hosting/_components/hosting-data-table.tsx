@@ -231,7 +231,10 @@ export function HostingDataTable() {
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getStatusBadgeVariant(subscription.status)}>
+                  <Badge 
+                    variant={getStatusBadgeVariant(subscription.status)}
+                    className={subscription.status === 0 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
+                  >
                     {getStatusDisplayText(subscription.status)}
                   </Badge>
                 </TableCell>

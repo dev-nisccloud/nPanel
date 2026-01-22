@@ -69,30 +69,55 @@ export function transformPleskSubscriptionsToTable(
 
 /**
  * Get status display text based on Plesk status number
+ * Simplified to show "Active" or "Suspended"
  */
-export function getStatusDisplayText(status: number): string {
-  switch (status) {
-    case 0:
-      return "Active";
-    case 1:
-      return "Suspended";
-    default:
-      return "Unknown";
+export function getStatusDisplayText(status: number | undefined | null): string {
+  // Handle undefined/null
+  if (status === undefined || status === null) {
+    return "Suspended";
   }
+
+  // Handle NaN
+  if (isNaN(status)) {
+    return "Suspended";
+  }
+
+  // Convert to number if it's a string
+  const statusNum = typeof status === 'string' ? parseInt(status, 10) : Number(status);
+  
+  // If conversion failed, return Suspended
+  if (isNaN(statusNum)) {
+    return "Suspended";
+  }
+
+  // Active status
+  if (statusNum === 0) {
+    return "Active";
+  }
+
+  // All other statuses are considered suspended
+  return "Suspended";
 }
 
 /**
  * Get status badge variant based on Plesk status number
  */
-export function getStatusBadgeVariant(status: number): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case 0:
-      return "default";
-    case 1:
-      return "destructive";
-    default:
-      return "outline";
+export function getStatusBadgeVariant(status: number | undefined | null): "default" | "secondary" | "destructive" | "outline" {
+  // Handle undefined/null/NaN
+  if (status === undefined || status === null || isNaN(status)) {
+    return "destructive";
   }
+
+  // Convert to number if it's a string
+  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
+
+  // Active status - use default variant (will be styled green via className)
+  if (statusNum === 0) {
+    return "default";
+  }
+
+  // Any suspended status should be destructive
+  return "destructive";
 }
 
 /**

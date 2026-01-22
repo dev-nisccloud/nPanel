@@ -139,16 +139,15 @@ export function WordPressInstancesTable({ domainName, onInstallClick }: WordPres
   }, [wordpressData, domainName, searchTerm]);
 
   const getStatusBadge = (item: z.infer<typeof wordpressInstallationSchema>) => {
-    if (item.status?.infected) {
-      return <Badge variant="destructive">Infected</Badge>;
+    const isActive = item.status?.alive && !item.status?.infected && !item.status?.unsupported;
+    if (isActive) {
+      return (
+        <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
+          Active
+        </Badge>
+      );
     }
-    if (item.status?.unsupported) {
-      return <Badge variant="secondary">Unsupported</Badge>;
-    }
-    if (item.status?.alive) {
-      return <Badge variant="default">Online</Badge>;
-    }
-    return <Badge variant="secondary">Offline</Badge>;
+    return <Badge variant="destructive">Suspended</Badge>;
   };
 
   const getSecurityBadge = (item: z.infer<typeof wordpressInstallationSchema>) => {

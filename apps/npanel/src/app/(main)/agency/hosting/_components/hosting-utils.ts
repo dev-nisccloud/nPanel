@@ -97,24 +97,25 @@ export function transformPleskSubscriptionsToTable(
 /**
  * Get status display text based on Plesk status number
  * Note: Status field may be missing from gen_info for some subscriptions
+ * Simplified to show "Active" or "Suspended"
  */
 export function getStatusDisplayText(status: number | undefined | null): string {
   // Handle undefined/null - status field is missing
   if (status === undefined || status === null) {
-    return "Unknown";
+    return "Suspended";
   }
 
   // Handle NaN
   if (isNaN(status)) {
-    return "Unknown";
+    return "Suspended";
   }
 
   // Convert to number if it's a string
   const statusNum = typeof status === 'string' ? parseInt(status, 10) : Number(status);
   
-  // If conversion failed, return Unknown
+  // If conversion failed, return Suspended
   if (isNaN(statusNum)) {
-    return "Unknown";
+    return "Suspended";
   }
 
   // Active status
@@ -122,51 +123,30 @@ export function getStatusDisplayText(status: number | undefined | null): string 
     return "Active";
   }
 
-  // Build status description from bitmask
-  const statusParts: string[] = [];
-
-  // Check each status bit
-  if (statusNum & 1) statusParts.push("Suspended");
-  if (statusNum & 2) statusParts.push("Suspended by Parent");
-  if (statusNum & 4) statusParts.push("Suspended (Backup/Restore)");
-  if (statusNum & 16) statusParts.push("Suspended by Admin");
-  if (statusNum & 32) statusParts.push("Suspended by Reseller");
-  if (statusNum & 64) statusParts.push("Suspended by Client");
-  if (statusNum & 256) statusParts.push("Expired");
-
-  // If no known status bits are set, return the status number for debugging
-  if (statusParts.length === 0) {
-    return `Unknown (${statusNum})`;
-  }
-
-  // Return the first status (most important) or combined if multiple
-  return statusParts.length === 1 ? statusParts[0] : statusParts.join(", ");
+  // All other statuses are considered suspended
+  return "Suspended";
 }
 
 /**
  * Get status badge variant based on Plesk status number
+ * Returns variant and optional className for green active status
  */
 export function getStatusBadgeVariant(status: number | undefined | null): "default" | "secondary" | "destructive" | "outline" {
   // Handle undefined/null/NaN
   if (status === undefined || status === null || isNaN(status)) {
-    return "outline";
+    return "destructive";
   }
 
   // Convert to number if it's a string
   const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
 
-  // Active status
+  // Active status - use default variant (will be styled green via className)
   if (statusNum === 0) {
     return "default";
   }
 
-  // Any suspended status (including expired) should be destructive
-  if (statusNum > 0) {
-    return "destructive";
-  }
-
-  // Fallback
-  return "outline";
+  // Any suspended status should be destructive
+  return "destructive";
 }
 
 /**

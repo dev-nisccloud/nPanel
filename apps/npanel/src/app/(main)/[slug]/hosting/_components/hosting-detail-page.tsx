@@ -200,8 +200,12 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   }
 
   const getStatusBadge = (status: number) => {
+    const isActive = status === 0;
     return (
-      <Badge variant={getStatusBadgeVariant(status)}>
+      <Badge 
+        variant={getStatusBadgeVariant(status)}
+        className={isActive ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
+      >
         {getStatusDisplayText(status)}
       </Badge>
     );

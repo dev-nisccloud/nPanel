@@ -45,7 +45,13 @@ export function HostingCard({
           <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
             {data.subscriptionName}
           </CardTitle>
-          <Badge variant={getStatusBadgeVariant(data.status)} className="flex-shrink-0">
+          <Badge 
+            variant={getStatusBadgeVariant(data.status)} 
+            className={cn(
+              "flex-shrink-0",
+              data.status === 0 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""
+            )}
+          >
             {getStatusDisplayText(data.status)}
           </Badge>
         </div>

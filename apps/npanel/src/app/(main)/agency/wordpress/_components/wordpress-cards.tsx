@@ -36,16 +36,15 @@ export function WordPressCard({
   };
 
   const getStatusBadge = () => {
-    if (data.status?.infected) {
-      return <Badge variant="destructive">Infected</Badge>;
+    const isActive = data.status?.alive && !data.status?.infected && !data.status?.unsupported;
+    if (isActive) {
+      return (
+        <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
+          Active
+        </Badge>
+      );
     }
-    if (data.status?.unsupported) {
-      return <Badge variant="secondary">Unsupported</Badge>;
-    }
-    if (data.status?.alive) {
-      return <Badge variant="default">Online</Badge>;
-    }
-    return <Badge variant="secondary">Offline</Badge>;
+    return <Badge variant="destructive">Suspended</Badge>;
   };
 
   const getWordPressVersion = () => {
