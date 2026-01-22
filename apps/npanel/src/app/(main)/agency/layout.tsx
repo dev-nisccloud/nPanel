@@ -27,6 +27,7 @@ import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 import { CartSwitcher } from "./_components/sidebar/cart-switcher";
 import { NotificationSwitcher } from "./_components/sidebar/notification-switcher";
 import { NavigationLoader } from "@/components/navigation-loader";
+import { FloatingActionButton } from "@/components/floating-action-button";
 
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   // Server-side auth check - accepts any role except CUSTOMER
@@ -89,6 +90,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
           </header>
           <div className="h-full p-4 md:p-6 bg-[#f8fafb] dark:bg-background">{children}</div>
           <NavigationLoader />
+          <FloatingActionButton />
         </SidebarInset>
       </SidebarProvider>
   );

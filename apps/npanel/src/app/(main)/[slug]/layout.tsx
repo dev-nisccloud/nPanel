@@ -25,6 +25,7 @@ import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 import { NotificationSwitcher } from "./_components/sidebar/notification-switcher";
 import { PrefetchTeams } from "./_components/prefetch-teams";
 import { NavigationLoader } from "@/components/navigation-loader";
+import { FloatingActionButton } from "@/components/floating-action-button";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +118,7 @@ export default async function TeamLayout({
           </header>
           <div className="h-full p-4 md:p-6">{children}</div>
           <NavigationLoader />
+          <FloatingActionButton />
         </SidebarInset>
       </SidebarProvider>
   );
