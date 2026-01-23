@@ -547,3 +547,52 @@ export const LinkedInContentMediaType = {
 } as const
 
 export type LinkedInContentMediaType = (typeof LinkedInContentMediaType)[keyof typeof LinkedInContentMediaType]
+
+
+export const TicketStatus = {
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN_PROGRESS',
+  WAITING: 'WAITING',
+  RESOLVED: 'RESOLVED',
+  CLOSED: 'CLOSED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type TicketStatus = (typeof TicketStatus)[keyof typeof TicketStatus]
+
+
+export const TicketPriority = {
+  LOW: 'LOW',
+  NORMAL: 'NORMAL',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT'
+} as const
+
+export type TicketPriority = (typeof TicketPriority)[keyof typeof TicketPriority]
+
+
+export const TicketType = {
+  TECHNICAL: 'TECHNICAL',
+  BILLING: 'BILLING',
+  FEATURE: 'FEATURE',
+  BUG: 'BUG',
+  ACCOUNT: 'ACCOUNT',
+  GENERAL: 'GENERAL',
+  HOSTING: 'HOSTING',
+  DOMAIN: 'DOMAIN',
+  EMAIL: 'EMAIL',
+  WORDPRESS: 'WORDPRESS'
+} as const
+
+export type TicketType = (typeof TicketType)[keyof typeof TicketType]
+
+
+export const TicketSource = {
+  WEB: 'WEB',
+  EMAIL: 'EMAIL',
+  API: 'API',
+  CHAT: 'CHAT',
+  PHONE: 'PHONE'
+} as const
+
+export type TicketSource = (typeof TicketSource)[keyof typeof TicketSource]

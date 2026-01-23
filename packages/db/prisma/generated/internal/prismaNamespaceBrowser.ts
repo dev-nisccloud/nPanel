@@ -158,7 +158,14 @@ export const ModelName = {
   MetaContentCalendarActivityLog: 'MetaContentCalendarActivityLog',
   LinkedInContentCalendar: 'LinkedInContentCalendar',
   LinkedInContentCalendarMedia: 'LinkedInContentCalendarMedia',
-  LinkedInContentCalendarActivityLog: 'LinkedInContentCalendarActivityLog'
+  LinkedInContentCalendarActivityLog: 'LinkedInContentCalendarActivityLog',
+  Ticket: 'Ticket',
+  TicketComment: 'TicketComment',
+  TicketParticipant: 'TicketParticipant',
+  TicketAttachment: 'TicketAttachment',
+  TicketTag: 'TicketTag',
+  TicketTagRelation: 'TicketTagRelation',
+  TicketActivityLog: 'TicketActivityLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2161,6 +2168,121 @@ export const LinkedInContentCalendarActivityLogScalarFieldEnum = {
 } as const
 
 export type LinkedInContentCalendarActivityLogScalarFieldEnum = (typeof LinkedInContentCalendarActivityLogScalarFieldEnum)[keyof typeof LinkedInContentCalendarActivityLogScalarFieldEnum]
+
+
+export const TicketScalarFieldEnum = {
+  id: 'id',
+  ticketNumber: 'ticketNumber',
+  subject: 'subject',
+  description: 'description',
+  type: 'type',
+  priority: 'priority',
+  status: 'status',
+  source: 'source',
+  createdById: 'createdById',
+  teamId: 'teamId',
+  assignedToId: 'assignedToId',
+  metadata: 'metadata',
+  internalNotes: 'internalNotes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  resolvedAt: 'resolvedAt',
+  closedAt: 'closedAt',
+  firstResponseAt: 'firstResponseAt',
+  lastResponseAt: 'lastResponseAt',
+  lastCustomerResponseAt: 'lastCustomerResponseAt',
+  lastAgentResponseAt: 'lastAgentResponseAt'
+} as const
+
+export type TicketScalarFieldEnum = (typeof TicketScalarFieldEnum)[keyof typeof TicketScalarFieldEnum]
+
+
+export const TicketCommentScalarFieldEnum = {
+  id: 'id',
+  ticketId: 'ticketId',
+  parentId: 'parentId',
+  authorId: 'authorId',
+  content: 'content',
+  isInternal: 'isInternal',
+  isSystem: 'isSystem',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  editedAt: 'editedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type TicketCommentScalarFieldEnum = (typeof TicketCommentScalarFieldEnum)[keyof typeof TicketCommentScalarFieldEnum]
+
+
+export const TicketParticipantScalarFieldEnum = {
+  id: 'id',
+  ticketId: 'ticketId',
+  userId: 'userId',
+  role: 'role',
+  addedById: 'addedById',
+  addedAt: 'addedAt'
+} as const
+
+export type TicketParticipantScalarFieldEnum = (typeof TicketParticipantScalarFieldEnum)[keyof typeof TicketParticipantScalarFieldEnum]
+
+
+export const TicketAttachmentScalarFieldEnum = {
+  id: 'id',
+  ticketId: 'ticketId',
+  commentId: 'commentId',
+  uploadedById: 'uploadedById',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  mimeType: 'mimeType',
+  fileUrl: 'fileUrl',
+  storageKey: 'storageKey',
+  description: 'description',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type TicketAttachmentScalarFieldEnum = (typeof TicketAttachmentScalarFieldEnum)[keyof typeof TicketAttachmentScalarFieldEnum]
+
+
+export const TicketTagScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  color: 'color',
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TicketTagScalarFieldEnum = (typeof TicketTagScalarFieldEnum)[keyof typeof TicketTagScalarFieldEnum]
+
+
+export const TicketTagRelationScalarFieldEnum = {
+  id: 'id',
+  ticketId: 'ticketId',
+  tagId: 'tagId',
+  addedById: 'addedById',
+  addedAt: 'addedAt'
+} as const
+
+export type TicketTagRelationScalarFieldEnum = (typeof TicketTagRelationScalarFieldEnum)[keyof typeof TicketTagRelationScalarFieldEnum]
+
+
+export const TicketActivityLogScalarFieldEnum = {
+  id: 'id',
+  ticketId: 'ticketId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  oldValue: 'oldValue',
+  newValue: 'newValue',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type TicketActivityLogScalarFieldEnum = (typeof TicketActivityLogScalarFieldEnum)[keyof typeof TicketActivityLogScalarFieldEnum]
 
 
 export const SortOrder = {

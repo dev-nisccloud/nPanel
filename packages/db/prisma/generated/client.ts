@@ -598,3 +598,38 @@ export type LinkedInContentCalendarMedia = Prisma.LinkedInContentCalendarMediaMo
  * 
  */
 export type LinkedInContentCalendarActivityLog = Prisma.LinkedInContentCalendarActivityLogModel
+/**
+ * Model Ticket
+ * 
+ */
+export type Ticket = Prisma.TicketModel
+/**
+ * Model TicketComment
+ * 
+ */
+export type TicketComment = Prisma.TicketCommentModel
+/**
+ * Model TicketParticipant
+ * 
+ */
+export type TicketParticipant = Prisma.TicketParticipantModel
+/**
+ * Model TicketAttachment
+ * 
+ */
+export type TicketAttachment = Prisma.TicketAttachmentModel
+/**
+ * Model TicketTag
+ * 
+ */
+export type TicketTag = Prisma.TicketTagModel
+/**
+ * Model TicketTagRelation
+ * 
+ */
+export type TicketTagRelation = Prisma.TicketTagRelationModel
+/**
+ * Model TicketActivityLog
+ * 
+ */
+export type TicketActivityLog = Prisma.TicketActivityLogModel

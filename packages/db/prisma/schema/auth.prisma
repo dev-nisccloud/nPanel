@@ -460,6 +460,12 @@ model User {
   // Image Generator Relations
   imageGeneratorGenerations    ImageGeneratorGeneration[]
   backgroundRemoverGenerations BackgroundRemoverGeneration[]
+  // Ticket System Relations
+  createdTickets               Ticket[]                      @relation("CreatedTickets")
+  assignedTickets              Ticket[]                      @relation("AssignedTickets")
+  ticketComments               TicketComment[]               @relation("TicketComments")
+  ticketParticipants           TicketParticipant[]           @relation("TicketParticipants")
+  ticketAttachments            TicketAttachment[]            @relation("TicketAttachments")
   // Creative Briefs Relations
   creativeBriefs               CreativeBrief[]
   // Notifications Relations
@@ -554,6 +560,8 @@ model Team {
   creativeBriefs               CreativeBrief[]
   // Notifications Relations
   notifications                Notification[]
+  // Ticket System Relations
+  tickets                      Ticket[]
 
   @@index([slug])
   @@index([createdById])
