@@ -44,6 +44,38 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// Mock ticket list data for customer side
+const mockTicketList = [
+  {
+    id: "1",
+    ticketNumber: "TKT-2024-001",
+    lastMessage: "Thank you for your help!",
+    lastMessageTime: new Date(Date.now() - 3600000), // 1 hour ago
+    unreadCount: 2,
+  },
+  {
+    id: "2",
+    ticketNumber: "TKT-2024-002",
+    lastMessage: "I need help with my hosting account",
+    lastMessageTime: new Date(Date.now() - 7200000), // 2 hours ago
+    unreadCount: 0,
+  },
+  {
+    id: "3",
+    ticketNumber: "TKT-2024-003",
+    lastMessage: "The website is down, please help",
+    lastMessageTime: new Date(Date.now() - 86400000), // 1 day ago
+    unreadCount: 5,
+  },
+  {
+    id: "4",
+    ticketNumber: "TKT-2024-004",
+    lastMessage: "Can you check my domain status?",
+    lastMessageTime: new Date(Date.now() - 172800000), // 2 days ago
+    unreadCount: 0,
+  },
+];
+
 // Action options matching the reference design
 const getActionOptions = () => [
   {
@@ -53,7 +85,7 @@ const getActionOptions = () => [
     color: "text-blue-600",
     bgColor: "bg-blue-50 dark:bg-blue-950/20",
     onClick: () => {
-      // Handle live chat
+      // Handle live chat - will show ticket list
       console.log("Chat with a human");
     },
   },
@@ -133,11 +165,12 @@ const mockZeepoMessages: ChatMessage[] = [
 
 export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [currentView, setCurrentView] = React.useState<"main" | "chat" | "zeepo">("main");
+  const [currentView, setCurrentView] = React.useState<"main" | "ticket-list" | "chat" | "zeepo">("main");
   const [messageInput, setMessageInput] = React.useState("");
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>(mockChatMessages);
   const [zeepoMessages, setZeepoMessages] = React.useState<ChatMessage[]>(mockZeepoMessages);
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
+  const [selectedTicketId, setSelectedTicketId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const actionOptions = getActionOptions();
   
@@ -147,15 +180,42 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
       setCurrentView("main");
       setMessageInput("");
       setSelectedFiles([]);
+      setSelectedTicketId(null);
     }
   }, [isOpen]);
   
-  const handleChatWithHuman = () => {
+  const handleViewTickets = () => {
+    setCurrentView("ticket-list");
+  };
+  
+  const handleChatWithHuman = (ticketId?: string) => {
+    if (ticketId) {
+      setSelectedTicketId(ticketId);
+    }
     setCurrentView("chat");
   };
   
   const handleZeepoChat = () => {
     setCurrentView("zeepo");
+  };
+  
+  const formatTime = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (hours < 1) {
+      return "Just now";
+    } else if (hours < 24) {
+      return `${hours}h ago`;
+    } else if (days === 1) {
+      return "Yesterday";
+    } else if (days < 7) {
+      return `${days}d ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
   };
   
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -255,7 +315,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         sideOffset={16}
         className={cn(
           "w-[360px] p-0 rounded-2xl overflow-hidden border-0 shadow-xl bg-background/98 backdrop-blur-md",
-          (currentView === "chat" || currentView === "zeepo") && "h-[600px] flex flex-col"
+          (currentView === "ticket-list" || currentView === "chat" || currentView === "zeepo") && "h-[600px] flex flex-col"
         )}
       >
         {/* Background gradient effect - must have - prominent blue glow - clipped to rounded corners */}
@@ -308,7 +368,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                       key={option.id}
                       onClick={() => {
                         if (option.id === "live-chat") {
-                          handleChatWithHuman();
+                          handleViewTickets();
                         } else if (option.id === "zeepo") {
                           handleZeepoChat();
                         } else {
@@ -352,9 +412,9 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                 })}
               </div>
             </>
-          ) : currentView === "chat" ? (
+          ) : currentView === "ticket-list" ? (
             <>
-              {/* Chat Header */}
+              {/* Ticket List Header */}
               <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
                 <div className="flex items-center gap-3">
                   <Button
@@ -365,14 +425,72 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
+                  <h2 className="text-lg font-semibold text-foreground">Support Tickets</h2>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-accent"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Ticket List */}
+              <ScrollArea className="flex-1">
+                <div className="divide-y divide-border">
+                  {mockTicketList.map((ticket) => (
+                    <button
+                      key={ticket.id}
+                      onClick={() => handleChatWithHuman(ticket.id)}
+                      className="w-full px-4 py-3 hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm text-foreground">
+                            {ticket.ticketNumber}
+                          </span>
+                          {ticket.unreadCount > 0 && (
+                            <span className="text-xs font-semibold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                              {ticket.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {ticket.lastMessage}
+                          </p>
+                          <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
+                            {formatTime(ticket.lastMessageTime)}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </>
+          ) : currentView === "chat" ? (
+            <>
+              {/* Chat Header */}
+              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-accent"
+                    onClick={() => setCurrentView("ticket-list")}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
                   <div className="flex items-center gap-2">
-                    <Image
-                      src="/nisclogooriginal.png"
-                      alt="Nisc Cloud"
-                      width={80}
-                      height={24}
-                      className="h-6 w-auto"
-                    />
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {selectedTicketId 
+                        ? mockTicketList.find(t => t.id === selectedTicketId)?.ticketNumber || "Support Chat"
+                        : "Support Chat"
+                      }
+                    </h2>
                   </div>
                 </div>
                 <Button

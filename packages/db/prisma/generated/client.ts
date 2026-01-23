@@ -604,15 +604,10 @@ export type LinkedInContentCalendarActivityLog = Prisma.LinkedInContentCalendarA
  */
 export type Ticket = Prisma.TicketModel
 /**
- * Model TicketComment
+ * Model TicketMessage
  * 
  */
-export type TicketComment = Prisma.TicketCommentModel
-/**
- * Model TicketParticipant
- * 
- */
-export type TicketParticipant = Prisma.TicketParticipantModel
+export type TicketMessage = Prisma.TicketMessageModel
 /**
  * Model TicketAttachment
  * 

@@ -463,8 +463,7 @@ model User {
   // Ticket System Relations
   createdTickets               Ticket[]                      @relation("CreatedTickets")
   assignedTickets              Ticket[]                      @relation("AssignedTickets")
-  ticketComments               TicketComment[]               @relation("TicketComments")
-  ticketParticipants           TicketParticipant[]           @relation("TicketParticipants")
+  ticketMessages               TicketMessage[]               @relation("TicketMessages")
   ticketAttachments            TicketAttachment[]            @relation("TicketAttachments")
   // Creative Briefs Relations
   creativeBriefs               CreativeBrief[]

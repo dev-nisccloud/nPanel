@@ -596,3 +596,12 @@ export const TicketSource = {
 } as const
 
 export type TicketSource = (typeof TicketSource)[keyof typeof TicketSource]
+
+
+export const MessageReadStatus = {
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  READ: 'READ'
+} as const
+
+export type MessageReadStatus = (typeof MessageReadStatus)[keyof typeof MessageReadStatus]

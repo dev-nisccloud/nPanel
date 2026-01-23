@@ -160,8 +160,7 @@ export const ModelName = {
   LinkedInContentCalendarMedia: 'LinkedInContentCalendarMedia',
   LinkedInContentCalendarActivityLog: 'LinkedInContentCalendarActivityLog',
   Ticket: 'Ticket',
-  TicketComment: 'TicketComment',
-  TicketParticipant: 'TicketParticipant',
+  TicketMessage: 'TicketMessage',
   TicketAttachment: 'TicketAttachment',
   TicketTag: 'TicketTag',
   TicketTagRelation: 'TicketTagRelation',
@@ -2182,6 +2181,11 @@ export const TicketScalarFieldEnum = {
   createdById: 'createdById',
   teamId: 'teamId',
   assignedToId: 'assignedToId',
+  lastMessageId: 'lastMessageId',
+  lastMessageAt: 'lastMessageAt',
+  lastMessagePreview: 'lastMessagePreview',
+  unreadCount: 'unreadCount',
+  customerUnreadCount: 'customerUnreadCount',
   metadata: 'metadata',
   internalNotes: 'internalNotes',
   createdAt: 'createdAt',
@@ -2197,14 +2201,15 @@ export const TicketScalarFieldEnum = {
 export type TicketScalarFieldEnum = (typeof TicketScalarFieldEnum)[keyof typeof TicketScalarFieldEnum]
 
 
-export const TicketCommentScalarFieldEnum = {
+export const TicketMessageScalarFieldEnum = {
   id: 'id',
   ticketId: 'ticketId',
-  parentId: 'parentId',
-  authorId: 'authorId',
+  senderId: 'senderId',
   content: 'content',
   isInternal: 'isInternal',
   isSystem: 'isSystem',
+  readStatus: 'readStatus',
+  readAt: 'readAt',
   metadata: 'metadata',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -2212,25 +2217,13 @@ export const TicketCommentScalarFieldEnum = {
   deletedAt: 'deletedAt'
 } as const
 
-export type TicketCommentScalarFieldEnum = (typeof TicketCommentScalarFieldEnum)[keyof typeof TicketCommentScalarFieldEnum]
-
-
-export const TicketParticipantScalarFieldEnum = {
-  id: 'id',
-  ticketId: 'ticketId',
-  userId: 'userId',
-  role: 'role',
-  addedById: 'addedById',
-  addedAt: 'addedAt'
-} as const
-
-export type TicketParticipantScalarFieldEnum = (typeof TicketParticipantScalarFieldEnum)[keyof typeof TicketParticipantScalarFieldEnum]
+export type TicketMessageScalarFieldEnum = (typeof TicketMessageScalarFieldEnum)[keyof typeof TicketMessageScalarFieldEnum]
 
 
 export const TicketAttachmentScalarFieldEnum = {
   id: 'id',
   ticketId: 'ticketId',
-  commentId: 'commentId',
+  messageId: 'messageId',
   uploadedById: 'uploadedById',
   fileName: 'fileName',
   fileSize: 'fileSize',

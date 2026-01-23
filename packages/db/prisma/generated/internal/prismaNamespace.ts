@@ -500,8 +500,7 @@ export const ModelName = {
   LinkedInContentCalendarMedia: 'LinkedInContentCalendarMedia',
   LinkedInContentCalendarActivityLog: 'LinkedInContentCalendarActivityLog',
   Ticket: 'Ticket',
-  TicketComment: 'TicketComment',
-  TicketParticipant: 'TicketParticipant',
+  TicketMessage: 'TicketMessage',
   TicketAttachment: 'TicketAttachment',
   TicketTag: 'TicketTag',
   TicketTagRelation: 'TicketTagRelation',
@@ -521,7 +520,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketComment" | "ticketParticipant" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -8813,151 +8812,77 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    TicketComment: {
-      payload: Prisma.$TicketCommentPayload<ExtArgs>
-      fields: Prisma.TicketCommentFieldRefs
+    TicketMessage: {
+      payload: Prisma.$TicketMessagePayload<ExtArgs>
+      fields: Prisma.TicketMessageFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.TicketCommentFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload> | null
+          args: Prisma.TicketMessageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.TicketCommentFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload>
+          args: Prisma.TicketMessageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload>
         }
         findFirst: {
-          args: Prisma.TicketCommentFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload> | null
+          args: Prisma.TicketMessageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.TicketCommentFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload>
+          args: Prisma.TicketMessageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload>
         }
         findMany: {
-          args: Prisma.TicketCommentFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload>[]
+          args: Prisma.TicketMessageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload>[]
         }
         create: {
-          args: Prisma.TicketCommentCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload>
+          args: Prisma.TicketMessageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload>
         }
         createMany: {
-          args: Prisma.TicketCommentCreateManyArgs<ExtArgs>
+          args: Prisma.TicketMessageCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.TicketCommentCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload>[]
+          args: Prisma.TicketMessageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload>[]
         }
         delete: {
-          args: Prisma.TicketCommentDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload>
+          args: Prisma.TicketMessageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload>
         }
         update: {
-          args: Prisma.TicketCommentUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload>
+          args: Prisma.TicketMessageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload>
         }
         deleteMany: {
-          args: Prisma.TicketCommentDeleteManyArgs<ExtArgs>
+          args: Prisma.TicketMessageDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.TicketCommentUpdateManyArgs<ExtArgs>
+          args: Prisma.TicketMessageUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.TicketCommentUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload>[]
+          args: Prisma.TicketMessageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload>[]
         }
         upsert: {
-          args: Prisma.TicketCommentUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketCommentPayload>
+          args: Prisma.TicketMessageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketMessagePayload>
         }
         aggregate: {
-          args: Prisma.TicketCommentAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateTicketComment>
+          args: Prisma.TicketMessageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTicketMessage>
         }
         groupBy: {
-          args: Prisma.TicketCommentGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TicketCommentGroupByOutputType>[]
+          args: Prisma.TicketMessageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TicketMessageGroupByOutputType>[]
         }
         count: {
-          args: Prisma.TicketCommentCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TicketCommentCountAggregateOutputType> | number
-        }
-      }
-    }
-    TicketParticipant: {
-      payload: Prisma.$TicketParticipantPayload<ExtArgs>
-      fields: Prisma.TicketParticipantFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.TicketParticipantFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.TicketParticipantFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload>
-        }
-        findFirst: {
-          args: Prisma.TicketParticipantFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.TicketParticipantFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload>
-        }
-        findMany: {
-          args: Prisma.TicketParticipantFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload>[]
-        }
-        create: {
-          args: Prisma.TicketParticipantCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload>
-        }
-        createMany: {
-          args: Prisma.TicketParticipantCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.TicketParticipantCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload>[]
-        }
-        delete: {
-          args: Prisma.TicketParticipantDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload>
-        }
-        update: {
-          args: Prisma.TicketParticipantUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload>
-        }
-        deleteMany: {
-          args: Prisma.TicketParticipantDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.TicketParticipantUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.TicketParticipantUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload>[]
-        }
-        upsert: {
-          args: Prisma.TicketParticipantUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TicketParticipantPayload>
-        }
-        aggregate: {
-          args: Prisma.TicketParticipantAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateTicketParticipant>
-        }
-        groupBy: {
-          args: Prisma.TicketParticipantGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TicketParticipantGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.TicketParticipantCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TicketParticipantCountAggregateOutputType> | number
+          args: Prisma.TicketMessageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TicketMessageCountAggregateOutputType> | number
         }
       }
     }
@@ -11294,6 +11219,11 @@ export const TicketScalarFieldEnum = {
   createdById: 'createdById',
   teamId: 'teamId',
   assignedToId: 'assignedToId',
+  lastMessageId: 'lastMessageId',
+  lastMessageAt: 'lastMessageAt',
+  lastMessagePreview: 'lastMessagePreview',
+  unreadCount: 'unreadCount',
+  customerUnreadCount: 'customerUnreadCount',
   metadata: 'metadata',
   internalNotes: 'internalNotes',
   createdAt: 'createdAt',
@@ -11309,14 +11239,15 @@ export const TicketScalarFieldEnum = {
 export type TicketScalarFieldEnum = (typeof TicketScalarFieldEnum)[keyof typeof TicketScalarFieldEnum]
 
 
-export const TicketCommentScalarFieldEnum = {
+export const TicketMessageScalarFieldEnum = {
   id: 'id',
   ticketId: 'ticketId',
-  parentId: 'parentId',
-  authorId: 'authorId',
+  senderId: 'senderId',
   content: 'content',
   isInternal: 'isInternal',
   isSystem: 'isSystem',
+  readStatus: 'readStatus',
+  readAt: 'readAt',
   metadata: 'metadata',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -11324,25 +11255,13 @@ export const TicketCommentScalarFieldEnum = {
   deletedAt: 'deletedAt'
 } as const
 
-export type TicketCommentScalarFieldEnum = (typeof TicketCommentScalarFieldEnum)[keyof typeof TicketCommentScalarFieldEnum]
-
-
-export const TicketParticipantScalarFieldEnum = {
-  id: 'id',
-  ticketId: 'ticketId',
-  userId: 'userId',
-  role: 'role',
-  addedById: 'addedById',
-  addedAt: 'addedAt'
-} as const
-
-export type TicketParticipantScalarFieldEnum = (typeof TicketParticipantScalarFieldEnum)[keyof typeof TicketParticipantScalarFieldEnum]
+export type TicketMessageScalarFieldEnum = (typeof TicketMessageScalarFieldEnum)[keyof typeof TicketMessageScalarFieldEnum]
 
 
 export const TicketAttachmentScalarFieldEnum = {
   id: 'id',
   ticketId: 'ticketId',
-  commentId: 'commentId',
+  messageId: 'messageId',
   uploadedById: 'uploadedById',
   fileName: 'fileName',
   fileSize: 'fileSize',
@@ -12255,6 +12174,20 @@ export type EnumTicketSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$Pri
 export type ListEnumTicketSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TicketSource[]'>
     
 
+
+/**
+ * Reference to a field of type 'MessageReadStatus'
+ */
+export type EnumMessageReadStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MessageReadStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'MessageReadStatus[]'
+ */
+export type ListEnumMessageReadStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MessageReadStatus[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -12454,8 +12387,7 @@ export type GlobalOmitConfig = {
   linkedInContentCalendarMedia?: Prisma.LinkedInContentCalendarMediaOmit
   linkedInContentCalendarActivityLog?: Prisma.LinkedInContentCalendarActivityLogOmit
   ticket?: Prisma.TicketOmit
-  ticketComment?: Prisma.TicketCommentOmit
-  ticketParticipant?: Prisma.TicketParticipantOmit
+  ticketMessage?: Prisma.TicketMessageOmit
   ticketAttachment?: Prisma.TicketAttachmentOmit
   ticketTag?: Prisma.TicketTagOmit
   ticketTagRelation?: Prisma.TicketTagRelationOmit

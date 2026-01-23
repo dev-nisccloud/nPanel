@@ -1,5 +1,5 @@
 // Ticket/Support System Schema
-// Enables comprehensive ticket system between agency and customer users with full threading
+// Messaging-style support system between agency and customer users (like WhatsApp)
 
 // Ticket Status
 enum TicketStatus {
@@ -42,14 +42,21 @@ enum TicketSource {
   PHONE // Created via phone call
 }
 
-// Main Ticket Entity
+// Message Read Status
+enum MessageReadStatus {
+  SENT // Message sent
+  DELIVERED // Message delivered
+  READ // Message read
+}
+
+// Main Ticket Entity (Represents a conversation)
 model Ticket {
   id           String @id @map("_id")
   ticketNumber String @unique // Human-readable ticket number (e.g., TKT-2024-001)
 
   // Basic Information
-  subject     String // Ticket subject/title
-  description String // Initial ticket description
+  subject     String? // Optional ticket subject/title (can be auto-generated from first message)
+  description String? // Optional initial description (can be first message)
 
   // Classification
   type     TicketType     @default(GENERAL)
@@ -58,17 +65,24 @@ model Ticket {
   source   TicketSource   @default(WEB)
 
   // Relationships
-  createdById  String // User who created the ticket (can be customer or agency)
+  createdById  String // User who created the ticket (customer or agency)
   teamId       String? // Team associated with ticket (if customer created)
   assignedToId String? // Agency user assigned to handle ticket
+
+  // Messaging metadata
+  lastMessageId       String? // ID of the last message in the conversation
+  lastMessageAt       DateTime? // When last message was sent
+  lastMessagePreview  String? // Preview of last message (for chat list)
+  unreadCount         Int       @default(0) // Unread message count for assigned agent
+  customerUnreadCount Int       @default(0) // Unread message count for customer
 
   // Metadata
   metadata      Json? // Additional metadata (related order ID, service ID, etc.)
   internalNotes String? // Internal notes visible only to agency users
 
   // Timestamps
-  createdAt              DateTime
-  updatedAt              DateTime
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
   resolvedAt             DateTime? // When ticket was resolved
   closedAt               DateTime? // When ticket was closed
   firstResponseAt        DateTime? // When first response was sent
@@ -80,8 +94,7 @@ model Ticket {
   createdBy    User                @relation("CreatedTickets", fields: [createdById], references: [id], onDelete: Restrict)
   team         Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
   assignedTo   User?               @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
-  comments     TicketComment[]
-  participants TicketParticipant[]
+  messages     TicketMessage[]
   attachments  TicketAttachment[]
   tags         TicketTagRelation[]
   activityLogs TicketActivityLog[]
@@ -94,74 +107,57 @@ model Ticket {
   @@index([type])
   @@index([ticketNumber])
   @@index([createdAt])
+  @@index([lastMessageAt])
   @@index([status, priority]) // Composite for filtering
   @@index([teamId, status]) // Composite for team tickets
+  @@index([assignedToId, status]) // Composite for agent tickets
   @@map("ticket")
 }
 
-// Ticket Comments/Replies (Threaded)
-model TicketComment {
-  id       String  @id @map("_id")
+// Ticket Messages (Simple messaging, no threading)
+model TicketMessage {
+  id       String @id @map("_id")
   ticketId String
-  parentId String? // For threading - references another TicketComment
-  authorId String // User who wrote the comment
+  senderId String // User who sent the message
 
   // Content
-  content    String // Comment content (supports markdown)
-  isInternal Boolean @default(false) // Internal comment (visible only to agency)
-  isSystem   Boolean @default(false) // System-generated comment (status changes, etc.)
+  content    String // Message content
+  isInternal Boolean @default(false) // Internal message (visible only to agency)
+  isSystem   Boolean @default(false) // System-generated message (status changes, etc.)
+
+  // Read status
+  readStatus MessageReadStatus @default(SENT)
+  readAt     DateTime? // When message was read
 
   // Metadata
   metadata Json? // Additional metadata (edited, deleted, etc.)
 
   // Timestamps
-  createdAt DateTime
-  updatedAt DateTime
-  editedAt  DateTime? // When comment was last edited
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime? // When message was last edited
   deletedAt DateTime? // Soft delete timestamp
 
   // Relations
   ticket      Ticket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  author      User               @relation("TicketComments", fields: [authorId], references: [id], onDelete: Restrict)
-  parent      TicketComment?     @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies     TicketComment[]    @relation("CommentReplies")
+  sender      User               @relation("TicketMessages", fields: [senderId], references: [id], onDelete: Restrict)
   attachments TicketAttachment[]
 
   @@index([ticketId])
-  @@index([parentId])
-  @@index([authorId])
+  @@index([senderId])
   @@index([createdAt])
-  @@index([ticketId, createdAt]) // Composite for ordered comments
+  @@index([ticketId, createdAt]) // Composite for ordered messages
   @@index([isInternal])
   @@index([deletedAt])
-  @@map("ticket_comment")
+  @@index([readStatus])
+  @@map("ticket_message")
 }
 
-// Ticket Participants (Track who's involved)
-model TicketParticipant {
-  id        String   @id @map("_id")
-  ticketId  String
-  userId    String
-  role      String // "CREATOR", "ASSIGNEE", "WATCHER", "CC"
-  addedById String? // Who added this participant
-  addedAt   DateTime
-
-  // Relations
-  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  user   User   @relation("TicketParticipants", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([ticketId, userId, role])
-  @@index([ticketId])
-  @@index([userId])
-  @@index([role])
-  @@map("ticket_participant")
-}
-
-// Ticket Attachments
+// Ticket Attachments (Attached to messages)
 model TicketAttachment {
   id           String  @id @map("_id")
   ticketId     String?
-  commentId    String?
+  messageId    String? // Attached to a specific message
   uploadedById String
 
   // File Information
@@ -176,15 +172,15 @@ model TicketAttachment {
   metadata    Json?
 
   // Timestamps
-  createdAt DateTime
+  createdAt DateTime @default(now())
 
   // Relations
   ticket     Ticket?        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  comment    TicketComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  message    TicketMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
   uploadedBy User           @relation("TicketAttachments", fields: [uploadedById], references: [id], onDelete: Restrict)
 
   @@index([ticketId])
-  @@index([commentId])
+  @@index([messageId])
   @@index([uploadedById])
   @@index([createdAt])
   @@map("ticket_attachment")
@@ -231,7 +227,7 @@ model TicketActivityLog {
   userId   String? // User who performed action (null for system actions)
 
   // Action Details
-  action      String // CREATE, UPDATE, STATUS_CHANGE, ASSIGN, COMMENT, ATTACH, TAG_ADD, TAG_REMOVE, etc.
+  action      String // CREATE, UPDATE, STATUS_CHANGE, ASSIGN, MESSAGE, ATTACH, TAG_ADD, TAG_REMOVE, etc.
   description String? // Human-readable description
   oldValue    Json? // Previous value (for updates)
   newValue    Json? // New value (for updates)
