@@ -6,8 +6,8 @@ import { f } from "@/lib/uploadthing";
  * Define your file upload endpoints here
  */
 export const ourFileRouter = {
-  // Generic file upload endpoint (supports all file types)
-  fileUploader: f({ blob: { maxFileSize: "32MB", maxFileCount: 10 } })
+  // Generic file upload endpoint (supports all file types) - 64MB limit (client enforces 50MB for tickets)
+  fileUploader: f({ blob: { maxFileSize: "64MB", maxFileCount: 10 } })
     .middleware(async ({ req }) => {
       const session = await auth.api.getSession({
         headers: req.headers,
