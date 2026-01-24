@@ -46,6 +46,7 @@ export function useTicketsList(filters?: {
   return {
     tickets,
     isLoading: query.isLoading,
+    isRefetching: query.isRefetching,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,
@@ -94,6 +95,7 @@ export function useTicketMessages(ticketId: string | null) {
       enabled: !!ticketId && ticketId !== null && ticketId !== undefined,
       refetchOnWindowFocus: false,
       refetchOnMount: true,
+      refetchInterval: 15_000, // Poll every 15s so agency replies show without manual refresh
     }
   );
 

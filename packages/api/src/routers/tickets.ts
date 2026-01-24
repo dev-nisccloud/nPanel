@@ -907,34 +907,48 @@ export const ticketsRouter = router({
         }
 
         // Update ticket metadata
+        // For internal messages: do NOT update lastMessage* (customers never see them; list would
+        // show internal as "last" but getMessages excludes internal, so the chat would not show it)
         const preview = input.content.length > 100 
           ? input.content.substring(0, 100) + "..."
           : input.content;
 
+        const isInternal = input.isInternal === true;
+
         await tx.ticket.update({
           where: { id: input.ticketId },
           data: {
-            lastMessageId: message.id,
-            lastMessageAt: new Date(),
-            lastMessagePreview: preview,
             updatedAt: new Date(),
-            // Update unread counts
-            ...(isAgency 
-              ? { customerUnreadCount: { increment: 1 } }
-              : { unreadCount: { increment: 1 } }
+            lastResponseAt: new Date(),
+            // Only update last-message fields for customer-visible (non-internal) messages
+            ...(isInternal
+              ? {}
+              : {
+                  lastMessageId: message.id,
+                  lastMessageAt: new Date(),
+                  lastMessagePreview: preview,
+                }
             ),
-            // Update response timestamps
-            ...(ticket.firstResponseAt === null && isAgency
+            // Unread: customers must not be notified for internal messages
+            ...(isAgency && !isInternal
+              ? { customerUnreadCount: { increment: 1 } }
+              : !isAgency
+              ? { unreadCount: { increment: 1 } }
+              : {}
+            ),
+            // First response / agent response only for customer-visible messages
+            ...(ticket.firstResponseAt === null && isAgency && !isInternal
               ? { firstResponseAt: new Date() }
               : {}
             ),
-            lastResponseAt: new Date(),
-            ...(isAgency
+            ...(isAgency && !isInternal
               ? { lastAgentResponseAt: new Date() }
-              : { lastCustomerResponseAt: new Date() }
+              : !isAgency
+              ? { lastCustomerResponseAt: new Date() }
+              : {}
             ),
-            // Update status if needed
-            ...(ticket.status === "OPEN" && isAgency
+            // Move to IN_PROGRESS only when agency sends a real (non-internal) reply
+            ...(ticket.status === "OPEN" && isAgency && !isInternal
               ? { status: "IN_PROGRESS" }
               : {}
             ),

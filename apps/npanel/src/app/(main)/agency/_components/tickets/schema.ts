@@ -43,11 +43,12 @@ export const messageReadStatusSchema = z.enum(["SENT", "DELIVERED", "READ"]);
 export type MessageReadStatus = z.infer<typeof messageReadStatusSchema>;
 
 // Ticket List Item (for chat list)
+// Use z.coerce.date() so ISO strings from the API are parsed to Date
 export const ticketListItemSchema = z.object({
   id: z.string(),
   ticketNumber: z.string(),
   lastMessage: z.string().nullable(),
-  lastMessageAt: z.date().nullable(),
+  lastMessageAt: z.coerce.date().nullable(),
   unreadCount: z.number(),
   customerName: z.string().optional(), // For agency side
   assignedToName: z.string().nullable().optional(), // For customer side
@@ -58,6 +59,7 @@ export const ticketListItemSchema = z.object({
 export type TicketListItem = z.infer<typeof ticketListItemSchema>;
 
 // Ticket Message (UI layer)
+// Use z.coerce.date() so ISO strings from the API are parsed to Date
 export const ticketMessageSchema = z.object({
   id: z.string(),
   ticketId: z.string(),
@@ -66,11 +68,11 @@ export const ticketMessageSchema = z.object({
   isInternal: z.boolean(),
   isSystem: z.boolean(),
   readStatus: messageReadStatusSchema,
-  readAt: z.date().nullable(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  editedAt: z.date().nullable(),
-  deletedAt: z.date().nullable(),
+  readAt: z.coerce.date().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  editedAt: z.coerce.date().nullable(),
+  deletedAt: z.coerce.date().nullable(),
   sender: z.object({
     id: z.string(),
     name: z.string().nullable(),
@@ -101,14 +103,14 @@ export const ticketSchema = z.object({
   teamId: z.string().nullable(),
   assignedToId: z.string().nullable(),
   lastMessageId: z.string().nullable(),
-  lastMessageAt: z.date().nullable(),
+  lastMessageAt: z.coerce.date().nullable(),
   lastMessagePreview: z.string().nullable(),
   unreadCount: z.number(),
   customerUnreadCount: z.number(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  resolvedAt: z.date().nullable(),
-  closedAt: z.date().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  resolvedAt: z.coerce.date().nullable(),
+  closedAt: z.coerce.date().nullable(),
   createdBy: z.object({
     id: z.string(),
     name: z.string().nullable(),

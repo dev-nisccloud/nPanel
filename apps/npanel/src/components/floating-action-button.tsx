@@ -174,7 +174,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   );
   
   // Data fetching hooks
-  const { tickets, isLoading: isLoadingTickets, isError: isErrorTickets, error: ticketsError, refetch: refetchTickets } = useTicketsList({
+  const { tickets, isLoading: isLoadingTickets, isRefetching: isRefetchingTickets, isError: isErrorTickets, error: ticketsError, refetch: refetchTickets } = useTicketsList({
     teamId: teamData?.id,
   });
   // Only fetch messages if we have a ticket ID AND it's not a new ticket
@@ -234,7 +234,8 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   };
   
   const handleChatWithHuman = (ticketId?: string) => {
-    if (ticketId) {
+    // "new" or no id = create new ticket: no message fetch, show greeting only
+    if (ticketId && ticketId !== "new") {
       setSelectedTicketId(ticketId);
       setIsNewTicket(false);
     } else {
@@ -383,8 +384,8 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         });
         ticketId = newTicket.id;
         setSelectedTicketId(ticketId);
-        setIsNewTicket(false); // This will trigger message fetching
-        
+        setIsNewTicket(false); // Next render: shouldFetchMessages=true, useTicketMessages(ticketId) will fetch
+
         // Now create the first message for this ticket
         await createMessage.mutateAsync({
           ticketId: ticketId,
@@ -392,9 +393,9 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
           isInternal: false,
           attachments: attachments.length > 0 ? attachments : undefined,
         });
-        
-        // Refetch messages after creating the first message
-        await refetchMessages();
+        // Refresh ticket list so the new ticket appears when user goes back to the list
+        await refetchTickets();
+        // createMessage.onSuccess invalidates getMessages; with new selectedTicketId, messages will load
       } else {
         // Existing ticket - just create the message
         await createMessage.mutateAsync({
@@ -550,14 +551,30 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                   </Button>
                   <h2 className="text-lg font-semibold text-foreground">Support Tickets</h2>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-accent"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-accent"
+                    onClick={() => refetchTickets()}
+                    disabled={isRefetchingTickets}
+                    aria-label="Refresh tickets"
+                  >
+                    {isRefetchingTickets ? (
+                      <Spinner size={16} />
+                    ) : (
+                      <RotateCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-accent"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               {/* Create New Ticket Button */}
@@ -870,9 +887,13 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                     type="button"
                     className="h-9 w-9 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={handleSendMessage}
-                    disabled={!messageInput.trim() && selectedFiles.length === 0}
+                    disabled={(!messageInput.trim() && selectedFiles.length === 0) || createTicket.isPending || createMessage.isPending}
                   >
-                    <Send className="h-4 w-4" />
+                    {(createTicket.isPending || createMessage.isPending) ? (
+                      <Spinner size={16} />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>

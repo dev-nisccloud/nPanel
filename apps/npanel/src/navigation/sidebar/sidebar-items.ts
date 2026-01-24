@@ -343,7 +343,7 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Transactions", url: "/agency/transactions", },
           { title: "Invoices", url: "/agency/invoices", },
           { title: "Subscriptions", url: "/agency/subscriptions", },
-          { title: "Quotations", url: "/agency/quotations", },
+          // { title: "Quotations", url: "/agency/quotations", },
         ],
       },
       // {
@@ -351,26 +351,26 @@ export const agencysidebarItems: NavGroup[] = [
       //   url: "/agency/invoicing",
       //   icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       // },
-      {
-        title: "Support",
-        url: "/agency/support",
-        icon: (props: any) => React.createElement(Icons.Help, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Tickets", url: "/agency/support", },
-          { title: "Knowledge Base", url: "/agency/support", },
-          { title: "AI Assistant", url: "/agency/support", },
-        ],
-      },
-      {
-        title: "Reports",
-        url: "/agency/reports",
-        icon: (props: any) => React.createElement(Icons.Reports, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Customer Reports", url: "/agency/reports", },
-          { title: "Order Reports", url: "/agency/reports", },
-          { title: "Transaction Reports", url: "/agency/reports", },
-        ],
-      },
+      // {
+      //   title: "Support",
+      //   url: "/agency/support",
+      //   icon: (props: any) => React.createElement(Icons.Help, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     { title: "Tickets", url: "/agency/support", },
+      //     { title: "Knowledge Base", url: "/agency/support", },
+      //     { title: "AI Assistant", url: "/agency/support", },
+      //   ],
+      // },
+      // {
+      //   title: "Reports",
+      //   url: "/agency/reports",
+      //   icon: (props: any) => React.createElement(Icons.Reports, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     { title: "Customer Reports", url: "/agency/reports", },
+      //     { title: "Order Reports", url: "/agency/reports", },
+      //     { title: "Transaction Reports", url: "/agency/reports", },
+      //   ],
+      // },
     ],
   },
 ];

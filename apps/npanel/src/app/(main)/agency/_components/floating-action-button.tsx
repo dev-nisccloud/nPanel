@@ -169,7 +169,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const currentUserId = session?.user?.id;
   
   // Data fetching hooks
-  const { tickets, isLoading: isLoadingTickets, isError: isErrorTickets, error: ticketsError, refetch: refetchTickets } = useTicketsList();
+  const { tickets, isLoading: isLoadingTickets, isRefetching: isRefetchingTickets, isError: isErrorTickets, error: ticketsError, refetch: refetchTickets } = useTicketsList();
   // Only fetch messages if we have a ticket ID AND it's not a new ticket
   const shouldFetchMessages = !isNewTicket && !!selectedChatId;
   const { messages, isLoading: isLoadingMessages, isError: isErrorMessages, error: messagesError, refetch: refetchMessages } = useTicketMessages(
@@ -576,14 +576,30 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                   </Button>
                   <h2 className="text-lg font-semibold text-foreground">Support Tickets</h2>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-accent"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-accent"
+                    onClick={() => refetchTickets()}
+                    disabled={isRefetchingTickets}
+                    aria-label="Refresh tickets"
+                  >
+                    {isRefetchingTickets ? (
+                      <Spinner size={16} />
+                    ) : (
+                      <RotateCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-accent"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               {/* Chat List */}

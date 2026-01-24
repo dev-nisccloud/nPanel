@@ -33,6 +33,16 @@ import {
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 
@@ -86,6 +96,11 @@ export function ThemeMarketplaceSheet({
   const [page, setPage] = React.useState(1);
   const pageSize = 25;
 
+  // Install confirmation and in-progress state
+  const [confirmInstallOpen, setConfirmInstallOpen] = React.useState(false);
+  const [themeToInstall, setThemeToInstall] = React.useState<MarketplaceTheme | null>(null);
+  const [installActivate, setInstallActivate] = React.useState(true);
+
   // Fetch theme catalog
   const {
     data: catalogData,
@@ -108,6 +123,7 @@ export function ThemeMarketplaceSheet({
   // Install theme mutation
   const installTheme = trpc.plesk.wpThemesInstall.install.useMutation({
     onSuccess: () => {
+      setThemeToInstall(null);
       toast.success("Theme installed successfully!");
       onInstallSuccess?.();
       onOpenChange(false);
@@ -115,6 +131,7 @@ export function ThemeMarketplaceSheet({
       setSelectedTheme(null);
     },
     onError: (error: any) => {
+      setThemeToInstall(null);
       toast.error(error.message || "Failed to install theme");
     },
   });
@@ -158,16 +175,26 @@ export function ThemeMarketplaceSheet({
     setSelectedTheme(null);
   };
 
-  const handleInstall = async (theme: MarketplaceTheme, activate: boolean = true) => {
-    try {
-      await installTheme.mutateAsync({
-        installationId: parseInt(installationId),
-        slug: theme.slug,
-        status: activate,
-      });
-    } catch (error) {
-      console.error("Error installing theme:", error);
-    }
+  const handleRequestInstall = (theme: MarketplaceTheme, activate: boolean = true) => {
+    setThemeToInstall(theme);
+    setInstallActivate(activate);
+    setConfirmInstallOpen(true);
+  };
+
+  const handleConfirmInstall = () => {
+    if (!themeToInstall) return;
+    setConfirmInstallOpen(false);
+    installTheme.mutate({
+      installationId: parseInt(installationId),
+      slug: themeToInstall.slug,
+      status: installActivate,
+    });
+  };
+
+  const handleCancelInstall = () => {
+    installTheme.reset();
+    setThemeToInstall(null);
+    toast.info("Installation cancelled. The theme may still be installing on the server—check your themes list.");
   };
 
   const handleActivate = async (theme: MarketplaceTheme) => {
@@ -192,6 +219,7 @@ export function ThemeMarketplaceSheet({
   }, [open]);
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex flex-col h-full">
         <div className="flex flex-col h-full">
@@ -232,7 +260,8 @@ export function ThemeMarketplaceSheet({
             </SheetClose>
           </SheetHeader>
 
-        <ScrollArea className="flex-1 min-h-0 pr-4">
+        <div className="relative flex-1 min-h-0 flex flex-col">
+          <ScrollArea className="flex-1 min-h-0 pr-4">
           <div>
           {viewMode === "list" ? (
             <div className="space-y-4">
@@ -338,11 +367,11 @@ export function ThemeMarketplaceSheet({
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleInstall(theme);
+                                handleRequestInstall(theme, true);
                               }}
                               disabled={installTheme.isPending}
                             >
-                              {installTheme.isPending ? (
+                              {installTheme.isPending && themeToInstall?.slug === theme.slug ? (
                                 <>
                                   <Spinner className="mr-2 h-4 w-4" />
                                   Installing...
@@ -468,7 +497,7 @@ export function ThemeMarketplaceSheet({
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-4 border-t">
                   <Button
-                    onClick={() => handleInstall(selectedTheme, true)}
+                    onClick={() => handleRequestInstall(selectedTheme, true)}
                     disabled={installTheme.isPending || selectedTheme.installed}
                   >
                     {installTheme.isPending ? (
@@ -491,7 +520,7 @@ export function ThemeMarketplaceSheet({
                   {!selectedTheme.installed && (
                     <Button
                       variant="outline"
-                      onClick={() => handleInstall(selectedTheme, false)}
+                      onClick={() => handleRequestInstall(selectedTheme, false)}
                       disabled={installTheme.isPending}
                     >
                       {installTheme.isPending ? (
@@ -522,8 +551,44 @@ export function ThemeMarketplaceSheet({
           )}
           </div>
         </ScrollArea>
+        {installTheme.isPending && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/90 z-10 rounded-lg">
+            <div className="flex flex-col items-center gap-4 text-center p-6">
+              <Spinner size={40} className="text-primary" />
+              <div>
+                <p className="font-medium">Installing {themeToInstall?.title || themeToInstall?.slug || "theme"}...</p>
+                <p className="text-sm text-muted-foreground mt-1">Please wait, do not close this window.</p>
+              </div>
+              <Button variant="outline" onClick={handleCancelInstall}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+        </div>
         </div>
       </SheetContent>
     </Sheet>
+    <AlertDialog
+      open={confirmInstallOpen}
+      onOpenChange={(open) => {
+        setConfirmInstallOpen(open);
+        if (!open && !installTheme.isPending) setThemeToInstall(null);
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm theme installation</AlertDialogTitle>
+          <AlertDialogDescription>
+            Installing <strong>{themeToInstall?.title || themeToInstall?.slug || "this theme"}</strong> will overwrite data of your existing site. Do you want to continue?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmInstall}>Continue</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
