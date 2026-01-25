@@ -1,11 +1,32 @@
 "use client";
 
 import * as React from "react";
-import { Plus, RefreshCw, Search } from "lucide-react";
+import { Plus, RefreshCw, Search, Receipt, EllipsisVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -17,8 +38,21 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
-import { OrdersList } from "./_components/orders-list";
 import { AddOrderSheet } from "./_components/add-order-sheet";
+import { OrderViewDialog } from "./_components/order-view-dialog";
+
+const ORDER_TYPE_NAMES: Record<string, string> = {
+	DOMAIN_REGISTRATION: "Domain Registration",
+	DOMAIN_RENEWAL: "Domain Renewal",
+	DOMAIN_TRANSFER: "Domain Transfer",
+	HOSTING_SUBSCRIPTION: "Hosting Subscription",
+	HOSTING_RENEWAL: "Hosting Renewal",
+	HOSTING_UPGRADE: "Hosting Upgrade",
+	EMAIL_HOSTING: "Email Hosting",
+	SSL_CERTIFICATE: "SSL Certificate",
+	BACKUP_SERVICE: "Backup Service",
+	CUSTOM_SERVICE: "Custom Service",
+};
 
 const EmptyState = ({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) => (
 	<div className="flex flex-col items-center justify-center py-12 text-center">
@@ -31,6 +65,7 @@ const EmptyState = ({ title, description, action }: { title: string; description
 export default function OrdersPage() {
 	// ALL HOOKS MUST BE AT THE TOP LEVEL - BEFORE ANY CONDITIONAL RETURNS
 	const [isAddOrderOpen, setIsAddOrderOpen] = React.useState(false);
+	const [selectedOrderId, setSelectedOrderId] = React.useState<string | null>(null);
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const [deleteDialog, setDeleteDialog] = React.useState<{
 		open: boolean;
@@ -108,22 +143,24 @@ export default function OrdersPage() {
 	// NOW we can do conditional returns
 	if (isLoading) {
 		return (
-			<div className="@container/main flex flex-col gap-4 md:gap-6">
-				<div className="flex flex-col gap-2">
-					<Skeleton className="h-8 w-48" />
-					<Skeleton className="h-4 w-96" />
-				</div>
-				<div className="flex items-center justify-between gap-4">
-					<Skeleton className="h-10 flex-1 max-w-sm" />
-					<div className="flex items-center gap-2">
-						<Skeleton className="h-10 w-10" />
-						<Skeleton className="h-10 w-32" />
+			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+				<div className="w-full max-w-7xl mx-auto">
+					<div className="flex flex-col gap-2">
+						<Skeleton className="h-8 w-48" />
+						<Skeleton className="h-4 w-96" />
 					</div>
-				</div>
-				<div className="space-y-2">
-					{[...Array(3)].map((_, i) => (
-						<Skeleton key={i} className="h-32 w-full" />
-					))}
+					<div className="mt-6 flex items-center justify-between gap-4">
+						<Skeleton className="h-10 flex-1 max-w-sm" />
+						<div className="flex items-center gap-2">
+							<Skeleton className="h-10 w-10" />
+							<Skeleton className="h-10 w-32" />
+						</div>
+					</div>
+					<div className="mt-6 space-y-2">
+						{[...Array(3)].map((_, i) => (
+							<Skeleton key={i} className="h-32 w-full" />
+						))}
+					</div>
 				</div>
 			</div>
 		);
@@ -131,55 +168,61 @@ export default function OrdersPage() {
 
 	if (error) {
 		return (
-			<div className="@container/main flex flex-col gap-4 md:gap-6">
-				<div className="flex flex-col items-center justify-center py-12 text-center">
-					<p className="text-destructive mb-4">{error.message || "Failed to load orders"}</p>
-					<Button onClick={() => refetch()} variant="outline">
-						Try Again
-					</Button>
+			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+				<div className="w-full max-w-7xl mx-auto">
+					<div className="flex flex-col items-center justify-center py-12 text-center">
+						<p className="text-destructive mb-4">{error.message || "Failed to load orders"}</p>
+						<Button onClick={() => refetch()} variant="outline">
+							Try Again
+						</Button>
+					</div>
 				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="@container/main flex flex-col gap-4 md:gap-6">
-			<div className="flex flex-col gap-2">
-				<h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
-				<p className="text-muted-foreground">
-					Manage your orders, track their status, and handle payments.
-				</p>
-			</div>
-
-			{/* Search, Refresh, and Create Button on same row */}
-			<div className="flex items-center justify-between gap-4">
-				<div className="relative flex-1 max-w-sm">
-					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-					<Input
-						type="text"
-						placeholder="Search orders by number, team, type..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-9"
-					/>
+		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+			<div className="w-full max-w-7xl mx-auto">
+				<div className="flex flex-col gap-2">
+					<h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
+					<p className="text-muted-foreground">
+						Manage your orders, track their status, and handle payments.
+					</p>
 				</div>
-				<div className="flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={() => refetch()}
-						disabled={isLoading}
-						title="Refresh"
-					>
-						<RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-					</Button>
-					<Button onClick={() => setIsAddOrderOpen(true)}>
-						<Plus className="mr-2 h-4 w-4" />
-						Create Order
-					</Button>
-				</div>
-			</div>
 
+				{/* Search, Refresh, and Create Button on same row */}
+				<div className="mt-6">
+					<div className="flex items-center justify-between gap-4">
+						<div className="relative flex-1 max-w-sm">
+							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+							<Input
+								type="text"
+								placeholder="Search orders by number, team, type..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								className="pl-9"
+							/>
+						</div>
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={() => refetch()}
+								disabled={isLoading}
+								title="Refresh"
+							>
+								<RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+							</Button>
+							<Button onClick={() => setIsAddOrderOpen(true)}>
+								<Plus className="mr-2 h-4 w-4" />
+								Create Order
+							</Button>
+						</div>
+					</div>
+				</div>
+
+				<div className="mt-6">
 			{!data || data.orders.length === 0 ? (
 				<EmptyState
 					title="No orders found"
@@ -205,22 +248,100 @@ export default function OrdersPage() {
 					</Button>
 				</div>
 			) : (
-				<OrdersList orders={filteredOrders.map(order => ({
-					...order,
-					domainId: order.domainId ?? null,
-					metadata: order.metadata ?? null,
-					processedAt: order.processedAt ? (typeof order.processedAt === 'string' ? new Date(order.processedAt) : order.processedAt) : null,
-					completedAt: order.completedAt ? (typeof order.completedAt === 'string' ? new Date(order.completedAt) : order.completedAt) : null,
-					createdAt: typeof order.createdAt === 'string' ? new Date(order.createdAt) : order.createdAt,
-					updatedAt: typeof order.updatedAt === 'string' ? new Date(order.updatedAt) : order.updatedAt,
-					orderItems: order.orderItems?.map(item => ({
-						...item,
-						metadata: item.metadata ?? null,
-						createdAt: typeof item.createdAt === 'string' ? new Date(item.createdAt) : item.createdAt,
-						updatedAt: typeof item.updatedAt === 'string' ? new Date(item.updatedAt) : item.updatedAt,
-					})),
-				}))} onDelete={handleDelete} />
+				<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead className="pl-6">Order #</TableHead>
+								<TableHead>Team</TableHead>
+								<TableHead>Type</TableHead>
+								<TableHead>Total</TableHead>
+								<TableHead>Status</TableHead>
+								<TableHead>Date</TableHead>
+								<TableHead className="w-12 pr-6"></TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{filteredOrders.map((order) => {
+								const isActiveStatus = order.status === "COMPLETED" || order.status === "PROCESSING";
+								return (
+									<TableRow
+										key={order.id}
+										className="cursor-pointer"
+										onClick={() => setSelectedOrderId(order.id)}
+									>
+										<TableCell className="pl-6">
+											<div className="flex items-center gap-2">
+												<Receipt className="h-4 w-4 text-muted-foreground" />
+												<span className="font-medium">{order.orderNumber}</span>
+											</div>
+										</TableCell>
+										<TableCell>{order.team?.name || "—"}</TableCell>
+										<TableCell>{ORDER_TYPE_NAMES[order.type] || order.type}</TableCell>
+										<TableCell>
+											{order.total
+												? `${order.currency} ${parseFloat(order.total).toFixed(2)}`
+												: "—"}
+										</TableCell>
+										<TableCell>
+											<Badge
+												variant="outline"
+												className={
+													isActiveStatus
+														? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
+														: ""
+												}
+											>
+												{order.status}
+											</Badge>
+										</TableCell>
+										<TableCell>
+											{new Date(order.createdAt).toLocaleDateString()}
+										</TableCell>
+										<TableCell onClick={(e) => e.stopPropagation()} className="pr-6">
+											<TooltipProvider>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<DropdownMenu>
+															<DropdownMenuTrigger asChild>
+																<Button variant="ghost" size="icon" className="h-8 w-8">
+																	<EllipsisVertical className="h-4 w-4" />
+																	<span className="sr-only">Actions</span>
+																</Button>
+															</DropdownMenuTrigger>
+															<DropdownMenuContent align="end" className="w-40">
+																<DropdownMenuItem onSelect={() => setSelectedOrderId(order.id)}>
+																	View details
+																</DropdownMenuItem>
+																<DropdownMenuItem
+																	onSelect={() => handleDelete(order.id)}
+																	className="text-destructive focus:text-destructive"
+																>
+																	<Trash2 className="mr-2 h-4 w-4" />
+																	Delete
+																</DropdownMenuItem>
+															</DropdownMenuContent>
+														</DropdownMenu>
+													</TooltipTrigger>
+													<TooltipContent>Actions</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</TableCell>
+									</TableRow>
+								);
+							})}
+						</TableBody>
+					</Table>
+				</div>
 			)}
+				</div>
+			</div>
+
+			<OrderViewDialog
+				open={!!selectedOrderId}
+				onOpenChange={(open) => !open && setSelectedOrderId(null)}
+				orderId={selectedOrderId}
+			/>
 
 			<AddOrderSheet
 				open={isAddOrderOpen}

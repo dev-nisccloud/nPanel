@@ -485,6 +485,9 @@ export const ModelName = {
   NotificationActivityLog: 'NotificationActivityLog',
   PaymentTransaction: 'PaymentTransaction',
   PaymentTransactionActivityLog: 'PaymentTransactionActivityLog',
+  SeoReport: 'SeoReport',
+  SeoReportTopPage: 'SeoReportTopPage',
+  SeoReportActivityLog: 'SeoReportActivityLog',
   ServiceSubscription: 'ServiceSubscription',
   ServiceSubscriptionRenewal: 'ServiceSubscriptionRenewal',
   ServiceSubscriptionActivityLog: 'ServiceSubscriptionActivityLog',
@@ -520,7 +523,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportTopPage" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -7702,6 +7705,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SeoReport: {
+      payload: Prisma.$SeoReportPayload<ExtArgs>
+      fields: Prisma.SeoReportFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SeoReportFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SeoReportFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload>
+        }
+        findFirst: {
+          args: Prisma.SeoReportFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SeoReportFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload>
+        }
+        findMany: {
+          args: Prisma.SeoReportFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload>[]
+        }
+        create: {
+          args: Prisma.SeoReportCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload>
+        }
+        createMany: {
+          args: Prisma.SeoReportCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SeoReportCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload>[]
+        }
+        delete: {
+          args: Prisma.SeoReportDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload>
+        }
+        update: {
+          args: Prisma.SeoReportUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload>
+        }
+        deleteMany: {
+          args: Prisma.SeoReportDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SeoReportUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SeoReportUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload>[]
+        }
+        upsert: {
+          args: Prisma.SeoReportUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportPayload>
+        }
+        aggregate: {
+          args: Prisma.SeoReportAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSeoReport>
+        }
+        groupBy: {
+          args: Prisma.SeoReportGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeoReportGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SeoReportCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeoReportCountAggregateOutputType> | number
+        }
+      }
+    }
+    SeoReportTopPage: {
+      payload: Prisma.$SeoReportTopPagePayload<ExtArgs>
+      fields: Prisma.SeoReportTopPageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SeoReportTopPageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SeoReportTopPageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
+        }
+        findFirst: {
+          args: Prisma.SeoReportTopPageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SeoReportTopPageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
+        }
+        findMany: {
+          args: Prisma.SeoReportTopPageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>[]
+        }
+        create: {
+          args: Prisma.SeoReportTopPageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
+        }
+        createMany: {
+          args: Prisma.SeoReportTopPageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SeoReportTopPageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>[]
+        }
+        delete: {
+          args: Prisma.SeoReportTopPageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
+        }
+        update: {
+          args: Prisma.SeoReportTopPageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
+        }
+        deleteMany: {
+          args: Prisma.SeoReportTopPageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SeoReportTopPageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SeoReportTopPageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>[]
+        }
+        upsert: {
+          args: Prisma.SeoReportTopPageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
+        }
+        aggregate: {
+          args: Prisma.SeoReportTopPageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSeoReportTopPage>
+        }
+        groupBy: {
+          args: Prisma.SeoReportTopPageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeoReportTopPageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SeoReportTopPageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeoReportTopPageCountAggregateOutputType> | number
+        }
+      }
+    }
+    SeoReportActivityLog: {
+      payload: Prisma.$SeoReportActivityLogPayload<ExtArgs>
+      fields: Prisma.SeoReportActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SeoReportActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SeoReportActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.SeoReportActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SeoReportActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.SeoReportActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.SeoReportActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.SeoReportActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SeoReportActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.SeoReportActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload>
+        }
+        update: {
+          args: Prisma.SeoReportActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.SeoReportActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SeoReportActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SeoReportActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.SeoReportActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.SeoReportActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSeoReportActivityLog>
+        }
+        groupBy: {
+          args: Prisma.SeoReportActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeoReportActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SeoReportActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeoReportActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
     ServiceSubscription: {
       payload: Prisma.$ServiceSubscriptionPayload<ExtArgs>
       fields: Prisma.ServiceSubscriptionFieldRefs
@@ -10960,6 +11185,129 @@ export const PaymentTransactionActivityLogScalarFieldEnum = {
 export type PaymentTransactionActivityLogScalarFieldEnum = (typeof PaymentTransactionActivityLogScalarFieldEnum)[keyof typeof PaymentTransactionActivityLogScalarFieldEnum]
 
 
+export const SeoReportScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  reportMonth: 'reportMonth',
+  reportYear: 'reportYear',
+  websiteUrl: 'websiteUrl',
+  comparisonType: 'comparisonType',
+  dataSource: 'dataSource',
+  status: 'status',
+  executiveSummary: 'executiveSummary',
+  recommendations: 'recommendations',
+  organicSessions: 'organicSessions',
+  organicSessionsPrevious: 'organicSessionsPrevious',
+  organicUsers: 'organicUsers',
+  organicUsersPrevious: 'organicUsersPrevious',
+  organicNewUsers: 'organicNewUsers',
+  bounceRate: 'bounceRate',
+  bounceRatePrevious: 'bounceRatePrevious',
+  avgSessionDurationSeconds: 'avgSessionDurationSeconds',
+  pagesPerSession: 'pagesPerSession',
+  engagedSessions: 'engagedSessions',
+  organicSessionsDesktop: 'organicSessionsDesktop',
+  organicSessionsMobile: 'organicSessionsMobile',
+  organicSessionsTablet: 'organicSessionsTablet',
+  organicSessionsUnbranded: 'organicSessionsUnbranded',
+  keywordsTracked: 'keywordsTracked',
+  keywordsTop3: 'keywordsTop3',
+  keywordsTop10: 'keywordsTop10',
+  keywordsTop20: 'keywordsTop20',
+  avgPosition: 'avgPosition',
+  avgPositionPrevious: 'avgPositionPrevious',
+  searchVisibility: 'searchVisibility',
+  impressions: 'impressions',
+  impressionsPrevious: 'impressionsPrevious',
+  clicks: 'clicks',
+  clicksPrevious: 'clicksPrevious',
+  avgCtr: 'avgCtr',
+  keywordsGained: 'keywordsGained',
+  keywordsLost: 'keywordsLost',
+  conversions: 'conversions',
+  conversionsPrevious: 'conversionsPrevious',
+  conversionRate: 'conversionRate',
+  conversionRatePrevious: 'conversionRatePrevious',
+  conversionsFromOrganic: 'conversionsFromOrganic',
+  leadsOrFormSubmissions: 'leadsOrFormSubmissions',
+  costPerConversion: 'costPerConversion',
+  bestConvertingPageUrl: 'bestConvertingPageUrl',
+  totalBacklinks: 'totalBacklinks',
+  referringDomains: 'referringDomains',
+  referringDomainsPrevious: 'referringDomainsPrevious',
+  newReferringDomains: 'newReferringDomains',
+  lostReferringDomains: 'lostReferringDomains',
+  newBacklinks: 'newBacklinks',
+  lostBacklinks: 'lostBacklinks',
+  dofollowBacklinks: 'dofollowBacklinks',
+  domainRating: 'domainRating',
+  domainRatingPrevious: 'domainRatingPrevious',
+  domainAuthority: 'domainAuthority',
+  domainAuthorityPrevious: 'domainAuthorityPrevious',
+  urlRating: 'urlRating',
+  spamScore: 'spamScore',
+  siteAuditScore: 'siteAuditScore',
+  siteAuditScorePrevious: 'siteAuditScorePrevious',
+  pagesCrawled: 'pagesCrawled',
+  pagesWithErrors: 'pagesWithErrors',
+  pagesWithErrorsPrevious: 'pagesWithErrorsPrevious',
+  pagesWithWarnings: 'pagesWithWarnings',
+  indexedPages: 'indexedPages',
+  lcpMs: 'lcpMs',
+  inpMs: 'inpMs',
+  cls: 'cls',
+  coreWebVitalsPassed: 'coreWebVitalsPassed',
+  mobileUsabilityIssues: 'mobileUsabilityIssues',
+  avgPageLoadTimeMs: 'avgPageLoadTimeMs',
+  gmbViews: 'gmbViews',
+  gmbSearches: 'gmbSearches',
+  gmbActions: 'gmbActions',
+  gmbCalls: 'gmbCalls',
+  gmbDirectionRequests: 'gmbDirectionRequests',
+  gmbWebsiteClicks: 'gmbWebsiteClicks',
+  gmbReviewsCount: 'gmbReviewsCount',
+  gmbAverageRating: 'gmbAverageRating',
+  localRanking: 'localRanking',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SeoReportScalarFieldEnum = (typeof SeoReportScalarFieldEnum)[keyof typeof SeoReportScalarFieldEnum]
+
+
+export const SeoReportTopPageScalarFieldEnum = {
+  id: 'id',
+  seoReportId: 'seoReportId',
+  url: 'url',
+  pageTitle: 'pageTitle',
+  clicks: 'clicks',
+  impressions: 'impressions',
+  sessions: 'sessions',
+  conversions: 'conversions',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SeoReportTopPageScalarFieldEnum = (typeof SeoReportTopPageScalarFieldEnum)[keyof typeof SeoReportTopPageScalarFieldEnum]
+
+
+export const SeoReportActivityLogScalarFieldEnum = {
+  id: 'id',
+  seoReportId: 'seoReportId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type SeoReportActivityLogScalarFieldEnum = (typeof SeoReportActivityLogScalarFieldEnum)[keyof typeof SeoReportActivityLogScalarFieldEnum]
+
+
 export const ServiceSubscriptionScalarFieldEnum = {
   id: 'id',
   niscServicePlanId: 'niscServicePlanId',
@@ -12022,6 +12370,34 @@ export type ListEnumPaymentTransactionStatusFieldRefInput<$PrismaModel> = FieldR
 
 
 /**
+ * Reference to a field of type 'SeoReportComparisonType'
+ */
+export type EnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoReportComparisonType'>
+    
+
+
+/**
+ * Reference to a field of type 'SeoReportComparisonType[]'
+ */
+export type ListEnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoReportComparisonType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'SeoReportStatus'
+ */
+export type EnumSeoReportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoReportStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'SeoReportStatus[]'
+ */
+export type ListEnumSeoReportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoReportStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'ServiceSubscriptionStatus'
  */
 export type EnumServiceSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ServiceSubscriptionStatus'>
@@ -12372,6 +12748,9 @@ export type GlobalOmitConfig = {
   notificationActivityLog?: Prisma.NotificationActivityLogOmit
   paymentTransaction?: Prisma.PaymentTransactionOmit
   paymentTransactionActivityLog?: Prisma.PaymentTransactionActivityLogOmit
+  seoReport?: Prisma.SeoReportOmit
+  seoReportTopPage?: Prisma.SeoReportTopPageOmit
+  seoReportActivityLog?: Prisma.SeoReportActivityLogOmit
   serviceSubscription?: Prisma.ServiceSubscriptionOmit
   serviceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalOmit
   serviceSubscriptionActivityLog?: Prisma.ServiceSubscriptionActivityLogOmit

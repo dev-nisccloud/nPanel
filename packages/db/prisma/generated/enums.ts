@@ -476,6 +476,23 @@ export const PaymentTransactionStatus = {
 export type PaymentTransactionStatus = (typeof PaymentTransactionStatus)[keyof typeof PaymentTransactionStatus]
 
 
+export const SeoReportComparisonType = {
+  PREVIOUS_MONTH: 'PREVIOUS_MONTH',
+  SAME_MONTH_LAST_YEAR: 'SAME_MONTH_LAST_YEAR',
+  NONE: 'NONE'
+} as const
+
+export type SeoReportComparisonType = (typeof SeoReportComparisonType)[keyof typeof SeoReportComparisonType]
+
+
+export const SeoReportStatus = {
+  DRAFT: 'DRAFT',
+  FINAL: 'FINAL'
+} as const
+
+export type SeoReportStatus = (typeof SeoReportStatus)[keyof typeof SeoReportStatus]
+
+
 export const ServiceSubscriptionStatus = {
   ACTIVE: 'ACTIVE',
   PENDING: 'PENDING',

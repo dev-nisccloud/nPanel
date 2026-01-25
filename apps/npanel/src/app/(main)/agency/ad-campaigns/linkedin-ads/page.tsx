@@ -30,51 +30,57 @@ export default function LinkedInAdsPage() {
 
 	if (isLoadingCredentials) {
 		return (
-			<div className="@container/main flex flex-col gap-4 md:gap-6">
-				<div className="flex items-center justify-center py-12">
-					<Spinner size={32} />
+			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+				<div className="w-full max-w-7xl mx-auto">
+					<div className="flex items-center justify-center py-12">
+						<Spinner size={32} />
+					</div>
 				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="@container/main flex flex-col gap-4 md:gap-6">
-			<div className="flex items-start justify-between gap-4">
-				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-semibold tracking-tight">LinkedIn Ads</h1>
-					<p className="text-muted-foreground">
-						Manage your LinkedIn ad campaigns, ad sets, and ads from one place.
-					</p>
-				</div>
-				{isConnected && (
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="icon"
-							onClick={handleRefetchAccounts}
-							title="Refresh accounts"
-						>
-							<RefreshCw className="h-4 w-4" />
-						</Button>
+		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+			<div className="w-full max-w-7xl mx-auto">
+				<div className="flex items-start justify-between gap-4">
+					<div className="flex flex-col gap-2">
+						<h1 className="text-2xl font-semibold tracking-tight">LinkedIn Ads</h1>
+						<p className="text-muted-foreground">
+							Manage your LinkedIn ad campaigns, ad sets, and ads from one place.
+						</p>
 					</div>
-				)}
-			</div>
-
-			{!isConnected ? (
-				<div className="flex flex-col items-center justify-center py-12">
-					<ConnectLinkedInAds onConnected={handleRefetchAccounts} />
-					{credentialsError && (
-						<div className="mt-4 text-sm text-muted-foreground">
-							{credentialsError.message}
+					{isConnected && (
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={handleRefetchAccounts}
+								title="Refresh accounts"
+							>
+								<RefreshCw className="h-4 w-4" />
+							</Button>
 						</div>
 					)}
 				</div>
-			) : (
-				<div className="space-y-6">
-					<AccountsList />
+
+				<div className="mt-6">
+					{!isConnected ? (
+						<div className="flex flex-col items-center justify-center py-12">
+							<ConnectLinkedInAds onConnected={handleRefetchAccounts} />
+							{credentialsError && (
+								<div className="mt-4 text-sm text-muted-foreground">
+									{credentialsError.message}
+								</div>
+							)}
+						</div>
+					) : (
+						<div className="space-y-6">
+							<AccountsList />
+						</div>
+					)}
 				</div>
-			)}
+			</div>
 		</div>
 	);
 }

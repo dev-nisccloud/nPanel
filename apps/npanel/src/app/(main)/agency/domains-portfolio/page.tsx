@@ -85,13 +85,15 @@ export default function DomainsPortfolioPage() {
   if (error) {
     return (
       <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-destructive mb-4">
-            {error.message || "Failed to load domains portfolio"}
-          </p>
-          <Button onClick={() => refetch()} variant="outline">
-            Try Again
-          </Button>
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-destructive mb-4">
+              {error.message || "Failed to load domains portfolio"}
+            </p>
+            <Button onClick={() => refetch()} variant="outline">
+              Try Again
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -225,8 +227,9 @@ export default function DomainsPortfolioPage() {
         </div>
 
         {/* Search, Refresh, and Actions */}
-        <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
@@ -270,9 +273,10 @@ export default function DomainsPortfolioPage() {
             Register Domain
           </Button>
         </div>
-      </div>
+          </div>
+        </div>
 
-      <div className="mt-6">
+        <div className="mt-6">
       {isLoading && !domainsData ? (
         <div className="flex items-center justify-center py-12">
           <Spinner size={32} />

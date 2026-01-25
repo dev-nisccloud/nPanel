@@ -106,7 +106,7 @@ const formatDate = (value: string | Date | null | undefined) => {
 let fontsRegistered = false;
 let fontsRegistering = false;
 
-const registerFonts = async (): Promise<boolean> => {
+export const registerFonts = async (): Promise<boolean> => {
 	if (fontsRegistered) return true;
 	if (fontsRegistering) {
 		return new Promise((resolve) => {
@@ -182,8 +182,8 @@ const registerFonts = async (): Promise<boolean> => {
 // Hardcoded company logo URL
 const COMPANY_LOGO_URL = "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp";
 
-// Helper function to convert InvoiceDetail to PDF data format
-function convertInvoiceToPdfData(invoice: InvoiceDetail) {
+// Helper function to convert InvoiceDetail to PDF data format (exported for use in invoices-table)
+export function convertInvoiceToPdfData(invoice: InvoiceDetail) {
 	const fromDetails = invoice.fromDetails as any;
 	const customerDetails = invoice.customerDetails as any;
 	const paymentDetails = invoice.paymentDetails as any;

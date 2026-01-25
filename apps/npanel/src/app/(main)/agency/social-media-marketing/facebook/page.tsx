@@ -52,62 +52,68 @@ export default function FacebookPage() {
 
 	if (isLoadingCredentials) {
 		return (
-			<div className="@container/main flex flex-col gap-4 md:gap-6">
-				<div className="flex items-center justify-center py-12">
-					<Spinner size={32} />
+			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+				<div className="w-full max-w-7xl mx-auto">
+					<div className="flex items-center justify-center py-12">
+						<Spinner size={32} />
+					</div>
 				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="@container/main flex flex-col gap-4 md:gap-6">
-			<div className="flex items-start justify-between gap-4">
-				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-semibold tracking-tight">Facebook</h1>
-					<p className="text-muted-foreground">
-						Manage your Facebook pages, posts, and content from one place.
-					</p>
+		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+			<div className="w-full max-w-7xl mx-auto">
+				<div className="flex items-start justify-between gap-4">
+					<div className="flex flex-col gap-2">
+						<h1 className="text-2xl font-semibold tracking-tight">Facebook</h1>
+						<p className="text-muted-foreground">
+							Manage your Facebook pages, posts, and content from one place.
+						</p>
+					</div>
+					{isConnected && (
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={handleRefetchPages}
+							disabled={isFetchingPages || !refetchPagesRef.current}
+							title="Refresh pages"
+						>
+							<RefreshCw className={`h-4 w-4 ${isFetchingPages ? "animate-spin" : ""}`} />
+						</Button>
+					)}
 				</div>
-				{isConnected && (
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={handleRefetchPages}
-						disabled={isFetchingPages || !refetchPagesRef.current}
-						title="Refresh pages"
-					>
-						<RefreshCw className={`h-4 w-4 ${isFetchingPages ? "animate-spin" : ""}`} />
-					</Button>
-				)}
-			</div>
 
-			{!isConnected ? (
-				<div className="flex flex-col items-center justify-center py-12">
-					<ConnectFacebook onConnected={handleConnected} />
-					{credentialsError && (
-						<div className="mt-4 text-sm text-muted-foreground">
-							{credentialsError.message}
+				<div className="mt-6">
+					{!isConnected ? (
+						<div className="flex flex-col items-center justify-center py-12">
+							<ConnectFacebook onConnected={handleConnected} />
+							{credentialsError && (
+								<div className="mt-4 text-sm text-muted-foreground">
+									{credentialsError.message}
+								</div>
+							)}
+						</div>
+					) : (
+						<div className="space-y-6">
+							<PagesList
+								onPageSelect={(pageId, pageName) => {
+									handlePageSelect(pageId, pageName);
+								}}
+								selectedPageId={selectedPageId}
+								onRefetchReady={(refetch) => {
+									refetchPagesRef.current = refetch;
+								}}
+							/>
+
+							{selectedPageId && (
+								<PageContent pageId={selectedPageId} pageName={selectedPageName || undefined} />
+							)}
 						</div>
 					)}
 				</div>
-			) : (
-				<div className="space-y-6">
-					<PagesList
-						onPageSelect={(pageId, pageName) => {
-							handlePageSelect(pageId, pageName);
-						}}
-						selectedPageId={selectedPageId}
-						onRefetchReady={(refetch) => {
-							refetchPagesRef.current = refetch;
-						}}
-					/>
-
-					{selectedPageId && (
-						<PageContent pageId={selectedPageId} pageName={selectedPageName || undefined} />
-					)}
-				</div>
-			)}
+			</div>
 		</div>
 	);
 }

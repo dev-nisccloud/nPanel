@@ -71,6 +71,7 @@ import { backgroundRemoverRouter } from "./background-remover";
 import { paymentGatewayRouter } from "./payment-gateway";
 import { paymentTransactionsRouter } from "./payment-transactions";
 import { pagespeedInsightsRouter } from "./pagespeed-insights";
+import { seoReportsRouter } from "./seo-reports";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -198,5 +199,7 @@ export const appRouter = router({
 	paymentTransactions: paymentTransactionsRouter,
 	// Google PageSpeed Insights
 	pagespeedInsights: pagespeedInsightsRouter,
+	// SEO Reports
+	seoReports: seoReportsRouter,
 });
 export type AppRouter = typeof appRouter;

@@ -90,6 +90,7 @@ const serviceSubscriptionOutputSchema = z.object({
 	id: z.string(),
 	niscServicePlanId: z.string(),
 	teamId: z.string().nullable(),
+	teamName: z.string().nullable(),
 	orderId: z.string().nullable(),
 	subscriptionDate: z.date().nullable(),
 	billingCycle: billingCycleSchema,
@@ -413,6 +414,7 @@ export const serviceSubscriptionsRouter = router({
 							hostingSubType: true,
 						},
 					},
+					team: { select: { name: true } },
 				},
 			});
 
@@ -424,6 +426,7 @@ export const serviceSubscriptionsRouter = router({
 				id: serviceSubscription.id,
 				niscServicePlanId: serviceSubscription.niscServicePlanId,
 				teamId: serviceSubscription.teamId,
+				teamName: serviceSubscription.team?.name ?? null,
 				orderId: serviceSubscription.orderId,
 				subscriptionDate: serviceSubscription.subscriptionDate,
 				billingCycle: serviceSubscription.billingCycle as any,
@@ -484,6 +487,7 @@ export const serviceSubscriptionsRouter = router({
 							hostingSubType: true,
 						},
 					},
+					team: { select: { name: true } },
 				},
 				orderBy: {
 					createdAt: "desc",
@@ -494,6 +498,7 @@ export const serviceSubscriptionsRouter = router({
 				id: subscription.id,
 				niscServicePlanId: subscription.niscServicePlanId,
 				teamId: subscription.teamId,
+				teamName: subscription.team?.name ?? null,
 				orderId: subscription.orderId,
 				subscriptionDate: subscription.subscriptionDate,
 				billingCycle: subscription.billingCycle as any,

@@ -145,6 +145,9 @@ export const ModelName = {
   NotificationActivityLog: 'NotificationActivityLog',
   PaymentTransaction: 'PaymentTransaction',
   PaymentTransactionActivityLog: 'PaymentTransactionActivityLog',
+  SeoReport: 'SeoReport',
+  SeoReportTopPage: 'SeoReportTopPage',
+  SeoReportActivityLog: 'SeoReportActivityLog',
   ServiceSubscription: 'ServiceSubscription',
   ServiceSubscriptionRenewal: 'ServiceSubscriptionRenewal',
   ServiceSubscriptionActivityLog: 'ServiceSubscriptionActivityLog',
@@ -1920,6 +1923,129 @@ export const PaymentTransactionActivityLogScalarFieldEnum = {
 } as const
 
 export type PaymentTransactionActivityLogScalarFieldEnum = (typeof PaymentTransactionActivityLogScalarFieldEnum)[keyof typeof PaymentTransactionActivityLogScalarFieldEnum]
+
+
+export const SeoReportScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  reportMonth: 'reportMonth',
+  reportYear: 'reportYear',
+  websiteUrl: 'websiteUrl',
+  comparisonType: 'comparisonType',
+  dataSource: 'dataSource',
+  status: 'status',
+  executiveSummary: 'executiveSummary',
+  recommendations: 'recommendations',
+  organicSessions: 'organicSessions',
+  organicSessionsPrevious: 'organicSessionsPrevious',
+  organicUsers: 'organicUsers',
+  organicUsersPrevious: 'organicUsersPrevious',
+  organicNewUsers: 'organicNewUsers',
+  bounceRate: 'bounceRate',
+  bounceRatePrevious: 'bounceRatePrevious',
+  avgSessionDurationSeconds: 'avgSessionDurationSeconds',
+  pagesPerSession: 'pagesPerSession',
+  engagedSessions: 'engagedSessions',
+  organicSessionsDesktop: 'organicSessionsDesktop',
+  organicSessionsMobile: 'organicSessionsMobile',
+  organicSessionsTablet: 'organicSessionsTablet',
+  organicSessionsUnbranded: 'organicSessionsUnbranded',
+  keywordsTracked: 'keywordsTracked',
+  keywordsTop3: 'keywordsTop3',
+  keywordsTop10: 'keywordsTop10',
+  keywordsTop20: 'keywordsTop20',
+  avgPosition: 'avgPosition',
+  avgPositionPrevious: 'avgPositionPrevious',
+  searchVisibility: 'searchVisibility',
+  impressions: 'impressions',
+  impressionsPrevious: 'impressionsPrevious',
+  clicks: 'clicks',
+  clicksPrevious: 'clicksPrevious',
+  avgCtr: 'avgCtr',
+  keywordsGained: 'keywordsGained',
+  keywordsLost: 'keywordsLost',
+  conversions: 'conversions',
+  conversionsPrevious: 'conversionsPrevious',
+  conversionRate: 'conversionRate',
+  conversionRatePrevious: 'conversionRatePrevious',
+  conversionsFromOrganic: 'conversionsFromOrganic',
+  leadsOrFormSubmissions: 'leadsOrFormSubmissions',
+  costPerConversion: 'costPerConversion',
+  bestConvertingPageUrl: 'bestConvertingPageUrl',
+  totalBacklinks: 'totalBacklinks',
+  referringDomains: 'referringDomains',
+  referringDomainsPrevious: 'referringDomainsPrevious',
+  newReferringDomains: 'newReferringDomains',
+  lostReferringDomains: 'lostReferringDomains',
+  newBacklinks: 'newBacklinks',
+  lostBacklinks: 'lostBacklinks',
+  dofollowBacklinks: 'dofollowBacklinks',
+  domainRating: 'domainRating',
+  domainRatingPrevious: 'domainRatingPrevious',
+  domainAuthority: 'domainAuthority',
+  domainAuthorityPrevious: 'domainAuthorityPrevious',
+  urlRating: 'urlRating',
+  spamScore: 'spamScore',
+  siteAuditScore: 'siteAuditScore',
+  siteAuditScorePrevious: 'siteAuditScorePrevious',
+  pagesCrawled: 'pagesCrawled',
+  pagesWithErrors: 'pagesWithErrors',
+  pagesWithErrorsPrevious: 'pagesWithErrorsPrevious',
+  pagesWithWarnings: 'pagesWithWarnings',
+  indexedPages: 'indexedPages',
+  lcpMs: 'lcpMs',
+  inpMs: 'inpMs',
+  cls: 'cls',
+  coreWebVitalsPassed: 'coreWebVitalsPassed',
+  mobileUsabilityIssues: 'mobileUsabilityIssues',
+  avgPageLoadTimeMs: 'avgPageLoadTimeMs',
+  gmbViews: 'gmbViews',
+  gmbSearches: 'gmbSearches',
+  gmbActions: 'gmbActions',
+  gmbCalls: 'gmbCalls',
+  gmbDirectionRequests: 'gmbDirectionRequests',
+  gmbWebsiteClicks: 'gmbWebsiteClicks',
+  gmbReviewsCount: 'gmbReviewsCount',
+  gmbAverageRating: 'gmbAverageRating',
+  localRanking: 'localRanking',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SeoReportScalarFieldEnum = (typeof SeoReportScalarFieldEnum)[keyof typeof SeoReportScalarFieldEnum]
+
+
+export const SeoReportTopPageScalarFieldEnum = {
+  id: 'id',
+  seoReportId: 'seoReportId',
+  url: 'url',
+  pageTitle: 'pageTitle',
+  clicks: 'clicks',
+  impressions: 'impressions',
+  sessions: 'sessions',
+  conversions: 'conversions',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SeoReportTopPageScalarFieldEnum = (typeof SeoReportTopPageScalarFieldEnum)[keyof typeof SeoReportTopPageScalarFieldEnum]
+
+
+export const SeoReportActivityLogScalarFieldEnum = {
+  id: 'id',
+  seoReportId: 'seoReportId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type SeoReportActivityLogScalarFieldEnum = (typeof SeoReportActivityLogScalarFieldEnum)[keyof typeof SeoReportActivityLogScalarFieldEnum]
 
 
 export const ServiceSubscriptionScalarFieldEnum = {

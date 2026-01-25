@@ -1,11 +1,30 @@
 "use client";
 
 import * as React from "react";
-import { RefreshCw, Search, Plus } from "lucide-react";
+import { RefreshCw, Search, Plus, Building2, EllipsisVertical, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TeamCardsList } from "./_components/team-card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { TeamViewDialog } from "./_components/team-view-dialog";
 import { EditTeamDialog } from "./_components/edit-team-dialog";
 import { CreateTeamDialog } from "./_components/create-team-dialog";
@@ -23,6 +42,7 @@ import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { z } from "zod";
 import { teamSchema } from "./_components/schema";
+import { Badge } from "@/components/ui/badge";
 
 const EmptyState = ({ title, description }: { title: string; description: string }) => (
   <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -123,9 +143,11 @@ export default function ManageTeamsPage() {
 
   if (isLoading) {
     return (
-      <div className="@container/main flex flex-col gap-4 md:gap-6">
-        <div className="flex items-center justify-center py-12">
-          <Spinner size={32} />
+      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex items-center justify-center py-12">
+            <Spinner size={32} />
+          </div>
         </div>
       </div>
     );
@@ -133,57 +155,63 @@ export default function ManageTeamsPage() {
 
   if (error) {
     return (
-      <div className="@container/main flex flex-col gap-4 md:gap-6">
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-destructive mb-4">{error.message || "Failed to load teams"}</p>
-          <Button onClick={() => refetch()} variant="outline">
-            Try Again
-          </Button>
+      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-destructive mb-4">{error.message || "Failed to load teams"}</p>
+            <Button onClick={() => refetch()} variant="outline">
+              Try Again
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Manage Teams</h1>
-        <p className="text-muted-foreground">
-          Manage all teams, view their members, invites, and hosting subscriptions.
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search teams by name, slug, or currency..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">Manage Teams</h1>
+          <p className="text-muted-foreground">
+            Manage all teams, view their members, invites, and hosting subscriptions.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setCreateTeamOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Create Team
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => refetch()}
-            disabled={isLoading}
-            title="Refresh"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
-      </div>
 
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search teams by name, slug, or currency..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setCreateTeamOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Create Team
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                title="Refresh"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6">
       {!teams || teams.length === 0 ? (
         <EmptyState
           title="No teams found"
@@ -203,14 +231,84 @@ export default function ManageTeamsPage() {
           </Button>
         </div>
       ) : (
-        <TeamCardsList
-          data={transformedTeams}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          cols={3}
-        />
+        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-6">Team Name</TableHead>
+                <TableHead>Slug</TableHead>
+                <TableHead>Currency</TableHead>
+                <TableHead>Members</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-12 pr-6"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTeams.map((team) => (
+                <TableRow
+                  key={team.id}
+                  className="cursor-pointer"
+                  onClick={() => handleView(team.id)}
+                >
+                  <TableCell className="pl-6">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{team.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{team.slug}</TableCell>
+                  <TableCell>{team.baseCurrency}</TableCell>
+                  <TableCell>{team.memberCount ?? 0}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        team.isActive
+                          ? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
+                          : ""
+                      }
+                    >
+                      {team.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()} className="pr-6">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <EllipsisVertical className="h-4 w-4" />
+                                <span className="sr-only">Actions</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem onSelect={() => handleEdit(team.id)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onSelect={() => handleDelete(team.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent>Actions</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
+        </div>
+      </div>
 
       {selectedTeamId && (
         <TeamViewDialog

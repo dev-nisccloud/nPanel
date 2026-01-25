@@ -51,6 +51,7 @@ export function UserViewDialog({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="sr-only">Loading user</DialogTitle>
           <div className="flex items-center justify-center py-12">
             <Spinner size={32} />
           </div>
@@ -63,6 +64,7 @@ export function UserViewDialog({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="sr-only">User not found</DialogTitle>
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <p className="text-destructive mb-4">{error?.message || "User not found"}</p>
             <Button onClick={() => onOpenChange(false)} variant="outline">

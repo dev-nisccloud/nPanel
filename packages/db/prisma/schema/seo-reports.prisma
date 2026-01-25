@@ -1,0 +1,185 @@
+// SEO Reports Schema
+// Manual data entry for monthly SEO reports; numeric metrics stored as String.
+// Supports dashboard generation per report. teamId optional; userId (creator) required.
+
+// Enums for SEO Reports
+enum SeoReportComparisonType {
+  PREVIOUS_MONTH
+  SAME_MONTH_LAST_YEAR
+  NONE
+}
+
+enum SeoReportStatus {
+  DRAFT
+  FINAL
+}
+
+// Main SEO Report Entity
+model SeoReport {
+  id     String  @id @map("_id")
+  userId String // User who created/uploaded the report (required)
+  teamId String? // Optional team association
+
+  // Report period
+  reportMonth String // 1-12
+  reportYear  String // e.g. "2025"
+
+  // Context
+  websiteUrl     String // Site the report covers (e.g. example.com or https://example.com)
+  comparisonType SeoReportComparisonType? @default(NONE)
+  dataSource     String? // e.g. "Google Search Console", "Ahrefs", "Semrush", "Moz", "Manual"
+  status         SeoReportStatus          @default(DRAFT)
+
+  // Executive summary & recommendations (text)
+  executiveSummary String?
+  recommendations  String?
+
+  // --- Organic traffic & engagement (all numeric as String) ---
+  organicSessions           String?
+  organicSessionsPrevious   String?
+  organicUsers              String?
+  organicUsersPrevious      String?
+  organicNewUsers           String?
+  bounceRate                String?
+  bounceRatePrevious        String?
+  avgSessionDurationSeconds String?
+  pagesPerSession           String?
+  engagedSessions           String?
+  organicSessionsDesktop    String?
+  organicSessionsMobile     String?
+  organicSessionsTablet     String?
+  organicSessionsUnbranded  String?
+
+  // --- Keyword rankings & visibility ---
+  keywordsTracked     String?
+  keywordsTop3        String?
+  keywordsTop10       String?
+  keywordsTop20       String?
+  avgPosition         String?
+  avgPositionPrevious String?
+  searchVisibility    String?
+  impressions         String?
+  impressionsPrevious String?
+  clicks              String?
+  clicksPrevious      String?
+  avgCtr              String?
+  keywordsGained      String?
+  keywordsLost        String?
+
+  // --- Conversions & goals ---
+  conversions            String?
+  conversionsPrevious    String?
+  conversionRate         String?
+  conversionRatePrevious String?
+  conversionsFromOrganic String?
+  leadsOrFormSubmissions String?
+  costPerConversion      String?
+  bestConvertingPageUrl  String?
+
+  // --- Backlinks & referring domains ---
+  totalBacklinks           String?
+  referringDomains         String?
+  referringDomainsPrevious String?
+  newReferringDomains      String?
+  lostReferringDomains     String?
+  newBacklinks             String?
+  lostBacklinks            String?
+  dofollowBacklinks        String?
+  domainRating             String?
+  domainRatingPrevious     String?
+  domainAuthority          String?
+  domainAuthorityPrevious  String?
+  urlRating                String?
+  spamScore                String?
+
+  // --- Technical SEO ---
+  siteAuditScore          String?
+  siteAuditScorePrevious  String?
+  pagesCrawled            String?
+  pagesWithErrors         String?
+  pagesWithErrorsPrevious String?
+  pagesWithWarnings       String?
+  indexedPages            String?
+  lcpMs                   String?
+  inpMs                   String?
+  cls                     String?
+  coreWebVitalsPassed     Boolean?
+  mobileUsabilityIssues   String?
+  avgPageLoadTimeMs       String?
+
+  // --- Local SEO (optional) ---
+  gmbViews             String?
+  gmbSearches          String?
+  gmbActions           String?
+  gmbCalls             String?
+  gmbDirectionRequests String?
+  gmbWebsiteClicks     String?
+  gmbReviewsCount      String?
+  gmbAverageRating     String?
+  localRanking         String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team         Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  topPages     SeoReportTopPage[]
+  activityLogs SeoReportActivityLog[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([reportYear, reportMonth])
+  @@index([websiteUrl])
+  @@index([status])
+  @@index([createdAt])
+  @@index([teamId, reportYear, reportMonth])
+  @@map("seo_report")
+}
+
+// Top landing pages for a report (repeatable; order for display)
+model SeoReportTopPage {
+  id          String  @id @map("_id")
+  seoReportId String
+  url         String
+  pageTitle   String?
+  clicks      String?
+  impressions String?
+  sessions    String?
+  conversions String?
+  order       Int     @default(0) // Display order (1-based)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  seoReport SeoReport @relation(fields: [seoReportId], references: [id], onDelete: Cascade)
+
+  @@index([seoReportId])
+  @@index([order])
+  @@map("seo_report_top_page")
+}
+
+// Activity logging for SEO report actions
+model SeoReportActivityLog {
+  id          String   @id @map("_id")
+  seoReportId String
+  userId      String // User who performed action
+  action      String // e.g. CREATE, UPDATE, DELETE, ADD_TOP_PAGE, REMOVE_TOP_PAGE, STATUS_CHANGE
+  description String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime
+
+  // Relations
+  seoReport SeoReport @relation(fields: [seoReportId], references: [id], onDelete: Cascade)
+
+  @@index([seoReportId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("seo_report_activity_log")
+}

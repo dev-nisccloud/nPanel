@@ -240,6 +240,7 @@ export type TeamWhereInput = {
   creativeBriefs?: Prisma.CreativeBriefListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   tickets?: Prisma.TicketListRelationFilter
+  seoReports?: Prisma.SeoReportListRelationFilter
 }
 
 export type TeamOrderByWithRelationInput = {
@@ -279,6 +280,7 @@ export type TeamOrderByWithRelationInput = {
   creativeBriefs?: Prisma.CreativeBriefOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   tickets?: Prisma.TicketOrderByRelationAggregateInput
+  seoReports?: Prisma.SeoReportOrderByRelationAggregateInput
 }
 
 export type TeamWhereUniqueInput = Prisma.AtLeast<{
@@ -321,6 +323,7 @@ export type TeamWhereUniqueInput = Prisma.AtLeast<{
   creativeBriefs?: Prisma.CreativeBriefListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   tickets?: Prisma.TicketListRelationFilter
+  seoReports?: Prisma.SeoReportListRelationFilter
 }, "id" | "slug">
 
 export type TeamOrderByWithAggregationInput = {
@@ -390,6 +393,7 @@ export type TeamCreateInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateInput = {
@@ -429,6 +433,7 @@ export type TeamUncheckedCreateInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUpdateInput = {
@@ -468,6 +473,7 @@ export type TeamUpdateInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateInput = {
@@ -507,6 +513,7 @@ export type TeamUncheckedUpdateInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateManyInput = {
@@ -963,6 +970,22 @@ export type TeamUpdateOneWithoutPaymentTransactionNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutPaymentTransactionInput, Prisma.TeamUpdateWithoutPaymentTransactionInput>, Prisma.TeamUncheckedUpdateWithoutPaymentTransactionInput>
 }
 
+export type TeamCreateNestedOneWithoutSeoReportsInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutSeoReportsInput, Prisma.TeamUncheckedCreateWithoutSeoReportsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutSeoReportsInput
+  connect?: Prisma.TeamWhereUniqueInput
+}
+
+export type TeamUpdateOneWithoutSeoReportsNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutSeoReportsInput, Prisma.TeamUncheckedCreateWithoutSeoReportsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutSeoReportsInput
+  upsert?: Prisma.TeamUpsertWithoutSeoReportsInput
+  disconnect?: Prisma.TeamWhereInput | boolean
+  delete?: Prisma.TeamWhereInput | boolean
+  connect?: Prisma.TeamWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutSeoReportsInput, Prisma.TeamUpdateWithoutSeoReportsInput>, Prisma.TeamUncheckedUpdateWithoutSeoReportsInput>
+}
+
 export type TeamCreateNestedOneWithoutServiceSubscriptionsInput = {
   create?: Prisma.XOR<Prisma.TeamCreateWithoutServiceSubscriptionsInput, Prisma.TeamUncheckedCreateWithoutServiceSubscriptionsInput>
   connectOrCreate?: Prisma.TeamCreateOrConnectWithoutServiceSubscriptionsInput
@@ -1047,6 +1070,7 @@ export type TeamCreateWithoutWordpressInstancesInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutWordpressInstancesInput = {
@@ -1085,6 +1109,7 @@ export type TeamUncheckedCreateWithoutWordpressInstancesInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutWordpressInstancesInput = {
@@ -1139,6 +1164,7 @@ export type TeamUpdateWithoutWordpressInstancesInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutWordpressInstancesInput = {
@@ -1177,6 +1203,7 @@ export type TeamUncheckedUpdateWithoutWordpressInstancesInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutOrdersInput = {
@@ -1215,6 +1242,7 @@ export type TeamCreateWithoutOrdersInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutOrdersInput = {
@@ -1253,6 +1281,7 @@ export type TeamUncheckedCreateWithoutOrdersInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutOrdersInput = {
@@ -1307,6 +1336,7 @@ export type TeamUpdateWithoutOrdersInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutOrdersInput = {
@@ -1345,6 +1375,7 @@ export type TeamUncheckedUpdateWithoutOrdersInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutPromosInput = {
@@ -1383,6 +1414,7 @@ export type TeamCreateWithoutPromosInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutPromosInput = {
@@ -1421,6 +1453,7 @@ export type TeamUncheckedCreateWithoutPromosInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutPromosInput = {
@@ -1475,6 +1508,7 @@ export type TeamUpdateWithoutPromosInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutPromosInput = {
@@ -1513,6 +1547,7 @@ export type TeamUncheckedUpdateWithoutPromosInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutMembersInput = {
@@ -1551,6 +1586,7 @@ export type TeamCreateWithoutMembersInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutMembersInput = {
@@ -1589,6 +1625,7 @@ export type TeamUncheckedCreateWithoutMembersInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutMembersInput = {
@@ -1643,6 +1680,7 @@ export type TeamUpdateWithoutMembersInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutMembersInput = {
@@ -1681,6 +1719,7 @@ export type TeamUncheckedUpdateWithoutMembersInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutInvitesInput = {
@@ -1719,6 +1758,7 @@ export type TeamCreateWithoutInvitesInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutInvitesInput = {
@@ -1757,6 +1797,7 @@ export type TeamUncheckedCreateWithoutInvitesInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutInvitesInput = {
@@ -1811,6 +1852,7 @@ export type TeamUpdateWithoutInvitesInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutInvitesInput = {
@@ -1849,6 +1891,7 @@ export type TeamUncheckedUpdateWithoutInvitesInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutBillingSettingsInput = {
@@ -1887,6 +1930,7 @@ export type TeamCreateWithoutBillingSettingsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutBillingSettingsInput = {
@@ -1925,6 +1969,7 @@ export type TeamUncheckedCreateWithoutBillingSettingsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutBillingSettingsInput = {
@@ -1979,6 +2024,7 @@ export type TeamUpdateWithoutBillingSettingsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutBillingSettingsInput = {
@@ -2017,6 +2063,7 @@ export type TeamUncheckedUpdateWithoutBillingSettingsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutHostingSubscriptionsInput = {
@@ -2055,6 +2102,7 @@ export type TeamCreateWithoutHostingSubscriptionsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutHostingSubscriptionsInput = {
@@ -2093,6 +2141,7 @@ export type TeamUncheckedCreateWithoutHostingSubscriptionsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutHostingSubscriptionsInput = {
@@ -2147,6 +2196,7 @@ export type TeamUpdateWithoutHostingSubscriptionsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutHostingSubscriptionsInput = {
@@ -2185,6 +2235,7 @@ export type TeamUncheckedUpdateWithoutHostingSubscriptionsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutDomainsInput = {
@@ -2223,6 +2274,7 @@ export type TeamCreateWithoutDomainsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutDomainsInput = {
@@ -2261,6 +2313,7 @@ export type TeamUncheckedCreateWithoutDomainsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutDomainsInput = {
@@ -2315,6 +2368,7 @@ export type TeamUpdateWithoutDomainsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutDomainsInput = {
@@ -2353,6 +2407,7 @@ export type TeamUncheckedUpdateWithoutDomainsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutCreativeAssetsInput = {
@@ -2391,6 +2446,7 @@ export type TeamCreateWithoutCreativeAssetsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutCreativeAssetsInput = {
@@ -2429,6 +2485,7 @@ export type TeamUncheckedCreateWithoutCreativeAssetsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutCreativeAssetsInput = {
@@ -2483,6 +2540,7 @@ export type TeamUpdateWithoutCreativeAssetsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutCreativeAssetsInput = {
@@ -2521,6 +2579,7 @@ export type TeamUncheckedUpdateWithoutCreativeAssetsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutCreativeBriefsInput = {
@@ -2559,6 +2618,7 @@ export type TeamCreateWithoutCreativeBriefsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutCreativeBriefsInput = {
@@ -2597,6 +2657,7 @@ export type TeamUncheckedCreateWithoutCreativeBriefsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutCreativeBriefsInput = {
@@ -2651,6 +2712,7 @@ export type TeamUpdateWithoutCreativeBriefsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutCreativeBriefsInput = {
@@ -2689,6 +2751,7 @@ export type TeamUncheckedUpdateWithoutCreativeBriefsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutEmailDomainsInput = {
@@ -2727,6 +2790,7 @@ export type TeamCreateWithoutEmailDomainsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutEmailDomainsInput = {
@@ -2765,6 +2829,7 @@ export type TeamUncheckedCreateWithoutEmailDomainsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutEmailDomainsInput = {
@@ -2819,6 +2884,7 @@ export type TeamUpdateWithoutEmailDomainsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutEmailDomainsInput = {
@@ -2857,6 +2923,7 @@ export type TeamUncheckedUpdateWithoutEmailDomainsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutEmailCampaignsInput = {
@@ -2895,6 +2962,7 @@ export type TeamCreateWithoutEmailCampaignsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutEmailCampaignsInput = {
@@ -2933,6 +3001,7 @@ export type TeamUncheckedCreateWithoutEmailCampaignsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutEmailCampaignsInput = {
@@ -2987,6 +3056,7 @@ export type TeamUpdateWithoutEmailCampaignsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutEmailCampaignsInput = {
@@ -3025,6 +3095,7 @@ export type TeamUncheckedUpdateWithoutEmailCampaignsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutAudiencesInput = {
@@ -3063,6 +3134,7 @@ export type TeamCreateWithoutAudiencesInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutAudiencesInput = {
@@ -3101,6 +3173,7 @@ export type TeamUncheckedCreateWithoutAudiencesInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutAudiencesInput = {
@@ -3155,6 +3228,7 @@ export type TeamUpdateWithoutAudiencesInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutAudiencesInput = {
@@ -3193,6 +3267,7 @@ export type TeamUncheckedUpdateWithoutAudiencesInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutGoogleAdsAccountsInput = {
@@ -3231,6 +3306,7 @@ export type TeamCreateWithoutGoogleAdsAccountsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutGoogleAdsAccountsInput = {
@@ -3269,6 +3345,7 @@ export type TeamUncheckedCreateWithoutGoogleAdsAccountsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutGoogleAdsAccountsInput = {
@@ -3323,6 +3400,7 @@ export type TeamUpdateWithoutGoogleAdsAccountsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutGoogleAdsAccountsInput = {
@@ -3361,6 +3439,7 @@ export type TeamUncheckedUpdateWithoutGoogleAdsAccountsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutImageGeneratorGenerationsInput = {
@@ -3399,6 +3478,7 @@ export type TeamCreateWithoutImageGeneratorGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutImageGeneratorGenerationsInput = {
@@ -3437,6 +3517,7 @@ export type TeamUncheckedCreateWithoutImageGeneratorGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutImageGeneratorGenerationsInput = {
@@ -3491,6 +3572,7 @@ export type TeamUpdateWithoutImageGeneratorGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
@@ -3529,6 +3611,7 @@ export type TeamUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutBackgroundRemoverGenerationsInput = {
@@ -3567,6 +3650,7 @@ export type TeamCreateWithoutBackgroundRemoverGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
@@ -3605,6 +3689,7 @@ export type TeamUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutBackgroundRemoverGenerationsInput = {
@@ -3659,6 +3744,7 @@ export type TeamUpdateWithoutBackgroundRemoverGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
@@ -3697,6 +3783,7 @@ export type TeamUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutImageGenProjectsInput = {
@@ -3735,6 +3822,7 @@ export type TeamCreateWithoutImageGenProjectsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutImageGenProjectsInput = {
@@ -3773,6 +3861,7 @@ export type TeamUncheckedCreateWithoutImageGenProjectsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutImageGenProjectsInput = {
@@ -3827,6 +3916,7 @@ export type TeamUpdateWithoutImageGenProjectsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutImageGenProjectsInput = {
@@ -3865,6 +3955,7 @@ export type TeamUncheckedUpdateWithoutImageGenProjectsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutImageGenUploadInput = {
@@ -3903,6 +3994,7 @@ export type TeamCreateWithoutImageGenUploadInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutImageGenUploadInput = {
@@ -3941,6 +4033,7 @@ export type TeamUncheckedCreateWithoutImageGenUploadInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutImageGenUploadInput = {
@@ -3995,6 +4088,7 @@ export type TeamUpdateWithoutImageGenUploadInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutImageGenUploadInput = {
@@ -4033,6 +4127,7 @@ export type TeamUncheckedUpdateWithoutImageGenUploadInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutImageGenAiGenerationsInput = {
@@ -4071,6 +4166,7 @@ export type TeamCreateWithoutImageGenAiGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutImageGenAiGenerationsInput = {
@@ -4109,6 +4205,7 @@ export type TeamUncheckedCreateWithoutImageGenAiGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutImageGenAiGenerationsInput = {
@@ -4163,6 +4260,7 @@ export type TeamUpdateWithoutImageGenAiGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutImageGenAiGenerationsInput = {
@@ -4201,6 +4299,7 @@ export type TeamUncheckedUpdateWithoutImageGenAiGenerationsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutInvoicesInput = {
@@ -4239,6 +4338,7 @@ export type TeamCreateWithoutInvoicesInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutInvoicesInput = {
@@ -4277,6 +4377,7 @@ export type TeamUncheckedCreateWithoutInvoicesInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutInvoicesInput = {
@@ -4331,6 +4432,7 @@ export type TeamUpdateWithoutInvoicesInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutInvoicesInput = {
@@ -4369,6 +4471,7 @@ export type TeamUncheckedUpdateWithoutInvoicesInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutCreditNotesInput = {
@@ -4407,6 +4510,7 @@ export type TeamCreateWithoutCreditNotesInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutCreditNotesInput = {
@@ -4445,6 +4549,7 @@ export type TeamUncheckedCreateWithoutCreditNotesInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutCreditNotesInput = {
@@ -4499,6 +4604,7 @@ export type TeamUpdateWithoutCreditNotesInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutCreditNotesInput = {
@@ -4537,6 +4643,7 @@ export type TeamUncheckedUpdateWithoutCreditNotesInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutMetaAdsAccountsInput = {
@@ -4575,6 +4682,7 @@ export type TeamCreateWithoutMetaAdsAccountsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutMetaAdsAccountsInput = {
@@ -4613,6 +4721,7 @@ export type TeamUncheckedCreateWithoutMetaAdsAccountsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutMetaAdsAccountsInput = {
@@ -4667,6 +4776,7 @@ export type TeamUpdateWithoutMetaAdsAccountsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutMetaAdsAccountsInput = {
@@ -4705,6 +4815,7 @@ export type TeamUncheckedUpdateWithoutMetaAdsAccountsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutNotificationsInput = {
@@ -4743,6 +4854,7 @@ export type TeamCreateWithoutNotificationsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutNotificationsInput = {
@@ -4781,6 +4893,7 @@ export type TeamUncheckedCreateWithoutNotificationsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutNotificationsInput = {
@@ -4835,6 +4948,7 @@ export type TeamUpdateWithoutNotificationsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutNotificationsInput = {
@@ -4873,6 +4987,7 @@ export type TeamUncheckedUpdateWithoutNotificationsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutPaymentTransactionInput = {
@@ -4911,6 +5026,7 @@ export type TeamCreateWithoutPaymentTransactionInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutPaymentTransactionInput = {
@@ -4949,6 +5065,7 @@ export type TeamUncheckedCreateWithoutPaymentTransactionInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutPaymentTransactionInput = {
@@ -5003,6 +5120,7 @@ export type TeamUpdateWithoutPaymentTransactionInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutPaymentTransactionInput = {
@@ -5034,6 +5152,179 @@ export type TeamUncheckedUpdateWithoutPaymentTransactionInput = {
   metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
   serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutTeamNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
+  tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamCreateWithoutSeoReportsInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteCreateNestedManyWithoutTeamInput
+  domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutTeamInput
+  emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutTeamInput
+  audiences?: Prisma.AudienceCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
+  imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutTeamInput
+  PaymentTransaction?: Prisma.PaymentTransactionCreateNestedManyWithoutTeamInput
+  ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
+  creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
+  tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+}
+
+export type TeamUncheckedCreateWithoutSeoReportsInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteUncheckedCreateNestedManyWithoutTeamInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutTeamInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutTeamInput
+  audiences?: Prisma.AudienceUncheckedCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutTeamInput
+  PaymentTransaction?: Prisma.PaymentTransactionUncheckedCreateNestedManyWithoutTeamInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
+  tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+}
+
+export type TeamCreateOrConnectWithoutSeoReportsInput = {
+  where: Prisma.TeamWhereUniqueInput
+  create: Prisma.XOR<Prisma.TeamCreateWithoutSeoReportsInput, Prisma.TeamUncheckedCreateWithoutSeoReportsInput>
+}
+
+export type TeamUpsertWithoutSeoReportsInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutSeoReportsInput, Prisma.TeamUncheckedUpdateWithoutSeoReportsInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutSeoReportsInput, Prisma.TeamUncheckedCreateWithoutSeoReportsInput>
+  where?: Prisma.TeamWhereInput
+}
+
+export type TeamUpdateToOneWithWhereWithoutSeoReportsInput = {
+  where?: Prisma.TeamWhereInput
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutSeoReportsInput, Prisma.TeamUncheckedUpdateWithoutSeoReportsInput>
+}
+
+export type TeamUpdateWithoutSeoReportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUpdateManyWithoutTeamNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutTeamNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutTeamNestedInput
+  audiences?: Prisma.AudienceUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutTeamNestedInput
+  PaymentTransaction?: Prisma.PaymentTransactionUpdateManyWithoutTeamNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
+  tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamUncheckedUpdateWithoutSeoReportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUncheckedUpdateManyWithoutTeamNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutTeamNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutTeamNestedInput
+  audiences?: Prisma.AudienceUncheckedUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutTeamNestedInput
+  PaymentTransaction?: Prisma.PaymentTransactionUncheckedUpdateManyWithoutTeamNestedInput
   ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
   imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
   imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
@@ -5079,6 +5370,7 @@ export type TeamCreateWithoutServiceSubscriptionsInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutServiceSubscriptionsInput = {
@@ -5117,6 +5409,7 @@ export type TeamUncheckedCreateWithoutServiceSubscriptionsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutServiceSubscriptionsInput = {
@@ -5171,6 +5464,7 @@ export type TeamUpdateWithoutServiceSubscriptionsInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutServiceSubscriptionsInput = {
@@ -5209,6 +5503,7 @@ export type TeamUncheckedUpdateWithoutServiceSubscriptionsInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutSocialMediaPageTokensInput = {
@@ -5247,6 +5542,7 @@ export type TeamCreateWithoutSocialMediaPageTokensInput = {
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutSocialMediaPageTokensInput = {
@@ -5285,6 +5581,7 @@ export type TeamUncheckedCreateWithoutSocialMediaPageTokensInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutSocialMediaPageTokensInput = {
@@ -5339,6 +5636,7 @@ export type TeamUpdateWithoutSocialMediaPageTokensInput = {
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutSocialMediaPageTokensInput = {
@@ -5377,6 +5675,7 @@ export type TeamUncheckedUpdateWithoutSocialMediaPageTokensInput = {
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutTicketsInput = {
@@ -5415,6 +5714,7 @@ export type TeamCreateWithoutTicketsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutTicketsInput = {
@@ -5453,6 +5753,7 @@ export type TeamUncheckedCreateWithoutTicketsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutTicketsInput = {
@@ -5507,6 +5808,7 @@ export type TeamUpdateWithoutTicketsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutTicketsInput = {
@@ -5545,6 +5847,7 @@ export type TeamUncheckedUpdateWithoutTicketsInput = {
   backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 
@@ -5579,6 +5882,7 @@ export type TeamCountOutputType = {
   creativeBriefs: number
   notifications: number
   tickets: number
+  seoReports: number
 }
 
 export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -5608,6 +5912,7 @@ export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   creativeBriefs?: boolean | TeamCountOutputTypeCountCreativeBriefsArgs
   notifications?: boolean | TeamCountOutputTypeCountNotificationsArgs
   tickets?: boolean | TeamCountOutputTypeCountTicketsArgs
+  seoReports?: boolean | TeamCountOutputTypeCountSeoReportsArgs
 }
 
 /**
@@ -5802,6 +6107,13 @@ export type TeamCountOutputTypeCountTicketsArgs<ExtArgs extends runtime.Types.Ex
   where?: Prisma.TicketWhereInput
 }
 
+/**
+ * TeamCountOutputType without action
+ */
+export type TeamCountOutputTypeCountSeoReportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SeoReportWhereInput
+}
+
 
 export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -5840,6 +6152,7 @@ export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   creativeBriefs?: boolean | Prisma.Team$creativeBriefsArgs<ExtArgs>
   notifications?: boolean | Prisma.Team$notificationsArgs<ExtArgs>
   tickets?: boolean | Prisma.Team$ticketsArgs<ExtArgs>
+  seoReports?: boolean | Prisma.Team$seoReportsArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["team"]>
 
@@ -5908,6 +6221,7 @@ export type TeamInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   creativeBriefs?: boolean | Prisma.Team$creativeBriefsArgs<ExtArgs>
   notifications?: boolean | Prisma.Team$notificationsArgs<ExtArgs>
   tickets?: boolean | Prisma.Team$ticketsArgs<ExtArgs>
+  seoReports?: boolean | Prisma.Team$seoReportsArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TeamIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -5943,6 +6257,7 @@ export type $TeamPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     creativeBriefs: Prisma.$CreativeBriefPayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     tickets: Prisma.$TicketPayload<ExtArgs>[]
+    seoReports: Prisma.$SeoReportPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -6375,6 +6690,7 @@ export interface Prisma__TeamClient<T, Null = never, ExtArgs extends runtime.Typ
   creativeBriefs<T extends Prisma.Team$creativeBriefsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$creativeBriefsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CreativeBriefPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.Team$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   tickets<T extends Prisma.Team$ticketsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$ticketsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  seoReports<T extends Prisma.Team$seoReportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$seoReportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SeoReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7441,6 +7757,30 @@ export type Team$ticketsArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   distinct?: Prisma.TicketScalarFieldEnum | Prisma.TicketScalarFieldEnum[]
+}
+
+/**
+ * Team.seoReports
+ */
+export type Team$seoReportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SeoReport
+   */
+  select?: Prisma.SeoReportSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SeoReport
+   */
+  omit?: Prisma.SeoReportOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SeoReportInclude<ExtArgs> | null
+  where?: Prisma.SeoReportWhereInput
+  orderBy?: Prisma.SeoReportOrderByWithRelationInput | Prisma.SeoReportOrderByWithRelationInput[]
+  cursor?: Prisma.SeoReportWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SeoReportScalarFieldEnum | Prisma.SeoReportScalarFieldEnum[]
 }
 
 /**

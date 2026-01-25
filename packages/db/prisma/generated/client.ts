@@ -529,6 +529,21 @@ export type PaymentTransaction = Prisma.PaymentTransactionModel
  */
 export type PaymentTransactionActivityLog = Prisma.PaymentTransactionActivityLogModel
 /**
+ * Model SeoReport
+ * 
+ */
+export type SeoReport = Prisma.SeoReportModel
+/**
+ * Model SeoReportTopPage
+ * 
+ */
+export type SeoReportTopPage = Prisma.SeoReportTopPageModel
+/**
+ * Model SeoReportActivityLog
+ * 
+ */
+export type SeoReportActivityLog = Prisma.SeoReportActivityLogModel
+/**
  * Model ServiceSubscription
  * 
  */

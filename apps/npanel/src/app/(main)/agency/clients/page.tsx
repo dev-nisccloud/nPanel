@@ -5,7 +5,7 @@ import { Plus, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ClientCardsList } from "./_components/client-card";
+import { ClientsTable, ClientsTableSkeleton } from "./_components/clients-table";
 import { CreateClientSheet } from "./_components/create-client-sheet";
 import { ClientViewDialog } from "./_components/client-view-dialog";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { z } from "zod";
 import { clientSchema } from "./_components/schema";
 // Empty state component inline
@@ -143,9 +144,11 @@ export default function ClientsPage() {
 
   if (isLoading) {
     return (
-      <div className="@container/main flex flex-col gap-4 md:gap-6">
-        <div className="flex items-center justify-center py-12">
-          <Spinner size={32} />
+      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex items-center justify-center py-12">
+            <ClientsTableSkeleton />
+          </div>
         </div>
       </div>
     );
@@ -153,55 +156,61 @@ export default function ClientsPage() {
 
   if (error) {
     return (
-      <div className="@container/main flex flex-col gap-4 md:gap-6">
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-destructive mb-4">{error.message || "Failed to load clients"}</p>
-          <Button onClick={() => refetch()} variant="outline">
-            Try Again
-          </Button>
+      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-destructive mb-4">{error.message || "Failed to load clients"}</p>
+            <Button onClick={() => refetch()} variant="outline">
+              Try Again
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
-        <p className="text-muted-foreground">
-          Manage your client accounts, view their activity, and handle their services.
-        </p>
-      </div>
-
-      {/* Search, Refresh, and Create Button on same row */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search clients by name, email, role, or status..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
+          <p className="text-muted-foreground">
+            Manage your client accounts, view their activity, and handle their services.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => refetch()}
-            disabled={isLoading}
-            title="Refresh"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-          <Button onClick={() => setIsCreateSheetOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Client
-          </Button>
-        </div>
-      </div>
 
+        {/* Search, Refresh, and Create Button on same row */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search clients by name, email, role, or status..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                title="Refresh"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button onClick={() => setIsCreateSheetOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Client
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6">
       {!clients || clients.length === 0 ? (
         <EmptyState
           title="No clients found"
@@ -227,7 +236,7 @@ export default function ClientsPage() {
           </Button>
         </div>
       ) : (
-        <ClientCardsList
+        <ClientsTable
           data={transformedClients}
           onView={handleView}
           onDeactivate={(id) => {
@@ -244,9 +253,10 @@ export default function ClientsPage() {
             handleStatusChange(id, "SUSPENDED", "suspend");
           }}
           onUnsuspend={handleUnsuspend}
-          cols={3}
         />
       )}
+        </div>
+      </div>
 
       <CreateClientSheet
         open={isCreateSheetOpen}

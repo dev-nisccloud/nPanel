@@ -469,6 +469,8 @@ model User {
   creativeBriefs               CreativeBrief[]
   // Notifications Relations
   notifications                Notification[]
+  // SEO Reports Relations
+  seoReports                   SeoReport[]
 
   @@unique([email])
   @@index([role])
@@ -561,6 +563,8 @@ model Team {
   notifications                Notification[]
   // Ticket System Relations
   tickets                      Ticket[]
+  // SEO Reports Relations
+  seoReports                   SeoReport[]
 
   @@index([slug])
   @@index([createdById])
