@@ -12,21 +12,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SubscriptionsList } from "./_components/subscriptions-list";
 
 const SubscriptionsSkeleton: React.FC = () => (
-	<div className="@container/main flex flex-col gap-4 md:gap-6">
-		<div className="flex flex-col gap-2">
-			<Skeleton className="h-8 w-48" />
-			<Skeleton className="h-4 w-96" />
-		</div>
-		<div className="flex items-center justify-between gap-4">
-			<Skeleton className="h-10 flex-1 max-w-sm" />
-			<div className="flex items-center gap-2">
-				<Skeleton className="h-10 w-10" />
+	<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+		<div className="w-full max-w-7xl mx-auto">
+			<div className="flex flex-col gap-2">
+				<Skeleton className="h-8 w-48" />
+				<Skeleton className="h-4 w-96" />
 			</div>
-		</div>
-		<div className="space-y-2">
-			{[...Array(3)].map((_, index) => (
-				<Skeleton key={index} className="h-48 w-full" />
-			))}
+			<div className="mt-6">
+				<div className="flex items-center justify-between gap-4">
+					<Skeleton className="h-10 flex-1 max-w-sm" />
+					<div className="flex items-center gap-2">
+						<Skeleton className="h-10 w-10" />
+					</div>
+				</div>
+			</div>
+			<div className="mt-6">
+				<div className="space-y-2">
+					{[...Array(3)].map((_, index) => (
+						<Skeleton key={index} className="h-48 w-full" />
+					))}
+				</div>
+			</div>
 		</div>
 	</div>
 );
@@ -105,61 +111,69 @@ export default function SubscriptionsIndex() {
 
 	if (error) {
 		return (
-			<div className="@container/main flex flex-col gap-4 md:gap-6">
-				<EmptyState
-					title="Unable to load subscriptions"
-					description={error.message ?? "Something went wrong while fetching subscriptions."}
-				/>
+			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+				<div className="w-full max-w-7xl mx-auto">
+					<EmptyState
+						title="Unable to load subscriptions"
+						description={error.message ?? "Something went wrong while fetching subscriptions."}
+					/>
+				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="@container/main flex flex-col gap-4 md:gap-6">
-			<div className="flex flex-col gap-2">
-				<h1 className="text-2xl font-semibold tracking-tight">Subscriptions</h1>
-				<p className="text-muted-foreground">
-					View and manage your team's active service subscriptions.
-				</p>
-			</div>
-
-			<div className="flex items-center justify-between gap-4">
-				<div className="relative flex-1 max-w-sm">
-					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-					<Input
-						type="search"
-						placeholder="Search subscriptions by plan name, type, or status..."
-						value={searchTerm}
-						onChange={(event) => setSearchTerm(event.target.value)}
-						className="pl-9"
-					/>
+		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+			<div className="w-full max-w-7xl mx-auto">
+				<div className="flex flex-col gap-2">
+					<h1 className="text-2xl font-semibold tracking-tight">Subscriptions</h1>
+					<p className="text-muted-foreground">
+						View and manage your team's active service subscriptions.
+					</p>
 				</div>
-				<div className="flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={() => refetch()}
-						disabled={isFetching}
-						title="Refresh subscriptions"
-					>
-						<RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-					</Button>
+
+				<div className="mt-6">
+					<div className="flex items-center justify-between gap-4">
+						<div className="relative flex-1 max-w-sm">
+							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+							<Input
+								type="search"
+								placeholder="Search subscriptions by plan name, type, or status..."
+								value={searchTerm}
+								onChange={(event) => setSearchTerm(event.target.value)}
+								className="pl-9"
+							/>
+						</div>
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={() => refetch()}
+								disabled={isFetching}
+								title="Refresh subscriptions"
+							>
+								<RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+							</Button>
+						</div>
+					</div>
+				</div>
+
+				<div className="mt-6">
+					{!subscriptions || subscriptions.length === 0 ? (
+						<EmptyState
+							title="You do not have any subscriptions yet"
+							description="Subscriptions for your team will appear here once they are created."
+						/>
+					) : filteredSubscriptions.length === 0 ? (
+						<EmptyState
+							title="No subscriptions match your search"
+							description={`We couldn't find subscriptions for "${searchTerm}". Try updating your search.`}
+						/>
+					) : (
+						<SubscriptionsList subscriptions={filteredSubscriptions} onRefetch={refetch} />
+					)}
 				</div>
 			</div>
-
-			{!subscriptions || subscriptions.length === 0 ? (
-				<EmptyState
-					title="You do not have any subscriptions yet"
-					description="Subscriptions for your team will appear here once they are created."
-				/>
-			) : filteredSubscriptions.length === 0 ? (
-				<EmptyState
-					title="No subscriptions match your search"
-					description={`We couldn't find subscriptions for "${searchTerm}". Try updating your search.`}
-				/>
-			) : (
-				<SubscriptionsList subscriptions={filteredSubscriptions} onRefetch={refetch} />
-			)}
 		</div>
 	);
 }

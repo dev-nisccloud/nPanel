@@ -116,7 +116,7 @@ export default async function TeamLayout({
               </div>
             </div>
           </header>
-          <div className="h-full p-4 md:p-6">{children}</div>
+          <div className="h-full p-4 md:p-6 bg-[#f8fafb] dark:bg-background">{children}</div>
           <NavigationLoader />
           <FloatingActionButton />
         </SidebarInset>

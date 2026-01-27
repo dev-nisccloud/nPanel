@@ -299,45 +299,45 @@ export type CreativeBriefActivityLog = Prisma.CreativeBriefActivityLogModel
  */
 export type EmailDomain = Prisma.EmailDomainModel
 /**
- * Model EmailCampaign
+ * Model Contact
  * 
  */
-export type EmailCampaign = Prisma.EmailCampaignModel
+export type Contact = Prisma.ContactModel
 /**
- * Model Audience
+ * Model EmailTemplate
  * 
  */
-export type Audience = Prisma.AudienceModel
+export type EmailTemplate = Prisma.EmailTemplateModel
 /**
- * Model AudienceContact
+ * Model Campaign
  * 
  */
-export type AudienceContact = Prisma.AudienceContactModel
+export type Campaign = Prisma.CampaignModel
 /**
  * Model EmailLog
  * 
  */
 export type EmailLog = Prisma.EmailLogModel
 /**
- * Model SESConfiguration
- * 
- */
-export type SESConfiguration = Prisma.SESConfigurationModel
-/**
  * Model EmailDomainActivityLog
  * 
  */
 export type EmailDomainActivityLog = Prisma.EmailDomainActivityLogModel
 /**
- * Model EmailCampaignActivityLog
+ * Model ContactActivityLog
  * 
  */
-export type EmailCampaignActivityLog = Prisma.EmailCampaignActivityLogModel
+export type ContactActivityLog = Prisma.ContactActivityLogModel
 /**
- * Model AudienceActivityLog
+ * Model CampaignActivityLog
  * 
  */
-export type AudienceActivityLog = Prisma.AudienceActivityLogModel
+export type CampaignActivityLog = Prisma.CampaignActivityLogModel
+/**
+ * Model EmailLogActivityLog
+ * 
+ */
+export type EmailLogActivityLog = Prisma.EmailLogActivityLogModel
 /**
  * Model GoogleAdsIntegration
  * 

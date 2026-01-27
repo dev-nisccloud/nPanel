@@ -72,6 +72,7 @@ import { paymentGatewayRouter } from "./payment-gateway";
 import { paymentTransactionsRouter } from "./payment-transactions";
 import { pagespeedInsightsRouter } from "./pagespeed-insights";
 import { seoReportsRouter } from "./seo-reports";
+import { emailMarketingRouter } from "./email-marketing";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -201,5 +202,7 @@ export const appRouter = router({
 	pagespeedInsights: pagespeedInsightsRouter,
 	// SEO Reports
 	seoReports: seoReportsRouter,
+	// Email Marketing (Resend Integration)
+	emailMarketing: emailMarketingRouter,
 });
 export type AppRouter = typeof appRouter;

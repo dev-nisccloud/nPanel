@@ -1,0 +1,73 @@
+[
+  {
+    "id": "dns-1",
+    "host": "@",
+    "ttl": 3600,
+    "recordType": "A",
+    "value": "23.92.70.234"
+  },
+  {
+    "id": "dns-2",
+    "host": "www",
+    "ttl": 3600,
+    "recordType": "CNAME",
+    "value": "example.com"
+  },
+  {
+    "id": "dns-3",
+    "host": "mail",
+    "ttl": 3600,
+    "recordType": "A",
+    "value": "23.92.70.235"
+  },
+  {
+    "id": "dns-4",
+    "host": "@",
+    "ttl": 3600,
+    "recordType": "MX",
+    "value": "mail.example.com",
+    "priority": 10
+  },
+  {
+    "id": "dns-5",
+    "host": "@",
+    "ttl": 3600,
+    "recordType": "TXT",
+    "value": "v=spf1 include:_spf.google.com ~all"
+  },
+  {
+    "id": "dns-6",
+    "host": "@",
+    "ttl": 3600,
+    "recordType": "NS",
+    "value": "ns1.example.com"
+  },
+  {
+    "id": "dns-7",
+    "host": "ns1",
+    "ttl": 3600,
+    "recordType": "A",
+    "value": "23.92.70.236"
+  },
+  {
+    "id": "dns-8",
+    "host": "ns2",
+    "ttl": 3600,
+    "recordType": "A",
+    "value": "23.92.70.237"
+  },
+  {
+    "id": "dns-9",
+    "host": "ftp",
+    "ttl": 3600,
+    "recordType": "A",
+    "value": "23.92.70.238"
+  },
+  {
+    "id": "dns-10",
+    "host": "blog",
+    "ttl": 3600,
+    "recordType": "CNAME",
+    "value": "example.com"
+  }
+]

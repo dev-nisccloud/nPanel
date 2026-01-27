@@ -94,7 +94,7 @@ function HostingTableError({ error, onRetry }: { error: Error; onRetry: () => vo
       </div>
       <h3 className="mb-2 text-lg font-semibold">Failed to load subscriptions</h3>
       <p className="mb-4 text-sm text-muted-foreground">
-        {error.message || "An error occurred while fetching hosting subscriptions."}
+        {error.message || "An error occurred while fetching email hosting subscriptions."}
       </p>
       <Button onClick={onRetry} variant="outline">
         Try Again
@@ -186,9 +186,9 @@ export function HostingDataTable() {
               />
             </svg>
           </div>
-          <h3 className="mb-2 text-lg font-semibold">No hosting subscriptions found</h3>
+          <h3 className="mb-2 text-lg font-semibold">No email hosting subscriptions found</h3>
           <p className="mb-4 text-sm text-muted-foreground">
-            Your team has hosting subscriptions, but no matching Plesk subscriptions were found.
+            Your team has email hosting subscriptions, but no matching Plesk subscriptions were found.
             <br />
             <span className="text-xs">This may happen if the subscription hasn't been provisioned yet or the Plesk filter ID doesn't match.</span>
           </p>

@@ -125,27 +125,33 @@ export default function CreativeAssetsPage() {
   // Show pricing if no subscriptions
   if (!isLoading && hasServiceSubscriptions === false) {
     return (
-      <div className="@container/main flex flex-col gap-4 md:gap-6">
+      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">Creative Assets</h1>
+            <p className="text-muted-foreground">
+              View and manage your creative assets, versions, and collaborate with your team.
+            </p>
+          </div>
+          <div className="mt-6">
+            <CreativeAssetsPricing />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <div className="w-full max-w-7xl mx-auto">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">Creative Assets</h1>
           <p className="text-muted-foreground">
             View and manage your creative assets, versions, and collaborate with your team.
           </p>
         </div>
-        <CreativeAssetsPricing />
-      </div>
-    );
-  }
-
-  return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Creative Assets</h1>
-        <p className="text-muted-foreground">
-          View and manage your creative assets, versions, and collaborate with your team.
-        </p>
-      </div>
-      <CreativeAssetsListing 
+        <div className="mt-6">
+          <CreativeAssetsListing 
         data={(publicAssets || []).map(asset => ({
           ...asset,
           status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
@@ -166,6 +172,8 @@ export default function CreativeAssetsPage() {
         archivingAssetId={archivingAssetId}
         unarchivingAssetId={unarchivingAssetId}
       />
+        </div>
+      </div>
       <EditAssetSheet
         open={isEditAssetOpen}
         onOpenChange={(open) => {

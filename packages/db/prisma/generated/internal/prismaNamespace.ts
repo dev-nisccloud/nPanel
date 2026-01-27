@@ -439,14 +439,14 @@ export const ModelName = {
   CreativeBriefReferenceImage: 'CreativeBriefReferenceImage',
   CreativeBriefActivityLog: 'CreativeBriefActivityLog',
   EmailDomain: 'EmailDomain',
-  EmailCampaign: 'EmailCampaign',
-  Audience: 'Audience',
-  AudienceContact: 'AudienceContact',
+  Contact: 'Contact',
+  EmailTemplate: 'EmailTemplate',
+  Campaign: 'Campaign',
   EmailLog: 'EmailLog',
-  SESConfiguration: 'SESConfiguration',
   EmailDomainActivityLog: 'EmailDomainActivityLog',
-  EmailCampaignActivityLog: 'EmailCampaignActivityLog',
-  AudienceActivityLog: 'AudienceActivityLog',
+  ContactActivityLog: 'ContactActivityLog',
+  CampaignActivityLog: 'CampaignActivityLog',
+  EmailLogActivityLog: 'EmailLogActivityLog',
   GoogleAdsIntegration: 'GoogleAdsIntegration',
   GoogleAdsAccount: 'GoogleAdsAccount',
   GoogleAdsIntegrationActivityLog: 'GoogleAdsIntegrationActivityLog',
@@ -523,7 +523,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "audience" | "audienceContact" | "emailLog" | "sESConfiguration" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "audienceActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportTopPage" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "contact" | "emailTemplate" | "campaign" | "emailLog" | "emailDomainActivityLog" | "contactActivityLog" | "campaignActivityLog" | "emailLogActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportTopPage" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4301,225 +4301,225 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    EmailCampaign: {
-      payload: Prisma.$EmailCampaignPayload<ExtArgs>
-      fields: Prisma.EmailCampaignFieldRefs
+    Contact: {
+      payload: Prisma.$ContactPayload<ExtArgs>
+      fields: Prisma.ContactFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.EmailCampaignFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload> | null
+          args: Prisma.ContactFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.EmailCampaignFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload>
+          args: Prisma.ContactFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>
         }
         findFirst: {
-          args: Prisma.EmailCampaignFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload> | null
+          args: Prisma.ContactFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.EmailCampaignFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload>
+          args: Prisma.ContactFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>
         }
         findMany: {
-          args: Prisma.EmailCampaignFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload>[]
+          args: Prisma.ContactFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>[]
         }
         create: {
-          args: Prisma.EmailCampaignCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload>
+          args: Prisma.ContactCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>
         }
         createMany: {
-          args: Prisma.EmailCampaignCreateManyArgs<ExtArgs>
+          args: Prisma.ContactCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.EmailCampaignCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload>[]
+          args: Prisma.ContactCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>[]
         }
         delete: {
-          args: Prisma.EmailCampaignDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload>
+          args: Prisma.ContactDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>
         }
         update: {
-          args: Prisma.EmailCampaignUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload>
+          args: Prisma.ContactUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>
         }
         deleteMany: {
-          args: Prisma.EmailCampaignDeleteManyArgs<ExtArgs>
+          args: Prisma.ContactDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.EmailCampaignUpdateManyArgs<ExtArgs>
+          args: Prisma.ContactUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.EmailCampaignUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload>[]
+          args: Prisma.ContactUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>[]
         }
         upsert: {
-          args: Prisma.EmailCampaignUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignPayload>
+          args: Prisma.ContactUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>
         }
         aggregate: {
-          args: Prisma.EmailCampaignAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateEmailCampaign>
+          args: Prisma.ContactAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateContact>
         }
         groupBy: {
-          args: Prisma.EmailCampaignGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.EmailCampaignGroupByOutputType>[]
+          args: Prisma.ContactGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ContactGroupByOutputType>[]
         }
         count: {
-          args: Prisma.EmailCampaignCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.EmailCampaignCountAggregateOutputType> | number
+          args: Prisma.ContactCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ContactCountAggregateOutputType> | number
         }
       }
     }
-    Audience: {
-      payload: Prisma.$AudiencePayload<ExtArgs>
-      fields: Prisma.AudienceFieldRefs
+    EmailTemplate: {
+      payload: Prisma.$EmailTemplatePayload<ExtArgs>
+      fields: Prisma.EmailTemplateFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.AudienceFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload> | null
+          args: Prisma.EmailTemplateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.AudienceFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload>
+          args: Prisma.EmailTemplateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload>
         }
         findFirst: {
-          args: Prisma.AudienceFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload> | null
+          args: Prisma.EmailTemplateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.AudienceFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload>
+          args: Prisma.EmailTemplateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload>
         }
         findMany: {
-          args: Prisma.AudienceFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload>[]
+          args: Prisma.EmailTemplateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload>[]
         }
         create: {
-          args: Prisma.AudienceCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload>
+          args: Prisma.EmailTemplateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload>
         }
         createMany: {
-          args: Prisma.AudienceCreateManyArgs<ExtArgs>
+          args: Prisma.EmailTemplateCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.AudienceCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload>[]
+          args: Prisma.EmailTemplateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload>[]
         }
         delete: {
-          args: Prisma.AudienceDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload>
+          args: Prisma.EmailTemplateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload>
         }
         update: {
-          args: Prisma.AudienceUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload>
+          args: Prisma.EmailTemplateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload>
         }
         deleteMany: {
-          args: Prisma.AudienceDeleteManyArgs<ExtArgs>
+          args: Prisma.EmailTemplateDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.AudienceUpdateManyArgs<ExtArgs>
+          args: Prisma.EmailTemplateUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.AudienceUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload>[]
+          args: Prisma.EmailTemplateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload>[]
         }
         upsert: {
-          args: Prisma.AudienceUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudiencePayload>
+          args: Prisma.EmailTemplateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailTemplatePayload>
         }
         aggregate: {
-          args: Prisma.AudienceAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAudience>
+          args: Prisma.EmailTemplateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEmailTemplate>
         }
         groupBy: {
-          args: Prisma.AudienceGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AudienceGroupByOutputType>[]
+          args: Prisma.EmailTemplateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailTemplateGroupByOutputType>[]
         }
         count: {
-          args: Prisma.AudienceCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AudienceCountAggregateOutputType> | number
+          args: Prisma.EmailTemplateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailTemplateCountAggregateOutputType> | number
         }
       }
     }
-    AudienceContact: {
-      payload: Prisma.$AudienceContactPayload<ExtArgs>
-      fields: Prisma.AudienceContactFieldRefs
+    Campaign: {
+      payload: Prisma.$CampaignPayload<ExtArgs>
+      fields: Prisma.CampaignFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.AudienceContactFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload> | null
+          args: Prisma.CampaignFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.AudienceContactFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload>
+          args: Prisma.CampaignFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
         }
         findFirst: {
-          args: Prisma.AudienceContactFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload> | null
+          args: Prisma.CampaignFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.AudienceContactFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload>
+          args: Prisma.CampaignFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
         }
         findMany: {
-          args: Prisma.AudienceContactFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload>[]
+          args: Prisma.CampaignFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>[]
         }
         create: {
-          args: Prisma.AudienceContactCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload>
+          args: Prisma.CampaignCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
         }
         createMany: {
-          args: Prisma.AudienceContactCreateManyArgs<ExtArgs>
+          args: Prisma.CampaignCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.AudienceContactCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload>[]
+          args: Prisma.CampaignCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>[]
         }
         delete: {
-          args: Prisma.AudienceContactDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload>
+          args: Prisma.CampaignDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
         }
         update: {
-          args: Prisma.AudienceContactUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload>
+          args: Prisma.CampaignUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
         }
         deleteMany: {
-          args: Prisma.AudienceContactDeleteManyArgs<ExtArgs>
+          args: Prisma.CampaignDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.AudienceContactUpdateManyArgs<ExtArgs>
+          args: Prisma.CampaignUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.AudienceContactUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload>[]
+          args: Prisma.CampaignUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>[]
         }
         upsert: {
-          args: Prisma.AudienceContactUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceContactPayload>
+          args: Prisma.CampaignUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
         }
         aggregate: {
-          args: Prisma.AudienceContactAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAudienceContact>
+          args: Prisma.CampaignAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCampaign>
         }
         groupBy: {
-          args: Prisma.AudienceContactGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AudienceContactGroupByOutputType>[]
+          args: Prisma.CampaignGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CampaignGroupByOutputType>[]
         }
         count: {
-          args: Prisma.AudienceContactCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AudienceContactCountAggregateOutputType> | number
+          args: Prisma.CampaignCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CampaignCountAggregateOutputType> | number
         }
       }
     }
@@ -4597,80 +4597,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    SESConfiguration: {
-      payload: Prisma.$SESConfigurationPayload<ExtArgs>
-      fields: Prisma.SESConfigurationFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.SESConfigurationFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.SESConfigurationFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload>
-        }
-        findFirst: {
-          args: Prisma.SESConfigurationFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.SESConfigurationFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload>
-        }
-        findMany: {
-          args: Prisma.SESConfigurationFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload>[]
-        }
-        create: {
-          args: Prisma.SESConfigurationCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload>
-        }
-        createMany: {
-          args: Prisma.SESConfigurationCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.SESConfigurationCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload>[]
-        }
-        delete: {
-          args: Prisma.SESConfigurationDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload>
-        }
-        update: {
-          args: Prisma.SESConfigurationUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload>
-        }
-        deleteMany: {
-          args: Prisma.SESConfigurationDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.SESConfigurationUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.SESConfigurationUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload>[]
-        }
-        upsert: {
-          args: Prisma.SESConfigurationUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SESConfigurationPayload>
-        }
-        aggregate: {
-          args: Prisma.SESConfigurationAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSESConfiguration>
-        }
-        groupBy: {
-          args: Prisma.SESConfigurationGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SESConfigurationGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.SESConfigurationCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SESConfigurationCountAggregateOutputType> | number
-        }
-      }
-    }
     EmailDomainActivityLog: {
       payload: Prisma.$EmailDomainActivityLogPayload<ExtArgs>
       fields: Prisma.EmailDomainActivityLogFieldRefs
@@ -4745,151 +4671,225 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    EmailCampaignActivityLog: {
-      payload: Prisma.$EmailCampaignActivityLogPayload<ExtArgs>
-      fields: Prisma.EmailCampaignActivityLogFieldRefs
+    ContactActivityLog: {
+      payload: Prisma.$ContactActivityLogPayload<ExtArgs>
+      fields: Prisma.ContactActivityLogFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.EmailCampaignActivityLogFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload> | null
+          args: Prisma.ContactActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.EmailCampaignActivityLogFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload>
+          args: Prisma.ContactActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload>
         }
         findFirst: {
-          args: Prisma.EmailCampaignActivityLogFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload> | null
+          args: Prisma.ContactActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.EmailCampaignActivityLogFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload>
+          args: Prisma.ContactActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload>
         }
         findMany: {
-          args: Prisma.EmailCampaignActivityLogFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload>[]
+          args: Prisma.ContactActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload>[]
         }
         create: {
-          args: Prisma.EmailCampaignActivityLogCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload>
+          args: Prisma.ContactActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload>
         }
         createMany: {
-          args: Prisma.EmailCampaignActivityLogCreateManyArgs<ExtArgs>
+          args: Prisma.ContactActivityLogCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.EmailCampaignActivityLogCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload>[]
+          args: Prisma.ContactActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload>[]
         }
         delete: {
-          args: Prisma.EmailCampaignActivityLogDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload>
+          args: Prisma.ContactActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload>
         }
         update: {
-          args: Prisma.EmailCampaignActivityLogUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload>
+          args: Prisma.ContactActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload>
         }
         deleteMany: {
-          args: Prisma.EmailCampaignActivityLogDeleteManyArgs<ExtArgs>
+          args: Prisma.ContactActivityLogDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.EmailCampaignActivityLogUpdateManyArgs<ExtArgs>
+          args: Prisma.ContactActivityLogUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.EmailCampaignActivityLogUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload>[]
+          args: Prisma.ContactActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload>[]
         }
         upsert: {
-          args: Prisma.EmailCampaignActivityLogUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCampaignActivityLogPayload>
+          args: Prisma.ContactActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactActivityLogPayload>
         }
         aggregate: {
-          args: Prisma.EmailCampaignActivityLogAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateEmailCampaignActivityLog>
+          args: Prisma.ContactActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateContactActivityLog>
         }
         groupBy: {
-          args: Prisma.EmailCampaignActivityLogGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.EmailCampaignActivityLogGroupByOutputType>[]
+          args: Prisma.ContactActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ContactActivityLogGroupByOutputType>[]
         }
         count: {
-          args: Prisma.EmailCampaignActivityLogCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.EmailCampaignActivityLogCountAggregateOutputType> | number
+          args: Prisma.ContactActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ContactActivityLogCountAggregateOutputType> | number
         }
       }
     }
-    AudienceActivityLog: {
-      payload: Prisma.$AudienceActivityLogPayload<ExtArgs>
-      fields: Prisma.AudienceActivityLogFieldRefs
+    CampaignActivityLog: {
+      payload: Prisma.$CampaignActivityLogPayload<ExtArgs>
+      fields: Prisma.CampaignActivityLogFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.AudienceActivityLogFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload> | null
+          args: Prisma.CampaignActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.AudienceActivityLogFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload>
+          args: Prisma.CampaignActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload>
         }
         findFirst: {
-          args: Prisma.AudienceActivityLogFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload> | null
+          args: Prisma.CampaignActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.AudienceActivityLogFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload>
+          args: Prisma.CampaignActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload>
         }
         findMany: {
-          args: Prisma.AudienceActivityLogFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload>[]
+          args: Prisma.CampaignActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload>[]
         }
         create: {
-          args: Prisma.AudienceActivityLogCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload>
+          args: Prisma.CampaignActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload>
         }
         createMany: {
-          args: Prisma.AudienceActivityLogCreateManyArgs<ExtArgs>
+          args: Prisma.CampaignActivityLogCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.AudienceActivityLogCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload>[]
+          args: Prisma.CampaignActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload>[]
         }
         delete: {
-          args: Prisma.AudienceActivityLogDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload>
+          args: Prisma.CampaignActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload>
         }
         update: {
-          args: Prisma.AudienceActivityLogUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload>
+          args: Prisma.CampaignActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload>
         }
         deleteMany: {
-          args: Prisma.AudienceActivityLogDeleteManyArgs<ExtArgs>
+          args: Prisma.CampaignActivityLogDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.AudienceActivityLogUpdateManyArgs<ExtArgs>
+          args: Prisma.CampaignActivityLogUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.AudienceActivityLogUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload>[]
+          args: Prisma.CampaignActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload>[]
         }
         upsert: {
-          args: Prisma.AudienceActivityLogUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceActivityLogPayload>
+          args: Prisma.CampaignActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignActivityLogPayload>
         }
         aggregate: {
-          args: Prisma.AudienceActivityLogAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAudienceActivityLog>
+          args: Prisma.CampaignActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCampaignActivityLog>
         }
         groupBy: {
-          args: Prisma.AudienceActivityLogGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AudienceActivityLogGroupByOutputType>[]
+          args: Prisma.CampaignActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CampaignActivityLogGroupByOutputType>[]
         }
         count: {
-          args: Prisma.AudienceActivityLogCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AudienceActivityLogCountAggregateOutputType> | number
+          args: Prisma.CampaignActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CampaignActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    EmailLogActivityLog: {
+      payload: Prisma.$EmailLogActivityLogPayload<ExtArgs>
+      fields: Prisma.EmailLogActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EmailLogActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EmailLogActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.EmailLogActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EmailLogActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.EmailLogActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.EmailLogActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.EmailLogActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EmailLogActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.EmailLogActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload>
+        }
+        update: {
+          args: Prisma.EmailLogActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.EmailLogActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EmailLogActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EmailLogActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.EmailLogActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailLogActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.EmailLogActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEmailLogActivityLog>
+        }
+        groupBy: {
+          args: Prisma.EmailLogActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailLogActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EmailLogActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailLogActivityLogCountAggregateOutputType> | number
         }
       }
     }
@@ -10346,115 +10346,131 @@ export type CreativeBriefActivityLogScalarFieldEnum = (typeof CreativeBriefActiv
 
 export const EmailDomainScalarFieldEnum = {
   id: 'id',
-  teamId: 'teamId',
-  userId: 'userId',
   domainName: 'domainName',
+  resendDomainId: 'resendDomainId',
+  status: 'status',
+  userId: 'userId',
+  teamId: 'teamId',
   verificationStatus: 'verificationStatus',
-  dkimTokens: 'dkimTokens',
-  spfRecord: 'spfRecord',
-  dmarcRecord: 'dmarcRecord',
-  sesIdentityArn: 'sesIdentityArn',
-  isVerified: 'isVerified',
-  verificationAttempts: 'verificationAttempts',
-  lastVerificationAt: 'lastVerificationAt',
+  verificationData: 'verificationData',
+  dnsRecords: 'dnsRecords',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  verifiedAt: 'verifiedAt'
 } as const
 
 export type EmailDomainScalarFieldEnum = (typeof EmailDomainScalarFieldEnum)[keyof typeof EmailDomainScalarFieldEnum]
 
 
-export const EmailCampaignScalarFieldEnum = {
+export const ContactScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  description: 'description',
-  teamId: 'teamId',
-  userId: 'userId',
-  emailDomainId: 'emailDomainId',
-  audienceId: 'audienceId',
-  fromAddress: 'fromAddress',
-  replyToAddress: 'replyToAddress',
-  subject: 'subject',
-  htmlContent: 'htmlContent',
-  textContent: 'textContent',
-  status: 'status',
-  scheduledAt: 'scheduledAt',
-  sentAt: 'sentAt',
-  totalRecipients: 'totalRecipients',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type EmailCampaignScalarFieldEnum = (typeof EmailCampaignScalarFieldEnum)[keyof typeof EmailCampaignScalarFieldEnum]
-
-
-export const AudienceScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description',
-  teamId: 'teamId',
-  userId: 'userId',
-  status: 'status',
-  totalContacts: 'totalContacts',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type AudienceScalarFieldEnum = (typeof AudienceScalarFieldEnum)[keyof typeof AudienceScalarFieldEnum]
-
-
-export const AudienceContactScalarFieldEnum = {
-  id: 'id',
-  audienceId: 'audienceId',
   email: 'email',
   firstName: 'firstName',
   lastName: 'lastName',
-  customFields: 'customFields',
+  phone: 'phone',
+  company: 'company',
+  jobTitle: 'jobTitle',
+  address: 'address',
+  city: 'city',
+  state: 'state',
+  country: 'country',
+  postalCode: 'postalCode',
   status: 'status',
-  subscribedAt: 'subscribedAt',
-  unsubscribedAt: 'unsubscribedAt',
+  userId: 'userId',
+  teamId: 'teamId',
+  customFields: 'customFields',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  lastContactedAt: 'lastContactedAt',
+  unsubscribedAt: 'unsubscribedAt'
+} as const
+
+export type ContactScalarFieldEnum = (typeof ContactScalarFieldEnum)[keyof typeof ContactScalarFieldEnum]
+
+
+export const EmailTemplateScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  subject: 'subject',
+  htmlContent: 'htmlContent',
+  textContent: 'textContent',
+  variables: 'variables',
+  userId: 'userId',
+  teamId: 'teamId',
+  isActive: 'isActive',
+  metadata: 'metadata',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type AudienceContactScalarFieldEnum = (typeof AudienceContactScalarFieldEnum)[keyof typeof AudienceContactScalarFieldEnum]
+export type EmailTemplateScalarFieldEnum = (typeof EmailTemplateScalarFieldEnum)[keyof typeof EmailTemplateScalarFieldEnum]
+
+
+export const CampaignScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  subject: 'subject',
+  fromEmail: 'fromEmail',
+  fromName: 'fromName',
+  type: 'type',
+  status: 'status',
+  recipientEmails: 'recipientEmails',
+  emailDomainId: 'emailDomainId',
+  htmlContent: 'htmlContent',
+  textContent: 'textContent',
+  emailTemplateId: 'emailTemplateId',
+  scheduledAt: 'scheduledAt',
+  sentAt: 'sentAt',
+  totalRecipients: 'totalRecipients',
+  sentCount: 'sentCount',
+  deliveredCount: 'deliveredCount',
+  openedCount: 'openedCount',
+  clickedCount: 'clickedCount',
+  bouncedCount: 'bouncedCount',
+  complainedCount: 'complainedCount',
+  unsubscribedCount: 'unsubscribedCount',
+  userId: 'userId',
+  teamId: 'teamId',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
 
 
 export const EmailLogScalarFieldEnum = {
   id: 'id',
+  toEmail: 'toEmail',
+  fromEmail: 'fromEmail',
+  subject: 'subject',
+  type: 'type',
+  status: 'status',
+  resendEmailId: 'resendEmailId',
+  resendMessageId: 'resendMessageId',
+  emailDomainId: 'emailDomainId',
   campaignId: 'campaignId',
-  audienceContactId: 'audienceContactId',
-  messageId: 'messageId',
-  eventType: 'eventType',
-  eventData: 'eventData',
-  timestamp: 'timestamp',
-  ipAddress: 'ipAddress',
-  userAgent: 'userAgent',
-  linkUrl: 'linkUrl',
-  bounceType: 'bounceType',
-  bounceSubType: 'bounceSubType',
-  complaintFeedbackType: 'complaintFeedbackType',
-  createdAt: 'createdAt'
+  contactId: 'contactId',
+  htmlContent: 'htmlContent',
+  textContent: 'textContent',
+  openedAt: 'openedAt',
+  clickedAt: 'clickedAt',
+  bouncedAt: 'bouncedAt',
+  complainedAt: 'complainedAt',
+  unsubscribedAt: 'unsubscribedAt',
+  errorMessage: 'errorMessage',
+  metadata: 'metadata',
+  userId: 'userId',
+  teamId: 'teamId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  sentAt: 'sentAt',
+  deliveredAt: 'deliveredAt'
 } as const
 
 export type EmailLogScalarFieldEnum = (typeof EmailLogScalarFieldEnum)[keyof typeof EmailLogScalarFieldEnum]
-
-
-export const SESConfigurationScalarFieldEnum = {
-  id: 'id',
-  configurationSetName: 'configurationSetName',
-  snsTopicArn: 'snsTopicArn',
-  region: 'region',
-  isActive: 'isActive',
-  dailySendingQuota: 'dailySendingQuota',
-  maxSendRate: 'maxSendRate',
-  reputationMetrics: 'reputationMetrics',
-  lastSyncedAt: 'lastSyncedAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type SESConfigurationScalarFieldEnum = (typeof SESConfigurationScalarFieldEnum)[keyof typeof SESConfigurationScalarFieldEnum]
 
 
 export const EmailDomainActivityLogScalarFieldEnum = {
@@ -10472,10 +10488,10 @@ export const EmailDomainActivityLogScalarFieldEnum = {
 export type EmailDomainActivityLogScalarFieldEnum = (typeof EmailDomainActivityLogScalarFieldEnum)[keyof typeof EmailDomainActivityLogScalarFieldEnum]
 
 
-export const EmailCampaignActivityLogScalarFieldEnum = {
+export const ContactActivityLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  emailCampaignId: 'emailCampaignId',
+  contactId: 'contactId',
   action: 'action',
   description: 'description',
   metadata: 'metadata',
@@ -10484,13 +10500,13 @@ export const EmailCampaignActivityLogScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type EmailCampaignActivityLogScalarFieldEnum = (typeof EmailCampaignActivityLogScalarFieldEnum)[keyof typeof EmailCampaignActivityLogScalarFieldEnum]
+export type ContactActivityLogScalarFieldEnum = (typeof ContactActivityLogScalarFieldEnum)[keyof typeof ContactActivityLogScalarFieldEnum]
 
 
-export const AudienceActivityLogScalarFieldEnum = {
+export const CampaignActivityLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  audienceId: 'audienceId',
+  campaignId: 'campaignId',
   action: 'action',
   description: 'description',
   metadata: 'metadata',
@@ -10499,7 +10515,22 @@ export const AudienceActivityLogScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type AudienceActivityLogScalarFieldEnum = (typeof AudienceActivityLogScalarFieldEnum)[keyof typeof AudienceActivityLogScalarFieldEnum]
+export type CampaignActivityLogScalarFieldEnum = (typeof CampaignActivityLogScalarFieldEnum)[keyof typeof CampaignActivityLogScalarFieldEnum]
+
+
+export const EmailLogActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  emailLogId: 'emailLogId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type EmailLogActivityLogScalarFieldEnum = (typeof EmailLogActivityLogScalarFieldEnum)[keyof typeof EmailLogActivityLogScalarFieldEnum]
 
 
 export const GoogleAdsIntegrationScalarFieldEnum = {
@@ -12104,58 +12135,86 @@ export type ListEnumCreativeBriefStatusFieldRefInput<$PrismaModel> = FieldRefInp
 
 
 /**
- * Reference to a field of type 'EmailDomainVerificationStatus'
+ * Reference to a field of type 'EmailDomainStatus'
  */
-export type EnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailDomainVerificationStatus'>
+export type EnumEmailDomainStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailDomainStatus'>
     
 
 
 /**
- * Reference to a field of type 'EmailDomainVerificationStatus[]'
+ * Reference to a field of type 'EmailDomainStatus[]'
  */
-export type ListEnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailDomainVerificationStatus[]'>
+export type ListEnumEmailDomainStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailDomainStatus[]'>
     
 
 
 /**
- * Reference to a field of type 'EmailCampaignStatus'
+ * Reference to a field of type 'ContactStatus'
  */
-export type EnumEmailCampaignStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailCampaignStatus'>
+export type EnumContactStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContactStatus'>
     
 
 
 /**
- * Reference to a field of type 'EmailCampaignStatus[]'
+ * Reference to a field of type 'ContactStatus[]'
  */
-export type ListEnumEmailCampaignStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailCampaignStatus[]'>
+export type ListEnumContactStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContactStatus[]'>
     
 
 
 /**
- * Reference to a field of type 'AudienceContactStatus'
+ * Reference to a field of type 'CampaignType'
  */
-export type EnumAudienceContactStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AudienceContactStatus'>
+export type EnumCampaignTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CampaignType'>
     
 
 
 /**
- * Reference to a field of type 'AudienceContactStatus[]'
+ * Reference to a field of type 'CampaignType[]'
  */
-export type ListEnumAudienceContactStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AudienceContactStatus[]'>
+export type ListEnumCampaignTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CampaignType[]'>
     
 
 
 /**
- * Reference to a field of type 'EmailEventType'
+ * Reference to a field of type 'CampaignStatus'
  */
-export type EnumEmailEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailEventType'>
+export type EnumCampaignStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CampaignStatus'>
     
 
 
 /**
- * Reference to a field of type 'EmailEventType[]'
+ * Reference to a field of type 'CampaignStatus[]'
  */
-export type ListEnumEmailEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailEventType[]'>
+export type ListEnumCampaignStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CampaignStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'EmailLogType'
+ */
+export type EnumEmailLogTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailLogType'>
+    
+
+
+/**
+ * Reference to a field of type 'EmailLogType[]'
+ */
+export type ListEnumEmailLogTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailLogType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'EmailLogStatus'
+ */
+export type EnumEmailLogStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailLogStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'EmailLogStatus[]'
+ */
+export type ListEnumEmailLogStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailLogStatus[]'>
     
 
 
@@ -12702,14 +12761,14 @@ export type GlobalOmitConfig = {
   creativeBriefReferenceImage?: Prisma.CreativeBriefReferenceImageOmit
   creativeBriefActivityLog?: Prisma.CreativeBriefActivityLogOmit
   emailDomain?: Prisma.EmailDomainOmit
-  emailCampaign?: Prisma.EmailCampaignOmit
-  audience?: Prisma.AudienceOmit
-  audienceContact?: Prisma.AudienceContactOmit
+  contact?: Prisma.ContactOmit
+  emailTemplate?: Prisma.EmailTemplateOmit
+  campaign?: Prisma.CampaignOmit
   emailLog?: Prisma.EmailLogOmit
-  sESConfiguration?: Prisma.SESConfigurationOmit
   emailDomainActivityLog?: Prisma.EmailDomainActivityLogOmit
-  emailCampaignActivityLog?: Prisma.EmailCampaignActivityLogOmit
-  audienceActivityLog?: Prisma.AudienceActivityLogOmit
+  contactActivityLog?: Prisma.ContactActivityLogOmit
+  campaignActivityLog?: Prisma.CampaignActivityLogOmit
+  emailLogActivityLog?: Prisma.EmailLogActivityLogOmit
   googleAdsIntegration?: Prisma.GoogleAdsIntegrationOmit
   googleAdsAccount?: Prisma.GoogleAdsAccountOmit
   googleAdsIntegrationActivityLog?: Prisma.GoogleAdsIntegrationActivityLogOmit

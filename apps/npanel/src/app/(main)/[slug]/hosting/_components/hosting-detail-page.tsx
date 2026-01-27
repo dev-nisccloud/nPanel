@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, MoreVertical, Edit, Unlink, LayoutDashboard, Network, Mail, Folder, Layers, ChevronRight } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, Layers, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { z } from "zod";
@@ -30,7 +30,6 @@ import { SubdomainsTable } from "./subdomains-table";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
-import { LinkToTeamDialog } from "./link-to-team-dialog";
 import { EditSubscriptionDialog } from "./edit-subscription-dialog";
 import { UnauthorizedAccess } from "./unauthorized-access";
 import { NotFoundPage } from "./not-found-page";
@@ -86,12 +85,12 @@ function HostingDetailSkeleton() {
 }
 
 // Error component
-function HostingDetailError({ error, onRetry }: { error: Error; onRetry: () => void }) {
+function HostingDetailError({ error, onRetry, teamSlug }: { error: Error; onRetry: () => void; teamSlug: string }) {
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/agency/hosting">
+          <Link href={`/${teamSlug}/hosting`}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
@@ -128,7 +127,7 @@ function HostingDetailError({ error, onRetry }: { error: Error; onRetry: () => v
           <Button onClick={onRetry} variant="outline">
             Try Again
           </Button>
-          <Link href="/agency/hosting">
+          <Link href={`/${teamSlug}/hosting`}>
             <Button variant="ghost">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Hosting
@@ -147,37 +146,12 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   
   // Use batched endpoint - fetches both hosting data and subscription link in one request
   const { data: hostingData, subscription: subscriptionData, serviceSubscription: serviceSubscriptionData, isLoading, isError, error, refetch, rawData } = useHostingDetailBatched(subscriptionId);
-  const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
   const [isEditSubscriptionOpen, setIsEditSubscriptionOpen] = React.useState(false);
-  const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
-  const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
 
   // Get pleskFilterId from raw data
   const pleskFilterId = String(rawData?.parsed?.packet?.webspace?.get?.result?.["filter-id"] || "");
 
-  const isLinkedToTeam = !!subscriptionData?.teamId;
-
   const utils = trpc.useUtils();
-
-  // Unlink mutation
-  const unlinkMutation = trpc.hosting.unlinkFromTeam.useMutation({
-    onSuccess: () => {
-      toast.success("Subscription unlinked from team successfully");
-      setIsUnlinkDialogOpen(false);
-      // Invalidate subscription query to refresh data
-      utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to unlink subscription from team");
-    },
-  });
-
-  const handleUnlink = () => {
-    if (subscriptionData?.id) {
-      unlinkMutation.mutate({ subscriptionId: subscriptionData.id });
-    }
-  };
 
   // Show loading state
   if (isLoading) {
@@ -196,7 +170,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
 
   // Show error state for other errors
   if (isError || !hostingData) {
-    return <HostingDetailError error={error as Error} onRetry={() => refetch()} />;
+    return <HostingDetailError error={error as Error} onRetry={() => refetch()} teamSlug={teamSlug} />;
   }
 
   const getStatusBadge = (status: number) => {
@@ -325,20 +299,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           <SubdomainsTable domainName={hostingData.gen_info?.name || ""} />
         </TabsContent>
       </Tabs>
-
-      {/* Link to Team Dialog */}
-      <LinkToTeamDialog
-        open={isLinkToTeamOpen}
-        onOpenChange={setIsLinkToTeamOpen}
-        subscriptionId={subscriptionId}
-        pleskFilterId={pleskFilterId}
-        hostingType={hostingData?.gen_info?.htype}
-        onSuccess={() => {
-          // Invalidate subscription query to refresh data
-          utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });
-          refetch();
-        }}
-      />
 
       {/* Edit Subscription Dialog */}
       <EditSubscriptionDialog

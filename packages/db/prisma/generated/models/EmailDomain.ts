@@ -19,126 +19,92 @@ export type EmailDomainModel = runtime.Types.Result.DefaultSelection<Prisma.$Ema
 
 export type AggregateEmailDomain = {
   _count: EmailDomainCountAggregateOutputType | null
-  _avg: EmailDomainAvgAggregateOutputType | null
-  _sum: EmailDomainSumAggregateOutputType | null
   _min: EmailDomainMinAggregateOutputType | null
   _max: EmailDomainMaxAggregateOutputType | null
 }
 
-export type EmailDomainAvgAggregateOutputType = {
-  verificationAttempts: number | null
-}
-
-export type EmailDomainSumAggregateOutputType = {
-  verificationAttempts: number | null
-}
-
 export type EmailDomainMinAggregateOutputType = {
   id: string | null
-  teamId: string | null
-  userId: string | null
   domainName: string | null
-  verificationStatus: $Enums.EmailDomainVerificationStatus | null
-  spfRecord: string | null
-  dmarcRecord: string | null
-  sesIdentityArn: string | null
-  isVerified: boolean | null
-  verificationAttempts: number | null
-  lastVerificationAt: Date | null
+  resendDomainId: string | null
+  status: $Enums.EmailDomainStatus | null
+  userId: string | null
+  teamId: string | null
+  verificationStatus: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  verifiedAt: Date | null
 }
 
 export type EmailDomainMaxAggregateOutputType = {
   id: string | null
-  teamId: string | null
-  userId: string | null
   domainName: string | null
-  verificationStatus: $Enums.EmailDomainVerificationStatus | null
-  spfRecord: string | null
-  dmarcRecord: string | null
-  sesIdentityArn: string | null
-  isVerified: boolean | null
-  verificationAttempts: number | null
-  lastVerificationAt: Date | null
+  resendDomainId: string | null
+  status: $Enums.EmailDomainStatus | null
+  userId: string | null
+  teamId: string | null
+  verificationStatus: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  verifiedAt: Date | null
 }
 
 export type EmailDomainCountAggregateOutputType = {
   id: number
-  teamId: number
-  userId: number
   domainName: number
+  resendDomainId: number
+  status: number
+  userId: number
+  teamId: number
   verificationStatus: number
-  dkimTokens: number
-  spfRecord: number
-  dmarcRecord: number
-  sesIdentityArn: number
-  isVerified: number
-  verificationAttempts: number
-  lastVerificationAt: number
+  verificationData: number
+  dnsRecords: number
   createdAt: number
   updatedAt: number
+  verifiedAt: number
   _all: number
 }
 
 
-export type EmailDomainAvgAggregateInputType = {
-  verificationAttempts?: true
-}
-
-export type EmailDomainSumAggregateInputType = {
-  verificationAttempts?: true
-}
-
 export type EmailDomainMinAggregateInputType = {
   id?: true
-  teamId?: true
-  userId?: true
   domainName?: true
+  resendDomainId?: true
+  status?: true
+  userId?: true
+  teamId?: true
   verificationStatus?: true
-  spfRecord?: true
-  dmarcRecord?: true
-  sesIdentityArn?: true
-  isVerified?: true
-  verificationAttempts?: true
-  lastVerificationAt?: true
   createdAt?: true
   updatedAt?: true
+  verifiedAt?: true
 }
 
 export type EmailDomainMaxAggregateInputType = {
   id?: true
-  teamId?: true
-  userId?: true
   domainName?: true
+  resendDomainId?: true
+  status?: true
+  userId?: true
+  teamId?: true
   verificationStatus?: true
-  spfRecord?: true
-  dmarcRecord?: true
-  sesIdentityArn?: true
-  isVerified?: true
-  verificationAttempts?: true
-  lastVerificationAt?: true
   createdAt?: true
   updatedAt?: true
+  verifiedAt?: true
 }
 
 export type EmailDomainCountAggregateInputType = {
   id?: true
-  teamId?: true
-  userId?: true
   domainName?: true
+  resendDomainId?: true
+  status?: true
+  userId?: true
+  teamId?: true
   verificationStatus?: true
-  dkimTokens?: true
-  spfRecord?: true
-  dmarcRecord?: true
-  sesIdentityArn?: true
-  isVerified?: true
-  verificationAttempts?: true
-  lastVerificationAt?: true
+  verificationData?: true
+  dnsRecords?: true
   createdAt?: true
   updatedAt?: true
+  verifiedAt?: true
   _all?: true
 }
 
@@ -180,18 +146,6 @@ export type EmailDomainAggregateArgs<ExtArgs extends runtime.Types.Extensions.In
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
-   * Select which fields to average
-  **/
-  _avg?: EmailDomainAvgAggregateInputType
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   * 
-   * Select which fields to sum
-  **/
-  _sum?: EmailDomainSumAggregateInputType
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   * 
    * Select which fields to find the minimum value
   **/
   _min?: EmailDomainMinAggregateInputType
@@ -222,30 +176,24 @@ export type EmailDomainGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   _count?: EmailDomainCountAggregateInputType | true
-  _avg?: EmailDomainAvgAggregateInputType
-  _sum?: EmailDomainSumAggregateInputType
   _min?: EmailDomainMinAggregateInputType
   _max?: EmailDomainMaxAggregateInputType
 }
 
 export type EmailDomainGroupByOutputType = {
   id: string
-  teamId: string | null
-  userId: string
   domainName: string
-  verificationStatus: $Enums.EmailDomainVerificationStatus
-  dkimTokens: runtime.JsonValue | null
-  spfRecord: string | null
-  dmarcRecord: string | null
-  sesIdentityArn: string | null
-  isVerified: boolean
-  verificationAttempts: number
-  lastVerificationAt: Date | null
+  resendDomainId: string | null
+  status: $Enums.EmailDomainStatus
+  userId: string
+  teamId: string | null
+  verificationStatus: string | null
+  verificationData: runtime.JsonValue | null
+  dnsRecords: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
+  verifiedAt: Date | null
   _count: EmailDomainCountAggregateOutputType | null
-  _avg: EmailDomainAvgAggregateOutputType | null
-  _sum: EmailDomainSumAggregateOutputType | null
   _min: EmailDomainMinAggregateOutputType | null
   _max: EmailDomainMaxAggregateOutputType | null
 }
@@ -270,43 +218,41 @@ export type EmailDomainWhereInput = {
   OR?: Prisma.EmailDomainWhereInput[]
   NOT?: Prisma.EmailDomainWhereInput | Prisma.EmailDomainWhereInput[]
   id?: Prisma.StringFilter<"EmailDomain"> | string
-  teamId?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  userId?: Prisma.StringFilter<"EmailDomain"> | string
   domainName?: Prisma.StringFilter<"EmailDomain"> | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFilter<"EmailDomain"> | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.JsonNullableFilter<"EmailDomain">
-  spfRecord?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  dmarcRecord?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  sesIdentityArn?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  isVerified?: Prisma.BoolFilter<"EmailDomain"> | boolean
-  verificationAttempts?: Prisma.IntFilter<"EmailDomain"> | number
-  lastVerificationAt?: Prisma.DateTimeNullableFilter<"EmailDomain"> | Date | string | null
+  resendDomainId?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
+  status?: Prisma.EnumEmailDomainStatusFilter<"EmailDomain"> | $Enums.EmailDomainStatus
+  userId?: Prisma.StringFilter<"EmailDomain"> | string
+  teamId?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
+  verificationStatus?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
+  verificationData?: Prisma.JsonNullableFilter<"EmailDomain">
+  dnsRecords?: Prisma.JsonNullableFilter<"EmailDomain">
   createdAt?: Prisma.DateTimeFilter<"EmailDomain"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"EmailDomain"> | Date | string
-  team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
+  verifiedAt?: Prisma.DateTimeNullableFilter<"EmailDomain"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  campaigns?: Prisma.EmailCampaignListRelationFilter
+  team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
+  emailLogs?: Prisma.EmailLogListRelationFilter
+  campaigns?: Prisma.CampaignListRelationFilter
   activityLogs?: Prisma.EmailDomainActivityLogListRelationFilter
 }
 
 export type EmailDomainOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
-  userId?: Prisma.SortOrder
   domainName?: Prisma.SortOrder
-  verificationStatus?: Prisma.SortOrder
-  dkimTokens?: Prisma.SortOrderInput | Prisma.SortOrder
-  spfRecord?: Prisma.SortOrderInput | Prisma.SortOrder
-  dmarcRecord?: Prisma.SortOrderInput | Prisma.SortOrder
-  sesIdentityArn?: Prisma.SortOrderInput | Prisma.SortOrder
-  isVerified?: Prisma.SortOrder
-  verificationAttempts?: Prisma.SortOrder
-  lastVerificationAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  resendDomainId?: Prisma.SortOrderInput | Prisma.SortOrder
+  status?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
+  verificationStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  verificationData?: Prisma.SortOrderInput | Prisma.SortOrder
+  dnsRecords?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  team?: Prisma.TeamOrderByWithRelationInput
+  verifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
-  campaigns?: Prisma.EmailCampaignOrderByRelationAggregateInput
+  team?: Prisma.TeamOrderByWithRelationInput
+  emailLogs?: Prisma.EmailLogOrderByRelationAggregateInput
+  campaigns?: Prisma.CampaignOrderByRelationAggregateInput
   activityLogs?: Prisma.EmailDomainActivityLogOrderByRelationAggregateInput
 }
 
@@ -316,44 +262,39 @@ export type EmailDomainWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.EmailDomainWhereInput | Prisma.EmailDomainWhereInput[]
   OR?: Prisma.EmailDomainWhereInput[]
   NOT?: Prisma.EmailDomainWhereInput | Prisma.EmailDomainWhereInput[]
-  teamId?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
+  resendDomainId?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
+  status?: Prisma.EnumEmailDomainStatusFilter<"EmailDomain"> | $Enums.EmailDomainStatus
   userId?: Prisma.StringFilter<"EmailDomain"> | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFilter<"EmailDomain"> | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.JsonNullableFilter<"EmailDomain">
-  spfRecord?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  dmarcRecord?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  sesIdentityArn?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  isVerified?: Prisma.BoolFilter<"EmailDomain"> | boolean
-  verificationAttempts?: Prisma.IntFilter<"EmailDomain"> | number
-  lastVerificationAt?: Prisma.DateTimeNullableFilter<"EmailDomain"> | Date | string | null
+  teamId?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
+  verificationStatus?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
+  verificationData?: Prisma.JsonNullableFilter<"EmailDomain">
+  dnsRecords?: Prisma.JsonNullableFilter<"EmailDomain">
   createdAt?: Prisma.DateTimeFilter<"EmailDomain"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"EmailDomain"> | Date | string
-  team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
+  verifiedAt?: Prisma.DateTimeNullableFilter<"EmailDomain"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  campaigns?: Prisma.EmailCampaignListRelationFilter
+  team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
+  emailLogs?: Prisma.EmailLogListRelationFilter
+  campaigns?: Prisma.CampaignListRelationFilter
   activityLogs?: Prisma.EmailDomainActivityLogListRelationFilter
 }, "id" | "domainName">
 
 export type EmailDomainOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
-  userId?: Prisma.SortOrder
   domainName?: Prisma.SortOrder
-  verificationStatus?: Prisma.SortOrder
-  dkimTokens?: Prisma.SortOrderInput | Prisma.SortOrder
-  spfRecord?: Prisma.SortOrderInput | Prisma.SortOrder
-  dmarcRecord?: Prisma.SortOrderInput | Prisma.SortOrder
-  sesIdentityArn?: Prisma.SortOrderInput | Prisma.SortOrder
-  isVerified?: Prisma.SortOrder
-  verificationAttempts?: Prisma.SortOrder
-  lastVerificationAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  resendDomainId?: Prisma.SortOrderInput | Prisma.SortOrder
+  status?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
+  verificationStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  verificationData?: Prisma.SortOrderInput | Prisma.SortOrder
+  dnsRecords?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  verifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.EmailDomainCountOrderByAggregateInput
-  _avg?: Prisma.EmailDomainAvgOrderByAggregateInput
   _max?: Prisma.EmailDomainMaxOrderByAggregateInput
   _min?: Prisma.EmailDomainMinOrderByAggregateInput
-  _sum?: Prisma.EmailDomainSumOrderByAggregateInput
 }
 
 export type EmailDomainScalarWhereWithAggregatesInput = {
@@ -361,144 +302,132 @@ export type EmailDomainScalarWhereWithAggregatesInput = {
   OR?: Prisma.EmailDomainScalarWhereWithAggregatesInput[]
   NOT?: Prisma.EmailDomainScalarWhereWithAggregatesInput | Prisma.EmailDomainScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"EmailDomain"> | string
-  teamId?: Prisma.StringNullableWithAggregatesFilter<"EmailDomain"> | string | null
-  userId?: Prisma.StringWithAggregatesFilter<"EmailDomain"> | string
   domainName?: Prisma.StringWithAggregatesFilter<"EmailDomain"> | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusWithAggregatesFilter<"EmailDomain"> | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.JsonNullableWithAggregatesFilter<"EmailDomain">
-  spfRecord?: Prisma.StringNullableWithAggregatesFilter<"EmailDomain"> | string | null
-  dmarcRecord?: Prisma.StringNullableWithAggregatesFilter<"EmailDomain"> | string | null
-  sesIdentityArn?: Prisma.StringNullableWithAggregatesFilter<"EmailDomain"> | string | null
-  isVerified?: Prisma.BoolWithAggregatesFilter<"EmailDomain"> | boolean
-  verificationAttempts?: Prisma.IntWithAggregatesFilter<"EmailDomain"> | number
-  lastVerificationAt?: Prisma.DateTimeNullableWithAggregatesFilter<"EmailDomain"> | Date | string | null
+  resendDomainId?: Prisma.StringNullableWithAggregatesFilter<"EmailDomain"> | string | null
+  status?: Prisma.EnumEmailDomainStatusWithAggregatesFilter<"EmailDomain"> | $Enums.EmailDomainStatus
+  userId?: Prisma.StringWithAggregatesFilter<"EmailDomain"> | string
+  teamId?: Prisma.StringNullableWithAggregatesFilter<"EmailDomain"> | string | null
+  verificationStatus?: Prisma.StringNullableWithAggregatesFilter<"EmailDomain"> | string | null
+  verificationData?: Prisma.JsonNullableWithAggregatesFilter<"EmailDomain">
+  dnsRecords?: Prisma.JsonNullableWithAggregatesFilter<"EmailDomain">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"EmailDomain"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"EmailDomain"> | Date | string
+  verifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"EmailDomain"> | Date | string | null
 }
 
 export type EmailDomainCreateInput = {
   id: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
-  team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
+  verifiedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutEmailDomainsInput
-  campaigns?: Prisma.EmailCampaignCreateNestedManyWithoutEmailDomainInput
+  team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
+  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogCreateNestedManyWithoutEmailDomainInput
 }
 
 export type EmailDomainUncheckedCreateInput = {
   id: string
-  teamId?: string | null
-  userId: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  userId: string
+  teamId?: string | null
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
-  campaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutEmailDomainInput
+  verifiedAt?: Date | string | null
+  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedCreateNestedManyWithoutEmailDomainInput
 }
 
 export type EmailDomainUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutEmailDomainsNestedInput
-  campaigns?: Prisma.EmailCampaignUpdateManyWithoutEmailDomainNestedInput
+  team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
+  emailLogs?: Prisma.EmailLogUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  campaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainCreateManyInput = {
   id: string
-  teamId?: string | null
-  userId: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  userId: string
+  teamId?: string | null
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  verifiedAt?: Date | string | null
 }
 
 export type EmailDomainUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type EmailDomainUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type EmailDomainListRelationFilter = {
@@ -513,59 +442,48 @@ export type EmailDomainOrderByRelationAggregateInput = {
 
 export type EmailDomainCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  teamId?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
   domainName?: Prisma.SortOrder
+  resendDomainId?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   verificationStatus?: Prisma.SortOrder
-  dkimTokens?: Prisma.SortOrder
-  spfRecord?: Prisma.SortOrder
-  dmarcRecord?: Prisma.SortOrder
-  sesIdentityArn?: Prisma.SortOrder
-  isVerified?: Prisma.SortOrder
-  verificationAttempts?: Prisma.SortOrder
-  lastVerificationAt?: Prisma.SortOrder
+  verificationData?: Prisma.SortOrder
+  dnsRecords?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-}
-
-export type EmailDomainAvgOrderByAggregateInput = {
-  verificationAttempts?: Prisma.SortOrder
+  verifiedAt?: Prisma.SortOrder
 }
 
 export type EmailDomainMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  teamId?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
   domainName?: Prisma.SortOrder
+  resendDomainId?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   verificationStatus?: Prisma.SortOrder
-  spfRecord?: Prisma.SortOrder
-  dmarcRecord?: Prisma.SortOrder
-  sesIdentityArn?: Prisma.SortOrder
-  isVerified?: Prisma.SortOrder
-  verificationAttempts?: Prisma.SortOrder
-  lastVerificationAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  verifiedAt?: Prisma.SortOrder
 }
 
 export type EmailDomainMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  teamId?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
   domainName?: Prisma.SortOrder
+  resendDomainId?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   verificationStatus?: Prisma.SortOrder
-  spfRecord?: Prisma.SortOrder
-  dmarcRecord?: Prisma.SortOrder
-  sesIdentityArn?: Prisma.SortOrder
-  isVerified?: Prisma.SortOrder
-  verificationAttempts?: Prisma.SortOrder
-  lastVerificationAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  verifiedAt?: Prisma.SortOrder
 }
 
-export type EmailDomainSumOrderByAggregateInput = {
-  verificationAttempts?: Prisma.SortOrder
+export type EmailDomainNullableScalarRelationFilter = {
+  is?: Prisma.EmailDomainWhereInput | null
+  isNot?: Prisma.EmailDomainWhereInput | null
 }
 
 export type EmailDomainScalarRelationFilter = {
@@ -657,8 +575,8 @@ export type EmailDomainUncheckedUpdateManyWithoutTeamNestedInput = {
   deleteMany?: Prisma.EmailDomainScalarWhereInput | Prisma.EmailDomainScalarWhereInput[]
 }
 
-export type EnumEmailDomainVerificationStatusFieldUpdateOperationsInput = {
-  set?: $Enums.EmailDomainVerificationStatus
+export type EnumEmailDomainStatusFieldUpdateOperationsInput = {
+  set?: $Enums.EmailDomainStatus
 }
 
 export type EmailDomainCreateNestedOneWithoutCampaignsInput = {
@@ -667,12 +585,30 @@ export type EmailDomainCreateNestedOneWithoutCampaignsInput = {
   connect?: Prisma.EmailDomainWhereUniqueInput
 }
 
-export type EmailDomainUpdateOneRequiredWithoutCampaignsNestedInput = {
+export type EmailDomainUpdateOneWithoutCampaignsNestedInput = {
   create?: Prisma.XOR<Prisma.EmailDomainCreateWithoutCampaignsInput, Prisma.EmailDomainUncheckedCreateWithoutCampaignsInput>
   connectOrCreate?: Prisma.EmailDomainCreateOrConnectWithoutCampaignsInput
   upsert?: Prisma.EmailDomainUpsertWithoutCampaignsInput
+  disconnect?: Prisma.EmailDomainWhereInput | boolean
+  delete?: Prisma.EmailDomainWhereInput | boolean
   connect?: Prisma.EmailDomainWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.EmailDomainUpdateToOneWithWhereWithoutCampaignsInput, Prisma.EmailDomainUpdateWithoutCampaignsInput>, Prisma.EmailDomainUncheckedUpdateWithoutCampaignsInput>
+}
+
+export type EmailDomainCreateNestedOneWithoutEmailLogsInput = {
+  create?: Prisma.XOR<Prisma.EmailDomainCreateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedCreateWithoutEmailLogsInput>
+  connectOrCreate?: Prisma.EmailDomainCreateOrConnectWithoutEmailLogsInput
+  connect?: Prisma.EmailDomainWhereUniqueInput
+}
+
+export type EmailDomainUpdateOneWithoutEmailLogsNestedInput = {
+  create?: Prisma.XOR<Prisma.EmailDomainCreateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedCreateWithoutEmailLogsInput>
+  connectOrCreate?: Prisma.EmailDomainCreateOrConnectWithoutEmailLogsInput
+  upsert?: Prisma.EmailDomainUpsertWithoutEmailLogsInput
+  disconnect?: Prisma.EmailDomainWhereInput | boolean
+  delete?: Prisma.EmailDomainWhereInput | boolean
+  connect?: Prisma.EmailDomainWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EmailDomainUpdateToOneWithWhereWithoutEmailLogsInput, Prisma.EmailDomainUpdateWithoutEmailLogsInput>, Prisma.EmailDomainUncheckedUpdateWithoutEmailLogsInput>
 }
 
 export type EmailDomainCreateNestedOneWithoutActivityLogsInput = {
@@ -692,36 +628,34 @@ export type EmailDomainUpdateOneRequiredWithoutActivityLogsNestedInput = {
 export type EmailDomainCreateWithoutUserInput = {
   id: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  verifiedAt?: Date | string | null
   team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
-  campaigns?: Prisma.EmailCampaignCreateNestedManyWithoutEmailDomainInput
+  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogCreateNestedManyWithoutEmailDomainInput
 }
 
 export type EmailDomainUncheckedCreateWithoutUserInput = {
   id: string
-  teamId?: string | null
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  teamId?: string | null
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
-  campaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutEmailDomainInput
+  verifiedAt?: Date | string | null
+  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -756,54 +690,50 @@ export type EmailDomainScalarWhereInput = {
   OR?: Prisma.EmailDomainScalarWhereInput[]
   NOT?: Prisma.EmailDomainScalarWhereInput | Prisma.EmailDomainScalarWhereInput[]
   id?: Prisma.StringFilter<"EmailDomain"> | string
-  teamId?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  userId?: Prisma.StringFilter<"EmailDomain"> | string
   domainName?: Prisma.StringFilter<"EmailDomain"> | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFilter<"EmailDomain"> | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.JsonNullableFilter<"EmailDomain">
-  spfRecord?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  dmarcRecord?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  sesIdentityArn?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
-  isVerified?: Prisma.BoolFilter<"EmailDomain"> | boolean
-  verificationAttempts?: Prisma.IntFilter<"EmailDomain"> | number
-  lastVerificationAt?: Prisma.DateTimeNullableFilter<"EmailDomain"> | Date | string | null
+  resendDomainId?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
+  status?: Prisma.EnumEmailDomainStatusFilter<"EmailDomain"> | $Enums.EmailDomainStatus
+  userId?: Prisma.StringFilter<"EmailDomain"> | string
+  teamId?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
+  verificationStatus?: Prisma.StringNullableFilter<"EmailDomain"> | string | null
+  verificationData?: Prisma.JsonNullableFilter<"EmailDomain">
+  dnsRecords?: Prisma.JsonNullableFilter<"EmailDomain">
   createdAt?: Prisma.DateTimeFilter<"EmailDomain"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"EmailDomain"> | Date | string
+  verifiedAt?: Prisma.DateTimeNullableFilter<"EmailDomain"> | Date | string | null
 }
 
 export type EmailDomainCreateWithoutTeamInput = {
   id: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  verifiedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutEmailDomainsInput
-  campaigns?: Prisma.EmailCampaignCreateNestedManyWithoutEmailDomainInput
+  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogCreateNestedManyWithoutEmailDomainInput
 }
 
 export type EmailDomainUncheckedCreateWithoutTeamInput = {
   id: string
-  userId: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  userId: string
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
-  campaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutEmailDomainInput
+  verifiedAt?: Date | string | null
+  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -836,36 +766,34 @@ export type EmailDomainUpdateManyWithWhereWithoutTeamInput = {
 export type EmailDomainCreateWithoutCampaignsInput = {
   id: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
-  team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
+  verifiedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutEmailDomainsInput
+  team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
+  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogCreateNestedManyWithoutEmailDomainInput
 }
 
 export type EmailDomainUncheckedCreateWithoutCampaignsInput = {
   id: string
-  teamId?: string | null
-  userId: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  userId: string
+  teamId?: string | null
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  verifiedAt?: Date | string | null
+  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -888,73 +816,153 @@ export type EmailDomainUpdateToOneWithWhereWithoutCampaignsInput = {
 export type EmailDomainUpdateWithoutCampaignsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutEmailDomainsNestedInput
+  team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
+  emailLogs?: Prisma.EmailLogUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainUncheckedUpdateWithoutCampaignsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput
+  activityLogs?: Prisma.EmailDomainActivityLogUncheckedUpdateManyWithoutEmailDomainNestedInput
+}
+
+export type EmailDomainCreateWithoutEmailLogsInput = {
+  id: string
+  domainName: string
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  verifiedAt?: Date | string | null
+  user: Prisma.UserCreateNestedOneWithoutEmailDomainsInput
+  team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutEmailDomainInput
+  activityLogs?: Prisma.EmailDomainActivityLogCreateNestedManyWithoutEmailDomainInput
+}
+
+export type EmailDomainUncheckedCreateWithoutEmailLogsInput = {
+  id: string
+  domainName: string
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  userId: string
+  teamId?: string | null
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  verifiedAt?: Date | string | null
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutEmailDomainInput
+  activityLogs?: Prisma.EmailDomainActivityLogUncheckedCreateNestedManyWithoutEmailDomainInput
+}
+
+export type EmailDomainCreateOrConnectWithoutEmailLogsInput = {
+  where: Prisma.EmailDomainWhereUniqueInput
+  create: Prisma.XOR<Prisma.EmailDomainCreateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedCreateWithoutEmailLogsInput>
+}
+
+export type EmailDomainUpsertWithoutEmailLogsInput = {
+  update: Prisma.XOR<Prisma.EmailDomainUpdateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedUpdateWithoutEmailLogsInput>
+  create: Prisma.XOR<Prisma.EmailDomainCreateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedCreateWithoutEmailLogsInput>
+  where?: Prisma.EmailDomainWhereInput
+}
+
+export type EmailDomainUpdateToOneWithWhereWithoutEmailLogsInput = {
+  where?: Prisma.EmailDomainWhereInput
+  data: Prisma.XOR<Prisma.EmailDomainUpdateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedUpdateWithoutEmailLogsInput>
+}
+
+export type EmailDomainUpdateWithoutEmailLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  domainName?: Prisma.StringFieldUpdateOperationsInput | string
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  user?: Prisma.UserUpdateOneRequiredWithoutEmailDomainsNestedInput
+  team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutEmailDomainNestedInput
+  activityLogs?: Prisma.EmailDomainActivityLogUpdateManyWithoutEmailDomainNestedInput
+}
+
+export type EmailDomainUncheckedUpdateWithoutEmailLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  domainName?: Prisma.StringFieldUpdateOperationsInput | string
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainCreateWithoutActivityLogsInput = {
   id: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
-  team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
+  verifiedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutEmailDomainsInput
-  campaigns?: Prisma.EmailCampaignCreateNestedManyWithoutEmailDomainInput
+  team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
+  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutEmailDomainInput
 }
 
 export type EmailDomainUncheckedCreateWithoutActivityLogsInput = {
   id: string
-  teamId?: string | null
-  userId: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  userId: string
+  teamId?: string | null
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
-  campaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutEmailDomainInput
+  verifiedAt?: Date | string | null
+  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutEmailDomainInput
 }
 
 export type EmailDomainCreateOrConnectWithoutActivityLogsInput = {
@@ -976,173 +984,159 @@ export type EmailDomainUpdateToOneWithWhereWithoutActivityLogsInput = {
 export type EmailDomainUpdateWithoutActivityLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutEmailDomainsNestedInput
-  campaigns?: Prisma.EmailCampaignUpdateManyWithoutEmailDomainNestedInput
+  team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
+  emailLogs?: Prisma.EmailLogUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainUncheckedUpdateWithoutActivityLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  campaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainCreateManyUserInput = {
   id: string
-  teamId?: string | null
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  teamId?: string | null
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  verifiedAt?: Date | string | null
 }
 
 export type EmailDomainUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
-  campaigns?: Prisma.EmailCampaignUpdateManyWithoutEmailDomainNestedInput
+  emailLogs?: Prisma.EmailLogUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  campaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type EmailDomainCreateManyTeamInput = {
   id: string
-  userId: string
   domainName: string
-  verificationStatus?: $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: string | null
-  dmarcRecord?: string | null
-  sesIdentityArn?: string | null
-  isVerified?: boolean
-  verificationAttempts?: number
-  lastVerificationAt?: Date | string | null
+  resendDomainId?: string | null
+  status?: $Enums.EmailDomainStatus
+  userId: string
+  verificationStatus?: string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
   updatedAt: Date | string
+  verifiedAt?: Date | string | null
 }
 
 export type EmailDomainUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutEmailDomainsNestedInput
-  campaigns?: Prisma.EmailCampaignUpdateManyWithoutEmailDomainNestedInput
+  emailLogs?: Prisma.EmailLogUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainUncheckedUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  campaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainUncheckedUpdateManyWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
   domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  verificationStatus?: Prisma.EnumEmailDomainVerificationStatusFieldUpdateOperationsInput | $Enums.EmailDomainVerificationStatus
-  dkimTokens?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  spfRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dmarcRecord?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sesIdentityArn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  verificationAttempts?: Prisma.IntFieldUpdateOperationsInput | number
-  lastVerificationAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -1151,11 +1145,13 @@ export type EmailDomainUncheckedUpdateManyWithoutTeamInput = {
  */
 
 export type EmailDomainCountOutputType = {
+  emailLogs: number
   campaigns: number
   activityLogs: number
 }
 
 export type EmailDomainCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  emailLogs?: boolean | EmailDomainCountOutputTypeCountEmailLogsArgs
   campaigns?: boolean | EmailDomainCountOutputTypeCountCampaignsArgs
   activityLogs?: boolean | EmailDomainCountOutputTypeCountActivityLogsArgs
 }
@@ -1173,8 +1169,15 @@ export type EmailDomainCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.
 /**
  * EmailDomainCountOutputType without action
  */
+export type EmailDomainCountOutputTypeCountEmailLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.EmailLogWhereInput
+}
+
+/**
+ * EmailDomainCountOutputType without action
+ */
 export type EmailDomainCountOutputTypeCountCampaignsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.EmailCampaignWhereInput
+  where?: Prisma.CampaignWhereInput
 }
 
 /**
@@ -1187,21 +1190,20 @@ export type EmailDomainCountOutputTypeCountActivityLogsArgs<ExtArgs extends runt
 
 export type EmailDomainSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  teamId?: boolean
-  userId?: boolean
   domainName?: boolean
+  resendDomainId?: boolean
+  status?: boolean
+  userId?: boolean
+  teamId?: boolean
   verificationStatus?: boolean
-  dkimTokens?: boolean
-  spfRecord?: boolean
-  dmarcRecord?: boolean
-  sesIdentityArn?: boolean
-  isVerified?: boolean
-  verificationAttempts?: boolean
-  lastVerificationAt?: boolean
+  verificationData?: boolean
+  dnsRecords?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
+  verifiedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
+  emailLogs?: boolean | Prisma.EmailDomain$emailLogsArgs<ExtArgs>
   campaigns?: boolean | Prisma.EmailDomain$campaignsArgs<ExtArgs>
   activityLogs?: boolean | Prisma.EmailDomain$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.EmailDomainCountOutputTypeDefaultArgs<ExtArgs>
@@ -1209,99 +1211,93 @@ export type EmailDomainSelect<ExtArgs extends runtime.Types.Extensions.InternalA
 
 export type EmailDomainSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  teamId?: boolean
-  userId?: boolean
   domainName?: boolean
+  resendDomainId?: boolean
+  status?: boolean
+  userId?: boolean
+  teamId?: boolean
   verificationStatus?: boolean
-  dkimTokens?: boolean
-  spfRecord?: boolean
-  dmarcRecord?: boolean
-  sesIdentityArn?: boolean
-  isVerified?: boolean
-  verificationAttempts?: boolean
-  lastVerificationAt?: boolean
+  verificationData?: boolean
+  dnsRecords?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
+  verifiedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
 }, ExtArgs["result"]["emailDomain"]>
 
 export type EmailDomainSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  teamId?: boolean
-  userId?: boolean
   domainName?: boolean
+  resendDomainId?: boolean
+  status?: boolean
+  userId?: boolean
+  teamId?: boolean
   verificationStatus?: boolean
-  dkimTokens?: boolean
-  spfRecord?: boolean
-  dmarcRecord?: boolean
-  sesIdentityArn?: boolean
-  isVerified?: boolean
-  verificationAttempts?: boolean
-  lastVerificationAt?: boolean
+  verificationData?: boolean
+  dnsRecords?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
+  verifiedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
 }, ExtArgs["result"]["emailDomain"]>
 
 export type EmailDomainSelectScalar = {
   id?: boolean
-  teamId?: boolean
-  userId?: boolean
   domainName?: boolean
+  resendDomainId?: boolean
+  status?: boolean
+  userId?: boolean
+  teamId?: boolean
   verificationStatus?: boolean
-  dkimTokens?: boolean
-  spfRecord?: boolean
-  dmarcRecord?: boolean
-  sesIdentityArn?: boolean
-  isVerified?: boolean
-  verificationAttempts?: boolean
-  lastVerificationAt?: boolean
+  verificationData?: boolean
+  dnsRecords?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  verifiedAt?: boolean
 }
 
-export type EmailDomainOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "teamId" | "userId" | "domainName" | "verificationStatus" | "dkimTokens" | "spfRecord" | "dmarcRecord" | "sesIdentityArn" | "isVerified" | "verificationAttempts" | "lastVerificationAt" | "createdAt" | "updatedAt", ExtArgs["result"]["emailDomain"]>
+export type EmailDomainOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "domainName" | "resendDomainId" | "status" | "userId" | "teamId" | "verificationStatus" | "verificationData" | "dnsRecords" | "createdAt" | "updatedAt" | "verifiedAt", ExtArgs["result"]["emailDomain"]>
 export type EmailDomainInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
+  emailLogs?: boolean | Prisma.EmailDomain$emailLogsArgs<ExtArgs>
   campaigns?: boolean | Prisma.EmailDomain$campaignsArgs<ExtArgs>
   activityLogs?: boolean | Prisma.EmailDomain$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.EmailDomainCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type EmailDomainIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
 }
 export type EmailDomainIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
 }
 
 export type $EmailDomainPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "EmailDomain"
   objects: {
-    team: Prisma.$TeamPayload<ExtArgs> | null
     user: Prisma.$UserPayload<ExtArgs>
-    campaigns: Prisma.$EmailCampaignPayload<ExtArgs>[]
+    team: Prisma.$TeamPayload<ExtArgs> | null
+    emailLogs: Prisma.$EmailLogPayload<ExtArgs>[]
+    campaigns: Prisma.$CampaignPayload<ExtArgs>[]
     activityLogs: Prisma.$EmailDomainActivityLogPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    teamId: string | null
-    userId: string
     domainName: string
-    verificationStatus: $Enums.EmailDomainVerificationStatus
-    dkimTokens: runtime.JsonValue | null
-    spfRecord: string | null
-    dmarcRecord: string | null
-    sesIdentityArn: string | null
-    isVerified: boolean
-    verificationAttempts: number
-    lastVerificationAt: Date | null
+    resendDomainId: string | null
+    status: $Enums.EmailDomainStatus
+    userId: string
+    teamId: string | null
+    verificationStatus: string | null
+    verificationData: runtime.JsonValue | null
+    dnsRecords: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
+    verifiedAt: Date | null
   }, ExtArgs["result"]["emailDomain"]>
   composites: {}
 }
@@ -1696,9 +1692,10 @@ readonly fields: EmailDomainFieldRefs;
  */
 export interface Prisma__EmailDomainClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  team<T extends Prisma.EmailDomain$teamArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$teamArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  campaigns<T extends Prisma.EmailDomain$campaignsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$campaignsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailCampaignPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  team<T extends Prisma.EmailDomain$teamArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$teamArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  emailLogs<T extends Prisma.EmailDomain$emailLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$emailLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  campaigns<T extends Prisma.EmailDomain$campaignsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$campaignsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityLogs<T extends Prisma.EmailDomain$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailDomainActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1730,19 +1727,17 @@ export interface Prisma__EmailDomainClient<T, Null = never, ExtArgs extends runt
  */
 export interface EmailDomainFieldRefs {
   readonly id: Prisma.FieldRef<"EmailDomain", 'String'>
-  readonly teamId: Prisma.FieldRef<"EmailDomain", 'String'>
-  readonly userId: Prisma.FieldRef<"EmailDomain", 'String'>
   readonly domainName: Prisma.FieldRef<"EmailDomain", 'String'>
-  readonly verificationStatus: Prisma.FieldRef<"EmailDomain", 'EmailDomainVerificationStatus'>
-  readonly dkimTokens: Prisma.FieldRef<"EmailDomain", 'Json'>
-  readonly spfRecord: Prisma.FieldRef<"EmailDomain", 'String'>
-  readonly dmarcRecord: Prisma.FieldRef<"EmailDomain", 'String'>
-  readonly sesIdentityArn: Prisma.FieldRef<"EmailDomain", 'String'>
-  readonly isVerified: Prisma.FieldRef<"EmailDomain", 'Boolean'>
-  readonly verificationAttempts: Prisma.FieldRef<"EmailDomain", 'Int'>
-  readonly lastVerificationAt: Prisma.FieldRef<"EmailDomain", 'DateTime'>
+  readonly resendDomainId: Prisma.FieldRef<"EmailDomain", 'String'>
+  readonly status: Prisma.FieldRef<"EmailDomain", 'EmailDomainStatus'>
+  readonly userId: Prisma.FieldRef<"EmailDomain", 'String'>
+  readonly teamId: Prisma.FieldRef<"EmailDomain", 'String'>
+  readonly verificationStatus: Prisma.FieldRef<"EmailDomain", 'String'>
+  readonly verificationData: Prisma.FieldRef<"EmailDomain", 'Json'>
+  readonly dnsRecords: Prisma.FieldRef<"EmailDomain", 'Json'>
   readonly createdAt: Prisma.FieldRef<"EmailDomain", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"EmailDomain", 'DateTime'>
+  readonly verifiedAt: Prisma.FieldRef<"EmailDomain", 'DateTime'>
 }
     
 
@@ -2158,27 +2153,51 @@ export type EmailDomain$teamArgs<ExtArgs extends runtime.Types.Extensions.Intern
 }
 
 /**
+ * EmailDomain.emailLogs
+ */
+export type EmailDomain$emailLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the EmailLog
+   */
+  select?: Prisma.EmailLogSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the EmailLog
+   */
+  omit?: Prisma.EmailLogOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EmailLogInclude<ExtArgs> | null
+  where?: Prisma.EmailLogWhereInput
+  orderBy?: Prisma.EmailLogOrderByWithRelationInput | Prisma.EmailLogOrderByWithRelationInput[]
+  cursor?: Prisma.EmailLogWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.EmailLogScalarFieldEnum | Prisma.EmailLogScalarFieldEnum[]
+}
+
+/**
  * EmailDomain.campaigns
  */
 export type EmailDomain$campaignsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the EmailCampaign
+   * Select specific fields to fetch from the Campaign
    */
-  select?: Prisma.EmailCampaignSelect<ExtArgs> | null
+  select?: Prisma.CampaignSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the EmailCampaign
+   * Omit specific fields from the Campaign
    */
-  omit?: Prisma.EmailCampaignOmit<ExtArgs> | null
+  omit?: Prisma.CampaignOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.EmailCampaignInclude<ExtArgs> | null
-  where?: Prisma.EmailCampaignWhereInput
-  orderBy?: Prisma.EmailCampaignOrderByWithRelationInput | Prisma.EmailCampaignOrderByWithRelationInput[]
-  cursor?: Prisma.EmailCampaignWhereUniqueInput
+  include?: Prisma.CampaignInclude<ExtArgs> | null
+  where?: Prisma.CampaignWhereInput
+  orderBy?: Prisma.CampaignOrderByWithRelationInput | Prisma.CampaignOrderByWithRelationInput[]
+  cursor?: Prisma.CampaignWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.EmailCampaignScalarFieldEnum | Prisma.EmailCampaignScalarFieldEnum[]
+  distinct?: Prisma.CampaignScalarFieldEnum | Prisma.CampaignScalarFieldEnum[]
 }
 
 /**

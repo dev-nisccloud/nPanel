@@ -62,4 +62,3 @@ export type PleskSubdomainsResponse = z.infer<typeof pleskSubdomainsResponseSche
 export type SubdomainProperties = z.infer<typeof subdomainPropertiesSchema>;
 export type Subdomain = z.infer<typeof subdomainSchema>;
 export type SubdomainsData = z.infer<typeof subdomainsDataSchema>;
-

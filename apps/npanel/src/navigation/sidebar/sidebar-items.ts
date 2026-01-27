@@ -181,11 +181,11 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/settings",
         icon: (props: any) => React.createElement(Icons.Settings, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
-      {
-        title: "Help Center",
-        url: "/dashboard/help-center",
-        icon: (props: any) => React.createElement(Icons.Help, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
+      // {
+      //   title: "Help Center",
+      //   url: "/dashboard/help-center",
+      //   icon: (props: any) => React.createElement(Icons.Help, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
     ],
   },
 ];
@@ -253,14 +253,14 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/email-marketing",
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Metrics", url: "/agency/metrics", },
-          { title: "Emails", url: "/agency/emails", },
-          { title: "Campaigns", url: "/agency/campaigns", },
-          { title: "Audiences", url: "/agency/audiences", },
+          // { title: "Metrics", url: "/agency/email-marketing/metrics", },
+          { title: "Campaigns", url: "/agency/email-marketing/campaigns", },
+          // { title: "Emails", url: "/agency/email-marketing/emails", },
+          { title: "Domains", url: "/agency/email-marketing/domain-configuration", },
+          // { title: "Audiences", url: "/agency/email-marketing/audiences", },
           // { title: "Segments", url: "/agency/segments", },
-          { title: "Templates", url: "/agency/templates", },
-          { title: "Domains", url: "/agency/domain-configuration", },
-          { title: "Email Builder", url: "/agency/email-builder", },
+          // { title: "Templates", url: "/agency/email-marketing/templates", },
+          // { title: "Email Builder", url: "/agency/email-marketing/email-builder", },
         ],
       },
       {

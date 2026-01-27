@@ -99,14 +99,14 @@ export const ModelName = {
   CreativeBriefReferenceImage: 'CreativeBriefReferenceImage',
   CreativeBriefActivityLog: 'CreativeBriefActivityLog',
   EmailDomain: 'EmailDomain',
-  EmailCampaign: 'EmailCampaign',
-  Audience: 'Audience',
-  AudienceContact: 'AudienceContact',
+  Contact: 'Contact',
+  EmailTemplate: 'EmailTemplate',
+  Campaign: 'Campaign',
   EmailLog: 'EmailLog',
-  SESConfiguration: 'SESConfiguration',
   EmailDomainActivityLog: 'EmailDomainActivityLog',
-  EmailCampaignActivityLog: 'EmailCampaignActivityLog',
-  AudienceActivityLog: 'AudienceActivityLog',
+  ContactActivityLog: 'ContactActivityLog',
+  CampaignActivityLog: 'CampaignActivityLog',
+  EmailLogActivityLog: 'EmailLogActivityLog',
   GoogleAdsIntegration: 'GoogleAdsIntegration',
   GoogleAdsAccount: 'GoogleAdsAccount',
   GoogleAdsIntegrationActivityLog: 'GoogleAdsIntegrationActivityLog',
@@ -1086,115 +1086,131 @@ export type CreativeBriefActivityLogScalarFieldEnum = (typeof CreativeBriefActiv
 
 export const EmailDomainScalarFieldEnum = {
   id: 'id',
-  teamId: 'teamId',
-  userId: 'userId',
   domainName: 'domainName',
+  resendDomainId: 'resendDomainId',
+  status: 'status',
+  userId: 'userId',
+  teamId: 'teamId',
   verificationStatus: 'verificationStatus',
-  dkimTokens: 'dkimTokens',
-  spfRecord: 'spfRecord',
-  dmarcRecord: 'dmarcRecord',
-  sesIdentityArn: 'sesIdentityArn',
-  isVerified: 'isVerified',
-  verificationAttempts: 'verificationAttempts',
-  lastVerificationAt: 'lastVerificationAt',
+  verificationData: 'verificationData',
+  dnsRecords: 'dnsRecords',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  verifiedAt: 'verifiedAt'
 } as const
 
 export type EmailDomainScalarFieldEnum = (typeof EmailDomainScalarFieldEnum)[keyof typeof EmailDomainScalarFieldEnum]
 
 
-export const EmailCampaignScalarFieldEnum = {
+export const ContactScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  description: 'description',
-  teamId: 'teamId',
-  userId: 'userId',
-  emailDomainId: 'emailDomainId',
-  audienceId: 'audienceId',
-  fromAddress: 'fromAddress',
-  replyToAddress: 'replyToAddress',
-  subject: 'subject',
-  htmlContent: 'htmlContent',
-  textContent: 'textContent',
-  status: 'status',
-  scheduledAt: 'scheduledAt',
-  sentAt: 'sentAt',
-  totalRecipients: 'totalRecipients',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type EmailCampaignScalarFieldEnum = (typeof EmailCampaignScalarFieldEnum)[keyof typeof EmailCampaignScalarFieldEnum]
-
-
-export const AudienceScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description',
-  teamId: 'teamId',
-  userId: 'userId',
-  status: 'status',
-  totalContacts: 'totalContacts',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type AudienceScalarFieldEnum = (typeof AudienceScalarFieldEnum)[keyof typeof AudienceScalarFieldEnum]
-
-
-export const AudienceContactScalarFieldEnum = {
-  id: 'id',
-  audienceId: 'audienceId',
   email: 'email',
   firstName: 'firstName',
   lastName: 'lastName',
-  customFields: 'customFields',
+  phone: 'phone',
+  company: 'company',
+  jobTitle: 'jobTitle',
+  address: 'address',
+  city: 'city',
+  state: 'state',
+  country: 'country',
+  postalCode: 'postalCode',
   status: 'status',
-  subscribedAt: 'subscribedAt',
-  unsubscribedAt: 'unsubscribedAt',
+  userId: 'userId',
+  teamId: 'teamId',
+  customFields: 'customFields',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  lastContactedAt: 'lastContactedAt',
+  unsubscribedAt: 'unsubscribedAt'
+} as const
+
+export type ContactScalarFieldEnum = (typeof ContactScalarFieldEnum)[keyof typeof ContactScalarFieldEnum]
+
+
+export const EmailTemplateScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  subject: 'subject',
+  htmlContent: 'htmlContent',
+  textContent: 'textContent',
+  variables: 'variables',
+  userId: 'userId',
+  teamId: 'teamId',
+  isActive: 'isActive',
+  metadata: 'metadata',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type AudienceContactScalarFieldEnum = (typeof AudienceContactScalarFieldEnum)[keyof typeof AudienceContactScalarFieldEnum]
+export type EmailTemplateScalarFieldEnum = (typeof EmailTemplateScalarFieldEnum)[keyof typeof EmailTemplateScalarFieldEnum]
+
+
+export const CampaignScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  subject: 'subject',
+  fromEmail: 'fromEmail',
+  fromName: 'fromName',
+  type: 'type',
+  status: 'status',
+  recipientEmails: 'recipientEmails',
+  emailDomainId: 'emailDomainId',
+  htmlContent: 'htmlContent',
+  textContent: 'textContent',
+  emailTemplateId: 'emailTemplateId',
+  scheduledAt: 'scheduledAt',
+  sentAt: 'sentAt',
+  totalRecipients: 'totalRecipients',
+  sentCount: 'sentCount',
+  deliveredCount: 'deliveredCount',
+  openedCount: 'openedCount',
+  clickedCount: 'clickedCount',
+  bouncedCount: 'bouncedCount',
+  complainedCount: 'complainedCount',
+  unsubscribedCount: 'unsubscribedCount',
+  userId: 'userId',
+  teamId: 'teamId',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
 
 
 export const EmailLogScalarFieldEnum = {
   id: 'id',
+  toEmail: 'toEmail',
+  fromEmail: 'fromEmail',
+  subject: 'subject',
+  type: 'type',
+  status: 'status',
+  resendEmailId: 'resendEmailId',
+  resendMessageId: 'resendMessageId',
+  emailDomainId: 'emailDomainId',
   campaignId: 'campaignId',
-  audienceContactId: 'audienceContactId',
-  messageId: 'messageId',
-  eventType: 'eventType',
-  eventData: 'eventData',
-  timestamp: 'timestamp',
-  ipAddress: 'ipAddress',
-  userAgent: 'userAgent',
-  linkUrl: 'linkUrl',
-  bounceType: 'bounceType',
-  bounceSubType: 'bounceSubType',
-  complaintFeedbackType: 'complaintFeedbackType',
-  createdAt: 'createdAt'
+  contactId: 'contactId',
+  htmlContent: 'htmlContent',
+  textContent: 'textContent',
+  openedAt: 'openedAt',
+  clickedAt: 'clickedAt',
+  bouncedAt: 'bouncedAt',
+  complainedAt: 'complainedAt',
+  unsubscribedAt: 'unsubscribedAt',
+  errorMessage: 'errorMessage',
+  metadata: 'metadata',
+  userId: 'userId',
+  teamId: 'teamId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  sentAt: 'sentAt',
+  deliveredAt: 'deliveredAt'
 } as const
 
 export type EmailLogScalarFieldEnum = (typeof EmailLogScalarFieldEnum)[keyof typeof EmailLogScalarFieldEnum]
-
-
-export const SESConfigurationScalarFieldEnum = {
-  id: 'id',
-  configurationSetName: 'configurationSetName',
-  snsTopicArn: 'snsTopicArn',
-  region: 'region',
-  isActive: 'isActive',
-  dailySendingQuota: 'dailySendingQuota',
-  maxSendRate: 'maxSendRate',
-  reputationMetrics: 'reputationMetrics',
-  lastSyncedAt: 'lastSyncedAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type SESConfigurationScalarFieldEnum = (typeof SESConfigurationScalarFieldEnum)[keyof typeof SESConfigurationScalarFieldEnum]
 
 
 export const EmailDomainActivityLogScalarFieldEnum = {
@@ -1212,10 +1228,10 @@ export const EmailDomainActivityLogScalarFieldEnum = {
 export type EmailDomainActivityLogScalarFieldEnum = (typeof EmailDomainActivityLogScalarFieldEnum)[keyof typeof EmailDomainActivityLogScalarFieldEnum]
 
 
-export const EmailCampaignActivityLogScalarFieldEnum = {
+export const ContactActivityLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  emailCampaignId: 'emailCampaignId',
+  contactId: 'contactId',
   action: 'action',
   description: 'description',
   metadata: 'metadata',
@@ -1224,13 +1240,13 @@ export const EmailCampaignActivityLogScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type EmailCampaignActivityLogScalarFieldEnum = (typeof EmailCampaignActivityLogScalarFieldEnum)[keyof typeof EmailCampaignActivityLogScalarFieldEnum]
+export type ContactActivityLogScalarFieldEnum = (typeof ContactActivityLogScalarFieldEnum)[keyof typeof ContactActivityLogScalarFieldEnum]
 
 
-export const AudienceActivityLogScalarFieldEnum = {
+export const CampaignActivityLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  audienceId: 'audienceId',
+  campaignId: 'campaignId',
   action: 'action',
   description: 'description',
   metadata: 'metadata',
@@ -1239,7 +1255,22 @@ export const AudienceActivityLogScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type AudienceActivityLogScalarFieldEnum = (typeof AudienceActivityLogScalarFieldEnum)[keyof typeof AudienceActivityLogScalarFieldEnum]
+export type CampaignActivityLogScalarFieldEnum = (typeof CampaignActivityLogScalarFieldEnum)[keyof typeof CampaignActivityLogScalarFieldEnum]
+
+
+export const EmailLogActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  emailLogId: 'emailLogId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type EmailLogActivityLogScalarFieldEnum = (typeof EmailLogActivityLogScalarFieldEnum)[keyof typeof EmailLogActivityLogScalarFieldEnum]
 
 
 export const GoogleAdsIntegrationScalarFieldEnum = {

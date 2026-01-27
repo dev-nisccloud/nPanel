@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, MoreVertical, Edit, Unlink, LayoutDashboard, Mail, ChevronRight } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Network, Mail, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { z } from "zod";
@@ -10,38 +10,17 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { HostingOverview } from "./hosting-overview";
+import { DnsTable } from "./dns-table";
 import { MailTable } from "./mail-table";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
-import { LinkToTeamDialog } from "./link-to-team-dialog";
 import { EditSubscriptionDialog } from "./edit-subscription-dialog";
 import { UnauthorizedAccess } from "./unauthorized-access";
 import { NotFoundPage } from "./not-found-page";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 
 interface HostingDetailPageProps {
@@ -71,6 +50,7 @@ function HostingDetailSkeleton() {
       <div className="space-y-4">
         <div className="flex gap-2">
           <Skeleton className="h-10 w-20" />
+          <Skeleton className="h-10 w-16" />
           <Skeleton className="h-10 w-16" />
         </div>
         <Skeleton className="h-64 w-full" />
@@ -141,37 +121,12 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   
   // Use batched endpoint - fetches both hosting data and subscription link in one request
   const { data: hostingData, subscription: subscriptionData, serviceSubscription: serviceSubscriptionData, isLoading, isError, error, refetch, rawData } = useHostingDetailBatched(subscriptionId);
-  const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
   const [isEditSubscriptionOpen, setIsEditSubscriptionOpen] = React.useState(false);
-  const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
-  const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
 
   // Get pleskFilterId from raw data
   const pleskFilterId = String(rawData?.parsed?.packet?.webspace?.get?.result?.["filter-id"] || "");
 
-  const isLinkedToTeam = !!subscriptionData?.teamId;
-
   const utils = trpc.useUtils();
-
-  // Unlink mutation
-  const unlinkMutation = trpc.hosting.unlinkFromTeam.useMutation({
-    onSuccess: () => {
-      toast.success("Subscription unlinked from team successfully");
-      setIsUnlinkDialogOpen(false);
-      // Invalidate subscription query to refresh data
-      utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to unlink subscription from team");
-    },
-  });
-
-  const handleUnlink = () => {
-    if (subscriptionData?.id) {
-      unlinkMutation.mutate({ subscriptionId: subscriptionData.id });
-    }
-  };
 
   // Show loading state
   if (isLoading) {
@@ -227,7 +182,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-2 h-auto p-0 bg-transparent">
+        <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-3 h-auto p-0 bg-transparent">
           <TabsTrigger 
             value="overview"
             className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
@@ -239,6 +194,19 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             <div className="flex flex-col items-start gap-1 w-full">
               <span className="font-semibold text-sm">Overview</span>
               <span className="text-xs text-muted-foreground">Details</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="dns"
+            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+          >
+            <div className="flex items-center justify-between w-full">
+              <Network className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col items-start gap-1 w-full">
+              <span className="font-semibold text-sm">DNS</span>
+              <span className="text-xs text-muted-foreground">Records</span>
             </div>
           </TabsTrigger>
           <TabsTrigger 
@@ -264,24 +232,14 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           />
         </TabsContent>
         
+        <TabsContent value="dns" className="mt-6">
+          <DnsTable siteId={hostingData.id} />
+        </TabsContent>
+        
         <TabsContent value="mail" className="mt-6">
           <MailTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
         </TabsContent>
       </Tabs>
-
-      {/* Link to Team Dialog */}
-      <LinkToTeamDialog
-        open={isLinkToTeamOpen}
-        onOpenChange={setIsLinkToTeamOpen}
-        subscriptionId={subscriptionId}
-        pleskFilterId={pleskFilterId}
-        hostingType={hostingData?.gen_info?.htype}
-        onSuccess={() => {
-          // Invalidate subscription query to refresh data
-          utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });
-          refetch();
-        }}
-      />
 
       {/* Edit Subscription Dialog */}
       <EditSubscriptionDialog
@@ -304,36 +262,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         }}
       />
 
-      {/* Unlink Confirmation Dialog */}
-      <AlertDialog open={isUnlinkDialogOpen} onOpenChange={setIsUnlinkDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Unlink from Team</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to unlink this subscription from its team? This will remove the association but will not delete the subscription.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={unlinkMutation.isPending}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleUnlink}
-              disabled={unlinkMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {unlinkMutation.isPending ? (
-                <>
-                  <Spinner size={16} className="mr-2" />
-                  Unlinking...
-                </>
-              ) : (
-                "Unlink"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

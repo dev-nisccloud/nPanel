@@ -436,10 +436,6 @@ model User {
   customerIntegrations         CustomerIntegration[]
   domains                      Domain[]
   activityLogs                 UserActivityLog[]
-  // Email Marketing Relations
-  emailDomains                 EmailDomain[]
-  emailCampaigns               EmailCampaign[]
-  audiences                    Audience[]
   // Social Media Marketing Relations
   socialMediaIntegrations      SocialMediaIntegration[]
   socialMediaPageTokens        SocialMediaPageToken[]
@@ -471,6 +467,12 @@ model User {
   notifications                Notification[]
   // SEO Reports Relations
   seoReports                   SeoReport[]
+  // Email Marketing Relations
+  emailDomains                 EmailDomain[]
+  contacts                     Contact[]
+  campaigns                    Campaign[]
+  emailLogs                    EmailLog[]
+  emailTemplates               EmailTemplate[]
 
   @@unique([email])
   @@index([role])
@@ -530,10 +532,6 @@ model Team {
   wordpressInstances           WordPressInstance[]
   promos                       Promo[]
   orders                       Order[]
-  // Email Marketing Relations
-  emailDomains                 EmailDomain[]
-  emailCampaigns               EmailCampaign[]
-  audiences                    Audience[]
   // Creative Assets Relations
   creativeAssets               CreativeAsset[]
   // Invoicing Relations
@@ -565,6 +563,12 @@ model Team {
   tickets                      Ticket[]
   // SEO Reports Relations
   seoReports                   SeoReport[]
+  // Email Marketing Relations
+  emailDomains                 EmailDomain[]
+  contacts                     Contact[]
+  campaigns                    Campaign[]
+  emailLogs                    EmailLog[]
+  emailTemplates               EmailTemplate[]
 
   @@index([slug])
   @@index([createdById])

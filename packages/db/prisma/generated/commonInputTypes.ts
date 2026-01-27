@@ -683,72 +683,106 @@ export type EnumCreativeBriefStatusWithAggregatesFilter<$PrismaModel = never> = 
   _max?: Prisma.NestedEnumCreativeBriefStatusFilter<$PrismaModel>
 }
 
-export type EnumEmailDomainVerificationStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailDomainVerificationStatus | Prisma.EnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailDomainVerificationStatus[] | Prisma.ListEnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailDomainVerificationStatus[] | Prisma.ListEnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailDomainVerificationStatusFilter<$PrismaModel> | $Enums.EmailDomainVerificationStatus
+export type EnumEmailDomainStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailDomainStatus | Prisma.EnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailDomainStatus[] | Prisma.ListEnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailDomainStatus[] | Prisma.ListEnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailDomainStatusFilter<$PrismaModel> | $Enums.EmailDomainStatus
 }
 
-export type EnumEmailDomainVerificationStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailDomainVerificationStatus | Prisma.EnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailDomainVerificationStatus[] | Prisma.ListEnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailDomainVerificationStatus[] | Prisma.ListEnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailDomainVerificationStatusWithAggregatesFilter<$PrismaModel> | $Enums.EmailDomainVerificationStatus
+export type EnumEmailDomainStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailDomainStatus | Prisma.EnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailDomainStatus[] | Prisma.ListEnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailDomainStatus[] | Prisma.ListEnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailDomainStatusWithAggregatesFilter<$PrismaModel> | $Enums.EmailDomainStatus
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumEmailDomainVerificationStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumEmailDomainVerificationStatusFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumEmailDomainStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumEmailDomainStatusFilter<$PrismaModel>
 }
 
-export type EnumEmailCampaignStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailCampaignStatus | Prisma.EnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailCampaignStatus[] | Prisma.ListEnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailCampaignStatus[] | Prisma.ListEnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailCampaignStatusFilter<$PrismaModel> | $Enums.EmailCampaignStatus
+export type EnumContactStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.ContactStatus | Prisma.EnumContactStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ContactStatus[] | Prisma.ListEnumContactStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ContactStatus[] | Prisma.ListEnumContactStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumContactStatusFilter<$PrismaModel> | $Enums.ContactStatus
 }
 
-export type EnumEmailCampaignStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailCampaignStatus | Prisma.EnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailCampaignStatus[] | Prisma.ListEnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailCampaignStatus[] | Prisma.ListEnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailCampaignStatusWithAggregatesFilter<$PrismaModel> | $Enums.EmailCampaignStatus
+export type EnumContactStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ContactStatus | Prisma.EnumContactStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ContactStatus[] | Prisma.ListEnumContactStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ContactStatus[] | Prisma.ListEnumContactStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumContactStatusWithAggregatesFilter<$PrismaModel> | $Enums.ContactStatus
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumEmailCampaignStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumEmailCampaignStatusFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumContactStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumContactStatusFilter<$PrismaModel>
 }
 
-export type EnumAudienceContactStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.AudienceContactStatus | Prisma.EnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.AudienceContactStatus[] | Prisma.ListEnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.AudienceContactStatus[] | Prisma.ListEnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAudienceContactStatusFilter<$PrismaModel> | $Enums.AudienceContactStatus
+export type EnumCampaignTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.CampaignType | Prisma.EnumCampaignTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.CampaignType[] | Prisma.ListEnumCampaignTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CampaignType[] | Prisma.ListEnumCampaignTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCampaignTypeFilter<$PrismaModel> | $Enums.CampaignType
 }
 
-export type EnumAudienceContactStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.AudienceContactStatus | Prisma.EnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.AudienceContactStatus[] | Prisma.ListEnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.AudienceContactStatus[] | Prisma.ListEnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAudienceContactStatusWithAggregatesFilter<$PrismaModel> | $Enums.AudienceContactStatus
+export type EnumCampaignStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.CampaignStatus | Prisma.EnumCampaignStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.CampaignStatus[] | Prisma.ListEnumCampaignStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CampaignStatus[] | Prisma.ListEnumCampaignStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCampaignStatusFilter<$PrismaModel> | $Enums.CampaignStatus
+}
+
+export type EnumCampaignTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CampaignType | Prisma.EnumCampaignTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.CampaignType[] | Prisma.ListEnumCampaignTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CampaignType[] | Prisma.ListEnumCampaignTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCampaignTypeWithAggregatesFilter<$PrismaModel> | $Enums.CampaignType
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumAudienceContactStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumAudienceContactStatusFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCampaignTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCampaignTypeFilter<$PrismaModel>
 }
 
-export type EnumEmailEventTypeFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailEventType | Prisma.EnumEmailEventTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailEventType[] | Prisma.ListEnumEmailEventTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailEventType[] | Prisma.ListEnumEmailEventTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailEventTypeFilter<$PrismaModel> | $Enums.EmailEventType
-}
-
-export type EnumEmailEventTypeWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailEventType | Prisma.EnumEmailEventTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailEventType[] | Prisma.ListEnumEmailEventTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailEventType[] | Prisma.ListEnumEmailEventTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailEventTypeWithAggregatesFilter<$PrismaModel> | $Enums.EmailEventType
+export type EnumCampaignStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CampaignStatus | Prisma.EnumCampaignStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.CampaignStatus[] | Prisma.ListEnumCampaignStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CampaignStatus[] | Prisma.ListEnumCampaignStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCampaignStatusWithAggregatesFilter<$PrismaModel> | $Enums.CampaignStatus
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumEmailEventTypeFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumEmailEventTypeFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCampaignStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCampaignStatusFilter<$PrismaModel>
+}
+
+export type EnumEmailLogTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailLogType | Prisma.EnumEmailLogTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailLogType[] | Prisma.ListEnumEmailLogTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailLogType[] | Prisma.ListEnumEmailLogTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailLogTypeFilter<$PrismaModel> | $Enums.EmailLogType
+}
+
+export type EnumEmailLogStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailLogStatus | Prisma.EnumEmailLogStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailLogStatus[] | Prisma.ListEnumEmailLogStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailLogStatus[] | Prisma.ListEnumEmailLogStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailLogStatusFilter<$PrismaModel> | $Enums.EmailLogStatus
+}
+
+export type EnumEmailLogTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailLogType | Prisma.EnumEmailLogTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailLogType[] | Prisma.ListEnumEmailLogTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailLogType[] | Prisma.ListEnumEmailLogTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailLogTypeWithAggregatesFilter<$PrismaModel> | $Enums.EmailLogType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumEmailLogTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumEmailLogTypeFilter<$PrismaModel>
+}
+
+export type EnumEmailLogStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailLogStatus | Prisma.EnumEmailLogStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailLogStatus[] | Prisma.ListEnumEmailLogStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailLogStatus[] | Prisma.ListEnumEmailLogStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailLogStatusWithAggregatesFilter<$PrismaModel> | $Enums.EmailLogStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumEmailLogStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumEmailLogStatusFilter<$PrismaModel>
 }
 
 export type EnumGoogleAdsIntegrationStatusFilter<$PrismaModel = never> = {
@@ -1940,72 +1974,106 @@ export type NestedEnumCreativeBriefStatusWithAggregatesFilter<$PrismaModel = nev
   _max?: Prisma.NestedEnumCreativeBriefStatusFilter<$PrismaModel>
 }
 
-export type NestedEnumEmailDomainVerificationStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailDomainVerificationStatus | Prisma.EnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailDomainVerificationStatus[] | Prisma.ListEnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailDomainVerificationStatus[] | Prisma.ListEnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailDomainVerificationStatusFilter<$PrismaModel> | $Enums.EmailDomainVerificationStatus
+export type NestedEnumEmailDomainStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailDomainStatus | Prisma.EnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailDomainStatus[] | Prisma.ListEnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailDomainStatus[] | Prisma.ListEnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailDomainStatusFilter<$PrismaModel> | $Enums.EmailDomainStatus
 }
 
-export type NestedEnumEmailDomainVerificationStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailDomainVerificationStatus | Prisma.EnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailDomainVerificationStatus[] | Prisma.ListEnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailDomainVerificationStatus[] | Prisma.ListEnumEmailDomainVerificationStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailDomainVerificationStatusWithAggregatesFilter<$PrismaModel> | $Enums.EmailDomainVerificationStatus
+export type NestedEnumEmailDomainStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailDomainStatus | Prisma.EnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailDomainStatus[] | Prisma.ListEnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailDomainStatus[] | Prisma.ListEnumEmailDomainStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailDomainStatusWithAggregatesFilter<$PrismaModel> | $Enums.EmailDomainStatus
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumEmailDomainVerificationStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumEmailDomainVerificationStatusFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumEmailDomainStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumEmailDomainStatusFilter<$PrismaModel>
 }
 
-export type NestedEnumEmailCampaignStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailCampaignStatus | Prisma.EnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailCampaignStatus[] | Prisma.ListEnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailCampaignStatus[] | Prisma.ListEnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailCampaignStatusFilter<$PrismaModel> | $Enums.EmailCampaignStatus
+export type NestedEnumContactStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.ContactStatus | Prisma.EnumContactStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ContactStatus[] | Prisma.ListEnumContactStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ContactStatus[] | Prisma.ListEnumContactStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumContactStatusFilter<$PrismaModel> | $Enums.ContactStatus
 }
 
-export type NestedEnumEmailCampaignStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailCampaignStatus | Prisma.EnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailCampaignStatus[] | Prisma.ListEnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailCampaignStatus[] | Prisma.ListEnumEmailCampaignStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailCampaignStatusWithAggregatesFilter<$PrismaModel> | $Enums.EmailCampaignStatus
+export type NestedEnumContactStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ContactStatus | Prisma.EnumContactStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ContactStatus[] | Prisma.ListEnumContactStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ContactStatus[] | Prisma.ListEnumContactStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumContactStatusWithAggregatesFilter<$PrismaModel> | $Enums.ContactStatus
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumEmailCampaignStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumEmailCampaignStatusFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumContactStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumContactStatusFilter<$PrismaModel>
 }
 
-export type NestedEnumAudienceContactStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.AudienceContactStatus | Prisma.EnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.AudienceContactStatus[] | Prisma.ListEnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.AudienceContactStatus[] | Prisma.ListEnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAudienceContactStatusFilter<$PrismaModel> | $Enums.AudienceContactStatus
+export type NestedEnumCampaignTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.CampaignType | Prisma.EnumCampaignTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.CampaignType[] | Prisma.ListEnumCampaignTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CampaignType[] | Prisma.ListEnumCampaignTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCampaignTypeFilter<$PrismaModel> | $Enums.CampaignType
 }
 
-export type NestedEnumAudienceContactStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.AudienceContactStatus | Prisma.EnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.AudienceContactStatus[] | Prisma.ListEnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.AudienceContactStatus[] | Prisma.ListEnumAudienceContactStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAudienceContactStatusWithAggregatesFilter<$PrismaModel> | $Enums.AudienceContactStatus
+export type NestedEnumCampaignStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.CampaignStatus | Prisma.EnumCampaignStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.CampaignStatus[] | Prisma.ListEnumCampaignStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CampaignStatus[] | Prisma.ListEnumCampaignStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCampaignStatusFilter<$PrismaModel> | $Enums.CampaignStatus
+}
+
+export type NestedEnumCampaignTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CampaignType | Prisma.EnumCampaignTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.CampaignType[] | Prisma.ListEnumCampaignTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CampaignType[] | Prisma.ListEnumCampaignTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCampaignTypeWithAggregatesFilter<$PrismaModel> | $Enums.CampaignType
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumAudienceContactStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumAudienceContactStatusFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCampaignTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCampaignTypeFilter<$PrismaModel>
 }
 
-export type NestedEnumEmailEventTypeFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailEventType | Prisma.EnumEmailEventTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailEventType[] | Prisma.ListEnumEmailEventTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailEventType[] | Prisma.ListEnumEmailEventTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailEventTypeFilter<$PrismaModel> | $Enums.EmailEventType
-}
-
-export type NestedEnumEmailEventTypeWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.EmailEventType | Prisma.EnumEmailEventTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.EmailEventType[] | Prisma.ListEnumEmailEventTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.EmailEventType[] | Prisma.ListEnumEmailEventTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumEmailEventTypeWithAggregatesFilter<$PrismaModel> | $Enums.EmailEventType
+export type NestedEnumCampaignStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CampaignStatus | Prisma.EnumCampaignStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.CampaignStatus[] | Prisma.ListEnumCampaignStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CampaignStatus[] | Prisma.ListEnumCampaignStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCampaignStatusWithAggregatesFilter<$PrismaModel> | $Enums.CampaignStatus
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumEmailEventTypeFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumEmailEventTypeFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCampaignStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCampaignStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumEmailLogTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailLogType | Prisma.EnumEmailLogTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailLogType[] | Prisma.ListEnumEmailLogTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailLogType[] | Prisma.ListEnumEmailLogTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailLogTypeFilter<$PrismaModel> | $Enums.EmailLogType
+}
+
+export type NestedEnumEmailLogStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailLogStatus | Prisma.EnumEmailLogStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailLogStatus[] | Prisma.ListEnumEmailLogStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailLogStatus[] | Prisma.ListEnumEmailLogStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailLogStatusFilter<$PrismaModel> | $Enums.EmailLogStatus
+}
+
+export type NestedEnumEmailLogTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailLogType | Prisma.EnumEmailLogTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailLogType[] | Prisma.ListEnumEmailLogTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailLogType[] | Prisma.ListEnumEmailLogTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailLogTypeWithAggregatesFilter<$PrismaModel> | $Enums.EmailLogType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumEmailLogTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumEmailLogTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumEmailLogStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.EmailLogStatus | Prisma.EnumEmailLogStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.EmailLogStatus[] | Prisma.ListEnumEmailLogStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.EmailLogStatus[] | Prisma.ListEnumEmailLogStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumEmailLogStatusWithAggregatesFilter<$PrismaModel> | $Enums.EmailLogStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumEmailLogStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumEmailLogStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumGoogleAdsIntegrationStatusFilter<$PrismaModel = never> = {

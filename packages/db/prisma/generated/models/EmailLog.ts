@@ -25,102 +25,174 @@ export type AggregateEmailLog = {
 
 export type EmailLogMinAggregateOutputType = {
   id: string | null
+  toEmail: string | null
+  fromEmail: string | null
+  subject: string | null
+  type: $Enums.EmailLogType | null
+  status: $Enums.EmailLogStatus | null
+  resendEmailId: string | null
+  resendMessageId: string | null
+  emailDomainId: string | null
   campaignId: string | null
-  audienceContactId: string | null
-  messageId: string | null
-  eventType: $Enums.EmailEventType | null
-  timestamp: Date | null
-  ipAddress: string | null
-  userAgent: string | null
-  linkUrl: string | null
-  bounceType: string | null
-  bounceSubType: string | null
-  complaintFeedbackType: string | null
+  contactId: string | null
+  htmlContent: string | null
+  textContent: string | null
+  openedAt: Date | null
+  clickedAt: Date | null
+  bouncedAt: Date | null
+  complainedAt: Date | null
+  unsubscribedAt: Date | null
+  errorMessage: string | null
+  userId: string | null
+  teamId: string | null
   createdAt: Date | null
+  updatedAt: Date | null
+  sentAt: Date | null
+  deliveredAt: Date | null
 }
 
 export type EmailLogMaxAggregateOutputType = {
   id: string | null
+  toEmail: string | null
+  fromEmail: string | null
+  subject: string | null
+  type: $Enums.EmailLogType | null
+  status: $Enums.EmailLogStatus | null
+  resendEmailId: string | null
+  resendMessageId: string | null
+  emailDomainId: string | null
   campaignId: string | null
-  audienceContactId: string | null
-  messageId: string | null
-  eventType: $Enums.EmailEventType | null
-  timestamp: Date | null
-  ipAddress: string | null
-  userAgent: string | null
-  linkUrl: string | null
-  bounceType: string | null
-  bounceSubType: string | null
-  complaintFeedbackType: string | null
+  contactId: string | null
+  htmlContent: string | null
+  textContent: string | null
+  openedAt: Date | null
+  clickedAt: Date | null
+  bouncedAt: Date | null
+  complainedAt: Date | null
+  unsubscribedAt: Date | null
+  errorMessage: string | null
+  userId: string | null
+  teamId: string | null
   createdAt: Date | null
+  updatedAt: Date | null
+  sentAt: Date | null
+  deliveredAt: Date | null
 }
 
 export type EmailLogCountAggregateOutputType = {
   id: number
+  toEmail: number
+  fromEmail: number
+  subject: number
+  type: number
+  status: number
+  resendEmailId: number
+  resendMessageId: number
+  emailDomainId: number
   campaignId: number
-  audienceContactId: number
-  messageId: number
-  eventType: number
-  eventData: number
-  timestamp: number
-  ipAddress: number
-  userAgent: number
-  linkUrl: number
-  bounceType: number
-  bounceSubType: number
-  complaintFeedbackType: number
+  contactId: number
+  htmlContent: number
+  textContent: number
+  openedAt: number
+  clickedAt: number
+  bouncedAt: number
+  complainedAt: number
+  unsubscribedAt: number
+  errorMessage: number
+  metadata: number
+  userId: number
+  teamId: number
   createdAt: number
+  updatedAt: number
+  sentAt: number
+  deliveredAt: number
   _all: number
 }
 
 
 export type EmailLogMinAggregateInputType = {
   id?: true
+  toEmail?: true
+  fromEmail?: true
+  subject?: true
+  type?: true
+  status?: true
+  resendEmailId?: true
+  resendMessageId?: true
+  emailDomainId?: true
   campaignId?: true
-  audienceContactId?: true
-  messageId?: true
-  eventType?: true
-  timestamp?: true
-  ipAddress?: true
-  userAgent?: true
-  linkUrl?: true
-  bounceType?: true
-  bounceSubType?: true
-  complaintFeedbackType?: true
+  contactId?: true
+  htmlContent?: true
+  textContent?: true
+  openedAt?: true
+  clickedAt?: true
+  bouncedAt?: true
+  complainedAt?: true
+  unsubscribedAt?: true
+  errorMessage?: true
+  userId?: true
+  teamId?: true
   createdAt?: true
+  updatedAt?: true
+  sentAt?: true
+  deliveredAt?: true
 }
 
 export type EmailLogMaxAggregateInputType = {
   id?: true
+  toEmail?: true
+  fromEmail?: true
+  subject?: true
+  type?: true
+  status?: true
+  resendEmailId?: true
+  resendMessageId?: true
+  emailDomainId?: true
   campaignId?: true
-  audienceContactId?: true
-  messageId?: true
-  eventType?: true
-  timestamp?: true
-  ipAddress?: true
-  userAgent?: true
-  linkUrl?: true
-  bounceType?: true
-  bounceSubType?: true
-  complaintFeedbackType?: true
+  contactId?: true
+  htmlContent?: true
+  textContent?: true
+  openedAt?: true
+  clickedAt?: true
+  bouncedAt?: true
+  complainedAt?: true
+  unsubscribedAt?: true
+  errorMessage?: true
+  userId?: true
+  teamId?: true
   createdAt?: true
+  updatedAt?: true
+  sentAt?: true
+  deliveredAt?: true
 }
 
 export type EmailLogCountAggregateInputType = {
   id?: true
+  toEmail?: true
+  fromEmail?: true
+  subject?: true
+  type?: true
+  status?: true
+  resendEmailId?: true
+  resendMessageId?: true
+  emailDomainId?: true
   campaignId?: true
-  audienceContactId?: true
-  messageId?: true
-  eventType?: true
-  eventData?: true
-  timestamp?: true
-  ipAddress?: true
-  userAgent?: true
-  linkUrl?: true
-  bounceType?: true
-  bounceSubType?: true
-  complaintFeedbackType?: true
+  contactId?: true
+  htmlContent?: true
+  textContent?: true
+  openedAt?: true
+  clickedAt?: true
+  bouncedAt?: true
+  complainedAt?: true
+  unsubscribedAt?: true
+  errorMessage?: true
+  metadata?: true
+  userId?: true
+  teamId?: true
   createdAt?: true
+  updatedAt?: true
+  sentAt?: true
+  deliveredAt?: true
   _all?: true
 }
 
@@ -198,19 +270,31 @@ export type EmailLogGroupByArgs<ExtArgs extends runtime.Types.Extensions.Interna
 
 export type EmailLogGroupByOutputType = {
   id: string
-  campaignId: string
-  audienceContactId: string
-  messageId: string | null
-  eventType: $Enums.EmailEventType
-  eventData: runtime.JsonValue | null
-  timestamp: Date | null
-  ipAddress: string | null
-  userAgent: string | null
-  linkUrl: string | null
-  bounceType: string | null
-  bounceSubType: string | null
-  complaintFeedbackType: string | null
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type: $Enums.EmailLogType
+  status: $Enums.EmailLogStatus
+  resendEmailId: string | null
+  resendMessageId: string | null
+  emailDomainId: string | null
+  campaignId: string | null
+  contactId: string | null
+  htmlContent: string | null
+  textContent: string | null
+  openedAt: Date | null
+  clickedAt: Date | null
+  bouncedAt: Date | null
+  complainedAt: Date | null
+  unsubscribedAt: Date | null
+  errorMessage: string | null
+  metadata: runtime.JsonValue | null
+  userId: string | null
+  teamId: string | null
   createdAt: Date
+  updatedAt: Date
+  sentAt: Date | null
+  deliveredAt: Date | null
   _count: EmailLogCountAggregateOutputType | null
   _min: EmailLogMinAggregateOutputType | null
   _max: EmailLogMaxAggregateOutputType | null
@@ -236,40 +320,72 @@ export type EmailLogWhereInput = {
   OR?: Prisma.EmailLogWhereInput[]
   NOT?: Prisma.EmailLogWhereInput | Prisma.EmailLogWhereInput[]
   id?: Prisma.StringFilter<"EmailLog"> | string
-  campaignId?: Prisma.StringFilter<"EmailLog"> | string
-  audienceContactId?: Prisma.StringFilter<"EmailLog"> | string
-  messageId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  eventType?: Prisma.EnumEmailEventTypeFilter<"EmailLog"> | $Enums.EmailEventType
-  eventData?: Prisma.JsonNullableFilter<"EmailLog">
-  timestamp?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
-  ipAddress?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  userAgent?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  linkUrl?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  bounceType?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  bounceSubType?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  complaintFeedbackType?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  toEmail?: Prisma.StringFilter<"EmailLog"> | string
+  fromEmail?: Prisma.StringFilter<"EmailLog"> | string
+  subject?: Prisma.StringFilter<"EmailLog"> | string
+  type?: Prisma.EnumEmailLogTypeFilter<"EmailLog"> | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFilter<"EmailLog"> | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  resendMessageId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  emailDomainId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  campaignId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  contactId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  htmlContent?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  textContent?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  openedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  clickedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  bouncedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  complainedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  unsubscribedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  errorMessage?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  metadata?: Prisma.JsonNullableFilter<"EmailLog">
+  userId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  teamId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
   createdAt?: Prisma.DateTimeFilter<"EmailLog"> | Date | string
-  campaign?: Prisma.XOR<Prisma.EmailCampaignScalarRelationFilter, Prisma.EmailCampaignWhereInput>
-  audienceContact?: Prisma.XOR<Prisma.AudienceContactScalarRelationFilter, Prisma.AudienceContactWhereInput>
+  updatedAt?: Prisma.DateTimeFilter<"EmailLog"> | Date | string
+  sentAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  deliveredAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  emailDomain?: Prisma.XOR<Prisma.EmailDomainNullableScalarRelationFilter, Prisma.EmailDomainWhereInput> | null
+  campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
+  contact?: Prisma.XOR<Prisma.ContactNullableScalarRelationFilter, Prisma.ContactWhereInput> | null
+  user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
+  activityLogs?: Prisma.EmailLogActivityLogListRelationFilter
 }
 
 export type EmailLogOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  campaignId?: Prisma.SortOrder
-  audienceContactId?: Prisma.SortOrder
-  messageId?: Prisma.SortOrderInput | Prisma.SortOrder
-  eventType?: Prisma.SortOrder
-  eventData?: Prisma.SortOrderInput | Prisma.SortOrder
-  timestamp?: Prisma.SortOrderInput | Prisma.SortOrder
-  ipAddress?: Prisma.SortOrderInput | Prisma.SortOrder
-  userAgent?: Prisma.SortOrderInput | Prisma.SortOrder
-  linkUrl?: Prisma.SortOrderInput | Prisma.SortOrder
-  bounceType?: Prisma.SortOrderInput | Prisma.SortOrder
-  bounceSubType?: Prisma.SortOrderInput | Prisma.SortOrder
-  complaintFeedbackType?: Prisma.SortOrderInput | Prisma.SortOrder
+  toEmail?: Prisma.SortOrder
+  fromEmail?: Prisma.SortOrder
+  subject?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  resendEmailId?: Prisma.SortOrderInput | Prisma.SortOrder
+  resendMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
+  emailDomainId?: Prisma.SortOrderInput | Prisma.SortOrder
+  campaignId?: Prisma.SortOrderInput | Prisma.SortOrder
+  contactId?: Prisma.SortOrderInput | Prisma.SortOrder
+  htmlContent?: Prisma.SortOrderInput | Prisma.SortOrder
+  textContent?: Prisma.SortOrderInput | Prisma.SortOrder
+  openedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  clickedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  bouncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  complainedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  unsubscribedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
+  metadata?: Prisma.SortOrderInput | Prisma.SortOrder
+  userId?: Prisma.SortOrderInput | Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
-  campaign?: Prisma.EmailCampaignOrderByWithRelationInput
-  audienceContact?: Prisma.AudienceContactOrderByWithRelationInput
+  updatedAt?: Prisma.SortOrder
+  sentAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deliveredAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  emailDomain?: Prisma.EmailDomainOrderByWithRelationInput
+  campaign?: Prisma.CampaignOrderByWithRelationInput
+  contact?: Prisma.ContactOrderByWithRelationInput
+  user?: Prisma.UserOrderByWithRelationInput
+  team?: Prisma.TeamOrderByWithRelationInput
+  activityLogs?: Prisma.EmailLogActivityLogOrderByRelationAggregateInput
 }
 
 export type EmailLogWhereUniqueInput = Prisma.AtLeast<{
@@ -277,38 +393,66 @@ export type EmailLogWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.EmailLogWhereInput | Prisma.EmailLogWhereInput[]
   OR?: Prisma.EmailLogWhereInput[]
   NOT?: Prisma.EmailLogWhereInput | Prisma.EmailLogWhereInput[]
-  campaignId?: Prisma.StringFilter<"EmailLog"> | string
-  audienceContactId?: Prisma.StringFilter<"EmailLog"> | string
-  messageId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  eventType?: Prisma.EnumEmailEventTypeFilter<"EmailLog"> | $Enums.EmailEventType
-  eventData?: Prisma.JsonNullableFilter<"EmailLog">
-  timestamp?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
-  ipAddress?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  userAgent?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  linkUrl?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  bounceType?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  bounceSubType?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  complaintFeedbackType?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  toEmail?: Prisma.StringFilter<"EmailLog"> | string
+  fromEmail?: Prisma.StringFilter<"EmailLog"> | string
+  subject?: Prisma.StringFilter<"EmailLog"> | string
+  type?: Prisma.EnumEmailLogTypeFilter<"EmailLog"> | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFilter<"EmailLog"> | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  resendMessageId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  emailDomainId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  campaignId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  contactId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  htmlContent?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  textContent?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  openedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  clickedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  bouncedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  complainedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  unsubscribedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  errorMessage?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  metadata?: Prisma.JsonNullableFilter<"EmailLog">
+  userId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  teamId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
   createdAt?: Prisma.DateTimeFilter<"EmailLog"> | Date | string
-  campaign?: Prisma.XOR<Prisma.EmailCampaignScalarRelationFilter, Prisma.EmailCampaignWhereInput>
-  audienceContact?: Prisma.XOR<Prisma.AudienceContactScalarRelationFilter, Prisma.AudienceContactWhereInput>
+  updatedAt?: Prisma.DateTimeFilter<"EmailLog"> | Date | string
+  sentAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  deliveredAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  emailDomain?: Prisma.XOR<Prisma.EmailDomainNullableScalarRelationFilter, Prisma.EmailDomainWhereInput> | null
+  campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
+  contact?: Prisma.XOR<Prisma.ContactNullableScalarRelationFilter, Prisma.ContactWhereInput> | null
+  user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
+  activityLogs?: Prisma.EmailLogActivityLogListRelationFilter
 }, "id">
 
 export type EmailLogOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  campaignId?: Prisma.SortOrder
-  audienceContactId?: Prisma.SortOrder
-  messageId?: Prisma.SortOrderInput | Prisma.SortOrder
-  eventType?: Prisma.SortOrder
-  eventData?: Prisma.SortOrderInput | Prisma.SortOrder
-  timestamp?: Prisma.SortOrderInput | Prisma.SortOrder
-  ipAddress?: Prisma.SortOrderInput | Prisma.SortOrder
-  userAgent?: Prisma.SortOrderInput | Prisma.SortOrder
-  linkUrl?: Prisma.SortOrderInput | Prisma.SortOrder
-  bounceType?: Prisma.SortOrderInput | Prisma.SortOrder
-  bounceSubType?: Prisma.SortOrderInput | Prisma.SortOrder
-  complaintFeedbackType?: Prisma.SortOrderInput | Prisma.SortOrder
+  toEmail?: Prisma.SortOrder
+  fromEmail?: Prisma.SortOrder
+  subject?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  resendEmailId?: Prisma.SortOrderInput | Prisma.SortOrder
+  resendMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
+  emailDomainId?: Prisma.SortOrderInput | Prisma.SortOrder
+  campaignId?: Prisma.SortOrderInput | Prisma.SortOrder
+  contactId?: Prisma.SortOrderInput | Prisma.SortOrder
+  htmlContent?: Prisma.SortOrderInput | Prisma.SortOrder
+  textContent?: Prisma.SortOrderInput | Prisma.SortOrder
+  openedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  clickedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  bouncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  complainedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  unsubscribedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
+  metadata?: Prisma.SortOrderInput | Prisma.SortOrder
+  userId?: Prisma.SortOrderInput | Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
+  sentAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deliveredAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.EmailLogCountOrderByAggregateInput
   _max?: Prisma.EmailLogMaxOrderByAggregateInput
   _min?: Prisma.EmailLogMinOrderByAggregateInput
@@ -319,136 +463,233 @@ export type EmailLogScalarWhereWithAggregatesInput = {
   OR?: Prisma.EmailLogScalarWhereWithAggregatesInput[]
   NOT?: Prisma.EmailLogScalarWhereWithAggregatesInput | Prisma.EmailLogScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"EmailLog"> | string
-  campaignId?: Prisma.StringWithAggregatesFilter<"EmailLog"> | string
-  audienceContactId?: Prisma.StringWithAggregatesFilter<"EmailLog"> | string
-  messageId?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
-  eventType?: Prisma.EnumEmailEventTypeWithAggregatesFilter<"EmailLog"> | $Enums.EmailEventType
-  eventData?: Prisma.JsonNullableWithAggregatesFilter<"EmailLog">
-  timestamp?: Prisma.DateTimeNullableWithAggregatesFilter<"EmailLog"> | Date | string | null
-  ipAddress?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
-  userAgent?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
-  linkUrl?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
-  bounceType?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
-  bounceSubType?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
-  complaintFeedbackType?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
+  toEmail?: Prisma.StringWithAggregatesFilter<"EmailLog"> | string
+  fromEmail?: Prisma.StringWithAggregatesFilter<"EmailLog"> | string
+  subject?: Prisma.StringWithAggregatesFilter<"EmailLog"> | string
+  type?: Prisma.EnumEmailLogTypeWithAggregatesFilter<"EmailLog"> | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusWithAggregatesFilter<"EmailLog"> | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
+  resendMessageId?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
+  emailDomainId?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
+  campaignId?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
+  contactId?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
+  htmlContent?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
+  textContent?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
+  openedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"EmailLog"> | Date | string | null
+  clickedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"EmailLog"> | Date | string | null
+  bouncedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"EmailLog"> | Date | string | null
+  complainedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"EmailLog"> | Date | string | null
+  unsubscribedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"EmailLog"> | Date | string | null
+  errorMessage?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
+  metadata?: Prisma.JsonNullableWithAggregatesFilter<"EmailLog">
+  userId?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
+  teamId?: Prisma.StringNullableWithAggregatesFilter<"EmailLog"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"EmailLog"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"EmailLog"> | Date | string
+  sentAt?: Prisma.DateTimeNullableWithAggregatesFilter<"EmailLog"> | Date | string | null
+  deliveredAt?: Prisma.DateTimeNullableWithAggregatesFilter<"EmailLog"> | Date | string | null
 }
 
 export type EmailLogCreateInput = {
   id: string
-  messageId?: string | null
-  eventType: $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Date | string | null
-  ipAddress?: string | null
-  userAgent?: string | null
-  linkUrl?: string | null
-  bounceType?: string | null
-  bounceSubType?: string | null
-  complaintFeedbackType?: string | null
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
-  campaign: Prisma.EmailCampaignCreateNestedOneWithoutLogsInput
-  audienceContact: Prisma.AudienceContactCreateNestedOneWithoutLogsInput
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  emailDomain?: Prisma.EmailDomainCreateNestedOneWithoutEmailLogsInput
+  campaign?: Prisma.CampaignCreateNestedOneWithoutEmailLogsInput
+  contact?: Prisma.ContactCreateNestedOneWithoutEmailLogsInput
+  user?: Prisma.UserCreateNestedOneWithoutEmailLogsInput
+  team?: Prisma.TeamCreateNestedOneWithoutEmailLogsInput
+  activityLogs?: Prisma.EmailLogActivityLogCreateNestedManyWithoutEmailLogInput
 }
 
 export type EmailLogUncheckedCreateInput = {
   id: string
-  campaignId: string
-  audienceContactId: string
-  messageId?: string | null
-  eventType: $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Date | string | null
-  ipAddress?: string | null
-  userAgent?: string | null
-  linkUrl?: string | null
-  bounceType?: string | null
-  bounceSubType?: string | null
-  complaintFeedbackType?: string | null
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  campaignId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  teamId?: string | null
   createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedCreateNestedManyWithoutEmailLogInput
 }
 
 export type EmailLogUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  eventType?: Prisma.EnumEmailEventTypeFieldUpdateOperationsInput | $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  linkUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceSubType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  complaintFeedbackType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  campaign?: Prisma.EmailCampaignUpdateOneRequiredWithoutLogsNestedInput
-  audienceContact?: Prisma.AudienceContactUpdateOneRequiredWithoutLogsNestedInput
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailDomain?: Prisma.EmailDomainUpdateOneWithoutEmailLogsNestedInput
+  campaign?: Prisma.CampaignUpdateOneWithoutEmailLogsNestedInput
+  contact?: Prisma.ContactUpdateOneWithoutEmailLogsNestedInput
+  user?: Prisma.UserUpdateOneWithoutEmailLogsNestedInput
+  team?: Prisma.TeamUpdateOneWithoutEmailLogsNestedInput
+  activityLogs?: Prisma.EmailLogActivityLogUpdateManyWithoutEmailLogNestedInput
 }
 
 export type EmailLogUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  campaignId?: Prisma.StringFieldUpdateOperationsInput | string
-  audienceContactId?: Prisma.StringFieldUpdateOperationsInput | string
-  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  eventType?: Prisma.EnumEmailEventTypeFieldUpdateOperationsInput | $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  linkUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceSubType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  complaintFeedbackType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedUpdateManyWithoutEmailLogNestedInput
 }
 
 export type EmailLogCreateManyInput = {
   id: string
-  campaignId: string
-  audienceContactId: string
-  messageId?: string | null
-  eventType: $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Date | string | null
-  ipAddress?: string | null
-  userAgent?: string | null
-  linkUrl?: string | null
-  bounceType?: string | null
-  bounceSubType?: string | null
-  complaintFeedbackType?: string | null
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  campaignId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  teamId?: string | null
   createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
 }
 
 export type EmailLogUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  eventType?: Prisma.EnumEmailEventTypeFieldUpdateOperationsInput | $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  linkUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceSubType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  complaintFeedbackType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type EmailLogUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  campaignId?: Prisma.StringFieldUpdateOperationsInput | string
-  audienceContactId?: Prisma.StringFieldUpdateOperationsInput | string
-  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  eventType?: Prisma.EnumEmailEventTypeFieldUpdateOperationsInput | $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  linkUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceSubType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  complaintFeedbackType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type EmailLogListRelationFilter = {
@@ -463,51 +704,260 @@ export type EmailLogOrderByRelationAggregateInput = {
 
 export type EmailLogCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  toEmail?: Prisma.SortOrder
+  fromEmail?: Prisma.SortOrder
+  subject?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  resendEmailId?: Prisma.SortOrder
+  resendMessageId?: Prisma.SortOrder
+  emailDomainId?: Prisma.SortOrder
   campaignId?: Prisma.SortOrder
-  audienceContactId?: Prisma.SortOrder
-  messageId?: Prisma.SortOrder
-  eventType?: Prisma.SortOrder
-  eventData?: Prisma.SortOrder
-  timestamp?: Prisma.SortOrder
-  ipAddress?: Prisma.SortOrder
-  userAgent?: Prisma.SortOrder
-  linkUrl?: Prisma.SortOrder
-  bounceType?: Prisma.SortOrder
-  bounceSubType?: Prisma.SortOrder
-  complaintFeedbackType?: Prisma.SortOrder
+  contactId?: Prisma.SortOrder
+  htmlContent?: Prisma.SortOrder
+  textContent?: Prisma.SortOrder
+  openedAt?: Prisma.SortOrder
+  clickedAt?: Prisma.SortOrder
+  bouncedAt?: Prisma.SortOrder
+  complainedAt?: Prisma.SortOrder
+  unsubscribedAt?: Prisma.SortOrder
+  errorMessage?: Prisma.SortOrder
+  metadata?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
+  sentAt?: Prisma.SortOrder
+  deliveredAt?: Prisma.SortOrder
 }
 
 export type EmailLogMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  toEmail?: Prisma.SortOrder
+  fromEmail?: Prisma.SortOrder
+  subject?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  resendEmailId?: Prisma.SortOrder
+  resendMessageId?: Prisma.SortOrder
+  emailDomainId?: Prisma.SortOrder
   campaignId?: Prisma.SortOrder
-  audienceContactId?: Prisma.SortOrder
-  messageId?: Prisma.SortOrder
-  eventType?: Prisma.SortOrder
-  timestamp?: Prisma.SortOrder
-  ipAddress?: Prisma.SortOrder
-  userAgent?: Prisma.SortOrder
-  linkUrl?: Prisma.SortOrder
-  bounceType?: Prisma.SortOrder
-  bounceSubType?: Prisma.SortOrder
-  complaintFeedbackType?: Prisma.SortOrder
+  contactId?: Prisma.SortOrder
+  htmlContent?: Prisma.SortOrder
+  textContent?: Prisma.SortOrder
+  openedAt?: Prisma.SortOrder
+  clickedAt?: Prisma.SortOrder
+  bouncedAt?: Prisma.SortOrder
+  complainedAt?: Prisma.SortOrder
+  unsubscribedAt?: Prisma.SortOrder
+  errorMessage?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
+  sentAt?: Prisma.SortOrder
+  deliveredAt?: Prisma.SortOrder
 }
 
 export type EmailLogMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  toEmail?: Prisma.SortOrder
+  fromEmail?: Prisma.SortOrder
+  subject?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  resendEmailId?: Prisma.SortOrder
+  resendMessageId?: Prisma.SortOrder
+  emailDomainId?: Prisma.SortOrder
   campaignId?: Prisma.SortOrder
-  audienceContactId?: Prisma.SortOrder
-  messageId?: Prisma.SortOrder
-  eventType?: Prisma.SortOrder
-  timestamp?: Prisma.SortOrder
-  ipAddress?: Prisma.SortOrder
-  userAgent?: Prisma.SortOrder
-  linkUrl?: Prisma.SortOrder
-  bounceType?: Prisma.SortOrder
-  bounceSubType?: Prisma.SortOrder
-  complaintFeedbackType?: Prisma.SortOrder
+  contactId?: Prisma.SortOrder
+  htmlContent?: Prisma.SortOrder
+  textContent?: Prisma.SortOrder
+  openedAt?: Prisma.SortOrder
+  clickedAt?: Prisma.SortOrder
+  bouncedAt?: Prisma.SortOrder
+  complainedAt?: Prisma.SortOrder
+  unsubscribedAt?: Prisma.SortOrder
+  errorMessage?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
+  sentAt?: Prisma.SortOrder
+  deliveredAt?: Prisma.SortOrder
+}
+
+export type EmailLogScalarRelationFilter = {
+  is?: Prisma.EmailLogWhereInput
+  isNot?: Prisma.EmailLogWhereInput
+}
+
+export type EmailLogCreateNestedManyWithoutUserInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutUserInput, Prisma.EmailLogUncheckedCreateWithoutUserInput> | Prisma.EmailLogCreateWithoutUserInput[] | Prisma.EmailLogUncheckedCreateWithoutUserInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutUserInput | Prisma.EmailLogCreateOrConnectWithoutUserInput[]
+  createMany?: Prisma.EmailLogCreateManyUserInputEnvelope
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+}
+
+export type EmailLogUncheckedCreateNestedManyWithoutUserInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutUserInput, Prisma.EmailLogUncheckedCreateWithoutUserInput> | Prisma.EmailLogCreateWithoutUserInput[] | Prisma.EmailLogUncheckedCreateWithoutUserInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutUserInput | Prisma.EmailLogCreateOrConnectWithoutUserInput[]
+  createMany?: Prisma.EmailLogCreateManyUserInputEnvelope
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+}
+
+export type EmailLogUpdateManyWithoutUserNestedInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutUserInput, Prisma.EmailLogUncheckedCreateWithoutUserInput> | Prisma.EmailLogCreateWithoutUserInput[] | Prisma.EmailLogUncheckedCreateWithoutUserInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutUserInput | Prisma.EmailLogCreateOrConnectWithoutUserInput[]
+  upsert?: Prisma.EmailLogUpsertWithWhereUniqueWithoutUserInput | Prisma.EmailLogUpsertWithWhereUniqueWithoutUserInput[]
+  createMany?: Prisma.EmailLogCreateManyUserInputEnvelope
+  set?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  disconnect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  delete?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  update?: Prisma.EmailLogUpdateWithWhereUniqueWithoutUserInput | Prisma.EmailLogUpdateWithWhereUniqueWithoutUserInput[]
+  updateMany?: Prisma.EmailLogUpdateManyWithWhereWithoutUserInput | Prisma.EmailLogUpdateManyWithWhereWithoutUserInput[]
+  deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+}
+
+export type EmailLogUncheckedUpdateManyWithoutUserNestedInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutUserInput, Prisma.EmailLogUncheckedCreateWithoutUserInput> | Prisma.EmailLogCreateWithoutUserInput[] | Prisma.EmailLogUncheckedCreateWithoutUserInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutUserInput | Prisma.EmailLogCreateOrConnectWithoutUserInput[]
+  upsert?: Prisma.EmailLogUpsertWithWhereUniqueWithoutUserInput | Prisma.EmailLogUpsertWithWhereUniqueWithoutUserInput[]
+  createMany?: Prisma.EmailLogCreateManyUserInputEnvelope
+  set?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  disconnect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  delete?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  update?: Prisma.EmailLogUpdateWithWhereUniqueWithoutUserInput | Prisma.EmailLogUpdateWithWhereUniqueWithoutUserInput[]
+  updateMany?: Prisma.EmailLogUpdateManyWithWhereWithoutUserInput | Prisma.EmailLogUpdateManyWithWhereWithoutUserInput[]
+  deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+}
+
+export type EmailLogCreateNestedManyWithoutTeamInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutTeamInput, Prisma.EmailLogUncheckedCreateWithoutTeamInput> | Prisma.EmailLogCreateWithoutTeamInput[] | Prisma.EmailLogUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutTeamInput | Prisma.EmailLogCreateOrConnectWithoutTeamInput[]
+  createMany?: Prisma.EmailLogCreateManyTeamInputEnvelope
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+}
+
+export type EmailLogUncheckedCreateNestedManyWithoutTeamInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutTeamInput, Prisma.EmailLogUncheckedCreateWithoutTeamInput> | Prisma.EmailLogCreateWithoutTeamInput[] | Prisma.EmailLogUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutTeamInput | Prisma.EmailLogCreateOrConnectWithoutTeamInput[]
+  createMany?: Prisma.EmailLogCreateManyTeamInputEnvelope
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+}
+
+export type EmailLogUpdateManyWithoutTeamNestedInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutTeamInput, Prisma.EmailLogUncheckedCreateWithoutTeamInput> | Prisma.EmailLogCreateWithoutTeamInput[] | Prisma.EmailLogUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutTeamInput | Prisma.EmailLogCreateOrConnectWithoutTeamInput[]
+  upsert?: Prisma.EmailLogUpsertWithWhereUniqueWithoutTeamInput | Prisma.EmailLogUpsertWithWhereUniqueWithoutTeamInput[]
+  createMany?: Prisma.EmailLogCreateManyTeamInputEnvelope
+  set?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  disconnect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  delete?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  update?: Prisma.EmailLogUpdateWithWhereUniqueWithoutTeamInput | Prisma.EmailLogUpdateWithWhereUniqueWithoutTeamInput[]
+  updateMany?: Prisma.EmailLogUpdateManyWithWhereWithoutTeamInput | Prisma.EmailLogUpdateManyWithWhereWithoutTeamInput[]
+  deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+}
+
+export type EmailLogUncheckedUpdateManyWithoutTeamNestedInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutTeamInput, Prisma.EmailLogUncheckedCreateWithoutTeamInput> | Prisma.EmailLogCreateWithoutTeamInput[] | Prisma.EmailLogUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutTeamInput | Prisma.EmailLogCreateOrConnectWithoutTeamInput[]
+  upsert?: Prisma.EmailLogUpsertWithWhereUniqueWithoutTeamInput | Prisma.EmailLogUpsertWithWhereUniqueWithoutTeamInput[]
+  createMany?: Prisma.EmailLogCreateManyTeamInputEnvelope
+  set?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  disconnect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  delete?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  update?: Prisma.EmailLogUpdateWithWhereUniqueWithoutTeamInput | Prisma.EmailLogUpdateWithWhereUniqueWithoutTeamInput[]
+  updateMany?: Prisma.EmailLogUpdateManyWithWhereWithoutTeamInput | Prisma.EmailLogUpdateManyWithWhereWithoutTeamInput[]
+  deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+}
+
+export type EmailLogCreateNestedManyWithoutEmailDomainInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutEmailDomainInput, Prisma.EmailLogUncheckedCreateWithoutEmailDomainInput> | Prisma.EmailLogCreateWithoutEmailDomainInput[] | Prisma.EmailLogUncheckedCreateWithoutEmailDomainInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutEmailDomainInput | Prisma.EmailLogCreateOrConnectWithoutEmailDomainInput[]
+  createMany?: Prisma.EmailLogCreateManyEmailDomainInputEnvelope
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+}
+
+export type EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutEmailDomainInput, Prisma.EmailLogUncheckedCreateWithoutEmailDomainInput> | Prisma.EmailLogCreateWithoutEmailDomainInput[] | Prisma.EmailLogUncheckedCreateWithoutEmailDomainInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutEmailDomainInput | Prisma.EmailLogCreateOrConnectWithoutEmailDomainInput[]
+  createMany?: Prisma.EmailLogCreateManyEmailDomainInputEnvelope
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+}
+
+export type EmailLogUpdateManyWithoutEmailDomainNestedInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutEmailDomainInput, Prisma.EmailLogUncheckedCreateWithoutEmailDomainInput> | Prisma.EmailLogCreateWithoutEmailDomainInput[] | Prisma.EmailLogUncheckedCreateWithoutEmailDomainInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutEmailDomainInput | Prisma.EmailLogCreateOrConnectWithoutEmailDomainInput[]
+  upsert?: Prisma.EmailLogUpsertWithWhereUniqueWithoutEmailDomainInput | Prisma.EmailLogUpsertWithWhereUniqueWithoutEmailDomainInput[]
+  createMany?: Prisma.EmailLogCreateManyEmailDomainInputEnvelope
+  set?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  disconnect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  delete?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  update?: Prisma.EmailLogUpdateWithWhereUniqueWithoutEmailDomainInput | Prisma.EmailLogUpdateWithWhereUniqueWithoutEmailDomainInput[]
+  updateMany?: Prisma.EmailLogUpdateManyWithWhereWithoutEmailDomainInput | Prisma.EmailLogUpdateManyWithWhereWithoutEmailDomainInput[]
+  deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+}
+
+export type EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutEmailDomainInput, Prisma.EmailLogUncheckedCreateWithoutEmailDomainInput> | Prisma.EmailLogCreateWithoutEmailDomainInput[] | Prisma.EmailLogUncheckedCreateWithoutEmailDomainInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutEmailDomainInput | Prisma.EmailLogCreateOrConnectWithoutEmailDomainInput[]
+  upsert?: Prisma.EmailLogUpsertWithWhereUniqueWithoutEmailDomainInput | Prisma.EmailLogUpsertWithWhereUniqueWithoutEmailDomainInput[]
+  createMany?: Prisma.EmailLogCreateManyEmailDomainInputEnvelope
+  set?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  disconnect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  delete?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  update?: Prisma.EmailLogUpdateWithWhereUniqueWithoutEmailDomainInput | Prisma.EmailLogUpdateWithWhereUniqueWithoutEmailDomainInput[]
+  updateMany?: Prisma.EmailLogUpdateManyWithWhereWithoutEmailDomainInput | Prisma.EmailLogUpdateManyWithWhereWithoutEmailDomainInput[]
+  deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+}
+
+export type EmailLogCreateNestedManyWithoutContactInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutContactInput, Prisma.EmailLogUncheckedCreateWithoutContactInput> | Prisma.EmailLogCreateWithoutContactInput[] | Prisma.EmailLogUncheckedCreateWithoutContactInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutContactInput | Prisma.EmailLogCreateOrConnectWithoutContactInput[]
+  createMany?: Prisma.EmailLogCreateManyContactInputEnvelope
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+}
+
+export type EmailLogUncheckedCreateNestedManyWithoutContactInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutContactInput, Prisma.EmailLogUncheckedCreateWithoutContactInput> | Prisma.EmailLogCreateWithoutContactInput[] | Prisma.EmailLogUncheckedCreateWithoutContactInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutContactInput | Prisma.EmailLogCreateOrConnectWithoutContactInput[]
+  createMany?: Prisma.EmailLogCreateManyContactInputEnvelope
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+}
+
+export type EmailLogUpdateManyWithoutContactNestedInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutContactInput, Prisma.EmailLogUncheckedCreateWithoutContactInput> | Prisma.EmailLogCreateWithoutContactInput[] | Prisma.EmailLogUncheckedCreateWithoutContactInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutContactInput | Prisma.EmailLogCreateOrConnectWithoutContactInput[]
+  upsert?: Prisma.EmailLogUpsertWithWhereUniqueWithoutContactInput | Prisma.EmailLogUpsertWithWhereUniqueWithoutContactInput[]
+  createMany?: Prisma.EmailLogCreateManyContactInputEnvelope
+  set?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  disconnect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  delete?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  update?: Prisma.EmailLogUpdateWithWhereUniqueWithoutContactInput | Prisma.EmailLogUpdateWithWhereUniqueWithoutContactInput[]
+  updateMany?: Prisma.EmailLogUpdateManyWithWhereWithoutContactInput | Prisma.EmailLogUpdateManyWithWhereWithoutContactInput[]
+  deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+}
+
+export type EmailLogUncheckedUpdateManyWithoutContactNestedInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutContactInput, Prisma.EmailLogUncheckedCreateWithoutContactInput> | Prisma.EmailLogCreateWithoutContactInput[] | Prisma.EmailLogUncheckedCreateWithoutContactInput[]
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutContactInput | Prisma.EmailLogCreateOrConnectWithoutContactInput[]
+  upsert?: Prisma.EmailLogUpsertWithWhereUniqueWithoutContactInput | Prisma.EmailLogUpsertWithWhereUniqueWithoutContactInput[]
+  createMany?: Prisma.EmailLogCreateManyContactInputEnvelope
+  set?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  disconnect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  delete?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+  update?: Prisma.EmailLogUpdateWithWhereUniqueWithoutContactInput | Prisma.EmailLogUpdateWithWhereUniqueWithoutContactInput[]
+  updateMany?: Prisma.EmailLogUpdateManyWithWhereWithoutContactInput | Prisma.EmailLogUpdateManyWithWhereWithoutContactInput[]
+  deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
 }
 
 export type EmailLogCreateNestedManyWithoutCampaignInput = {
@@ -552,82 +1002,452 @@ export type EmailLogUncheckedUpdateManyWithoutCampaignNestedInput = {
   deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
 }
 
-export type EmailLogCreateNestedManyWithoutAudienceContactInput = {
-  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutAudienceContactInput, Prisma.EmailLogUncheckedCreateWithoutAudienceContactInput> | Prisma.EmailLogCreateWithoutAudienceContactInput[] | Prisma.EmailLogUncheckedCreateWithoutAudienceContactInput[]
-  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutAudienceContactInput | Prisma.EmailLogCreateOrConnectWithoutAudienceContactInput[]
-  createMany?: Prisma.EmailLogCreateManyAudienceContactInputEnvelope
-  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+export type EnumEmailLogTypeFieldUpdateOperationsInput = {
+  set?: $Enums.EmailLogType
 }
 
-export type EmailLogUncheckedCreateNestedManyWithoutAudienceContactInput = {
-  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutAudienceContactInput, Prisma.EmailLogUncheckedCreateWithoutAudienceContactInput> | Prisma.EmailLogCreateWithoutAudienceContactInput[] | Prisma.EmailLogUncheckedCreateWithoutAudienceContactInput[]
-  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutAudienceContactInput | Prisma.EmailLogCreateOrConnectWithoutAudienceContactInput[]
-  createMany?: Prisma.EmailLogCreateManyAudienceContactInputEnvelope
-  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
+export type EnumEmailLogStatusFieldUpdateOperationsInput = {
+  set?: $Enums.EmailLogStatus
 }
 
-export type EmailLogUpdateManyWithoutAudienceContactNestedInput = {
-  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutAudienceContactInput, Prisma.EmailLogUncheckedCreateWithoutAudienceContactInput> | Prisma.EmailLogCreateWithoutAudienceContactInput[] | Prisma.EmailLogUncheckedCreateWithoutAudienceContactInput[]
-  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutAudienceContactInput | Prisma.EmailLogCreateOrConnectWithoutAudienceContactInput[]
-  upsert?: Prisma.EmailLogUpsertWithWhereUniqueWithoutAudienceContactInput | Prisma.EmailLogUpsertWithWhereUniqueWithoutAudienceContactInput[]
-  createMany?: Prisma.EmailLogCreateManyAudienceContactInputEnvelope
-  set?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
-  disconnect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
-  delete?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
-  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
-  update?: Prisma.EmailLogUpdateWithWhereUniqueWithoutAudienceContactInput | Prisma.EmailLogUpdateWithWhereUniqueWithoutAudienceContactInput[]
-  updateMany?: Prisma.EmailLogUpdateManyWithWhereWithoutAudienceContactInput | Prisma.EmailLogUpdateManyWithWhereWithoutAudienceContactInput[]
-  deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+export type EmailLogCreateNestedOneWithoutActivityLogsInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutActivityLogsInput, Prisma.EmailLogUncheckedCreateWithoutActivityLogsInput>
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutActivityLogsInput
+  connect?: Prisma.EmailLogWhereUniqueInput
 }
 
-export type EmailLogUncheckedUpdateManyWithoutAudienceContactNestedInput = {
-  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutAudienceContactInput, Prisma.EmailLogUncheckedCreateWithoutAudienceContactInput> | Prisma.EmailLogCreateWithoutAudienceContactInput[] | Prisma.EmailLogUncheckedCreateWithoutAudienceContactInput[]
-  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutAudienceContactInput | Prisma.EmailLogCreateOrConnectWithoutAudienceContactInput[]
-  upsert?: Prisma.EmailLogUpsertWithWhereUniqueWithoutAudienceContactInput | Prisma.EmailLogUpsertWithWhereUniqueWithoutAudienceContactInput[]
-  createMany?: Prisma.EmailLogCreateManyAudienceContactInputEnvelope
-  set?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
-  disconnect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
-  delete?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
-  connect?: Prisma.EmailLogWhereUniqueInput | Prisma.EmailLogWhereUniqueInput[]
-  update?: Prisma.EmailLogUpdateWithWhereUniqueWithoutAudienceContactInput | Prisma.EmailLogUpdateWithWhereUniqueWithoutAudienceContactInput[]
-  updateMany?: Prisma.EmailLogUpdateManyWithWhereWithoutAudienceContactInput | Prisma.EmailLogUpdateManyWithWhereWithoutAudienceContactInput[]
-  deleteMany?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+export type EmailLogUpdateOneRequiredWithoutActivityLogsNestedInput = {
+  create?: Prisma.XOR<Prisma.EmailLogCreateWithoutActivityLogsInput, Prisma.EmailLogUncheckedCreateWithoutActivityLogsInput>
+  connectOrCreate?: Prisma.EmailLogCreateOrConnectWithoutActivityLogsInput
+  upsert?: Prisma.EmailLogUpsertWithoutActivityLogsInput
+  connect?: Prisma.EmailLogWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EmailLogUpdateToOneWithWhereWithoutActivityLogsInput, Prisma.EmailLogUpdateWithoutActivityLogsInput>, Prisma.EmailLogUncheckedUpdateWithoutActivityLogsInput>
 }
 
-export type EnumEmailEventTypeFieldUpdateOperationsInput = {
-  set?: $Enums.EmailEventType
+export type EmailLogCreateWithoutUserInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  emailDomain?: Prisma.EmailDomainCreateNestedOneWithoutEmailLogsInput
+  campaign?: Prisma.CampaignCreateNestedOneWithoutEmailLogsInput
+  contact?: Prisma.ContactCreateNestedOneWithoutEmailLogsInput
+  team?: Prisma.TeamCreateNestedOneWithoutEmailLogsInput
+  activityLogs?: Prisma.EmailLogActivityLogCreateNestedManyWithoutEmailLogInput
+}
+
+export type EmailLogUncheckedCreateWithoutUserInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  campaignId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  teamId?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedCreateNestedManyWithoutEmailLogInput
+}
+
+export type EmailLogCreateOrConnectWithoutUserInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  create: Prisma.XOR<Prisma.EmailLogCreateWithoutUserInput, Prisma.EmailLogUncheckedCreateWithoutUserInput>
+}
+
+export type EmailLogCreateManyUserInputEnvelope = {
+  data: Prisma.EmailLogCreateManyUserInput | Prisma.EmailLogCreateManyUserInput[]
+  skipDuplicates?: boolean
+}
+
+export type EmailLogUpsertWithWhereUniqueWithoutUserInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  update: Prisma.XOR<Prisma.EmailLogUpdateWithoutUserInput, Prisma.EmailLogUncheckedUpdateWithoutUserInput>
+  create: Prisma.XOR<Prisma.EmailLogCreateWithoutUserInput, Prisma.EmailLogUncheckedCreateWithoutUserInput>
+}
+
+export type EmailLogUpdateWithWhereUniqueWithoutUserInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  data: Prisma.XOR<Prisma.EmailLogUpdateWithoutUserInput, Prisma.EmailLogUncheckedUpdateWithoutUserInput>
+}
+
+export type EmailLogUpdateManyWithWhereWithoutUserInput = {
+  where: Prisma.EmailLogScalarWhereInput
+  data: Prisma.XOR<Prisma.EmailLogUpdateManyMutationInput, Prisma.EmailLogUncheckedUpdateManyWithoutUserInput>
+}
+
+export type EmailLogScalarWhereInput = {
+  AND?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+  OR?: Prisma.EmailLogScalarWhereInput[]
+  NOT?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
+  id?: Prisma.StringFilter<"EmailLog"> | string
+  toEmail?: Prisma.StringFilter<"EmailLog"> | string
+  fromEmail?: Prisma.StringFilter<"EmailLog"> | string
+  subject?: Prisma.StringFilter<"EmailLog"> | string
+  type?: Prisma.EnumEmailLogTypeFilter<"EmailLog"> | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFilter<"EmailLog"> | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  resendMessageId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  emailDomainId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  campaignId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  contactId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  htmlContent?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  textContent?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  openedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  clickedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  bouncedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  complainedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  unsubscribedAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  errorMessage?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  metadata?: Prisma.JsonNullableFilter<"EmailLog">
+  userId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  teamId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"EmailLog"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"EmailLog"> | Date | string
+  sentAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+  deliveredAt?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
+}
+
+export type EmailLogCreateWithoutTeamInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  emailDomain?: Prisma.EmailDomainCreateNestedOneWithoutEmailLogsInput
+  campaign?: Prisma.CampaignCreateNestedOneWithoutEmailLogsInput
+  contact?: Prisma.ContactCreateNestedOneWithoutEmailLogsInput
+  user?: Prisma.UserCreateNestedOneWithoutEmailLogsInput
+  activityLogs?: Prisma.EmailLogActivityLogCreateNestedManyWithoutEmailLogInput
+}
+
+export type EmailLogUncheckedCreateWithoutTeamInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  campaignId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedCreateNestedManyWithoutEmailLogInput
+}
+
+export type EmailLogCreateOrConnectWithoutTeamInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  create: Prisma.XOR<Prisma.EmailLogCreateWithoutTeamInput, Prisma.EmailLogUncheckedCreateWithoutTeamInput>
+}
+
+export type EmailLogCreateManyTeamInputEnvelope = {
+  data: Prisma.EmailLogCreateManyTeamInput | Prisma.EmailLogCreateManyTeamInput[]
+  skipDuplicates?: boolean
+}
+
+export type EmailLogUpsertWithWhereUniqueWithoutTeamInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  update: Prisma.XOR<Prisma.EmailLogUpdateWithoutTeamInput, Prisma.EmailLogUncheckedUpdateWithoutTeamInput>
+  create: Prisma.XOR<Prisma.EmailLogCreateWithoutTeamInput, Prisma.EmailLogUncheckedCreateWithoutTeamInput>
+}
+
+export type EmailLogUpdateWithWhereUniqueWithoutTeamInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  data: Prisma.XOR<Prisma.EmailLogUpdateWithoutTeamInput, Prisma.EmailLogUncheckedUpdateWithoutTeamInput>
+}
+
+export type EmailLogUpdateManyWithWhereWithoutTeamInput = {
+  where: Prisma.EmailLogScalarWhereInput
+  data: Prisma.XOR<Prisma.EmailLogUpdateManyMutationInput, Prisma.EmailLogUncheckedUpdateManyWithoutTeamInput>
+}
+
+export type EmailLogCreateWithoutEmailDomainInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  campaign?: Prisma.CampaignCreateNestedOneWithoutEmailLogsInput
+  contact?: Prisma.ContactCreateNestedOneWithoutEmailLogsInput
+  user?: Prisma.UserCreateNestedOneWithoutEmailLogsInput
+  team?: Prisma.TeamCreateNestedOneWithoutEmailLogsInput
+  activityLogs?: Prisma.EmailLogActivityLogCreateNestedManyWithoutEmailLogInput
+}
+
+export type EmailLogUncheckedCreateWithoutEmailDomainInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  campaignId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  teamId?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedCreateNestedManyWithoutEmailLogInput
+}
+
+export type EmailLogCreateOrConnectWithoutEmailDomainInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  create: Prisma.XOR<Prisma.EmailLogCreateWithoutEmailDomainInput, Prisma.EmailLogUncheckedCreateWithoutEmailDomainInput>
+}
+
+export type EmailLogCreateManyEmailDomainInputEnvelope = {
+  data: Prisma.EmailLogCreateManyEmailDomainInput | Prisma.EmailLogCreateManyEmailDomainInput[]
+  skipDuplicates?: boolean
+}
+
+export type EmailLogUpsertWithWhereUniqueWithoutEmailDomainInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  update: Prisma.XOR<Prisma.EmailLogUpdateWithoutEmailDomainInput, Prisma.EmailLogUncheckedUpdateWithoutEmailDomainInput>
+  create: Prisma.XOR<Prisma.EmailLogCreateWithoutEmailDomainInput, Prisma.EmailLogUncheckedCreateWithoutEmailDomainInput>
+}
+
+export type EmailLogUpdateWithWhereUniqueWithoutEmailDomainInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  data: Prisma.XOR<Prisma.EmailLogUpdateWithoutEmailDomainInput, Prisma.EmailLogUncheckedUpdateWithoutEmailDomainInput>
+}
+
+export type EmailLogUpdateManyWithWhereWithoutEmailDomainInput = {
+  where: Prisma.EmailLogScalarWhereInput
+  data: Prisma.XOR<Prisma.EmailLogUpdateManyMutationInput, Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainInput>
+}
+
+export type EmailLogCreateWithoutContactInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  emailDomain?: Prisma.EmailDomainCreateNestedOneWithoutEmailLogsInput
+  campaign?: Prisma.CampaignCreateNestedOneWithoutEmailLogsInput
+  user?: Prisma.UserCreateNestedOneWithoutEmailLogsInput
+  team?: Prisma.TeamCreateNestedOneWithoutEmailLogsInput
+  activityLogs?: Prisma.EmailLogActivityLogCreateNestedManyWithoutEmailLogInput
+}
+
+export type EmailLogUncheckedCreateWithoutContactInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  campaignId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  teamId?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedCreateNestedManyWithoutEmailLogInput
+}
+
+export type EmailLogCreateOrConnectWithoutContactInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  create: Prisma.XOR<Prisma.EmailLogCreateWithoutContactInput, Prisma.EmailLogUncheckedCreateWithoutContactInput>
+}
+
+export type EmailLogCreateManyContactInputEnvelope = {
+  data: Prisma.EmailLogCreateManyContactInput | Prisma.EmailLogCreateManyContactInput[]
+  skipDuplicates?: boolean
+}
+
+export type EmailLogUpsertWithWhereUniqueWithoutContactInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  update: Prisma.XOR<Prisma.EmailLogUpdateWithoutContactInput, Prisma.EmailLogUncheckedUpdateWithoutContactInput>
+  create: Prisma.XOR<Prisma.EmailLogCreateWithoutContactInput, Prisma.EmailLogUncheckedCreateWithoutContactInput>
+}
+
+export type EmailLogUpdateWithWhereUniqueWithoutContactInput = {
+  where: Prisma.EmailLogWhereUniqueInput
+  data: Prisma.XOR<Prisma.EmailLogUpdateWithoutContactInput, Prisma.EmailLogUncheckedUpdateWithoutContactInput>
+}
+
+export type EmailLogUpdateManyWithWhereWithoutContactInput = {
+  where: Prisma.EmailLogScalarWhereInput
+  data: Prisma.XOR<Prisma.EmailLogUpdateManyMutationInput, Prisma.EmailLogUncheckedUpdateManyWithoutContactInput>
 }
 
 export type EmailLogCreateWithoutCampaignInput = {
   id: string
-  messageId?: string | null
-  eventType: $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Date | string | null
-  ipAddress?: string | null
-  userAgent?: string | null
-  linkUrl?: string | null
-  bounceType?: string | null
-  bounceSubType?: string | null
-  complaintFeedbackType?: string | null
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
-  audienceContact: Prisma.AudienceContactCreateNestedOneWithoutLogsInput
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  emailDomain?: Prisma.EmailDomainCreateNestedOneWithoutEmailLogsInput
+  contact?: Prisma.ContactCreateNestedOneWithoutEmailLogsInput
+  user?: Prisma.UserCreateNestedOneWithoutEmailLogsInput
+  team?: Prisma.TeamCreateNestedOneWithoutEmailLogsInput
+  activityLogs?: Prisma.EmailLogActivityLogCreateNestedManyWithoutEmailLogInput
 }
 
 export type EmailLogUncheckedCreateWithoutCampaignInput = {
   id: string
-  audienceContactId: string
-  messageId?: string | null
-  eventType: $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Date | string | null
-  ipAddress?: string | null
-  userAgent?: string | null
-  linkUrl?: string | null
-  bounceType?: string | null
-  bounceSubType?: string | null
-  complaintFeedbackType?: string | null
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  teamId?: string | null
   createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedCreateNestedManyWithoutEmailLogInput
 }
 
 export type EmailLogCreateOrConnectWithoutCampaignInput = {
@@ -656,323 +1476,934 @@ export type EmailLogUpdateManyWithWhereWithoutCampaignInput = {
   data: Prisma.XOR<Prisma.EmailLogUpdateManyMutationInput, Prisma.EmailLogUncheckedUpdateManyWithoutCampaignInput>
 }
 
-export type EmailLogScalarWhereInput = {
-  AND?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
-  OR?: Prisma.EmailLogScalarWhereInput[]
-  NOT?: Prisma.EmailLogScalarWhereInput | Prisma.EmailLogScalarWhereInput[]
-  id?: Prisma.StringFilter<"EmailLog"> | string
-  campaignId?: Prisma.StringFilter<"EmailLog"> | string
-  audienceContactId?: Prisma.StringFilter<"EmailLog"> | string
-  messageId?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  eventType?: Prisma.EnumEmailEventTypeFilter<"EmailLog"> | $Enums.EmailEventType
-  eventData?: Prisma.JsonNullableFilter<"EmailLog">
-  timestamp?: Prisma.DateTimeNullableFilter<"EmailLog"> | Date | string | null
-  ipAddress?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  userAgent?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  linkUrl?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  bounceType?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  bounceSubType?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  complaintFeedbackType?: Prisma.StringNullableFilter<"EmailLog"> | string | null
-  createdAt?: Prisma.DateTimeFilter<"EmailLog"> | Date | string
-}
-
-export type EmailLogCreateWithoutAudienceContactInput = {
+export type EmailLogCreateWithoutActivityLogsInput = {
   id: string
-  messageId?: string | null
-  eventType: $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Date | string | null
-  ipAddress?: string | null
-  userAgent?: string | null
-  linkUrl?: string | null
-  bounceType?: string | null
-  bounceSubType?: string | null
-  complaintFeedbackType?: string | null
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt: Date | string
-  campaign: Prisma.EmailCampaignCreateNestedOneWithoutLogsInput
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  emailDomain?: Prisma.EmailDomainCreateNestedOneWithoutEmailLogsInput
+  campaign?: Prisma.CampaignCreateNestedOneWithoutEmailLogsInput
+  contact?: Prisma.ContactCreateNestedOneWithoutEmailLogsInput
+  user?: Prisma.UserCreateNestedOneWithoutEmailLogsInput
+  team?: Prisma.TeamCreateNestedOneWithoutEmailLogsInput
 }
 
-export type EmailLogUncheckedCreateWithoutAudienceContactInput = {
+export type EmailLogUncheckedCreateWithoutActivityLogsInput = {
   id: string
-  campaignId: string
-  messageId?: string | null
-  eventType: $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Date | string | null
-  ipAddress?: string | null
-  userAgent?: string | null
-  linkUrl?: string | null
-  bounceType?: string | null
-  bounceSubType?: string | null
-  complaintFeedbackType?: string | null
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  campaignId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  teamId?: string | null
   createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
 }
 
-export type EmailLogCreateOrConnectWithoutAudienceContactInput = {
+export type EmailLogCreateOrConnectWithoutActivityLogsInput = {
   where: Prisma.EmailLogWhereUniqueInput
-  create: Prisma.XOR<Prisma.EmailLogCreateWithoutAudienceContactInput, Prisma.EmailLogUncheckedCreateWithoutAudienceContactInput>
+  create: Prisma.XOR<Prisma.EmailLogCreateWithoutActivityLogsInput, Prisma.EmailLogUncheckedCreateWithoutActivityLogsInput>
 }
 
-export type EmailLogCreateManyAudienceContactInputEnvelope = {
-  data: Prisma.EmailLogCreateManyAudienceContactInput | Prisma.EmailLogCreateManyAudienceContactInput[]
-  skipDuplicates?: boolean
+export type EmailLogUpsertWithoutActivityLogsInput = {
+  update: Prisma.XOR<Prisma.EmailLogUpdateWithoutActivityLogsInput, Prisma.EmailLogUncheckedUpdateWithoutActivityLogsInput>
+  create: Prisma.XOR<Prisma.EmailLogCreateWithoutActivityLogsInput, Prisma.EmailLogUncheckedCreateWithoutActivityLogsInput>
+  where?: Prisma.EmailLogWhereInput
 }
 
-export type EmailLogUpsertWithWhereUniqueWithoutAudienceContactInput = {
-  where: Prisma.EmailLogWhereUniqueInput
-  update: Prisma.XOR<Prisma.EmailLogUpdateWithoutAudienceContactInput, Prisma.EmailLogUncheckedUpdateWithoutAudienceContactInput>
-  create: Prisma.XOR<Prisma.EmailLogCreateWithoutAudienceContactInput, Prisma.EmailLogUncheckedCreateWithoutAudienceContactInput>
+export type EmailLogUpdateToOneWithWhereWithoutActivityLogsInput = {
+  where?: Prisma.EmailLogWhereInput
+  data: Prisma.XOR<Prisma.EmailLogUpdateWithoutActivityLogsInput, Prisma.EmailLogUncheckedUpdateWithoutActivityLogsInput>
 }
 
-export type EmailLogUpdateWithWhereUniqueWithoutAudienceContactInput = {
-  where: Prisma.EmailLogWhereUniqueInput
-  data: Prisma.XOR<Prisma.EmailLogUpdateWithoutAudienceContactInput, Prisma.EmailLogUncheckedUpdateWithoutAudienceContactInput>
+export type EmailLogUpdateWithoutActivityLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailDomain?: Prisma.EmailDomainUpdateOneWithoutEmailLogsNestedInput
+  campaign?: Prisma.CampaignUpdateOneWithoutEmailLogsNestedInput
+  contact?: Prisma.ContactUpdateOneWithoutEmailLogsNestedInput
+  user?: Prisma.UserUpdateOneWithoutEmailLogsNestedInput
+  team?: Prisma.TeamUpdateOneWithoutEmailLogsNestedInput
 }
 
-export type EmailLogUpdateManyWithWhereWithoutAudienceContactInput = {
-  where: Prisma.EmailLogScalarWhereInput
-  data: Prisma.XOR<Prisma.EmailLogUpdateManyMutationInput, Prisma.EmailLogUncheckedUpdateManyWithoutAudienceContactInput>
+export type EmailLogUncheckedUpdateWithoutActivityLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type EmailLogCreateManyUserInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  campaignId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  teamId?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+}
+
+export type EmailLogUpdateWithoutUserInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailDomain?: Prisma.EmailDomainUpdateOneWithoutEmailLogsNestedInput
+  campaign?: Prisma.CampaignUpdateOneWithoutEmailLogsNestedInput
+  contact?: Prisma.ContactUpdateOneWithoutEmailLogsNestedInput
+  team?: Prisma.TeamUpdateOneWithoutEmailLogsNestedInput
+  activityLogs?: Prisma.EmailLogActivityLogUpdateManyWithoutEmailLogNestedInput
+}
+
+export type EmailLogUncheckedUpdateWithoutUserInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedUpdateManyWithoutEmailLogNestedInput
+}
+
+export type EmailLogUncheckedUpdateManyWithoutUserInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type EmailLogCreateManyTeamInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  campaignId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+}
+
+export type EmailLogUpdateWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailDomain?: Prisma.EmailDomainUpdateOneWithoutEmailLogsNestedInput
+  campaign?: Prisma.CampaignUpdateOneWithoutEmailLogsNestedInput
+  contact?: Prisma.ContactUpdateOneWithoutEmailLogsNestedInput
+  user?: Prisma.UserUpdateOneWithoutEmailLogsNestedInput
+  activityLogs?: Prisma.EmailLogActivityLogUpdateManyWithoutEmailLogNestedInput
+}
+
+export type EmailLogUncheckedUpdateWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedUpdateManyWithoutEmailLogNestedInput
+}
+
+export type EmailLogUncheckedUpdateManyWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type EmailLogCreateManyEmailDomainInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  campaignId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  teamId?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+}
+
+export type EmailLogUpdateWithoutEmailDomainInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  campaign?: Prisma.CampaignUpdateOneWithoutEmailLogsNestedInput
+  contact?: Prisma.ContactUpdateOneWithoutEmailLogsNestedInput
+  user?: Prisma.UserUpdateOneWithoutEmailLogsNestedInput
+  team?: Prisma.TeamUpdateOneWithoutEmailLogsNestedInput
+  activityLogs?: Prisma.EmailLogActivityLogUpdateManyWithoutEmailLogNestedInput
+}
+
+export type EmailLogUncheckedUpdateWithoutEmailDomainInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedUpdateManyWithoutEmailLogNestedInput
+}
+
+export type EmailLogUncheckedUpdateManyWithoutEmailDomainInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type EmailLogCreateManyContactInput = {
+  id: string
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  campaignId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  teamId?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+}
+
+export type EmailLogUpdateWithoutContactInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailDomain?: Prisma.EmailDomainUpdateOneWithoutEmailLogsNestedInput
+  campaign?: Prisma.CampaignUpdateOneWithoutEmailLogsNestedInput
+  user?: Prisma.UserUpdateOneWithoutEmailLogsNestedInput
+  team?: Prisma.TeamUpdateOneWithoutEmailLogsNestedInput
+  activityLogs?: Prisma.EmailLogActivityLogUpdateManyWithoutEmailLogNestedInput
+}
+
+export type EmailLogUncheckedUpdateWithoutContactInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedUpdateManyWithoutEmailLogNestedInput
+}
+
+export type EmailLogUncheckedUpdateManyWithoutContactInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type EmailLogCreateManyCampaignInput = {
   id: string
-  audienceContactId: string
-  messageId?: string | null
-  eventType: $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Date | string | null
-  ipAddress?: string | null
-  userAgent?: string | null
-  linkUrl?: string | null
-  bounceType?: string | null
-  bounceSubType?: string | null
-  complaintFeedbackType?: string | null
+  toEmail: string
+  fromEmail: string
+  subject: string
+  type?: $Enums.EmailLogType
+  status?: $Enums.EmailLogStatus
+  resendEmailId?: string | null
+  resendMessageId?: string | null
+  emailDomainId?: string | null
+  contactId?: string | null
+  htmlContent?: string | null
+  textContent?: string | null
+  openedAt?: Date | string | null
+  clickedAt?: Date | string | null
+  bouncedAt?: Date | string | null
+  complainedAt?: Date | string | null
+  unsubscribedAt?: Date | string | null
+  errorMessage?: string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: string | null
+  teamId?: string | null
   createdAt: Date | string
+  updatedAt: Date | string
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
 }
 
 export type EmailLogUpdateWithoutCampaignInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  eventType?: Prisma.EnumEmailEventTypeFieldUpdateOperationsInput | $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  linkUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceSubType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  complaintFeedbackType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  audienceContact?: Prisma.AudienceContactUpdateOneRequiredWithoutLogsNestedInput
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailDomain?: Prisma.EmailDomainUpdateOneWithoutEmailLogsNestedInput
+  contact?: Prisma.ContactUpdateOneWithoutEmailLogsNestedInput
+  user?: Prisma.UserUpdateOneWithoutEmailLogsNestedInput
+  team?: Prisma.TeamUpdateOneWithoutEmailLogsNestedInput
+  activityLogs?: Prisma.EmailLogActivityLogUpdateManyWithoutEmailLogNestedInput
 }
 
 export type EmailLogUncheckedUpdateWithoutCampaignInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  audienceContactId?: Prisma.StringFieldUpdateOperationsInput | string
-  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  eventType?: Prisma.EnumEmailEventTypeFieldUpdateOperationsInput | $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  linkUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceSubType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  complaintFeedbackType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  activityLogs?: Prisma.EmailLogActivityLogUncheckedUpdateManyWithoutEmailLogNestedInput
 }
 
 export type EmailLogUncheckedUpdateManyWithoutCampaignInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  audienceContactId?: Prisma.StringFieldUpdateOperationsInput | string
-  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  eventType?: Prisma.EnumEmailEventTypeFieldUpdateOperationsInput | $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  linkUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceSubType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  complaintFeedbackType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumEmailLogTypeFieldUpdateOperationsInput | $Enums.EmailLogType
+  status?: Prisma.EnumEmailLogStatusFieldUpdateOperationsInput | $Enums.EmailLogStatus
+  resendEmailId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resendMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  htmlContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  textContent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  bouncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  complainedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unsubscribedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
-export type EmailLogCreateManyAudienceContactInput = {
-  id: string
-  campaignId: string
-  messageId?: string | null
-  eventType: $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Date | string | null
-  ipAddress?: string | null
-  userAgent?: string | null
-  linkUrl?: string | null
-  bounceType?: string | null
-  bounceSubType?: string | null
-  complaintFeedbackType?: string | null
-  createdAt: Date | string
+
+/**
+ * Count Type EmailLogCountOutputType
+ */
+
+export type EmailLogCountOutputType = {
+  activityLogs: number
 }
 
-export type EmailLogUpdateWithoutAudienceContactInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  eventType?: Prisma.EnumEmailEventTypeFieldUpdateOperationsInput | $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  linkUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceSubType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  complaintFeedbackType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  campaign?: Prisma.EmailCampaignUpdateOneRequiredWithoutLogsNestedInput
+export type EmailLogCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  activityLogs?: boolean | EmailLogCountOutputTypeCountActivityLogsArgs
 }
 
-export type EmailLogUncheckedUpdateWithoutAudienceContactInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  campaignId?: Prisma.StringFieldUpdateOperationsInput | string
-  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  eventType?: Prisma.EnumEmailEventTypeFieldUpdateOperationsInput | $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  linkUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceSubType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  complaintFeedbackType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+/**
+ * EmailLogCountOutputType without action
+ */
+export type EmailLogCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the EmailLogCountOutputType
+   */
+  select?: Prisma.EmailLogCountOutputTypeSelect<ExtArgs> | null
 }
 
-export type EmailLogUncheckedUpdateManyWithoutAudienceContactInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  campaignId?: Prisma.StringFieldUpdateOperationsInput | string
-  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  eventType?: Prisma.EnumEmailEventTypeFieldUpdateOperationsInput | $Enums.EmailEventType
-  eventData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  timestamp?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  linkUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bounceSubType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  complaintFeedbackType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+/**
+ * EmailLogCountOutputType without action
+ */
+export type EmailLogCountOutputTypeCountActivityLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.EmailLogActivityLogWhereInput
 }
-
 
 
 export type EmailLogSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  toEmail?: boolean
+  fromEmail?: boolean
+  subject?: boolean
+  type?: boolean
+  status?: boolean
+  resendEmailId?: boolean
+  resendMessageId?: boolean
+  emailDomainId?: boolean
   campaignId?: boolean
-  audienceContactId?: boolean
-  messageId?: boolean
-  eventType?: boolean
-  eventData?: boolean
-  timestamp?: boolean
-  ipAddress?: boolean
-  userAgent?: boolean
-  linkUrl?: boolean
-  bounceType?: boolean
-  bounceSubType?: boolean
-  complaintFeedbackType?: boolean
+  contactId?: boolean
+  htmlContent?: boolean
+  textContent?: boolean
+  openedAt?: boolean
+  clickedAt?: boolean
+  bouncedAt?: boolean
+  complainedAt?: boolean
+  unsubscribedAt?: boolean
+  errorMessage?: boolean
+  metadata?: boolean
+  userId?: boolean
+  teamId?: boolean
   createdAt?: boolean
-  campaign?: boolean | Prisma.EmailCampaignDefaultArgs<ExtArgs>
-  audienceContact?: boolean | Prisma.AudienceContactDefaultArgs<ExtArgs>
+  updatedAt?: boolean
+  sentAt?: boolean
+  deliveredAt?: boolean
+  emailDomain?: boolean | Prisma.EmailLog$emailDomainArgs<ExtArgs>
+  campaign?: boolean | Prisma.EmailLog$campaignArgs<ExtArgs>
+  contact?: boolean | Prisma.EmailLog$contactArgs<ExtArgs>
+  user?: boolean | Prisma.EmailLog$userArgs<ExtArgs>
+  team?: boolean | Prisma.EmailLog$teamArgs<ExtArgs>
+  activityLogs?: boolean | Prisma.EmailLog$activityLogsArgs<ExtArgs>
+  _count?: boolean | Prisma.EmailLogCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["emailLog"]>
 
 export type EmailLogSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  toEmail?: boolean
+  fromEmail?: boolean
+  subject?: boolean
+  type?: boolean
+  status?: boolean
+  resendEmailId?: boolean
+  resendMessageId?: boolean
+  emailDomainId?: boolean
   campaignId?: boolean
-  audienceContactId?: boolean
-  messageId?: boolean
-  eventType?: boolean
-  eventData?: boolean
-  timestamp?: boolean
-  ipAddress?: boolean
-  userAgent?: boolean
-  linkUrl?: boolean
-  bounceType?: boolean
-  bounceSubType?: boolean
-  complaintFeedbackType?: boolean
+  contactId?: boolean
+  htmlContent?: boolean
+  textContent?: boolean
+  openedAt?: boolean
+  clickedAt?: boolean
+  bouncedAt?: boolean
+  complainedAt?: boolean
+  unsubscribedAt?: boolean
+  errorMessage?: boolean
+  metadata?: boolean
+  userId?: boolean
+  teamId?: boolean
   createdAt?: boolean
-  campaign?: boolean | Prisma.EmailCampaignDefaultArgs<ExtArgs>
-  audienceContact?: boolean | Prisma.AudienceContactDefaultArgs<ExtArgs>
+  updatedAt?: boolean
+  sentAt?: boolean
+  deliveredAt?: boolean
+  emailDomain?: boolean | Prisma.EmailLog$emailDomainArgs<ExtArgs>
+  campaign?: boolean | Prisma.EmailLog$campaignArgs<ExtArgs>
+  contact?: boolean | Prisma.EmailLog$contactArgs<ExtArgs>
+  user?: boolean | Prisma.EmailLog$userArgs<ExtArgs>
+  team?: boolean | Prisma.EmailLog$teamArgs<ExtArgs>
 }, ExtArgs["result"]["emailLog"]>
 
 export type EmailLogSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  toEmail?: boolean
+  fromEmail?: boolean
+  subject?: boolean
+  type?: boolean
+  status?: boolean
+  resendEmailId?: boolean
+  resendMessageId?: boolean
+  emailDomainId?: boolean
   campaignId?: boolean
-  audienceContactId?: boolean
-  messageId?: boolean
-  eventType?: boolean
-  eventData?: boolean
-  timestamp?: boolean
-  ipAddress?: boolean
-  userAgent?: boolean
-  linkUrl?: boolean
-  bounceType?: boolean
-  bounceSubType?: boolean
-  complaintFeedbackType?: boolean
+  contactId?: boolean
+  htmlContent?: boolean
+  textContent?: boolean
+  openedAt?: boolean
+  clickedAt?: boolean
+  bouncedAt?: boolean
+  complainedAt?: boolean
+  unsubscribedAt?: boolean
+  errorMessage?: boolean
+  metadata?: boolean
+  userId?: boolean
+  teamId?: boolean
   createdAt?: boolean
-  campaign?: boolean | Prisma.EmailCampaignDefaultArgs<ExtArgs>
-  audienceContact?: boolean | Prisma.AudienceContactDefaultArgs<ExtArgs>
+  updatedAt?: boolean
+  sentAt?: boolean
+  deliveredAt?: boolean
+  emailDomain?: boolean | Prisma.EmailLog$emailDomainArgs<ExtArgs>
+  campaign?: boolean | Prisma.EmailLog$campaignArgs<ExtArgs>
+  contact?: boolean | Prisma.EmailLog$contactArgs<ExtArgs>
+  user?: boolean | Prisma.EmailLog$userArgs<ExtArgs>
+  team?: boolean | Prisma.EmailLog$teamArgs<ExtArgs>
 }, ExtArgs["result"]["emailLog"]>
 
 export type EmailLogSelectScalar = {
   id?: boolean
+  toEmail?: boolean
+  fromEmail?: boolean
+  subject?: boolean
+  type?: boolean
+  status?: boolean
+  resendEmailId?: boolean
+  resendMessageId?: boolean
+  emailDomainId?: boolean
   campaignId?: boolean
-  audienceContactId?: boolean
-  messageId?: boolean
-  eventType?: boolean
-  eventData?: boolean
-  timestamp?: boolean
-  ipAddress?: boolean
-  userAgent?: boolean
-  linkUrl?: boolean
-  bounceType?: boolean
-  bounceSubType?: boolean
-  complaintFeedbackType?: boolean
+  contactId?: boolean
+  htmlContent?: boolean
+  textContent?: boolean
+  openedAt?: boolean
+  clickedAt?: boolean
+  bouncedAt?: boolean
+  complainedAt?: boolean
+  unsubscribedAt?: boolean
+  errorMessage?: boolean
+  metadata?: boolean
+  userId?: boolean
+  teamId?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
+  sentAt?: boolean
+  deliveredAt?: boolean
 }
 
-export type EmailLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "campaignId" | "audienceContactId" | "messageId" | "eventType" | "eventData" | "timestamp" | "ipAddress" | "userAgent" | "linkUrl" | "bounceType" | "bounceSubType" | "complaintFeedbackType" | "createdAt", ExtArgs["result"]["emailLog"]>
+export type EmailLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "toEmail" | "fromEmail" | "subject" | "type" | "status" | "resendEmailId" | "resendMessageId" | "emailDomainId" | "campaignId" | "contactId" | "htmlContent" | "textContent" | "openedAt" | "clickedAt" | "bouncedAt" | "complainedAt" | "unsubscribedAt" | "errorMessage" | "metadata" | "userId" | "teamId" | "createdAt" | "updatedAt" | "sentAt" | "deliveredAt", ExtArgs["result"]["emailLog"]>
 export type EmailLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  campaign?: boolean | Prisma.EmailCampaignDefaultArgs<ExtArgs>
-  audienceContact?: boolean | Prisma.AudienceContactDefaultArgs<ExtArgs>
+  emailDomain?: boolean | Prisma.EmailLog$emailDomainArgs<ExtArgs>
+  campaign?: boolean | Prisma.EmailLog$campaignArgs<ExtArgs>
+  contact?: boolean | Prisma.EmailLog$contactArgs<ExtArgs>
+  user?: boolean | Prisma.EmailLog$userArgs<ExtArgs>
+  team?: boolean | Prisma.EmailLog$teamArgs<ExtArgs>
+  activityLogs?: boolean | Prisma.EmailLog$activityLogsArgs<ExtArgs>
+  _count?: boolean | Prisma.EmailLogCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type EmailLogIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  campaign?: boolean | Prisma.EmailCampaignDefaultArgs<ExtArgs>
-  audienceContact?: boolean | Prisma.AudienceContactDefaultArgs<ExtArgs>
+  emailDomain?: boolean | Prisma.EmailLog$emailDomainArgs<ExtArgs>
+  campaign?: boolean | Prisma.EmailLog$campaignArgs<ExtArgs>
+  contact?: boolean | Prisma.EmailLog$contactArgs<ExtArgs>
+  user?: boolean | Prisma.EmailLog$userArgs<ExtArgs>
+  team?: boolean | Prisma.EmailLog$teamArgs<ExtArgs>
 }
 export type EmailLogIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  campaign?: boolean | Prisma.EmailCampaignDefaultArgs<ExtArgs>
-  audienceContact?: boolean | Prisma.AudienceContactDefaultArgs<ExtArgs>
+  emailDomain?: boolean | Prisma.EmailLog$emailDomainArgs<ExtArgs>
+  campaign?: boolean | Prisma.EmailLog$campaignArgs<ExtArgs>
+  contact?: boolean | Prisma.EmailLog$contactArgs<ExtArgs>
+  user?: boolean | Prisma.EmailLog$userArgs<ExtArgs>
+  team?: boolean | Prisma.EmailLog$teamArgs<ExtArgs>
 }
 
 export type $EmailLogPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "EmailLog"
   objects: {
-    campaign: Prisma.$EmailCampaignPayload<ExtArgs>
-    audienceContact: Prisma.$AudienceContactPayload<ExtArgs>
+    emailDomain: Prisma.$EmailDomainPayload<ExtArgs> | null
+    campaign: Prisma.$CampaignPayload<ExtArgs> | null
+    contact: Prisma.$ContactPayload<ExtArgs> | null
+    user: Prisma.$UserPayload<ExtArgs> | null
+    team: Prisma.$TeamPayload<ExtArgs> | null
+    activityLogs: Prisma.$EmailLogActivityLogPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    campaignId: string
-    audienceContactId: string
-    messageId: string | null
-    eventType: $Enums.EmailEventType
-    eventData: runtime.JsonValue | null
-    timestamp: Date | null
-    ipAddress: string | null
-    userAgent: string | null
-    linkUrl: string | null
-    bounceType: string | null
-    bounceSubType: string | null
-    complaintFeedbackType: string | null
+    toEmail: string
+    fromEmail: string
+    subject: string
+    type: $Enums.EmailLogType
+    status: $Enums.EmailLogStatus
+    resendEmailId: string | null
+    resendMessageId: string | null
+    emailDomainId: string | null
+    campaignId: string | null
+    contactId: string | null
+    htmlContent: string | null
+    textContent: string | null
+    openedAt: Date | null
+    clickedAt: Date | null
+    bouncedAt: Date | null
+    complainedAt: Date | null
+    unsubscribedAt: Date | null
+    errorMessage: string | null
+    metadata: runtime.JsonValue | null
+    userId: string | null
+    teamId: string | null
     createdAt: Date
+    updatedAt: Date
+    sentAt: Date | null
+    deliveredAt: Date | null
   }, ExtArgs["result"]["emailLog"]>
   composites: {}
 }
@@ -1367,8 +2798,12 @@ readonly fields: EmailLogFieldRefs;
  */
 export interface Prisma__EmailLogClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  campaign<T extends Prisma.EmailCampaignDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailCampaignDefaultArgs<ExtArgs>>): Prisma.Prisma__EmailCampaignClient<runtime.Types.Result.GetResult<Prisma.$EmailCampaignPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  audienceContact<T extends Prisma.AudienceContactDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AudienceContactDefaultArgs<ExtArgs>>): Prisma.Prisma__AudienceContactClient<runtime.Types.Result.GetResult<Prisma.$AudienceContactPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  emailDomain<T extends Prisma.EmailLog$emailDomainArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailLog$emailDomainArgs<ExtArgs>>): Prisma.Prisma__EmailDomainClient<runtime.Types.Result.GetResult<Prisma.$EmailDomainPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  campaign<T extends Prisma.EmailLog$campaignArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailLog$campaignArgs<ExtArgs>>): Prisma.Prisma__CampaignClient<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  contact<T extends Prisma.EmailLog$contactArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailLog$contactArgs<ExtArgs>>): Prisma.Prisma__ContactClient<runtime.Types.Result.GetResult<Prisma.$ContactPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  user<T extends Prisma.EmailLog$userArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailLog$userArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  team<T extends Prisma.EmailLog$teamArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailLog$teamArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  activityLogs<T extends Prisma.EmailLog$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailLog$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailLogActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1399,19 +2834,31 @@ export interface Prisma__EmailLogClient<T, Null = never, ExtArgs extends runtime
  */
 export interface EmailLogFieldRefs {
   readonly id: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly toEmail: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly fromEmail: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly subject: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly type: Prisma.FieldRef<"EmailLog", 'EmailLogType'>
+  readonly status: Prisma.FieldRef<"EmailLog", 'EmailLogStatus'>
+  readonly resendEmailId: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly resendMessageId: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly emailDomainId: Prisma.FieldRef<"EmailLog", 'String'>
   readonly campaignId: Prisma.FieldRef<"EmailLog", 'String'>
-  readonly audienceContactId: Prisma.FieldRef<"EmailLog", 'String'>
-  readonly messageId: Prisma.FieldRef<"EmailLog", 'String'>
-  readonly eventType: Prisma.FieldRef<"EmailLog", 'EmailEventType'>
-  readonly eventData: Prisma.FieldRef<"EmailLog", 'Json'>
-  readonly timestamp: Prisma.FieldRef<"EmailLog", 'DateTime'>
-  readonly ipAddress: Prisma.FieldRef<"EmailLog", 'String'>
-  readonly userAgent: Prisma.FieldRef<"EmailLog", 'String'>
-  readonly linkUrl: Prisma.FieldRef<"EmailLog", 'String'>
-  readonly bounceType: Prisma.FieldRef<"EmailLog", 'String'>
-  readonly bounceSubType: Prisma.FieldRef<"EmailLog", 'String'>
-  readonly complaintFeedbackType: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly contactId: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly htmlContent: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly textContent: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly openedAt: Prisma.FieldRef<"EmailLog", 'DateTime'>
+  readonly clickedAt: Prisma.FieldRef<"EmailLog", 'DateTime'>
+  readonly bouncedAt: Prisma.FieldRef<"EmailLog", 'DateTime'>
+  readonly complainedAt: Prisma.FieldRef<"EmailLog", 'DateTime'>
+  readonly unsubscribedAt: Prisma.FieldRef<"EmailLog", 'DateTime'>
+  readonly errorMessage: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly metadata: Prisma.FieldRef<"EmailLog", 'Json'>
+  readonly userId: Prisma.FieldRef<"EmailLog", 'String'>
+  readonly teamId: Prisma.FieldRef<"EmailLog", 'String'>
   readonly createdAt: Prisma.FieldRef<"EmailLog", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"EmailLog", 'DateTime'>
+  readonly sentAt: Prisma.FieldRef<"EmailLog", 'DateTime'>
+  readonly deliveredAt: Prisma.FieldRef<"EmailLog", 'DateTime'>
 }
     
 
@@ -1805,6 +3252,125 @@ export type EmailLogDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Limit how many EmailLogs to delete.
    */
   limit?: number
+}
+
+/**
+ * EmailLog.emailDomain
+ */
+export type EmailLog$emailDomainArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the EmailDomain
+   */
+  select?: Prisma.EmailDomainSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the EmailDomain
+   */
+  omit?: Prisma.EmailDomainOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EmailDomainInclude<ExtArgs> | null
+  where?: Prisma.EmailDomainWhereInput
+}
+
+/**
+ * EmailLog.campaign
+ */
+export type EmailLog$campaignArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Campaign
+   */
+  select?: Prisma.CampaignSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Campaign
+   */
+  omit?: Prisma.CampaignOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CampaignInclude<ExtArgs> | null
+  where?: Prisma.CampaignWhereInput
+}
+
+/**
+ * EmailLog.contact
+ */
+export type EmailLog$contactArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Contact
+   */
+  select?: Prisma.ContactSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Contact
+   */
+  omit?: Prisma.ContactOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ContactInclude<ExtArgs> | null
+  where?: Prisma.ContactWhereInput
+}
+
+/**
+ * EmailLog.user
+ */
+export type EmailLog$userArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
+}
+
+/**
+ * EmailLog.team
+ */
+export type EmailLog$teamArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Team
+   */
+  select?: Prisma.TeamSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Team
+   */
+  omit?: Prisma.TeamOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TeamInclude<ExtArgs> | null
+  where?: Prisma.TeamWhereInput
+}
+
+/**
+ * EmailLog.activityLogs
+ */
+export type EmailLog$activityLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the EmailLogActivityLog
+   */
+  select?: Prisma.EmailLogActivityLogSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the EmailLogActivityLog
+   */
+  omit?: Prisma.EmailLogActivityLogOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EmailLogActivityLogInclude<ExtArgs> | null
+  where?: Prisma.EmailLogActivityLogWhereInput
+  orderBy?: Prisma.EmailLogActivityLogOrderByWithRelationInput | Prisma.EmailLogActivityLogOrderByWithRelationInput[]
+  cursor?: Prisma.EmailLogActivityLogWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.EmailLogActivityLogScalarFieldEnum | Prisma.EmailLogActivityLogScalarFieldEnum[]
 }
 
 /**
