@@ -2,6 +2,16 @@
 
 import * as React from "react";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -35,6 +45,7 @@ import {
   Check,
   MoreVertical,
   Link2,
+  Link2Off,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1403,6 +1414,24 @@ function DnsRecordsTab({ domain }: { domain: DomainPortfolio }) {
 // Domain Actions Menu Component
 function DomainActionsMenu({ domain }: { domain: DomainPortfolio }) {
   const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
+  const [unlinkConfirmOpen, setUnlinkConfirmOpen] = React.useState(false);
+  const utils = trpc.useUtils();
+  const { data: ourDomain } = trpc.domains.getByDomainName.useQuery(
+    { domainName: domain.domain },
+    { enabled: !!domain?.domain }
+  );
+  const isLinkedToTeam = !!ourDomain?.teamId;
+
+  const unlinkFromTeamMutation = trpc.domains.unlinkFromTeam.useMutation({
+    onSuccess: () => {
+      setUnlinkConfirmOpen(false);
+      toast.success("Domain unlinked from team");
+      utils.domains.getByDomainName.invalidate({ domainName: domain.domain });
+    },
+    onError: (error) => {
+      toast.error("Failed to unlink domain from team", { description: error.message });
+    },
+  });
 
   return (
     <>
@@ -1413,12 +1442,51 @@ function DomainActionsMenu({ domain }: { domain: DomainPortfolio }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setIsLinkToTeamOpen(true)}>
-            <Link2 className="mr-2 h-4 w-4" />
-            Link to Team
-          </DropdownMenuItem>
+          {isLinkedToTeam ? (
+            <DropdownMenuItem
+              onClick={() => setUnlinkConfirmOpen(true)}
+              disabled={unlinkFromTeamMutation.isPending}
+            >
+              <Link2Off className="mr-2 h-4 w-4" />
+              Unlink from team
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => setIsLinkToTeamOpen(true)}>
+              <Link2 className="mr-2 h-4 w-4" />
+              Link to Team
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
+      <AlertDialog open={unlinkConfirmOpen} onOpenChange={setUnlinkConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink domain from team?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the domain from the team. The team will no longer have access to
+              this domain for management or visibility. You can link it to another team later if
+              needed. This action does not affect the domain&apos;s registration or DNS.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={unlinkFromTeamMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (ourDomain && !unlinkFromTeamMutation.isPending) {
+                  unlinkFromTeamMutation.mutate({ id: ourDomain.id });
+                }
+              }}
+              disabled={unlinkFromTeamMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {unlinkFromTeamMutation.isPending ? "Unlinking…" : "Unlink from team"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <LinkToTeamDialog
         open={isLinkToTeamOpen}
         onOpenChange={setIsLinkToTeamOpen}

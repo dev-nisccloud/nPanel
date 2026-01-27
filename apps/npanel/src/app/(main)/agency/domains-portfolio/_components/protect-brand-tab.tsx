@@ -277,7 +277,7 @@ function ProtectBrandTabContent({ domainNameWithoutTld, isActive = true }: Prote
                       </TableCell>
                       <TableCell>
                         {isAvailable && displayPrice ? (
-                          <span className="text-lg font-semibold">
+                          <span className="text-sm font-bold text-primary">
                             {formatPrice(displayPrice, displayCurrency)}
                           </span>
                         ) : (

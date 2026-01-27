@@ -26,6 +26,10 @@ import { NotificationSwitcher } from "./_components/sidebar/notification-switche
 import { PrefetchTeams } from "./_components/prefetch-teams";
 import { NavigationLoader } from "@/components/navigation-loader";
 import { FloatingActionButton } from "@/components/floating-action-button";
+import {
+  SwitchingTeamOverlay,
+  SwitchingTeamProvider,
+} from "@/contexts/switching-team-context";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +87,8 @@ export default async function TeamLayout({
   };
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
+    <SwitchingTeamProvider>
+      <SidebarProvider defaultOpen={defaultOpen}>
         <PrefetchTeams />
         <AppSidebar 
           variant={sidebarVariant} 
@@ -118,8 +123,10 @@ export default async function TeamLayout({
           </header>
           <div className="h-full p-4 md:p-6 bg-[#f8fafb] dark:bg-background">{children}</div>
           <NavigationLoader />
+          <SwitchingTeamOverlay />
           <FloatingActionButton />
         </SidebarInset>
       </SidebarProvider>
+    </SwitchingTeamProvider>
   );
 }

@@ -1,11 +1,19 @@
 "use client";
 
 import * as React from "react";
+import { useParams } from "next/navigation";
 import { PricingTableWrapper } from "@/components/pricing-table-wrapper";
 import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
 import { trpc } from "@/utils/trpc";
 
 export function HostingPricing() {
+  const params = useParams();
+  const slug = typeof params?.slug === "string" ? params.slug : "";
+  const { data: teamData } = trpc.teams.getTeamIdBySlug.useQuery(
+    { slug },
+    { enabled: !!slug }
+  );
+
   const [buyNowOpen, setBuyNowOpen] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState<ServicePlanDetails | null>(null);
 
@@ -81,6 +89,8 @@ export function HostingPricing() {
           open={buyNowOpen}
           onOpenChange={setBuyNowOpen}
           plan={selectedPlan}
+          requireDomainStep={true}
+          teamId={teamData?.id}
         />
       )}
     </>

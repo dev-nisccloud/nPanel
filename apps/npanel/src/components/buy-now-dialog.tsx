@@ -1,8 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { HelpCircle, Check } from "lucide-react";
+import { HelpCircle, Check, CheckCircle2, XCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -43,9 +51,22 @@ interface BuyNowDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   plan: ServicePlanDetails | null;
+  /** When true, show "Connect your domain" step before review (e.g. when opened from hosting/emails) */
+  requireDomainStep?: boolean;
+  /** Team ID used to load domains for the dropdown (required when requireDomainStep is true) */
+  teamId?: string;
 }
 
-type Step = "review" | "payment" | "success" | "error";
+type Step = "domain" | "review" | "payment" | "success" | "error";
+
+/** Validate domain format: hostname with at least one dot, valid chars, TLD 2+ chars */
+function isValidDomain(value: string): boolean {
+  if (!value || typeof value !== "string") return false;
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return false;
+  // One or more labels (alphanumeric + hyphen), dots, TLD at least 2 chars
+  return /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(trimmed);
+}
 
 const formatPrice = (price?: number, currency?: string) => {
   if (price === undefined || price === null || isNaN(price) || !isFinite(price)) {
@@ -82,11 +103,37 @@ const formatPrice = (price?: number, currency?: string) => {
   }
 };
 
-export function BuyNowDialog({ open, onOpenChange, plan }: BuyNowDialogProps) {
-  const [currentStep, setCurrentStep] = React.useState<Step>("review");
+export function BuyNowDialog({
+  open,
+  onOpenChange,
+  plan,
+  requireDomainStep = false,
+  teamId,
+}: BuyNowDialogProps) {
+  const showDomainStep = !!requireDomainStep && !!teamId;
+  const initialStep: Step = showDomainStep ? "domain" : "review";
+
+  const [currentStep, setCurrentStep] = React.useState<Step>(initialStep);
   const [couponCode, setCouponCode] = React.useState("");
   const [showCouponInput, setShowCouponInput] = React.useState(false);
-  
+
+  // Domain step state (when requireDomainStep)
+  const [manualDomain, setManualDomain] = React.useState("");
+  const [selectedDomainId, setSelectedDomainId] = React.useState<string | null>(null);
+
+  const { data: teamDomains = [] } = trpc.domains.getByTeam.useQuery(
+    { teamId: teamId ?? "" },
+    { enabled: !!teamId && !!requireDomainStep && open }
+  );
+
+  const manualDomainValid = manualDomain.trim() ? isValidDomain(manualDomain) : false;
+  const selectedDomain = selectedDomainId
+    ? teamDomains.find((d) => d.id === selectedDomainId)
+    : null;
+  const effectiveDomain =
+    selectedDomain?.domainName ?? (manualDomainValid ? manualDomain.trim().toLowerCase() : null);
+  const canProceedFromDomain = !!effectiveDomain;
+
   // Payment state
   const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<string | null>(null);
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
@@ -123,7 +170,10 @@ export function BuyNowDialog({ open, onOpenChange, plan }: BuyNowDialogProps) {
   // Reset state when dialog opens/closes
   React.useEffect(() => {
     if (open && plan) {
-      setCurrentStep("review");
+      const first = showDomainStep ? "domain" : "review";
+      setCurrentStep(first);
+      setManualDomain("");
+      setSelectedDomainId(null);
       setCouponCode("");
       setShowCouponInput(false);
       setSelectedPaymentMethod(null);
@@ -154,7 +204,7 @@ export function BuyNowDialog({ open, onOpenChange, plan }: BuyNowDialogProps) {
       const ref = `${planShort}${timestamp}`.substring(0, 12);
       setAccountReference(ref);
     }
-  }, [open, plan]);
+  }, [open, plan, showDomainStep]);
 
   // Helper function to get user-friendly error messages
   const getUserFriendlyError = (resultCode: string | number, resultDesc?: string): string => {
@@ -383,7 +433,9 @@ export function BuyNowDialog({ open, onOpenChange, plan }: BuyNowDialogProps) {
   };
 
   const handleNext = () => {
-    if (currentStep === "review") {
+    if (currentStep === "domain") {
+      setCurrentStep("review");
+    } else if (currentStep === "review") {
       setCurrentStep("payment");
       setPaymentAmount(pricing.total.toString());
     }
@@ -392,6 +444,8 @@ export function BuyNowDialog({ open, onOpenChange, plan }: BuyNowDialogProps) {
   const handleBack = () => {
     if (currentStep === "payment") {
       setCurrentStep("review");
+    } else if (currentStep === "review" && showDomainStep) {
+      setCurrentStep("domain");
     }
   };
 
@@ -401,6 +455,103 @@ export function BuyNowDialog({ open, onOpenChange, plan }: BuyNowDialogProps) {
 
   const renderStep = () => {
     switch (currentStep) {
+      case "domain":
+        return (
+          <div className="space-y-4">
+            <div className="text-center py-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Connect your domain
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Choose a domain to use with this plan, or enter one manually
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="domain-select">Domains owned by your team</Label>
+                <Select
+                  value={selectedDomainId ?? ""}
+                  onValueChange={(v) => {
+                    setSelectedDomainId(v || null);
+                    setManualDomain("");
+                  }}
+                >
+                  <SelectTrigger id="domain-select" className="w-full">
+                    <SelectValue placeholder="Select a domain from your team" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teamDomains.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.domainName}
+                      </SelectItem>
+                    ))}
+                    {teamDomains.length === 0 ? (
+                      <SelectItem value="__none__" disabled>
+                        No domains linked to this team
+                      </SelectItem>
+                    ) : null}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="relative flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="shrink-0">or</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="manual-domain">Enter domain manually</Label>
+                <div className="relative">
+                  <Input
+                    id="manual-domain"
+                    type="text"
+                    placeholder="e.g. example.com"
+                    value={manualDomain}
+                    onChange={(e) => {
+                      setManualDomain(e.target.value);
+                      setSelectedDomainId(null);
+                    }}
+                    className={`pr-10 ${
+                      manualDomain.trim()
+                        ? manualDomainValid
+                          ? "border-green-500 focus-visible:ring-green-500"
+                          : "border-destructive focus-visible:ring-destructive"
+                        : ""
+                    }`}
+                  />
+                  {manualDomain.trim() ? (
+                    manualDomainValid ? (
+                      <CheckCircle2
+                        className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600"
+                        aria-hidden
+                      />
+                    ) : (
+                      <XCircle
+                        className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-destructive"
+                        aria-hidden
+                      />
+                    )
+                  ) : null}
+                </div>
+                {manualDomain.trim() && !manualDomainValid ? (
+                  <p className="text-xs text-destructive">Please enter a valid domain (e.g. example.com)</p>
+                ) : manualDomain.trim() && manualDomainValid ? (
+                  <p className="text-xs text-green-600">Valid domain</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Enter a domain you own</p>
+                )}
+              </div>
+
+              {effectiveDomain && (
+                <div className="rounded-lg border border-green-500/50 bg-green-500/5 px-3 py-2 text-sm text-foreground">
+                  Using domain: <span className="font-medium">{effectiveDomain}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
       case "review":
         return (
           <div className="space-y-4">
@@ -759,6 +910,7 @@ export function BuyNowDialog({ open, onOpenChange, plan }: BuyNowDialogProps) {
             Buy {plan.planName}
           </DialogTitle>
           <DialogDescription className="min-w-0 w-full max-w-full">
+            {currentStep === "domain" && "Choose or enter the domain to use with this plan"}
             {currentStep === "review" && "Review your order and proceed to checkout"}
             {currentStep === "payment" && "Complete your payment"}
             {currentStep === "success" && "Order Confirmed"}
@@ -776,6 +928,24 @@ export function BuyNowDialog({ open, onOpenChange, plan }: BuyNowDialogProps) {
         </div>
 
         <DialogFooter className="gap-2 px-6 pb-6 pt-4 flex-shrink-0 border-t">
+          {currentStep === "domain" && (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+                className="text-primary"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleNext}
+                disabled={!canProceedFromDomain}
+                className="bg-primary text-primary-foreground"
+              >
+                Next: Review
+              </Button>
+            </>
+          )}
           {currentStep === "review" && (
             <>
               <Button
@@ -785,6 +955,11 @@ export function BuyNowDialog({ open, onOpenChange, plan }: BuyNowDialogProps) {
               >
                 Cancel
               </Button>
+              {showDomainStep && (
+                <Button variant="outline" onClick={() => setCurrentStep("domain")}>
+                  Back
+                </Button>
+              )}
               <Button
                 onClick={handleNext}
                 className="bg-primary text-primary-foreground"

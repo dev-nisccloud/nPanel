@@ -157,10 +157,62 @@ export class OpenProviderClient {
       }
 
       if (response.statusCode >= 400) {
-        const errorData = responseData as OpenProviderError;
+        const errorData = responseData as OpenProviderError & Record<string, unknown>;
+        const baseDesc = errorData.desc || `HTTP ${response.statusCode}`;
+        const extras: string[] = [];
+        // OpenProvider often returns registry/nameserver errors with extra details (e.g. error 399)
+        if (errorData.registry && typeof errorData.registry === 'object') {
+          const reg = errorData.registry as Record<string, unknown>;
+          const regStrings = [
+            reg.message,
+            reg.description,
+            reg.msg,
+            reg.error,
+            reg.detail,
+            (reg as any).registry_message,
+          ]
+            .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+            .map((s) => s.trim());
+          if (regStrings.length) extras.push(`Registry: ${regStrings.join(' — ')}`);
+        }
+        // data can be "Additional error description" (string) or an object with message/description/etc.
+        if (typeof errorData.data === 'string' && errorData.data.trim()) {
+          extras.push(`Details: ${errorData.data.trim()}`);
+        } else if (errorData.data && typeof errorData.data === 'object') {
+          const d = errorData.data as Record<string, unknown>;
+          const dataStrings = [
+            d.message,
+            d.description,
+            d.error,
+            d.detail,
+            (d as any).registry_message,
+          ]
+            .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+            .map((s) => s.trim());
+          if (dataStrings.length) extras.push(dataStrings.join(' — '));
+        }
+        // Top-level message (e.g. some endpoints put the registry message here)
+        if (typeof errorData.message === 'string' && errorData.message.trim()) {
+          extras.push(errorData.message.trim());
+        }
+        if (Array.isArray(errorData.warnings) && errorData.warnings.length > 0) {
+          const msgs = errorData.warnings
+            .map((w: unknown) => (typeof w === 'string' ? w : (w as Record<string, unknown>)?.message ?? (w as Record<string, unknown>)?.desc ?? String(w)))
+            .filter(Boolean);
+          if (msgs.length) extras.push(`Warnings: ${msgs.join('; ')}`);
+        }
+        const code = errorData.code ?? response.statusCode;
+        // For 399, if we have concrete Details/Registry text, use only that and omit the generic "refer to registry message below"
+        const hasConcreteDetail = extras.length > 0;
+        const useOnlyExtras = code === 399 && hasConcreteDetail;
+        const description = useOnlyExtras
+          ? extras.join(' ')
+          : hasConcreteDetail
+            ? `${extras.join(' ')}. ${baseDesc}`
+            : baseDesc;
         throw new OpenProviderApiError(
-          errorData.code || response.statusCode,
-          errorData.desc || `HTTP ${response.statusCode}`,
+          code,
+          description,
           new Error(`HTTP ${response.statusCode}`)
         );
       }

@@ -27,6 +27,7 @@ export type DomainTransferActivityLogMinAggregateOutputType = {
   id: string | null
   userId: string | null
   domainTransferId: string | null
+  teamId: string | null
   action: string | null
   description: string | null
   ipAddress: string | null
@@ -38,6 +39,7 @@ export type DomainTransferActivityLogMaxAggregateOutputType = {
   id: string | null
   userId: string | null
   domainTransferId: string | null
+  teamId: string | null
   action: string | null
   description: string | null
   ipAddress: string | null
@@ -49,6 +51,7 @@ export type DomainTransferActivityLogCountAggregateOutputType = {
   id: number
   userId: number
   domainTransferId: number
+  teamId: number
   action: number
   description: number
   metadata: number
@@ -63,6 +66,7 @@ export type DomainTransferActivityLogMinAggregateInputType = {
   id?: true
   userId?: true
   domainTransferId?: true
+  teamId?: true
   action?: true
   description?: true
   ipAddress?: true
@@ -74,6 +78,7 @@ export type DomainTransferActivityLogMaxAggregateInputType = {
   id?: true
   userId?: true
   domainTransferId?: true
+  teamId?: true
   action?: true
   description?: true
   ipAddress?: true
@@ -85,6 +90,7 @@ export type DomainTransferActivityLogCountAggregateInputType = {
   id?: true
   userId?: true
   domainTransferId?: true
+  teamId?: true
   action?: true
   description?: true
   metadata?: true
@@ -170,6 +176,7 @@ export type DomainTransferActivityLogGroupByOutputType = {
   id: string
   userId: string
   domainTransferId: string
+  teamId: string | null
   action: string
   description: string | null
   metadata: runtime.JsonValue | null
@@ -203,6 +210,7 @@ export type DomainTransferActivityLogWhereInput = {
   id?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
   userId?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
   domainTransferId?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
+  teamId?: Prisma.StringNullableFilter<"DomainTransferActivityLog"> | string | null
   action?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
   description?: Prisma.StringNullableFilter<"DomainTransferActivityLog"> | string | null
   metadata?: Prisma.JsonNullableFilter<"DomainTransferActivityLog">
@@ -216,6 +224,7 @@ export type DomainTransferActivityLogOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   domainTransferId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   action?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -232,6 +241,7 @@ export type DomainTransferActivityLogWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.DomainTransferActivityLogWhereInput | Prisma.DomainTransferActivityLogWhereInput[]
   userId?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
   domainTransferId?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
+  teamId?: Prisma.StringNullableFilter<"DomainTransferActivityLog"> | string | null
   action?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
   description?: Prisma.StringNullableFilter<"DomainTransferActivityLog"> | string | null
   metadata?: Prisma.JsonNullableFilter<"DomainTransferActivityLog">
@@ -245,6 +255,7 @@ export type DomainTransferActivityLogOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   domainTransferId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   action?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -263,6 +274,7 @@ export type DomainTransferActivityLogScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"DomainTransferActivityLog"> | string
   userId?: Prisma.StringWithAggregatesFilter<"DomainTransferActivityLog"> | string
   domainTransferId?: Prisma.StringWithAggregatesFilter<"DomainTransferActivityLog"> | string
+  teamId?: Prisma.StringNullableWithAggregatesFilter<"DomainTransferActivityLog"> | string | null
   action?: Prisma.StringWithAggregatesFilter<"DomainTransferActivityLog"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"DomainTransferActivityLog"> | string | null
   metadata?: Prisma.JsonNullableWithAggregatesFilter<"DomainTransferActivityLog">
@@ -274,6 +286,7 @@ export type DomainTransferActivityLogScalarWhereWithAggregatesInput = {
 export type DomainTransferActivityLogCreateInput = {
   id: string
   userId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -287,6 +300,7 @@ export type DomainTransferActivityLogUncheckedCreateInput = {
   id: string
   userId: string
   domainTransferId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -298,6 +312,7 @@ export type DomainTransferActivityLogUncheckedCreateInput = {
 export type DomainTransferActivityLogUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -311,6 +326,7 @@ export type DomainTransferActivityLogUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   domainTransferId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -323,6 +339,7 @@ export type DomainTransferActivityLogCreateManyInput = {
   id: string
   userId: string
   domainTransferId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -334,6 +351,7 @@ export type DomainTransferActivityLogCreateManyInput = {
 export type DomainTransferActivityLogUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -346,6 +364,7 @@ export type DomainTransferActivityLogUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   domainTransferId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -368,6 +387,7 @@ export type DomainTransferActivityLogCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   domainTransferId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   description?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
@@ -380,6 +400,7 @@ export type DomainTransferActivityLogMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   domainTransferId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   description?: Prisma.SortOrder
   ipAddress?: Prisma.SortOrder
@@ -391,6 +412,7 @@ export type DomainTransferActivityLogMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   domainTransferId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   description?: Prisma.SortOrder
   ipAddress?: Prisma.SortOrder
@@ -443,6 +465,7 @@ export type DomainTransferActivityLogUncheckedUpdateManyWithoutDomainTransferNes
 export type DomainTransferActivityLogCreateWithoutDomainTransferInput = {
   id: string
   userId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -454,6 +477,7 @@ export type DomainTransferActivityLogCreateWithoutDomainTransferInput = {
 export type DomainTransferActivityLogUncheckedCreateWithoutDomainTransferInput = {
   id: string
   userId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -495,6 +519,7 @@ export type DomainTransferActivityLogScalarWhereInput = {
   id?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
   userId?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
   domainTransferId?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
+  teamId?: Prisma.StringNullableFilter<"DomainTransferActivityLog"> | string | null
   action?: Prisma.StringFilter<"DomainTransferActivityLog"> | string
   description?: Prisma.StringNullableFilter<"DomainTransferActivityLog"> | string | null
   metadata?: Prisma.JsonNullableFilter<"DomainTransferActivityLog">
@@ -506,6 +531,7 @@ export type DomainTransferActivityLogScalarWhereInput = {
 export type DomainTransferActivityLogCreateManyDomainTransferInput = {
   id: string
   userId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -517,6 +543,7 @@ export type DomainTransferActivityLogCreateManyDomainTransferInput = {
 export type DomainTransferActivityLogUpdateWithoutDomainTransferInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -528,6 +555,7 @@ export type DomainTransferActivityLogUpdateWithoutDomainTransferInput = {
 export type DomainTransferActivityLogUncheckedUpdateWithoutDomainTransferInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -539,6 +567,7 @@ export type DomainTransferActivityLogUncheckedUpdateWithoutDomainTransferInput =
 export type DomainTransferActivityLogUncheckedUpdateManyWithoutDomainTransferInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -553,6 +582,7 @@ export type DomainTransferActivityLogSelect<ExtArgs extends runtime.Types.Extens
   id?: boolean
   userId?: boolean
   domainTransferId?: boolean
+  teamId?: boolean
   action?: boolean
   description?: boolean
   metadata?: boolean
@@ -566,6 +596,7 @@ export type DomainTransferActivityLogSelectCreateManyAndReturn<ExtArgs extends r
   id?: boolean
   userId?: boolean
   domainTransferId?: boolean
+  teamId?: boolean
   action?: boolean
   description?: boolean
   metadata?: boolean
@@ -579,6 +610,7 @@ export type DomainTransferActivityLogSelectUpdateManyAndReturn<ExtArgs extends r
   id?: boolean
   userId?: boolean
   domainTransferId?: boolean
+  teamId?: boolean
   action?: boolean
   description?: boolean
   metadata?: boolean
@@ -592,6 +624,7 @@ export type DomainTransferActivityLogSelectScalar = {
   id?: boolean
   userId?: boolean
   domainTransferId?: boolean
+  teamId?: boolean
   action?: boolean
   description?: boolean
   metadata?: boolean
@@ -600,7 +633,7 @@ export type DomainTransferActivityLogSelectScalar = {
   createdAt?: boolean
 }
 
-export type DomainTransferActivityLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "domainTransferId" | "action" | "description" | "metadata" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["domainTransferActivityLog"]>
+export type DomainTransferActivityLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "domainTransferId" | "teamId" | "action" | "description" | "metadata" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["domainTransferActivityLog"]>
 export type DomainTransferActivityLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   domainTransfer?: boolean | Prisma.DomainTransferDefaultArgs<ExtArgs>
 }
@@ -620,6 +653,7 @@ export type $DomainTransferActivityLogPayload<ExtArgs extends runtime.Types.Exte
     id: string
     userId: string
     domainTransferId: string
+    teamId: string | null
     action: string
     description: string | null
     metadata: runtime.JsonValue | null
@@ -1053,6 +1087,7 @@ export interface DomainTransferActivityLogFieldRefs {
   readonly id: Prisma.FieldRef<"DomainTransferActivityLog", 'String'>
   readonly userId: Prisma.FieldRef<"DomainTransferActivityLog", 'String'>
   readonly domainTransferId: Prisma.FieldRef<"DomainTransferActivityLog", 'String'>
+  readonly teamId: Prisma.FieldRef<"DomainTransferActivityLog", 'String'>
   readonly action: Prisma.FieldRef<"DomainTransferActivityLog", 'String'>
   readonly description: Prisma.FieldRef<"DomainTransferActivityLog", 'String'>
   readonly metadata: Prisma.FieldRef<"DomainTransferActivityLog", 'Json'>

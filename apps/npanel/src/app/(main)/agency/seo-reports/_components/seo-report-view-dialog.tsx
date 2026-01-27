@@ -28,6 +28,28 @@ interface SeoReportViewDialogProps {
   reportId: string | null;
 }
 
+const TRAFFIC_FIELDS = [
+  { key: "sessions", label: "Sessions" },
+  { key: "totalWebTraffic", label: "Total web traffic" },
+  { key: "totalViews", label: "Total views" },
+  { key: "bounceRate", label: "Bounce rate" },
+  { key: "users", label: "Users" },
+  { key: "returningUsers", label: "Returning users" },
+  { key: "sessionDuration", label: "Session duration" },
+  { key: "engagedSessions", label: "Engaged sessions" },
+  { key: "sessionsDesktop", label: "Sessions (desktop)" },
+  { key: "sessionsMobile", label: "Sessions (mobile)" },
+  { key: "sessionsTablet", label: "Sessions (tablet)" },
+] as const;
+
+const GOALS_FIELDS = [
+  { key: "eventCount", label: "Event count" },
+  { key: "conversions", label: "Conversions" },
+  { key: "formSubmissions", label: "Form submissions" },
+  { key: "impressions", label: "Impressions" },
+  { key: "clicks", label: "Clicks" },
+] as const;
+
 export function SeoReportViewDialog({ open, onOpenChange, reportId }: SeoReportViewDialogProps) {
   const { data, isLoading, error } = trpc.seoReports.getById.useQuery(
     { id: reportId! },
@@ -55,7 +77,7 @@ export function SeoReportViewDialog({ open, onOpenChange, reportId }: SeoReportV
             <div className="min-w-0">
               {report ? (
                 <h2 className="font-semibold truncate">
-                  {report.websiteUrl} — {MONTH_LABELS[report.reportMonth] ?? report.reportMonth} {report.reportYear}
+                  {report.reportName} — {MONTH_LABELS[report.reportMonth] ?? report.reportMonth} {report.reportYear}
                 </h2>
               ) : (
                 <h2 className="font-semibold">SEO Report</h2>
@@ -82,9 +104,9 @@ export function SeoReportViewDialog({ open, onOpenChange, reportId }: SeoReportV
           {report && !isLoading && !error && (
             <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
               <TabsList className="flex-shrink-0 w-full justify-start rounded-none border-b bg-transparent p-0 h-auto flex flex-wrap gap-0">
-                {["overview", "traffic", "keywords", "conversions", "backlinks", "technical", "local", "top-pages"].map((v) => (
+                {["overview", "traffic", "goals"].map((v) => (
                   <TabsTrigger key={v} value={v} className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                    {v === "top-pages" ? "Top pages" : v.charAt(0).toUpperCase() + v.slice(1)}
+                    {v.charAt(0).toUpperCase() + v.slice(1)}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -94,18 +116,10 @@ export function SeoReportViewDialog({ open, onOpenChange, reportId }: SeoReportV
                   <TabsContent value="overview" className="mt-0 space-y-4">
                     <div className="flex gap-2 items-center">
                       <Badge variant={report.status === "FINAL" ? "default" : "secondary"}>{report.status}</Badge>
-                      {report.dataSource && <Badge variant="outline">{report.dataSource}</Badge>}
                     </div>
+                    <Field label="Report name" value={report.reportName} />
                     <Field label="Website" value={report.websiteUrl} />
                     <Field label="Period" value={`${MONTH_LABELS[report.reportMonth] ?? report.reportMonth} ${report.reportYear}`} />
-                    <Field label="Comparison" value={report.comparisonType} />
-                    <Field label="Data source" value={report.dataSource} />
-                    {report.executiveSummary && (
-                      <div className="pt-2">
-                        <p className="text-sm text-muted-foreground mb-1">Executive summary</p>
-                        <p className="text-sm whitespace-pre-wrap">{report.executiveSummary}</p>
-                      </div>
-                    )}
                     {report.recommendations && (
                       <div className="pt-2">
                         <p className="text-sm text-muted-foreground mb-1">Recommendations</p>
@@ -115,64 +129,15 @@ export function SeoReportViewDialog({ open, onOpenChange, reportId }: SeoReportV
                   </TabsContent>
 
                   <TabsContent value="traffic" className="mt-0 space-y-1">
-                    {["organicSessions", "organicSessionsPrevious", "organicUsers", "organicUsersPrevious", "organicNewUsers", "bounceRate", "bounceRatePrevious", "avgSessionDurationSeconds", "pagesPerSession", "engagedSessions", "organicSessionsDesktop", "organicSessionsMobile", "organicSessionsTablet", "organicSessionsUnbranded"].map((k) => (
-                      <Field key={k} label={k.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())} value={(report as Record<string, unknown>)[k] as string} />
+                    {TRAFFIC_FIELDS.map(({ key, label }) => (
+                      <Field key={key} label={label} value={(report as Record<string, unknown>)[key] as string} />
                     ))}
                   </TabsContent>
 
-                  <TabsContent value="keywords" className="mt-0 space-y-1">
-                    {["keywordsTracked", "keywordsTop3", "keywordsTop10", "keywordsTop20", "avgPosition", "avgPositionPrevious", "searchVisibility", "impressions", "impressionsPrevious", "clicks", "clicksPrevious", "avgCtr", "keywordsGained", "keywordsLost"].map((k) => (
-                      <Field key={k} label={k.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())} value={(report as Record<string, unknown>)[k] as string} />
+                  <TabsContent value="goals" className="mt-0 space-y-1">
+                    {GOALS_FIELDS.map(({ key, label }) => (
+                      <Field key={key} label={label} value={(report as Record<string, unknown>)[key] as string} />
                     ))}
-                  </TabsContent>
-
-                  <TabsContent value="conversions" className="mt-0 space-y-1">
-                    {["conversions", "conversionsPrevious", "conversionRate", "conversionRatePrevious", "conversionsFromOrganic", "leadsOrFormSubmissions", "costPerConversion", "bestConvertingPageUrl"].map((k) => (
-                      <Field key={k} label={k.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())} value={(report as Record<string, unknown>)[k] as string} />
-                    ))}
-                  </TabsContent>
-
-                  <TabsContent value="backlinks" className="mt-0 space-y-1">
-                    {["totalBacklinks", "referringDomains", "referringDomainsPrevious", "newReferringDomains", "lostReferringDomains", "newBacklinks", "lostBacklinks", "dofollowBacklinks", "domainRating", "domainRatingPrevious", "domainAuthority", "domainAuthorityPrevious", "urlRating", "spamScore"].map((k) => (
-                      <Field key={k} label={k.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())} value={(report as Record<string, unknown>)[k] as string} />
-                    ))}
-                  </TabsContent>
-
-                  <TabsContent value="technical" className="mt-0 space-y-1">
-                    {["siteAuditScore", "siteAuditScorePrevious", "pagesCrawled", "pagesWithErrors", "pagesWithErrorsPrevious", "pagesWithWarnings", "indexedPages", "lcpMs", "inpMs", "cls", "coreWebVitalsPassed", "mobileUsabilityIssues", "avgPageLoadTimeMs"].map((k) => (
-                      <Field
-                        key={k}
-                        label={k.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}
-                        value={k === "coreWebVitalsPassed" ? (report.coreWebVitalsPassed == null ? undefined : report.coreWebVitalsPassed ? "Yes" : "No") : (report as Record<string, unknown>)[k] as string}
-                      />
-                    ))}
-                  </TabsContent>
-
-                  <TabsContent value="local" className="mt-0 space-y-1">
-                    {["gmbViews", "gmbSearches", "gmbActions", "gmbCalls", "gmbDirectionRequests", "gmbWebsiteClicks", "gmbReviewsCount", "gmbAverageRating", "localRanking"].map((k) => (
-                      <Field key={k} label={k.replace(/^gmb/, "GMB ").replace(/([A-Z])/g, " $1")} value={(report as Record<string, unknown>)[k] as string} />
-                    ))}
-                  </TabsContent>
-
-                  <TabsContent value="top-pages" className="mt-0">
-                    {report.topPages && report.topPages.length > 0 ? (
-                      <div className="space-y-3">
-                        {report.topPages.map((p, i) => (
-                          <div key={p.id} className="rounded border p-3 space-y-1">
-                            <div className="font-medium text-sm truncate">{p.url}</div>
-                            {p.pageTitle && <div className="text-muted-foreground text-sm">{p.pageTitle}</div>}
-                            <div className="flex gap-4 text-sm text-muted-foreground">
-                              {p.clicks != null && p.clicks !== "" && <span>Clicks: {p.clicks}</span>}
-                              {p.impressions != null && p.impressions !== "" && <span>Impressions: {p.impressions}</span>}
-                              {p.sessions != null && p.sessions !== "" && <span>Sessions: {p.sessions}</span>}
-                              {p.conversions != null && p.conversions !== "" && <span>Conversions: {p.conversions}</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">No top pages added.</p>
-                    )}
                   </TabsContent>
                 </div>
               </ScrollArea>

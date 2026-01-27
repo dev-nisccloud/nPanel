@@ -28,6 +28,7 @@ export type DomainRenewalMinAggregateOutputType = {
   domainId: string | null
   renewedBy: string | null
   renewalDate: Date | null
+  teamId: string | null
   openProviderPrice: string | null
   niscPrice: string | null
   createdAt: Date | null
@@ -39,6 +40,7 @@ export type DomainRenewalMaxAggregateOutputType = {
   domainId: string | null
   renewedBy: string | null
   renewalDate: Date | null
+  teamId: string | null
   openProviderPrice: string | null
   niscPrice: string | null
   createdAt: Date | null
@@ -50,6 +52,7 @@ export type DomainRenewalCountAggregateOutputType = {
   domainId: number
   renewedBy: number
   renewalDate: number
+  teamId: number
   openProviderPrice: number
   niscPrice: number
   createdAt: number
@@ -63,6 +66,7 @@ export type DomainRenewalMinAggregateInputType = {
   domainId?: true
   renewedBy?: true
   renewalDate?: true
+  teamId?: true
   openProviderPrice?: true
   niscPrice?: true
   createdAt?: true
@@ -74,6 +78,7 @@ export type DomainRenewalMaxAggregateInputType = {
   domainId?: true
   renewedBy?: true
   renewalDate?: true
+  teamId?: true
   openProviderPrice?: true
   niscPrice?: true
   createdAt?: true
@@ -85,6 +90,7 @@ export type DomainRenewalCountAggregateInputType = {
   domainId?: true
   renewedBy?: true
   renewalDate?: true
+  teamId?: true
   openProviderPrice?: true
   niscPrice?: true
   createdAt?: true
@@ -167,8 +173,9 @@ export type DomainRenewalGroupByArgs<ExtArgs extends runtime.Types.Extensions.In
 export type DomainRenewalGroupByOutputType = {
   id: string
   domainId: string
-  renewedBy: string | null
+  renewedBy: string
   renewalDate: Date
+  teamId: string | null
   openProviderPrice: string | null
   niscPrice: string | null
   createdAt: Date
@@ -199,13 +206,16 @@ export type DomainRenewalWhereInput = {
   NOT?: Prisma.DomainRenewalWhereInput | Prisma.DomainRenewalWhereInput[]
   id?: Prisma.StringFilter<"DomainRenewal"> | string
   domainId?: Prisma.StringFilter<"DomainRenewal"> | string
-  renewedBy?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
+  renewedBy?: Prisma.StringFilter<"DomainRenewal"> | string
   renewalDate?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
+  teamId?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
   openProviderPrice?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
   niscPrice?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
   createdAt?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
+  team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
   domain?: Prisma.XOR<Prisma.DomainScalarRelationFilter, Prisma.DomainWhereInput>
+  renewedByUser?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   orders?: Prisma.OrderListRelationFilter
   activityLogs?: Prisma.DomainRenewalActivityLogListRelationFilter
 }
@@ -213,13 +223,16 @@ export type DomainRenewalWhereInput = {
 export type DomainRenewalOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   domainId?: Prisma.SortOrder
-  renewedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  renewedBy?: Prisma.SortOrder
   renewalDate?: Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   openProviderPrice?: Prisma.SortOrderInput | Prisma.SortOrder
   niscPrice?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  team?: Prisma.TeamOrderByWithRelationInput
   domain?: Prisma.DomainOrderByWithRelationInput
+  renewedByUser?: Prisma.UserOrderByWithRelationInput
   orders?: Prisma.OrderOrderByRelationAggregateInput
   activityLogs?: Prisma.DomainRenewalActivityLogOrderByRelationAggregateInput
 }
@@ -230,13 +243,16 @@ export type DomainRenewalWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.DomainRenewalWhereInput | Prisma.DomainRenewalWhereInput[]
   OR?: Prisma.DomainRenewalWhereInput[]
   NOT?: Prisma.DomainRenewalWhereInput | Prisma.DomainRenewalWhereInput[]
-  renewedBy?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
+  renewedBy?: Prisma.StringFilter<"DomainRenewal"> | string
   renewalDate?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
+  teamId?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
   openProviderPrice?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
   niscPrice?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
   createdAt?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
+  team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
   domain?: Prisma.XOR<Prisma.DomainScalarRelationFilter, Prisma.DomainWhereInput>
+  renewedByUser?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   orders?: Prisma.OrderListRelationFilter
   activityLogs?: Prisma.DomainRenewalActivityLogListRelationFilter
 }, "id" | "domainId">
@@ -244,8 +260,9 @@ export type DomainRenewalWhereUniqueInput = Prisma.AtLeast<{
 export type DomainRenewalOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   domainId?: Prisma.SortOrder
-  renewedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  renewedBy?: Prisma.SortOrder
   renewalDate?: Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   openProviderPrice?: Prisma.SortOrderInput | Prisma.SortOrder
   niscPrice?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -261,8 +278,9 @@ export type DomainRenewalScalarWhereWithAggregatesInput = {
   NOT?: Prisma.DomainRenewalScalarWhereWithAggregatesInput | Prisma.DomainRenewalScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"DomainRenewal"> | string
   domainId?: Prisma.StringWithAggregatesFilter<"DomainRenewal"> | string
-  renewedBy?: Prisma.StringNullableWithAggregatesFilter<"DomainRenewal"> | string | null
+  renewedBy?: Prisma.StringWithAggregatesFilter<"DomainRenewal"> | string
   renewalDate?: Prisma.DateTimeWithAggregatesFilter<"DomainRenewal"> | Date | string
+  teamId?: Prisma.StringNullableWithAggregatesFilter<"DomainRenewal"> | string | null
   openProviderPrice?: Prisma.StringNullableWithAggregatesFilter<"DomainRenewal"> | string | null
   niscPrice?: Prisma.StringNullableWithAggregatesFilter<"DomainRenewal"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"DomainRenewal"> | Date | string
@@ -271,13 +289,14 @@ export type DomainRenewalScalarWhereWithAggregatesInput = {
 
 export type DomainRenewalCreateInput = {
   id: string
-  renewedBy?: string | null
   renewalDate: Date | string
   openProviderPrice?: string | null
   niscPrice?: string | null
   createdAt: Date | string
   updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainRenewalsInput
   domain: Prisma.DomainCreateNestedOneWithoutRenewalsInput
+  renewedByUser: Prisma.UserCreateNestedOneWithoutDomainRenewalsInput
   orders?: Prisma.OrderCreateNestedManyWithoutDomainRenewalInput
   activityLogs?: Prisma.DomainRenewalActivityLogCreateNestedManyWithoutDomainRenewalInput
 }
@@ -285,8 +304,9 @@ export type DomainRenewalCreateInput = {
 export type DomainRenewalUncheckedCreateInput = {
   id: string
   domainId: string
-  renewedBy?: string | null
+  renewedBy: string
   renewalDate: Date | string
+  teamId?: string | null
   openProviderPrice?: string | null
   niscPrice?: string | null
   createdAt: Date | string
@@ -297,13 +317,14 @@ export type DomainRenewalUncheckedCreateInput = {
 
 export type DomainRenewalUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainRenewalsNestedInput
   domain?: Prisma.DomainUpdateOneRequiredWithoutRenewalsNestedInput
+  renewedByUser?: Prisma.UserUpdateOneRequiredWithoutDomainRenewalsNestedInput
   orders?: Prisma.OrderUpdateManyWithoutDomainRenewalNestedInput
   activityLogs?: Prisma.DomainRenewalActivityLogUpdateManyWithoutDomainRenewalNestedInput
 }
@@ -311,8 +332,9 @@ export type DomainRenewalUpdateInput = {
 export type DomainRenewalUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainId?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  renewedBy?: Prisma.StringFieldUpdateOperationsInput | string
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -324,8 +346,9 @@ export type DomainRenewalUncheckedUpdateInput = {
 export type DomainRenewalCreateManyInput = {
   id: string
   domainId: string
-  renewedBy?: string | null
+  renewedBy: string
   renewalDate: Date | string
+  teamId?: string | null
   openProviderPrice?: string | null
   niscPrice?: string | null
   createdAt: Date | string
@@ -334,7 +357,6 @@ export type DomainRenewalCreateManyInput = {
 
 export type DomainRenewalUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -345,8 +367,9 @@ export type DomainRenewalUpdateManyMutationInput = {
 export type DomainRenewalUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainId?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  renewedBy?: Prisma.StringFieldUpdateOperationsInput | string
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -373,6 +396,7 @@ export type DomainRenewalCountOrderByAggregateInput = {
   domainId?: Prisma.SortOrder
   renewedBy?: Prisma.SortOrder
   renewalDate?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   openProviderPrice?: Prisma.SortOrder
   niscPrice?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -384,6 +408,7 @@ export type DomainRenewalMaxOrderByAggregateInput = {
   domainId?: Prisma.SortOrder
   renewedBy?: Prisma.SortOrder
   renewalDate?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   openProviderPrice?: Prisma.SortOrder
   niscPrice?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -395,6 +420,7 @@ export type DomainRenewalMinOrderByAggregateInput = {
   domainId?: Prisma.SortOrder
   renewedBy?: Prisma.SortOrder
   renewalDate?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   openProviderPrice?: Prisma.SortOrder
   niscPrice?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -420,6 +446,90 @@ export type DomainRenewalUpdateOneWithoutOrdersNestedInput = {
   delete?: Prisma.DomainRenewalWhereInput | boolean
   connect?: Prisma.DomainRenewalWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.DomainRenewalUpdateToOneWithWhereWithoutOrdersInput, Prisma.DomainRenewalUpdateWithoutOrdersInput>, Prisma.DomainRenewalUncheckedUpdateWithoutOrdersInput>
+}
+
+export type DomainRenewalCreateNestedManyWithoutRenewedByUserInput = {
+  create?: Prisma.XOR<Prisma.DomainRenewalCreateWithoutRenewedByUserInput, Prisma.DomainRenewalUncheckedCreateWithoutRenewedByUserInput> | Prisma.DomainRenewalCreateWithoutRenewedByUserInput[] | Prisma.DomainRenewalUncheckedCreateWithoutRenewedByUserInput[]
+  connectOrCreate?: Prisma.DomainRenewalCreateOrConnectWithoutRenewedByUserInput | Prisma.DomainRenewalCreateOrConnectWithoutRenewedByUserInput[]
+  createMany?: Prisma.DomainRenewalCreateManyRenewedByUserInputEnvelope
+  connect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+}
+
+export type DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput = {
+  create?: Prisma.XOR<Prisma.DomainRenewalCreateWithoutRenewedByUserInput, Prisma.DomainRenewalUncheckedCreateWithoutRenewedByUserInput> | Prisma.DomainRenewalCreateWithoutRenewedByUserInput[] | Prisma.DomainRenewalUncheckedCreateWithoutRenewedByUserInput[]
+  connectOrCreate?: Prisma.DomainRenewalCreateOrConnectWithoutRenewedByUserInput | Prisma.DomainRenewalCreateOrConnectWithoutRenewedByUserInput[]
+  createMany?: Prisma.DomainRenewalCreateManyRenewedByUserInputEnvelope
+  connect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+}
+
+export type DomainRenewalUpdateManyWithoutRenewedByUserNestedInput = {
+  create?: Prisma.XOR<Prisma.DomainRenewalCreateWithoutRenewedByUserInput, Prisma.DomainRenewalUncheckedCreateWithoutRenewedByUserInput> | Prisma.DomainRenewalCreateWithoutRenewedByUserInput[] | Prisma.DomainRenewalUncheckedCreateWithoutRenewedByUserInput[]
+  connectOrCreate?: Prisma.DomainRenewalCreateOrConnectWithoutRenewedByUserInput | Prisma.DomainRenewalCreateOrConnectWithoutRenewedByUserInput[]
+  upsert?: Prisma.DomainRenewalUpsertWithWhereUniqueWithoutRenewedByUserInput | Prisma.DomainRenewalUpsertWithWhereUniqueWithoutRenewedByUserInput[]
+  createMany?: Prisma.DomainRenewalCreateManyRenewedByUserInputEnvelope
+  set?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  disconnect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  delete?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  connect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  update?: Prisma.DomainRenewalUpdateWithWhereUniqueWithoutRenewedByUserInput | Prisma.DomainRenewalUpdateWithWhereUniqueWithoutRenewedByUserInput[]
+  updateMany?: Prisma.DomainRenewalUpdateManyWithWhereWithoutRenewedByUserInput | Prisma.DomainRenewalUpdateManyWithWhereWithoutRenewedByUserInput[]
+  deleteMany?: Prisma.DomainRenewalScalarWhereInput | Prisma.DomainRenewalScalarWhereInput[]
+}
+
+export type DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput = {
+  create?: Prisma.XOR<Prisma.DomainRenewalCreateWithoutRenewedByUserInput, Prisma.DomainRenewalUncheckedCreateWithoutRenewedByUserInput> | Prisma.DomainRenewalCreateWithoutRenewedByUserInput[] | Prisma.DomainRenewalUncheckedCreateWithoutRenewedByUserInput[]
+  connectOrCreate?: Prisma.DomainRenewalCreateOrConnectWithoutRenewedByUserInput | Prisma.DomainRenewalCreateOrConnectWithoutRenewedByUserInput[]
+  upsert?: Prisma.DomainRenewalUpsertWithWhereUniqueWithoutRenewedByUserInput | Prisma.DomainRenewalUpsertWithWhereUniqueWithoutRenewedByUserInput[]
+  createMany?: Prisma.DomainRenewalCreateManyRenewedByUserInputEnvelope
+  set?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  disconnect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  delete?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  connect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  update?: Prisma.DomainRenewalUpdateWithWhereUniqueWithoutRenewedByUserInput | Prisma.DomainRenewalUpdateWithWhereUniqueWithoutRenewedByUserInput[]
+  updateMany?: Prisma.DomainRenewalUpdateManyWithWhereWithoutRenewedByUserInput | Prisma.DomainRenewalUpdateManyWithWhereWithoutRenewedByUserInput[]
+  deleteMany?: Prisma.DomainRenewalScalarWhereInput | Prisma.DomainRenewalScalarWhereInput[]
+}
+
+export type DomainRenewalCreateNestedManyWithoutTeamInput = {
+  create?: Prisma.XOR<Prisma.DomainRenewalCreateWithoutTeamInput, Prisma.DomainRenewalUncheckedCreateWithoutTeamInput> | Prisma.DomainRenewalCreateWithoutTeamInput[] | Prisma.DomainRenewalUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.DomainRenewalCreateOrConnectWithoutTeamInput | Prisma.DomainRenewalCreateOrConnectWithoutTeamInput[]
+  createMany?: Prisma.DomainRenewalCreateManyTeamInputEnvelope
+  connect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+}
+
+export type DomainRenewalUncheckedCreateNestedManyWithoutTeamInput = {
+  create?: Prisma.XOR<Prisma.DomainRenewalCreateWithoutTeamInput, Prisma.DomainRenewalUncheckedCreateWithoutTeamInput> | Prisma.DomainRenewalCreateWithoutTeamInput[] | Prisma.DomainRenewalUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.DomainRenewalCreateOrConnectWithoutTeamInput | Prisma.DomainRenewalCreateOrConnectWithoutTeamInput[]
+  createMany?: Prisma.DomainRenewalCreateManyTeamInputEnvelope
+  connect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+}
+
+export type DomainRenewalUpdateManyWithoutTeamNestedInput = {
+  create?: Prisma.XOR<Prisma.DomainRenewalCreateWithoutTeamInput, Prisma.DomainRenewalUncheckedCreateWithoutTeamInput> | Prisma.DomainRenewalCreateWithoutTeamInput[] | Prisma.DomainRenewalUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.DomainRenewalCreateOrConnectWithoutTeamInput | Prisma.DomainRenewalCreateOrConnectWithoutTeamInput[]
+  upsert?: Prisma.DomainRenewalUpsertWithWhereUniqueWithoutTeamInput | Prisma.DomainRenewalUpsertWithWhereUniqueWithoutTeamInput[]
+  createMany?: Prisma.DomainRenewalCreateManyTeamInputEnvelope
+  set?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  disconnect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  delete?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  connect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  update?: Prisma.DomainRenewalUpdateWithWhereUniqueWithoutTeamInput | Prisma.DomainRenewalUpdateWithWhereUniqueWithoutTeamInput[]
+  updateMany?: Prisma.DomainRenewalUpdateManyWithWhereWithoutTeamInput | Prisma.DomainRenewalUpdateManyWithWhereWithoutTeamInput[]
+  deleteMany?: Prisma.DomainRenewalScalarWhereInput | Prisma.DomainRenewalScalarWhereInput[]
+}
+
+export type DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput = {
+  create?: Prisma.XOR<Prisma.DomainRenewalCreateWithoutTeamInput, Prisma.DomainRenewalUncheckedCreateWithoutTeamInput> | Prisma.DomainRenewalCreateWithoutTeamInput[] | Prisma.DomainRenewalUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.DomainRenewalCreateOrConnectWithoutTeamInput | Prisma.DomainRenewalCreateOrConnectWithoutTeamInput[]
+  upsert?: Prisma.DomainRenewalUpsertWithWhereUniqueWithoutTeamInput | Prisma.DomainRenewalUpsertWithWhereUniqueWithoutTeamInput[]
+  createMany?: Prisma.DomainRenewalCreateManyTeamInputEnvelope
+  set?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  disconnect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  delete?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  connect?: Prisma.DomainRenewalWhereUniqueInput | Prisma.DomainRenewalWhereUniqueInput[]
+  update?: Prisma.DomainRenewalUpdateWithWhereUniqueWithoutTeamInput | Prisma.DomainRenewalUpdateWithWhereUniqueWithoutTeamInput[]
+  updateMany?: Prisma.DomainRenewalUpdateManyWithWhereWithoutTeamInput | Prisma.DomainRenewalUpdateManyWithWhereWithoutTeamInput[]
+  deleteMany?: Prisma.DomainRenewalScalarWhereInput | Prisma.DomainRenewalScalarWhereInput[]
 }
 
 export type DomainRenewalCreateNestedManyWithoutDomainInput = {
@@ -480,21 +590,23 @@ export type DomainRenewalUpdateOneRequiredWithoutActivityLogsNestedInput = {
 
 export type DomainRenewalCreateWithoutOrdersInput = {
   id: string
-  renewedBy?: string | null
   renewalDate: Date | string
   openProviderPrice?: string | null
   niscPrice?: string | null
   createdAt: Date | string
   updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainRenewalsInput
   domain: Prisma.DomainCreateNestedOneWithoutRenewalsInput
+  renewedByUser: Prisma.UserCreateNestedOneWithoutDomainRenewalsInput
   activityLogs?: Prisma.DomainRenewalActivityLogCreateNestedManyWithoutDomainRenewalInput
 }
 
 export type DomainRenewalUncheckedCreateWithoutOrdersInput = {
   id: string
   domainId: string
-  renewedBy?: string | null
+  renewedBy: string
   renewalDate: Date | string
+  teamId?: string | null
   openProviderPrice?: string | null
   niscPrice?: string | null
   createdAt: Date | string
@@ -520,21 +632,23 @@ export type DomainRenewalUpdateToOneWithWhereWithoutOrdersInput = {
 
 export type DomainRenewalUpdateWithoutOrdersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainRenewalsNestedInput
   domain?: Prisma.DomainUpdateOneRequiredWithoutRenewalsNestedInput
+  renewedByUser?: Prisma.UserUpdateOneRequiredWithoutDomainRenewalsNestedInput
   activityLogs?: Prisma.DomainRenewalActivityLogUpdateManyWithoutDomainRenewalNestedInput
 }
 
 export type DomainRenewalUncheckedUpdateWithoutOrdersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainId?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  renewedBy?: Prisma.StringFieldUpdateOperationsInput | string
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -542,22 +656,143 @@ export type DomainRenewalUncheckedUpdateWithoutOrdersInput = {
   activityLogs?: Prisma.DomainRenewalActivityLogUncheckedUpdateManyWithoutDomainRenewalNestedInput
 }
 
-export type DomainRenewalCreateWithoutDomainInput = {
+export type DomainRenewalCreateWithoutRenewedByUserInput = {
   id: string
-  renewedBy?: string | null
   renewalDate: Date | string
   openProviderPrice?: string | null
   niscPrice?: string | null
   createdAt: Date | string
   updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainRenewalsInput
+  domain: Prisma.DomainCreateNestedOneWithoutRenewalsInput
+  orders?: Prisma.OrderCreateNestedManyWithoutDomainRenewalInput
+  activityLogs?: Prisma.DomainRenewalActivityLogCreateNestedManyWithoutDomainRenewalInput
+}
+
+export type DomainRenewalUncheckedCreateWithoutRenewedByUserInput = {
+  id: string
+  domainId: string
+  renewalDate: Date | string
+  teamId?: string | null
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutDomainRenewalInput
+  activityLogs?: Prisma.DomainRenewalActivityLogUncheckedCreateNestedManyWithoutDomainRenewalInput
+}
+
+export type DomainRenewalCreateOrConnectWithoutRenewedByUserInput = {
+  where: Prisma.DomainRenewalWhereUniqueInput
+  create: Prisma.XOR<Prisma.DomainRenewalCreateWithoutRenewedByUserInput, Prisma.DomainRenewalUncheckedCreateWithoutRenewedByUserInput>
+}
+
+export type DomainRenewalCreateManyRenewedByUserInputEnvelope = {
+  data: Prisma.DomainRenewalCreateManyRenewedByUserInput | Prisma.DomainRenewalCreateManyRenewedByUserInput[]
+  skipDuplicates?: boolean
+}
+
+export type DomainRenewalUpsertWithWhereUniqueWithoutRenewedByUserInput = {
+  where: Prisma.DomainRenewalWhereUniqueInput
+  update: Prisma.XOR<Prisma.DomainRenewalUpdateWithoutRenewedByUserInput, Prisma.DomainRenewalUncheckedUpdateWithoutRenewedByUserInput>
+  create: Prisma.XOR<Prisma.DomainRenewalCreateWithoutRenewedByUserInput, Prisma.DomainRenewalUncheckedCreateWithoutRenewedByUserInput>
+}
+
+export type DomainRenewalUpdateWithWhereUniqueWithoutRenewedByUserInput = {
+  where: Prisma.DomainRenewalWhereUniqueInput
+  data: Prisma.XOR<Prisma.DomainRenewalUpdateWithoutRenewedByUserInput, Prisma.DomainRenewalUncheckedUpdateWithoutRenewedByUserInput>
+}
+
+export type DomainRenewalUpdateManyWithWhereWithoutRenewedByUserInput = {
+  where: Prisma.DomainRenewalScalarWhereInput
+  data: Prisma.XOR<Prisma.DomainRenewalUpdateManyMutationInput, Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserInput>
+}
+
+export type DomainRenewalScalarWhereInput = {
+  AND?: Prisma.DomainRenewalScalarWhereInput | Prisma.DomainRenewalScalarWhereInput[]
+  OR?: Prisma.DomainRenewalScalarWhereInput[]
+  NOT?: Prisma.DomainRenewalScalarWhereInput | Prisma.DomainRenewalScalarWhereInput[]
+  id?: Prisma.StringFilter<"DomainRenewal"> | string
+  domainId?: Prisma.StringFilter<"DomainRenewal"> | string
+  renewedBy?: Prisma.StringFilter<"DomainRenewal"> | string
+  renewalDate?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
+  teamId?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
+  openProviderPrice?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
+  niscPrice?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
+}
+
+export type DomainRenewalCreateWithoutTeamInput = {
+  id: string
+  renewalDate: Date | string
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  domain: Prisma.DomainCreateNestedOneWithoutRenewalsInput
+  renewedByUser: Prisma.UserCreateNestedOneWithoutDomainRenewalsInput
+  orders?: Prisma.OrderCreateNestedManyWithoutDomainRenewalInput
+  activityLogs?: Prisma.DomainRenewalActivityLogCreateNestedManyWithoutDomainRenewalInput
+}
+
+export type DomainRenewalUncheckedCreateWithoutTeamInput = {
+  id: string
+  domainId: string
+  renewedBy: string
+  renewalDate: Date | string
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutDomainRenewalInput
+  activityLogs?: Prisma.DomainRenewalActivityLogUncheckedCreateNestedManyWithoutDomainRenewalInput
+}
+
+export type DomainRenewalCreateOrConnectWithoutTeamInput = {
+  where: Prisma.DomainRenewalWhereUniqueInput
+  create: Prisma.XOR<Prisma.DomainRenewalCreateWithoutTeamInput, Prisma.DomainRenewalUncheckedCreateWithoutTeamInput>
+}
+
+export type DomainRenewalCreateManyTeamInputEnvelope = {
+  data: Prisma.DomainRenewalCreateManyTeamInput | Prisma.DomainRenewalCreateManyTeamInput[]
+  skipDuplicates?: boolean
+}
+
+export type DomainRenewalUpsertWithWhereUniqueWithoutTeamInput = {
+  where: Prisma.DomainRenewalWhereUniqueInput
+  update: Prisma.XOR<Prisma.DomainRenewalUpdateWithoutTeamInput, Prisma.DomainRenewalUncheckedUpdateWithoutTeamInput>
+  create: Prisma.XOR<Prisma.DomainRenewalCreateWithoutTeamInput, Prisma.DomainRenewalUncheckedCreateWithoutTeamInput>
+}
+
+export type DomainRenewalUpdateWithWhereUniqueWithoutTeamInput = {
+  where: Prisma.DomainRenewalWhereUniqueInput
+  data: Prisma.XOR<Prisma.DomainRenewalUpdateWithoutTeamInput, Prisma.DomainRenewalUncheckedUpdateWithoutTeamInput>
+}
+
+export type DomainRenewalUpdateManyWithWhereWithoutTeamInput = {
+  where: Prisma.DomainRenewalScalarWhereInput
+  data: Prisma.XOR<Prisma.DomainRenewalUpdateManyMutationInput, Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamInput>
+}
+
+export type DomainRenewalCreateWithoutDomainInput = {
+  id: string
+  renewalDate: Date | string
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainRenewalsInput
+  renewedByUser: Prisma.UserCreateNestedOneWithoutDomainRenewalsInput
   orders?: Prisma.OrderCreateNestedManyWithoutDomainRenewalInput
   activityLogs?: Prisma.DomainRenewalActivityLogCreateNestedManyWithoutDomainRenewalInput
 }
 
 export type DomainRenewalUncheckedCreateWithoutDomainInput = {
   id: string
-  renewedBy?: string | null
+  renewedBy: string
   renewalDate: Date | string
+  teamId?: string | null
   openProviderPrice?: string | null
   niscPrice?: string | null
   createdAt: Date | string
@@ -592,37 +827,25 @@ export type DomainRenewalUpdateManyWithWhereWithoutDomainInput = {
   data: Prisma.XOR<Prisma.DomainRenewalUpdateManyMutationInput, Prisma.DomainRenewalUncheckedUpdateManyWithoutDomainInput>
 }
 
-export type DomainRenewalScalarWhereInput = {
-  AND?: Prisma.DomainRenewalScalarWhereInput | Prisma.DomainRenewalScalarWhereInput[]
-  OR?: Prisma.DomainRenewalScalarWhereInput[]
-  NOT?: Prisma.DomainRenewalScalarWhereInput | Prisma.DomainRenewalScalarWhereInput[]
-  id?: Prisma.StringFilter<"DomainRenewal"> | string
-  domainId?: Prisma.StringFilter<"DomainRenewal"> | string
-  renewedBy?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
-  renewalDate?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
-  openProviderPrice?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
-  niscPrice?: Prisma.StringNullableFilter<"DomainRenewal"> | string | null
-  createdAt?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"DomainRenewal"> | Date | string
-}
-
 export type DomainRenewalCreateWithoutActivityLogsInput = {
   id: string
-  renewedBy?: string | null
   renewalDate: Date | string
   openProviderPrice?: string | null
   niscPrice?: string | null
   createdAt: Date | string
   updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainRenewalsInput
   domain: Prisma.DomainCreateNestedOneWithoutRenewalsInput
+  renewedByUser: Prisma.UserCreateNestedOneWithoutDomainRenewalsInput
   orders?: Prisma.OrderCreateNestedManyWithoutDomainRenewalInput
 }
 
 export type DomainRenewalUncheckedCreateWithoutActivityLogsInput = {
   id: string
   domainId: string
-  renewedBy?: string | null
+  renewedBy: string
   renewalDate: Date | string
+  teamId?: string | null
   openProviderPrice?: string | null
   niscPrice?: string | null
   createdAt: Date | string
@@ -648,21 +871,23 @@ export type DomainRenewalUpdateToOneWithWhereWithoutActivityLogsInput = {
 
 export type DomainRenewalUpdateWithoutActivityLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainRenewalsNestedInput
   domain?: Prisma.DomainUpdateOneRequiredWithoutRenewalsNestedInput
+  renewedByUser?: Prisma.UserUpdateOneRequiredWithoutDomainRenewalsNestedInput
   orders?: Prisma.OrderUpdateManyWithoutDomainRenewalNestedInput
 }
 
 export type DomainRenewalUncheckedUpdateWithoutActivityLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainId?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  renewedBy?: Prisma.StringFieldUpdateOperationsInput | string
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -670,10 +895,107 @@ export type DomainRenewalUncheckedUpdateWithoutActivityLogsInput = {
   orders?: Prisma.OrderUncheckedUpdateManyWithoutDomainRenewalNestedInput
 }
 
+export type DomainRenewalCreateManyRenewedByUserInput = {
+  id: string
+  domainId: string
+  renewalDate: Date | string
+  teamId?: string | null
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+}
+
+export type DomainRenewalUpdateWithoutRenewedByUserInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainRenewalsNestedInput
+  domain?: Prisma.DomainUpdateOneRequiredWithoutRenewalsNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutDomainRenewalNestedInput
+  activityLogs?: Prisma.DomainRenewalActivityLogUpdateManyWithoutDomainRenewalNestedInput
+}
+
+export type DomainRenewalUncheckedUpdateWithoutRenewedByUserInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutDomainRenewalNestedInput
+  activityLogs?: Prisma.DomainRenewalActivityLogUncheckedUpdateManyWithoutDomainRenewalNestedInput
+}
+
+export type DomainRenewalUncheckedUpdateManyWithoutRenewedByUserInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type DomainRenewalCreateManyTeamInput = {
+  id: string
+  domainId: string
+  renewedBy: string
+  renewalDate: Date | string
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+}
+
+export type DomainRenewalUpdateWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  domain?: Prisma.DomainUpdateOneRequiredWithoutRenewalsNestedInput
+  renewedByUser?: Prisma.UserUpdateOneRequiredWithoutDomainRenewalsNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutDomainRenewalNestedInput
+  activityLogs?: Prisma.DomainRenewalActivityLogUpdateManyWithoutDomainRenewalNestedInput
+}
+
+export type DomainRenewalUncheckedUpdateWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  renewedBy?: Prisma.StringFieldUpdateOperationsInput | string
+  renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutDomainRenewalNestedInput
+  activityLogs?: Prisma.DomainRenewalActivityLogUncheckedUpdateManyWithoutDomainRenewalNestedInput
+}
+
+export type DomainRenewalUncheckedUpdateManyWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  renewedBy?: Prisma.StringFieldUpdateOperationsInput | string
+  renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type DomainRenewalCreateManyDomainInput = {
   id: string
-  renewedBy?: string | null
+  renewedBy: string
   renewalDate: Date | string
+  teamId?: string | null
   openProviderPrice?: string | null
   niscPrice?: string | null
   createdAt: Date | string
@@ -682,20 +1004,22 @@ export type DomainRenewalCreateManyDomainInput = {
 
 export type DomainRenewalUpdateWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainRenewalsNestedInput
+  renewedByUser?: Prisma.UserUpdateOneRequiredWithoutDomainRenewalsNestedInput
   orders?: Prisma.OrderUpdateManyWithoutDomainRenewalNestedInput
   activityLogs?: Prisma.DomainRenewalActivityLogUpdateManyWithoutDomainRenewalNestedInput
 }
 
 export type DomainRenewalUncheckedUpdateWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  renewedBy?: Prisma.StringFieldUpdateOperationsInput | string
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -706,8 +1030,9 @@ export type DomainRenewalUncheckedUpdateWithoutDomainInput = {
 
 export type DomainRenewalUncheckedUpdateManyWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  renewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  renewedBy?: Prisma.StringFieldUpdateOperationsInput | string
   renewalDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -759,11 +1084,14 @@ export type DomainRenewalSelect<ExtArgs extends runtime.Types.Extensions.Interna
   domainId?: boolean
   renewedBy?: boolean
   renewalDate?: boolean
+  teamId?: boolean
   openProviderPrice?: boolean
   niscPrice?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  team?: boolean | Prisma.DomainRenewal$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  renewedByUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.DomainRenewal$ordersArgs<ExtArgs>
   activityLogs?: boolean | Prisma.DomainRenewal$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.DomainRenewalCountOutputTypeDefaultArgs<ExtArgs>
@@ -774,11 +1102,14 @@ export type DomainRenewalSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   domainId?: boolean
   renewedBy?: boolean
   renewalDate?: boolean
+  teamId?: boolean
   openProviderPrice?: boolean
   niscPrice?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  team?: boolean | Prisma.DomainRenewal$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  renewedByUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["domainRenewal"]>
 
 export type DomainRenewalSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -786,11 +1117,14 @@ export type DomainRenewalSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   domainId?: boolean
   renewedBy?: boolean
   renewalDate?: boolean
+  teamId?: boolean
   openProviderPrice?: boolean
   niscPrice?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  team?: boolean | Prisma.DomainRenewal$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  renewedByUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["domainRenewal"]>
 
 export type DomainRenewalSelectScalar = {
@@ -798,38 +1132,48 @@ export type DomainRenewalSelectScalar = {
   domainId?: boolean
   renewedBy?: boolean
   renewalDate?: boolean
+  teamId?: boolean
   openProviderPrice?: boolean
   niscPrice?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type DomainRenewalOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "domainId" | "renewedBy" | "renewalDate" | "openProviderPrice" | "niscPrice" | "createdAt" | "updatedAt", ExtArgs["result"]["domainRenewal"]>
+export type DomainRenewalOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "domainId" | "renewedBy" | "renewalDate" | "teamId" | "openProviderPrice" | "niscPrice" | "createdAt" | "updatedAt", ExtArgs["result"]["domainRenewal"]>
 export type DomainRenewalInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  team?: boolean | Prisma.DomainRenewal$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  renewedByUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.DomainRenewal$ordersArgs<ExtArgs>
   activityLogs?: boolean | Prisma.DomainRenewal$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.DomainRenewalCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type DomainRenewalIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  team?: boolean | Prisma.DomainRenewal$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  renewedByUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 export type DomainRenewalIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  team?: boolean | Prisma.DomainRenewal$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  renewedByUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 
 export type $DomainRenewalPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DomainRenewal"
   objects: {
+    team: Prisma.$TeamPayload<ExtArgs> | null
     domain: Prisma.$DomainPayload<ExtArgs>
+    renewedByUser: Prisma.$UserPayload<ExtArgs>
     orders: Prisma.$OrderPayload<ExtArgs>[]
     activityLogs: Prisma.$DomainRenewalActivityLogPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     domainId: string
-    renewedBy: string | null
+    renewedBy: string
     renewalDate: Date
+    teamId: string | null
     openProviderPrice: string | null
     niscPrice: string | null
     createdAt: Date
@@ -1228,7 +1572,9 @@ readonly fields: DomainRenewalFieldRefs;
  */
 export interface Prisma__DomainRenewalClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  team<T extends Prisma.DomainRenewal$teamArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DomainRenewal$teamArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   domain<T extends Prisma.DomainDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DomainDefaultArgs<ExtArgs>>): Prisma.Prisma__DomainClient<runtime.Types.Result.GetResult<Prisma.$DomainPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  renewedByUser<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   orders<T extends Prisma.DomainRenewal$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DomainRenewal$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityLogs<T extends Prisma.DomainRenewal$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DomainRenewal$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainRenewalActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1264,6 +1610,7 @@ export interface DomainRenewalFieldRefs {
   readonly domainId: Prisma.FieldRef<"DomainRenewal", 'String'>
   readonly renewedBy: Prisma.FieldRef<"DomainRenewal", 'String'>
   readonly renewalDate: Prisma.FieldRef<"DomainRenewal", 'DateTime'>
+  readonly teamId: Prisma.FieldRef<"DomainRenewal", 'String'>
   readonly openProviderPrice: Prisma.FieldRef<"DomainRenewal", 'String'>
   readonly niscPrice: Prisma.FieldRef<"DomainRenewal", 'String'>
   readonly createdAt: Prisma.FieldRef<"DomainRenewal", 'DateTime'>
@@ -1661,6 +2008,25 @@ export type DomainRenewalDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many DomainRenewals to delete.
    */
   limit?: number
+}
+
+/**
+ * DomainRenewal.team
+ */
+export type DomainRenewal$teamArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Team
+   */
+  select?: Prisma.TeamSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Team
+   */
+  omit?: Prisma.TeamOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TeamInclude<ExtArgs> | null
+  where?: Prisma.TeamWhereInput
 }
 
 /**

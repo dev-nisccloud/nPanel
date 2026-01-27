@@ -13,14 +13,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSwitchingTeam } from "@/contexts/switching-team-context";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { getInitials } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
-import { toast } from "sonner";
 
 export function TeamSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
+  const { startSwitchTeam } = useSwitchingTeam();
 
   // Extract current team slug from URL (first segment after /)
   const currentSlug = pathname.split("/")[1];
@@ -38,10 +39,13 @@ export function TeamSwitcher() {
   const activeTeam = teams?.find((team) => team.slug === currentSlug);
 
   const handleTeamSwitch = (teamId: string, teamSlug: string) => {
-    // Navigate to the new team's URL and refresh to reload with new team context
-    router.push(`/${teamSlug}/default` as never);
-    router.refresh();
-    toast.success("Switching team...");
+    startSwitchTeam();
+    const target = `/${teamSlug}/default` as never;
+    // Defer navigation so the overlay paints first (toast showed immediately; overlay needs a tick)
+    setTimeout(() => {
+      router.push(target);
+      router.refresh();
+    }, 0);
   };
 
   const handleCreateTeam = () => {

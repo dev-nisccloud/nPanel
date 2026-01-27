@@ -909,9 +909,20 @@ export const openProviderDomainsRouter = router({
         }
 
         if (error instanceof OpenProviderApiError) {
+          const supportUrl = 'https://support.openprovider.eu/hc/en-us/articles/7265441900946';
+          const alreadyHasSupportLink =
+            error.code === 399 &&
+            (error.description.includes('support.openprovider.eu') ||
+              error.description.includes('7265441900946'));
+          const hint399 =
+            error.code === 399
+              ? alreadyHasSupportLink
+                ? ' Nameserver/registry updates can fail due to propagation, format, or TLD restrictions.'
+                : ` Nameserver/registry updates can fail due to propagation, format, or TLD restrictions. For more details see: ${supportUrl}`
+              : '';
           throw new TRPCError({
             code: error.code >= 400 && error.code < 500 ? 'BAD_REQUEST' : 'INTERNAL_SERVER_ERROR',
-            message: error.description,
+            message: error.description + hint399,
           });
         }
 

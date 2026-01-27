@@ -6,11 +6,13 @@ import { trpc } from "@/utils/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CreateReportSheet } from "./_components/create-report-sheet";
+import { EditReportSheet } from "./_components/edit-report-sheet";
 import { SeoReportViewDialog } from "./_components/seo-report-view-dialog";
 import { SeoReportsTable } from "./_components/seo-reports-table";
 
 export default function SeoReportsPage() {
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [editingReportId, setEditingReportId] = React.useState<string | null>(null);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const utils = trpc.useUtils();
@@ -35,7 +37,7 @@ export default function SeoReportsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search by website, period, or data source…"
+                placeholder="Search by report name, website, or period…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -54,7 +56,11 @@ export default function SeoReportsPage() {
         </div>
 
         <div className="mt-6">
-          <SeoReportsTable searchQuery={searchQuery} onRowClick={setSelectedId} />
+          <SeoReportsTable
+            searchQuery={searchQuery}
+            onRowClick={setSelectedId}
+            onEditClick={setEditingReportId}
+          />
         </div>
       </div>
 
@@ -62,6 +68,13 @@ export default function SeoReportsPage() {
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         onSuccess={() => {}}
+      />
+
+      <EditReportSheet
+        open={!!editingReportId}
+        onOpenChange={(open) => !open && setEditingReportId(null)}
+        reportId={editingReportId}
+        onSuccess={() => setEditingReportId(null)}
       />
 
       <SeoReportViewDialog

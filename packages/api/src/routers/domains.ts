@@ -36,6 +36,13 @@ const domainOutputSchema = z.object({
   }).nullable().optional(),
 });
 
+// Accept date or ISO string (tRPC sends dates as strings over the wire)
+const dateInput = z.union([z.date(), z.string()]).transform((v) => (typeof v === "string" ? new Date(v) : v));
+const optionalDateInput = z
+  .union([z.date(), z.string(), z.null(), z.undefined()])
+  .optional()
+  .transform((v) => (v == null ? null : typeof v === "string" ? new Date(v) : v));
+
 // Link domain to team input schema
 const linkDomainToTeamInputSchema = z.object({
   domainName: z.string().min(1, "Domain name is required"),
@@ -43,10 +50,10 @@ const linkDomainToTeamInputSchema = z.object({
   teamId: z.string().min(1, "Team ID is required"),
   openProviderPrice: z.string().optional(),
   niscPrice: z.string().optional(),
-  activationDate: z.date().nullable().optional(),
-  expirationDate: z.date().nullable().optional(),
-  renewalDate: z.date().nullable().optional(),
-  registrationDate: z.date(),
+  activationDate: optionalDateInput,
+  expirationDate: optionalDateInput,
+  renewalDate: optionalDateInput,
+  registrationDate: dateInput,
   notes: z.string().optional(),
 });
 
@@ -95,6 +102,26 @@ const unlinkDomainFromTeamInputSchema = z.object({
 
 // Unlink domain from team output schema
 const unlinkDomainFromTeamOutputSchema = domainOutputSchema;
+
+// Get domain by domain name input schema
+const getByDomainNameInputSchema = z.object({
+  domainName: z.string().min(1, "Domain name is required"),
+});
+
+// Get domain by domain name output schema (nullable)
+const getByDomainNameOutputSchema = domainOutputSchema.nullable();
+
+// Update domain team link input schema (our Domain.id + teamId + optional prices/notes)
+const updateTeamInputSchema = z.object({
+  id: z.string().min(1, "Domain ID is required"),
+  teamId: z.string().min(1, "Team ID is required"),
+  openProviderPrice: z.string().optional(),
+  niscPrice: z.string().optional(),
+  notes: z.string().optional().nullable(),
+});
+
+// Update domain team link output schema
+const updateTeamOutputSchema = domainOutputSchema;
 
 // ============================================================================
 // ROUTER
@@ -323,6 +350,58 @@ export const domainsRouter = router({
         return domain;
       } catch (error) {
         console.error("Get domain by ID error:", error);
+
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to get domain",
+        });
+      }
+    }),
+
+  /**
+   * Get domain by domain name (our DB Domain, if any)
+   * Returns null if no Domain record exists for that name
+   */
+  getByDomainName: protectedProcedure
+    .input(getByDomainNameInputSchema)
+    .output(getByDomainNameOutputSchema)
+    .query(async ({ input, ctx }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in to view domains",
+        });
+      }
+
+      try {
+        const domain = await prisma.domain.findUnique({
+          where: { domainName: input.domainName },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            team: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        });
+
+        return domain;
+      } catch (error) {
+        console.error("Get domain by domain name error:", error);
 
         if (error instanceof TRPCError) {
           throw error;
@@ -600,6 +679,140 @@ export const domainsRouter = router({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to unlink domain from team",
+        });
+      }
+    }),
+
+  /**
+   * Update domain team link (link existing Domain to a team)
+   * Use when the domain already exists in our DB.
+   */
+  updateTeam: protectedProcedure
+    .input(updateTeamInputSchema)
+    .output(updateTeamOutputSchema)
+    .mutation(async ({ input, ctx }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in to link a domain",
+        });
+      }
+
+      try {
+        const team = await prisma.team.findUnique({
+          where: { id: input.teamId },
+          include: {
+            members: {
+              where: { role: "OWNER" },
+              include: { user: true },
+            },
+          },
+        });
+
+        if (!team) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Team not found",
+          });
+        }
+
+        const domain = await prisma.$transaction(async (tx) => {
+          const existingDomain = await tx.domain.findUnique({
+            where: { id: input.id },
+            include: { team: true },
+          });
+
+          if (!existingDomain) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Domain not found",
+            });
+          }
+
+          const updatedDomain = await tx.domain.update({
+            where: { id: input.id },
+            data: {
+              teamId: input.teamId,
+              ...(input.openProviderPrice !== undefined && { openProviderPrice: input.openProviderPrice ?? null }),
+              ...(input.niscPrice !== undefined && { niscPrice: input.niscPrice ?? null }),
+              ...(input.notes !== undefined && { notes: input.notes ?? null }),
+              updatedAt: new Date(),
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              team: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          });
+
+          await tx.domainActivityLog.create({
+            data: {
+              id: randomUUID(),
+              userId,
+              domainId: input.id,
+              action: "LINK_TEAM",
+              description: `Domain linked to team: ${team.name}`,
+              metadata: {
+                teamId: input.teamId,
+                teamName: team.name,
+                linkedBy: userId,
+              },
+              ipAddress: null,
+              userAgent: null,
+              createdAt: new Date(),
+            },
+          });
+
+          const teamOwner = team.members[0]?.user;
+          if (teamOwner) {
+            await tx.notification.create({
+              data: {
+                id: randomUUID(),
+                userId: teamOwner.id,
+                teamId: input.teamId,
+                type: "DOMAIN",
+                priority: "NORMAL",
+                title: "Domain Linked to Team",
+                message: `Domain ${existingDomain.domainName} has been linked to your team "${team.name}".`,
+                link: "/agency/domains-portfolio",
+                metadata: {
+                  domainId: input.id,
+                  domainName: existingDomain.domainName,
+                  linkedBy: userId,
+                },
+                seen: false,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              },
+            });
+          }
+
+          return updatedDomain;
+        });
+
+        return domain;
+      } catch (error) {
+        console.error("Update domain team error:", error);
+
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to link domain to team",
         });
       }
     }),

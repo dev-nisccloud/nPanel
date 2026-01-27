@@ -26,9 +26,11 @@ export type AggregateDomainTransfer = {
 export type DomainTransferMinAggregateOutputType = {
   id: string | null
   domainId: string | null
+  createdById: string | null
   transferredBy: string | null
   authCode: string | null
   status: $Enums.DomainStatus | null
+  teamId: string | null
   transferRequestedAt: Date | null
   transferCompletedAt: Date | null
   openProviderPrice: string | null
@@ -42,9 +44,11 @@ export type DomainTransferMinAggregateOutputType = {
 export type DomainTransferMaxAggregateOutputType = {
   id: string | null
   domainId: string | null
+  createdById: string | null
   transferredBy: string | null
   authCode: string | null
   status: $Enums.DomainStatus | null
+  teamId: string | null
   transferRequestedAt: Date | null
   transferCompletedAt: Date | null
   openProviderPrice: string | null
@@ -58,9 +62,11 @@ export type DomainTransferMaxAggregateOutputType = {
 export type DomainTransferCountAggregateOutputType = {
   id: number
   domainId: number
+  createdById: number
   transferredBy: number
   authCode: number
   status: number
+  teamId: number
   transferRequestedAt: number
   transferCompletedAt: number
   openProviderPrice: number
@@ -76,9 +82,11 @@ export type DomainTransferCountAggregateOutputType = {
 export type DomainTransferMinAggregateInputType = {
   id?: true
   domainId?: true
+  createdById?: true
   transferredBy?: true
   authCode?: true
   status?: true
+  teamId?: true
   transferRequestedAt?: true
   transferCompletedAt?: true
   openProviderPrice?: true
@@ -92,9 +100,11 @@ export type DomainTransferMinAggregateInputType = {
 export type DomainTransferMaxAggregateInputType = {
   id?: true
   domainId?: true
+  createdById?: true
   transferredBy?: true
   authCode?: true
   status?: true
+  teamId?: true
   transferRequestedAt?: true
   transferCompletedAt?: true
   openProviderPrice?: true
@@ -108,9 +118,11 @@ export type DomainTransferMaxAggregateInputType = {
 export type DomainTransferCountAggregateInputType = {
   id?: true
   domainId?: true
+  createdById?: true
   transferredBy?: true
   authCode?: true
   status?: true
+  teamId?: true
   transferRequestedAt?: true
   transferCompletedAt?: true
   openProviderPrice?: true
@@ -197,9 +209,11 @@ export type DomainTransferGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
 export type DomainTransferGroupByOutputType = {
   id: string
   domainId: string
+  createdById: string
   transferredBy: string | null
   authCode: string
   status: $Enums.DomainStatus
+  teamId: string | null
   transferRequestedAt: Date
   transferCompletedAt: Date | null
   openProviderPrice: string | null
@@ -234,9 +248,11 @@ export type DomainTransferWhereInput = {
   NOT?: Prisma.DomainTransferWhereInput | Prisma.DomainTransferWhereInput[]
   id?: Prisma.StringFilter<"DomainTransfer"> | string
   domainId?: Prisma.StringFilter<"DomainTransfer"> | string
+  createdById?: Prisma.StringFilter<"DomainTransfer"> | string
   transferredBy?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
   authCode?: Prisma.StringFilter<"DomainTransfer"> | string
   status?: Prisma.EnumDomainStatusFilter<"DomainTransfer"> | $Enums.DomainStatus
+  teamId?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
   transferRequestedAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
   transferCompletedAt?: Prisma.DateTimeNullableFilter<"DomainTransfer"> | Date | string | null
   openProviderPrice?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
@@ -245,7 +261,9 @@ export type DomainTransferWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
   nameserverGroupId?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
+  team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
   domain?: Prisma.XOR<Prisma.DomainScalarRelationFilter, Prisma.DomainWhereInput>
+  createdBy?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   orders?: Prisma.OrderListRelationFilter
   activityLogs?: Prisma.DomainTransferActivityLogListRelationFilter
   NameserverGroup?: Prisma.XOR<Prisma.NameserverGroupNullableScalarRelationFilter, Prisma.NameserverGroupWhereInput> | null
@@ -254,9 +272,11 @@ export type DomainTransferWhereInput = {
 export type DomainTransferOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   domainId?: Prisma.SortOrder
+  createdById?: Prisma.SortOrder
   transferredBy?: Prisma.SortOrderInput | Prisma.SortOrder
   authCode?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   transferRequestedAt?: Prisma.SortOrder
   transferCompletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   openProviderPrice?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -265,7 +285,9 @@ export type DomainTransferOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   nameserverGroupId?: Prisma.SortOrderInput | Prisma.SortOrder
+  team?: Prisma.TeamOrderByWithRelationInput
   domain?: Prisma.DomainOrderByWithRelationInput
+  createdBy?: Prisma.UserOrderByWithRelationInput
   orders?: Prisma.OrderOrderByRelationAggregateInput
   activityLogs?: Prisma.DomainTransferActivityLogOrderByRelationAggregateInput
   NameserverGroup?: Prisma.NameserverGroupOrderByWithRelationInput
@@ -277,9 +299,11 @@ export type DomainTransferWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.DomainTransferWhereInput[]
   NOT?: Prisma.DomainTransferWhereInput | Prisma.DomainTransferWhereInput[]
   domainId?: Prisma.StringFilter<"DomainTransfer"> | string
+  createdById?: Prisma.StringFilter<"DomainTransfer"> | string
   transferredBy?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
   authCode?: Prisma.StringFilter<"DomainTransfer"> | string
   status?: Prisma.EnumDomainStatusFilter<"DomainTransfer"> | $Enums.DomainStatus
+  teamId?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
   transferRequestedAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
   transferCompletedAt?: Prisma.DateTimeNullableFilter<"DomainTransfer"> | Date | string | null
   openProviderPrice?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
@@ -288,7 +312,9 @@ export type DomainTransferWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
   nameserverGroupId?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
+  team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
   domain?: Prisma.XOR<Prisma.DomainScalarRelationFilter, Prisma.DomainWhereInput>
+  createdBy?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   orders?: Prisma.OrderListRelationFilter
   activityLogs?: Prisma.DomainTransferActivityLogListRelationFilter
   NameserverGroup?: Prisma.XOR<Prisma.NameserverGroupNullableScalarRelationFilter, Prisma.NameserverGroupWhereInput> | null
@@ -297,9 +323,11 @@ export type DomainTransferWhereUniqueInput = Prisma.AtLeast<{
 export type DomainTransferOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   domainId?: Prisma.SortOrder
+  createdById?: Prisma.SortOrder
   transferredBy?: Prisma.SortOrderInput | Prisma.SortOrder
   authCode?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   transferRequestedAt?: Prisma.SortOrder
   transferCompletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   openProviderPrice?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -319,9 +347,11 @@ export type DomainTransferScalarWhereWithAggregatesInput = {
   NOT?: Prisma.DomainTransferScalarWhereWithAggregatesInput | Prisma.DomainTransferScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"DomainTransfer"> | string
   domainId?: Prisma.StringWithAggregatesFilter<"DomainTransfer"> | string
+  createdById?: Prisma.StringWithAggregatesFilter<"DomainTransfer"> | string
   transferredBy?: Prisma.StringNullableWithAggregatesFilter<"DomainTransfer"> | string | null
   authCode?: Prisma.StringWithAggregatesFilter<"DomainTransfer"> | string
   status?: Prisma.EnumDomainStatusWithAggregatesFilter<"DomainTransfer"> | $Enums.DomainStatus
+  teamId?: Prisma.StringNullableWithAggregatesFilter<"DomainTransfer"> | string | null
   transferRequestedAt?: Prisma.DateTimeWithAggregatesFilter<"DomainTransfer"> | Date | string
   transferCompletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"DomainTransfer"> | Date | string | null
   openProviderPrice?: Prisma.StringNullableWithAggregatesFilter<"DomainTransfer"> | string | null
@@ -344,7 +374,9 @@ export type DomainTransferCreateInput = {
   notes?: string | null
   createdAt: Date | string
   updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainTransfersInput
   domain: Prisma.DomainCreateNestedOneWithoutTransfersInput
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedDomainTransfersInput
   orders?: Prisma.OrderCreateNestedManyWithoutDomainTransferInput
   activityLogs?: Prisma.DomainTransferActivityLogCreateNestedManyWithoutDomainTransferInput
   NameserverGroup?: Prisma.NameserverGroupCreateNestedOneWithoutDomainTransfersInput
@@ -353,9 +385,11 @@ export type DomainTransferCreateInput = {
 export type DomainTransferUncheckedCreateInput = {
   id: string
   domainId: string
+  createdById: string
   transferredBy?: string | null
   authCode: string
   status?: $Enums.DomainStatus
+  teamId?: string | null
   transferRequestedAt: Date | string
   transferCompletedAt?: Date | string | null
   openProviderPrice?: string | null
@@ -380,7 +414,9 @@ export type DomainTransferUpdateInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainTransfersNestedInput
   domain?: Prisma.DomainUpdateOneRequiredWithoutTransfersNestedInput
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedDomainTransfersNestedInput
   orders?: Prisma.OrderUpdateManyWithoutDomainTransferNestedInput
   activityLogs?: Prisma.DomainTransferActivityLogUpdateManyWithoutDomainTransferNestedInput
   NameserverGroup?: Prisma.NameserverGroupUpdateOneWithoutDomainTransfersNestedInput
@@ -389,9 +425,11 @@ export type DomainTransferUpdateInput = {
 export type DomainTransferUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
   transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authCode?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -407,9 +445,11 @@ export type DomainTransferUncheckedUpdateInput = {
 export type DomainTransferCreateManyInput = {
   id: string
   domainId: string
+  createdById: string
   transferredBy?: string | null
   authCode: string
   status?: $Enums.DomainStatus
+  teamId?: string | null
   transferRequestedAt: Date | string
   transferCompletedAt?: Date | string | null
   openProviderPrice?: string | null
@@ -437,9 +477,11 @@ export type DomainTransferUpdateManyMutationInput = {
 export type DomainTransferUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
   transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authCode?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -468,9 +510,11 @@ export type DomainTransferOrderByRelationAggregateInput = {
 export type DomainTransferCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   domainId?: Prisma.SortOrder
+  createdById?: Prisma.SortOrder
   transferredBy?: Prisma.SortOrder
   authCode?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   transferRequestedAt?: Prisma.SortOrder
   transferCompletedAt?: Prisma.SortOrder
   openProviderPrice?: Prisma.SortOrder
@@ -484,9 +528,11 @@ export type DomainTransferCountOrderByAggregateInput = {
 export type DomainTransferMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   domainId?: Prisma.SortOrder
+  createdById?: Prisma.SortOrder
   transferredBy?: Prisma.SortOrder
   authCode?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   transferRequestedAt?: Prisma.SortOrder
   transferCompletedAt?: Prisma.SortOrder
   openProviderPrice?: Prisma.SortOrder
@@ -500,9 +546,11 @@ export type DomainTransferMaxOrderByAggregateInput = {
 export type DomainTransferMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   domainId?: Prisma.SortOrder
+  createdById?: Prisma.SortOrder
   transferredBy?: Prisma.SortOrder
   authCode?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   transferRequestedAt?: Prisma.SortOrder
   transferCompletedAt?: Prisma.SortOrder
   openProviderPrice?: Prisma.SortOrder
@@ -532,6 +580,90 @@ export type DomainTransferUpdateOneWithoutOrdersNestedInput = {
   delete?: Prisma.DomainTransferWhereInput | boolean
   connect?: Prisma.DomainTransferWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.DomainTransferUpdateToOneWithWhereWithoutOrdersInput, Prisma.DomainTransferUpdateWithoutOrdersInput>, Prisma.DomainTransferUncheckedUpdateWithoutOrdersInput>
+}
+
+export type DomainTransferCreateNestedManyWithoutCreatedByInput = {
+  create?: Prisma.XOR<Prisma.DomainTransferCreateWithoutCreatedByInput, Prisma.DomainTransferUncheckedCreateWithoutCreatedByInput> | Prisma.DomainTransferCreateWithoutCreatedByInput[] | Prisma.DomainTransferUncheckedCreateWithoutCreatedByInput[]
+  connectOrCreate?: Prisma.DomainTransferCreateOrConnectWithoutCreatedByInput | Prisma.DomainTransferCreateOrConnectWithoutCreatedByInput[]
+  createMany?: Prisma.DomainTransferCreateManyCreatedByInputEnvelope
+  connect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+}
+
+export type DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput = {
+  create?: Prisma.XOR<Prisma.DomainTransferCreateWithoutCreatedByInput, Prisma.DomainTransferUncheckedCreateWithoutCreatedByInput> | Prisma.DomainTransferCreateWithoutCreatedByInput[] | Prisma.DomainTransferUncheckedCreateWithoutCreatedByInput[]
+  connectOrCreate?: Prisma.DomainTransferCreateOrConnectWithoutCreatedByInput | Prisma.DomainTransferCreateOrConnectWithoutCreatedByInput[]
+  createMany?: Prisma.DomainTransferCreateManyCreatedByInputEnvelope
+  connect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+}
+
+export type DomainTransferUpdateManyWithoutCreatedByNestedInput = {
+  create?: Prisma.XOR<Prisma.DomainTransferCreateWithoutCreatedByInput, Prisma.DomainTransferUncheckedCreateWithoutCreatedByInput> | Prisma.DomainTransferCreateWithoutCreatedByInput[] | Prisma.DomainTransferUncheckedCreateWithoutCreatedByInput[]
+  connectOrCreate?: Prisma.DomainTransferCreateOrConnectWithoutCreatedByInput | Prisma.DomainTransferCreateOrConnectWithoutCreatedByInput[]
+  upsert?: Prisma.DomainTransferUpsertWithWhereUniqueWithoutCreatedByInput | Prisma.DomainTransferUpsertWithWhereUniqueWithoutCreatedByInput[]
+  createMany?: Prisma.DomainTransferCreateManyCreatedByInputEnvelope
+  set?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  disconnect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  delete?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  connect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  update?: Prisma.DomainTransferUpdateWithWhereUniqueWithoutCreatedByInput | Prisma.DomainTransferUpdateWithWhereUniqueWithoutCreatedByInput[]
+  updateMany?: Prisma.DomainTransferUpdateManyWithWhereWithoutCreatedByInput | Prisma.DomainTransferUpdateManyWithWhereWithoutCreatedByInput[]
+  deleteMany?: Prisma.DomainTransferScalarWhereInput | Prisma.DomainTransferScalarWhereInput[]
+}
+
+export type DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput = {
+  create?: Prisma.XOR<Prisma.DomainTransferCreateWithoutCreatedByInput, Prisma.DomainTransferUncheckedCreateWithoutCreatedByInput> | Prisma.DomainTransferCreateWithoutCreatedByInput[] | Prisma.DomainTransferUncheckedCreateWithoutCreatedByInput[]
+  connectOrCreate?: Prisma.DomainTransferCreateOrConnectWithoutCreatedByInput | Prisma.DomainTransferCreateOrConnectWithoutCreatedByInput[]
+  upsert?: Prisma.DomainTransferUpsertWithWhereUniqueWithoutCreatedByInput | Prisma.DomainTransferUpsertWithWhereUniqueWithoutCreatedByInput[]
+  createMany?: Prisma.DomainTransferCreateManyCreatedByInputEnvelope
+  set?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  disconnect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  delete?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  connect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  update?: Prisma.DomainTransferUpdateWithWhereUniqueWithoutCreatedByInput | Prisma.DomainTransferUpdateWithWhereUniqueWithoutCreatedByInput[]
+  updateMany?: Prisma.DomainTransferUpdateManyWithWhereWithoutCreatedByInput | Prisma.DomainTransferUpdateManyWithWhereWithoutCreatedByInput[]
+  deleteMany?: Prisma.DomainTransferScalarWhereInput | Prisma.DomainTransferScalarWhereInput[]
+}
+
+export type DomainTransferCreateNestedManyWithoutTeamInput = {
+  create?: Prisma.XOR<Prisma.DomainTransferCreateWithoutTeamInput, Prisma.DomainTransferUncheckedCreateWithoutTeamInput> | Prisma.DomainTransferCreateWithoutTeamInput[] | Prisma.DomainTransferUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.DomainTransferCreateOrConnectWithoutTeamInput | Prisma.DomainTransferCreateOrConnectWithoutTeamInput[]
+  createMany?: Prisma.DomainTransferCreateManyTeamInputEnvelope
+  connect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+}
+
+export type DomainTransferUncheckedCreateNestedManyWithoutTeamInput = {
+  create?: Prisma.XOR<Prisma.DomainTransferCreateWithoutTeamInput, Prisma.DomainTransferUncheckedCreateWithoutTeamInput> | Prisma.DomainTransferCreateWithoutTeamInput[] | Prisma.DomainTransferUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.DomainTransferCreateOrConnectWithoutTeamInput | Prisma.DomainTransferCreateOrConnectWithoutTeamInput[]
+  createMany?: Prisma.DomainTransferCreateManyTeamInputEnvelope
+  connect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+}
+
+export type DomainTransferUpdateManyWithoutTeamNestedInput = {
+  create?: Prisma.XOR<Prisma.DomainTransferCreateWithoutTeamInput, Prisma.DomainTransferUncheckedCreateWithoutTeamInput> | Prisma.DomainTransferCreateWithoutTeamInput[] | Prisma.DomainTransferUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.DomainTransferCreateOrConnectWithoutTeamInput | Prisma.DomainTransferCreateOrConnectWithoutTeamInput[]
+  upsert?: Prisma.DomainTransferUpsertWithWhereUniqueWithoutTeamInput | Prisma.DomainTransferUpsertWithWhereUniqueWithoutTeamInput[]
+  createMany?: Prisma.DomainTransferCreateManyTeamInputEnvelope
+  set?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  disconnect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  delete?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  connect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  update?: Prisma.DomainTransferUpdateWithWhereUniqueWithoutTeamInput | Prisma.DomainTransferUpdateWithWhereUniqueWithoutTeamInput[]
+  updateMany?: Prisma.DomainTransferUpdateManyWithWhereWithoutTeamInput | Prisma.DomainTransferUpdateManyWithWhereWithoutTeamInput[]
+  deleteMany?: Prisma.DomainTransferScalarWhereInput | Prisma.DomainTransferScalarWhereInput[]
+}
+
+export type DomainTransferUncheckedUpdateManyWithoutTeamNestedInput = {
+  create?: Prisma.XOR<Prisma.DomainTransferCreateWithoutTeamInput, Prisma.DomainTransferUncheckedCreateWithoutTeamInput> | Prisma.DomainTransferCreateWithoutTeamInput[] | Prisma.DomainTransferUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.DomainTransferCreateOrConnectWithoutTeamInput | Prisma.DomainTransferCreateOrConnectWithoutTeamInput[]
+  upsert?: Prisma.DomainTransferUpsertWithWhereUniqueWithoutTeamInput | Prisma.DomainTransferUpsertWithWhereUniqueWithoutTeamInput[]
+  createMany?: Prisma.DomainTransferCreateManyTeamInputEnvelope
+  set?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  disconnect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  delete?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  connect?: Prisma.DomainTransferWhereUniqueInput | Prisma.DomainTransferWhereUniqueInput[]
+  update?: Prisma.DomainTransferUpdateWithWhereUniqueWithoutTeamInput | Prisma.DomainTransferUpdateWithWhereUniqueWithoutTeamInput[]
+  updateMany?: Prisma.DomainTransferUpdateManyWithWhereWithoutTeamInput | Prisma.DomainTransferUpdateManyWithWhereWithoutTeamInput[]
+  deleteMany?: Prisma.DomainTransferScalarWhereInput | Prisma.DomainTransferScalarWhereInput[]
 }
 
 export type DomainTransferCreateNestedManyWithoutNameserverGroupInput = {
@@ -648,7 +780,9 @@ export type DomainTransferCreateWithoutOrdersInput = {
   notes?: string | null
   createdAt: Date | string
   updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainTransfersInput
   domain: Prisma.DomainCreateNestedOneWithoutTransfersInput
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedDomainTransfersInput
   activityLogs?: Prisma.DomainTransferActivityLogCreateNestedManyWithoutDomainTransferInput
   NameserverGroup?: Prisma.NameserverGroupCreateNestedOneWithoutDomainTransfersInput
 }
@@ -656,9 +790,11 @@ export type DomainTransferCreateWithoutOrdersInput = {
 export type DomainTransferUncheckedCreateWithoutOrdersInput = {
   id: string
   domainId: string
+  createdById: string
   transferredBy?: string | null
   authCode: string
   status?: $Enums.DomainStatus
+  teamId?: string | null
   transferRequestedAt: Date | string
   transferCompletedAt?: Date | string | null
   openProviderPrice?: string | null
@@ -698,7 +834,9 @@ export type DomainTransferUpdateWithoutOrdersInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainTransfersNestedInput
   domain?: Prisma.DomainUpdateOneRequiredWithoutTransfersNestedInput
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedDomainTransfersNestedInput
   activityLogs?: Prisma.DomainTransferActivityLogUpdateManyWithoutDomainTransferNestedInput
   NameserverGroup?: Prisma.NameserverGroupUpdateOneWithoutDomainTransfersNestedInput
 }
@@ -706,9 +844,11 @@ export type DomainTransferUpdateWithoutOrdersInput = {
 export type DomainTransferUncheckedUpdateWithoutOrdersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
   transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authCode?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -718,6 +858,155 @@ export type DomainTransferUncheckedUpdateWithoutOrdersInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nameserverGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   activityLogs?: Prisma.DomainTransferActivityLogUncheckedUpdateManyWithoutDomainTransferNestedInput
+}
+
+export type DomainTransferCreateWithoutCreatedByInput = {
+  id: string
+  transferredBy?: string | null
+  authCode: string
+  status?: $Enums.DomainStatus
+  transferRequestedAt: Date | string
+  transferCompletedAt?: Date | string | null
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  notes?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainTransfersInput
+  domain: Prisma.DomainCreateNestedOneWithoutTransfersInput
+  orders?: Prisma.OrderCreateNestedManyWithoutDomainTransferInput
+  activityLogs?: Prisma.DomainTransferActivityLogCreateNestedManyWithoutDomainTransferInput
+  NameserverGroup?: Prisma.NameserverGroupCreateNestedOneWithoutDomainTransfersInput
+}
+
+export type DomainTransferUncheckedCreateWithoutCreatedByInput = {
+  id: string
+  domainId: string
+  transferredBy?: string | null
+  authCode: string
+  status?: $Enums.DomainStatus
+  teamId?: string | null
+  transferRequestedAt: Date | string
+  transferCompletedAt?: Date | string | null
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  notes?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  nameserverGroupId?: string | null
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutDomainTransferInput
+  activityLogs?: Prisma.DomainTransferActivityLogUncheckedCreateNestedManyWithoutDomainTransferInput
+}
+
+export type DomainTransferCreateOrConnectWithoutCreatedByInput = {
+  where: Prisma.DomainTransferWhereUniqueInput
+  create: Prisma.XOR<Prisma.DomainTransferCreateWithoutCreatedByInput, Prisma.DomainTransferUncheckedCreateWithoutCreatedByInput>
+}
+
+export type DomainTransferCreateManyCreatedByInputEnvelope = {
+  data: Prisma.DomainTransferCreateManyCreatedByInput | Prisma.DomainTransferCreateManyCreatedByInput[]
+  skipDuplicates?: boolean
+}
+
+export type DomainTransferUpsertWithWhereUniqueWithoutCreatedByInput = {
+  where: Prisma.DomainTransferWhereUniqueInput
+  update: Prisma.XOR<Prisma.DomainTransferUpdateWithoutCreatedByInput, Prisma.DomainTransferUncheckedUpdateWithoutCreatedByInput>
+  create: Prisma.XOR<Prisma.DomainTransferCreateWithoutCreatedByInput, Prisma.DomainTransferUncheckedCreateWithoutCreatedByInput>
+}
+
+export type DomainTransferUpdateWithWhereUniqueWithoutCreatedByInput = {
+  where: Prisma.DomainTransferWhereUniqueInput
+  data: Prisma.XOR<Prisma.DomainTransferUpdateWithoutCreatedByInput, Prisma.DomainTransferUncheckedUpdateWithoutCreatedByInput>
+}
+
+export type DomainTransferUpdateManyWithWhereWithoutCreatedByInput = {
+  where: Prisma.DomainTransferScalarWhereInput
+  data: Prisma.XOR<Prisma.DomainTransferUpdateManyMutationInput, Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByInput>
+}
+
+export type DomainTransferScalarWhereInput = {
+  AND?: Prisma.DomainTransferScalarWhereInput | Prisma.DomainTransferScalarWhereInput[]
+  OR?: Prisma.DomainTransferScalarWhereInput[]
+  NOT?: Prisma.DomainTransferScalarWhereInput | Prisma.DomainTransferScalarWhereInput[]
+  id?: Prisma.StringFilter<"DomainTransfer"> | string
+  domainId?: Prisma.StringFilter<"DomainTransfer"> | string
+  createdById?: Prisma.StringFilter<"DomainTransfer"> | string
+  transferredBy?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
+  authCode?: Prisma.StringFilter<"DomainTransfer"> | string
+  status?: Prisma.EnumDomainStatusFilter<"DomainTransfer"> | $Enums.DomainStatus
+  teamId?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
+  transferRequestedAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
+  transferCompletedAt?: Prisma.DateTimeNullableFilter<"DomainTransfer"> | Date | string | null
+  openProviderPrice?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
+  niscPrice?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
+  notes?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
+  nameserverGroupId?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
+}
+
+export type DomainTransferCreateWithoutTeamInput = {
+  id: string
+  transferredBy?: string | null
+  authCode: string
+  status?: $Enums.DomainStatus
+  transferRequestedAt: Date | string
+  transferCompletedAt?: Date | string | null
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  notes?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  domain: Prisma.DomainCreateNestedOneWithoutTransfersInput
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedDomainTransfersInput
+  orders?: Prisma.OrderCreateNestedManyWithoutDomainTransferInput
+  activityLogs?: Prisma.DomainTransferActivityLogCreateNestedManyWithoutDomainTransferInput
+  NameserverGroup?: Prisma.NameserverGroupCreateNestedOneWithoutDomainTransfersInput
+}
+
+export type DomainTransferUncheckedCreateWithoutTeamInput = {
+  id: string
+  domainId: string
+  createdById: string
+  transferredBy?: string | null
+  authCode: string
+  status?: $Enums.DomainStatus
+  transferRequestedAt: Date | string
+  transferCompletedAt?: Date | string | null
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  notes?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  nameserverGroupId?: string | null
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutDomainTransferInput
+  activityLogs?: Prisma.DomainTransferActivityLogUncheckedCreateNestedManyWithoutDomainTransferInput
+}
+
+export type DomainTransferCreateOrConnectWithoutTeamInput = {
+  where: Prisma.DomainTransferWhereUniqueInput
+  create: Prisma.XOR<Prisma.DomainTransferCreateWithoutTeamInput, Prisma.DomainTransferUncheckedCreateWithoutTeamInput>
+}
+
+export type DomainTransferCreateManyTeamInputEnvelope = {
+  data: Prisma.DomainTransferCreateManyTeamInput | Prisma.DomainTransferCreateManyTeamInput[]
+  skipDuplicates?: boolean
+}
+
+export type DomainTransferUpsertWithWhereUniqueWithoutTeamInput = {
+  where: Prisma.DomainTransferWhereUniqueInput
+  update: Prisma.XOR<Prisma.DomainTransferUpdateWithoutTeamInput, Prisma.DomainTransferUncheckedUpdateWithoutTeamInput>
+  create: Prisma.XOR<Prisma.DomainTransferCreateWithoutTeamInput, Prisma.DomainTransferUncheckedCreateWithoutTeamInput>
+}
+
+export type DomainTransferUpdateWithWhereUniqueWithoutTeamInput = {
+  where: Prisma.DomainTransferWhereUniqueInput
+  data: Prisma.XOR<Prisma.DomainTransferUpdateWithoutTeamInput, Prisma.DomainTransferUncheckedUpdateWithoutTeamInput>
+}
+
+export type DomainTransferUpdateManyWithWhereWithoutTeamInput = {
+  where: Prisma.DomainTransferScalarWhereInput
+  data: Prisma.XOR<Prisma.DomainTransferUpdateManyMutationInput, Prisma.DomainTransferUncheckedUpdateManyWithoutTeamInput>
 }
 
 export type DomainTransferCreateWithoutNameserverGroupInput = {
@@ -732,7 +1021,9 @@ export type DomainTransferCreateWithoutNameserverGroupInput = {
   notes?: string | null
   createdAt: Date | string
   updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainTransfersInput
   domain: Prisma.DomainCreateNestedOneWithoutTransfersInput
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedDomainTransfersInput
   orders?: Prisma.OrderCreateNestedManyWithoutDomainTransferInput
   activityLogs?: Prisma.DomainTransferActivityLogCreateNestedManyWithoutDomainTransferInput
 }
@@ -740,9 +1031,11 @@ export type DomainTransferCreateWithoutNameserverGroupInput = {
 export type DomainTransferUncheckedCreateWithoutNameserverGroupInput = {
   id: string
   domainId: string
+  createdById: string
   transferredBy?: string | null
   authCode: string
   status?: $Enums.DomainStatus
+  teamId?: string | null
   transferRequestedAt: Date | string
   transferCompletedAt?: Date | string | null
   openProviderPrice?: string | null
@@ -780,25 +1073,6 @@ export type DomainTransferUpdateManyWithWhereWithoutNameserverGroupInput = {
   data: Prisma.XOR<Prisma.DomainTransferUpdateManyMutationInput, Prisma.DomainTransferUncheckedUpdateManyWithoutNameserverGroupInput>
 }
 
-export type DomainTransferScalarWhereInput = {
-  AND?: Prisma.DomainTransferScalarWhereInput | Prisma.DomainTransferScalarWhereInput[]
-  OR?: Prisma.DomainTransferScalarWhereInput[]
-  NOT?: Prisma.DomainTransferScalarWhereInput | Prisma.DomainTransferScalarWhereInput[]
-  id?: Prisma.StringFilter<"DomainTransfer"> | string
-  domainId?: Prisma.StringFilter<"DomainTransfer"> | string
-  transferredBy?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
-  authCode?: Prisma.StringFilter<"DomainTransfer"> | string
-  status?: Prisma.EnumDomainStatusFilter<"DomainTransfer"> | $Enums.DomainStatus
-  transferRequestedAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
-  transferCompletedAt?: Prisma.DateTimeNullableFilter<"DomainTransfer"> | Date | string | null
-  openProviderPrice?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
-  niscPrice?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
-  notes?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
-  createdAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"DomainTransfer"> | Date | string
-  nameserverGroupId?: Prisma.StringNullableFilter<"DomainTransfer"> | string | null
-}
-
 export type DomainTransferCreateWithoutDomainInput = {
   id: string
   transferredBy?: string | null
@@ -811,6 +1085,8 @@ export type DomainTransferCreateWithoutDomainInput = {
   notes?: string | null
   createdAt: Date | string
   updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainTransfersInput
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedDomainTransfersInput
   orders?: Prisma.OrderCreateNestedManyWithoutDomainTransferInput
   activityLogs?: Prisma.DomainTransferActivityLogCreateNestedManyWithoutDomainTransferInput
   NameserverGroup?: Prisma.NameserverGroupCreateNestedOneWithoutDomainTransfersInput
@@ -818,9 +1094,11 @@ export type DomainTransferCreateWithoutDomainInput = {
 
 export type DomainTransferUncheckedCreateWithoutDomainInput = {
   id: string
+  createdById: string
   transferredBy?: string | null
   authCode: string
   status?: $Enums.DomainStatus
+  teamId?: string | null
   transferRequestedAt: Date | string
   transferCompletedAt?: Date | string | null
   openProviderPrice?: string | null
@@ -871,7 +1149,9 @@ export type DomainTransferCreateWithoutActivityLogsInput = {
   notes?: string | null
   createdAt: Date | string
   updatedAt: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutDomainTransfersInput
   domain: Prisma.DomainCreateNestedOneWithoutTransfersInput
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedDomainTransfersInput
   orders?: Prisma.OrderCreateNestedManyWithoutDomainTransferInput
   NameserverGroup?: Prisma.NameserverGroupCreateNestedOneWithoutDomainTransfersInput
 }
@@ -879,9 +1159,11 @@ export type DomainTransferCreateWithoutActivityLogsInput = {
 export type DomainTransferUncheckedCreateWithoutActivityLogsInput = {
   id: string
   domainId: string
+  createdById: string
   transferredBy?: string | null
   authCode: string
   status?: $Enums.DomainStatus
+  teamId?: string | null
   transferRequestedAt: Date | string
   transferCompletedAt?: Date | string | null
   openProviderPrice?: string | null
@@ -921,7 +1203,9 @@ export type DomainTransferUpdateWithoutActivityLogsInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainTransfersNestedInput
   domain?: Prisma.DomainUpdateOneRequiredWithoutTransfersNestedInput
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedDomainTransfersNestedInput
   orders?: Prisma.OrderUpdateManyWithoutDomainTransferNestedInput
   NameserverGroup?: Prisma.NameserverGroupUpdateOneWithoutDomainTransfersNestedInput
 }
@@ -929,6 +1213,134 @@ export type DomainTransferUpdateWithoutActivityLogsInput = {
 export type DomainTransferUncheckedUpdateWithoutActivityLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authCode?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  nameserverGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutDomainTransferNestedInput
+}
+
+export type DomainTransferCreateManyCreatedByInput = {
+  id: string
+  domainId: string
+  transferredBy?: string | null
+  authCode: string
+  status?: $Enums.DomainStatus
+  teamId?: string | null
+  transferRequestedAt: Date | string
+  transferCompletedAt?: Date | string | null
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  notes?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  nameserverGroupId?: string | null
+}
+
+export type DomainTransferUpdateWithoutCreatedByInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authCode?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainTransfersNestedInput
+  domain?: Prisma.DomainUpdateOneRequiredWithoutTransfersNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutDomainTransferNestedInput
+  activityLogs?: Prisma.DomainTransferActivityLogUpdateManyWithoutDomainTransferNestedInput
+  NameserverGroup?: Prisma.NameserverGroupUpdateOneWithoutDomainTransfersNestedInput
+}
+
+export type DomainTransferUncheckedUpdateWithoutCreatedByInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authCode?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  nameserverGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutDomainTransferNestedInput
+  activityLogs?: Prisma.DomainTransferActivityLogUncheckedUpdateManyWithoutDomainTransferNestedInput
+}
+
+export type DomainTransferUncheckedUpdateManyWithoutCreatedByInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authCode?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  nameserverGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type DomainTransferCreateManyTeamInput = {
+  id: string
+  domainId: string
+  createdById: string
+  transferredBy?: string | null
+  authCode: string
+  status?: $Enums.DomainStatus
+  transferRequestedAt: Date | string
+  transferCompletedAt?: Date | string | null
+  openProviderPrice?: string | null
+  niscPrice?: string | null
+  notes?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  nameserverGroupId?: string | null
+}
+
+export type DomainTransferUpdateWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authCode?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  domain?: Prisma.DomainUpdateOneRequiredWithoutTransfersNestedInput
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedDomainTransfersNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutDomainTransferNestedInput
+  activityLogs?: Prisma.DomainTransferActivityLogUpdateManyWithoutDomainTransferNestedInput
+  NameserverGroup?: Prisma.NameserverGroupUpdateOneWithoutDomainTransfersNestedInput
+}
+
+export type DomainTransferUncheckedUpdateWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
   transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authCode?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
@@ -941,14 +1353,34 @@ export type DomainTransferUncheckedUpdateWithoutActivityLogsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nameserverGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   orders?: Prisma.OrderUncheckedUpdateManyWithoutDomainTransferNestedInput
+  activityLogs?: Prisma.DomainTransferActivityLogUncheckedUpdateManyWithoutDomainTransferNestedInput
+}
+
+export type DomainTransferUncheckedUpdateManyWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authCode?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  niscPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  nameserverGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type DomainTransferCreateManyNameserverGroupInput = {
   id: string
   domainId: string
+  createdById: string
   transferredBy?: string | null
   authCode: string
   status?: $Enums.DomainStatus
+  teamId?: string | null
   transferRequestedAt: Date | string
   transferCompletedAt?: Date | string | null
   openProviderPrice?: string | null
@@ -970,7 +1402,9 @@ export type DomainTransferUpdateWithoutNameserverGroupInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainTransfersNestedInput
   domain?: Prisma.DomainUpdateOneRequiredWithoutTransfersNestedInput
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedDomainTransfersNestedInput
   orders?: Prisma.OrderUpdateManyWithoutDomainTransferNestedInput
   activityLogs?: Prisma.DomainTransferActivityLogUpdateManyWithoutDomainTransferNestedInput
 }
@@ -978,9 +1412,11 @@ export type DomainTransferUpdateWithoutNameserverGroupInput = {
 export type DomainTransferUncheckedUpdateWithoutNameserverGroupInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
   transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authCode?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -995,9 +1431,11 @@ export type DomainTransferUncheckedUpdateWithoutNameserverGroupInput = {
 export type DomainTransferUncheckedUpdateManyWithoutNameserverGroupInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   domainId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
   transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authCode?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1009,9 +1447,11 @@ export type DomainTransferUncheckedUpdateManyWithoutNameserverGroupInput = {
 
 export type DomainTransferCreateManyDomainInput = {
   id: string
+  createdById: string
   transferredBy?: string | null
   authCode: string
   status?: $Enums.DomainStatus
+  teamId?: string | null
   transferRequestedAt: Date | string
   transferCompletedAt?: Date | string | null
   openProviderPrice?: string | null
@@ -1034,6 +1474,8 @@ export type DomainTransferUpdateWithoutDomainInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutDomainTransfersNestedInput
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedDomainTransfersNestedInput
   orders?: Prisma.OrderUpdateManyWithoutDomainTransferNestedInput
   activityLogs?: Prisma.DomainTransferActivityLogUpdateManyWithoutDomainTransferNestedInput
   NameserverGroup?: Prisma.NameserverGroupUpdateOneWithoutDomainTransfersNestedInput
@@ -1041,9 +1483,11 @@ export type DomainTransferUpdateWithoutDomainInput = {
 
 export type DomainTransferUncheckedUpdateWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
   transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authCode?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1058,9 +1502,11 @@ export type DomainTransferUncheckedUpdateWithoutDomainInput = {
 
 export type DomainTransferUncheckedUpdateManyWithoutDomainInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
   transferredBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authCode?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDomainStatusFieldUpdateOperationsInput | $Enums.DomainStatus
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transferRequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transferCompletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   openProviderPrice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1114,9 +1560,11 @@ export type DomainTransferCountOutputTypeCountActivityLogsArgs<ExtArgs extends r
 export type DomainTransferSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   domainId?: boolean
+  createdById?: boolean
   transferredBy?: boolean
   authCode?: boolean
   status?: boolean
+  teamId?: boolean
   transferRequestedAt?: boolean
   transferCompletedAt?: boolean
   openProviderPrice?: boolean
@@ -1125,7 +1573,9 @@ export type DomainTransferSelect<ExtArgs extends runtime.Types.Extensions.Intern
   createdAt?: boolean
   updatedAt?: boolean
   nameserverGroupId?: boolean
+  team?: boolean | Prisma.DomainTransfer$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.DomainTransfer$ordersArgs<ExtArgs>
   activityLogs?: boolean | Prisma.DomainTransfer$activityLogsArgs<ExtArgs>
   NameserverGroup?: boolean | Prisma.DomainTransfer$NameserverGroupArgs<ExtArgs>
@@ -1135,9 +1585,11 @@ export type DomainTransferSelect<ExtArgs extends runtime.Types.Extensions.Intern
 export type DomainTransferSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   domainId?: boolean
+  createdById?: boolean
   transferredBy?: boolean
   authCode?: boolean
   status?: boolean
+  teamId?: boolean
   transferRequestedAt?: boolean
   transferCompletedAt?: boolean
   openProviderPrice?: boolean
@@ -1146,16 +1598,20 @@ export type DomainTransferSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   createdAt?: boolean
   updatedAt?: boolean
   nameserverGroupId?: boolean
+  team?: boolean | Prisma.DomainTransfer$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   NameserverGroup?: boolean | Prisma.DomainTransfer$NameserverGroupArgs<ExtArgs>
 }, ExtArgs["result"]["domainTransfer"]>
 
 export type DomainTransferSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   domainId?: boolean
+  createdById?: boolean
   transferredBy?: boolean
   authCode?: boolean
   status?: boolean
+  teamId?: boolean
   transferRequestedAt?: boolean
   transferCompletedAt?: boolean
   openProviderPrice?: boolean
@@ -1164,16 +1620,20 @@ export type DomainTransferSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   createdAt?: boolean
   updatedAt?: boolean
   nameserverGroupId?: boolean
+  team?: boolean | Prisma.DomainTransfer$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   NameserverGroup?: boolean | Prisma.DomainTransfer$NameserverGroupArgs<ExtArgs>
 }, ExtArgs["result"]["domainTransfer"]>
 
 export type DomainTransferSelectScalar = {
   id?: boolean
   domainId?: boolean
+  createdById?: boolean
   transferredBy?: boolean
   authCode?: boolean
   status?: boolean
+  teamId?: boolean
   transferRequestedAt?: boolean
   transferCompletedAt?: boolean
   openProviderPrice?: boolean
@@ -1184,27 +1644,35 @@ export type DomainTransferSelectScalar = {
   nameserverGroupId?: boolean
 }
 
-export type DomainTransferOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "domainId" | "transferredBy" | "authCode" | "status" | "transferRequestedAt" | "transferCompletedAt" | "openProviderPrice" | "niscPrice" | "notes" | "createdAt" | "updatedAt" | "nameserverGroupId", ExtArgs["result"]["domainTransfer"]>
+export type DomainTransferOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "domainId" | "createdById" | "transferredBy" | "authCode" | "status" | "teamId" | "transferRequestedAt" | "transferCompletedAt" | "openProviderPrice" | "niscPrice" | "notes" | "createdAt" | "updatedAt" | "nameserverGroupId", ExtArgs["result"]["domainTransfer"]>
 export type DomainTransferInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  team?: boolean | Prisma.DomainTransfer$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.DomainTransfer$ordersArgs<ExtArgs>
   activityLogs?: boolean | Prisma.DomainTransfer$activityLogsArgs<ExtArgs>
   NameserverGroup?: boolean | Prisma.DomainTransfer$NameserverGroupArgs<ExtArgs>
   _count?: boolean | Prisma.DomainTransferCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type DomainTransferIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  team?: boolean | Prisma.DomainTransfer$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   NameserverGroup?: boolean | Prisma.DomainTransfer$NameserverGroupArgs<ExtArgs>
 }
 export type DomainTransferIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  team?: boolean | Prisma.DomainTransfer$teamArgs<ExtArgs>
   domain?: boolean | Prisma.DomainDefaultArgs<ExtArgs>
+  createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   NameserverGroup?: boolean | Prisma.DomainTransfer$NameserverGroupArgs<ExtArgs>
 }
 
 export type $DomainTransferPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DomainTransfer"
   objects: {
+    team: Prisma.$TeamPayload<ExtArgs> | null
     domain: Prisma.$DomainPayload<ExtArgs>
+    createdBy: Prisma.$UserPayload<ExtArgs>
     orders: Prisma.$OrderPayload<ExtArgs>[]
     activityLogs: Prisma.$DomainTransferActivityLogPayload<ExtArgs>[]
     NameserverGroup: Prisma.$NameserverGroupPayload<ExtArgs> | null
@@ -1212,9 +1680,11 @@ export type $DomainTransferPayload<ExtArgs extends runtime.Types.Extensions.Inte
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     domainId: string
+    createdById: string
     transferredBy: string | null
     authCode: string
     status: $Enums.DomainStatus
+    teamId: string | null
     transferRequestedAt: Date
     transferCompletedAt: Date | null
     openProviderPrice: string | null
@@ -1617,7 +2087,9 @@ readonly fields: DomainTransferFieldRefs;
  */
 export interface Prisma__DomainTransferClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  team<T extends Prisma.DomainTransfer$teamArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DomainTransfer$teamArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   domain<T extends Prisma.DomainDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DomainDefaultArgs<ExtArgs>>): Prisma.Prisma__DomainClient<runtime.Types.Result.GetResult<Prisma.$DomainPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdBy<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   orders<T extends Prisma.DomainTransfer$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DomainTransfer$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityLogs<T extends Prisma.DomainTransfer$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DomainTransfer$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainTransferActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   NameserverGroup<T extends Prisma.DomainTransfer$NameserverGroupArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DomainTransfer$NameserverGroupArgs<ExtArgs>>): Prisma.Prisma__NameserverGroupClient<runtime.Types.Result.GetResult<Prisma.$NameserverGroupPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -1652,9 +2124,11 @@ export interface Prisma__DomainTransferClient<T, Null = never, ExtArgs extends r
 export interface DomainTransferFieldRefs {
   readonly id: Prisma.FieldRef<"DomainTransfer", 'String'>
   readonly domainId: Prisma.FieldRef<"DomainTransfer", 'String'>
+  readonly createdById: Prisma.FieldRef<"DomainTransfer", 'String'>
   readonly transferredBy: Prisma.FieldRef<"DomainTransfer", 'String'>
   readonly authCode: Prisma.FieldRef<"DomainTransfer", 'String'>
   readonly status: Prisma.FieldRef<"DomainTransfer", 'DomainStatus'>
+  readonly teamId: Prisma.FieldRef<"DomainTransfer", 'String'>
   readonly transferRequestedAt: Prisma.FieldRef<"DomainTransfer", 'DateTime'>
   readonly transferCompletedAt: Prisma.FieldRef<"DomainTransfer", 'DateTime'>
   readonly openProviderPrice: Prisma.FieldRef<"DomainTransfer", 'String'>
@@ -2056,6 +2530,25 @@ export type DomainTransferDeleteManyArgs<ExtArgs extends runtime.Types.Extension
    * Limit how many DomainTransfers to delete.
    */
   limit?: number
+}
+
+/**
+ * DomainTransfer.team
+ */
+export type DomainTransfer$teamArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Team
+   */
+  select?: Prisma.TeamSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Team
+   */
+  omit?: Prisma.TeamOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TeamInclude<ExtArgs> | null
+  where?: Prisma.TeamWhereInput
 }
 
 /**

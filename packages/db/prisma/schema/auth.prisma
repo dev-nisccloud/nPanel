@@ -435,6 +435,8 @@ model User {
   profile                      UserProfile?
   customerIntegrations         CustomerIntegration[]
   domains                      Domain[]
+  domainRenewals               DomainRenewal[]               @relation("DomainRenewalCreatedBy")
+  createdDomainTransfers       DomainTransfer[]              @relation("DomainTransferCreatedBy")
   activityLogs                 UserActivityLog[]
   // Social Media Marketing Relations
   socialMediaIntegrations      SocialMediaIntegration[]
@@ -532,6 +534,8 @@ model Team {
   domains                      Domain[]
   hostingSubscriptions         HostingSubscription[]
   wordpressInstances           WordPressInstance[]
+  domainRenewals               DomainRenewal[]
+  domainTransfers              DomainTransfer[]
   promos                       Promo[]
   orders                       Order[]
   // Creative Assets Relations
@@ -1256,8 +1260,12 @@ model Domain {
 model DomainRenewal {
   id          String   @id @map("_id")
   domainId    String   @unique // Reference to domain (unique - one renewal record per domain)
-  renewedBy   String? // User ID who renewed the domain
+  renewedBy   String // User ID who renewed the domain (creator of this record)
   renewalDate DateTime // When renewal was processed
+
+  // Optional team link
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
   // Pricing information (KES only, no currency field needed)
   openProviderPrice String? // Price from OpenProvider in KES
@@ -1268,13 +1276,15 @@ model DomainRenewal {
   updatedAt DateTime
 
   // Relations
-  domain       Domain                     @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  orders       Order[]
-  activityLogs DomainRenewalActivityLog[]
+  domain        Domain                     @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  renewedByUser User                       @relation("DomainRenewalCreatedBy", fields: [renewedBy], references: [id], onDelete: Restrict)
+  orders        Order[]
+  activityLogs  DomainRenewalActivityLog[]
 
   @@index([domainId])
   @@index([renewalDate])
   @@index([renewedBy])
+  @@index([teamId])
   @@map("domain_renewal")
 }
 
@@ -1282,9 +1292,14 @@ model DomainRenewal {
 model DomainTransfer {
   id            String       @id @map("_id")
   domainId      String // Reference to domain
-  transferredBy String? // User ID who initiated transfer
+  createdById   String // User ID who created this record
+  transferredBy String? // User ID who initiated transfer (if different from creator)
   authCode      String // Auth code for transfer
   status        DomainStatus @default(PENDING_TRANSFER)
+
+  // Optional team link
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
   // Transfer details
   transferRequestedAt DateTime // When transfer was requested
@@ -1303,6 +1318,7 @@ model DomainTransfer {
 
   // Relations
   domain            Domain                      @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  createdBy         User                        @relation("DomainTransferCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   orders            Order[]
   activityLogs      DomainTransferActivityLog[]
   NameserverGroup   NameserverGroup?            @relation(fields: [nameserverGroupId], references: [id])
@@ -1312,6 +1328,8 @@ model DomainTransfer {
   @@index([status])
   @@index([transferRequestedAt])
   @@index([transferredBy])
+  @@index([createdById])
+  @@index([teamId])
   @@map("domain_transfer")
 }
 
@@ -1320,6 +1338,7 @@ model DomainActivityLog {
   id          String   @id @map("_id")
   userId      String
   domainId    String
+  teamId      String? // Optional team context
   domain      Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
   action      String // e.g., "CREATE", "UPDATE", "LINK_TEAM", "UNLINK_TEAM", "DELETE"
   description String?
@@ -1330,6 +1349,7 @@ model DomainActivityLog {
 
   @@index([userId])
   @@index([domainId])
+  @@index([teamId])
   @@index([action])
   @@index([createdAt])
   @@map("domain_activity_log")
@@ -1340,6 +1360,7 @@ model DomainRenewalActivityLog {
   id              String        @id @map("_id")
   userId          String
   domainRenewalId String
+  teamId          String? // Optional team context
   domainRenewal   DomainRenewal @relation(fields: [domainRenewalId], references: [id], onDelete: Cascade)
   action          String // e.g., "RENEW", "CANCEL", "REFUND", "UPDATE"
   description     String?
@@ -1350,6 +1371,7 @@ model DomainRenewalActivityLog {
 
   @@index([userId])
   @@index([domainRenewalId])
+  @@index([teamId])
   @@index([action])
   @@index([createdAt])
   @@map("domain_renewal_activity_log")
@@ -1360,6 +1382,7 @@ model DomainTransferActivityLog {
   id               String         @id @map("_id")
   userId           String
   domainTransferId String
+  teamId           String? // Optional team context
   domainTransfer   DomainTransfer @relation(fields: [domainTransferId], references: [id], onDelete: Cascade)
   action           String // e.g., "TRANSFER_INITIATE", "TRANSFER_COMPLETE", "TRANSFER_FAIL", "CANCEL"
   description      String?
@@ -1370,6 +1393,7 @@ model DomainTransferActivityLog {
 
   @@index([userId])
   @@index([domainTransferId])
+  @@index([teamId])
   @@index([action])
   @@index([createdAt])
   @@map("domain_transfer_activity_log")

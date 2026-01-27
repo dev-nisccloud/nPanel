@@ -235,6 +235,8 @@ export type UserWhereInput = {
   profile?: Prisma.XOR<Prisma.UserProfileNullableScalarRelationFilter, Prisma.UserProfileWhereInput> | null
   customerIntegrations?: Prisma.CustomerIntegrationListRelationFilter
   domains?: Prisma.DomainListRelationFilter
+  domainRenewals?: Prisma.DomainRenewalListRelationFilter
+  createdDomainTransfers?: Prisma.DomainTransferListRelationFilter
   activityLogs?: Prisma.UserActivityLogListRelationFilter
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationListRelationFilter
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenListRelationFilter
@@ -284,6 +286,8 @@ export type UserOrderByWithRelationInput = {
   profile?: Prisma.UserProfileOrderByWithRelationInput
   customerIntegrations?: Prisma.CustomerIntegrationOrderByRelationAggregateInput
   domains?: Prisma.DomainOrderByRelationAggregateInput
+  domainRenewals?: Prisma.DomainRenewalOrderByRelationAggregateInput
+  createdDomainTransfers?: Prisma.DomainTransferOrderByRelationAggregateInput
   activityLogs?: Prisma.UserActivityLogOrderByRelationAggregateInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationOrderByRelationAggregateInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenOrderByRelationAggregateInput
@@ -336,6 +340,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   profile?: Prisma.XOR<Prisma.UserProfileNullableScalarRelationFilter, Prisma.UserProfileWhereInput> | null
   customerIntegrations?: Prisma.CustomerIntegrationListRelationFilter
   domains?: Prisma.DomainListRelationFilter
+  domainRenewals?: Prisma.DomainRenewalListRelationFilter
+  createdDomainTransfers?: Prisma.DomainTransferListRelationFilter
   activityLogs?: Prisma.UserActivityLogListRelationFilter
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationListRelationFilter
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenListRelationFilter
@@ -419,6 +425,8 @@ export type UserCreateInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -468,6 +476,8 @@ export type UserUncheckedCreateInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -517,6 +527,8 @@ export type UserUpdateInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -566,6 +578,8 @@ export type UserUncheckedUpdateInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -795,6 +809,34 @@ export type UserUpdateOneRequiredWithoutDomainsNestedInput = {
   upsert?: Prisma.UserUpsertWithoutDomainsInput
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDomainsInput, Prisma.UserUpdateWithoutDomainsInput>, Prisma.UserUncheckedUpdateWithoutDomainsInput>
+}
+
+export type UserCreateNestedOneWithoutDomainRenewalsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDomainRenewalsInput, Prisma.UserUncheckedCreateWithoutDomainRenewalsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDomainRenewalsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutDomainRenewalsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDomainRenewalsInput, Prisma.UserUncheckedCreateWithoutDomainRenewalsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDomainRenewalsInput
+  upsert?: Prisma.UserUpsertWithoutDomainRenewalsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDomainRenewalsInput, Prisma.UserUpdateWithoutDomainRenewalsInput>, Prisma.UserUncheckedUpdateWithoutDomainRenewalsInput>
+}
+
+export type UserCreateNestedOneWithoutCreatedDomainTransfersInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreatedDomainTransfersInput, Prisma.UserUncheckedCreateWithoutCreatedDomainTransfersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreatedDomainTransfersInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutCreatedDomainTransfersNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreatedDomainTransfersInput, Prisma.UserUncheckedCreateWithoutCreatedDomainTransfersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreatedDomainTransfersInput
+  upsert?: Prisma.UserUpsertWithoutCreatedDomainTransfersInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCreatedDomainTransfersInput, Prisma.UserUpdateWithoutCreatedDomainTransfersInput>, Prisma.UserUncheckedUpdateWithoutCreatedDomainTransfersInput>
 }
 
 export type UserCreateNestedOneWithoutCreativeBriefsInput = {
@@ -1214,6 +1256,8 @@ export type UserCreateWithoutCustomerIntegrationsInput = {
   teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -1262,6 +1306,8 @@ export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
   teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -1326,6 +1372,8 @@ export type UserUpdateWithoutCustomerIntegrationsInput = {
   teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -1374,6 +1422,8 @@ export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
   teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -1422,6 +1472,8 @@ export type UserCreateWithoutSessionsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -1470,6 +1522,8 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -1534,6 +1588,8 @@ export type UserUpdateWithoutSessionsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -1582,6 +1638,8 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -1630,6 +1688,8 @@ export type UserCreateWithoutAccountsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -1678,6 +1738,8 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -1742,6 +1804,8 @@ export type UserUpdateWithoutAccountsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -1790,6 +1854,8 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -1838,6 +1904,8 @@ export type UserCreateWithoutTeamMembershipsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -1886,6 +1954,8 @@ export type UserUncheckedCreateWithoutTeamMembershipsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -1950,6 +2020,8 @@ export type UserUpdateWithoutTeamMembershipsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -1998,6 +2070,8 @@ export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -2046,6 +2120,8 @@ export type UserCreateWithoutProfileInput = {
   teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -2094,6 +2170,8 @@ export type UserUncheckedCreateWithoutProfileInput = {
   teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -2158,6 +2236,8 @@ export type UserUpdateWithoutProfileInput = {
   teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -2206,6 +2286,8 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -2255,6 +2337,8 @@ export type UserCreateWithoutActivityLogsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarCreateNestedManyWithoutUserInput
@@ -2303,6 +2387,8 @@ export type UserUncheckedCreateWithoutActivityLogsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedCreateNestedManyWithoutUserInput
@@ -2367,6 +2453,8 @@ export type UserUpdateWithoutActivityLogsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarUpdateManyWithoutUserNestedInput
@@ -2415,6 +2503,8 @@ export type UserUncheckedUpdateWithoutActivityLogsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedUpdateManyWithoutUserNestedInput
@@ -2462,6 +2552,8 @@ export type UserCreateWithoutDomainsInput = {
   teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -2510,6 +2602,8 @@ export type UserUncheckedCreateWithoutDomainsInput = {
   teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -2574,6 +2668,8 @@ export type UserUpdateWithoutDomainsInput = {
   teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -2622,6 +2718,440 @@ export type UserUncheckedUpdateWithoutDomainsInput = {
   teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
+  activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
+  createdTickets?: Prisma.TicketUncheckedUpdateManyWithoutCreatedByNestedInput
+  assignedTickets?: Prisma.TicketUncheckedUpdateManyWithoutAssignedToNestedInput
+  ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
+  ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
+  contacts?: Prisma.ContactUncheckedUpdateManyWithoutUserNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutUserNestedInput
+  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutUserNestedInput
+  emailTemplates?: Prisma.EmailTemplateUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutDomainRenewalsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
+  domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
+  activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
+  createdTickets?: Prisma.TicketCreateNestedManyWithoutCreatedByInput
+  assignedTickets?: Prisma.TicketCreateNestedManyWithoutAssignedToInput
+  ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
+  ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
+  creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
+  contacts?: Prisma.ContactCreateNestedManyWithoutUserInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutUserInput
+  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutUserInput
+  emailTemplates?: Prisma.EmailTemplateCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutDomainRenewalsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
+  activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
+  createdTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutCreatedByInput
+  assignedTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutAssignedToInput
+  ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
+  ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
+  contacts?: Prisma.ContactUncheckedCreateNestedManyWithoutUserInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutUserInput
+  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutUserInput
+  emailTemplates?: Prisma.EmailTemplateUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutDomainRenewalsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDomainRenewalsInput, Prisma.UserUncheckedCreateWithoutDomainRenewalsInput>
+}
+
+export type UserUpsertWithoutDomainRenewalsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDomainRenewalsInput, Prisma.UserUncheckedUpdateWithoutDomainRenewalsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDomainRenewalsInput, Prisma.UserUncheckedCreateWithoutDomainRenewalsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDomainRenewalsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDomainRenewalsInput, Prisma.UserUncheckedUpdateWithoutDomainRenewalsInput>
+}
+
+export type UserUpdateWithoutDomainRenewalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
+  activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
+  createdTickets?: Prisma.TicketUpdateManyWithoutCreatedByNestedInput
+  assignedTickets?: Prisma.TicketUpdateManyWithoutAssignedToNestedInput
+  ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
+  ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
+  contacts?: Prisma.ContactUpdateManyWithoutUserNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutUserNestedInput
+  emailLogs?: Prisma.EmailLogUpdateManyWithoutUserNestedInput
+  emailTemplates?: Prisma.EmailTemplateUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDomainRenewalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
+  activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
+  createdTickets?: Prisma.TicketUncheckedUpdateManyWithoutCreatedByNestedInput
+  assignedTickets?: Prisma.TicketUncheckedUpdateManyWithoutAssignedToNestedInput
+  ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
+  ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
+  contacts?: Prisma.ContactUncheckedUpdateManyWithoutUserNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutUserNestedInput
+  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutUserNestedInput
+  emailTemplates?: Prisma.EmailTemplateUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutCreatedDomainTransfersInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
+  domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
+  createdTickets?: Prisma.TicketCreateNestedManyWithoutCreatedByInput
+  assignedTickets?: Prisma.TicketCreateNestedManyWithoutAssignedToInput
+  ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
+  ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
+  creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
+  contacts?: Prisma.ContactCreateNestedManyWithoutUserInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutUserInput
+  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutUserInput
+  emailTemplates?: Prisma.EmailTemplateCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutCreatedDomainTransfersInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
+  createdTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutCreatedByInput
+  assignedTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutAssignedToInput
+  ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
+  ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
+  contacts?: Prisma.ContactUncheckedCreateNestedManyWithoutUserInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutUserInput
+  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutUserInput
+  emailTemplates?: Prisma.EmailTemplateUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutCreatedDomainTransfersInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreatedDomainTransfersInput, Prisma.UserUncheckedCreateWithoutCreatedDomainTransfersInput>
+}
+
+export type UserUpsertWithoutCreatedDomainTransfersInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCreatedDomainTransfersInput, Prisma.UserUncheckedUpdateWithoutCreatedDomainTransfersInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreatedDomainTransfersInput, Prisma.UserUncheckedCreateWithoutCreatedDomainTransfersInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCreatedDomainTransfersInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCreatedDomainTransfersInput, Prisma.UserUncheckedUpdateWithoutCreatedDomainTransfersInput>
+}
+
+export type UserUpdateWithoutCreatedDomainTransfersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
+  createdTickets?: Prisma.TicketUpdateManyWithoutCreatedByNestedInput
+  assignedTickets?: Prisma.TicketUpdateManyWithoutAssignedToNestedInput
+  ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
+  ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
+  contacts?: Prisma.ContactUpdateManyWithoutUserNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutUserNestedInput
+  emailLogs?: Prisma.EmailLogUpdateManyWithoutUserNestedInput
+  emailTemplates?: Prisma.EmailTemplateUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCreatedDomainTransfersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -2671,6 +3201,8 @@ export type UserCreateWithoutCreativeBriefsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -2719,6 +3251,8 @@ export type UserUncheckedCreateWithoutCreativeBriefsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -2783,6 +3317,8 @@ export type UserUpdateWithoutCreativeBriefsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -2831,6 +3367,8 @@ export type UserUncheckedUpdateWithoutCreativeBriefsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -2879,6 +3417,8 @@ export type UserCreateWithoutEmailDomainsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -2927,6 +3467,8 @@ export type UserUncheckedCreateWithoutEmailDomainsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -2991,6 +3533,8 @@ export type UserUpdateWithoutEmailDomainsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -3039,6 +3583,8 @@ export type UserUncheckedUpdateWithoutEmailDomainsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -3087,6 +3633,8 @@ export type UserCreateWithoutContactsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -3135,6 +3683,8 @@ export type UserUncheckedCreateWithoutContactsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -3199,6 +3749,8 @@ export type UserUpdateWithoutContactsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -3247,6 +3799,8 @@ export type UserUncheckedUpdateWithoutContactsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -3295,6 +3849,8 @@ export type UserCreateWithoutEmailTemplatesInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -3343,6 +3899,8 @@ export type UserUncheckedCreateWithoutEmailTemplatesInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -3407,6 +3965,8 @@ export type UserUpdateWithoutEmailTemplatesInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -3455,6 +4015,8 @@ export type UserUncheckedUpdateWithoutEmailTemplatesInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -3503,6 +4065,8 @@ export type UserCreateWithoutCampaignsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -3551,6 +4115,8 @@ export type UserUncheckedCreateWithoutCampaignsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -3615,6 +4181,8 @@ export type UserUpdateWithoutCampaignsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -3663,6 +4231,8 @@ export type UserUncheckedUpdateWithoutCampaignsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -3711,6 +4281,8 @@ export type UserCreateWithoutEmailLogsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -3759,6 +4331,8 @@ export type UserUncheckedCreateWithoutEmailLogsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -3823,6 +4397,8 @@ export type UserUpdateWithoutEmailLogsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -3871,6 +4447,8 @@ export type UserUncheckedUpdateWithoutEmailLogsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -3919,6 +4497,8 @@ export type UserCreateWithoutGoogleAdsIntegrationsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -3967,6 +4547,8 @@ export type UserUncheckedCreateWithoutGoogleAdsIntegrationsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -4031,6 +4613,8 @@ export type UserUpdateWithoutGoogleAdsIntegrationsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -4079,6 +4663,8 @@ export type UserUncheckedUpdateWithoutGoogleAdsIntegrationsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -4127,6 +4713,8 @@ export type UserCreateWithoutImageGeneratorGenerationsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -4175,6 +4763,8 @@ export type UserUncheckedCreateWithoutImageGeneratorGenerationsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -4239,6 +4829,8 @@ export type UserUpdateWithoutImageGeneratorGenerationsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -4287,6 +4879,8 @@ export type UserUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -4335,6 +4929,8 @@ export type UserCreateWithoutBackgroundRemoverGenerationsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -4383,6 +4979,8 @@ export type UserUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -4447,6 +5045,8 @@ export type UserUpdateWithoutBackgroundRemoverGenerationsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -4495,6 +5095,8 @@ export type UserUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -4543,6 +5145,8 @@ export type UserCreateWithoutImageGenProjectsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -4591,6 +5195,8 @@ export type UserUncheckedCreateWithoutImageGenProjectsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -4655,6 +5261,8 @@ export type UserUpdateWithoutImageGenProjectsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -4703,6 +5311,8 @@ export type UserUncheckedUpdateWithoutImageGenProjectsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -4751,6 +5361,8 @@ export type UserCreateWithoutImageGenTemplatesInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -4799,6 +5411,8 @@ export type UserUncheckedCreateWithoutImageGenTemplatesInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -4863,6 +5477,8 @@ export type UserUpdateWithoutImageGenTemplatesInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -4911,6 +5527,8 @@ export type UserUncheckedUpdateWithoutImageGenTemplatesInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -4959,6 +5577,8 @@ export type UserCreateWithoutImageGenUploadInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -5007,6 +5627,8 @@ export type UserUncheckedCreateWithoutImageGenUploadInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -5071,6 +5693,8 @@ export type UserUpdateWithoutImageGenUploadInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -5119,6 +5743,8 @@ export type UserUncheckedUpdateWithoutImageGenUploadInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -5167,6 +5793,8 @@ export type UserCreateWithoutImageGenAiGenerationsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -5215,6 +5843,8 @@ export type UserUncheckedCreateWithoutImageGenAiGenerationsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -5279,6 +5909,8 @@ export type UserUpdateWithoutImageGenAiGenerationsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -5327,6 +5959,8 @@ export type UserUncheckedUpdateWithoutImageGenAiGenerationsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -5375,6 +6009,8 @@ export type UserCreateWithoutMetaAdsAccountActivityLogsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -5423,6 +6059,8 @@ export type UserUncheckedCreateWithoutMetaAdsAccountActivityLogsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -5487,6 +6125,8 @@ export type UserUpdateWithoutMetaAdsAccountActivityLogsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -5535,6 +6175,8 @@ export type UserUncheckedUpdateWithoutMetaAdsAccountActivityLogsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -5583,6 +6225,8 @@ export type UserCreateWithoutMetaAdsCampaignActivityLogsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -5631,6 +6275,8 @@ export type UserUncheckedCreateWithoutMetaAdsCampaignActivityLogsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -5695,6 +6341,8 @@ export type UserUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -5743,6 +6391,8 @@ export type UserUncheckedUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -5791,6 +6441,8 @@ export type UserCreateWithoutMetaAdsAdSetActivityLogsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -5839,6 +6491,8 @@ export type UserUncheckedCreateWithoutMetaAdsAdSetActivityLogsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -5903,6 +6557,8 @@ export type UserUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -5951,6 +6607,8 @@ export type UserUncheckedUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -5999,6 +6657,8 @@ export type UserCreateWithoutMetaAdsAdActivityLogsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -6047,6 +6707,8 @@ export type UserUncheckedCreateWithoutMetaAdsAdActivityLogsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -6111,6 +6773,8 @@ export type UserUpdateWithoutMetaAdsAdActivityLogsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -6159,6 +6823,8 @@ export type UserUncheckedUpdateWithoutMetaAdsAdActivityLogsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -6207,6 +6873,8 @@ export type UserCreateWithoutNotificationsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -6255,6 +6923,8 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -6319,6 +6989,8 @@ export type UserUpdateWithoutNotificationsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -6367,6 +7039,8 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -6415,6 +7089,8 @@ export type UserCreateWithoutSeoReportsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -6463,6 +7139,8 @@ export type UserUncheckedCreateWithoutSeoReportsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -6527,6 +7205,8 @@ export type UserUpdateWithoutSeoReportsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -6575,6 +7255,8 @@ export type UserUncheckedUpdateWithoutSeoReportsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -6623,6 +7305,8 @@ export type UserCreateWithoutSocialMediaIntegrationsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarCreateNestedManyWithoutUserInput
@@ -6671,6 +7355,8 @@ export type UserUncheckedCreateWithoutSocialMediaIntegrationsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedCreateNestedManyWithoutUserInput
@@ -6735,6 +7421,8 @@ export type UserUpdateWithoutSocialMediaIntegrationsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarUpdateManyWithoutUserNestedInput
@@ -6783,6 +7471,8 @@ export type UserUncheckedUpdateWithoutSocialMediaIntegrationsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedUpdateManyWithoutUserNestedInput
@@ -6831,6 +7521,8 @@ export type UserCreateWithoutSocialMediaPageTokensInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarCreateNestedManyWithoutUserInput
@@ -6879,6 +7571,8 @@ export type UserUncheckedCreateWithoutSocialMediaPageTokensInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedCreateNestedManyWithoutUserInput
@@ -6943,6 +7637,8 @@ export type UserUpdateWithoutSocialMediaPageTokensInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarUpdateManyWithoutUserNestedInput
@@ -6991,6 +7687,8 @@ export type UserUncheckedUpdateWithoutSocialMediaPageTokensInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedUpdateManyWithoutUserNestedInput
@@ -7039,6 +7737,8 @@ export type UserCreateWithoutMetaContentCalendarPostsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -7087,6 +7787,8 @@ export type UserUncheckedCreateWithoutMetaContentCalendarPostsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -7151,6 +7853,8 @@ export type UserUpdateWithoutMetaContentCalendarPostsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -7199,6 +7903,8 @@ export type UserUncheckedUpdateWithoutMetaContentCalendarPostsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -7247,6 +7953,8 @@ export type UserCreateWithoutLinkedInContentCalendarInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -7295,6 +8003,8 @@ export type UserUncheckedCreateWithoutLinkedInContentCalendarInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -7359,6 +8069,8 @@ export type UserUpdateWithoutLinkedInContentCalendarInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -7407,6 +8119,8 @@ export type UserUncheckedUpdateWithoutLinkedInContentCalendarInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -7455,6 +8169,8 @@ export type UserCreateWithoutCreatedTicketsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -7503,6 +8219,8 @@ export type UserUncheckedCreateWithoutCreatedTicketsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -7556,6 +8274,8 @@ export type UserCreateWithoutAssignedTicketsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -7604,6 +8324,8 @@ export type UserUncheckedCreateWithoutAssignedTicketsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -7668,6 +8390,8 @@ export type UserUpdateWithoutCreatedTicketsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -7716,6 +8440,8 @@ export type UserUncheckedUpdateWithoutCreatedTicketsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -7775,6 +8501,8 @@ export type UserUpdateWithoutAssignedTicketsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -7823,6 +8551,8 @@ export type UserUncheckedUpdateWithoutAssignedTicketsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -7871,6 +8601,8 @@ export type UserCreateWithoutTicketMessagesInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -7919,6 +8651,8 @@ export type UserUncheckedCreateWithoutTicketMessagesInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -7983,6 +8717,8 @@ export type UserUpdateWithoutTicketMessagesInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -8031,6 +8767,8 @@ export type UserUncheckedUpdateWithoutTicketMessagesInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -8079,6 +8817,8 @@ export type UserCreateWithoutTicketAttachmentsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -8127,6 +8867,8 @@ export type UserUncheckedCreateWithoutTicketAttachmentsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -8191,6 +8933,8 @@ export type UserUpdateWithoutTicketAttachmentsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -8239,6 +8983,8 @@ export type UserUncheckedUpdateWithoutTicketAttachmentsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -8287,6 +9033,8 @@ export type UserCreateWithoutWebDesignQuoteRequestsInput = {
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
@@ -8335,6 +9083,8 @@ export type UserUncheckedCreateWithoutWebDesignQuoteRequestsInput = {
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
   activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
@@ -8399,6 +9149,8 @@ export type UserUpdateWithoutWebDesignQuoteRequestsInput = {
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
@@ -8447,6 +9199,8 @@ export type UserUncheckedUpdateWithoutWebDesignQuoteRequestsInput = {
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
   customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
   activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
   socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
   socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -8488,6 +9242,8 @@ export type UserCountOutputType = {
   teamMemberships: number
   customerIntegrations: number
   domains: number
+  domainRenewals: number
+  createdDomainTransfers: number
   activityLogs: number
   socialMediaIntegrations: number
   socialMediaPageTokens: number
@@ -8525,6 +9281,8 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   teamMemberships?: boolean | UserCountOutputTypeCountTeamMembershipsArgs
   customerIntegrations?: boolean | UserCountOutputTypeCountCustomerIntegrationsArgs
   domains?: boolean | UserCountOutputTypeCountDomainsArgs
+  domainRenewals?: boolean | UserCountOutputTypeCountDomainRenewalsArgs
+  createdDomainTransfers?: boolean | UserCountOutputTypeCountCreatedDomainTransfersArgs
   activityLogs?: boolean | UserCountOutputTypeCountActivityLogsArgs
   socialMediaIntegrations?: boolean | UserCountOutputTypeCountSocialMediaIntegrationsArgs
   socialMediaPageTokens?: boolean | UserCountOutputTypeCountSocialMediaPageTokensArgs
@@ -8599,6 +9357,20 @@ export type UserCountOutputTypeCountCustomerIntegrationsArgs<ExtArgs extends run
  */
 export type UserCountOutputTypeCountDomainsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.DomainWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDomainRenewalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DomainRenewalWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountCreatedDomainTransfersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DomainTransferWhereInput
 }
 
 /**
@@ -8823,6 +9595,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   profile?: boolean | Prisma.User$profileArgs<ExtArgs>
   customerIntegrations?: boolean | Prisma.User$customerIntegrationsArgs<ExtArgs>
   domains?: boolean | Prisma.User$domainsArgs<ExtArgs>
+  domainRenewals?: boolean | Prisma.User$domainRenewalsArgs<ExtArgs>
+  createdDomainTransfers?: boolean | Prisma.User$createdDomainTransfersArgs<ExtArgs>
   activityLogs?: boolean | Prisma.User$activityLogsArgs<ExtArgs>
   socialMediaIntegrations?: boolean | Prisma.User$socialMediaIntegrationsArgs<ExtArgs>
   socialMediaPageTokens?: boolean | Prisma.User$socialMediaPageTokensArgs<ExtArgs>
@@ -8905,6 +9679,8 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   profile?: boolean | Prisma.User$profileArgs<ExtArgs>
   customerIntegrations?: boolean | Prisma.User$customerIntegrationsArgs<ExtArgs>
   domains?: boolean | Prisma.User$domainsArgs<ExtArgs>
+  domainRenewals?: boolean | Prisma.User$domainRenewalsArgs<ExtArgs>
+  createdDomainTransfers?: boolean | Prisma.User$createdDomainTransfersArgs<ExtArgs>
   activityLogs?: boolean | Prisma.User$activityLogsArgs<ExtArgs>
   socialMediaIntegrations?: boolean | Prisma.User$socialMediaIntegrationsArgs<ExtArgs>
   socialMediaPageTokens?: boolean | Prisma.User$socialMediaPageTokensArgs<ExtArgs>
@@ -8948,6 +9724,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     profile: Prisma.$UserProfilePayload<ExtArgs> | null
     customerIntegrations: Prisma.$CustomerIntegrationPayload<ExtArgs>[]
     domains: Prisma.$DomainPayload<ExtArgs>[]
+    domainRenewals: Prisma.$DomainRenewalPayload<ExtArgs>[]
+    createdDomainTransfers: Prisma.$DomainTransferPayload<ExtArgs>[]
     activityLogs: Prisma.$UserActivityLogPayload<ExtArgs>[]
     socialMediaIntegrations: Prisma.$SocialMediaIntegrationPayload<ExtArgs>[]
     socialMediaPageTokens: Prisma.$SocialMediaPageTokenPayload<ExtArgs>[]
@@ -9390,6 +10168,8 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   profile<T extends Prisma.User$profileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$profileArgs<ExtArgs>>): Prisma.Prisma__UserProfileClient<runtime.Types.Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   customerIntegrations<T extends Prisma.User$customerIntegrationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$customerIntegrationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CustomerIntegrationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   domains<T extends Prisma.User$domainsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$domainsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  domainRenewals<T extends Prisma.User$domainRenewalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$domainRenewalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainRenewalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  createdDomainTransfers<T extends Prisma.User$createdDomainTransfersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdDomainTransfersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityLogs<T extends Prisma.User$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   socialMediaIntegrations<T extends Prisma.User$socialMediaIntegrationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$socialMediaIntegrationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SocialMediaIntegrationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   socialMediaPageTokens<T extends Prisma.User$socialMediaPageTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$socialMediaPageTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SocialMediaPageTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -9983,6 +10763,54 @@ export type User$domainsArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   distinct?: Prisma.DomainScalarFieldEnum | Prisma.DomainScalarFieldEnum[]
+}
+
+/**
+ * User.domainRenewals
+ */
+export type User$domainRenewalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DomainRenewal
+   */
+  select?: Prisma.DomainRenewalSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DomainRenewal
+   */
+  omit?: Prisma.DomainRenewalOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DomainRenewalInclude<ExtArgs> | null
+  where?: Prisma.DomainRenewalWhereInput
+  orderBy?: Prisma.DomainRenewalOrderByWithRelationInput | Prisma.DomainRenewalOrderByWithRelationInput[]
+  cursor?: Prisma.DomainRenewalWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DomainRenewalScalarFieldEnum | Prisma.DomainRenewalScalarFieldEnum[]
+}
+
+/**
+ * User.createdDomainTransfers
+ */
+export type User$createdDomainTransfersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DomainTransfer
+   */
+  select?: Prisma.DomainTransferSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DomainTransfer
+   */
+  omit?: Prisma.DomainTransferOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DomainTransferInclude<ExtArgs> | null
+  where?: Prisma.DomainTransferWhereInput
+  orderBy?: Prisma.DomainTransferOrderByWithRelationInput | Prisma.DomainTransferOrderByWithRelationInput[]
+  cursor?: Prisma.DomainTransferWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DomainTransferScalarFieldEnum | Prisma.DomainTransferScalarFieldEnum[]
 }
 
 /**

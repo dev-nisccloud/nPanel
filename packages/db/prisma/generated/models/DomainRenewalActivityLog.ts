@@ -27,6 +27,7 @@ export type DomainRenewalActivityLogMinAggregateOutputType = {
   id: string | null
   userId: string | null
   domainRenewalId: string | null
+  teamId: string | null
   action: string | null
   description: string | null
   ipAddress: string | null
@@ -38,6 +39,7 @@ export type DomainRenewalActivityLogMaxAggregateOutputType = {
   id: string | null
   userId: string | null
   domainRenewalId: string | null
+  teamId: string | null
   action: string | null
   description: string | null
   ipAddress: string | null
@@ -49,6 +51,7 @@ export type DomainRenewalActivityLogCountAggregateOutputType = {
   id: number
   userId: number
   domainRenewalId: number
+  teamId: number
   action: number
   description: number
   metadata: number
@@ -63,6 +66,7 @@ export type DomainRenewalActivityLogMinAggregateInputType = {
   id?: true
   userId?: true
   domainRenewalId?: true
+  teamId?: true
   action?: true
   description?: true
   ipAddress?: true
@@ -74,6 +78,7 @@ export type DomainRenewalActivityLogMaxAggregateInputType = {
   id?: true
   userId?: true
   domainRenewalId?: true
+  teamId?: true
   action?: true
   description?: true
   ipAddress?: true
@@ -85,6 +90,7 @@ export type DomainRenewalActivityLogCountAggregateInputType = {
   id?: true
   userId?: true
   domainRenewalId?: true
+  teamId?: true
   action?: true
   description?: true
   metadata?: true
@@ -170,6 +176,7 @@ export type DomainRenewalActivityLogGroupByOutputType = {
   id: string
   userId: string
   domainRenewalId: string
+  teamId: string | null
   action: string
   description: string | null
   metadata: runtime.JsonValue | null
@@ -203,6 +210,7 @@ export type DomainRenewalActivityLogWhereInput = {
   id?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
   userId?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
   domainRenewalId?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
+  teamId?: Prisma.StringNullableFilter<"DomainRenewalActivityLog"> | string | null
   action?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
   description?: Prisma.StringNullableFilter<"DomainRenewalActivityLog"> | string | null
   metadata?: Prisma.JsonNullableFilter<"DomainRenewalActivityLog">
@@ -216,6 +224,7 @@ export type DomainRenewalActivityLogOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   domainRenewalId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   action?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -232,6 +241,7 @@ export type DomainRenewalActivityLogWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.DomainRenewalActivityLogWhereInput | Prisma.DomainRenewalActivityLogWhereInput[]
   userId?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
   domainRenewalId?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
+  teamId?: Prisma.StringNullableFilter<"DomainRenewalActivityLog"> | string | null
   action?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
   description?: Prisma.StringNullableFilter<"DomainRenewalActivityLog"> | string | null
   metadata?: Prisma.JsonNullableFilter<"DomainRenewalActivityLog">
@@ -245,6 +255,7 @@ export type DomainRenewalActivityLogOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   domainRenewalId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   action?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -263,6 +274,7 @@ export type DomainRenewalActivityLogScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"DomainRenewalActivityLog"> | string
   userId?: Prisma.StringWithAggregatesFilter<"DomainRenewalActivityLog"> | string
   domainRenewalId?: Prisma.StringWithAggregatesFilter<"DomainRenewalActivityLog"> | string
+  teamId?: Prisma.StringNullableWithAggregatesFilter<"DomainRenewalActivityLog"> | string | null
   action?: Prisma.StringWithAggregatesFilter<"DomainRenewalActivityLog"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"DomainRenewalActivityLog"> | string | null
   metadata?: Prisma.JsonNullableWithAggregatesFilter<"DomainRenewalActivityLog">
@@ -274,6 +286,7 @@ export type DomainRenewalActivityLogScalarWhereWithAggregatesInput = {
 export type DomainRenewalActivityLogCreateInput = {
   id: string
   userId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -287,6 +300,7 @@ export type DomainRenewalActivityLogUncheckedCreateInput = {
   id: string
   userId: string
   domainRenewalId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -298,6 +312,7 @@ export type DomainRenewalActivityLogUncheckedCreateInput = {
 export type DomainRenewalActivityLogUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -311,6 +326,7 @@ export type DomainRenewalActivityLogUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   domainRenewalId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -323,6 +339,7 @@ export type DomainRenewalActivityLogCreateManyInput = {
   id: string
   userId: string
   domainRenewalId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -334,6 +351,7 @@ export type DomainRenewalActivityLogCreateManyInput = {
 export type DomainRenewalActivityLogUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -346,6 +364,7 @@ export type DomainRenewalActivityLogUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   domainRenewalId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -368,6 +387,7 @@ export type DomainRenewalActivityLogCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   domainRenewalId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   description?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
@@ -380,6 +400,7 @@ export type DomainRenewalActivityLogMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   domainRenewalId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   description?: Prisma.SortOrder
   ipAddress?: Prisma.SortOrder
@@ -391,6 +412,7 @@ export type DomainRenewalActivityLogMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   domainRenewalId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   description?: Prisma.SortOrder
   ipAddress?: Prisma.SortOrder
@@ -443,6 +465,7 @@ export type DomainRenewalActivityLogUncheckedUpdateManyWithoutDomainRenewalNeste
 export type DomainRenewalActivityLogCreateWithoutDomainRenewalInput = {
   id: string
   userId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -454,6 +477,7 @@ export type DomainRenewalActivityLogCreateWithoutDomainRenewalInput = {
 export type DomainRenewalActivityLogUncheckedCreateWithoutDomainRenewalInput = {
   id: string
   userId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -495,6 +519,7 @@ export type DomainRenewalActivityLogScalarWhereInput = {
   id?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
   userId?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
   domainRenewalId?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
+  teamId?: Prisma.StringNullableFilter<"DomainRenewalActivityLog"> | string | null
   action?: Prisma.StringFilter<"DomainRenewalActivityLog"> | string
   description?: Prisma.StringNullableFilter<"DomainRenewalActivityLog"> | string | null
   metadata?: Prisma.JsonNullableFilter<"DomainRenewalActivityLog">
@@ -506,6 +531,7 @@ export type DomainRenewalActivityLogScalarWhereInput = {
 export type DomainRenewalActivityLogCreateManyDomainRenewalInput = {
   id: string
   userId: string
+  teamId?: string | null
   action: string
   description?: string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -517,6 +543,7 @@ export type DomainRenewalActivityLogCreateManyDomainRenewalInput = {
 export type DomainRenewalActivityLogUpdateWithoutDomainRenewalInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -528,6 +555,7 @@ export type DomainRenewalActivityLogUpdateWithoutDomainRenewalInput = {
 export type DomainRenewalActivityLogUncheckedUpdateWithoutDomainRenewalInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -539,6 +567,7 @@ export type DomainRenewalActivityLogUncheckedUpdateWithoutDomainRenewalInput = {
 export type DomainRenewalActivityLogUncheckedUpdateManyWithoutDomainRenewalInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -553,6 +582,7 @@ export type DomainRenewalActivityLogSelect<ExtArgs extends runtime.Types.Extensi
   id?: boolean
   userId?: boolean
   domainRenewalId?: boolean
+  teamId?: boolean
   action?: boolean
   description?: boolean
   metadata?: boolean
@@ -566,6 +596,7 @@ export type DomainRenewalActivityLogSelectCreateManyAndReturn<ExtArgs extends ru
   id?: boolean
   userId?: boolean
   domainRenewalId?: boolean
+  teamId?: boolean
   action?: boolean
   description?: boolean
   metadata?: boolean
@@ -579,6 +610,7 @@ export type DomainRenewalActivityLogSelectUpdateManyAndReturn<ExtArgs extends ru
   id?: boolean
   userId?: boolean
   domainRenewalId?: boolean
+  teamId?: boolean
   action?: boolean
   description?: boolean
   metadata?: boolean
@@ -592,6 +624,7 @@ export type DomainRenewalActivityLogSelectScalar = {
   id?: boolean
   userId?: boolean
   domainRenewalId?: boolean
+  teamId?: boolean
   action?: boolean
   description?: boolean
   metadata?: boolean
@@ -600,7 +633,7 @@ export type DomainRenewalActivityLogSelectScalar = {
   createdAt?: boolean
 }
 
-export type DomainRenewalActivityLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "domainRenewalId" | "action" | "description" | "metadata" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["domainRenewalActivityLog"]>
+export type DomainRenewalActivityLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "domainRenewalId" | "teamId" | "action" | "description" | "metadata" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["domainRenewalActivityLog"]>
 export type DomainRenewalActivityLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   domainRenewal?: boolean | Prisma.DomainRenewalDefaultArgs<ExtArgs>
 }
@@ -620,6 +653,7 @@ export type $DomainRenewalActivityLogPayload<ExtArgs extends runtime.Types.Exten
     id: string
     userId: string
     domainRenewalId: string
+    teamId: string | null
     action: string
     description: string | null
     metadata: runtime.JsonValue | null
@@ -1053,6 +1087,7 @@ export interface DomainRenewalActivityLogFieldRefs {
   readonly id: Prisma.FieldRef<"DomainRenewalActivityLog", 'String'>
   readonly userId: Prisma.FieldRef<"DomainRenewalActivityLog", 'String'>
   readonly domainRenewalId: Prisma.FieldRef<"DomainRenewalActivityLog", 'String'>
+  readonly teamId: Prisma.FieldRef<"DomainRenewalActivityLog", 'String'>
   readonly action: Prisma.FieldRef<"DomainRenewalActivityLog", 'String'>
   readonly description: Prisma.FieldRef<"DomainRenewalActivityLog", 'String'>
   readonly metadata: Prisma.FieldRef<"DomainRenewalActivityLog", 'Json'>

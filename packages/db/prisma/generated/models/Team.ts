@@ -218,6 +218,8 @@ export type TeamWhereInput = {
   domains?: Prisma.DomainListRelationFilter
   hostingSubscriptions?: Prisma.HostingSubscriptionListRelationFilter
   wordpressInstances?: Prisma.WordPressInstanceListRelationFilter
+  domainRenewals?: Prisma.DomainRenewalListRelationFilter
+  domainTransfers?: Prisma.DomainTransferListRelationFilter
   promos?: Prisma.PromoListRelationFilter
   orders?: Prisma.OrderListRelationFilter
   creativeAssets?: Prisma.CreativeAssetListRelationFilter
@@ -260,6 +262,8 @@ export type TeamOrderByWithRelationInput = {
   domains?: Prisma.DomainOrderByRelationAggregateInput
   hostingSubscriptions?: Prisma.HostingSubscriptionOrderByRelationAggregateInput
   wordpressInstances?: Prisma.WordPressInstanceOrderByRelationAggregateInput
+  domainRenewals?: Prisma.DomainRenewalOrderByRelationAggregateInput
+  domainTransfers?: Prisma.DomainTransferOrderByRelationAggregateInput
   promos?: Prisma.PromoOrderByRelationAggregateInput
   orders?: Prisma.OrderOrderByRelationAggregateInput
   creativeAssets?: Prisma.CreativeAssetOrderByRelationAggregateInput
@@ -305,6 +309,8 @@ export type TeamWhereUniqueInput = Prisma.AtLeast<{
   domains?: Prisma.DomainListRelationFilter
   hostingSubscriptions?: Prisma.HostingSubscriptionListRelationFilter
   wordpressInstances?: Prisma.WordPressInstanceListRelationFilter
+  domainRenewals?: Prisma.DomainRenewalListRelationFilter
+  domainTransfers?: Prisma.DomainTransferListRelationFilter
   promos?: Prisma.PromoListRelationFilter
   orders?: Prisma.OrderListRelationFilter
   creativeAssets?: Prisma.CreativeAssetListRelationFilter
@@ -377,6 +383,8 @@ export type TeamCreateInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -419,6 +427,8 @@ export type TeamUncheckedCreateInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -461,6 +471,8 @@ export type TeamUpdateInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -503,6 +515,8 @@ export type TeamUncheckedUpdateInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -728,6 +742,38 @@ export type TeamUpdateOneWithoutDomainsNestedInput = {
   delete?: Prisma.TeamWhereInput | boolean
   connect?: Prisma.TeamWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutDomainsInput, Prisma.TeamUpdateWithoutDomainsInput>, Prisma.TeamUncheckedUpdateWithoutDomainsInput>
+}
+
+export type TeamCreateNestedOneWithoutDomainRenewalsInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutDomainRenewalsInput, Prisma.TeamUncheckedCreateWithoutDomainRenewalsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutDomainRenewalsInput
+  connect?: Prisma.TeamWhereUniqueInput
+}
+
+export type TeamUpdateOneWithoutDomainRenewalsNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutDomainRenewalsInput, Prisma.TeamUncheckedCreateWithoutDomainRenewalsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutDomainRenewalsInput
+  upsert?: Prisma.TeamUpsertWithoutDomainRenewalsInput
+  disconnect?: Prisma.TeamWhereInput | boolean
+  delete?: Prisma.TeamWhereInput | boolean
+  connect?: Prisma.TeamWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutDomainRenewalsInput, Prisma.TeamUpdateWithoutDomainRenewalsInput>, Prisma.TeamUncheckedUpdateWithoutDomainRenewalsInput>
+}
+
+export type TeamCreateNestedOneWithoutDomainTransfersInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutDomainTransfersInput, Prisma.TeamUncheckedCreateWithoutDomainTransfersInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutDomainTransfersInput
+  connect?: Prisma.TeamWhereUniqueInput
+}
+
+export type TeamUpdateOneWithoutDomainTransfersNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutDomainTransfersInput, Prisma.TeamUncheckedCreateWithoutDomainTransfersInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutDomainTransfersInput
+  upsert?: Prisma.TeamUpsertWithoutDomainTransfersInput
+  disconnect?: Prisma.TeamWhereInput | boolean
+  delete?: Prisma.TeamWhereInput | boolean
+  connect?: Prisma.TeamWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutDomainTransfersInput, Prisma.TeamUpdateWithoutDomainTransfersInput>, Prisma.TeamUncheckedUpdateWithoutDomainTransfersInput>
 }
 
 export type TeamCreateNestedOneWithoutCreativeAssetsInput = {
@@ -1094,6 +1140,8 @@ export type TeamCreateWithoutWordpressInstancesInput = {
   invites?: Prisma.TeamInviteCreateNestedManyWithoutTeamInput
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -1135,6 +1183,8 @@ export type TeamUncheckedCreateWithoutWordpressInstancesInput = {
   invites?: Prisma.TeamInviteUncheckedCreateNestedManyWithoutTeamInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -1192,6 +1242,8 @@ export type TeamUpdateWithoutWordpressInstancesInput = {
   invites?: Prisma.TeamInviteUpdateManyWithoutTeamNestedInput
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -1233,6 +1285,8 @@ export type TeamUncheckedUpdateWithoutWordpressInstancesInput = {
   invites?: Prisma.TeamInviteUncheckedUpdateManyWithoutTeamNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -1275,6 +1329,8 @@ export type TeamCreateWithoutOrdersInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
@@ -1316,6 +1372,8 @@ export type TeamUncheckedCreateWithoutOrdersInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
@@ -1373,6 +1431,8 @@ export type TeamUpdateWithoutOrdersInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
@@ -1414,6 +1474,8 @@ export type TeamUncheckedUpdateWithoutOrdersInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
@@ -1455,6 +1517,8 @@ export type TeamCreateWithoutPromosInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
@@ -1496,6 +1560,8 @@ export type TeamUncheckedCreateWithoutPromosInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
@@ -1553,6 +1619,8 @@ export type TeamUpdateWithoutPromosInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
@@ -1594,6 +1662,8 @@ export type TeamUncheckedUpdateWithoutPromosInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
@@ -1634,6 +1704,8 @@ export type TeamCreateWithoutMembersInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -1675,6 +1747,8 @@ export type TeamUncheckedCreateWithoutMembersInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -1732,6 +1806,8 @@ export type TeamUpdateWithoutMembersInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -1773,6 +1849,8 @@ export type TeamUncheckedUpdateWithoutMembersInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -1814,6 +1892,8 @@ export type TeamCreateWithoutInvitesInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -1855,6 +1935,8 @@ export type TeamUncheckedCreateWithoutInvitesInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -1912,6 +1994,8 @@ export type TeamUpdateWithoutInvitesInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -1953,6 +2037,8 @@ export type TeamUncheckedUpdateWithoutInvitesInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -1995,6 +2081,8 @@ export type TeamCreateWithoutBillingSettingsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -2036,6 +2124,8 @@ export type TeamUncheckedCreateWithoutBillingSettingsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -2093,6 +2183,8 @@ export type TeamUpdateWithoutBillingSettingsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -2134,6 +2226,8 @@ export type TeamUncheckedUpdateWithoutBillingSettingsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -2174,6 +2268,8 @@ export type TeamCreateWithoutHostingSubscriptionsInput = {
   invites?: Prisma.TeamInviteCreateNestedManyWithoutTeamInput
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -2215,6 +2311,8 @@ export type TeamUncheckedCreateWithoutHostingSubscriptionsInput = {
   invites?: Prisma.TeamInviteUncheckedCreateNestedManyWithoutTeamInput
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -2272,6 +2370,8 @@ export type TeamUpdateWithoutHostingSubscriptionsInput = {
   invites?: Prisma.TeamInviteUpdateManyWithoutTeamNestedInput
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -2313,6 +2413,8 @@ export type TeamUncheckedUpdateWithoutHostingSubscriptionsInput = {
   invites?: Prisma.TeamInviteUncheckedUpdateManyWithoutTeamNestedInput
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -2354,6 +2456,8 @@ export type TeamCreateWithoutDomainsInput = {
   invites?: Prisma.TeamInviteCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -2395,6 +2499,8 @@ export type TeamUncheckedCreateWithoutDomainsInput = {
   invites?: Prisma.TeamInviteUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -2452,6 +2558,8 @@ export type TeamUpdateWithoutDomainsInput = {
   invites?: Prisma.TeamInviteUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -2493,6 +2601,384 @@ export type TeamUncheckedUpdateWithoutDomainsInput = {
   invites?: Prisma.TeamInviteUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutTeamNestedInput
+  PaymentTransaction?: Prisma.PaymentTransactionUncheckedUpdateManyWithoutTeamNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
+  tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutTeamNestedInput
+  contacts?: Prisma.ContactUncheckedUpdateManyWithoutTeamNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutTeamNestedInput
+  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutTeamNestedInput
+  emailTemplates?: Prisma.EmailTemplateUncheckedUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamCreateWithoutDomainRenewalsInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteCreateNestedManyWithoutTeamInput
+  domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
+  imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutTeamInput
+  PaymentTransaction?: Prisma.PaymentTransactionCreateNestedManyWithoutTeamInput
+  ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
+  creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
+  tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutTeamInput
+  contacts?: Prisma.ContactCreateNestedManyWithoutTeamInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutTeamInput
+  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutTeamInput
+  emailTemplates?: Prisma.EmailTemplateCreateNestedManyWithoutTeamInput
+}
+
+export type TeamUncheckedCreateWithoutDomainRenewalsInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteUncheckedCreateNestedManyWithoutTeamInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutTeamInput
+  PaymentTransaction?: Prisma.PaymentTransactionUncheckedCreateNestedManyWithoutTeamInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
+  tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutTeamInput
+  contacts?: Prisma.ContactUncheckedCreateNestedManyWithoutTeamInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutTeamInput
+  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutTeamInput
+  emailTemplates?: Prisma.EmailTemplateUncheckedCreateNestedManyWithoutTeamInput
+}
+
+export type TeamCreateOrConnectWithoutDomainRenewalsInput = {
+  where: Prisma.TeamWhereUniqueInput
+  create: Prisma.XOR<Prisma.TeamCreateWithoutDomainRenewalsInput, Prisma.TeamUncheckedCreateWithoutDomainRenewalsInput>
+}
+
+export type TeamUpsertWithoutDomainRenewalsInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutDomainRenewalsInput, Prisma.TeamUncheckedUpdateWithoutDomainRenewalsInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutDomainRenewalsInput, Prisma.TeamUncheckedCreateWithoutDomainRenewalsInput>
+  where?: Prisma.TeamWhereInput
+}
+
+export type TeamUpdateToOneWithWhereWithoutDomainRenewalsInput = {
+  where?: Prisma.TeamWhereInput
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutDomainRenewalsInput, Prisma.TeamUncheckedUpdateWithoutDomainRenewalsInput>
+}
+
+export type TeamUpdateWithoutDomainRenewalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUpdateManyWithoutTeamNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutTeamNestedInput
+  PaymentTransaction?: Prisma.PaymentTransactionUpdateManyWithoutTeamNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
+  tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutTeamNestedInput
+  contacts?: Prisma.ContactUpdateManyWithoutTeamNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutTeamNestedInput
+  emailLogs?: Prisma.EmailLogUpdateManyWithoutTeamNestedInput
+  emailTemplates?: Prisma.EmailTemplateUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamUncheckedUpdateWithoutDomainRenewalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUncheckedUpdateManyWithoutTeamNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUncheckedUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutTeamNestedInput
+  PaymentTransaction?: Prisma.PaymentTransactionUncheckedUpdateManyWithoutTeamNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutTeamNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutTeamNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutTeamNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
+  tickets?: Prisma.TicketUncheckedUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutTeamNestedInput
+  contacts?: Prisma.ContactUncheckedUpdateManyWithoutTeamNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutTeamNestedInput
+  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutTeamNestedInput
+  emailTemplates?: Prisma.EmailTemplateUncheckedUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamCreateWithoutDomainTransfersInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteCreateNestedManyWithoutTeamInput
+  domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionCreateNestedManyWithoutTeamInput
+  imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutTeamInput
+  PaymentTransaction?: Prisma.PaymentTransactionCreateNestedManyWithoutTeamInput
+  ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutTeamInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutTeamInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutTeamInput
+  creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutTeamInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
+  tickets?: Prisma.TicketCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutTeamInput
+  contacts?: Prisma.ContactCreateNestedManyWithoutTeamInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutTeamInput
+  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutTeamInput
+  emailTemplates?: Prisma.EmailTemplateCreateNestedManyWithoutTeamInput
+}
+
+export type TeamUncheckedCreateWithoutDomainTransfersInput = {
+  id: string
+  name: string
+  slug: string
+  baseCurrency?: string
+  logoUrl?: string | null
+  isActive?: boolean
+  createdAt: Date | string
+  updatedAt: Date | string
+  createdById: string
+  members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
+  invites?: Prisma.TeamInviteUncheckedCreateNestedManyWithoutTeamInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
+  creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
+  creditNotes?: Prisma.CreditNoteUncheckedCreateNestedManyWithoutTeamInput
+  billingSettings?: Prisma.TeamBillingSettingsUncheckedCreateNestedOneWithoutTeamInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutTeamInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUncheckedCreateNestedManyWithoutTeamInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUncheckedCreateNestedManyWithoutTeamInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutTeamInput
+  PaymentTransaction?: Prisma.PaymentTransactionUncheckedCreateNestedManyWithoutTeamInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutTeamInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutTeamInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutTeamInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutTeamInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutTeamInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
+  tickets?: Prisma.TicketUncheckedCreateNestedManyWithoutTeamInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutTeamInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutTeamInput
+  contacts?: Prisma.ContactUncheckedCreateNestedManyWithoutTeamInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutTeamInput
+  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutTeamInput
+  emailTemplates?: Prisma.EmailTemplateUncheckedCreateNestedManyWithoutTeamInput
+}
+
+export type TeamCreateOrConnectWithoutDomainTransfersInput = {
+  where: Prisma.TeamWhereUniqueInput
+  create: Prisma.XOR<Prisma.TeamCreateWithoutDomainTransfersInput, Prisma.TeamUncheckedCreateWithoutDomainTransfersInput>
+}
+
+export type TeamUpsertWithoutDomainTransfersInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutDomainTransfersInput, Prisma.TeamUncheckedUpdateWithoutDomainTransfersInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutDomainTransfersInput, Prisma.TeamUncheckedCreateWithoutDomainTransfersInput>
+  where?: Prisma.TeamWhereInput
+}
+
+export type TeamUpdateToOneWithWhereWithoutDomainTransfersInput = {
+  where?: Prisma.TeamWhereInput
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutDomainTransfersInput, Prisma.TeamUncheckedUpdateWithoutDomainTransfersInput>
+}
+
+export type TeamUpdateWithoutDomainTransfersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUpdateManyWithoutTeamNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
+  creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
+  creditNotes?: Prisma.CreditNoteUpdateManyWithoutTeamNestedInput
+  billingSettings?: Prisma.TeamBillingSettingsUpdateOneWithoutTeamNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutTeamNestedInput
+  googleAdsAccounts?: Prisma.GoogleAdsAccountUpdateManyWithoutTeamNestedInput
+  metaAdsAccounts?: Prisma.MetaAdsAccountUpdateManyWithoutTeamNestedInput
+  serviceSubscriptions?: Prisma.ServiceSubscriptionUpdateManyWithoutTeamNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutTeamNestedInput
+  PaymentTransaction?: Prisma.PaymentTransactionUpdateManyWithoutTeamNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutTeamNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutTeamNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutTeamNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutTeamNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutTeamNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
+  tickets?: Prisma.TicketUpdateManyWithoutTeamNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutTeamNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutTeamNestedInput
+  contacts?: Prisma.ContactUpdateManyWithoutTeamNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutTeamNestedInput
+  emailLogs?: Prisma.EmailLogUpdateManyWithoutTeamNestedInput
+  emailTemplates?: Prisma.EmailTemplateUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamUncheckedUpdateWithoutDomainTransfersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  baseCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdById?: Prisma.StringFieldUpdateOperationsInput | string
+  members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.TeamInviteUncheckedUpdateManyWithoutTeamNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
+  hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
+  wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -2535,6 +3021,8 @@ export type TeamCreateWithoutCreativeAssetsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTeamInput
@@ -2576,6 +3064,8 @@ export type TeamUncheckedCreateWithoutCreativeAssetsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTeamInput
@@ -2633,6 +3123,8 @@ export type TeamUpdateWithoutCreativeAssetsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutTeamNestedInput
@@ -2674,6 +3166,8 @@ export type TeamUncheckedUpdateWithoutCreativeAssetsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTeamNestedInput
@@ -2715,6 +3209,8 @@ export type TeamCreateWithoutCreativeBriefsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -2756,6 +3252,8 @@ export type TeamUncheckedCreateWithoutCreativeBriefsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -2813,6 +3311,8 @@ export type TeamUpdateWithoutCreativeBriefsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -2854,6 +3354,8 @@ export type TeamUncheckedUpdateWithoutCreativeBriefsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -2895,6 +3397,8 @@ export type TeamCreateWithoutEmailDomainsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -2936,6 +3440,8 @@ export type TeamUncheckedCreateWithoutEmailDomainsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -2993,6 +3499,8 @@ export type TeamUpdateWithoutEmailDomainsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -3034,6 +3542,8 @@ export type TeamUncheckedUpdateWithoutEmailDomainsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -3075,6 +3585,8 @@ export type TeamCreateWithoutContactsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -3116,6 +3628,8 @@ export type TeamUncheckedCreateWithoutContactsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -3173,6 +3687,8 @@ export type TeamUpdateWithoutContactsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -3214,6 +3730,8 @@ export type TeamUncheckedUpdateWithoutContactsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -3255,6 +3773,8 @@ export type TeamCreateWithoutEmailTemplatesInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -3296,6 +3816,8 @@ export type TeamUncheckedCreateWithoutEmailTemplatesInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -3353,6 +3875,8 @@ export type TeamUpdateWithoutEmailTemplatesInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -3394,6 +3918,8 @@ export type TeamUncheckedUpdateWithoutEmailTemplatesInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -3435,6 +3961,8 @@ export type TeamCreateWithoutCampaignsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -3476,6 +4004,8 @@ export type TeamUncheckedCreateWithoutCampaignsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -3533,6 +4063,8 @@ export type TeamUpdateWithoutCampaignsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -3574,6 +4106,8 @@ export type TeamUncheckedUpdateWithoutCampaignsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -3615,6 +4149,8 @@ export type TeamCreateWithoutEmailLogsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -3656,6 +4192,8 @@ export type TeamUncheckedCreateWithoutEmailLogsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -3713,6 +4251,8 @@ export type TeamUpdateWithoutEmailLogsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -3754,6 +4294,8 @@ export type TeamUncheckedUpdateWithoutEmailLogsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -3795,6 +4337,8 @@ export type TeamCreateWithoutGoogleAdsAccountsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -3836,6 +4380,8 @@ export type TeamUncheckedCreateWithoutGoogleAdsAccountsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -3893,6 +4439,8 @@ export type TeamUpdateWithoutGoogleAdsAccountsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -3934,6 +4482,8 @@ export type TeamUncheckedUpdateWithoutGoogleAdsAccountsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -3975,6 +4525,8 @@ export type TeamCreateWithoutImageGeneratorGenerationsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -4016,6 +4568,8 @@ export type TeamUncheckedCreateWithoutImageGeneratorGenerationsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -4073,6 +4627,8 @@ export type TeamUpdateWithoutImageGeneratorGenerationsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -4114,6 +4670,8 @@ export type TeamUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -4155,6 +4713,8 @@ export type TeamCreateWithoutBackgroundRemoverGenerationsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -4196,6 +4756,8 @@ export type TeamUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -4253,6 +4815,8 @@ export type TeamUpdateWithoutBackgroundRemoverGenerationsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -4294,6 +4858,8 @@ export type TeamUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -4335,6 +4901,8 @@ export type TeamCreateWithoutImageGenProjectsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -4376,6 +4944,8 @@ export type TeamUncheckedCreateWithoutImageGenProjectsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -4433,6 +5003,8 @@ export type TeamUpdateWithoutImageGenProjectsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -4474,6 +5046,8 @@ export type TeamUncheckedUpdateWithoutImageGenProjectsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -4515,6 +5089,8 @@ export type TeamCreateWithoutImageGenUploadInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -4556,6 +5132,8 @@ export type TeamUncheckedCreateWithoutImageGenUploadInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -4613,6 +5191,8 @@ export type TeamUpdateWithoutImageGenUploadInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -4654,6 +5234,8 @@ export type TeamUncheckedUpdateWithoutImageGenUploadInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -4695,6 +5277,8 @@ export type TeamCreateWithoutImageGenAiGenerationsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -4736,6 +5320,8 @@ export type TeamUncheckedCreateWithoutImageGenAiGenerationsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -4793,6 +5379,8 @@ export type TeamUpdateWithoutImageGenAiGenerationsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -4834,6 +5422,8 @@ export type TeamUncheckedUpdateWithoutImageGenAiGenerationsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -4875,6 +5465,8 @@ export type TeamCreateWithoutInvoicesInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -4916,6 +5508,8 @@ export type TeamUncheckedCreateWithoutInvoicesInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -4973,6 +5567,8 @@ export type TeamUpdateWithoutInvoicesInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -5014,6 +5610,8 @@ export type TeamUncheckedUpdateWithoutInvoicesInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -5055,6 +5653,8 @@ export type TeamCreateWithoutCreditNotesInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -5096,6 +5696,8 @@ export type TeamUncheckedCreateWithoutCreditNotesInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -5153,6 +5755,8 @@ export type TeamUpdateWithoutCreditNotesInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -5194,6 +5798,8 @@ export type TeamUncheckedUpdateWithoutCreditNotesInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -5235,6 +5841,8 @@ export type TeamCreateWithoutMetaAdsAccountsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -5276,6 +5884,8 @@ export type TeamUncheckedCreateWithoutMetaAdsAccountsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -5333,6 +5943,8 @@ export type TeamUpdateWithoutMetaAdsAccountsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -5374,6 +5986,8 @@ export type TeamUncheckedUpdateWithoutMetaAdsAccountsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -5415,6 +6029,8 @@ export type TeamCreateWithoutNotificationsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -5456,6 +6072,8 @@ export type TeamUncheckedCreateWithoutNotificationsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -5513,6 +6131,8 @@ export type TeamUpdateWithoutNotificationsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -5554,6 +6174,8 @@ export type TeamUncheckedUpdateWithoutNotificationsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -5595,6 +6217,8 @@ export type TeamCreateWithoutPaymentTransactionInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -5636,6 +6260,8 @@ export type TeamUncheckedCreateWithoutPaymentTransactionInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -5693,6 +6319,8 @@ export type TeamUpdateWithoutPaymentTransactionInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -5734,6 +6362,8 @@ export type TeamUncheckedUpdateWithoutPaymentTransactionInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -5775,6 +6405,8 @@ export type TeamCreateWithoutSeoReportsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -5816,6 +6448,8 @@ export type TeamUncheckedCreateWithoutSeoReportsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -5873,6 +6507,8 @@ export type TeamUpdateWithoutSeoReportsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -5914,6 +6550,8 @@ export type TeamUncheckedUpdateWithoutSeoReportsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -5955,6 +6593,8 @@ export type TeamCreateWithoutServiceSubscriptionsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -5996,6 +6636,8 @@ export type TeamUncheckedCreateWithoutServiceSubscriptionsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -6053,6 +6695,8 @@ export type TeamUpdateWithoutServiceSubscriptionsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -6094,6 +6738,8 @@ export type TeamUncheckedUpdateWithoutServiceSubscriptionsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -6135,6 +6781,8 @@ export type TeamCreateWithoutSocialMediaPageTokensInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -6176,6 +6824,8 @@ export type TeamUncheckedCreateWithoutSocialMediaPageTokensInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -6233,6 +6883,8 @@ export type TeamUpdateWithoutSocialMediaPageTokensInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -6274,6 +6926,8 @@ export type TeamUncheckedUpdateWithoutSocialMediaPageTokensInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -6315,6 +6969,8 @@ export type TeamCreateWithoutTicketsInput = {
   domains?: Prisma.DomainCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetCreateNestedManyWithoutTeamInput
@@ -6356,6 +7012,8 @@ export type TeamUncheckedCreateWithoutTicketsInput = {
   domains?: Prisma.DomainUncheckedCreateNestedManyWithoutTeamInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedCreateNestedManyWithoutTeamInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedCreateNestedManyWithoutTeamInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutTeamInput
+  domainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutTeamInput
   promos?: Prisma.PromoUncheckedCreateNestedManyWithoutTeamInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutTeamInput
   creativeAssets?: Prisma.CreativeAssetUncheckedCreateNestedManyWithoutTeamInput
@@ -6413,6 +7071,8 @@ export type TeamUpdateWithoutTicketsInput = {
   domains?: Prisma.DomainUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUpdateManyWithoutTeamNestedInput
@@ -6454,6 +7114,8 @@ export type TeamUncheckedUpdateWithoutTicketsInput = {
   domains?: Prisma.DomainUncheckedUpdateManyWithoutTeamNestedInput
   hostingSubscriptions?: Prisma.HostingSubscriptionUncheckedUpdateManyWithoutTeamNestedInput
   wordpressInstances?: Prisma.WordPressInstanceUncheckedUpdateManyWithoutTeamNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutTeamNestedInput
+  domainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutTeamNestedInput
   promos?: Prisma.PromoUncheckedUpdateManyWithoutTeamNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutTeamNestedInput
   creativeAssets?: Prisma.CreativeAssetUncheckedUpdateManyWithoutTeamNestedInput
@@ -6491,6 +7153,8 @@ export type TeamCountOutputType = {
   domains: number
   hostingSubscriptions: number
   wordpressInstances: number
+  domainRenewals: number
+  domainTransfers: number
   promos: number
   orders: number
   creativeAssets: number
@@ -6523,6 +7187,8 @@ export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   domains?: boolean | TeamCountOutputTypeCountDomainsArgs
   hostingSubscriptions?: boolean | TeamCountOutputTypeCountHostingSubscriptionsArgs
   wordpressInstances?: boolean | TeamCountOutputTypeCountWordpressInstancesArgs
+  domainRenewals?: boolean | TeamCountOutputTypeCountDomainRenewalsArgs
+  domainTransfers?: boolean | TeamCountOutputTypeCountDomainTransfersArgs
   promos?: boolean | TeamCountOutputTypeCountPromosArgs
   orders?: boolean | TeamCountOutputTypeCountOrdersArgs
   creativeAssets?: boolean | TeamCountOutputTypeCountCreativeAssetsArgs
@@ -6592,6 +7258,20 @@ export type TeamCountOutputTypeCountHostingSubscriptionsArgs<ExtArgs extends run
  */
 export type TeamCountOutputTypeCountWordpressInstancesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.WordPressInstanceWhereInput
+}
+
+/**
+ * TeamCountOutputType without action
+ */
+export type TeamCountOutputTypeCountDomainRenewalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DomainRenewalWhereInput
+}
+
+/**
+ * TeamCountOutputType without action
+ */
+export type TeamCountOutputTypeCountDomainTransfersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DomainTransferWhereInput
 }
 
 /**
@@ -6778,6 +7458,8 @@ export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   domains?: boolean | Prisma.Team$domainsArgs<ExtArgs>
   hostingSubscriptions?: boolean | Prisma.Team$hostingSubscriptionsArgs<ExtArgs>
   wordpressInstances?: boolean | Prisma.Team$wordpressInstancesArgs<ExtArgs>
+  domainRenewals?: boolean | Prisma.Team$domainRenewalsArgs<ExtArgs>
+  domainTransfers?: boolean | Prisma.Team$domainTransfersArgs<ExtArgs>
   promos?: boolean | Prisma.Team$promosArgs<ExtArgs>
   orders?: boolean | Prisma.Team$ordersArgs<ExtArgs>
   creativeAssets?: boolean | Prisma.Team$creativeAssetsArgs<ExtArgs>
@@ -6849,6 +7531,8 @@ export type TeamInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   domains?: boolean | Prisma.Team$domainsArgs<ExtArgs>
   hostingSubscriptions?: boolean | Prisma.Team$hostingSubscriptionsArgs<ExtArgs>
   wordpressInstances?: boolean | Prisma.Team$wordpressInstancesArgs<ExtArgs>
+  domainRenewals?: boolean | Prisma.Team$domainRenewalsArgs<ExtArgs>
+  domainTransfers?: boolean | Prisma.Team$domainTransfersArgs<ExtArgs>
   promos?: boolean | Prisma.Team$promosArgs<ExtArgs>
   orders?: boolean | Prisma.Team$ordersArgs<ExtArgs>
   creativeAssets?: boolean | Prisma.Team$creativeAssetsArgs<ExtArgs>
@@ -6887,6 +7571,8 @@ export type $TeamPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     domains: Prisma.$DomainPayload<ExtArgs>[]
     hostingSubscriptions: Prisma.$HostingSubscriptionPayload<ExtArgs>[]
     wordpressInstances: Prisma.$WordPressInstancePayload<ExtArgs>[]
+    domainRenewals: Prisma.$DomainRenewalPayload<ExtArgs>[]
+    domainTransfers: Prisma.$DomainTransferPayload<ExtArgs>[]
     promos: Prisma.$PromoPayload<ExtArgs>[]
     orders: Prisma.$OrderPayload<ExtArgs>[]
     creativeAssets: Prisma.$CreativeAssetPayload<ExtArgs>[]
@@ -7322,6 +8008,8 @@ export interface Prisma__TeamClient<T, Null = never, ExtArgs extends runtime.Typ
   domains<T extends Prisma.Team$domainsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$domainsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   hostingSubscriptions<T extends Prisma.Team$hostingSubscriptionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$hostingSubscriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$HostingSubscriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   wordpressInstances<T extends Prisma.Team$wordpressInstancesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$wordpressInstancesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WordPressInstancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  domainRenewals<T extends Prisma.Team$domainRenewalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$domainRenewalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainRenewalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  domainTransfers<T extends Prisma.Team$domainTransfersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$domainTransfersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DomainTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   promos<T extends Prisma.Team$promosArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$promosArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PromoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   orders<T extends Prisma.Team$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   creativeAssets<T extends Prisma.Team$creativeAssetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$creativeAssetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CreativeAssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -7890,6 +8578,54 @@ export type Team$wordpressInstancesArgs<ExtArgs extends runtime.Types.Extensions
   take?: number
   skip?: number
   distinct?: Prisma.WordPressInstanceScalarFieldEnum | Prisma.WordPressInstanceScalarFieldEnum[]
+}
+
+/**
+ * Team.domainRenewals
+ */
+export type Team$domainRenewalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DomainRenewal
+   */
+  select?: Prisma.DomainRenewalSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DomainRenewal
+   */
+  omit?: Prisma.DomainRenewalOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DomainRenewalInclude<ExtArgs> | null
+  where?: Prisma.DomainRenewalWhereInput
+  orderBy?: Prisma.DomainRenewalOrderByWithRelationInput | Prisma.DomainRenewalOrderByWithRelationInput[]
+  cursor?: Prisma.DomainRenewalWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DomainRenewalScalarFieldEnum | Prisma.DomainRenewalScalarFieldEnum[]
+}
+
+/**
+ * Team.domainTransfers
+ */
+export type Team$domainTransfersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DomainTransfer
+   */
+  select?: Prisma.DomainTransferSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DomainTransfer
+   */
+  omit?: Prisma.DomainTransferOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DomainTransferInclude<ExtArgs> | null
+  where?: Prisma.DomainTransferWhereInput
+  orderBy?: Prisma.DomainTransferOrderByWithRelationInput | Prisma.DomainTransferOrderByWithRelationInput[]
+  cursor?: Prisma.DomainTransferWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DomainTransferScalarFieldEnum | Prisma.DomainTransferScalarFieldEnum[]
 }
 
 /**

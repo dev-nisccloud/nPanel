@@ -486,7 +486,6 @@ export const ModelName = {
   PaymentTransaction: 'PaymentTransaction',
   PaymentTransactionActivityLog: 'PaymentTransactionActivityLog',
   SeoReport: 'SeoReport',
-  SeoReportTopPage: 'SeoReportTopPage',
   SeoReportActivityLog: 'SeoReportActivityLog',
   ServiceSubscription: 'ServiceSubscription',
   ServiceSubscriptionRenewal: 'ServiceSubscriptionRenewal',
@@ -524,7 +523,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "contact" | "emailTemplate" | "campaign" | "emailLog" | "emailDomainActivityLog" | "contactActivityLog" | "campaignActivityLog" | "emailLogActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportTopPage" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog" | "webDesignQuoteRequest"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "contact" | "emailTemplate" | "campaign" | "emailLog" | "emailDomainActivityLog" | "contactActivityLog" | "campaignActivityLog" | "emailLogActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog" | "webDesignQuoteRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -7780,80 +7779,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    SeoReportTopPage: {
-      payload: Prisma.$SeoReportTopPagePayload<ExtArgs>
-      fields: Prisma.SeoReportTopPageFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.SeoReportTopPageFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.SeoReportTopPageFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
-        }
-        findFirst: {
-          args: Prisma.SeoReportTopPageFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.SeoReportTopPageFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
-        }
-        findMany: {
-          args: Prisma.SeoReportTopPageFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>[]
-        }
-        create: {
-          args: Prisma.SeoReportTopPageCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
-        }
-        createMany: {
-          args: Prisma.SeoReportTopPageCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.SeoReportTopPageCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>[]
-        }
-        delete: {
-          args: Prisma.SeoReportTopPageDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
-        }
-        update: {
-          args: Prisma.SeoReportTopPageUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
-        }
-        deleteMany: {
-          args: Prisma.SeoReportTopPageDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.SeoReportTopPageUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.SeoReportTopPageUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>[]
-        }
-        upsert: {
-          args: Prisma.SeoReportTopPageUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoReportTopPagePayload>
-        }
-        aggregate: {
-          args: Prisma.SeoReportTopPageAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSeoReportTopPage>
-        }
-        groupBy: {
-          args: Prisma.SeoReportTopPageGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SeoReportTopPageGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.SeoReportTopPageCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SeoReportTopPageCountAggregateOutputType> | number
-        }
-      }
-    }
     SeoReportActivityLog: {
       payload: Prisma.$SeoReportActivityLogPayload<ExtArgs>
       fields: Prisma.SeoReportActivityLogFieldRefs
@@ -10168,6 +10093,7 @@ export const DomainRenewalScalarFieldEnum = {
   domainId: 'domainId',
   renewedBy: 'renewedBy',
   renewalDate: 'renewalDate',
+  teamId: 'teamId',
   openProviderPrice: 'openProviderPrice',
   niscPrice: 'niscPrice',
   createdAt: 'createdAt',
@@ -10180,9 +10106,11 @@ export type DomainRenewalScalarFieldEnum = (typeof DomainRenewalScalarFieldEnum)
 export const DomainTransferScalarFieldEnum = {
   id: 'id',
   domainId: 'domainId',
+  createdById: 'createdById',
   transferredBy: 'transferredBy',
   authCode: 'authCode',
   status: 'status',
+  teamId: 'teamId',
   transferRequestedAt: 'transferRequestedAt',
   transferCompletedAt: 'transferCompletedAt',
   openProviderPrice: 'openProviderPrice',
@@ -10200,6 +10128,7 @@ export const DomainActivityLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   domainId: 'domainId',
+  teamId: 'teamId',
   action: 'action',
   description: 'description',
   metadata: 'metadata',
@@ -10215,6 +10144,7 @@ export const DomainRenewalActivityLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   domainRenewalId: 'domainRenewalId',
+  teamId: 'teamId',
   action: 'action',
   description: 'description',
   metadata: 'metadata',
@@ -10230,6 +10160,7 @@ export const DomainTransferActivityLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   domainTransferId: 'domainTransferId',
+  teamId: 'teamId',
   action: 'action',
   description: 'description',
   metadata: 'metadata',
@@ -11295,108 +11226,33 @@ export const SeoReportScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   teamId: 'teamId',
+  reportName: 'reportName',
   reportMonth: 'reportMonth',
   reportYear: 'reportYear',
   websiteUrl: 'websiteUrl',
-  comparisonType: 'comparisonType',
-  dataSource: 'dataSource',
   status: 'status',
-  executiveSummary: 'executiveSummary',
   recommendations: 'recommendations',
-  organicSessions: 'organicSessions',
-  organicSessionsPrevious: 'organicSessionsPrevious',
-  organicUsers: 'organicUsers',
-  organicUsersPrevious: 'organicUsersPrevious',
-  organicNewUsers: 'organicNewUsers',
+  sessions: 'sessions',
+  totalWebTraffic: 'totalWebTraffic',
+  totalViews: 'totalViews',
   bounceRate: 'bounceRate',
-  bounceRatePrevious: 'bounceRatePrevious',
-  avgSessionDurationSeconds: 'avgSessionDurationSeconds',
-  pagesPerSession: 'pagesPerSession',
-  engagedSessions: 'engagedSessions',
-  organicSessionsDesktop: 'organicSessionsDesktop',
-  organicSessionsMobile: 'organicSessionsMobile',
-  organicSessionsTablet: 'organicSessionsTablet',
-  organicSessionsUnbranded: 'organicSessionsUnbranded',
-  keywordsTracked: 'keywordsTracked',
-  keywordsTop3: 'keywordsTop3',
-  keywordsTop10: 'keywordsTop10',
-  keywordsTop20: 'keywordsTop20',
-  avgPosition: 'avgPosition',
-  avgPositionPrevious: 'avgPositionPrevious',
-  searchVisibility: 'searchVisibility',
-  impressions: 'impressions',
-  impressionsPrevious: 'impressionsPrevious',
-  clicks: 'clicks',
-  clicksPrevious: 'clicksPrevious',
-  avgCtr: 'avgCtr',
-  keywordsGained: 'keywordsGained',
-  keywordsLost: 'keywordsLost',
+  users: 'users',
+  returningUsers: 'returningUsers',
+  eventCount: 'eventCount',
   conversions: 'conversions',
-  conversionsPrevious: 'conversionsPrevious',
-  conversionRate: 'conversionRate',
-  conversionRatePrevious: 'conversionRatePrevious',
-  conversionsFromOrganic: 'conversionsFromOrganic',
-  leadsOrFormSubmissions: 'leadsOrFormSubmissions',
-  costPerConversion: 'costPerConversion',
-  bestConvertingPageUrl: 'bestConvertingPageUrl',
-  totalBacklinks: 'totalBacklinks',
-  referringDomains: 'referringDomains',
-  referringDomainsPrevious: 'referringDomainsPrevious',
-  newReferringDomains: 'newReferringDomains',
-  lostReferringDomains: 'lostReferringDomains',
-  newBacklinks: 'newBacklinks',
-  lostBacklinks: 'lostBacklinks',
-  dofollowBacklinks: 'dofollowBacklinks',
-  domainRating: 'domainRating',
-  domainRatingPrevious: 'domainRatingPrevious',
-  domainAuthority: 'domainAuthority',
-  domainAuthorityPrevious: 'domainAuthorityPrevious',
-  urlRating: 'urlRating',
-  spamScore: 'spamScore',
-  siteAuditScore: 'siteAuditScore',
-  siteAuditScorePrevious: 'siteAuditScorePrevious',
-  pagesCrawled: 'pagesCrawled',
-  pagesWithErrors: 'pagesWithErrors',
-  pagesWithErrorsPrevious: 'pagesWithErrorsPrevious',
-  pagesWithWarnings: 'pagesWithWarnings',
-  indexedPages: 'indexedPages',
-  lcpMs: 'lcpMs',
-  inpMs: 'inpMs',
-  cls: 'cls',
-  coreWebVitalsPassed: 'coreWebVitalsPassed',
-  mobileUsabilityIssues: 'mobileUsabilityIssues',
-  avgPageLoadTimeMs: 'avgPageLoadTimeMs',
-  gmbViews: 'gmbViews',
-  gmbSearches: 'gmbSearches',
-  gmbActions: 'gmbActions',
-  gmbCalls: 'gmbCalls',
-  gmbDirectionRequests: 'gmbDirectionRequests',
-  gmbWebsiteClicks: 'gmbWebsiteClicks',
-  gmbReviewsCount: 'gmbReviewsCount',
-  gmbAverageRating: 'gmbAverageRating',
-  localRanking: 'localRanking',
+  sessionDuration: 'sessionDuration',
+  engagedSessions: 'engagedSessions',
+  sessionsDesktop: 'sessionsDesktop',
+  sessionsMobile: 'sessionsMobile',
+  sessionsTablet: 'sessionsTablet',
+  formSubmissions: 'formSubmissions',
+  impressions: 'impressions',
+  clicks: 'clicks',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type SeoReportScalarFieldEnum = (typeof SeoReportScalarFieldEnum)[keyof typeof SeoReportScalarFieldEnum]
-
-
-export const SeoReportTopPageScalarFieldEnum = {
-  id: 'id',
-  seoReportId: 'seoReportId',
-  url: 'url',
-  pageTitle: 'pageTitle',
-  clicks: 'clicks',
-  impressions: 'impressions',
-  sessions: 'sessions',
-  conversions: 'conversions',
-  order: 'order',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type SeoReportTopPageScalarFieldEnum = (typeof SeoReportTopPageScalarFieldEnum)[keyof typeof SeoReportTopPageScalarFieldEnum]
 
 
 export const SeoReportActivityLogScalarFieldEnum = {
@@ -12524,20 +12380,6 @@ export type ListEnumPaymentTransactionStatusFieldRefInput<$PrismaModel> = FieldR
 
 
 /**
- * Reference to a field of type 'SeoReportComparisonType'
- */
-export type EnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoReportComparisonType'>
-    
-
-
-/**
- * Reference to a field of type 'SeoReportComparisonType[]'
- */
-export type ListEnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoReportComparisonType[]'>
-    
-
-
-/**
  * Reference to a field of type 'SeoReportStatus'
  */
 export type EnumSeoReportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoReportStatus'>
@@ -12931,7 +12773,6 @@ export type GlobalOmitConfig = {
   paymentTransaction?: Prisma.PaymentTransactionOmit
   paymentTransactionActivityLog?: Prisma.PaymentTransactionActivityLogOmit
   seoReport?: Prisma.SeoReportOmit
-  seoReportTopPage?: Prisma.SeoReportTopPageOmit
   seoReportActivityLog?: Prisma.SeoReportActivityLogOmit
   serviceSubscription?: Prisma.ServiceSubscriptionOmit
   serviceSubscriptionRenewal?: Prisma.ServiceSubscriptionRenewalOmit

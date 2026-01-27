@@ -1091,28 +1091,11 @@ export type EnumPaymentTransactionStatusWithAggregatesFilter<$PrismaModel = neve
   _max?: Prisma.NestedEnumPaymentTransactionStatusFilter<$PrismaModel>
 }
 
-export type EnumSeoReportComparisonTypeNullableFilter<$PrismaModel = never> = {
-  equals?: $Enums.SeoReportComparisonType | Prisma.EnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  in?: $Enums.SeoReportComparisonType[] | Prisma.ListEnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.SeoReportComparisonType[] | Prisma.ListEnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumSeoReportComparisonTypeNullableFilter<$PrismaModel> | $Enums.SeoReportComparisonType | null
-}
-
 export type EnumSeoReportStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.SeoReportStatus | Prisma.EnumSeoReportStatusFieldRefInput<$PrismaModel>
   in?: $Enums.SeoReportStatus[] | Prisma.ListEnumSeoReportStatusFieldRefInput<$PrismaModel>
   notIn?: $Enums.SeoReportStatus[] | Prisma.ListEnumSeoReportStatusFieldRefInput<$PrismaModel>
   not?: Prisma.NestedEnumSeoReportStatusFilter<$PrismaModel> | $Enums.SeoReportStatus
-}
-
-export type EnumSeoReportComparisonTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.SeoReportComparisonType | Prisma.EnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  in?: $Enums.SeoReportComparisonType[] | Prisma.ListEnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.SeoReportComparisonType[] | Prisma.ListEnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumSeoReportComparisonTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.SeoReportComparisonType | null
-  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumSeoReportComparisonTypeNullableFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumSeoReportComparisonTypeNullableFilter<$PrismaModel>
 }
 
 export type EnumSeoReportStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -2389,28 +2372,11 @@ export type NestedEnumPaymentTransactionStatusWithAggregatesFilter<$PrismaModel 
   _max?: Prisma.NestedEnumPaymentTransactionStatusFilter<$PrismaModel>
 }
 
-export type NestedEnumSeoReportComparisonTypeNullableFilter<$PrismaModel = never> = {
-  equals?: $Enums.SeoReportComparisonType | Prisma.EnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  in?: $Enums.SeoReportComparisonType[] | Prisma.ListEnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.SeoReportComparisonType[] | Prisma.ListEnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumSeoReportComparisonTypeNullableFilter<$PrismaModel> | $Enums.SeoReportComparisonType | null
-}
-
 export type NestedEnumSeoReportStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.SeoReportStatus | Prisma.EnumSeoReportStatusFieldRefInput<$PrismaModel>
   in?: $Enums.SeoReportStatus[] | Prisma.ListEnumSeoReportStatusFieldRefInput<$PrismaModel>
   notIn?: $Enums.SeoReportStatus[] | Prisma.ListEnumSeoReportStatusFieldRefInput<$PrismaModel>
   not?: Prisma.NestedEnumSeoReportStatusFilter<$PrismaModel> | $Enums.SeoReportStatus
-}
-
-export type NestedEnumSeoReportComparisonTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.SeoReportComparisonType | Prisma.EnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  in?: $Enums.SeoReportComparisonType[] | Prisma.ListEnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.SeoReportComparisonType[] | Prisma.ListEnumSeoReportComparisonTypeFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumSeoReportComparisonTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.SeoReportComparisonType | null
-  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumSeoReportComparisonTypeNullableFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumSeoReportComparisonTypeNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumSeoReportStatusWithAggregatesFilter<$PrismaModel = never> = {
