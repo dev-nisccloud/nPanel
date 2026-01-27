@@ -71,7 +71,7 @@ function PluginsTableSkeleton() {
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-10 w-32" />
       </div>
-      <div className="border rounded-lg">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -584,7 +584,7 @@ export function PluginsTable({ installationId }: PluginsTableProps) {
       </div>
 
       {/* Plugins Table */}
-      <div className="border rounded-lg">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

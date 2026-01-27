@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Gauge, RefreshCw, ExternalLink, Smartphone, Monitor, TrendingUp, AlertCircle } from "lucide-react";
+import { Gauge, RefreshCw, ExternalLink, Smartphone, Monitor, TrendingUp, AlertCircle, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -239,22 +239,42 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Device Strategy Toggle */}
+        {/* Device Strategy Toggle - same design as hosting Overview/DNS/Mail tabs */}
         <Tabs value={strategy} onValueChange={(value) => setStrategy(value as 'mobile' | 'desktop')}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="mobile" className="flex items-center gap-2">
-              <Smartphone className="h-4 w-4" />
-              Mobile
-              {mobileQuery.isLoading && mobileQuery.isFetching && (
-                <RefreshCw className="h-3 w-3 animate-spin ml-1" />
-              )}
+          <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-2 h-auto p-0 bg-transparent">
+            <TabsTrigger
+              value="mobile"
+              className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+            >
+              <div className="flex items-center justify-between w-full">
+                <Smartphone className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                {mobileQuery.isLoading && mobileQuery.isFetching ? (
+                  <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex flex-col items-start gap-1 w-full">
+                <span className="font-semibold text-sm">Mobile</span>
+                <span className="text-xs text-muted-foreground">Performance</span>
+              </div>
             </TabsTrigger>
-            <TabsTrigger value="desktop" className="flex items-center gap-2">
-              <Monitor className="h-4 w-4" />
-              Desktop
-              {desktopQuery.isLoading && desktopQuery.isFetching && (
-                <RefreshCw className="h-3 w-3 animate-spin ml-1" />
-              )}
+            <TabsTrigger
+              value="desktop"
+              className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+            >
+              <div className="flex items-center justify-between w-full">
+                <Monitor className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                {desktopQuery.isLoading && desktopQuery.isFetching ? (
+                  <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex flex-col items-start gap-1 w-full">
+                <span className="font-semibold text-sm">Desktop</span>
+                <span className="text-xs text-muted-foreground">Performance</span>
+              </div>
             </TabsTrigger>
           </TabsList>
         </Tabs>

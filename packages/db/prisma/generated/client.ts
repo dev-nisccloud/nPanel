@@ -643,3 +643,8 @@ export type TicketTagRelation = Prisma.TicketTagRelationModel
  * 
  */
 export type TicketActivityLog = Prisma.TicketActivityLogModel
+/**
+ * Model WebDesignQuoteRequest
+ * 
+ */
+export type WebDesignQuoteRequest = Prisma.WebDesignQuoteRequestModel

@@ -507,7 +507,8 @@ export const ModelName = {
   TicketAttachment: 'TicketAttachment',
   TicketTag: 'TicketTag',
   TicketTagRelation: 'TicketTagRelation',
-  TicketActivityLog: 'TicketActivityLog'
+  TicketActivityLog: 'TicketActivityLog',
+  WebDesignQuoteRequest: 'WebDesignQuoteRequest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -523,7 +524,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "contact" | "emailTemplate" | "campaign" | "emailLog" | "emailDomainActivityLog" | "contactActivityLog" | "campaignActivityLog" | "emailLogActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportTopPage" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "contact" | "emailTemplate" | "campaign" | "emailLog" | "emailDomainActivityLog" | "contactActivityLog" | "campaignActivityLog" | "emailLogActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportTopPage" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog" | "webDesignQuoteRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -9407,6 +9408,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    WebDesignQuoteRequest: {
+      payload: Prisma.$WebDesignQuoteRequestPayload<ExtArgs>
+      fields: Prisma.WebDesignQuoteRequestFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WebDesignQuoteRequestFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WebDesignQuoteRequestFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload>
+        }
+        findFirst: {
+          args: Prisma.WebDesignQuoteRequestFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WebDesignQuoteRequestFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload>
+        }
+        findMany: {
+          args: Prisma.WebDesignQuoteRequestFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload>[]
+        }
+        create: {
+          args: Prisma.WebDesignQuoteRequestCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload>
+        }
+        createMany: {
+          args: Prisma.WebDesignQuoteRequestCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WebDesignQuoteRequestCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload>[]
+        }
+        delete: {
+          args: Prisma.WebDesignQuoteRequestDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload>
+        }
+        update: {
+          args: Prisma.WebDesignQuoteRequestUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload>
+        }
+        deleteMany: {
+          args: Prisma.WebDesignQuoteRequestDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WebDesignQuoteRequestUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WebDesignQuoteRequestUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload>[]
+        }
+        upsert: {
+          args: Prisma.WebDesignQuoteRequestUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WebDesignQuoteRequestPayload>
+        }
+        aggregate: {
+          args: Prisma.WebDesignQuoteRequestAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWebDesignQuoteRequest>
+        }
+        groupBy: {
+          args: Prisma.WebDesignQuoteRequestGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WebDesignQuoteRequestGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WebDesignQuoteRequestCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WebDesignQuoteRequestCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -11695,6 +11770,26 @@ export const TicketActivityLogScalarFieldEnum = {
 export type TicketActivityLogScalarFieldEnum = (typeof TicketActivityLogScalarFieldEnum)[keyof typeof TicketActivityLogScalarFieldEnum]
 
 
+export const WebDesignQuoteRequestScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  email: 'email',
+  phone: 'phone',
+  companyName: 'companyName',
+  domain: 'domain',
+  projectType: 'projectType',
+  projectDescription: 'projectDescription',
+  budget: 'budget',
+  targetLaunchDate: 'targetLaunchDate',
+  status: 'status',
+  submittedById: 'submittedById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WebDesignQuoteRequestScalarFieldEnum = (typeof WebDesignQuoteRequestScalarFieldEnum)[keyof typeof WebDesignQuoteRequestScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -12623,6 +12718,34 @@ export type EnumMessageReadStatusFieldRefInput<$PrismaModel> = FieldRefInputType
 export type ListEnumMessageReadStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MessageReadStatus[]'>
     
 
+
+/**
+ * Reference to a field of type 'WebDesignProjectType'
+ */
+export type EnumWebDesignProjectTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WebDesignProjectType'>
+    
+
+
+/**
+ * Reference to a field of type 'WebDesignProjectType[]'
+ */
+export type ListEnumWebDesignProjectTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WebDesignProjectType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'WebDesignQuoteStatus'
+ */
+export type EnumWebDesignQuoteStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WebDesignQuoteStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'WebDesignQuoteStatus[]'
+ */
+export type ListEnumWebDesignQuoteStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WebDesignQuoteStatus[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -12830,6 +12953,7 @@ export type GlobalOmitConfig = {
   ticketTag?: Prisma.TicketTagOmit
   ticketTagRelation?: Prisma.TicketTagRelationOmit
   ticketActivityLog?: Prisma.TicketActivityLogOmit
+  webDesignQuoteRequest?: Prisma.WebDesignQuoteRequestOmit
 }
 
 /* Types for Logging */

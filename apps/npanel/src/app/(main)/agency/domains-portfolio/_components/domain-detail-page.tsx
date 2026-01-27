@@ -220,14 +220,11 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Main Content */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Domain Checklist / Upsell Section */}
-              <DomainUpsellSection 
-                domain={domain} 
+              {/* Connected Services: Plesk lookup + "Manage your website" or upsell cards */}
+              <ConnectedServicesSection
+                domainName={domain.domain}
                 onHostingClick={handleHostingClick}
               />
-
-              {/* Connected Services Section */}
-              <ConnectedServicesSection />
 
               {/* Tools Section */}
               <ToolsSection 
@@ -244,12 +241,6 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                 domain={domain} 
                 getStatusBadge={getStatusBadge}
                 shouldShowRenew={shouldShowRenew}
-              />
-
-              {/* DNS/Nameservers Card */}
-              <DnsNameserversCard 
-                domain={domain}
-                onEditClick={() => setActiveTab("nameservers")}
               />
 
               {/* Contact Information Card */}
@@ -285,6 +276,8 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
       <WebDesignContactDialog
         open={webDesignDialogOpen}
         onOpenChange={setWebDesignDialogOpen}
+        domainName={domain.domain}
+        supportPhoneNumber={process.env.NEXT_PUBLIC_SUPPORT_PHONE}
       />
       <HostingPlanDialog
         open={hostingDialogOpen}
@@ -300,119 +293,90 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   );
 }
 
-// Domain Upsell Section Component
-function DomainUpsellSection({ 
-  domain,
-  onHostingClick
-}: { 
-  domain: DomainPortfolio;
+// Connected Services Section: Plesk lookup by domain name, then "Manage your website" or upsell cards (tools-style layout, primary buttons)
+function ConnectedServicesSection({
+  domainName,
+  onHostingClick,
+}: {
+  domainName: string;
   onHostingClick: (type: "web" | "email") => void;
 }) {
-  // Check if domain has hosting
-  const hasHosting = false; // TODO: Check if domain is linked to hosting
-  
-  // Check if domain has email
-  const hasEmail = false; // TODO: Check if domain has email accounts
+  const router = useRouter();
+  const { data, isLoading } = trpc.hosting.getHostingByDomainName.useQuery(
+    { domainName },
+    { enabled: !!domainName }
+  );
 
-  const upsellItems = [
-    {
-      id: "hosting",
-      title: "Get web hosting for your domain",
-      description: "Launch your website with our reliable hosting plans starting from KES 2,000/month",
-      buttonText: "View Hosting Plans",
-      completed: hasHosting,
-      onClick: () => onHostingClick("web"),
-    },
-    {
-      id: "email",
-      title: "Get professional email accounts",
-      description: "Create business email addresses with your domain name",
-      buttonText: "View Email Plans",
-      completed: hasEmail,
-      onClick: () => onHostingClick("email"),
-    },
-  ];
-
-  const completedCount = upsellItems.filter(item => item.completed).length;
-  const totalCount = upsellItems.length;
+  const hasHosting = data?.hasHosting ?? false;
+  const subscriptionId = data?.subscriptionId ?? null;
 
   return (
     <Card>
       <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Recommended for your domain</h2>
-          {totalCount > 0 && (
-            <div className="text-sm text-muted-foreground">
-              {completedCount}/{totalCount} completed
+        <h2 className="text-lg font-semibold mb-4">Connected Services</h2>
+        {isLoading ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Checking for hosting linked to this domain…
+            </p>
+            <div className="flex items-start justify-between p-4 border rounded-lg">
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+              <Skeleton className="h-9 w-24 shrink-0" />
             </div>
-          )}
-        </div>
-        {totalCount > 0 && (
-          <div className="w-full bg-muted rounded-full h-2 mb-4">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all"
-              style={{ width: `${(completedCount / totalCount) * 100}%` }}
-            />
+          </div>
+        ) : hasHosting && subscriptionId ? (
+          <div className="flex items-start justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-3 flex-1">
+              <Monitor className="h-5 w-5 text-muted-foreground shrink-0" />
+              <div>
+                <h3 className="font-medium">Manage your website</h3>
+                <p className="text-sm text-muted-foreground">
+                  Edit and manage the site that&apos;s accessible via your domain.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => router.push(`/agency/hosting/${subscriptionId}`)}
+            >
+              Manage site
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-start justify-between p-4 border rounded-lg">
+              <div className="flex items-center gap-3 flex-1">
+                <Monitor className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div>
+                  <h3 className="font-medium">Get web hosting for your domain</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Launch your website with our reliable hosting plans starting from KES 189/month
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" onClick={() => onHostingClick("web")}>
+                View Hosting Plans
+              </Button>
+            </div>
+            <div className="flex items-start justify-between p-4 border rounded-lg">
+              <div className="flex items-center gap-3 flex-1">
+                <Monitor className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div>
+                  <h3 className="font-medium">Get professional email accounts</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Create business email addresses with your domain name
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" onClick={() => onHostingClick("email")}>
+                View Email Plans
+              </Button>
+            </div>
           </div>
         )}
-        <div className="space-y-3">
-          {upsellItems.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex-shrink-0 mt-1">
-                {item.completed ? (
-                  <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                    <span className="text-primary-foreground text-xs">✓</span>
-                  </div>
-                ) : (
-                  <div className="h-5 w-5 rounded-full border-2 border-muted-foreground" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium mb-1">{item.title}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{item.description}</p>
-                {!item.completed && (
-                  <Button size="sm" onClick={item.onClick}>
-                    {item.buttonText}
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Connected Services Section Component
-function ConnectedServicesSection() {
-  const router = useRouter();
-
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Connected services</h2>
-        <div className="flex items-center justify-between p-4 border rounded-lg">
-          <div className="flex items-center gap-3">
-            <Monitor className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <h3 className="font-medium">Manage your website</h3>
-              <p className="text-sm text-muted-foreground">
-                Edit and manage the site that's accessible via your domain.
-              </p>
-            </div>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => router.push("/agency/hosting")}
-          >
-            Manage site
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
@@ -576,43 +540,6 @@ function DomainHeaderCard({
               )}
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// DNS/Nameservers Card Component
-function DnsNameserversCard({ 
-  domain,
-  onEditClick
-}: { 
-  domain: DomainPortfolio;
-  onEditClick: () => void;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">DNS/Nameservers</h3>
-          <Button 
-            variant="link" 
-            className="p-0 h-auto text-primary text-sm"
-            onClick={onEditClick}
-          >
-            Edit
-          </Button>
-        </div>
-        <div className="space-y-2">
-          {domain.nameservers.length > 0 ? (
-            domain.nameservers.map((ns, index) => (
-              <div key={index} className="text-sm font-mono">
-                {ns}
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">No nameservers configured</p>
-          )}
         </div>
       </CardContent>
     </Card>

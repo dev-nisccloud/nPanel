@@ -46,6 +46,15 @@ const getByPleskFilterIdOutputSchema = z.object({
 	hostingType: z.enum(["WEB_HOSTING", "EMAIL_HOSTING", "RESELLER_HOSTING", "VPS_HOSTING", "DEDICATED_HOSTING"]),
 }).nullable();
 
+const getHostingByDomainNameInputSchema = z.object({
+	domainName: z.string().min(1, "Domain name is required"),
+});
+
+const getHostingByDomainNameOutputSchema = z.object({
+	hasHosting: z.boolean(),
+	subscriptionId: z.string().nullable(),
+});
+
 const unlinkFromTeamInputSchema = z.object({
 	subscriptionId: z.string(),
 });
@@ -457,6 +466,59 @@ export const hostingRouter = router({
 				hostingType: subscription.hostingType as any,
 			};
 		}),
+
+	// Check if domain has hosting in Plesk by domain name (for agency domain portfolio details)
+	getHostingByDomainName: protectedProcedure
+		.input(getHostingByDomainNameInputSchema)
+		.output(getHostingByDomainNameOutputSchema)
+		.query(async ({ ctx, input }) => {
+			if (!ctx.session?.user?.id) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in",
+				});
+			}
+			if (!process.env.PLESK_XML_ENDPOINT) {
+				return { hasHosting: false, subscriptionId: null };
+			}
+			const escapeXml = (s: string) =>
+				s
+					.replace(/&/g, "&amp;")
+					.replace(/</g, "&lt;")
+					.replace(/>/g, "&gt;")
+					.replace(/"/g, "&quot;")
+					.replace(/'/g, "&apos;");
+			const xmlRequest = `<?xml version="1.0" encoding="UTF-8"?>
+<packet>
+  <webspace>
+    <get>
+      <filter>
+        <name>${escapeXml(input.domainName)}</name>
+      </filter>
+      <dataset>
+        <gen_info/>
+      </dataset>
+    </get>
+  </webspace>
+</packet>`;
+			try {
+				const { xml, isAuthError, isHostUnreachable } = await sendPleskXmlRequest(xmlRequest);
+				if (isHostUnreachable || isAuthError || !xml?.trim()) {
+					return { hasHosting: false, subscriptionId: null };
+				}
+				const parser = new XMLParser({ ignoreAttributes: false });
+				const parsed = parser.parse(xml);
+				const rawResult = parsed?.packet?.webspace?.get?.result;
+				if (!rawResult) return { hasHosting: false, subscriptionId: null };
+				const result = Array.isArray(rawResult) ? rawResult[0] : rawResult;
+				const id = result?.id ?? result?.["filter-id"];
+				if (id == null) return { hasHosting: false, subscriptionId: null };
+				return { hasHosting: true, subscriptionId: String(id) };
+			} catch {
+				return { hasHosting: false, subscriptionId: null };
+			}
+		}),
+
 	// Link an existing Plesk subscription to a team
 	linkToTeam: protectedProcedure
 		.input(linkToTeamInputSchema)

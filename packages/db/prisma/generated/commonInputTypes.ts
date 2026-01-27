@@ -1329,6 +1329,40 @@ export type EnumMessageReadStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumMessageReadStatusFilter<$PrismaModel>
 }
 
+export type EnumWebDesignProjectTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.WebDesignProjectType | Prisma.EnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.WebDesignProjectType[] | Prisma.ListEnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WebDesignProjectType[] | Prisma.ListEnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWebDesignProjectTypeFilter<$PrismaModel> | $Enums.WebDesignProjectType
+}
+
+export type EnumWebDesignQuoteStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.WebDesignQuoteStatus | Prisma.EnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WebDesignQuoteStatus[] | Prisma.ListEnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WebDesignQuoteStatus[] | Prisma.ListEnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWebDesignQuoteStatusFilter<$PrismaModel> | $Enums.WebDesignQuoteStatus
+}
+
+export type EnumWebDesignProjectTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.WebDesignProjectType | Prisma.EnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.WebDesignProjectType[] | Prisma.ListEnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WebDesignProjectType[] | Prisma.ListEnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWebDesignProjectTypeWithAggregatesFilter<$PrismaModel> | $Enums.WebDesignProjectType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumWebDesignProjectTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumWebDesignProjectTypeFilter<$PrismaModel>
+}
+
+export type EnumWebDesignQuoteStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.WebDesignQuoteStatus | Prisma.EnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WebDesignQuoteStatus[] | Prisma.ListEnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WebDesignQuoteStatus[] | Prisma.ListEnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWebDesignQuoteStatusWithAggregatesFilter<$PrismaModel> | $Enums.WebDesignQuoteStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumWebDesignQuoteStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumWebDesignQuoteStatusFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -2591,6 +2625,40 @@ export type NestedEnumMessageReadStatusWithAggregatesFilter<$PrismaModel = never
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumMessageReadStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumMessageReadStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumWebDesignProjectTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.WebDesignProjectType | Prisma.EnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.WebDesignProjectType[] | Prisma.ListEnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WebDesignProjectType[] | Prisma.ListEnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWebDesignProjectTypeFilter<$PrismaModel> | $Enums.WebDesignProjectType
+}
+
+export type NestedEnumWebDesignQuoteStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.WebDesignQuoteStatus | Prisma.EnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WebDesignQuoteStatus[] | Prisma.ListEnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WebDesignQuoteStatus[] | Prisma.ListEnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWebDesignQuoteStatusFilter<$PrismaModel> | $Enums.WebDesignQuoteStatus
+}
+
+export type NestedEnumWebDesignProjectTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.WebDesignProjectType | Prisma.EnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.WebDesignProjectType[] | Prisma.ListEnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WebDesignProjectType[] | Prisma.ListEnumWebDesignProjectTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWebDesignProjectTypeWithAggregatesFilter<$PrismaModel> | $Enums.WebDesignProjectType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumWebDesignProjectTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumWebDesignProjectTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumWebDesignQuoteStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.WebDesignQuoteStatus | Prisma.EnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WebDesignQuoteStatus[] | Prisma.ListEnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WebDesignQuoteStatus[] | Prisma.ListEnumWebDesignQuoteStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWebDesignQuoteStatusWithAggregatesFilter<$PrismaModel> | $Enums.WebDesignQuoteStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumWebDesignQuoteStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumWebDesignQuoteStatusFilter<$PrismaModel>
 }
 
 

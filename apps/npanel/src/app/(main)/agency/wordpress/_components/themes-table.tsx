@@ -69,7 +69,7 @@ function ThemesTableSkeleton() {
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-10 w-32" />
       </div>
-      <div className="border rounded-lg">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -582,7 +582,7 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
       </div>
 
       {/* Themes Table */}
-      <div className="border rounded-lg">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

@@ -282,11 +282,11 @@ export function DnsTable({ siteId }: DnsTableProps) {
   };
 
   const TableView = () => (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Host</TableHead>
+            <TableHead className="pl-6">Host</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Value</TableHead>
             <TableHead className="w-12"></TableHead>
@@ -295,7 +295,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
         <TableBody>
           {filteredData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={4} className="pl-6 text-center py-8 text-muted-foreground">
                 No DNS records found
               </TableCell>
             </TableRow>
@@ -306,7 +306,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
                 className="cursor-pointer"
                 onClick={() => handleView(record)}
               >
-                <TableCell className="font-medium">
+                <TableCell className="pl-6 font-medium">
                   {record.host === "@" ? "@" : record.host || "Unknown Host"}
                 </TableCell>
                 <TableCell>
@@ -446,7 +446,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
       {viewMode === "card" ? <CardView /> : <TableView />}
 
       {/* Table implementation (commented out for performance) */}
-      {/* <div className="overflow-hidden rounded-lg border">
+      {/* <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <DataTableNew table={table} columns={columns} />
       </div>
       

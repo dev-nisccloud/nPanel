@@ -167,7 +167,8 @@ export const ModelName = {
   TicketAttachment: 'TicketAttachment',
   TicketTag: 'TicketTag',
   TicketTagRelation: 'TicketTagRelation',
-  TicketActivityLog: 'TicketActivityLog'
+  TicketActivityLog: 'TicketActivityLog',
+  WebDesignQuoteRequest: 'WebDesignQuoteRequest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2433,6 +2434,26 @@ export const TicketActivityLogScalarFieldEnum = {
 } as const
 
 export type TicketActivityLogScalarFieldEnum = (typeof TicketActivityLogScalarFieldEnum)[keyof typeof TicketActivityLogScalarFieldEnum]
+
+
+export const WebDesignQuoteRequestScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  email: 'email',
+  phone: 'phone',
+  companyName: 'companyName',
+  domain: 'domain',
+  projectType: 'projectType',
+  projectDescription: 'projectDescription',
+  budget: 'budget',
+  targetLaunchDate: 'targetLaunchDate',
+  status: 'status',
+  submittedById: 'submittedById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WebDesignQuoteRequestScalarFieldEnum = (typeof WebDesignQuoteRequestScalarFieldEnum)[keyof typeof WebDesignQuoteRequestScalarFieldEnum]
 
 
 export const SortOrder = {

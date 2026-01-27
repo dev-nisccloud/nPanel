@@ -64,35 +64,35 @@ export function PluginDataTable({ data: initialData }: { data: z.infer<typeof wo
       </div>
       
       <TabsContent value="all" className="relative flex flex-col gap-4 overflow-auto">
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <DataTableNew table={table} columns={columns} />
         </div>
         <DataTablePagination table={table} />
       </TabsContent>
       
       <TabsContent value="active" className="relative flex flex-col gap-4 overflow-auto">
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <DataTableNew table={table} columns={columns} />
         </div>
         <DataTablePagination table={table} />
       </TabsContent>
       
       <TabsContent value="inactive" className="relative flex flex-col gap-4 overflow-auto">
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <DataTableNew table={table} columns={columns} />
         </div>
         <DataTablePagination table={table} />
       </TabsContent>
       
       <TabsContent value="vulnerable" className="relative flex flex-col gap-4 overflow-auto">
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <DataTableNew table={table} columns={columns} />
         </div>
         <DataTablePagination table={table} />
       </TabsContent>
       
       <TabsContent value="updates" className="relative flex flex-col gap-4 overflow-auto">
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <DataTableNew table={table} columns={columns} />
         </div>
         <DataTablePagination table={table} />

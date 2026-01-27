@@ -268,11 +268,11 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
   };
 
   const TableView = () => (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Subdomain Name</TableHead>
+            <TableHead className="pl-6">Subdomain Name</TableHead>
             <TableHead>Parent Domain</TableHead>
             <TableHead>PHP Version</TableHead>
             <TableHead>SSL Status</TableHead>
@@ -282,7 +282,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
         <TableBody>
           {filteredData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={5} className="pl-6 text-center py-8 text-muted-foreground">
                 No subdomains found
               </TableCell>
             </TableRow>
@@ -300,7 +300,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
                   className="cursor-pointer"
                   onClick={() => handleView(subdomain)}
                 >
-                  <TableCell className="font-medium">
+                  <TableCell className="pl-6 font-medium">
                     {subdomain.name}
                   </TableCell>
                   <TableCell className="text-muted-foreground">

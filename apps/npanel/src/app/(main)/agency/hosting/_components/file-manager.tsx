@@ -88,7 +88,7 @@ function FileManagerSkeleton() {
       </div>
 
       {/* Content skeleton */}
-      <div className="overflow-hidden rounded-lg border">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <Card key={i}>
@@ -375,7 +375,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
   };
 
   const CardView = () => (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4">
         {filteredItems.map((item) => (
           <Card 

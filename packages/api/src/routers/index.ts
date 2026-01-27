@@ -73,6 +73,7 @@ import { paymentTransactionsRouter } from "./payment-transactions";
 import { pagespeedInsightsRouter } from "./pagespeed-insights";
 import { seoReportsRouter } from "./seo-reports";
 import { emailMarketingRouter } from "./email-marketing";
+import { webDesignQuotesRouter } from "./web-design-quotes";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -204,5 +205,7 @@ export const appRouter = router({
 	seoReports: seoReportsRouter,
 	// Email Marketing (Resend Integration)
 	emailMarketing: emailMarketingRouter,
+	// Web Design Quote Requests (domain portfolio dialog)
+	webDesignQuotes: webDesignQuotesRouter,
 });
 export type AppRouter = typeof appRouter;

@@ -639,3 +639,27 @@ export const MessageReadStatus = {
 } as const
 
 export type MessageReadStatus = (typeof MessageReadStatus)[keyof typeof MessageReadStatus]
+
+
+export const WebDesignProjectType = {
+  NEW_WEBSITE: 'NEW_WEBSITE',
+  REDESIGN: 'REDESIGN',
+  ECOMMERCE: 'ECOMMERCE',
+  LANDING_PAGE: 'LANDING_PAGE',
+  WEB_APP: 'WEB_APP',
+  OTHER: 'OTHER'
+} as const
+
+export type WebDesignProjectType = (typeof WebDesignProjectType)[keyof typeof WebDesignProjectType]
+
+
+export const WebDesignQuoteStatus = {
+  PENDING: 'PENDING',
+  CONTACTED: 'CONTACTED',
+  QUOTED: 'QUOTED',
+  ACCEPTED: 'ACCEPTED',
+  DECLINED: 'DECLINED',
+  EXPIRED: 'EXPIRED'
+} as const
+
+export type WebDesignQuoteStatus = (typeof WebDesignQuoteStatus)[keyof typeof WebDesignQuoteStatus]

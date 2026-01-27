@@ -256,6 +256,7 @@ export type UserWhereInput = {
   ticketMessages?: Prisma.TicketMessageListRelationFilter
   ticketAttachments?: Prisma.TicketAttachmentListRelationFilter
   creativeBriefs?: Prisma.CreativeBriefListRelationFilter
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   seoReports?: Prisma.SeoReportListRelationFilter
   emailDomains?: Prisma.EmailDomainListRelationFilter
@@ -304,6 +305,7 @@ export type UserOrderByWithRelationInput = {
   ticketMessages?: Prisma.TicketMessageOrderByRelationAggregateInput
   ticketAttachments?: Prisma.TicketAttachmentOrderByRelationAggregateInput
   creativeBriefs?: Prisma.CreativeBriefOrderByRelationAggregateInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   seoReports?: Prisma.SeoReportOrderByRelationAggregateInput
   emailDomains?: Prisma.EmailDomainOrderByRelationAggregateInput
@@ -355,6 +357,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   ticketMessages?: Prisma.TicketMessageListRelationFilter
   ticketAttachments?: Prisma.TicketAttachmentListRelationFilter
   creativeBriefs?: Prisma.CreativeBriefListRelationFilter
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   seoReports?: Prisma.SeoReportListRelationFilter
   emailDomains?: Prisma.EmailDomainListRelationFilter
@@ -437,6 +440,7 @@ export type UserCreateInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -485,6 +489,7 @@ export type UserUncheckedCreateInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -533,6 +538,7 @@ export type UserUpdateInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -581,6 +587,7 @@ export type UserUncheckedUpdateInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -1174,6 +1181,22 @@ export type UserUpdateOneRequiredWithoutTicketAttachmentsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTicketAttachmentsInput, Prisma.UserUpdateWithoutTicketAttachmentsInput>, Prisma.UserUncheckedUpdateWithoutTicketAttachmentsInput>
 }
 
+export type UserCreateNestedOneWithoutWebDesignQuoteRequestsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutWebDesignQuoteRequestsInput, Prisma.UserUncheckedCreateWithoutWebDesignQuoteRequestsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutWebDesignQuoteRequestsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutWebDesignQuoteRequestsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutWebDesignQuoteRequestsInput, Prisma.UserUncheckedCreateWithoutWebDesignQuoteRequestsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutWebDesignQuoteRequestsInput
+  upsert?: Prisma.UserUpsertWithoutWebDesignQuoteRequestsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutWebDesignQuoteRequestsInput, Prisma.UserUpdateWithoutWebDesignQuoteRequestsInput>, Prisma.UserUncheckedUpdateWithoutWebDesignQuoteRequestsInput>
+}
+
 export type UserCreateWithoutCustomerIntegrationsInput = {
   id: string
   name: string
@@ -1212,6 +1235,7 @@ export type UserCreateWithoutCustomerIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -1259,6 +1283,7 @@ export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -1322,6 +1347,7 @@ export type UserUpdateWithoutCustomerIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -1369,6 +1395,7 @@ export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -1416,6 +1443,7 @@ export type UserCreateWithoutSessionsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -1463,6 +1491,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -1526,6 +1555,7 @@ export type UserUpdateWithoutSessionsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -1573,6 +1603,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -1620,6 +1651,7 @@ export type UserCreateWithoutAccountsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -1667,6 +1699,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -1730,6 +1763,7 @@ export type UserUpdateWithoutAccountsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -1777,6 +1811,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -1824,6 +1859,7 @@ export type UserCreateWithoutTeamMembershipsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -1871,6 +1907,7 @@ export type UserUncheckedCreateWithoutTeamMembershipsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -1934,6 +1971,7 @@ export type UserUpdateWithoutTeamMembershipsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -1981,6 +2019,7 @@ export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -2028,6 +2067,7 @@ export type UserCreateWithoutProfileInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -2075,6 +2115,7 @@ export type UserUncheckedCreateWithoutProfileInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -2138,6 +2179,7 @@ export type UserUpdateWithoutProfileInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -2185,6 +2227,7 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -2232,6 +2275,7 @@ export type UserCreateWithoutActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -2279,6 +2323,7 @@ export type UserUncheckedCreateWithoutActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -2342,6 +2387,7 @@ export type UserUpdateWithoutActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -2389,6 +2435,7 @@ export type UserUncheckedUpdateWithoutActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -2436,6 +2483,7 @@ export type UserCreateWithoutDomainsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -2483,6 +2531,7 @@ export type UserUncheckedCreateWithoutDomainsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -2546,6 +2595,7 @@ export type UserUpdateWithoutDomainsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -2593,6 +2643,7 @@ export type UserUncheckedUpdateWithoutDomainsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -2640,6 +2691,7 @@ export type UserCreateWithoutCreativeBriefsInput = {
   assignedTickets?: Prisma.TicketCreateNestedManyWithoutAssignedToInput
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -2687,6 +2739,7 @@ export type UserUncheckedCreateWithoutCreativeBriefsInput = {
   assignedTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutAssignedToInput
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -2750,6 +2803,7 @@ export type UserUpdateWithoutCreativeBriefsInput = {
   assignedTickets?: Prisma.TicketUpdateManyWithoutAssignedToNestedInput
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -2797,6 +2851,7 @@ export type UserUncheckedUpdateWithoutCreativeBriefsInput = {
   assignedTickets?: Prisma.TicketUncheckedUpdateManyWithoutAssignedToNestedInput
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -2845,6 +2900,7 @@ export type UserCreateWithoutEmailDomainsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   contacts?: Prisma.ContactCreateNestedManyWithoutUserInput
@@ -2892,6 +2948,7 @@ export type UserUncheckedCreateWithoutEmailDomainsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   contacts?: Prisma.ContactUncheckedCreateNestedManyWithoutUserInput
@@ -2955,6 +3012,7 @@ export type UserUpdateWithoutEmailDomainsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   contacts?: Prisma.ContactUpdateManyWithoutUserNestedInput
@@ -3002,6 +3060,7 @@ export type UserUncheckedUpdateWithoutEmailDomainsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   contacts?: Prisma.ContactUncheckedUpdateManyWithoutUserNestedInput
@@ -3049,6 +3108,7 @@ export type UserCreateWithoutContactsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -3096,6 +3156,7 @@ export type UserUncheckedCreateWithoutContactsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -3159,6 +3220,7 @@ export type UserUpdateWithoutContactsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -3206,6 +3268,7 @@ export type UserUncheckedUpdateWithoutContactsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -3253,6 +3316,7 @@ export type UserCreateWithoutEmailTemplatesInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -3300,6 +3364,7 @@ export type UserUncheckedCreateWithoutEmailTemplatesInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -3363,6 +3428,7 @@ export type UserUpdateWithoutEmailTemplatesInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -3410,6 +3476,7 @@ export type UserUncheckedUpdateWithoutEmailTemplatesInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -3457,6 +3524,7 @@ export type UserCreateWithoutCampaignsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -3504,6 +3572,7 @@ export type UserUncheckedCreateWithoutCampaignsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -3567,6 +3636,7 @@ export type UserUpdateWithoutCampaignsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -3614,6 +3684,7 @@ export type UserUncheckedUpdateWithoutCampaignsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -3661,6 +3732,7 @@ export type UserCreateWithoutEmailLogsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -3708,6 +3780,7 @@ export type UserUncheckedCreateWithoutEmailLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -3771,6 +3844,7 @@ export type UserUpdateWithoutEmailLogsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -3818,6 +3892,7 @@ export type UserUncheckedUpdateWithoutEmailLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -3864,6 +3939,7 @@ export type UserCreateWithoutGoogleAdsIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -3911,6 +3987,7 @@ export type UserUncheckedCreateWithoutGoogleAdsIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -3974,6 +4051,7 @@ export type UserUpdateWithoutGoogleAdsIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -4021,6 +4099,7 @@ export type UserUncheckedUpdateWithoutGoogleAdsIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -4068,6 +4147,7 @@ export type UserCreateWithoutImageGeneratorGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -4115,6 +4195,7 @@ export type UserUncheckedCreateWithoutImageGeneratorGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -4178,6 +4259,7 @@ export type UserUpdateWithoutImageGeneratorGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -4225,6 +4307,7 @@ export type UserUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -4272,6 +4355,7 @@ export type UserCreateWithoutBackgroundRemoverGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -4319,6 +4403,7 @@ export type UserUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -4382,6 +4467,7 @@ export type UserUpdateWithoutBackgroundRemoverGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -4429,6 +4515,7 @@ export type UserUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -4476,6 +4563,7 @@ export type UserCreateWithoutImageGenProjectsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -4523,6 +4611,7 @@ export type UserUncheckedCreateWithoutImageGenProjectsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -4586,6 +4675,7 @@ export type UserUpdateWithoutImageGenProjectsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -4633,6 +4723,7 @@ export type UserUncheckedUpdateWithoutImageGenProjectsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -4680,6 +4771,7 @@ export type UserCreateWithoutImageGenTemplatesInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -4727,6 +4819,7 @@ export type UserUncheckedCreateWithoutImageGenTemplatesInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -4790,6 +4883,7 @@ export type UserUpdateWithoutImageGenTemplatesInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -4837,6 +4931,7 @@ export type UserUncheckedUpdateWithoutImageGenTemplatesInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -4884,6 +4979,7 @@ export type UserCreateWithoutImageGenUploadInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -4931,6 +5027,7 @@ export type UserUncheckedCreateWithoutImageGenUploadInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -4994,6 +5091,7 @@ export type UserUpdateWithoutImageGenUploadInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -5041,6 +5139,7 @@ export type UserUncheckedUpdateWithoutImageGenUploadInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -5088,6 +5187,7 @@ export type UserCreateWithoutImageGenAiGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -5135,6 +5235,7 @@ export type UserUncheckedCreateWithoutImageGenAiGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -5198,6 +5299,7 @@ export type UserUpdateWithoutImageGenAiGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -5245,6 +5347,7 @@ export type UserUncheckedUpdateWithoutImageGenAiGenerationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -5292,6 +5395,7 @@ export type UserCreateWithoutMetaAdsAccountActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -5339,6 +5443,7 @@ export type UserUncheckedCreateWithoutMetaAdsAccountActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -5402,6 +5507,7 @@ export type UserUpdateWithoutMetaAdsAccountActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -5449,6 +5555,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAccountActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -5496,6 +5603,7 @@ export type UserCreateWithoutMetaAdsCampaignActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -5543,6 +5651,7 @@ export type UserUncheckedCreateWithoutMetaAdsCampaignActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -5606,6 +5715,7 @@ export type UserUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -5653,6 +5763,7 @@ export type UserUncheckedUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -5700,6 +5811,7 @@ export type UserCreateWithoutMetaAdsAdSetActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -5747,6 +5859,7 @@ export type UserUncheckedCreateWithoutMetaAdsAdSetActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -5810,6 +5923,7 @@ export type UserUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -5857,6 +5971,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -5904,6 +6019,7 @@ export type UserCreateWithoutMetaAdsAdActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -5951,6 +6067,7 @@ export type UserUncheckedCreateWithoutMetaAdsAdActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -6014,6 +6131,7 @@ export type UserUpdateWithoutMetaAdsAdActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -6061,6 +6179,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAdActivityLogsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -6109,6 +6228,7 @@ export type UserCreateWithoutNotificationsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   contacts?: Prisma.ContactCreateNestedManyWithoutUserInput
@@ -6156,6 +6276,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   contacts?: Prisma.ContactUncheckedCreateNestedManyWithoutUserInput
@@ -6219,6 +6340,7 @@ export type UserUpdateWithoutNotificationsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   contacts?: Prisma.ContactUpdateManyWithoutUserNestedInput
@@ -6266,6 +6388,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   contacts?: Prisma.ContactUncheckedUpdateManyWithoutUserNestedInput
@@ -6313,6 +6436,7 @@ export type UserCreateWithoutSeoReportsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   contacts?: Prisma.ContactCreateNestedManyWithoutUserInput
@@ -6360,6 +6484,7 @@ export type UserUncheckedCreateWithoutSeoReportsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   contacts?: Prisma.ContactUncheckedCreateNestedManyWithoutUserInput
@@ -6423,6 +6548,7 @@ export type UserUpdateWithoutSeoReportsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   contacts?: Prisma.ContactUpdateManyWithoutUserNestedInput
@@ -6470,6 +6596,7 @@ export type UserUncheckedUpdateWithoutSeoReportsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   contacts?: Prisma.ContactUncheckedUpdateManyWithoutUserNestedInput
@@ -6516,6 +6643,7 @@ export type UserCreateWithoutSocialMediaIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -6563,6 +6691,7 @@ export type UserUncheckedCreateWithoutSocialMediaIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -6626,6 +6755,7 @@ export type UserUpdateWithoutSocialMediaIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -6673,6 +6803,7 @@ export type UserUncheckedUpdateWithoutSocialMediaIntegrationsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -6720,6 +6851,7 @@ export type UserCreateWithoutSocialMediaPageTokensInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -6767,6 +6899,7 @@ export type UserUncheckedCreateWithoutSocialMediaPageTokensInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -6830,6 +6963,7 @@ export type UserUpdateWithoutSocialMediaPageTokensInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -6877,6 +7011,7 @@ export type UserUncheckedUpdateWithoutSocialMediaPageTokensInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -6924,6 +7059,7 @@ export type UserCreateWithoutMetaContentCalendarPostsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -6971,6 +7107,7 @@ export type UserUncheckedCreateWithoutMetaContentCalendarPostsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -7034,6 +7171,7 @@ export type UserUpdateWithoutMetaContentCalendarPostsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -7081,6 +7219,7 @@ export type UserUncheckedUpdateWithoutMetaContentCalendarPostsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -7128,6 +7267,7 @@ export type UserCreateWithoutLinkedInContentCalendarInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -7175,6 +7315,7 @@ export type UserUncheckedCreateWithoutLinkedInContentCalendarInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -7238,6 +7379,7 @@ export type UserUpdateWithoutLinkedInContentCalendarInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -7285,6 +7427,7 @@ export type UserUncheckedUpdateWithoutLinkedInContentCalendarInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -7332,6 +7475,7 @@ export type UserCreateWithoutCreatedTicketsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -7379,6 +7523,7 @@ export type UserUncheckedCreateWithoutCreatedTicketsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -7431,6 +7576,7 @@ export type UserCreateWithoutAssignedTicketsInput = {
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -7478,6 +7624,7 @@ export type UserUncheckedCreateWithoutAssignedTicketsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -7541,6 +7688,7 @@ export type UserUpdateWithoutCreatedTicketsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -7588,6 +7736,7 @@ export type UserUncheckedUpdateWithoutCreatedTicketsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -7646,6 +7795,7 @@ export type UserUpdateWithoutAssignedTicketsInput = {
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -7693,6 +7843,7 @@ export type UserUncheckedUpdateWithoutAssignedTicketsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -7740,6 +7891,7 @@ export type UserCreateWithoutTicketMessagesInput = {
   assignedTickets?: Prisma.TicketCreateNestedManyWithoutAssignedToInput
   ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -7787,6 +7939,7 @@ export type UserUncheckedCreateWithoutTicketMessagesInput = {
   assignedTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutAssignedToInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -7850,6 +8003,7 @@ export type UserUpdateWithoutTicketMessagesInput = {
   assignedTickets?: Prisma.TicketUpdateManyWithoutAssignedToNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -7897,6 +8051,7 @@ export type UserUncheckedUpdateWithoutTicketMessagesInput = {
   assignedTickets?: Prisma.TicketUncheckedUpdateManyWithoutAssignedToNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -7944,6 +8099,7 @@ export type UserCreateWithoutTicketAttachmentsInput = {
   assignedTickets?: Prisma.TicketCreateNestedManyWithoutAssignedToInput
   ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
   creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
@@ -7991,6 +8147,7 @@ export type UserUncheckedCreateWithoutTicketAttachmentsInput = {
   assignedTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutAssignedToInput
   ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
@@ -8054,6 +8211,7 @@ export type UserUpdateWithoutTicketAttachmentsInput = {
   assignedTickets?: Prisma.TicketUpdateManyWithoutAssignedToNestedInput
   ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
   creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
@@ -8101,6 +8259,215 @@ export type UserUncheckedUpdateWithoutTicketAttachmentsInput = {
   assignedTickets?: Prisma.TicketUncheckedUpdateManyWithoutAssignedToNestedInput
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
+  contacts?: Prisma.ContactUncheckedUpdateManyWithoutUserNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutUserNestedInput
+  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutUserNestedInput
+  emailTemplates?: Prisma.EmailTemplateUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutWebDesignQuoteRequestsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
+  domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
+  createdTickets?: Prisma.TicketCreateNestedManyWithoutCreatedByInput
+  assignedTickets?: Prisma.TicketCreateNestedManyWithoutAssignedToInput
+  ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
+  ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
+  creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
+  contacts?: Prisma.ContactCreateNestedManyWithoutUserInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutUserInput
+  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutUserInput
+  emailTemplates?: Prisma.EmailTemplateCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutWebDesignQuoteRequestsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
+  createdTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutCreatedByInput
+  assignedTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutAssignedToInput
+  ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
+  ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
+  contacts?: Prisma.ContactUncheckedCreateNestedManyWithoutUserInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutUserInput
+  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutUserInput
+  emailTemplates?: Prisma.EmailTemplateUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutWebDesignQuoteRequestsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutWebDesignQuoteRequestsInput, Prisma.UserUncheckedCreateWithoutWebDesignQuoteRequestsInput>
+}
+
+export type UserUpsertWithoutWebDesignQuoteRequestsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutWebDesignQuoteRequestsInput, Prisma.UserUncheckedUpdateWithoutWebDesignQuoteRequestsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutWebDesignQuoteRequestsInput, Prisma.UserUncheckedCreateWithoutWebDesignQuoteRequestsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutWebDesignQuoteRequestsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutWebDesignQuoteRequestsInput, Prisma.UserUncheckedUpdateWithoutWebDesignQuoteRequestsInput>
+}
+
+export type UserUpdateWithoutWebDesignQuoteRequestsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
+  createdTickets?: Prisma.TicketUpdateManyWithoutCreatedByNestedInput
+  assignedTickets?: Prisma.TicketUpdateManyWithoutAssignedToNestedInput
+  ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
+  ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
+  contacts?: Prisma.ContactUpdateManyWithoutUserNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutUserNestedInput
+  emailLogs?: Prisma.EmailLogUpdateManyWithoutUserNestedInput
+  emailTemplates?: Prisma.EmailTemplateUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutWebDesignQuoteRequestsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
+  createdTickets?: Prisma.TicketUncheckedUpdateManyWithoutCreatedByNestedInput
+  assignedTickets?: Prisma.TicketUncheckedUpdateManyWithoutAssignedToNestedInput
+  ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
+  ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
@@ -8142,6 +8509,7 @@ export type UserCountOutputType = {
   ticketMessages: number
   ticketAttachments: number
   creativeBriefs: number
+  webDesignQuoteRequests: number
   notifications: number
   seoReports: number
   emailDomains: number
@@ -8178,6 +8546,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   ticketMessages?: boolean | UserCountOutputTypeCountTicketMessagesArgs
   ticketAttachments?: boolean | UserCountOutputTypeCountTicketAttachmentsArgs
   creativeBriefs?: boolean | UserCountOutputTypeCountCreativeBriefsArgs
+  webDesignQuoteRequests?: boolean | UserCountOutputTypeCountWebDesignQuoteRequestsArgs
   notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
   seoReports?: boolean | UserCountOutputTypeCountSeoReportsArgs
   emailDomains?: boolean | UserCountOutputTypeCountEmailDomainsArgs
@@ -8382,6 +8751,13 @@ export type UserCountOutputTypeCountCreativeBriefsArgs<ExtArgs extends runtime.T
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountWebDesignQuoteRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.WebDesignQuoteRequestWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.NotificationWhereInput
 }
@@ -8468,6 +8844,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   ticketMessages?: boolean | Prisma.User$ticketMessagesArgs<ExtArgs>
   ticketAttachments?: boolean | Prisma.User$ticketAttachmentsArgs<ExtArgs>
   creativeBriefs?: boolean | Prisma.User$creativeBriefsArgs<ExtArgs>
+  webDesignQuoteRequests?: boolean | Prisma.User$webDesignQuoteRequestsArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   seoReports?: boolean | Prisma.User$seoReportsArgs<ExtArgs>
   emailDomains?: boolean | Prisma.User$emailDomainsArgs<ExtArgs>
@@ -8549,6 +8926,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   ticketMessages?: boolean | Prisma.User$ticketMessagesArgs<ExtArgs>
   ticketAttachments?: boolean | Prisma.User$ticketAttachmentsArgs<ExtArgs>
   creativeBriefs?: boolean | Prisma.User$creativeBriefsArgs<ExtArgs>
+  webDesignQuoteRequests?: boolean | Prisma.User$webDesignQuoteRequestsArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   seoReports?: boolean | Prisma.User$seoReportsArgs<ExtArgs>
   emailDomains?: boolean | Prisma.User$emailDomainsArgs<ExtArgs>
@@ -8591,6 +8969,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     ticketMessages: Prisma.$TicketMessagePayload<ExtArgs>[]
     ticketAttachments: Prisma.$TicketAttachmentPayload<ExtArgs>[]
     creativeBriefs: Prisma.$CreativeBriefPayload<ExtArgs>[]
+    webDesignQuoteRequests: Prisma.$WebDesignQuoteRequestPayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     seoReports: Prisma.$SeoReportPayload<ExtArgs>[]
     emailDomains: Prisma.$EmailDomainPayload<ExtArgs>[]
@@ -9032,6 +9411,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   ticketMessages<T extends Prisma.User$ticketMessagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ticketMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TicketMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ticketAttachments<T extends Prisma.User$ticketAttachmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ticketAttachmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TicketAttachmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   creativeBriefs<T extends Prisma.User$creativeBriefsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$creativeBriefsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CreativeBriefPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  webDesignQuoteRequests<T extends Prisma.User$webDesignQuoteRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$webDesignQuoteRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WebDesignQuoteRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   seoReports<T extends Prisma.User$seoReportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$seoReportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SeoReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   emailDomains<T extends Prisma.User$emailDomainsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$emailDomainsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailDomainPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -10107,6 +10487,30 @@ export type User$creativeBriefsArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.CreativeBriefScalarFieldEnum | Prisma.CreativeBriefScalarFieldEnum[]
+}
+
+/**
+ * User.webDesignQuoteRequests
+ */
+export type User$webDesignQuoteRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the WebDesignQuoteRequest
+   */
+  select?: Prisma.WebDesignQuoteRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the WebDesignQuoteRequest
+   */
+  omit?: Prisma.WebDesignQuoteRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WebDesignQuoteRequestInclude<ExtArgs> | null
+  where?: Prisma.WebDesignQuoteRequestWhereInput
+  orderBy?: Prisma.WebDesignQuoteRequestOrderByWithRelationInput | Prisma.WebDesignQuoteRequestOrderByWithRelationInput[]
+  cursor?: Prisma.WebDesignQuoteRequestWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.WebDesignQuoteRequestScalarFieldEnum | Prisma.WebDesignQuoteRequestScalarFieldEnum[]
 }
 
 /**

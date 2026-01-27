@@ -913,6 +913,65 @@ export const ordersRouter = router({
 			};
 		}),
 
+	// Get order summary by team (for customer dashboard – allows CUSTOMER when they belong to the team)
+	getSummaryByTeam: protectedProcedure
+		.input(z.object({ teamId: z.string().min(1, "Team ID is required") }))
+		.output(
+			z.object({
+				total: z.number(),
+				completed: z.number(),
+				failed: z.number(),
+				pending: z.number(),
+			})
+		)
+		.query(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in",
+				});
+			}
+
+			const userRole = await getUserRole(session.user.id, session.user as { role?: string });
+			const isAgency = userRole === "AGENCY_ADMIN" || userRole === "AGENCY_SUPER_ADMIN";
+
+			if (!isAgency) {
+				const membership = await prisma.teamMember.findFirst({
+					where: {
+						teamId: input.teamId,
+						userId: session.user.id,
+					},
+				});
+				const team = await prisma.team.findUnique({
+					where: { id: input.teamId },
+					select: { createdById: true },
+				});
+				const isMember = Boolean(membership) || team?.createdById === session.user.id;
+				if (!isMember) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this team's orders",
+					});
+				}
+			}
+
+			const where = { teamId: input.teamId };
+			const [total, completed, failed, pending] = await Promise.all([
+				prisma.order.count({ where }),
+				prisma.order.count({ where: { ...where, status: "COMPLETED" } }),
+				prisma.order.count({ where: { ...where, status: "FAILED" } }),
+				prisma.order.count({
+					where: {
+						...where,
+						status: { in: ["PENDING", "PROCESSING"] },
+					},
+				}),
+			]);
+
+			return { total, completed, failed, pending };
+		}),
+
 	// Get order by ID
 	getById: protectedProcedure
 		.input(getOrderByIdInputSchema)

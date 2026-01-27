@@ -3,10 +3,8 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { format } from "date-fns";
-import { type DateRange } from "react-day-picker";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Phone } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,197 +22,362 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-const contactFormSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  companyName: z.string().min(1, "Company name is required"),
-  budget: z.string().min(1, "Budget is required"),
-  timeline: z.preprocess(
-    (val) => {
-      if (val === undefined || val === null || val === "") return undefined;
-      if (val instanceof Date) return val;
-      if (typeof val === "string") {
-        const date = new Date(val);
-        return isNaN(date.getTime()) ? undefined : date;
-      }
-      return undefined;
-    },
-    z.date().optional()
-  ),
-});
-
-type ContactFormValues = z.infer<typeof contactFormSchema>;
+import { trpc } from "@/utils/trpc";
+import {
+  webDesignQuoteFormSchema,
+  type WebDesignQuoteFormValues,
+  UI_PROJECT_TYPE_OPTIONS,
+  transformFormToCreatePayload,
+} from "./web-design-quote-ui-schema";
 
 interface WebDesignContactDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Optional phone number for the "Call us" button (e.g. from NEXT_PUBLIC_SUPPORT_PHONE) */
+  supportPhoneNumber?: string;
+  /** Pre-fill domain when opened from a domain context */
+  domainName?: string;
 }
 
-export function WebDesignContactDialog({ open, onOpenChange }: WebDesignContactDialogProps) {
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+export function WebDesignContactDialog({
+  open,
+  onOpenChange,
+  supportPhoneNumber,
+  domainName,
+}: WebDesignContactDialogProps) {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
 
-  const form = useForm<ContactFormValues>({
-    resolver: zodResolver(contactFormSchema),
+  const createMutation = trpc.webDesignQuotes.create.useMutation({
+    onError: (err) => {
+      toast.error("Failed to submit request", {
+        description: err.message ?? "An unexpected error occurred",
+      });
+    },
+  });
+
+  const form = useForm<WebDesignQuoteFormValues>({
+    resolver: zodResolver(webDesignQuoteFormSchema),
     defaultValues: {
       name: "",
+      email: "",
+      phone: "",
       companyName: "",
+      domain: domainName ?? "",
+      projectType: "",
+      projectDescription: "",
       budget: "",
       timeline: undefined,
     },
   });
 
-  const onSubmit = async (data: ContactFormValues) => {
+  React.useEffect(() => {
+    if (open && domainName) {
+      form.setValue("domain", domainName);
+    }
+  }, [open, domainName, form]);
+
+  const onSubmit = async (data: WebDesignQuoteFormValues) => {
+    const payload = transformFormToCreatePayload(data);
+    type CreateInput = Parameters<typeof createMutation.mutateAsync>[0];
     try {
-      setIsSubmitting(true);
-      
-      // Simulate API call - replace with actual API endpoint when available
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+      await createMutation.mutateAsync(payload as CreateInput);
       toast.success("Request submitted successfully", {
-        description: "We will contact you as soon as possible with a quotation for your request.",
+        description:
+          "We will contact you as soon as possible with a quotation for your request.",
       });
-      
-      form.reset();
+      form.reset({
+        name: "",
+        email: "",
+        phone: "",
+        companyName: "",
+        domain: domainName ?? "",
+        projectType: "",
+        projectDescription: "",
+        budget: "",
+        timeline: undefined,
+      });
       setSelectedDate(undefined);
       onOpenChange(false);
-    } catch (error) {
-      toast.error("Failed to submit request", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-      });
-    } finally {
-      setIsSubmitting(false);
+    } catch {
+      // onError toast already fired from mutation
     }
+  };
+
+  const isSubmitting = createMutation.isPending;
+
+  const handleCallUs = () => {
+      window.location.href = `tel:+254748777666`;
+      toast.info("Phone number not configured", {
+        description: "Please use the form to submit your request, or contact your administrator for the support number.",
+      });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Get Professional Web Design & Development</DialogTitle>
           <DialogDescription>
-            Fill out the form below and we'll get back to you with a custom quotation.
+            Transform your domain into a powerful online presence. Our expert team delivers custom
+            websites, modern designs, and seamless user experiences. Fill out the form below with
+            your details and we&apos;ll get back to you with a custom quotation or call us if you
+            prefer to speak with someone directly.
           </DialogDescription>
         </DialogHeader>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <ScrollArea className="max-h-[50vh] pr-3 -mr-1">
+              <div className="space-y-4 pb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="companyName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Acme Inc." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-            <FormField
-              control={form.control}
-              name="companyName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Company Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Acme Inc." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="you@company.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <FormControl>
+                          <Input type="tel" placeholder="+254 700 000 000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-            <FormField
-              control={form.control}
-              name="budget"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Budget</FormLabel>
-                  <FormControl>
-                    <Input placeholder="KES 50,000 - 100,000" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="timeline"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Timeline</FormLabel>
-                  <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                    <PopoverTrigger asChild>
+                <FormField
+                  control={form.control}
+                  name="domain"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Domain (optional)</FormLabel>
                       <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !selectedDate && "text-muted-foreground"
-                          )}
-                          disabled={isSubmitting}
-                          type="button"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {selectedDate ? (
-                            format(selectedDate, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
+                        <Input placeholder="example.com" {...field} />
                       </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => {
-                          setSelectedDate(date);
-                          field.onChange(date);
-                          setIsDatePickerOpen(false);
-                        }}
-                        initialFocus
-                        disabled={isSubmitting}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <div className="flex justify-end gap-2 pt-4">
+                <div className="w-full">
+                  <FormField
+                    control={form.control}
+                    name="projectType"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>Project type</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={isSubmitting}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select project type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {UI_PROJECT_TYPE_OPTIONS.map((t) => (
+                              <SelectItem key={t.value} value={t.value}>
+                                {t.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="projectDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project description & requirements</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Tell us about your goals, target audience, must-have features, and any reference sites you like..."
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="budget"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Budget range</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. KES 50,000 – 100,000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="timeline"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Target launch / when do you need it?</FormLabel>
+                        <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                type="button"
+                                disabled={isSubmitting}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !selectedDate && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {selectedDate ? (
+                                  format(selectedDate, "PPP")
+                                ) : (
+                                  <span>Pick a date (optional)</span>
+                                )}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={(date) => {
+                                setSelectedDate(date);
+                                field.onChange(date);
+                                setIsDatePickerOpen(false);
+                              }}
+                              initialFocus
+                              disabled={isSubmitting}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </ScrollArea>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  form.reset();
-                  setSelectedDate(undefined);
-                  onOpenChange(false);
-                }}
+                size="sm"
+                className="gap-2"
+                onClick={handleCallUs}
                 disabled={isSubmitting}
               >
-                Cancel
+                <Phone className="h-4 w-4" />
+                Call us
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
-                    <span>Submitting...</span>
-                  </div>
-                ) : (
-                  "Submit Request"
-                )}
-              </Button>
+              <div className="flex gap-2 ml-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    form.reset({
+                      name: "",
+                      email: "",
+                      phone: "",
+                      companyName: "",
+                      domain: domainName ?? "",
+                      projectType: "",
+                      projectDescription: "",
+                      budget: "",
+                      timeline: undefined,
+                    });
+                    setSelectedDate(undefined);
+                    onOpenChange(false);
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <Spinner
+                        variant="ellipsis"
+                        className="text-primary-foreground"
+                        size="sm"
+                      />
+                      <span>Submitting...</span>
+                    </div>
+                  ) : (
+                    "Submit for quote"
+                  )}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>
