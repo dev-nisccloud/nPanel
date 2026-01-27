@@ -21,6 +21,7 @@ import {
 	nextInvoiceNumberSchema,
 	nullableStringSchema,
 	submitInvoiceSchema,
+	updatePaymentInputSchema,
 } from "./schemas";
 import type { InvoiceDetail } from "./schemas";
 
@@ -162,7 +163,7 @@ function buildInvoiceData(input: z.infer<typeof invoiceCreateInputSchema>) {
 		customerEmail: stringOrNull(input.customerEmail),
 		invoiceNumber: stringOrNull(input.invoiceNumber),
 		token: input.token ?? crypto.randomUUID(), // Token is required, generate if not provided
-		status: input.status ?? "DRAFT",
+		status: input.status ?? "SENT", // Default to issued invoice when adding to DB
 		amount: stringOrNull(input.amount),
 		subtotal: stringOrNull(input.subtotal),
 		tax: stringOrNull(input.tax),
@@ -762,6 +763,125 @@ export const invoicingRouter = router({
 			});
 
 			return mapped;
+		}),
+
+	updatePayment: protectedProcedure
+		.input(updatePaymentInputSchema)
+		.output(invoiceDetailSchema)
+		.mutation(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			await ensureInvoiceAccess(prisma, user.id, user.role, input.invoiceId);
+
+			const invoice = await prisma.invoice.findUnique({
+				where: { id: input.invoiceId },
+				select: { id: true, status: true, amount: true, currency: true },
+			});
+			if (!invoice) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
+			}
+			if (invoice.status === "PAID") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Invoice is already fully paid.",
+				});
+			}
+
+			const totalAmount = invoice.amount ?? "0";
+			const amountToRecord = input.type === "COMPLETE" ? totalAmount : (input.amountPaid ?? "0").trim();
+
+			await prisma.$transaction(async (tx) => {
+				if (input.type === "COMPLETE") {
+					await tx.invoice.update({
+						where: { id: input.invoiceId },
+						data: {
+							status: "PAID",
+							paidAt: new Date(),
+							updatedAt: new Date(),
+						},
+					});
+				} else {
+					await tx.invoice.update({
+						where: { id: input.invoiceId },
+						data: {
+							status: "PARTIALLY_PAID",
+							updatedAt: new Date(),
+						},
+					});
+				}
+
+				const transactionId = crypto.randomUUID();
+				await tx.invoiceTransaction.create({
+					data: {
+						id: transactionId,
+						invoiceId: input.invoiceId,
+						status: "COMPLETED",
+						method: "OTHER",
+						amount: amountToRecord,
+						currency: invoice.currency ?? "KES",
+						paidAt: new Date(),
+						recordedBy: user.id,
+						createdAt: new Date(),
+						updatedAt: new Date(),
+					},
+				});
+
+				await logInvoiceActivity(tx, {
+					invoiceId: input.invoiceId,
+					userId: user.id,
+					action: input.type === "COMPLETE" ? "PAYMENT_COMPLETE" : "PAYMENT_PARTIAL",
+					description:
+						input.type === "COMPLETE"
+							? `Full payment recorded: ${invoice.currency ?? "KES"} ${amountToRecord}`
+							: `Partial payment recorded: ${invoice.currency ?? "KES"} ${amountToRecord}`,
+					metadata: { type: input.type, amount: amountToRecord },
+				});
+			});
+
+			const updated = await fetchInvoiceDetail(prisma, input.invoiceId);
+			return mapInvoiceDetail({
+				...updated,
+				lineItems: updated.lineItems.map((item) => ({
+					id: item.id,
+					invoiceId: item.invoiceId,
+					position: item.position,
+					name: item.name,
+					description: item.description,
+					quantity: item.quantity,
+					unit: item.unit,
+					price: item.price,
+					discount: item.discount,
+					total: item.total,
+					...(item.metadata !== undefined && { metadata: item.metadata }),
+					createdAt: item.createdAt,
+					updatedAt: item.updatedAt,
+				})),
+				transactions: updated.transactions.map((transaction) => ({
+					id: transaction.id,
+					invoiceId: transaction.invoiceId,
+					reference: transaction.reference,
+					providerReference: transaction.providerReference,
+					status: transaction.status,
+					method: transaction.method,
+					amount: transaction.amount,
+					currency: transaction.currency,
+					paidAt: transaction.paidAt,
+					notes: transaction.notes,
+					metadata: transaction.metadata,
+					balanceBefore: transaction.balanceBefore,
+					balanceAfter: transaction.balanceAfter,
+					recordedBy: transaction.recordedBy,
+					createdAt: transaction.createdAt,
+					updatedAt: transaction.updatedAt,
+					activityLogs: transaction.activityLogs,
+				})),
+				creditNote: updated.creditNote
+					? creditNoteOutputSchema.parse({
+							...updated.creditNote,
+							activityLogs: updated.creditNote.activityLogs,
+						})
+					: null,
+				activityLogs: updated.activityLogs,
+			});
 		}),
 
 	getNextInvoiceNumber: protectedProcedure

@@ -205,7 +205,7 @@ const invoiceBaseSchemaFields = {
 export const invoiceCreateInputSchema = z
 	.object({
 		...invoiceBaseSchemaFields,
-		status: invoiceStatusSchema.default("DRAFT"),
+		status: invoiceStatusSchema.default("SENT"), // Default to SENT (issued invoice) when invoice is added to DB
 		token: z.string().uuid().optional(),
 		lineItems: z.array(invoiceLineItemInputSchema).optional().default([]),
 		transactions: z.array(invoiceTransactionInputSchema).optional().default([]),
@@ -288,6 +288,19 @@ export const invoiceListResponseSchema = z.object({
 	total: z.number().int().nonnegative(),
 });
 export type InvoiceListResponse = z.infer<typeof invoiceListResponseSchema>;
+
+/**
+ * Update payment input – complete (use invoice total) or partial (supply amountPaid).
+ */
+export const updatePaymentInputSchema = z.object({
+	invoiceId: z.string().uuid(),
+	type: z.enum(["COMPLETE", "PARTIAL"]),
+	amountPaid: z.string().optional(), // Required when type is PARTIAL
+}).refine((data) => data.type !== "PARTIAL" || (data.amountPaid != null && data.amountPaid.trim() !== ""), {
+	message: "Amount paid is required for partial payment",
+	path: ["amountPaid"],
+});
+export type UpdatePaymentInput = z.infer<typeof updatePaymentInputSchema>;
 
 /**
  * Schema for next invoice number response

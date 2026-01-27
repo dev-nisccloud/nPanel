@@ -2,13 +2,24 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Download, Send } from "lucide-react";
+import { ArrowLeft, Ban, Download, DollarSign, Send } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 import { PreviewDetails } from "@/app/(main)/agency/invoices/create/_components/form/previewDetails";
 import { transformInvoiceToPreviewData } from "./_utils/transformInvoiceData";
+import { UpdatePaymentDialog } from "./_components/update-payment-dialog";
 import type { InvoiceDetail } from "@/app/(main)/agency/invoices/create/api/schemas";
 import type {
 	YourDetails,
@@ -211,6 +222,8 @@ export default function InvoiceViewPage() {
 
 	const [isDownloading, setIsDownloading] = React.useState(false);
 	const [isSending, setIsSending] = React.useState(false);
+	const [updatePaymentOpen, setUpdatePaymentOpen] = React.useState(false);
+	const [markUnpaidConfirmOpen, setMarkUnpaidConfirmOpen] = React.useState(false);
 
 	const utils = trpc.useUtils();
 
@@ -225,6 +238,18 @@ export default function InvoiceViewPage() {
 			toast.error("Failed to send email reminder", {
 				description: error.message || "An error occurred while sending the email reminder",
 			});
+		},
+	});
+
+	const markUnpaidMutation = trpc.invoicing.updateStatus.useMutation({
+		onSuccess: () => {
+			setMarkUnpaidConfirmOpen(false);
+			toast.success("Invoice marked unpaid", { description: "Status set to overdue." });
+			utils.invoicing.getById.invalidate({ id: invoiceId });
+			utils.invoicing.list.invalidate();
+		},
+		onError: (error) => {
+			toast.error("Failed to mark unpaid", { description: error.message ?? "An error occurred." });
 		},
 	});
 
@@ -448,6 +473,22 @@ export default function InvoiceViewPage() {
 				</div>
 				<div className="flex items-center gap-2">
 					<Button
+						onClick={() => setUpdatePaymentOpen(true)}
+						disabled={invoice.status === "PAID" || isDownloading || isSending}
+						variant="outline"
+					>
+						<DollarSign className="mr-2 h-4 w-4" />
+						Update payment
+					</Button>
+					<Button
+						onClick={() => setMarkUnpaidConfirmOpen(true)}
+						disabled={invoice.status === "OVERDUE" || isDownloading || isSending}
+						variant="outline"
+					>
+						<Ban className="mr-2 h-4 w-4" />
+						Mark unpaid
+					</Button>
+					<Button
 						onClick={handleDownloadInvoice}
 						disabled={isDownloading || isSending}
 						variant="outline"
@@ -482,6 +523,42 @@ export default function InvoiceViewPage() {
 					</Button>
 				</div>
 			</div>
+
+			<UpdatePaymentDialog
+				open={updatePaymentOpen}
+				onOpenChange={setUpdatePaymentOpen}
+				invoiceId={invoice.id}
+				invoiceAmount={invoice.amount ?? null}
+				currency={invoice.currency ?? "KES"}
+			/>
+
+			<AlertDialog open={markUnpaidConfirmOpen} onOpenChange={setMarkUnpaidConfirmOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Mark unpaid</AlertDialogTitle>
+						<AlertDialogDescription>
+							This will set the invoice status to <strong>Overdue</strong>. Use this when the invoice is past due and has not been paid. You can still record payments later via &quot;Update payment&quot;.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={markUnpaidMutation.isPending}>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={() => markUnpaidMutation.mutate({ id: invoice.id, status: "OVERDUE" })}
+							disabled={markUnpaidMutation.isPending}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{markUnpaidMutation.isPending ? (
+								<>
+									<Spinner className="mr-2 h-4 w-4" />
+									Updating…
+								</>
+							) : (
+								"Mark unpaid"
+							)}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 
 			{/* Center the preview */}
 			<div className="flex justify-center items-start">
