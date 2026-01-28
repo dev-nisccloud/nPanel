@@ -26,7 +26,7 @@ export default function NotFound() {
         : teams[0];
       
       if (team) {
-        setHomeUrl(`/${team.slug}/default`);
+        setHomeUrl(`/${team.slug}/dashboard`);
       }
     }
   }, [session, teams]);

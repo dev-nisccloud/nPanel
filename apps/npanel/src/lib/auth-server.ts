@@ -213,7 +213,7 @@ export async function requireRole(allowedRoles: string[]) {
     console.log("[Auth Server] requireRole() - No role assigned, redirecting to customer dashboard");
     // No role assigned - ensure team and redirect to customer dashboard
     const teamSlug = await ensureCustomerHasTeam(user as UserWithStatus);
-    redirect(`/${teamSlug}/default`);
+    redirect(`/${teamSlug}/dashboard`);
   }
   
   // Check if user's role is in the allowed roles
@@ -226,7 +226,7 @@ export async function requireRole(allowedRoles: string[]) {
     if (userRole === "CUSTOMER") {
       // Ensure customer has a team before redirecting
       const teamSlug = await ensureCustomerHasTeam(user as UserWithStatus);
-      redirect(`/${teamSlug}/default`);
+      redirect(`/${teamSlug}/dashboard`);
     }
     
     if (userRole.includes("AGENCY")) {
@@ -236,7 +236,7 @@ export async function requireRole(allowedRoles: string[]) {
     
     // Fallback - ensure team for customer
     const teamSlug = await ensureCustomerHasTeam(user as UserWithStatus);
-    redirect(`/${teamSlug}/default`);
+    redirect(`/${teamSlug}/dashboard`);
   }
   
   // If user is a CUSTOMER with correct role, ensure they have a team
@@ -471,8 +471,8 @@ export async function redirectIfAuthenticated() {
     if (userRole === "CUSTOMER") {
       // Ensure customer has a team, redirect to /create-team if not
       const teamSlug = await ensureCustomerHasTeam(user as UserWithStatus);
-      console.log("[Auth Server] Redirecting CUSTOMER to:", `/${teamSlug}/default`);
-      redirect(`/${teamSlug}/default`);
+      console.log("[Auth Server] Redirecting CUSTOMER to:", `/${teamSlug}/dashboard`);
+      redirect(`/${teamSlug}/dashboard`);
     }
     
     if (userRole?.includes("AGENCY")) {
@@ -489,8 +489,8 @@ export async function redirectIfAuthenticated() {
     
     // Fallback
     const teamSlug = await ensureCustomerHasTeam(user as UserWithStatus);
-    console.log("[Auth Server] Redirecting fallback to:", `/${teamSlug}/default`);
-    redirect(`/${teamSlug}/default`);
+    console.log("[Auth Server] Redirecting fallback to:", `/${teamSlug}/dashboard`);
+    redirect(`/${teamSlug}/dashboard`);
   } else {
     console.log("[Auth Server] No user found, not redirecting");
   }

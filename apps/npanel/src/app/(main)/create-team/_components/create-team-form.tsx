@@ -36,7 +36,7 @@ export function CreateTeamForm() {
       toast.success("Team created successfully!");
       // Redirect to the newly created team's dashboard using its slug
       const teamSlug = data.team.slug;
-      router.push(`/${teamSlug}/default` as never);
+      router.push(`/${teamSlug}/dashboard` as never);
     },
     onError: (error: { message?: string }) => {
       toast.error(error.message || "Failed to create team");

@@ -40,7 +40,7 @@ export function TeamSwitcher() {
 
   const handleTeamSwitch = (teamId: string, teamSlug: string) => {
     startSwitchTeam();
-    const target = `/${teamSlug}/default` as never;
+    const target = `/${teamSlug}/dashboard` as never;
     // Defer navigation so the overlay paints first (toast showed immediately; overlay needs a tick)
     setTimeout(() => {
       router.push(target);

@@ -336,7 +336,12 @@ export const openProviderTldRouter = router({
           });
         }
 
-        const tld = tldResponse.data.results.find((t: any) => t.name === input.extension);
+        const extNorm = input.extension.startsWith('.') ? input.extension.slice(1) : input.extension;
+        const tld = tldResponse.data.results.find((t: any) => {
+          const name = t?.name ?? '';
+          const nameNorm = name.startsWith('.') ? name.slice(1) : name;
+          return nameNorm === extNorm || name === input.extension;
+        });
 
         if (!tld) {
           throw new TRPCError({

@@ -36,7 +36,7 @@ export default function AcceptInvitePage() {
       if (data.success && data.teamSlug) {
         toast.success("You've successfully joined the team!");
         // Redirect to the team's dashboard using its slug
-        router.push(`/${data.teamSlug}/default` as never);
+        router.push(`/${data.teamSlug}/dashboard` as never);
       } else {
         toast.error(data.error || "Failed to accept invitation");
       }

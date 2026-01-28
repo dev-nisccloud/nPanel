@@ -5,13 +5,24 @@ import { pleskDatabasesResponseSchema, databaseSchema } from "./databases-schema
 import { toast } from "sonner";
 
 /**
- * Transform Plesk databases API response to component format
+ * True if the item has meaningful database data (avoid treating empty {} as a DB).
+ */
+function isNonEmptyDbItem(
+  db: { id?: number; name?: string }
+): boolean {
+  return db.id != null || (db.name != null && String(db.name).trim() !== "");
+}
+
+/**
+ * Transform Plesk databases API response to component format.
+ * Result is normalized to an array (schema handles single object vs array); we filter empty placeholders.
  */
 function transformPleskDatabasesToComponent(
   pleskResponse: z.infer<typeof pleskDatabasesResponseSchema>
 ): z.infer<typeof databaseSchema>[] {
-  const databases = pleskResponse.parsed.packet.database["get-db"].result;
-  
+  const raw = pleskResponse.parsed.packet.database["get-db"].result;
+  const databases = raw.filter(isNonEmptyDbItem);
+
   return databases.map((db) => ({
     id: db.id ?? 0,
     name: db.name ?? "Unknown Database",
@@ -81,21 +92,25 @@ export function useDatabasesBySiteId(siteId: number) {
   let transformationError: Error | null = null;
 
   if (pleskData) {
-    try {
-      // Validate the response against our schema
-      const validatedData = pleskDatabasesResponseSchema.parse(pleskData);
-      transformedData = transformPleskDatabasesToComponent(validatedData);
-    } catch (error) {
-      console.error("Data transformation error:", error);
-      console.error("Raw API response:", pleskData);
-      transformationError = error as Error;
-      
-      // Provide more specific error messages based on the error type
-      if (error instanceof z.ZodError) {
-        console.error("Zod validation errors:", error.issues);
-        toast.error(`Data validation failed: ${error.issues.length} field(s) have invalid data.`);
-      } else {
-        toast.error("Failed to process databases data. Please refresh the page.");
+    const getDb = (pleskData as any)?.parsed?.packet?.database?.["get-db"];
+    if (getDb == null) {
+      // Malformed or empty API response (e.g. {}); treat as no databases, no toast
+      transformedData = [];
+    } else {
+      try {
+        const validatedData = pleskDatabasesResponseSchema.parse(pleskData);
+        transformedData = transformPleskDatabasesToComponent(validatedData);
+      } catch (error) {
+        console.error("Data transformation error:", error);
+        console.error("Raw API response:", pleskData);
+        transformationError = error as Error;
+
+        if (error instanceof z.ZodError) {
+          console.error("Zod validation errors:", error.issues);
+          toast.error(`Data validation failed: ${error.issues.length} field(s) have invalid data.`);
+        } else {
+          toast.error("Failed to process databases data. Please refresh the page.");
+        }
       }
     }
   }

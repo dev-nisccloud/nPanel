@@ -124,6 +124,43 @@ const updateTeamInputSchema = z.object({
 const updateTeamOutputSchema = domainOutputSchema;
 
 // ============================================================================
+// HELPERS - Team access for customer-scoped domain listing
+// ============================================================================
+
+function isAgencyUser(role: string) {
+  return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+}
+
+async function getAuthenticatedUser(ctx: { session: { user?: { id: string } } | null }) {
+  const uid = ctx.session?.user?.id;
+  if (!uid) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in to view domains" });
+  }
+  const user = await prisma.user.findUnique({
+    where: { id: uid },
+    select: { id: true, role: true },
+  });
+  if (!user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found" });
+  }
+  return user as { id: string; role: string };
+}
+
+async function ensureTeamAccess(teamId: string, userId: string, role: string) {
+  if (isAgencyUser(role)) return;
+  const m = await prisma.teamMember.findFirst({
+    where: { teamId, userId },
+    select: { id: true },
+  });
+  if (!m) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You do not have access to this team.",
+    });
+  }
+}
+
+// ============================================================================
 // ROUTER
 // ============================================================================
 
@@ -305,19 +342,15 @@ export const domainsRouter = router({
     }),
 
   /**
-   * Get domain by ID
+   * Get domain by ID.
+   * For customers (non-agency), enforces that the domain is linked to a team
+   * the user belongs to.
    */
   getById: protectedProcedure
     .input(getDomainByIdInputSchema)
     .output(getDomainByIdOutputSchema)
     .query(async ({ input, ctx }) => {
-      const userId = ctx.session?.user?.id;
-      if (!userId) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "You must be logged in to view domains",
-        });
-      }
+      const user = await getAuthenticatedUser(ctx);
 
       try {
         const domain = await prisma.domain.findUnique({
@@ -345,6 +378,16 @@ export const domainsRouter = router({
             code: "NOT_FOUND",
             message: "Domain not found",
           });
+        }
+
+        if (!isAgencyUser(user.role)) {
+          if (!domain.teamId) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "You do not have access to this domain.",
+            });
+          }
+          await ensureTeamAccess(domain.teamId, user.id, user.role);
         }
 
         return domain;
@@ -415,19 +458,15 @@ export const domainsRouter = router({
     }),
 
   /**
-   * Get domains by team
+   * Get domains by team.
+   * Verifies the caller has access to the team (member or agency) before returning domains.
    */
   getByTeam: protectedProcedure
     .input(getDomainsByTeamInputSchema)
     .output(getDomainsByTeamOutputSchema)
     .query(async ({ input, ctx }) => {
-      const userId = ctx.session?.user?.id;
-      if (!userId) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "You must be logged in to view domains",
-        });
-      }
+      const user = await getAuthenticatedUser(ctx);
+      await ensureTeamAccess(input.teamId, user.id, user.role);
 
       try {
         const domains = await prisma.domain.findMany({
