@@ -1,12 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { TrendingUp, TrendingDown } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import {
 	Card,
-	CardAction,
 	CardDescription,
 	CardFooter,
 	CardHeader,
@@ -117,21 +114,6 @@ export function SectionCards() {
 					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
 						{domainsTotal}
 					</CardTitle>
-					<CardAction>
-						<Badge variant="outline">
-							{domainsExpired === 0 ? (
-								<>
-									<TrendingUp className="size-3.5" />
-									All active
-								</>
-							) : (
-								<>
-									<TrendingDown className="size-3.5" />
-									{domainsExpired} expired
-								</>
-							)}
-						</Badge>
-					</CardAction>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
@@ -150,21 +132,6 @@ export function SectionCards() {
 					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
 						{invoicesTotal}
 					</CardTitle>
-					<CardAction>
-						<Badge variant="outline">
-							{invoicesUnpaid === 0 ? (
-								<>
-									<TrendingUp className="size-3.5" />
-									All paid
-								</>
-							) : (
-								<>
-									<TrendingDown className="size-3.5" />
-									{invoicesUnpaid} unpaid
-								</>
-							)}
-						</Badge>
-					</CardAction>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
@@ -183,21 +150,6 @@ export function SectionCards() {
 					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
 						{ordersTotal}
 					</CardTitle>
-					<CardAction>
-						<Badge variant="outline">
-							{ordersFailed === 0 ? (
-								<>
-									<TrendingUp className="size-3.5" />
-									Processed
-								</>
-							) : (
-								<>
-									<TrendingDown className="size-3.5" />
-									{ordersFailed} failed
-								</>
-							)}
-						</Badge>
-					</CardAction>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
@@ -216,21 +168,6 @@ export function SectionCards() {
 					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
 						{subsTotal}
 					</CardTitle>
-					<CardAction>
-						<Badge variant="outline">
-							{subsOther === 0 ? (
-								<>
-									<TrendingUp className="size-3.5" />
-									All active
-								</>
-							) : (
-								<>
-									<TrendingDown className="size-3.5" />
-									{subsOther} other
-								</>
-							)}
-						</Badge>
-					</CardAction>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">

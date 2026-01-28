@@ -655,7 +655,10 @@ export class OpenProviderClient {
   }
 
   /**
-   * Get specific DNS zone
+   * Get specific DNS zone.
+   * Per OpenProvider docs (8xx = DNS module), code 872 = "Zone specified is not found."
+   * When the API returns HTTP 5xx/4xx with code 872, we return a normal response shape
+   * so callers can treat "zone not found" as a valid state instead of an exception.
    */
   async getDnsZone(name: string, params: { with_records?: boolean; with_history?: boolean; with_dnskey?: boolean } = {}): Promise<OpenProviderDnsZoneResponse> {
     try {
@@ -669,6 +672,10 @@ export class OpenProviderClient {
       
       return await this.makeRequest<OpenProviderDnsZoneResponse>('GET', endpoint);
     } catch (error) {
+      const code = error instanceof OpenProviderApiError ? error.code : (error as { code?: number })?.code;
+      if (code === 872) {
+        return { code: 872, desc: 'Zone specified is not found.', data: { success: false } };
+      }
       if (error instanceof OpenProviderApiError) {
         throw error;
       }

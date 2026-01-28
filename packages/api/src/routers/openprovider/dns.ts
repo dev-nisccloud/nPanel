@@ -281,7 +281,7 @@ export const openProviderDnsRouter = router({
               success: false,
               zoneNotFound: true,
               data: null,
-              message: 'DNS zone not found. The domain may not have a DNS zone configured in OpenProvider yet.',
+              message: 'DNS zone not found. The domain may not have a DNS zone configured yet.',
               meta: {
                 retrieved_at: new Date().toISOString(),
                 zone_name: input.zoneName,
@@ -311,41 +311,37 @@ export const openProviderDnsRouter = router({
           },
         };
       } catch (error) {
+        // Zone not found (872) is a valid state per OpenProvider 8xx DNS module docs
+        const code = error instanceof OpenProviderApiError ? error.code : (error as { code?: number })?.code;
+        if (code === 872) {
+          return {
+            success: false,
+            zoneNotFound: true,
+            data: null,
+            message: 'DNS zone not found. The domain may not have a DNS zone configured in OpenProvider yet.',
+            meta: {
+              retrieved_at: new Date().toISOString(),
+              zone_name: input.zoneName,
+              with_records: input.withRecords,
+              with_history: input.withHistory,
+              error_code: 872,
+            },
+          };
+        }
+
         console.error('OpenProvider DNS zone retrieval error:', error);
 
-        // Handle OpenProviderApiError - check for zone not found (872)
         if (error instanceof OpenProviderApiError) {
-          if (error.code === 872) {
-            // Return a valid response indicating zone not found
-            // This is not an error condition - it's a valid state
-            return {
-              success: false,
-              zoneNotFound: true,
-              data: null,
-              message: 'DNS zone not found. The domain may not have a DNS zone configured in OpenProvider yet.',
-              meta: {
-                retrieved_at: new Date().toISOString(),
-                zone_name: input.zoneName,
-                with_records: input.withRecords,
-                with_history: input.withHistory,
-                error_code: 872,
-              },
-            };
-          }
-          
-          // For other OpenProvider API errors, throw proper error
           throw new TRPCError({
             code: error.code >= 400 && error.code < 500 ? 'BAD_REQUEST' : 'INTERNAL_SERVER_ERROR',
             message: error.description,
           });
         }
 
-        // Re-throw TRPCErrors as-is
         if (error instanceof TRPCError) {
           throw error;
         }
 
-        // Unknown errors
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Internal server error',

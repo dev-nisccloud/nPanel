@@ -464,7 +464,8 @@ model User {
   ticketMessages               TicketMessage[]               @relation("TicketMessages")
   ticketAttachments            TicketAttachment[]            @relation("TicketAttachments")
   // Creative Briefs Relations
-  creativeBriefs               CreativeBrief[]
+  creativeBriefs               CreativeBrief[]               @relation("CreatedBriefs")
+  approvedCreativeBriefs       CreativeBrief[]               @relation("ApprovedBriefs")
   // Web Design Quote Requests (submitted via domain portfolio dialog)
   webDesignQuoteRequests       WebDesignQuoteRequest[]
   // Notifications Relations

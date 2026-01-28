@@ -767,14 +767,15 @@ function DnsRecordsTab({ domain }: { domain: DomainPortfolio }) {
     }
   );
 
-  // Check if zone doesn't exist (error 872 or NOT_FOUND)
-  const zoneNotFound = zoneError && (
-    zoneError.data?.code === 'NOT_FOUND' || 
-    (zoneError.data?.code === 'BAD_REQUEST' && 
-     (zoneError.message?.includes('not found') || zoneError.message?.includes('872'))) ||
-    zoneError.message?.includes('not found') ||
-    zoneError.message?.includes('872')
-  );
+  // Zone not found: either returned by API (zoneData.zoneNotFound) or thrown (error 872 / NOT_FOUND)
+  const zoneNotFound =
+    zoneData?.zoneNotFound === true ||
+    (!!zoneError &&
+      (zoneError.data?.code === 'NOT_FOUND' ||
+        (zoneError.data?.code === 'BAD_REQUEST' &&
+          (zoneError.message?.includes('not found') || zoneError.message?.includes('872'))) ||
+        zoneError.message?.includes('not found') ||
+        zoneError.message?.includes('872')));
 
   const updateZoneMutation = trpc.openProvider.dns.updateZone.useMutation({
     onSuccess: () => {
@@ -1057,7 +1058,7 @@ function DnsRecordsTab({ domain }: { domain: DomainPortfolio }) {
             <Database className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-sm font-medium mb-1">DNS Zone Not Found</p>
             <p className="text-xs text-muted-foreground mb-4">
-              This domain does not have a DNS zone configured in OpenProvider yet. Please configure DNS settings in your OpenProvider dashboard.
+              This domain does not have a DNS zone configured yet. Please configure DNS settings in your domain dashboard.
             </p>
             <Button size="sm" onClick={() => refetch()} variant="outline">
               <RefreshCw className="h-3.5 w-3.5 mr-1" />

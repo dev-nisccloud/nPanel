@@ -331,7 +331,7 @@ export function DnsTab({ domain }: DnsTabProps) {
             <Database className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-sm font-medium mb-1">DNS Zone Not Found</p>
             <p className="text-xs text-muted-foreground mb-4">
-              This domain does not have a DNS zone configured in OpenProvider yet.
+              This domain does not have a DNS zone configured yet.
             </p>
             <Button size="sm" onClick={() => refetch()} variant="outline">
               <RefreshCw className="h-3.5 w-3.5 mr-1" />

@@ -30,9 +30,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Dropzone, DropzoneEmptyState } from "@/components/ui/shadcn-io/dropzone";
+import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
 import { creativeBriefSchema } from "./schema";
+
+const STYLE_PRESETS = ["Minimal", "Corporate", "Playful", "Modern", "Retro", "Bold", "Elegant", "Clean"] as const;
 
 // Edit schema - only some fields are editable
 const EditFormSchema = z.object({
@@ -42,6 +45,10 @@ const EditFormSchema = z.object({
   objectives: z.string().min(1, { message: "Objectives are required." }).optional(),
   requirements: z.string().min(1, { message: "Requirements are required." }).optional(),
   comments: z.string().optional(),
+  style: z.string().optional(),
+  copy: z.string().optional(),
+  mandatoryElements: z.string().optional(),
+  designPreference: z.string().optional(),
   timelineStartDate: z.preprocess(
     (val) => {
       if (val === undefined || val === null || val === "") return undefined;
@@ -76,7 +83,6 @@ const EditFormSchema = z.object({
   })).optional(),
 }).refine(
   (data) => {
-    // At least one field must be provided for update
     return (
       data.name !== undefined ||
       data.teamId !== undefined ||
@@ -84,14 +90,16 @@ const EditFormSchema = z.object({
       data.objectives !== undefined ||
       data.requirements !== undefined ||
       data.comments !== undefined ||
+      data.style !== undefined ||
+      data.copy !== undefined ||
+      data.mandatoryElements !== undefined ||
+      data.designPreference !== undefined ||
       data.timelineStartDate !== undefined ||
       data.timelineEndDate !== undefined ||
       data.referenceImages !== undefined
     );
   },
-  {
-    message: "At least one field must be updated",
-  }
+  { message: "At least one field must be updated" }
 );
 
 interface EditBriefSheetProps {
@@ -161,6 +169,10 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
       objectives: brief?.objectives || "",
       requirements: brief?.requirements || "",
       comments: brief?.comments || "",
+      style: brief?.style ?? "",
+      copy: brief?.copy ?? "",
+      mandatoryElements: brief?.mandatoryElements ?? "",
+      designPreference: brief?.designPreference ?? "",
       timelineStartDate: brief?.timelineStartDate || undefined,
       timelineEndDate: brief?.timelineEndDate || undefined,
       referenceImages: [],
@@ -178,6 +190,10 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
         objectives: brief.objectives || "",
         requirements: brief.requirements || "",
         comments: brief.comments || "",
+        style: brief.style ?? "",
+        copy: brief.copy ?? "",
+        mandatoryElements: brief.mandatoryElements ?? "",
+        designPreference: brief.designPreference ?? "",
         timelineStartDate: brief.timelineStartDate || undefined,
         timelineEndDate: brief.timelineEndDate || undefined,
         referenceImages: [],
@@ -333,7 +349,11 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
         ...(data.background !== undefined && data.background !== brief.background && { background: data.background }),
         ...(data.objectives !== undefined && data.objectives !== brief.objectives && { objectives: data.objectives }),
         ...(data.requirements !== undefined && data.requirements !== brief.requirements && { requirements: data.requirements }),
-        ...(data.comments !== undefined && data.comments !== brief.comments && { comments: data.comments || undefined }),
+        ...(data.comments !== undefined && data.comments !== (brief.comments ?? "") && { comments: data.comments || undefined }),
+        ...(data.style !== undefined && data.style !== (brief.style ?? "") && { style: data.style || undefined }),
+        ...(data.copy !== undefined && data.copy !== (brief.copy ?? "") && { copy: data.copy || undefined }),
+        ...(data.mandatoryElements !== undefined && data.mandatoryElements !== (brief.mandatoryElements ?? "") && { mandatoryElements: data.mandatoryElements || undefined }),
+        ...(data.designPreference !== undefined && data.designPreference !== (brief.designPreference ?? "") && { designPreference: data.designPreference || undefined }),
         ...(data.timelineStartDate !== undefined || data.timelineEndDate !== undefined ? {
           timelineStartDate: data.timelineStartDate instanceof Date 
             ? data.timelineStartDate 
@@ -533,6 +553,144 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
                               placeholder="List the specific design requirements, specifications, and any technical constraints"
                               className="resize-none"
                               rows={4}
+                              {...field}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Design specifics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Design specifics</CardTitle>
+                    <CardDescription>Style, copy, mandatory elements, and design preferences</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="style"
+                      render={({ field }) => {
+                        const tags = (field.value ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+                        const toggleTag = (tag: string) => {
+                          const next = tags.includes(tag)
+                            ? tags.filter((t) => t !== tag)
+                            : [...tags, tag];
+                          field.onChange(next.join(", ") || "");
+                        };
+                        const addCustom = (custom: string) => {
+                          const t = custom.trim();
+                          if (t && !tags.includes(t)) {
+                            field.onChange([...tags, t].join(", ") || "");
+                          }
+                        };
+                        return (
+                          <FormItem>
+                            <FormLabel>Style (Optional)</FormLabel>
+                            <FormControl>
+                              <div className="space-y-2 w-full">
+                                <div className="flex flex-wrap gap-2">
+                                  {STYLE_PRESETS.map((preset) => (
+                                    <Badge
+                                      key={preset}
+                                      variant={tags.includes(preset) ? "default" : "outline"}
+                                      className="cursor-pointer select-none"
+                                      onClick={() => !isSubmitting && toggleTag(preset)}
+                                    >
+                                      {preset}
+                                    </Badge>
+                                  ))}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {tags.filter((t) => !STYLE_PRESETS.includes(t as (typeof STYLE_PRESETS)[number])).map((tag) => (
+                                    <Badge
+                                      key={tag}
+                                      variant="secondary"
+                                      className="cursor-pointer select-none"
+                                      onClick={() => !isSubmitting && toggleTag(tag)}
+                                    >
+                                      {tag} ×
+                                    </Badge>
+                                  ))}
+                                </div>
+                                <Input
+                                  placeholder="Type a custom style and press Enter"
+                                  className="w-full"
+                                  disabled={isSubmitting}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      const t = (e.target as HTMLInputElement).value;
+                                      if (t) {
+                                        addCustom(t);
+                                        (e.target as HTMLInputElement).value = "";
+                                      }
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="copy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Copy / Content (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Content or copy you want used in the design"
+                              className="resize-none w-full"
+                              rows={3}
+                              {...field}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="mandatoryElements"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mandatory elements (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Things that must be included in the design"
+                              className="resize-none w-full"
+                              rows={3}
+                              {...field}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="designPreference"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Design preference (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Any design preferences or direction"
+                              className="resize-none w-full"
+                              rows={3}
                               {...field}
                               disabled={isSubmitting}
                             />

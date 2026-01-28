@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { FileText, XIcon, Image, X, Calendar as CalendarIcon } from "lucide-react";
+import { FileText, XIcon, Image, X, Calendar as CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { type DateRange } from "react-day-picker";
 import { uploadFiles } from "@/hooks/use-uploadthing";
@@ -30,16 +30,32 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Dropzone, DropzoneEmptyState } from "@/components/ui/shadcn-io/dropzone";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
+
+const STYLE_PRESETS = ["Minimal", "Corporate", "Playful", "Modern", "Retro", "Bold", "Elegant", "Clean"] as const;
 
 const FormSchema = z.object({
   name: z.string().min(1, { message: "Brief name is required." }),
   teamId: z.string().optional(),
+  approverUserId: z.string().optional(),
   background: z.string().min(1, { message: "Background is required." }),
   objectives: z.string().min(1, { message: "Objectives are required." }),
   requirements: z.string().min(1, { message: "Requirements are required." }),
   comments: z.string().optional(),
+  style: z.string().optional(),
+  copy: z.string().optional(),
+  mandatoryElements: z.string().optional(),
+  designPreference: z.string().optional(),
   timelineStartDate: z.preprocess(
     (val) => {
       if (val === undefined || val === null || val === "") return undefined;
@@ -95,11 +111,16 @@ interface ReferenceImage {
 }
 
 export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBriefSheetProps) {
-  // Fetch teams
+  // Fetch teams and users for approver
   const { data: teams, isLoading: isLoadingTeams } = trpc.teams.getUserTeams.useQuery(undefined, {
     enabled: open,
     staleTime: 5 * 60 * 1000,
   });
+  const { data: usersForApprover = [], isLoading: isLoadingUsers } = trpc.creativeBriefs.listUsersForApprover.useQuery(undefined, {
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+  const [approverComboboxOpen, setApproverComboboxOpen] = React.useState(false);
 
   // Create brief mutation
   const createBriefMutation = trpc.creativeBriefs.create.useMutation({
@@ -127,10 +148,15 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
     defaultValues: {
       name: "",
       teamId: "",
+      approverUserId: "",
       background: "",
       objectives: "",
       requirements: "",
       comments: "",
+      style: "",
+      copy: "",
+      mandatoryElements: "",
+      designPreference: "",
       timelineStartDate: undefined,
       timelineEndDate: undefined,
       referenceImages: [],
@@ -232,10 +258,15 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
       createBriefMutation.mutate({
         name: data.name,
         teamId: data.teamId || undefined,
+        approverUserId: data.approverUserId || undefined,
         background: data.background,
         objectives: data.objectives,
         requirements: data.requirements,
         comments: data.comments || undefined,
+        style: data.style || undefined,
+        copy: data.copy || undefined,
+        mandatoryElements: data.mandatoryElements || undefined,
+        designPreference: data.designPreference || undefined,
         timelineStartDate,
         timelineEndDate,
         referenceImages: uploadedImages.length > 0 ? uploadedImages : undefined,
@@ -355,6 +386,69 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="approverUserId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Approver (Optional)</FormLabel>
+                          <Popover open={approverComboboxOpen} onOpenChange={setApproverComboboxOpen}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={approverComboboxOpen}
+                                  className="w-full justify-between font-normal"
+                                  disabled={isSubmitting || isLoadingUsers}
+                                >
+                                  {field.value
+                                    ? usersForApprover.find((u) => u.id === field.value)?.name ?? field.value
+                                    : "Select approver..."}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder="Search users..." />
+                                <CommandList>
+                                  <CommandEmpty>No users found.</CommandEmpty>
+                                  <CommandGroup>
+                                    <CommandItem
+                                      value=""
+                                      onSelect={() => {
+                                        field.onChange("");
+                                        setApproverComboboxOpen(false);
+                                      }}
+                                    >
+                                      <Check className={cn("mr-2 h-4 w-4", !field.value ? "opacity-100" : "opacity-0")} />
+                                      None
+                                    </CommandItem>
+                                    {usersForApprover.map((u) => (
+                                      <CommandItem
+                                        key={u.id}
+                                        value={`${u.name} ${u.email}`}
+                                        onSelect={() => {
+                                          field.onChange(u.id);
+                                          setApproverComboboxOpen(false);
+                                        }}
+                                      >
+                                        <Check className={cn("mr-2 h-4 w-4", field.value === u.id ? "opacity-100" : "opacity-0")} />
+                                        <span className="truncate">{u.name}</span>
+                                        <span className="ml-1 shrink-0 text-muted-foreground text-xs truncate">({u.email})</span>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </CardContent>
                 </Card>
 
@@ -416,6 +510,144 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
                               placeholder="List the specific design requirements, specifications, and any technical constraints"
                               className="resize-none"
                               rows={4}
+                              {...field}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Design specifics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Design specifics</CardTitle>
+                    <CardDescription>Style, copy, mandatory elements, and design preferences</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="style"
+                      render={({ field }) => {
+                        const tags = (field.value ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+                        const toggleTag = (tag: string) => {
+                          const next = tags.includes(tag)
+                            ? tags.filter((t) => t !== tag)
+                            : [...tags, tag];
+                          field.onChange(next.join(", ") || "");
+                        };
+                        const addCustom = (custom: string) => {
+                          const t = custom.trim();
+                          if (t && !tags.includes(t)) {
+                            field.onChange([...tags, t].join(", ") || "");
+                          }
+                        };
+                        return (
+                          <FormItem>
+                            <FormLabel>Style (Optional)</FormLabel>
+                            <FormControl>
+                              <div className="space-y-2 w-full">
+                                <div className="flex flex-wrap gap-2">
+                                  {STYLE_PRESETS.map((preset) => (
+                                    <Badge
+                                      key={preset}
+                                      variant={tags.includes(preset) ? "default" : "outline"}
+                                      className="cursor-pointer select-none"
+                                      onClick={() => !isSubmitting && toggleTag(preset)}
+                                    >
+                                      {preset}
+                                    </Badge>
+                                  ))}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {tags.filter((t) => !STYLE_PRESETS.includes(t as typeof STYLE_PRESETS[number])).map((tag) => (
+                                    <Badge
+                                      key={tag}
+                                      variant="secondary"
+                                      className="cursor-pointer select-none"
+                                      onClick={() => !isSubmitting && toggleTag(tag)}
+                                    >
+                                      {tag} ×
+                                    </Badge>
+                                  ))}
+                                </div>
+                                <Input
+                                  placeholder="Type a custom style and press Enter"
+                                  className="w-full"
+                                  disabled={isSubmitting}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      const t = (e.target as HTMLInputElement).value;
+                                      if (t) {
+                                        addCustom(t);
+                                        (e.target as HTMLInputElement).value = "";
+                                      }
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="copy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Copy / Content (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Content or copy you want used in the design"
+                              className="resize-none w-full"
+                              rows={3}
+                              {...field}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="mandatoryElements"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mandatory elements (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Things that must be included in the design"
+                              className="resize-none w-full"
+                              rows={3}
+                              {...field}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="designPreference"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Design preference (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Any design preferences or direction"
+                              className="resize-none w-full"
+                              rows={3}
                               {...field}
                               disabled={isSubmitting}
                             />

@@ -28,6 +28,11 @@ export const creativeBriefSchema = z.object({
   objectives: z.string(),
   requirements: z.string(),
   comments: z.string().nullable(),
+  style: z.string().nullable(),
+  copy: z.string().nullable(),
+  mandatoryElements: z.string().nullable(),
+  designPreference: z.string().nullable(),
+  approverUserId: z.string().nullable(),
   approvedBy: z.string().nullable(),
   approvedAt: nullableDateSchema,
   rejectedBy: z.string().nullable(),
@@ -45,6 +50,11 @@ export const creativeBriefSchema = z.object({
     id: z.string(),
     name: z.string(),
     slug: z.string(),
+  }).nullable().optional(),
+  approver: z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string(),
   }).nullable().optional(),
   referenceImages: z.array(creativeBriefReferenceImageSchema).optional(),
 });

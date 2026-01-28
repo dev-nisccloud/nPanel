@@ -913,6 +913,45 @@ export const ordersRouter = router({
 			};
 		}),
 
+	// Get order summary across all teams (agency dashboard – agency users only)
+	getSummary: protectedProcedure
+		.output(
+			z.object({
+				total: z.number(),
+				completed: z.number(),
+				failed: z.number(),
+				pending: z.number(),
+			})
+		)
+		.query(async ({ ctx }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in",
+				});
+			}
+
+			const userRole = await getUserRole(session.user.id, session.user as { role?: string });
+			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency users can view the global order summary",
+				});
+			}
+
+			const [total, completed, failed, pending] = await Promise.all([
+				prisma.order.count(),
+				prisma.order.count({ where: { status: "COMPLETED" } }),
+				prisma.order.count({ where: { status: "FAILED" } }),
+				prisma.order.count({
+					where: { status: { in: ["PENDING", "PROCESSING"] } },
+				}),
+			]);
+
+			return { total, completed, failed, pending };
+		}),
+
 	// Get order summary by team (for customer dashboard – allows CUSTOMER when they belong to the team)
 	getSummaryByTeam: protectedProcedure
 		.input(z.object({ teamId: z.string().min(1, "Team ID is required") }))

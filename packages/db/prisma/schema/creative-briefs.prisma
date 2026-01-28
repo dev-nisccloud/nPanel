@@ -18,10 +18,15 @@ model CreativeBrief {
   status CreativeBriefStatus @default(DRAFT) // Brief status
 
   // Brief Content
-  background   String // Brief background description
-  objectives   String // Brief objectives description
-  requirements String // Design requirements
-  comments     String? // Additional comments
+  background        String // Brief background description
+  objectives        String // Brief objectives description
+  requirements      String // Design requirements
+  comments          String? // Additional comments
+  style             String? // Design styles (e.g. comma-separated or JSON; UI: selectable badges + custom)
+  copy              String? // Content/copy to be used in the design
+  mandatoryElements String? // Things that must be included in the design
+  designPreference  String? // Design preferences
+  approverUserId    String? // User who is allowed to approve this brief
 
   // Approval/Rejection Tracking
   approvedBy String? // User who approved
@@ -38,12 +43,14 @@ model CreativeBrief {
   updatedAt DateTime
 
   // Relations
-  user            User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User                          @relation("CreatedBriefs", fields: [userId], references: [id], onDelete: Cascade)
+  approver        User?                         @relation("ApprovedBriefs", fields: [approverUserId], references: [id], onDelete: SetNull)
   team            Team?                         @relation(fields: [teamId], references: [id], onDelete: SetNull)
   referenceImages CreativeBriefReferenceImage[]
   activityLogs    CreativeBriefActivityLog[]
 
   @@index([userId])
+  @@index([approverUserId])
   @@index([teamId])
   @@index([status])
   @@index([createdAt])
@@ -80,8 +87,9 @@ model CreativeBriefActivityLog {
   id              String   @id @map("_id")
   creativeBriefId String // Brief reference
   userId          String // User who performed action
-  action          String // Action type: CREATE, UPDATE, APPROVE, REJECT, DELETE, ADD_REFERENCE_IMAGE, REMOVE_REFERENCE_IMAGE, etc.
+  action          String // Action type: CREATE, UPDATE, APPROVE, REJECT, STATUS_CHANGE, DELETE, ADD_REFERENCE_IMAGE, REMOVE_REFERENCE_IMAGE, etc.
   description     String? // Human-readable description
+  comment         String? // Reason/comment when status is updated (rejection reason, needs-revision note, etc.)
   metadata        Json? // Additional action details
   ipAddress       String?
   userAgent       String?

@@ -46,6 +46,11 @@ interface DbCreativeBrief {
   objectives: string;
   requirements: string;
   comments: string | null;
+  style?: string | null;
+  copy?: string | null;
+  mandatoryElements?: string | null;
+  designPreference?: string | null;
+  approverUserId?: string | null;
   approvedBy: string | null;
   approvedAt: Date | null;
   rejectedBy: string | null;
@@ -56,6 +61,7 @@ interface DbCreativeBrief {
   updatedAt: Date;
   user?: DbUser;
   team?: DbTeam | null;
+  approver?: DbUser | null;
   referenceImages?: DbCreativeBriefReferenceImage[];
 }
 
@@ -88,6 +94,11 @@ const creativeBriefSchema = z.object({
   objectives: z.string(),
   requirements: z.string(),
   comments: z.string().nullable(),
+  style: z.string().nullable(),
+  copy: z.string().nullable(),
+  mandatoryElements: z.string().nullable(),
+  designPreference: z.string().nullable(),
+  approverUserId: z.string().nullable(),
   approvedBy: z.string().nullable(),
   approvedAt: z.date().nullable(),
   rejectedBy: z.string().nullable(),
@@ -106,6 +117,11 @@ const creativeBriefSchema = z.object({
     name: z.string(),
     slug: z.string(),
   }).nullable().optional(),
+  approver: z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string(),
+  }).nullable().optional(),
   referenceImages: z.array(creativeBriefReferenceImageSchema).optional(),
 });
 
@@ -114,10 +130,15 @@ const creativeBriefSchema = z.object({
 const createCreativeBriefInputSchema = z.object({
   name: z.string().min(1).max(255),
   teamId: z.string().optional(),
+  approverUserId: z.string().optional(),
   background: z.string().min(1),
   objectives: z.string().min(1),
   requirements: z.string().min(1),
   comments: z.string().optional(),
+  style: z.string().optional(),
+  copy: z.string().optional(),
+  mandatoryElements: z.string().optional(),
+  designPreference: z.string().optional(),
   timelineStartDate: z.preprocess(
     (val) => {
       if (val === undefined || val === null || val === "") return undefined;
@@ -160,6 +181,10 @@ const updateCreativeBriefInputSchema = z.object({
   objectives: z.string().min(1).optional(),
   requirements: z.string().min(1).optional(),
   comments: z.string().optional(),
+  style: z.string().optional(),
+  copy: z.string().optional(),
+  mandatoryElements: z.string().optional(),
+  designPreference: z.string().optional(),
   timelineStartDate: z.preprocess(
     (val) => {
       if (val === undefined || val === null || val === "") return undefined;
@@ -224,6 +249,11 @@ function transformBrief(brief: DbCreativeBrief) {
     objectives: string;
     requirements: string;
     comments: string | null;
+    style: string | null;
+    copy: string | null;
+    mandatoryElements: string | null;
+    designPreference: string | null;
+    approverUserId: string | null;
     approvedBy: string | null;
     approvedAt: Date | null;
     rejectedBy: string | null;
@@ -234,6 +264,7 @@ function transformBrief(brief: DbCreativeBrief) {
     updatedAt: Date;
     user?: { id: string; name: string; email: string };
     team?: { id: string; name: string; slug: string } | null;
+    approver?: { id: string; name: string; email: string } | null;
     referenceImages?: ReturnType<typeof transformReferenceImage>[];
   } = {
     id: brief.id,
@@ -245,6 +276,11 @@ function transformBrief(brief: DbCreativeBrief) {
     objectives: brief.objectives,
     requirements: brief.requirements,
     comments: brief.comments,
+    style: brief.style ?? null,
+    copy: brief.copy ?? null,
+    mandatoryElements: brief.mandatoryElements ?? null,
+    designPreference: brief.designPreference ?? null,
+    approverUserId: brief.approverUserId ?? null,
     approvedBy: brief.approvedBy,
     approvedAt: brief.approvedAt,
     rejectedBy: brief.rejectedBy,
@@ -268,6 +304,14 @@ function transformBrief(brief: DbCreativeBrief) {
       id: brief.team.id,
       name: brief.team.name,
       slug: brief.team.slug,
+    } : null;
+  }
+
+  if (brief.approver !== undefined) {
+    result.approver = brief.approver ? {
+      id: brief.approver.id,
+      name: brief.approver.name,
+      email: brief.approver.email,
     } : null;
   }
 
@@ -390,6 +434,13 @@ export const creativeBriefsRouter = router({
               slug: true,
             },
           },
+          approver: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           referenceImages: {
             orderBy: {
               createdAt: "asc",
@@ -460,11 +511,16 @@ export const creativeBriefsRouter = router({
             objectives: input.objectives,
             requirements: input.requirements,
             comments: input.comments ?? null,
+            style: input.style ?? null,
+            copy: input.copy ?? null,
+            mandatoryElements: input.mandatoryElements ?? null,
+            designPreference: input.designPreference ?? null,
+            approverUserId: input.approverUserId ?? null,
             timelineStartDate: input.timelineStartDate ?? null,
             timelineEndDate: input.timelineEndDate ?? null,
             createdAt: new Date(),
             updatedAt: new Date(),
-          },
+          } as any,
           include: {
             user: {
               select: {
@@ -480,8 +536,15 @@ export const creativeBriefsRouter = router({
                 slug: true,
               },
             },
+            approver: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
             referenceImages: true,
-          },
+          } as any,
         });
 
         // Create reference images if provided
@@ -536,13 +599,20 @@ export const creativeBriefsRouter = router({
                   slug: true,
                 },
               },
+              approver: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
               referenceImages: {
                 orderBy: {
                   createdAt: "asc",
                 },
               },
             },
-          });
+          } as any);
           return updatedBrief || brief;
         }
 
@@ -658,7 +728,7 @@ export const creativeBriefsRouter = router({
             action: "UPDATE",
             description: "Creative brief updated",
             metadata: {
-              updatedFields: Object.keys(input).filter(key => key !== "id" && key !== "referenceImages"),
+              updatedFields: Object.keys(input).filter((key) => key !== "id" && key !== "referenceImages"),
             },
             createdAt: new Date(),
           } as any,
@@ -682,18 +752,116 @@ export const creativeBriefsRouter = router({
                 slug: true,
               },
             },
+            approver: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
             referenceImages: {
               orderBy: {
                 createdAt: "asc",
               },
             },
           },
-        });
+        } as any);
 
         return reloadedBrief || updated;
       });
 
       return transformBrief(updatedBrief);
+    }),
+
+  // Update brief status (rejection/approval/needs-revision) with optional comment logged to activity
+  updateStatus: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        status: z.enum(["DRAFT", "REVIEWING", "APPROVED", "REJECTED"]),
+        comment: z.string().optional(),
+      })
+    )
+    .output(creativeBriefSchema)
+    .mutation(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+
+      const existingBrief = await prisma.creativeBrief.findFirst({
+        where: {
+          id: input.id,
+          userId: user.id,
+        },
+      });
+
+      if (!existingBrief) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Creative brief not found",
+        });
+      }
+
+      const updatedBrief = await prisma.$transaction(async (tx) => {
+        const updateData: Record<string, unknown> = {
+          status: input.status,
+          updatedAt: new Date(),
+        };
+        if (input.status === "APPROVED") {
+          updateData.approvedBy = user.id;
+          updateData.approvedAt = new Date();
+          updateData.rejectedBy = null;
+          updateData.rejectedAt = null;
+        } else if (input.status === "REJECTED") {
+          updateData.rejectedBy = user.id;
+          updateData.rejectedAt = new Date();
+          updateData.approvedBy = null;
+          updateData.approvedAt = null;
+        }
+
+        const updated = await tx.creativeBrief.update({
+          where: { id: input.id },
+          data: updateData as any,
+        });
+
+        await tx.creativeBriefActivityLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            creativeBriefId: input.id,
+            userId: user.id,
+            action: "STATUS_CHANGE",
+            description: `Status changed to ${input.status}${input.comment ? ": " + input.comment : ""}`,
+            comment: input.comment ?? null,
+            metadata: { previousStatus: existingBrief.status, newStatus: input.status },
+            createdAt: new Date(),
+          } as any,
+        });
+
+        const reloaded = await tx.creativeBrief.findUnique({
+          where: { id: input.id },
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            team: { select: { id: true, name: true, slug: true } },
+            approver: { select: { id: true, name: true, email: true } },
+            referenceImages: { orderBy: { createdAt: "asc" as const } },
+          },
+        } as any);
+        if (!reloaded) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Brief not found after update" });
+        return reloaded;
+      });
+
+      return transformBrief(updatedBrief);
+    }),
+
+  // List users for approver combobox (all users in system)
+  listUsersForApprover: protectedProcedure
+    .output(z.array(z.object({ id: z.string(), name: z.string(), email: z.string() })))
+    .query(async ({ ctx }) => {
+      await getAuthenticatedUser(ctx);
+
+      const users = await prisma.user.findMany({
+        select: { id: true, name: true, email: true },
+        orderBy: { name: "asc" },
+      });
+      return users;
     }),
 
   // Delete a creative brief
