@@ -44,6 +44,8 @@ interface PromotionalCardsProps {
     com: any;
     info: any;
     online: any;
+    queryTldResult?: any;
+    queryTldParsed?: { name: string; extension: string };
   };
 }
 
@@ -102,87 +104,62 @@ function sanitizeDomainName(input: string): string {
   return sanitized.trim();
 }
 
-// PERFORMANCE: Removed separate hook - now using shared data from main query
-// This eliminates duplicate API calls and improves performance
-
-// AI Card Component
-function AICard({ 
-  searchQuery, 
-  onAddToCart, 
-  onRemoveFromCart, 
+// Search TLD card: shown only when the search query contained a valid TLD (e.g. example.com, example.co.ke).
+// Displays the result for that exact domain (available or not).
+function SearchTldCard({
+  queryTldParsed,
+  queryTldResult,
+  onAddToCart,
+  onRemoveFromCart,
   isDomainInCart,
-  aiData,
-  isLoadingAI 
-}: Omit<PromotionalCardsProps, 'searchQuery'> & { 
-  searchQuery: string;
-  aiData: any;
-  isLoadingAI: boolean;
+  isLoadingTld,
+}: Omit<PromotionalCardsProps, 'searchQuery'> & {
+  queryTldParsed: { name: string; extension: string };
+  queryTldResult: any;
+  isLoadingTld: boolean;
 }) {
   const [buyNowOpen, setBuyNowOpen] = React.useState(false);
   const currencyContext = useCurrency();
   const pricingHook = useDomainPricing(currencyContext);
-  
-  // searchQuery is already sanitized when passed from PromotionalCards
-  const aiDomain = `${searchQuery}.ai`;
-  const isInCart = isDomainInCart(aiDomain);
+  const domain = `${queryTldParsed.name}.${queryTldParsed.extension}`;
+  const isInCart = isDomainInCart(domain);
 
-  // Process AI domain result - only show if available
-  const aiResult = React.useMemo(() => {
-    if (!aiData) return null;
-    
-    // Only show if domain is free/available
-    if (aiData.status !== 'free' || !aiData.price?.reseller) return null;
-
+  const rawResult = React.useMemo(() => {
+    if (!queryTldResult || queryTldResult.status !== 'free' || !queryTldResult.price?.reseller) return null;
     return {
-      domain: aiDomain,
-      status: aiData.status,
+      domain,
+      status: queryTldResult.status,
       price: {
-        product: aiData.price.product,
-        reseller: aiData.price.reseller,
+        product: queryTldResult.price?.product,
+        reseller: queryTldResult.price?.reseller,
       },
-      reason: "Perfect for AI-powered applications and innovative tech projects.",
+      reason: `Result for your search: ${domain}`,
     } as DomainSearchResult;
-  }, [aiData, aiDomain]);
+  }, [queryTldResult, domain]);
 
-  // Calculate pricing with markup
-  // OPTIMIZATION: Use ref to track pricing calculation to avoid duplicate calculations
-  const pricedAIResultRef = React.useRef<DomainSearchResult | null>(null);
-  const [pricedAIResult, setPricedAIResult] = React.useState<DomainSearchResult | null>(null);
-  const pricingCalculationRef = React.useRef<string>('');
-  
+  const pricedResultRef = React.useRef<DomainSearchResult | null>(null);
+  const [pricedResult, setPricedResult] = React.useState<DomainSearchResult | null>(null);
+  const pricingKeyRef = React.useRef<string>('');
+
   React.useEffect(() => {
-    if (!aiResult || !pricingHook) {
-      setPricedAIResult(null);
-      pricedAIResultRef.current = null;
+    if (!rawResult || !pricingHook) {
+      setPricedResult(null);
+      pricedResultRef.current = null;
       return;
     }
-
-    // OPTIMIZATION: Create a stable key to avoid duplicate calculations
-    const resultKey = `${aiResult.domain}-${aiResult.status}-${aiResult.price?.reseller?.price || 0}`;
-    
-    // Skip if already calculated for this result
-    if (pricingCalculationRef.current === resultKey && pricedAIResultRef.current) {
-      return;
-    }
-
-    pricingCalculationRef.current = resultKey;
-    
-    // OPTIMIZATION: Use requestIdleCallback or setTimeout to defer non-critical calculations
+    const key = `${rawResult.domain}-${rawResult.status}-${rawResult.price?.reseller?.price ?? 0}`;
+    if (pricingKeyRef.current === key && pricedResultRef.current) return;
+    pricingKeyRef.current = key;
     const timer = setTimeout(() => {
-      pricingHook.calculatePricesBatch([aiResult]).then(([priced]) => {
-        pricedAIResultRef.current = priced;
-        setPricedAIResult(priced);
-      }).catch((error) => {
-        console.error('Failed to calculate AI domain pricing:', error);
-        // Fallback to original result if pricing fails
-        setPricedAIResult(aiResult);
-      });
+      pricingHook.calculatePricesBatch([rawResult]).then(([priced]) => {
+        pricedResultRef.current = priced;
+        setPricedResult(priced);
+      }).catch(() => setPricedResult(rawResult));
     }, 0);
-
     return () => clearTimeout(timer);
-  }, [aiResult, pricingHook]);
+  }, [rawResult, pricingHook]);
 
-  const displayResult = pricedAIResult || aiResult;
+  const displayResult = pricedResult || rawResult;
   const calculated = displayResult?.price?.calculated;
   const displayPrice = calculated
     ? ((calculated as any).convertedPrice ?? calculated.finalPrice)
@@ -191,26 +168,17 @@ function AICard({
     ? ((calculated as any).displayCurrency ?? calculated.currency)
     : displayResult?.price?.reseller?.currency || 'KES';
   const originalPrice = calculated?.originalPrice ?? displayResult?.price?.reseller?.price;
+  const isAvailable = rawResult != null;
 
   const handleCartAction = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
-    try {
-      if (displayResult && displayResult.domain) {
-        if (isInCart) {
-          onRemoveFromCart(aiDomain);
-        } else {
-          onAddToCart(displayResult);
-        }
-      } else {
-        console.error('Invalid displayResult for cart action:', displayResult);
-      }
-    } catch (error) {
-      console.error('Error handling cart action:', error);
-    }
+    if (!displayResult?.domain) return;
+    if (isInCart) onRemoveFromCart(domain);
+    else onAddToCart(displayResult);
   };
 
-  if (isLoadingAI) {
+  if (isLoadingTld) {
     return (
       <div className="bg-card border border-border rounded-lg p-4">
         <Skeleton className="h-6 w-24 mb-2" />
@@ -221,10 +189,6 @@ function AICard({
     );
   }
 
-  if (!displayResult || displayResult.status !== 'free') {
-    return null;
-  }
-
   const discountPercent = originalPrice && displayPrice && originalPrice > displayPrice
     ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
     : 0;
@@ -233,94 +197,107 @@ function AICard({
     <>
       <div className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between mb-3">
-          <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-            AI Domain
+          <Badge className={isAvailable
+            ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+            : "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300"
+          }>
+            {isAvailable ? "Available" : "Not available"}
           </Badge>
         </div>
 
         <div className="mb-3">
           <h3 className="text-lg font-bold text-card-foreground mb-2">
-            {aiDomain}
+            {domain}
           </h3>
-          
-          {discountPercent > 0 && (
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
-                Save {discountPercent}%
-              </Badge>
-              <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 flex items-center gap-1">
-                <Gift className="h-3 w-3" />
-                Free email
-              </Badge>
-            </div>
-          )}
 
-          <div className="flex items-baseline gap-2">
-            {originalPrice && originalPrice > displayPrice && (
-              <span className="text-sm text-muted-foreground line-through">
-                {formatPrice(originalPrice, displayCurrency)}
-              </span>
-            )}
-            <span className="text-2xl font-bold text-card-foreground">
-              {formatPrice(displayPrice, displayCurrency)}/1st yr
-            </span>
-          </div>
+          {isAvailable && (
+            <>
+              {discountPercent > 0 && (
+                <div className="flex gap-2 font-medium mb-2">
+                  <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
+                    Save {discountPercent}%
+                  </Badge>
+                </div>
+              )}
+              <div className="flex items-baseline gap-2">
+                {originalPrice != null && originalPrice > (displayPrice ?? 0) && (
+                  <span className="text-sm text-muted-foreground line-through">
+                    {formatPrice(originalPrice, displayCurrency)}
+                  </span>
+                )}
+                <span className="text-2xl font-bold text-card-foreground">
+                  {formatPrice(displayPrice, displayCurrency)}/1st yr
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="space-y-2 mb-4 text-sm text-muted-foreground">
-          <div className="flex items-start gap-2">
-            <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-            <span>.ai domains are perfect for AI-powered applications and cutting-edge technology projects.</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-            <span>Establish your brand in the artificial intelligence space with this premium extension.</span>
-          </div>
+          {isAvailable ? (
+            <>
+              <div className="flex items-start gap-2">
+                <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                <span>Claim the exact domain you searched for — secure your brand and start building your online presence today.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                <span>Get a professional web address that matches what your audience is already typing.</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-start gap-2">
+                <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                <span>Your search included .{queryTldParsed.extension} — this domain is not available.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                <span>Try a different extension or variation — we have hundreds of TLDs to help you find the perfect match.</span>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex items-center justify-center gap-2">
-          <Button
-            size="sm"
-            variant="default"
-            onClick={(e) => {
-              e?.preventDefault();
-              e?.stopPropagation();
-              try {
-                if (displayResult && displayResult.domain) {
+          {isAvailable && displayResult ? (
+            <>
+              <Button
+                size="sm"
+                variant="default"
+                onClick={(e) => {
+                  e?.preventDefault();
+                  e?.stopPropagation();
                   setBuyNowOpen(true);
-                } else {
-                  console.error('Invalid displayResult for buy now:', displayResult);
-                }
-              } catch (error) {
-                console.error('Error opening buy now dialog:', error);
-              }
-            }}
-            className="px-4"
-          >
-            Buy Now
-          </Button>
-          <Button
-            size="sm"
-            variant={isInCart ? "destructive" : "outline"}
-            onClick={handleCartAction}
-            className="h-9 w-9 p-0"
-            title={isInCart ? "Remove from cart" : "Add to cart"}
-          >
-            {isInCart ? (
-              <XCircle className="h-4 w-4" />
-            ) : (
-              <ShoppingCart className="h-4 w-4" />
-            )}
-          </Button>
+                }}
+                className="px-4"
+              >
+                Buy Now
+              </Button>
+              <Button
+                size="sm"
+                variant={isInCart ? "destructive" : "outline"}
+                onClick={handleCartAction}
+                className="h-9 w-9 p-0"
+                title={isInCart ? "Remove from cart" : "Add to cart"}
+              >
+                {isInCart ? (
+                  <XCircle className="h-4 w-4" />
+                ) : (
+                  <ShoppingCart className="h-4 w-4" />
+                )}
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" variant="outline" className="px-4" disabled>
+              Try another extension
+            </Button>
+          )}
         </div>
       </div>
 
-      {displayResult && displayResult.domain && (
-        <BuyNowDialog
-          open={buyNowOpen}
-          onOpenChange={setBuyNowOpen}
-          domain={displayResult}
-        />
+      {displayResult?.domain && (
+        <BuyNowDialog open={buyNowOpen} onOpenChange={setBuyNowOpen} domain={displayResult} />
       )}
     </>
   );
@@ -1057,19 +1034,17 @@ export function PromotionalCards(props: PromotionalCardsProps) {
     <CoKeCard key="coke" {...props} searchQuery={sanitizedQuery} />
   );
 
-  // Only show AI card if domain is available
-  const aiCard = (
-    <AICard 
-      key="ai"
-      {...props} 
-      searchQuery={sanitizedQuery}
-      aiData={promotionalData.ai}
-      isLoadingAI={props.isLoading ?? false}
-    />
-  );
-  // Check if AI card should be shown (it will return null if not available)
-  if (promotionalData.ai && promotionalData.ai.status === 'free') {
-    cardsToShow.push(aiCard);
+  // Only show Search TLD card when the search query contained a valid TLD (e.g. example.com, example.co.ke)
+  if (promotionalData.queryTldParsed) {
+    cardsToShow.push(
+      <SearchTldCard
+        key="search-tld"
+        {...props}
+        queryTldParsed={promotionalData.queryTldParsed}
+        queryTldResult={promotionalData.queryTldResult ?? null}
+        isLoadingTld={props.isLoading ?? false}
+      />
+    );
   }
 
   // Only show Bundle card if ALL domains are available

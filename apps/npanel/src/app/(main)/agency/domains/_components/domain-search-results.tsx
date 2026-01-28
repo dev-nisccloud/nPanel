@@ -25,6 +25,8 @@ interface DomainSearchResultsProps {
     com: any;
     info: any;
     online: any;
+    queryTldResult?: any;
+    queryTldParsed?: { name: string; extension: string };
   };
   // Separate loading state for promotional cards (only true if no cached data)
   isPromotionalLoading?: boolean;

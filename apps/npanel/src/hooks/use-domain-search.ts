@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTransition } from "react";
 import { trpc } from "@/utils/trpc";
 import { useCartStore } from "@/stores/cart-store";
+import { parseQueryWithTld } from "@/lib/domain-query-parse";
 import { 
   getPopularTlds,
   getBusinessTlds,
@@ -158,13 +159,15 @@ export function useDomainSearch(
 
   // Memoize extensions to prevent unnecessary query refetches
   // PERFORMANCE: Include promotional extensions in the main query to batch all requests
+  // When user types a query with a TLD (e.g. example.com), include that extension so we get the result for the Search TLD card
   const extensions = React.useMemo(() => {
     const tabExtensions = getCurrentTabExtensions(activeTab).map(removeDotPrefix);
-    // Add promotional extensions if not already included (ai, com, info, online)
     const promotionalExtensions = ['ai', 'com', 'info', 'online'];
-    const allExtensions = [...new Set([...tabExtensions, ...promotionalExtensions])];
+    const parsed = parseQueryWithTld(domainName);
+    const queryTldExtension = parsed ? [parsed.extension] : [];
+    const allExtensions = [...new Set([...tabExtensions, ...promotionalExtensions, ...queryTldExtension])];
     return allExtensions;
-  }, [activeTab]);
+  }, [activeTab, domainName]);
 
   // Domain search query
   // P1-5: Make whois optional - set to false by default for faster responses (20-40% faster)
@@ -222,7 +225,7 @@ export function useDomainSearch(
   // This ensures promotional cards don't show loaders when switching tabs
   const promotionalResultsCacheRef = React.useRef<{
     searchQuery: string;
-    results: { ai: any; com: any; info: any; online: any };
+    results: { ai: any; com: any; info: any; online: any; queryTldResult?: any; queryTldParsed?: { name: string; extension: string } };
   } | null>(null);
 
   React.useEffect(() => {
@@ -332,11 +335,13 @@ export function useDomainSearch(
   // This ensures promotional cards persist across tab switches and don't show loaders unnecessarily
   const promotionalResults = React.useMemo(() => {
     const promotionalExtensions = ['ai', 'com', 'info', 'online'];
-    const defaultResults: { ai: any; com: any; info: any; online: any } = {
+    const defaultResults: { ai: any; com: any; info: any; online: any; queryTldResult?: any; queryTldParsed?: { name: string; extension: string } } = {
       ai: null,
       com: null,
       info: null,
       online: null,
+      queryTldResult: undefined,
+      queryTldParsed: undefined,
     };
 
     // If searchQueryName changed, clear cache (promotional cards need new data)
@@ -344,30 +349,47 @@ export function useDomainSearch(
       promotionalResultsCacheRef.current = null;
     }
 
-    // If we have cached results for this searchQueryName, return them (even when query is loading/switching tabs)
-    if (promotionalResultsCacheRef.current && promotionalResultsCacheRef.current.searchQuery === searchQueryName) {
-      return promotionalResultsCacheRef.current.results;
+    const rawResults = searchQuery.data?.data?.results;
+    const hasData = rawResults && searchQueryName;
+
+    // If we have cached results for this searchQueryName, reuse ai/com/info/online but always recompute query TLD from current domainName
+    if (promotionalResultsCacheRef.current && promotionalResultsCacheRef.current.searchQuery === searchQueryName && hasData) {
+      const cached = promotionalResultsCacheRef.current.results;
+      const queryTldParsed = parseQueryWithTld(domainName);
+      const results = { ...cached };
+      if (queryTldParsed) {
+        results.queryTldParsed = queryTldParsed;
+        const queryDomain = `${queryTldParsed.name}.${queryTldParsed.extension}`;
+        results.queryTldResult = rawResults.find((r: any) => r.domain?.toLowerCase() === queryDomain.toLowerCase()) ?? null;
+      } else {
+        results.queryTldParsed = undefined;
+        results.queryTldResult = undefined;
+      }
+      return results;
     }
 
     // Extract from raw API response, not processed searchResults
     const results = { ...defaultResults };
-    if (searchQuery.data?.data?.results && searchQueryName) {
-      searchQuery.data.data.results.forEach((result: any) => {
+    if (hasData) {
+      rawResults.forEach((result: any) => {
         const extension = result.domain?.split('.').pop()?.toLowerCase();
         if (extension && promotionalExtensions.includes(extension)) {
           results[extension as keyof typeof results] = result;
         }
       });
 
-      // Cache the results for this searchQueryName
-      promotionalResultsCacheRef.current = {
-        searchQuery: searchQueryName,
-        results,
-      };
+      const queryTldParsed = parseQueryWithTld(domainName);
+      if (queryTldParsed) {
+        results.queryTldParsed = queryTldParsed;
+        const queryDomain = `${queryTldParsed.name}.${queryTldParsed.extension}`;
+        results.queryTldResult = rawResults.find((r: any) => r.domain?.toLowerCase() === queryDomain.toLowerCase()) ?? null;
+      }
+
+      promotionalResultsCacheRef.current = { searchQuery: searchQueryName, results };
     }
 
     return results;
-  }, [searchQuery.data, searchQueryName]);
+  }, [searchQuery.data, searchQueryName, domainName]);
   
   // Determine if promotional cards should show loading state
   // Only show loading if we don't have cached results for this searchQueryName
