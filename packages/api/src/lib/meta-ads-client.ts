@@ -380,6 +380,17 @@ export class MetaAdsClient {
 	}
 
 	/**
+	 * Get human-readable targeting description for an ad set
+	 * GET /{ad-set-id}/targetingsentencelines
+	 * Returns lines like "Location - Living In: Japan, United States", "Age: 20 - 24", etc.
+	 */
+	async getTargetingSentenceLines(adSetId: string): Promise<{
+		targetingsentencelines?: Array<{ content: string; children?: string[] }>;
+	}> {
+		return this.makeRequest('GET', `/${adSetId}/targetingsentencelines`);
+	}
+
+	/**
 	 * List ads (optionally filtered by ad set)
 	 * GET /{ad-account-id}/ads or GET /{ad-set-id}/ads
 	 */

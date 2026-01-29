@@ -9,11 +9,180 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
-import { Target, Layers, FileText, CalendarIcon, TrendingUp } from "lucide-react";
+import { Target, Layers, FileText, CalendarIcon, TrendingUp, MapPin, Users, Heart, Crosshair, ChevronDown, ChevronUp } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+
+// ---------------------------------------------------------------------------
+// Targeting helpers (Meta Ad Set targeting: audience, location, age, interest)
+// ---------------------------------------------------------------------------
+
+function parseTargeting(targeting: any): {
+	location: string[];
+	age: { min: number | null; max: number | null };
+	interests: string[];
+	audience: string[];
+	hasAny: boolean;
+} {
+	const location: string[] = [];
+	const interests: string[] = [];
+	const audience: string[] = [];
+
+	if (!targeting || typeof targeting !== "object") {
+		return { location: [], age: { min: null, max: null }, interests: [], audience: [], hasAny: false };
+	}
+
+	// Location: geo_locations (countries, regions, cities)
+	const geo = targeting.geo_locations;
+	if (geo && typeof geo === "object") {
+		if (Array.isArray(geo.countries)) {
+			location.push(...geo.countries);
+		}
+		if (Array.isArray(geo.regions)) {
+			geo.regions.forEach((r: any) => {
+				const name = r.name ?? r.key ?? String(r);
+				if (name && !location.includes(name)) location.push(name);
+			});
+		}
+		if (Array.isArray(geo.cities)) {
+			geo.cities.forEach((c: any) => {
+				const name = c.name ?? c.key ?? String(c);
+				if (name && !location.includes(name)) location.push(name);
+			});
+		}
+	}
+
+	// Age
+	const ageMin = targeting.age_min != null ? Number(targeting.age_min) : null;
+	const ageMax = targeting.age_max != null ? Number(targeting.age_max) : null;
+	const age = {
+		min: Number.isFinite(ageMin) ? ageMin : null,
+		max: Number.isFinite(ageMax) ? ageMax : null,
+	};
+
+	// Interests: top-level + from flexible_spec
+	if (Array.isArray(targeting.interests)) {
+		targeting.interests.forEach((i: any) => {
+			const name = i?.name ?? i?.id ?? String(i);
+			if (name && !interests.includes(name)) interests.push(name);
+		});
+	}
+	const flex = targeting.flexible_spec;
+	if (Array.isArray(flex)) {
+		flex.forEach((group: any) => {
+			if (Array.isArray(group?.interests)) {
+				group.interests.forEach((i: any) => {
+					const name = i?.name ?? i?.id ?? String(i);
+					if (name && !interests.includes(name)) interests.push(name);
+				});
+			}
+		});
+	}
+
+	// Audience: custom_audiences + from flexible_spec
+	if (Array.isArray(targeting.custom_audiences)) {
+		targeting.custom_audiences.forEach((a: any) => {
+			const name = a?.name ?? a?.id ?? String(a);
+			if (name && !audience.includes(name)) audience.push(name);
+		});
+	}
+	if (Array.isArray(flex)) {
+		flex.forEach((group: any) => {
+			if (Array.isArray(group?.custom_audiences)) {
+				group.custom_audiences.forEach((a: any) => {
+					const name = a?.name ?? a?.id ?? String(a);
+					if (name && !audience.includes(name)) audience.push(name);
+				});
+			}
+		});
+	}
+
+	const hasAny =
+		location.length > 0 ||
+		age.min != null ||
+		age.max != null ||
+		interests.length > 0 ||
+		audience.length > 0;
+
+	return { location, age, interests, audience, hasAny };
+}
+
+function formatAgeRange(age: { min: number | null; max: number | null }): string {
+	if (age.min == null && age.max == null) return "";
+	if (age.min != null && age.max != null) return `${age.min} – ${age.max}`;
+	if (age.min != null) return `${age.min}+`;
+	if (age.max != null) return `Up to ${age.max}`;
+	return "";
+}
+
+/** Targeting field: bold primary label, content with word spacing, Show more/less after 3 lines */
+function TargetingField({
+	label,
+	content,
+	icon: Icon,
+	emptyMessage,
+}: {
+	label: string;
+	content: string;
+	icon?: React.ComponentType<{ className?: string }>;
+	emptyMessage: string;
+}) {
+	const [expanded, setExpanded] = React.useState(false);
+	const ref = React.useRef<HTMLParagraphElement>(null);
+	const [showToggle, setShowToggle] = React.useState(false);
+
+	React.useEffect(() => {
+		const el = ref.current;
+		if (!el || !content) return;
+		// Only detect overflow when collapsed (line-clamp applied); once we show "Show more", keep toggle visible
+		if (!expanded && el.scrollHeight > el.clientHeight) {
+			setShowToggle(true);
+		}
+	}, [content, expanded]);
+
+	const hasContent = content.trim().length > 0;
+	const displayContent = hasContent ? content : emptyMessage;
+	const isPlaceholder = !hasContent;
+
+	return (
+		<div className="space-y-1.5">
+			<div className="flex items-center gap-1.5 text-[13px] font-semibold text-primary">
+				{Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+				{label}
+			</div>
+			<p
+				ref={ref}
+				className={`text-sm tracking-wide ${!expanded ? "line-clamp-3" : ""} ${isPlaceholder ? "text-muted-foreground italic" : ""}`}
+			>
+				{displayContent}
+			</p>
+			{showToggle && hasContent && (
+				<Button
+					type="button"
+					variant="ghost"
+					size="sm"
+					className="h-auto p-0 text-primary hover:bg-primary/10 text-xs font-medium"
+					onClick={() => setExpanded((e) => !e)}
+				>
+					{expanded ? (
+						<>
+							<ChevronUp className="h-3.5 w-3.5 mr-0.5" />
+							Show less
+						</>
+					) : (
+						<>
+							<ChevronDown className="h-3.5 w-3.5 mr-0.5" />
+							Show more
+						</>
+					)}
+				</Button>
+			)}
+		</div>
+	);
+}
 
 interface CampaignDetailsDialogProps {
 	campaign: any;
@@ -73,7 +242,7 @@ export function CampaignDetailsDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+			<DialogContent className="max-w-7xl w-[95vw] max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<Target className="h-5 w-5" />
@@ -222,7 +391,7 @@ interface AdSetItemProps {
 }
 
 function AdSetItem({ adSet, getStatusVariant, timeRange, currency = 'USD' }: AdSetItemProps) {
-	// Load ads immediately when ad set is rendered
+	// Load ads when ad set is rendered
 	const {
 		data: adsData,
 		isLoading: isLoadingAds,
@@ -242,7 +411,16 @@ function AdSetItem({ adSet, getStatusVariant, timeRange, currency = 'USD' }: AdS
 		}
 	);
 
+	// Optional: human-readable targeting (fallback to parsed targeting on error/empty)
+	const { data: sentenceLinesData } = trpc.metaAds.adSets.getTargetingSentenceLines.useQuery(
+		{ adSetId: adSet.id },
+		{ enabled: !!adSet.id, refetchOnWindowFocus: false, retry: 0 }
+	);
+
 	const ads = adsData?.data || [];
+	const sentenceLines = sentenceLinesData?.data ?? [];
+	const parsed = parseTargeting(adSet.targeting);
+	const hasTargeting = parsed.hasAny || sentenceLines.length > 0;
 
 	return (
 		<Card>
@@ -296,6 +474,69 @@ function AdSetItem({ adSet, getStatusVariant, timeRange, currency = 'USD' }: AdS
 						)}
 					</div>
 				)}
+
+				{/* Targeting: Audience, Location, Age, Interest */}
+				<div className="space-y-4 pb-4 border-b">
+					<p className="text-[13px] font-semibold text-primary flex items-center gap-2">
+						<Crosshair className="h-4 w-4" />
+						Targeting
+					</p>
+					{!adSet.targeting && sentenceLines.length === 0 ? (
+						<div className="rounded-lg border border-dashed bg-muted/30 px-4 py-3 text-center">
+							<p className="text-xs text-muted-foreground tracking-wide">
+								Targeting data unavailable for this ad set.
+							</p>
+						</div>
+					) : sentenceLines.length > 0 ? (
+						<div className="rounded-lg border bg-muted/20 px-4 py-3 space-y-4">
+							{sentenceLines.map((line: { content?: string; children?: string[] }, idx: number) => (
+								<TargetingField
+									key={idx}
+									label={line.content ?? ""}
+									content={Array.isArray(line.children) ? line.children.join(", ") : ""}
+									emptyMessage="—"
+								/>
+							))}
+						</div>
+					) : hasTargeting ? (
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<TargetingField
+								label="Location"
+								content={parsed.location.join(", ")}
+								icon={MapPin}
+								emptyMessage="No location set"
+							/>
+							<TargetingField
+								label="Age range"
+								content={formatAgeRange(parsed.age)}
+								icon={Users}
+								emptyMessage="No age restriction"
+							/>
+							<div className="sm:col-span-2">
+								<TargetingField
+									label="Interests"
+									content={parsed.interests.join(", ")}
+									icon={Heart}
+									emptyMessage="No interests specified"
+								/>
+							</div>
+							<div className="sm:col-span-2">
+								<TargetingField
+									label="Audience (custom / lookalike)"
+									content={parsed.audience.join(", ")}
+									icon={Target}
+									emptyMessage="No custom audience"
+								/>
+							</div>
+						</div>
+					) : (
+						<div className="rounded-lg border border-dashed bg-muted/30 px-4 py-3 text-center">
+							<p className="text-xs text-muted-foreground tracking-wide">
+								No targeting criteria for this ad set.
+							</p>
+						</div>
+					)}
+				</div>
 
 				{/* Ad Set Metrics */}
 				<div>

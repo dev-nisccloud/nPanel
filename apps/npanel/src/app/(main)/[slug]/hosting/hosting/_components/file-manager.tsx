@@ -58,6 +58,7 @@ import { MoveFileDialog } from "./move-file-dialog";
 import { NewFolderDialog } from "./new-folder-dialog";
 import { UploadFileSheet } from "./upload-file-sheet";
 import { FileViewerSheet, isViewableFile } from "./file-viewer-sheet";
+import { MediaViewerDialog, isViewableMediaFile } from "./media-viewer-dialog";
 import { ExtractZipDialog } from "./extract-zip-dialog";
 
 interface FileManagerProps {
@@ -146,6 +147,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false);
   const [uploadSheetOpen, setUploadSheetOpen] = useState(false);
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
+  const [viewingMediaFile, setViewingMediaFile] = useState<FileManagerItem | null>(null);
   const [extractZipDialogOpen, setExtractZipDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FileManagerItem | null>(null);
   const [viewingFile, setViewingFile] = useState<FileManagerItem | null>(null);
@@ -525,12 +528,13 @@ export function FileManager({ hostingData }: FileManagerProps) {
               onClick={() => {
                 if (item.type === "folder") {
                   navigateToPath(item.path);
+                } else if (isViewableMediaFile(item)) {
+                  setViewingMediaFile(item);
+                  setMediaViewerOpen(true);
                 } else if (isViewableFile(item)) {
-                  // Open file viewer for viewable files
                   setViewingFile(item);
                   setFileViewerOpen(true);
                 } else {
-                  // For non-viewable files, just select them
                   handleSelectItem(item.id, !selectedItems.includes(item.id));
                 }
               }}
@@ -578,10 +582,24 @@ export function FileManager({ hostingData }: FileManagerProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Eye className="mr-2 h-4 w-4" />
-                      View
-                    </DropdownMenuItem>
+                    {isViewableMediaFile(item) && (
+                      <DropdownMenuItem onClick={() => {
+                        setViewingMediaFile(item);
+                        setMediaViewerOpen(true);
+                      }}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </DropdownMenuItem>
+                    )}
+                    {isViewableFile(item) && !isViewableMediaFile(item) && (
+                      <DropdownMenuItem onClick={() => {
+                        setViewingFile(item);
+                        setFileViewerOpen(true);
+                      }}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => handleDownloadClick(item)}>
                       <Download className="mr-2 h-4 w-4" />
                       Download
@@ -870,7 +888,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
         }}
       />
 
-      {/* File Viewer Sheet */}
+      {/* File Viewer Sheet (text/code) */}
       {viewingFile && (
         <FileViewerSheet
           open={fileViewerOpen}
@@ -879,6 +897,18 @@ export function FileManager({ hostingData }: FileManagerProps) {
           hostingData={hostingData}
         />
       )}
+
+      {/* Media Viewer Dialog (images/videos) */}
+      <MediaViewerDialog
+        open={mediaViewerOpen}
+        onOpenChange={(open) => {
+          setMediaViewerOpen(open);
+          if (!open) setViewingMediaFile(null);
+        }}
+        file={viewingMediaFile}
+        hostingData={hostingData}
+        onDownload={handleDownloadClick}
+      />
 
       {/* Extract Zip Dialog */}
       {extractingFile && (

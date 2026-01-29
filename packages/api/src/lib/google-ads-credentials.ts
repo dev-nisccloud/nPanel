@@ -48,7 +48,7 @@ export function getGoogleAdsDeveloperToken(): string {
 export function getGoogleAdsRedirectUri(): string {
 	return (
 		process.env.GOOGLE_ADS_REDIRECT_URI ||
-		`${process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/agency/google-ads/callback`
+		`${process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/agency/ad-campaigns/google-ads/callback`
 	);
 }
 

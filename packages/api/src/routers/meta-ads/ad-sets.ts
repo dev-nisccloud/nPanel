@@ -306,5 +306,53 @@ export const metaAdsAdSetsRouter = router({
 				});
 			}
 		}),
+
+	/**
+	 * Get human-readable targeting description for an ad set
+	 * GET /{ad-set-id}/targetingsentencelines
+	 */
+	getTargetingSentenceLines: protectedProcedure
+		.input(
+			z.object({
+				adSetId: z.string().min(1, 'Ad Set ID is required'),
+			})
+		)
+		.query(async ({ input, ctx }) => {
+			try {
+				const userId = ctx.session?.user?.id;
+				if (!userId) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'User session not found',
+					});
+				}
+
+				const tokenData = await getStoredMetaAccessToken();
+				if (!tokenData) {
+					throw new TRPCError({
+						code: 'BAD_REQUEST',
+						message: 'No active Meta integration found. Please connect your account first.',
+					});
+				}
+
+				const client = new MetaAdsClient({ accessToken: tokenData.accessToken });
+				const result = await client.getTargetingSentenceLines(input.adSetId);
+
+				return {
+					data: result.targetingsentencelines || [],
+				};
+			} catch (error: any) {
+				console.warn('Meta Ads API get targeting sentence lines error (fallback to raw targeting):', error?.message || error);
+
+				// OAuth errors should still be thrown so user can reconnect
+				const oauthError = await handleMetaAdsOAuthError(error);
+				if (oauthError) {
+					throw oauthError;
+				}
+
+				// On rate limit or other errors, return empty so UI can show parsed targeting instead
+				return { data: [] };
+			}
+		}),
 });
 

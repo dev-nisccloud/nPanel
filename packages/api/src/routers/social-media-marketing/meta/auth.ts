@@ -208,9 +208,14 @@ export const metaAuthRouter = router({
 				// Step 2: Exchange short-lived token for long-lived token
 				const longLivedToken = await exchangeShortLivedToken(shortLivedTokenResponse.access_token);
 
-				// Calculate expiration date (60 days from now)
+				// Calculate expiration date: use expires_in (seconds) from response, or default 60 days if missing/invalid
+				const expiresInSeconds = Number(longLivedToken.expires_in);
+				const validExpiresIn =
+					Number.isFinite(expiresInSeconds) && expiresInSeconds > 0
+						? expiresInSeconds
+						: 60 * 24 * 60 * 60; // 60 days in seconds
 				const expiresAt = new Date();
-				expiresAt.setDate(expiresAt.getDate() + longLivedToken.expires_in / 86400); // Convert seconds to days
+				expiresAt.setSeconds(expiresAt.getSeconds() + validExpiresIn);
 
 				// Get permissions from Meta API
 				const apiVersion = getMetaApiVersion();
@@ -292,7 +297,7 @@ export const metaAuthRouter = router({
 							expiresAt: expiresAt.toISOString(),
 							scope: scope || 'pages_read_engagement,pages_manage_posts,pages_show_list',
 							tokenType: longLivedToken.token_type,
-							expiresIn: longLivedToken.expires_in,
+							expiresIn: validExpiresIn,
 						},
 						createdAt: now,
 					},
@@ -303,7 +308,7 @@ export const metaAuthRouter = router({
 					data: {
 						accessToken: longLivedToken.access_token,
 						tokenType: longLivedToken.token_type,
-						expiresIn: longLivedToken.expires_in,
+						expiresIn: validExpiresIn,
 						expiresAt: expiresAt.toISOString(),
 					},
 					meta: {

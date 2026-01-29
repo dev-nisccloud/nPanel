@@ -7,23 +7,23 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  console.log("[Middleware] Processing request for:", pathname);
+  // console.log("[Middleware] Processing request for:", pathname);
   
   // CRITICAL: Prevent /agency routes from matching [slug] pattern
   // This must be checked BEFORE any other route matching
   if (pathname.startsWith("/agency")) {
-    console.log("[Middleware] Handling /agency route:", pathname);
+    // console.log("[Middleware] Handling /agency route:", pathname);
     const isLoggedIn = await isSessionValid(req);
-    console.log("[Middleware] Session valid for /agency:", isLoggedIn, "pathname:", pathname);
+    // console.log("[Middleware] Session valid for /agency:", isLoggedIn, "pathname:", pathname);
     if (!isLoggedIn) {
-      console.log("[Middleware] Not logged in, redirecting to /auth/login");
+      // console.log("[Middleware] Not logged in, redirecting to /auth/login");
       const target = new URL("/auth/login", req.url);
       if (target.pathname !== pathname) {
         return NextResponse.redirect(target, 302);
       }
       return NextResponse.next();
     }
-    console.log("[Middleware] Allowing /agency route through");
+    // console.log("[Middleware] Allowing /agency route through");
     return NextResponse.next();
   }
   
@@ -34,16 +34,16 @@ export async function middleware(req: NextRequest) {
 
   // If user hits auth pages while already authenticated, determine their role and redirect appropriately
   if (pathname.startsWith("/auth")) {
-    console.log("[Middleware] Handling /auth route:", pathname);
+    // console.log("[Middleware] Handling /auth route:", pathname);
     const isLoggedIn = await isSessionValid(req);
-    console.log("[Middleware] Session valid for /auth:", isLoggedIn);
+    // console.log("[Middleware] Session valid for /auth:", isLoggedIn);
     if (isLoggedIn && pathname !== "/") {
       // User is logged in, but we can't determine role in middleware (Edge Runtime limitation)
       // So redirect to root and let the server component handle role-based redirect
-      console.log("[Middleware] User logged in on /auth, redirecting to / (server will handle role-based redirect)");
+      // console.log("[Middleware] User logged in on /auth, redirecting to / (server will handle role-based redirect)");
       return NextResponse.redirect(new URL("/", req.url), 302);
     }
-    console.log("[Middleware] Allowing /auth route through");
+    // console.log("[Middleware] Allowing /auth route through");
     return NextResponse.next();
   }
   
@@ -95,7 +95,7 @@ async function isSessionValid(req: NextRequest): Promise<boolean> {
     
     // Get all cookies from the request - CRITICAL for redirect scenarios
     const cookieHeader = req.headers.get("cookie") ?? "";
-    console.log("[Middleware] isSessionValid() - Cookie header length:", cookieHeader.length, "pathname:", req.nextUrl.pathname, "origin:", origin, "url:", url.toString());
+    // console.log("[Middleware] isSessionValid() - Cookie header length:", cookieHeader.length, "pathname:", req.nextUrl.pathname, "origin:", origin, "url:", url.toString());
     
     const res = await fetch(url.toString(), {
       method: "GET",
@@ -113,19 +113,19 @@ async function isSessionValid(req: NextRequest): Promise<boolean> {
       },
     });
     
-    console.log("[Middleware] isSessionValid() - Response status:", res.status, "for pathname:", req.nextUrl.pathname);
+    // console.log("[Middleware] isSessionValid() - Response status:", res.status, "for pathname:", req.nextUrl.pathname);
     
     if (!res.ok) {
-      console.log("[Middleware] isSessionValid() - Response not OK, returning false");
+      // console.log("[Middleware] isSessionValid() - Response not OK, returning false");
       return false;
     }
     
     const data = await res.json().catch(() => null);
     const isValid = Boolean(data?.user);
-    console.log("[Middleware] isSessionValid() - Session valid:", isValid, "for pathname:", req.nextUrl.pathname);
+    // console.log("[Middleware] isSessionValid() - Session valid:", isValid, "for pathname:", req.nextUrl.pathname);
     return isValid;
   } catch (error) {
-    console.error("[Middleware] isSessionValid() - Error:", error instanceof Error ? error.message : String(error), "for pathname:", req.nextUrl.pathname);
+    // console.error("[Middleware] isSessionValid() - Error:", error instanceof Error ? error.message : String(error), "for pathname:", req.nextUrl.pathname);
     // If fetch fails, we can't verify the session, so return false
     return false;
   }

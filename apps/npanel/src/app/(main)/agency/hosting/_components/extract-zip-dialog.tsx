@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -42,7 +44,12 @@ export function ExtractZipDialog({
   currentPath,
   onSuccess,
 }: ExtractZipDialogProps) {
-  const [extractTo, setExtractTo] = React.useState<string>(currentPath);
+  // Default unzipped folder name = zip filename without .zip
+  const defaultFolderName = React.useMemo(
+    () => (file?.name ? file.name.replace(/\.zip$/i, "").trim() || "extracted" : "extracted"),
+    [file?.name]
+  );
+  const [folderName, setFolderName] = React.useState<string>(defaultFolderName);
   const [overwrite, setOverwrite] = React.useState(false);
   const [status, setStatus] = React.useState<ExtractionStatus>("idle");
   const [progress, setProgress] = React.useState(0);
@@ -118,7 +125,7 @@ export function ExtractZipDialog({
   // Reset state when dialog opens/closes
   React.useEffect(() => {
     if (open) {
-      setExtractTo(currentPath);
+      setFolderName(defaultFolderName);
       setOverwrite(false);
       setStatus("idle");
       setProgress(0);
@@ -127,7 +134,7 @@ export function ExtractZipDialog({
       setFailedFiles([]);
       setError(null);
     }
-  }, [open, currentPath]);
+  }, [open, currentPath, defaultFolderName]);
 
   // Simulate progress updates (since we don't have real-time progress from server)
   React.useEffect(() => {
@@ -146,12 +153,19 @@ export function ExtractZipDialog({
   const handleExtract = () => {
     if (!file) return;
 
+    // Sanitize folder name: trim, remove slashes
+    const sanitized = folderName.trim().replace(/[/\\]+/g, "").trim() || defaultFolderName;
+    const extractToPath =
+      currentPath === "/"
+        ? `/${sanitized}`.replace(/\/+/g, "/")
+        : `${currentPath}/${sanitized}`.replace(/\/+/g, "/");
+
     const credentials = getFtpCredentials();
-    
+
     extractZip.mutate({
       credentials,
       zipPath: file.path,
-      extractTo: extractTo || currentPath,
+      extractTo: extractToPath,
       overwrite,
       maxSize: 500 * 1024 * 1024, // 500MB limit
     });
@@ -213,21 +227,32 @@ export function ExtractZipDialog({
           {status === "idle" && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Extract To Directory
-                </label>
-                <div className="flex items-center gap-2">
-                  <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={extractTo}
-                    onChange={(e) => setExtractTo(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm border rounded-md bg-background font-mono"
-                    placeholder={currentPath}
-                  />
+                <Label className="text-sm font-medium">Current folder</Label>
+                <div className="flex items-center gap-2 mt-1.5 rounded-md border bg-muted/50 px-3 py-2">
+                  <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-mono text-muted-foreground truncate">
+                    {currentPath || "/"}
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Leave empty to extract to the same directory as the zip file
+                  Contents will be extracted into a new folder inside this directory.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="folder-name" className="text-sm font-medium">
+                  Unzipped folder name
+                </Label>
+                <Input
+                  id="folder-name"
+                  type="text"
+                  value={folderName}
+                  onChange={(e) => setFolderName(e.target.value)}
+                  className="mt-1.5 font-mono"
+                  placeholder={defaultFolderName}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Name of the folder to create. Default is the zip file name without extension.
                 </p>
               </div>
 

@@ -1,18 +1,9 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { EllipsisVertical } from "lucide-react";
 import Link from "next/link";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { DataTableColumnHeader } from "../../../../../components/data-table/data-table-column-header";
 
@@ -99,30 +90,5 @@ export const hostingColumns: ColumnDef<z.infer<typeof hostingSubscriptionSchema>
         {formatFileSize(row.original.realSize)}
       </div>
     ),
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="data-[state=open]:bg-muted text-muted-foreground flex size-8" size="icon">
-            <EllipsisVertical />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem asChild>
-            <Link href={`/agency/hosting/${row.original.id}`}>View details</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem>Edit subscription</DropdownMenuItem>
-          <DropdownMenuItem>Renew</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>Suspend</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive">Cancel</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
-    enableSorting: false,
-    enableHiding: false,
   },
 ];

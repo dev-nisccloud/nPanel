@@ -63,8 +63,11 @@ const renameSchema = z.object({
 
 const deleteSchema = z.object({
   credentials: ftpConnectionSchema,
-  path: z.string().min(1, "Path is required"),
+  path: z.string().min(1, "Path is required").transform((p) => String(p).trim()),
 });
+
+// Long timeout for delete (recursive dir delete can take many minutes for node_modules etc.)
+const DELETE_OPERATION_TIMEOUT_MS = 600_000; // 10 minutes
 
 // Enhanced download schemas
 const downloadFileSchema = z.object({
@@ -158,6 +161,69 @@ function transformFileInfo(fileInfo: FileInfo): z.infer<typeof fileInfoSchema> {
     owner: fileInfo.user,
     group: fileInfo.group,
   };
+}
+
+// True if the FTP error means "path does not exist" (safe to ignore when deleting)
+function isNoSuchFileError(error: unknown): boolean {
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return (
+    msg.includes("no such file or directory") ||
+    msg.includes("not found") ||
+    msg.includes("does not exist")
+  );
+}
+
+// Recursively remove a directory: list contents, delete files and subdirs, then remove empty dir.
+// Ignores 550 "No such file or directory" (symlinks, already deleted, etc.) so deletion can complete.
+// Sends NOOP every N operations to keep the control connection alive during long deletes.
+const KEEPALIVE_EVERY_N_OPS = 100;
+
+async function removeDirectoryRecursive(
+  client: Client,
+  dirPath: string,
+  opCount: { current: number }
+): Promise<void> {
+  let list: FileInfo[];
+  try {
+    list = await client.list(dirPath);
+  } catch (listErr) {
+    if (isNoSuchFileError(listErr)) {
+      return;
+    }
+    throw listErr;
+  }
+
+  for (const file of list) {
+    if (opCount.current > 0 && opCount.current % KEEPALIVE_EVERY_N_OPS === 0) {
+      try {
+        await client.send("NOOP");
+      } catch {
+        // Ignore NOOP errors
+      }
+    }
+    opCount.current += 1;
+
+    const fullPath = dirPath === "/" ? `/${file.name}` : `${dirPath}/${file.name}`;
+    try {
+      if (file.isDirectory) {
+        await removeDirectoryRecursive(client, fullPath, opCount);
+      } else {
+        await client.remove(fullPath);
+      }
+    } catch (err) {
+      if (!isNoSuchFileError(err)) {
+        throw err;
+      }
+    }
+  }
+
+  try {
+    await client.removeDir(dirPath);
+  } catch (err) {
+    if (!isNoSuchFileError(err)) {
+      throw err;
+    }
+  }
 }
 
 // Helper function to recursively list all files in a directory
@@ -462,13 +528,20 @@ export const ftpRouter = router({
   deleteFile: protectedProcedure
     .input(deleteSchema)
     .mutation(async ({ input }) => {
+      const path = typeof input.path === "string" ? input.path.trim() : String(input.path).trim();
+      if (!path) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Path is required",
+        });
+      }
       const client = await createFtpClient(input.credentials);
       
       try {
-        await client.remove(input.path);
+        await client.remove(path);
         return {
           success: true,
-          message: `File ${input.path} deleted successfully`,
+          message: `File ${path} deleted successfully`,
         };
       } catch (error) {
         throw new TRPCError({
@@ -480,17 +553,31 @@ export const ftpRouter = router({
       }
     }),
 
-  // Delete directory
+  // Delete directory (recursive: we list, delete contents, then remove empty dir)
   deleteDirectory: protectedProcedure
     .input(deleteSchema)
     .mutation(async ({ input }) => {
-      const client = await createFtpClient(input.credentials);
-      
+      const path = typeof input.path === "string" ? input.path.trim() : String(input.path).trim();
+      if (!path) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Path is required",
+        });
+      }
+      const credentialsWithLongTimeout = {
+        ...input.credentials,
+        timeout: Math.max(
+          input.credentials.timeout ?? 30_000,
+          DELETE_OPERATION_TIMEOUT_MS
+        ),
+      };
+      const client = await createFtpClient(credentialsWithLongTimeout);
+
       try {
-        await client.removeDir(input.path);
+        await removeDirectoryRecursive(client, path, { current: 0 });
         return {
           success: true,
-          message: `Directory ${input.path} deleted successfully`,
+          message: `Directory ${path} deleted successfully`,
         };
       } catch (error) {
         throw new TRPCError({

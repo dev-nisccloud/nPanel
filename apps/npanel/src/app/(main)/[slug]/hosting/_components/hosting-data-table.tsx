@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Grid3X3, List, EllipsisVertical } from "lucide-react";
+import { Search, Grid3X3, List } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -20,19 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import Link from "next/link";
 // import { useDataTableInstance } from "@/hooks/use-data-table-instance";
 
@@ -233,13 +220,12 @@ export function HostingDataTable() {
           <TableRow>
             <TableHead>Subscription Name</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="w-12"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
                 No subscriptions found
               </TableCell>
             </TableRow>
@@ -261,44 +247,6 @@ export function HostingDataTable() {
                   >
                     {getStatusDisplayText(subscription.status)}
                   </Badge>
-                </TableCell>
-                <TableCell>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
-                              <EllipsisVertical className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/${teamSlug}/hosting/${subscription.id}`}>View details</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(subscription.id)}>
-                              Edit subscription
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>Renew</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleSuspend(subscription.id)}>
-                              Suspend
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              variant="destructive"
-                              onClick={() => handleCancel(subscription.id)}
-                            >
-                              Cancel
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Actions</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </TableCell>
               </TableRow>
             ))
