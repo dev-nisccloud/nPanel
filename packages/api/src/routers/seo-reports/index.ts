@@ -175,7 +175,7 @@ export const seoReportsRouter = router({
             updatedAt: true,
             sessions: true,
             totalWebTraffic: true,
-            users: true,
+            bounceRate: true,
             impressions: true,
             clicks: true,
             conversions: true,

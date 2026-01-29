@@ -22,6 +22,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 import { seoReportListRowSchema, type SeoReportListRow } from "./schema";
@@ -145,17 +152,64 @@ function SeoReportCardActions({
   );
 }
 
+const MONTH_OPTIONS = [
+  { value: "1", label: "Jan" },
+  { value: "2", label: "Feb" },
+  { value: "3", label: "Mar" },
+  { value: "4", label: "Apr" },
+  { value: "5", label: "May" },
+  { value: "6", label: "Jun" },
+  { value: "7", label: "Jul" },
+  { value: "8", label: "Aug" },
+  { value: "9", label: "Sep" },
+  { value: "10", label: "Oct" },
+  { value: "11", label: "Nov" },
+  { value: "12", label: "Dec" },
+];
+
+function useYearOptions() {
+  const currentYear = new Date().getFullYear();
+  return React.useMemo(() => {
+    const years: { value: string; label: string }[] = [];
+    for (let y = currentYear + 1; y >= currentYear - 10; y--) {
+      years.push({ value: String(y), label: String(y) });
+    }
+    return years;
+  }, [currentYear]);
+}
+
 export function SeoReportsTable({
   searchQuery,
+  filterMonth,
+  filterYear,
+  filterTeamId,
+  onFilterMonth,
+  onFilterYear,
+  onFilterTeamId,
   onRowClick,
   onEditClick,
 }: {
   searchQuery: string;
+  filterMonth: string;
+  filterYear: string;
+  filterTeamId: string;
+  onFilterMonth: (value: string) => void;
+  onFilterYear: (value: string) => void;
+  onFilterTeamId: (value: string) => void;
   onRowClick: (id: string) => void;
   onEditClick?: (id: string) => void;
 }) {
+  const yearOptions = useYearOptions();
+  const { data: teams = [] } = trpc.teams.getAll.useQuery(undefined, { placeholderData: [] });
   const { data, isLoading, isError, error } = trpc.seoReports.list.useQuery(
-    { limit: 50, offset: 0, search: searchQuery || undefined },
+    {
+      limit: 50,
+      offset: 0,
+      search: searchQuery || undefined,
+      reportMonth: filterMonth || undefined,
+      reportYear: filterYear || undefined,
+      teamId: filterTeamId || undefined,
+    },
     { placeholderData: (prev) => prev }
   );
 
@@ -190,19 +244,66 @@ export function SeoReportsTable({
     return (
       filled(r.sessions) ||
       filled(r.totalWebTraffic) ||
-      filled(r.users) ||
+      filled(r.bounceRate) ||
       filled(r.impressions) ||
       filled(r.clicks) ||
       filled(r.conversions)
     );
   };
 
+  const filtersEl = (
+    <div className="flex flex-wrap items-center gap-2 justify-end">
+      <Select value={filterMonth || "__all__"} onValueChange={(v) => onFilterMonth(v === "__all__" ? "" : v)}>
+        <SelectTrigger size="sm" className="w-[100px]">
+          <SelectValue placeholder="Month" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">All months</SelectItem>
+          {MONTH_OPTIONS.map((m) => (
+            <SelectItem key={m.value} value={m.value}>
+              {m.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={filterYear || "__all__"} onValueChange={(v) => onFilterYear(v === "__all__" ? "" : v)}>
+        <SelectTrigger size="sm" className="w-[90px]">
+          <SelectValue placeholder="Year" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">All years</SelectItem>
+          {yearOptions.map((y) => (
+            <SelectItem key={y.value} value={y.value}>
+              {y.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={filterTeamId || "__all__"} onValueChange={(v) => onFilterTeamId(v === "__all__" ? "" : v)}>
+        <SelectTrigger size="sm" className="w-[140px] min-w-0">
+          <SelectValue placeholder="Team" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">All teams</SelectItem>
+          {teams.map((t) => (
+            <SelectItem key={t.id} value={t.id}>
+              {t.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Reports</CardTitle>
-          <CardDescription>Loading SEO reports…</CardDescription>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Reports</CardTitle>
+            <CardDescription>Loading SEO reports…</CardDescription>
+          </div>
+          {filtersEl}
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -227,11 +328,14 @@ export function SeoReportsTable({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Reports</CardTitle>
-        <CardDescription>
-          {rows.length} {rows.length === 1 ? "report" : "reports"} found
-        </CardDescription>
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <CardTitle>Reports</CardTitle>
+          <CardDescription>
+            {rows.length} {rows.length === 1 ? "report" : "reports"} found
+          </CardDescription>
+        </div>
+        {filtersEl}
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
@@ -303,9 +407,10 @@ export function SeoReportsTable({
                             </div>
                           </div>
                           <div className="p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
-                            <div className="text-[10px] text-green-700 dark:text-green-300 font-medium mb-0.5">Users</div>
+                            <div className="text-[10px] text-green-700 dark:text-green-300 font-medium mb-0.5">Bounce rate</div>
                             <div className="text-xs font-semibold text-green-900 dark:text-green-100">
-                              {formatMetric(r.users)}
+                              {formatMetric(r.bounceRate)}
+                              {r.bounceRate != null && r.bounceRate !== "" && !Number.isNaN(parseFloat(String(r.bounceRate))) ? "%" : ""}
                             </div>
                           </div>
                           <div className="p-2 rounded-md bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900">

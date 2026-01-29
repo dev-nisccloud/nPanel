@@ -23,7 +23,7 @@ export const seoReportListRowSchema = z.object({
   updatedAt: dateCoerce,
   sessions: z.string().nullable().optional(),
   totalWebTraffic: z.string().nullable().optional(),
-  users: z.string().nullable().optional(),
+  bounceRate: z.string().nullable().optional(),
   impressions: z.string().nullable().optional(),
   clicks: z.string().nullable().optional(),
   conversions: z.string().nullable().optional(),

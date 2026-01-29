@@ -15,6 +15,9 @@ export default function SeoReportsPage() {
   const [editingReportId, setEditingReportId] = React.useState<string | null>(null);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [filterMonth, setFilterMonth] = React.useState("");
+  const [filterYear, setFilterYear] = React.useState("");
+  const [filterTeamId, setFilterTeamId] = React.useState("");
   const utils = trpc.useUtils();
 
   const handleRefresh = React.useCallback(() => {
@@ -58,6 +61,12 @@ export default function SeoReportsPage() {
         <div className="mt-6">
           <SeoReportsTable
             searchQuery={searchQuery}
+            filterMonth={filterMonth}
+            filterYear={filterYear}
+            filterTeamId={filterTeamId}
+            onFilterMonth={setFilterMonth}
+            onFilterYear={setFilterYear}
+            onFilterTeamId={setFilterTeamId}
             onRowClick={setSelectedId}
             onEditClick={setEditingReportId}
           />

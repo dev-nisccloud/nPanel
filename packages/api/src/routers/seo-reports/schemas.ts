@@ -75,7 +75,7 @@ export const seoReportSummarySchema = z.object({
   // Key metrics for card summary
   sessions: z.string().nullable(),
   totalWebTraffic: z.string().nullable(),
-  users: z.string().nullable(),
+  bounceRate: z.string().nullable(),
   impressions: z.string().nullable(),
   clicks: z.string().nullable(),
   conversions: z.string().nullable(),
