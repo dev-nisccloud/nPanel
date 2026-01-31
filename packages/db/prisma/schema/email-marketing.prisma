@@ -14,6 +14,7 @@ enum EmailCampaignStatus {
   SCHEDULED
   COMPLETED
   FAILED
+  CANCELLED // User cancelled a scheduled send
 }
 
 // Worker/queue status for campaign send jobs (QStash)

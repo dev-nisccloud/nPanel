@@ -1,5 +1,19 @@
 import { render } from '@react-email/render';
-import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail, AccountCreatedEmail, AgencyUserCreatedEmail, InvoiceDeliveryEmail, OrderConfirmationEmail, PaymentReceiptEmail } from 'react-email-starter/emails';
+import {
+	ResetPasswordEmail,
+	PasswordResetSuccessEmail,
+	WelcomeEmail,
+	TeamInviteEmail,
+	AccountCreatedEmail,
+	AgencyUserCreatedEmail,
+	InvoiceDeliveryEmail,
+	OrderConfirmationEmail,
+	PaymentReceiptEmail,
+	CampaignCreatedEmail,
+	CampaignCompletedEmail,
+	CampaignScheduledEmail,
+	CampaignCancelledEmail,
+} from "react-email-starter/emails";
 
 export async function renderResetPasswordEmail({
   userFirstname,
@@ -214,4 +228,106 @@ export async function renderPaymentReceiptEmail({
     supportEmail,
     supportPhone,
   }));
+}
+
+export async function renderCampaignCreatedEmail({
+  recipientName,
+  campaignName,
+  subject,
+  recipientCount,
+  viewCampaignLink,
+}: {
+  recipientName?: string;
+  campaignName?: string;
+  subject?: string;
+  recipientCount?: number;
+  viewCampaignLink?: string;
+}) {
+  return render(
+    CampaignCreatedEmail({
+      recipientName,
+      campaignName,
+      subject,
+      recipientCount: recipientCount ?? 0,
+      viewCampaignLink,
+    })
+  );
+}
+
+export async function renderCampaignCompletedEmail({
+  recipientName,
+  campaignName,
+  subject,
+  sentAt,
+  totalRecipients,
+  viewCampaignLink,
+}: {
+  recipientName?: string;
+  campaignName?: string;
+  subject?: string;
+  sentAt?: string;
+  totalRecipients?: number;
+  viewCampaignLink?: string;
+}) {
+  return render(
+    CampaignCompletedEmail({
+      recipientName,
+      campaignName,
+      subject,
+      sentAt,
+      totalRecipients: totalRecipients ?? 0,
+      viewCampaignLink,
+    })
+  );
+}
+
+export async function renderCampaignScheduledEmail({
+  recipientName,
+  campaignName,
+  subject,
+  scheduledAt,
+  recipientCount,
+  viewCampaignLink,
+}: {
+  recipientName?: string;
+  campaignName?: string;
+  subject?: string;
+  scheduledAt?: string;
+  recipientCount?: number;
+  viewCampaignLink?: string;
+}) {
+  return render(
+    CampaignScheduledEmail({
+      recipientName,
+      campaignName,
+      subject,
+      scheduledAt,
+      recipientCount: recipientCount ?? 0,
+      viewCampaignLink,
+    })
+  );
+}
+
+export async function renderCampaignCancelledEmail({
+  recipientName,
+  campaignName,
+  subject,
+  cancelledAt,
+  viewCampaignLink,
+}: {
+  recipientName?: string;
+  campaignName?: string;
+  subject?: string;
+  cancelledAt?: string;
+  viewCampaignLink?: string;
+}) {
+  return render(
+    CampaignCancelledEmail({
+      recipientName,
+      campaignName,
+      subject,
+      cancelledAt,
+      viewCampaignLink,
+    })
+  );
 }

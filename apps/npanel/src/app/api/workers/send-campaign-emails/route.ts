@@ -3,6 +3,8 @@ import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import prisma from "@nPanel/db";
 import { getQStashSigningKeys } from "@nPanel/api/lib/qstash/client";
 import { executeCampaignSend } from "@nPanel/api/lib/campaign-send-executor";
+import { sendEmail } from "@nPanel/api/lib/email";
+import { renderCampaignCompletedEmail } from "@nPanel/api/lib/email-templates";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 min for large campaigns
@@ -77,7 +79,8 @@ export async function POST(request: NextRequest) {
 	}
 
 	const campaign = job.campaign;
-	if (campaign.status === "COMPLETED" || campaign.status === "FAILED") {
+	const terminalStatuses = ["COMPLETED", "FAILED", "CANCELLED"] as const;
+	if (terminalStatuses.includes(campaign.status as (typeof terminalStatuses)[number])) {
 		await prisma.emailCampaignSendJob.update({
 			where: { id: sendJobId },
 			data: {
@@ -128,6 +131,54 @@ export async function POST(request: NextRequest) {
 				},
 			}),
 		]);
+
+		// Notify campaign owner: completed email + in-app notification (use NEXT_PUBLIC_APP_URL as-is)
+		try {
+			const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+			const viewCampaignLink = `${base}/agency/email-marketing/campaigns/${campaignId}`;
+			const campaignWithUser = await prisma.emailCampaign.findUnique({
+				where: { id: campaignId },
+				include: { user: { select: { email: true, name: true } } },
+			});
+			if (campaignWithUser?.user?.email) {
+				const sentAtFormatted = completedAt.toLocaleString(undefined, {
+					dateStyle: "medium",
+					timeStyle: "short",
+				});
+				const html = await renderCampaignCompletedEmail({
+					recipientName: campaignWithUser.user.name ?? undefined,
+					campaignName: campaignWithUser.name,
+					subject: campaignWithUser.subject,
+					sentAt: sentAtFormatted,
+					totalRecipients: result.totalRecipients,
+					viewCampaignLink,
+				});
+				await sendEmail({
+					to: campaignWithUser.user.email,
+					subject: `Campaign completed: ${campaignWithUser.name}`,
+					html,
+				});
+			}
+			if (campaignWithUser?.userId) {
+				await prisma.notification.create({
+					data: {
+						id: crypto.randomUUID(),
+						userId: campaignWithUser.userId,
+						teamId: campaignWithUser.teamId ?? null,
+						type: "EMAIL_MARKETING",
+						priority: "NORMAL",
+						title: "Campaign completed",
+						message: `Your campaign "${campaignWithUser.name}" has finished sending. Log in to see the full report.`,
+						link: viewCampaignLink,
+						seen: false,
+						createdAt: completedAt,
+						updatedAt: completedAt,
+					},
+				});
+			}
+		} catch (notifyErr) {
+			console.error("Campaign completed notification/email failed:", notifyErr);
+		}
 
 		return NextResponse.json({
 			success: true,

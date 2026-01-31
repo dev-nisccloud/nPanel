@@ -23,6 +23,7 @@ export const emailCampaignStatusSchema = z.enum([
 	"SCHEDULED",
 	"COMPLETED",
 	"FAILED",
+	"CANCELLED",
 ]);
 export type EmailCampaignStatus = z.infer<typeof emailCampaignStatusSchema>;
 
@@ -229,6 +230,11 @@ export const campaignSendInputSchema = z.object({
 	immediate: z.boolean().optional(),
 });
 export type CampaignSendInput = z.infer<typeof campaignSendInputSchema>;
+
+export const campaignCancelInputSchema = z.object({
+	id: z.string().min(1),
+});
+export type CampaignCancelInput = z.infer<typeof campaignCancelInputSchema>;
 
 // ============================================================================
 // CAMPAIGN RECIPIENT SCHEMAS

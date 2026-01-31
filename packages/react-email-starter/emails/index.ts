@@ -18,3 +18,7 @@ export { AccountCreatedEmail } from './account-created-email';
 export { AgencyUserCreatedEmail } from './agency-user-created-email';
 export { OrderConfirmationEmail } from './order-confirmation';
 export { PaymentReceiptEmail } from './payment-receipt';
+export { CampaignCreatedEmail } from './campaign-created-email';
+export { CampaignCompletedEmail } from './campaign-completed-email';
+export { CampaignScheduledEmail } from './campaign-scheduled-email';
+export { CampaignCancelledEmail } from './campaign-cancelled-email';

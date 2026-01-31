@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, EllipsisVertical, CheckCircle2, Clock, XCircle, Trash2, RefreshCw } from "lucide-react";
+import { Mail, EllipsisVertical, CheckCircle2, Clock, XCircle, Trash2, RefreshCw, Ban } from "lucide-react";
 import {
 	Table,
 	TableBody,
@@ -71,6 +71,13 @@ const getStatusBadge = (status: string) => {
 					Draft
 				</Badge>
 			);
+		case "CANCELLED":
+			return (
+				<Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">
+					<Ban className="mr-1 h-3 w-3" />
+					Cancelled
+				</Badge>
+			);
 		default:
 			return (
 				<Badge variant="outline">
@@ -101,6 +108,8 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 	const utils = trpc.useUtils();
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+	const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+	const [isCancelling, setIsCancelling] = React.useState(false);
 	const [isRefreshing, setIsRefreshing] = React.useState(false);
 
 	const handleRefresh = async () => {
@@ -133,16 +142,59 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 		},
 	});
 
+	const cancelMutation = trpc.emailMarketing.campaigns.cancel.useMutation({
+		onSuccess: (data) => {
+			toast.success("Scheduled campaign cancelled", {
+				description: data?.cancelledAt ? `Cancelled at ${data.cancelledAt}.` : undefined,
+			});
+			utils.emailMarketing.campaigns.list.invalidate();
+			onRefetch?.();
+			setIsCancelling(false);
+			setShowCancelDialog(false);
+		},
+		onError: (e: { message: string }) => {
+			toast.error("Failed to cancel campaign", { description: e.message });
+			setIsCancelling(false);
+		},
+	});
+
 	const handleDelete = async () => {
 		setIsDeleting(true);
 		try {
 			await deleteMutation.mutateAsync({ id: campaign.id });
-		} catch (error) {
+		} catch {
 			// Error handled in mutation
 		}
 	};
 
-	const busy = isDeleting || isRefreshing;
+	// Refetch from DB before opening cancel dialog to avoid acting on stale data (e.g. cache said SCHEDULED but campaign was already sent)
+	const handleCancelScheduledClick = async () => {
+		try {
+			const fresh = await utils.emailMarketing.campaigns.getById.fetch({ id: campaign.id });
+			if (fresh.status !== "SCHEDULED") {
+				toast.error("Campaign is no longer scheduled", {
+					description: fresh.status === "COMPLETED" ? "It has already been sent." : fresh.status === "CANCELLED" ? "It has already been cancelled." : "You cannot cancel this campaign.",
+				});
+				utils.emailMarketing.campaigns.list.invalidate();
+				onRefetch?.();
+				return;
+			}
+			setShowCancelDialog(true);
+		} catch {
+			toast.error("Could not load campaign status. Please try again.");
+		}
+	};
+
+	const handleConfirmCancel = async () => {
+		setIsCancelling(true);
+		try {
+			await cancelMutation.mutateAsync({ id: campaign.id });
+		} catch {
+			// Error handled in mutation
+		}
+	};
+
+	const busy = isDeleting || isRefreshing || isCancelling;
 
 	return (
 		<>
@@ -164,6 +216,12 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 									<RefreshCw className={`mr-2 h-4 w-4 shrink-0 ${isRefreshing ? "animate-spin" : ""}`} />
 									{isRefreshing ? "Refreshing…" : "Refresh"}
 								</DropdownMenuItem>
+								{campaign.status === "SCHEDULED" && (
+									<DropdownMenuItem onClick={handleCancelScheduledClick} disabled={busy}>
+										<Ban className="mr-2 h-4 w-4 shrink-0" />
+										Cancel scheduled
+									</DropdownMenuItem>
+								)}
 								<DropdownMenuSeparator />
 								<DropdownMenuItem
 									onClick={() => setShowDeleteDialog(true)}
@@ -196,6 +254,24 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
 							{isDeleting ? "Deleting..." : "Delete Campaign"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			{/* Cancel scheduled confirmation */}
+			<AlertDialog open={showCancelDialog} onOpenChange={(open) => !isCancelling && setShowCancelDialog(open)}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Cancel scheduled campaign</AlertDialogTitle>
+						<AlertDialogDescription>
+							Are you sure you want to cancel the scheduled send for "{campaign.name}"? The campaign will not be sent at the scheduled time. You can schedule it again later from the campaign details.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isCancelling}>Keep scheduled</AlertDialogCancel>
+						<AlertDialogAction onClick={handleConfirmCancel} disabled={isCancelling}>
+							{isCancelling ? "Cancelling…" : "Cancel scheduled send"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
