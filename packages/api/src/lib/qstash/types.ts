@@ -14,3 +14,19 @@ export interface QStashJobResult {
 	scheduledFor?: number;
 }
 
+/**
+ * QStash job payload for campaign send (immediate or scheduled)
+ */
+export interface CampaignSendJobPayload {
+	campaignId: string;
+	sendJobId: string;
+}
+
+/**
+ * QStash job result for campaign send
+ */
+export interface CampaignSendJobResult {
+	messageId: string;
+	scheduledFor?: number;
+}
+

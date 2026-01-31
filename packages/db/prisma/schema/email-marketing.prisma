@@ -1,6 +1,5 @@
 // Email Marketing Schema with Resend Integration
-// This schema handles email marketing using Resend as the email provider
-// Domains and sending are handled by Resend, but contacts and campaigns are stored in our DB
+// Campaigns, domains, and per-recipient send tracking
 
 // Enums for Email Marketing
 enum EmailDomainStatus {
@@ -10,82 +9,69 @@ enum EmailDomainStatus {
   EXPIRED // Domain verification expired
 }
 
-enum ContactStatus {
-  ACTIVE
-  UNSUBSCRIBED
-  BOUNCED
-  COMPLAINED
-  INACTIVE
-}
-
-enum CampaignStatus {
+enum EmailCampaignStatus {
   DRAFT
   SCHEDULED
-  SENDING
-  SENT
-  PAUSED
-  CANCELLED
+  COMPLETED
   FAILED
 }
 
-enum CampaignType {
-  TRANSACTIONAL // Sent as transactional emails via Resend
-  MARKETING // Marketing campaign (still sent via Resend but tracked differently)
+// Worker/queue status for campaign send jobs (QStash)
+enum CampaignSendJobStatus {
+  QUEUED // Job enqueued with QStash, waiting for scheduledFor or immediate run
+  RUNNING // Worker is sending batches
+  COMPLETED // Send finished successfully
+  FAILED // Send failed (see errorMessage)
+  CANCELLED // User cancelled before run (e.g. scheduled send cancelled)
 }
 
-enum EmailLogStatus {
-  PENDING
-  SENT
-  DELIVERED
-  BOUNCED
-  FAILED
-  OPENED
-  CLICKED
-  COMPLAINED
-  UNSUBSCRIBED
-}
-
-enum EmailLogType {
-  TRANSACTIONAL // Transactional email sent via Resend
-  CAMPAIGN // Campaign email sent via Resend
+// Resend webhook event types (one email can have multiple events)
+enum EmailEventType {
+  email_bounced
+  email_clicked
+  email_complained
+  email_delivered
+  email_delivery_delayed
+  email_failed
+  email_opened
+  email_received
+  email_scheduled
+  email_sent
+  email_suppressed
 }
 
 // Email Domain
-// Tracks domains added via Resend's domain feature
-// Domains are managed in Resend, but we track them in our DB for reference
+// Tracks domains added via Resend's domain feature (same as before)
 model EmailDomain {
   id String @id @map("_id")
 
   // Domain Information
-  domainName String @unique // The domain name (e.g., "example.com")
+  domainName String @unique
 
   // Resend Integration
-  resendDomainId String? // Resend domain ID (from Resend API)
+  resendDomainId String?
 
   // Domain Status
   status EmailDomainStatus @default(PENDING)
 
   // User/Team Tracking
-  userId String // User who added the domain
+  userId String
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  teamId String? // Optional team association
+  teamId String?
   team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
   // Verification Information
-  verificationStatus String? // Resend verification status
-  verificationData   Json? // Additional verification data from Resend
-
-  // DNS Records (stored for reference)
-  dnsRecords Json? // DNS records needed for verification
+  verificationStatus String?
+  verificationData   Json?
+  dnsRecords         Json?
 
   // Timestamps
   createdAt  DateTime
   updatedAt  DateTime
-  verifiedAt DateTime? // When domain was verified
+  verifiedAt DateTime?
 
   // Relations
-  emailLogs    EmailLog[]
-  campaigns    Campaign[]
+  campaigns    EmailCampaign[]
   activityLogs EmailDomainActivityLog[]
 
   @@index([userId])
@@ -95,104 +81,8 @@ model EmailDomain {
   @@map("email_domain")
 }
 
-// Contact
-// Stores contacts in our DB (not on Resend)
-// We manage contacts ourselves for better control and segmentation
-model Contact {
-  id String @id @map("_id")
-
-  // Contact Information
-  email      String // Email address (unique per audience)
-  firstName  String?
-  lastName   String?
-  phone      String?
-  company    String?
-  jobTitle   String?
-  address    String?
-  city       String?
-  state      String?
-  country    String?
-  postalCode String?
-
-  // Contact Status
-  status ContactStatus @default(ACTIVE)
-
-  // User/Team Tracking
-  userId String // User who added the contact
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  teamId String? // Optional team association
-  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
-
-  // Custom Fields
-  customFields Json? // Flexible custom fields for additional data
-
-  // Timestamps
-  createdAt       DateTime
-  updatedAt       DateTime
-  lastContactedAt DateTime? // When contact was last emailed
-  unsubscribedAt  DateTime? // When contact unsubscribed
-
-  // Relations
-  emailLogs    EmailLog[]
-  activityLogs ContactActivityLog[]
-
-  @@index([email])
-  @@index([userId])
-  @@index([teamId])
-  @@index([status])
-  @@index([createdAt])
-  @@map("contact")
-}
-
-// Email Template
-// Stores email templates uploaded by users
-// Templates can be used in campaigns or for direct email sending
-model EmailTemplate {
-  id String @id @map("_id")
-
-  // Template Information
-  name        String // Template name
-  description String? // Template description
-  subject     String? // Default subject line (can be overridden in campaigns)
-
-  // Template Content
-  htmlContent String? // HTML email content
-  textContent String? // Plain text email content
-
-  // Template Variables (for dynamic content)
-  // Store variable names that can be replaced (e.g., {{name}}, {{email}})
-  variables Json? // Array of variable names or template variable definitions
-
-  // User/Team Tracking
-  userId String // User who created the template
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  teamId String? // Optional team association
-  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
-
-  // Template Status
-  isActive Boolean @default(true) // Whether template is active and can be used
-
-  // Additional Metadata
-  metadata Json? // Flexible metadata for template-specific data
-
-  // Timestamps
-  createdAt DateTime
-  updatedAt DateTime
-
-  // Relations
-  campaigns Campaign[]
-
-  @@index([userId])
-  @@index([teamId])
-  @@index([name])
-  @@index([isActive])
-  @@map("email_template")
-}
-
-// Campaign
-// Email campaigns that store their own list of recipient emails
-// Campaigns are comprehensive enough for email marketing but actual sending is via Resend
-model Campaign {
+// Email Campaign
+model EmailCampaign {
   id String @id @map("_id")
 
   // Campaign Information
@@ -202,140 +92,153 @@ model Campaign {
   fromEmail   String // From email address (must be from verified domain)
   fromName    String? // From name (e.g., "John Doe" or "Company Name")
 
-  // Campaign Type and Status
-  type   CampaignType   @default(MARKETING)
-  status CampaignStatus @default(DRAFT)
-
-  // Recipient Emails
-  // Store the list of email addresses for this campaign
-  recipientEmails String[] // Array of email addresses for this campaign
-
-  // Email Domain Reference
-  emailDomainId String? // Domain to use for sending
-  emailDomain   EmailDomain? @relation(fields: [emailDomainId], references: [id], onDelete: SetNull)
+  // Status
+  status EmailCampaignStatus @default(DRAFT)
 
   // Email Content
-  htmlContent     String? // HTML email content
-  textContent     String? // Plain text email content
-  emailTemplateId String? // Reference to email template (if using templates)
-  emailTemplate   EmailTemplate? @relation(fields: [emailTemplateId], references: [id], onDelete: SetNull)
-
-  // Scheduling
+  htmlContent String? // HTML email content
+  textContent String? // Plain text email content
   scheduledAt DateTime? // When to send the campaign
   sentAt      DateTime? // When campaign was actually sent
 
-  // Campaign Statistics (cached)
-  totalRecipients   Int @default(0) // Total number of recipients
-  sentCount         Int @default(0) // Number of emails sent
-  deliveredCount    Int @default(0) // Number of emails delivered
-  openedCount       Int @default(0) // Number of emails opened
-  clickedCount      Int @default(0) // Number of links clicked
-  bouncedCount      Int @default(0) // Number of bounces
-  complainedCount   Int @default(0) // Number of spam complaints
-  unsubscribedCount Int @default(0) // Number of unsubscribes
+  // Domain Reference
+  emailDomainId String?
+  emailDomain   EmailDomain? @relation(fields: [emailDomainId], references: [id], onDelete: SetNull)
 
   // User/Team Tracking
-  userId String // User who created the campaign
+  userId String
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  teamId String? // Optional team association
+  teamId String?
   team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
-
-  // Additional Metadata
-  metadata Json? // Flexible metadata for campaign-specific data
 
   // Timestamps
   createdAt DateTime
   updatedAt DateTime
 
   // Relations
-  emailLogs    EmailLog[]
-  activityLogs CampaignActivityLog[]
+  recipients   CampaignRecipient[]
+  sendJobs     EmailCampaignSendJob[]
+  activityLogs EmailCampaignActivityLog[]
 
   @@index([emailDomainId])
-  @@index([emailTemplateId])
   @@index([userId])
   @@index([teamId])
   @@index([status])
-  @@index([type])
   @@index([scheduledAt])
-  @@map("campaign")
+  @@map("email_campaign")
 }
 
-// Email Log
-// Tracks individual emails sent via Resend
-// Used for both transactional and campaign emails
-model EmailLog {
+// Campaign send job (worker/queue tracking)
+// One row per "send" attempt: immediate or scheduled via QStash
+model EmailCampaignSendJob {
   id String @id @map("_id")
 
-  // Email Information
-  toEmail   String // Recipient email address
-  fromEmail String // Sender email address
-  subject   String // Email subject
+  campaignId String
+  campaign   EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  // Email Type
-  type EmailLogType @default(TRANSACTIONAL)
+  status CampaignSendJobStatus @default(QUEUED)
 
-  // Status Tracking
-  status EmailLogStatus @default(PENDING)
+  // QStash: message ID for cancel/reschedule
+  qstashMessageId String?
+
+  // When the job was scheduled to run (QStash notBefore)
+  scheduledFor DateTime?
+
+  // When the worker actually started / finished
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // When send failed
+  errorMessage String?
+
+  createdAt DateTime
+  updatedAt DateTime
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([qstashMessageId])
+  @@map("email_campaign_send_job")
+}
+
+// Campaign Recipient (email list/audience per campaign)
+// One row per recipient in a campaign; resendId tracks Resend's email_id for that send
+model CampaignRecipient {
+  id String @id @map("_id")
+
+  campaignId String
+  campaign   EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Recipient
+  toEmail String // Recipient email address
 
   // Resend Integration
-  resendEmailId   String? // Resend email ID (from Resend API response)
-  resendMessageId String? // Resend message ID
-
-  // Email Domain Reference
-  emailDomainId String?
-  emailDomain   EmailDomain? @relation(fields: [emailDomainId], references: [id], onDelete: SetNull)
-
-  // Campaign Reference (if this is a campaign email)
-  campaignId String?
-  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-
-  // Contact Reference (if sending to a contact)
-  contactId String?
-  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
-
-  // Email Content (optional, for reference)
-  htmlContent String?
-  textContent String?
-
-  // Tracking Information
-  openedAt       DateTime? // When email was opened
-  clickedAt      DateTime? // When link was clicked
-  bouncedAt      DateTime? // When email bounced
-  complainedAt   DateTime? // When spam complaint was received
-  unsubscribedAt DateTime? // When recipient unsubscribed
-
-  // Error Information
-  errorMessage String? // Error message if sending failed
-
-  // Additional Metadata
-  metadata Json? // Additional data from Resend webhooks or API
-
-  // User/Team Tracking
-  userId String? // User who initiated the email send
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  teamId String? // Optional team association
-  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  resendId        String? // Resend email_id for this send (from API response / webhook data.email_id)
+  resendMessageId String?
 
   // Timestamps
-  createdAt   DateTime
-  updatedAt   DateTime
-  sentAt      DateTime? // When email was sent
-  deliveredAt DateTime? // When email was delivered
+  createdAt DateTime
+  updatedAt DateTime
+
+  // Relations (status/logging live in EmailEvent)
+  emailEvents EmailEvent[]
+
+  @@index([campaignId])
+  @@index([toEmail])
+  @@index([resendId])
+  @@map("campaign_recipient")
+}
+
+// Resend email events (webhook payloads)
+// One recipient email can have multiple events: sent -> delivered -> opened -> clicked, etc.
+model EmailEvent {
+  id String @id @map("_id")
+
+  campaignRecipientId String
+  campaignRecipient   CampaignRecipient @relation(fields: [campaignRecipientId], references: [id], onDelete: Cascade)
+
+  // Event type (Resend: email.bounced, email.sent, email.delivered, etc.)
+  type EmailEventType
+
+  // When Resend created the event (webhook "created_at")
+  eventCreatedAt DateTime
+
+  // Resend email_id from data (for lookups)
+  resendEmailId String?
+
+  // Full webhook "data" payload (bounce, click, failed, suppressed, tags, etc.)
+  data Json
+
+  // When we stored the event
+  createdAt DateTime
 
   // Relations
-  activityLogs EmailLogActivityLog[]
+  activityLogs EmailEventActivityLog[]
 
-  @@index([emailDomainId])
-  @@index([campaignId])
-  @@index([contactId])
-  @@index([userId])
-  @@index([teamId])
-  @@index([status])
+  @@index([campaignRecipientId])
   @@index([type])
-  @@index([toEmail])
-  @@index([sentAt])
-  @@map("email_log")
+  @@index([eventCreatedAt])
+  @@index([resendEmailId])
+  @@map("email_event")
+}
+
+// Activity logging for email event actions
+model EmailEventActivityLog {
+  id           String     @id @map("_id")
+  emailEventId String
+  emailEvent   EmailEvent @relation(fields: [emailEventId], references: [id], onDelete: Cascade)
+  action       String // e.g., "RECEIVED", "PROCESSED", "RETRY", "FAILED", "DUPLICATE"
+  description  String?
+  metadata     Json?
+  ipAddress    String?
+  userAgent    String?
+  userId       String? // Optional (system/webhook may have no user)
+  createdAt    DateTime
+
+  @@index([emailEventId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("email_event_activity_log")
 }
 
 // Activity logging for email domain actions
@@ -346,7 +249,7 @@ model EmailDomainActivityLog {
   emailDomain   EmailDomain @relation(fields: [emailDomainId], references: [id], onDelete: Cascade)
   action        String // e.g., "CREATE", "VERIFY", "UPDATE", "DELETE"
   description   String?
-  metadata      Json? // Additional data about the action
+  metadata      Json?
   ipAddress     String?
   userAgent     String?
   createdAt     DateTime
@@ -358,35 +261,15 @@ model EmailDomainActivityLog {
   @@map("email_domain_activity_log")
 }
 
-// Activity logging for contact actions
-model ContactActivityLog {
-  id          String   @id @map("_id")
-  userId      String
-  contactId   String
-  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  action      String // e.g., "CREATE", "UPDATE", "UNSUBSCRIBE", "DELETE"
-  description String?
-  metadata    Json? // Additional data about the action
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime
-
-  @@index([userId])
-  @@index([contactId])
-  @@index([action])
-  @@index([createdAt])
-  @@map("contact_activity_log")
-}
-
 // Activity logging for campaign actions
-model CampaignActivityLog {
-  id          String   @id @map("_id")
+model EmailCampaignActivityLog {
+  id          String        @id @map("_id")
   userId      String
   campaignId  String
-  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  action      String // e.g., "CREATE", "UPDATE", "SCHEDULE", "SEND", "PAUSE", "CANCEL", "DELETE"
+  campaign    EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  action      String // e.g., "CREATE", "UPDATE", "SCHEDULE", "SEND", "CANCEL", "DELETE"
   description String?
-  metadata    Json? // Additional data about the action
+  metadata    Json?
   ipAddress   String?
   userAgent   String?
   createdAt   DateTime
@@ -395,25 +278,5 @@ model CampaignActivityLog {
   @@index([campaignId])
   @@index([action])
   @@index([createdAt])
-  @@map("campaign_activity_log")
-}
-
-// Activity logging for email log actions
-model EmailLogActivityLog {
-  id          String   @id @map("_id")
-  userId      String?
-  emailLogId  String
-  emailLog    EmailLog @relation(fields: [emailLogId], references: [id], onDelete: Cascade)
-  action      String // e.g., "SEND", "DELIVER", "OPEN", "CLICK", "BOUNCE", "COMPLAIN", "UNSUBSCRIBE"
-  description String?
-  metadata    Json? // Additional data about the action (e.g., webhook data from Resend)
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime
-
-  @@index([userId])
-  @@index([emailLogId])
-  @@index([action])
-  @@index([createdAt])
-  @@map("email_log_activity_log")
+  @@map("email_campaign_activity_log")
 }

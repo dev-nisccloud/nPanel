@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../../trpc";
 import prisma from "@nPanel/db";
-import { getResendClient, handleResendError } from "../../lib/resend-client";
+import { enqueueCampaignSend } from "../../lib/qstash/campaign-send";
 import {
 	campaignCreateInputSchema,
 	campaignUpdateInputSchema,
@@ -10,265 +10,26 @@ import {
 	campaignDetailSchema,
 	campaignListResponseSchema,
 	campaignSendInputSchema,
-	campaignPauseInputSchema,
+	campaignRecipientSummarySchema,
+	campaignRecipientAddInputSchema,
+	campaignRecipientListFiltersSchema,
+	campaignRecipientListResponseSchema,
 } from "./schemas";
 
-/**
- * Send campaign emails via Resend
- * This function handles the actual sending logic
- */
-async function sendCampaignEmails(campaignId: string) {
-	const campaign = await prisma.campaign.findUnique({
-		where: { id: campaignId },
-		include: {
-			emailTemplate: true,
-		},
+function mapRecipient(r: {
+	id: string;
+	campaignId: string;
+	toEmail: string;
+	resendId: string | null;
+	resendMessageId: string | null;
+	createdAt: Date;
+	updatedAt: Date;
+}) {
+	return campaignRecipientSummarySchema.parse({
+		...r,
+		resendId: r.resendId ?? null,
+		resendMessageId: r.resendMessageId ?? null,
 	});
-
-	if (!campaign) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Campaign not found",
-		});
-	}
-
-	// Get email content (from template or direct)
-	let htmlContent = campaign.htmlContent;
-	let textContent = campaign.textContent;
-	let subject = campaign.subject;
-
-	if (campaign.emailTemplateId && campaign.emailTemplate) {
-		htmlContent = campaign.emailTemplate.htmlContent ?? htmlContent;
-		textContent = campaign.emailTemplate.textContent ?? textContent;
-		subject = campaign.emailTemplate.subject ?? subject;
-	}
-
-	if (!htmlContent && !textContent) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Campaign must have HTML or text content",
-		});
-	}
-
-	// Verify domain if specified
-	if (campaign.emailDomainId) {
-		const emailDomain = await prisma.emailDomain.findUnique({
-			where: { id: campaign.emailDomainId },
-		});
-
-		if (!emailDomain || emailDomain.status !== "VERIFIED") {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Email domain must be verified",
-			});
-		}
-	}
-
-	// Get recipient emails from campaign
-	const recipientEmails = campaign.recipientEmails;
-
-	if (recipientEmails.length === 0) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Campaign has no recipient emails",
-		});
-	}
-
-	// Update campaign status
-	await prisma.campaign.update({
-		where: { id: campaignId },
-		data: {
-			status: "SENDING",
-			totalRecipients: recipientEmails.length,
-			updatedAt: new Date(),
-		},
-	});
-
-	// Send emails via Resend using batch API (up to 100 emails per batch)
-	const resend = getResendClient();
-	const fromEmail = campaign.fromEmail;
-	const fromName = campaign.fromName
-		? `${campaign.fromName} <${fromEmail}>`
-		: fromEmail;
-
-	let sentCount = 0;
-	let failedCount = 0;
-
-	// Split emails into batches of 100 (Resend batch limit)
-	const BATCH_SIZE = 100;
-	const batches: string[][] = [];
-	for (let i = 0; i < recipientEmails.length; i += BATCH_SIZE) {
-		batches.push(recipientEmails.slice(i, i + BATCH_SIZE));
-	}
-
-	// Process each batch
-	for (const batch of batches) {
-		try {
-			// Prepare batch emails with variable replacement
-			const batchEmails = batch.map((recipientEmail) => {
-				// Prepare email content (simple variable replacement with email)
-				let finalHtml = htmlContent;
-				let finalText = textContent;
-
-				// Simple variable replacement (can be enhanced with contact lookup if needed)
-				if (finalHtml) {
-					finalHtml = finalHtml.replace(/\{\{email\}\}/g, recipientEmail);
-				}
-
-				if (finalText) {
-					finalText = finalText.replace(/\{\{email\}\}/g, recipientEmail);
-				}
-
-				return {
-					from: fromName,
-					to: [recipientEmail], // Resend batch API expects array for 'to'
-					subject,
-					...(finalHtml && { html: finalHtml }),
-					...(finalText && { text: finalText }),
-				};
-			});
-
-			// Send batch via Resend
-			// Type assertion needed because Resend types expect 'react' property for React Email,
-			// but we're using HTML/text which is also valid
-			const resendResponse = await resend.batch.send(batchEmails as any);
-
-			if (resendResponse.error) {
-				throw new Error(resendResponse.error.message);
-			}
-
-			// Process batch results
-			// Resend batch API returns data as array: [{id: "..."}, {id: "..."}, ...]
-			// IMPORTANT: Results are returned in the same order as the request
-			// So results[index] corresponds to batch[index] (recipientEmail)
-			const now = new Date();
-			// Resend batch API returns data as array of email IDs
-			const results: Array<{ id: string }> = Array.isArray(resendResponse.data) 
-				? (resendResponse.data as unknown as Array<{ id: string }>)
-				: [];
-
-			// Validate that we got the expected number of results
-			if (results.length !== batch.length) {
-				console.warn(`Batch size mismatch: expected ${batch.length} results, got ${results.length}`);
-			}
-
-			// Create email logs for all emails in batch
-			// Map each recipient email to its corresponding Resend email ID by index
-			await prisma.$transaction(
-				batch.map((recipientEmail, index) => {
-					const result = results[index];
-					const isSuccess = result && result.id;
-					const resendEmailId = result?.id ?? null;
-
-					// Prepare content with variable replacement for logging
-					let finalHtml = htmlContent;
-					let finalText = textContent;
-					if (finalHtml) {
-						finalHtml = finalHtml.replace(/\{\{email\}\}/g, recipientEmail);
-					}
-					if (finalText) {
-						finalText = finalText.replace(/\{\{email\}\}/g, recipientEmail);
-					}
-
-					return prisma.emailLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							toEmail: recipientEmail,
-							fromEmail,
-							subject,
-							type: "CAMPAIGN",
-							status: isSuccess ? "SENT" : "FAILED",
-							resendEmailId, // Resend email ID mapped from batch response by index
-							resendMessageId: null, // Will be updated via webhook
-							emailDomainId: campaign.emailDomainId ?? null,
-							campaignId: campaign.id,
-							contactId: null,
-							htmlContent: finalHtml ?? null,
-							textContent: finalText ?? null,
-							errorMessage: !isSuccess ? "Failed to send via batch API" : null,
-							userId: campaign.userId,
-							teamId: campaign.teamId ?? null,
-							createdAt: now,
-							updatedAt: now,
-							sentAt: isSuccess ? now : null,
-						},
-					});
-				})
-			);
-
-			// Count successes and failures
-			batch.forEach((_, index) => {
-				const result = results[index] as { id: string } | undefined;
-				if (result && result.id) {
-					sentCount++;
-				} else {
-					failedCount++;
-				}
-			});
-
-			// Update campaign sentCount in real-time after each batch for UI progress
-			await prisma.campaign.update({
-				where: { id: campaignId },
-				data: {
-					sentCount,
-					updatedAt: new Date(),
-				},
-			});
-
-			// Small delay between batches to respect rate limits
-			if (batch !== batches[batches.length - 1]) {
-				await new Promise((resolve) => setTimeout(resolve, 100));
-			}
-		} catch (error) {
-			console.error(`Failed to send batch:`, error);
-			// Mark all emails in this batch as failed
-			const now = new Date();
-			await prisma.$transaction(
-				batch.map((recipientEmail) =>
-					prisma.emailLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							toEmail: recipientEmail,
-							fromEmail,
-							subject,
-							type: "CAMPAIGN",
-							status: "FAILED",
-							emailDomainId: campaign.emailDomainId ?? null,
-							campaignId: campaign.id,
-							contactId: null,
-							errorMessage: error instanceof Error ? error.message : "Unknown error",
-							userId: campaign.userId,
-							teamId: campaign.teamId ?? null,
-							createdAt: now,
-							updatedAt: now,
-						},
-					})
-				)
-			);
-			failedCount += batch.length;
-		}
-	}
-
-	// Update campaign with final status
-	// Only mark as FAILED if ALL emails failed, otherwise mark as SENT (even if some failed)
-	const finalStatus = failedCount === recipientEmails.length && sentCount === 0 ? "FAILED" : "SENT";
-	await prisma.campaign.update({
-		where: { id: campaignId },
-		data: {
-			status: finalStatus,
-			sentCount,
-			totalRecipients: recipientEmails.length,
-			sentAt: sentCount > 0 ? new Date() : null,
-			updatedAt: new Date(),
-		},
-	});
-
-	return {
-		success: true,
-		sentCount,
-		failedCount,
-		totalRecipients: recipientEmails.length,
-	};
 }
 
 export const emailMarketingCampaignsRouter = router({
@@ -283,26 +44,10 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			// Validate template if provided
-			if (input.emailTemplateId) {
-				const template = await prisma.emailTemplate.findUnique({
-					where: { id: input.emailTemplateId },
-				});
-
-				if (!template) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Email template not found",
-					});
-				}
-			}
-
-			// Validate domain if provided
 			if (input.emailDomainId) {
 				const domain = await prisma.emailDomain.findUnique({
 					where: { id: input.emailDomainId },
 				});
-
 				if (!domain || domain.status !== "VERIFIED") {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
@@ -311,18 +56,16 @@ export const emailMarketingCampaignsRouter = router({
 				}
 			}
 
-			// Ensure either template or content is provided
-			if (!input.emailTemplateId && !input.htmlContent && !input.textContent) {
+			if (!input.htmlContent && !input.textContent) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Either email template or content must be provided",
+					message: "HTML or text content is required",
 				});
 			}
 
-			// Create campaign and activity log in a single transaction
 			const now = new Date();
 			const campaign = await prisma.$transaction(async (tx) => {
-				const newCampaign = await tx.campaign.create({
+				const newCampaign = await tx.emailCampaign.create({
 					data: {
 						id: crypto.randomUUID(),
 						name: input.name,
@@ -330,15 +73,11 @@ export const emailMarketingCampaignsRouter = router({
 						subject: input.subject,
 						fromEmail: input.fromEmail,
 						fromName: input.fromName ?? null,
-						type: input.type ?? "MARKETING",
 						status: "DRAFT",
-						recipientEmails: input.recipientEmails,
-						emailDomainId: input.emailDomainId ?? null,
-						emailTemplateId: input.emailTemplateId ?? null,
 						htmlContent: input.htmlContent ?? null,
 						textContent: input.textContent ?? null,
 						scheduledAt: input.scheduledAt ?? null,
-						metadata: input.metadata ?? undefined,
+						emailDomainId: input.emailDomainId ?? null,
 						userId,
 						teamId: input.teamId ?? null,
 						createdAt: now,
@@ -346,7 +85,19 @@ export const emailMarketingCampaignsRouter = router({
 					},
 				});
 
-				await tx.campaignActivityLog.create({
+				for (const email of input.recipientEmails) {
+					await tx.campaignRecipient.create({
+						data: {
+							id: crypto.randomUUID(),
+							campaignId: newCampaign.id,
+							toEmail: email,
+							createdAt: now,
+							updatedAt: now,
+						},
+					});
+				}
+
+				await tx.emailCampaignActivityLog.create({
 					data: {
 						id: crypto.randomUUID(),
 						userId,
@@ -360,19 +111,21 @@ export const emailMarketingCampaignsRouter = router({
 				return newCampaign;
 			});
 
+			const recipients = await prisma.campaignRecipient.findMany({
+				where: { campaignId: campaign.id },
+			});
+
 			return campaignDetailSchema.parse({
 				...campaign,
-				recipientEmails: campaign.recipientEmails,
 				description: campaign.description ?? null,
 				fromName: campaign.fromName ?? null,
 				emailDomainId: campaign.emailDomainId ?? null,
-				emailTemplateId: campaign.emailTemplateId ?? null,
 				htmlContent: campaign.htmlContent ?? null,
 				textContent: campaign.textContent ?? null,
-				metadata: campaign.metadata ?? null,
-				teamId: campaign.teamId ?? null,
 				scheduledAt: campaign.scheduledAt ?? null,
 				sentAt: campaign.sentAt ?? null,
+				recipientCount: recipients.length,
+				recipients: recipients.map(mapRecipient),
 			});
 		}),
 
@@ -387,8 +140,9 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.campaign.findUnique({
+			const campaign = await prisma.emailCampaign.findUnique({
 				where: { id: input.id },
+				include: { recipients: true },
 			});
 
 			if (!campaign) {
@@ -398,19 +152,14 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			// Check access
 			if (campaign.userId !== userId) {
 				if (campaign.teamId) {
-					const teamMember = await prisma.teamMember.findUnique({
+					const member = await prisma.teamMember.findUnique({
 						where: {
-							teamId_userId: {
-								teamId: campaign.teamId,
-								userId,
-							},
+							teamId_userId: { teamId: campaign.teamId, userId },
 						},
 					});
-
-					if (!teamMember) {
+					if (!member) {
 						throw new TRPCError({
 							code: "FORBIDDEN",
 							message: "Access denied",
@@ -429,13 +178,12 @@ export const emailMarketingCampaignsRouter = router({
 				description: campaign.description ?? null,
 				fromName: campaign.fromName ?? null,
 				emailDomainId: campaign.emailDomainId ?? null,
-				emailTemplateId: campaign.emailTemplateId ?? null,
 				htmlContent: campaign.htmlContent ?? null,
 				textContent: campaign.textContent ?? null,
-				metadata: campaign.metadata ?? null,
-				teamId: campaign.teamId ?? null,
 				scheduledAt: campaign.scheduledAt ?? null,
 				sentAt: campaign.sentAt ?? null,
+				recipientCount: campaign.recipients.length,
+				recipients: campaign.recipients.map(mapRecipient),
 			});
 		}),
 
@@ -450,7 +198,11 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const where: any = {
+			const where: {
+				OR: Array<Record<string, unknown>>;
+				status?: "DRAFT" | "SCHEDULED" | "COMPLETED" | "FAILED";
+				name?: { contains: string; mode: "insensitive" };
+			} = {
 				OR: [
 					{ userId },
 					...(input.teamId
@@ -458,9 +210,7 @@ export const emailMarketingCampaignsRouter = router({
 								{
 									teamId: input.teamId,
 									team: {
-										members: {
-											some: { userId },
-										},
+										members: { some: { userId } },
 									},
 								},
 							]
@@ -468,33 +218,32 @@ export const emailMarketingCampaignsRouter = router({
 				],
 			};
 
-			if (input.status) {
-				where.status = input.status;
-			}
-
-			if (input.type) {
-				where.type = input.type;
-			}
-
-			if (input.search) {
-				where.name = { contains: input.search, mode: "insensitive" };
-			}
+			if (input.status) where.status = input.status;
+			if (input.search) where.name = { contains: input.search, mode: "insensitive" };
 
 			const [campaigns, total] = await Promise.all([
-				prisma.campaign.findMany({
+				prisma.emailCampaign.findMany({
 					where,
 					skip: input.offset,
 					take: input.limit,
 					orderBy: { createdAt: "desc" },
+					include: { _count: { select: { recipients: true } } },
 				}),
-				prisma.campaign.count({ where }),
+				prisma.emailCampaign.count({ where }),
 			]);
 
 			return campaignListResponseSchema.parse({
 				campaigns: campaigns.map((c) => ({
-					...c,
-					recipientEmails: c.recipientEmails,
+					id: c.id,
+					name: c.name,
+					subject: c.subject,
+					fromEmail: c.fromEmail,
+					status: c.status,
+					recipientCount: c._count.recipients,
+					userId: c.userId,
 					teamId: c.teamId ?? null,
+					createdAt: c.createdAt,
+					updatedAt: c.updatedAt,
 					scheduledAt: c.scheduledAt ?? null,
 					sentAt: c.sentAt ?? null,
 				})),
@@ -513,8 +262,9 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.campaign.findUnique({
+			const campaign = await prisma.emailCampaign.findUnique({
 				where: { id: input.id },
+				include: { recipients: true },
 			});
 
 			if (!campaign) {
@@ -524,7 +274,6 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			// Check access
 			if (campaign.userId !== userId) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -532,17 +281,16 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			// Can't update if already sent
-			if (campaign.status === "SENT") {
+			if (campaign.status === "COMPLETED" || campaign.status === "FAILED") {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Cannot update a sent campaign",
+					message: "Cannot update a campaign that has already been sent",
 				});
 			}
 
-			// Update campaign and create activity log in a single transaction
-			const updatedCampaign = await prisma.$transaction(async (tx) => {
-				const updated = await tx.campaign.update({
+			const now = new Date();
+			const updated = await prisma.$transaction(async (tx) => {
+				const updatedCampaign = await tx.emailCampaign.update({
 					where: { id: input.id },
 					data: {
 						...(input.name && { name: input.name }),
@@ -552,14 +300,8 @@ export const emailMarketingCampaignsRouter = router({
 						...(input.subject && { subject: input.subject }),
 						...(input.fromEmail && { fromEmail: input.fromEmail }),
 						...(input.fromName !== undefined && { fromName: input.fromName }),
-						...(input.type && { type: input.type }),
-						...(input.status && { status: input.status }),
-						...(input.recipientEmails && { recipientEmails: input.recipientEmails }),
 						...(input.emailDomainId !== undefined && {
 							emailDomainId: input.emailDomainId ?? undefined,
-						}),
-						...(input.emailTemplateId !== undefined && {
-							emailTemplateId: input.emailTemplateId,
 						}),
 						...(input.htmlContent !== undefined && {
 							htmlContent: input.htmlContent,
@@ -570,40 +312,56 @@ export const emailMarketingCampaignsRouter = router({
 						...(input.scheduledAt !== undefined && {
 							scheduledAt: input.scheduledAt,
 						}),
-						...(input.metadata !== undefined && { 
-							metadata: input.metadata ?? undefined 
-						}),
-						updatedAt: new Date(),
+						updatedAt: now,
 					},
 				});
 
-				await tx.campaignActivityLog.create({
+				if (input.recipientEmails !== undefined) {
+					await tx.campaignRecipient.deleteMany({
+						where: { campaignId: input.id },
+					});
+					for (const email of input.recipientEmails) {
+						await tx.campaignRecipient.create({
+							data: {
+								id: crypto.randomUUID(),
+								campaignId: input.id,
+								toEmail: email,
+								createdAt: now,
+								updatedAt: now,
+							},
+						});
+					}
+				}
+
+				await tx.emailCampaignActivityLog.create({
 					data: {
 						id: crypto.randomUUID(),
 						userId,
 						campaignId: campaign.id,
 						action: "UPDATE",
 						description: `Campaign ${campaign.name} updated`,
-						createdAt: new Date(),
+						createdAt: now,
 					},
 				});
 
-				return updated;
+				return updatedCampaign;
+			});
+
+			const recipients = await prisma.campaignRecipient.findMany({
+				where: { campaignId: updated.id },
 			});
 
 			return campaignDetailSchema.parse({
-				...updatedCampaign,
-				recipientEmails: updatedCampaign.recipientEmails,
-				description: updatedCampaign.description ?? null,
-				fromName: updatedCampaign.fromName ?? null,
-				emailDomainId: updatedCampaign.emailDomainId ?? null,
-				emailTemplateId: updatedCampaign.emailTemplateId ?? null,
-				htmlContent: updatedCampaign.htmlContent ?? null,
-				textContent: updatedCampaign.textContent ?? null,
-				metadata: updatedCampaign.metadata ?? null,
-				teamId: updatedCampaign.teamId ?? null,
-				scheduledAt: updatedCampaign.scheduledAt ?? null,
-				sentAt: updatedCampaign.sentAt ?? null,
+				...updated,
+				description: updated.description ?? null,
+				fromName: updated.fromName ?? null,
+				emailDomainId: updated.emailDomainId ?? null,
+				htmlContent: updated.htmlContent ?? null,
+				textContent: updated.textContent ?? null,
+				scheduledAt: updated.scheduledAt ?? null,
+				sentAt: updated.sentAt ?? null,
+				recipientCount: recipients.length,
+				recipients: recipients.map(mapRecipient),
 			});
 		}),
 
@@ -618,7 +376,7 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.campaign.findUnique({
+			const campaign = await prisma.emailCampaign.findUnique({
 				where: { id: input.id },
 			});
 
@@ -629,7 +387,6 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			// Check access
 			if (campaign.userId !== userId) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -637,7 +394,7 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			await prisma.campaign.delete({
+			await prisma.emailCampaign.delete({
 				where: { id: input.id },
 			});
 
@@ -655,8 +412,9 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.campaign.findUnique({
+			const campaign = await prisma.emailCampaign.findUnique({
 				where: { id: input.id },
+				include: { _count: { select: { recipients: true } } },
 			});
 
 			if (!campaign) {
@@ -666,7 +424,6 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			// Check access
 			if (campaign.userId !== userId) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -674,89 +431,134 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			// Can't send if already sent
-			if (campaign.status === "SENT" || campaign.status === "SENDING") {
+			if (campaign.status === "COMPLETED" || campaign.status === "FAILED") {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Campaign already sent or currently sending",
+					message: "Campaign already sent or failed",
 				});
 			}
 
-			// Update status to SENDING immediately
-			await prisma.campaign.update({
-				where: { id: input.id },
-				data: {
-					status: "SENDING",
-					totalRecipients: campaign.recipientEmails.length,
-					updatedAt: new Date(),
-				},
-			});
+			if (campaign._count.recipients === 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Campaign has no recipients",
+				});
+			}
 
-			// Create activity log for starting send
-			await prisma.campaignActivityLog.create({
+			if (!campaign.htmlContent && !campaign.textContent) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Campaign must have HTML or text content",
+				});
+			}
+
+			if (campaign.emailDomainId) {
+				const domain = await prisma.emailDomain.findUnique({
+					where: { id: campaign.emailDomainId },
+				});
+				if (!domain || domain.status !== "VERIFIED") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Email domain must be verified",
+					});
+				}
+			}
+
+			const now = new Date();
+			const scheduledFor =
+				input.immediate === true
+					? null
+					: campaign.scheduledAt != null && campaign.scheduledAt.getTime() > now.getTime()
+						? campaign.scheduledAt
+						: null;
+
+			const sendJob = await prisma.emailCampaignSendJob.create({
 				data: {
 					id: crypto.randomUUID(),
-					userId,
 					campaignId: campaign.id,
-					action: "SEND",
-					description: `Campaign ${campaign.name} sending started`,
-					createdAt: new Date(),
+					status: "QUEUED",
+					scheduledFor: scheduledFor ?? undefined,
+					createdAt: now,
+					updatedAt: now,
 				},
 			});
 
-			// Send emails synchronously (await completion)
 			try {
-				const result = await sendCampaignEmails(input.id);
-				
-				// Create activity log for completion
-				await prisma.campaignActivityLog.create({
+				const result = await enqueueCampaignSend(
+					campaign.id,
+					sendJob.id,
+					scheduledFor,
+				);
+
+				await prisma.emailCampaignSendJob.update({
+					where: { id: sendJob.id },
+					data: {
+						qstashMessageId: result.messageId,
+						updatedAt: new Date(),
+					},
+				});
+
+				if (scheduledFor != null) {
+					await prisma.emailCampaign.update({
+						where: { id: campaign.id },
+						data: { status: "SCHEDULED", updatedAt: new Date() },
+					});
+				}
+
+				await prisma.emailCampaignActivityLog.create({
 					data: {
 						id: crypto.randomUUID(),
 						userId,
 						campaignId: campaign.id,
 						action: "SEND",
-						description: `Campaign ${campaign.name} sent to ${result.sentCount} recipients`,
-						metadata: result,
+						description:
+							scheduledFor != null
+								? `Campaign ${campaign.name} scheduled for ${scheduledFor.toISOString()}`
+								: `Campaign ${campaign.name} send queued`,
+						metadata: JSON.parse(
+							JSON.stringify({
+								sendJobId: sendJob.id,
+								messageId: result.messageId,
+								scheduledFor: result.scheduledFor ?? null,
+							}),
+						),
 						createdAt: new Date(),
 					},
 				});
 
-				return { 
-					success: true, 
-					message: "Campaign sent successfully",
-					sentCount: result.sentCount,
-					failedCount: result.failedCount,
-					totalRecipients: result.totalRecipients,
+				return {
+					success: true,
+					message:
+						scheduledFor != null
+							? "Campaign scheduled; worker will send at the scheduled time"
+							: "Campaign send queued; worker will process shortly",
+					sendJobId: sendJob.id,
+					messageId: result.messageId,
+					scheduledFor: result.scheduledFor ?? null,
 				};
 			} catch (error) {
-				console.error("Error sending campaign emails:", error);
-				// Update campaign status to FAILED only if all emails failed
-				// The sendCampaignEmails function already handles status updates
-				// But if there's an exception, we need to handle it
-				const campaignAfterError = await prisma.campaign.findUnique({
-					where: { id: input.id },
+				await prisma.emailCampaignSendJob.update({
+					where: { id: sendJob.id },
+					data: {
+						status: "FAILED",
+						errorMessage:
+							error instanceof Error ? error.message : "Failed to enqueue",
+						updatedAt: new Date(),
+					},
 				});
-				
-				// Only mark as FAILED if still in SENDING status (meaning no emails were sent)
-				if (campaignAfterError?.status === "SENDING") {
-					await prisma.campaign.update({
-						where: { id: input.id },
-						data: {
-							status: "FAILED",
-							updatedAt: new Date(),
-						},
-					});
-				}
-
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: error instanceof Error ? error.message : "Failed to send campaign emails",
+					message:
+						error instanceof Error
+							? error.message
+							: "Failed to enqueue campaign send",
+					cause: error,
 				});
 			}
 		}),
 
-	pause: protectedProcedure
-		.input(campaignPauseInputSchema)
+	addRecipients: protectedProcedure
+		.input(campaignRecipientAddInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) {
@@ -766,8 +568,8 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.campaign.findUnique({
-				where: { id: input.id },
+			const campaign = await prisma.emailCampaign.findUnique({
+				where: { id: input.campaignId },
 			});
 
 			if (!campaign) {
@@ -777,7 +579,6 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			// Check access
 			if (campaign.userId !== userId) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -785,50 +586,101 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			if (campaign.status !== "SENDING" && campaign.status !== "SCHEDULED") {
+			if (campaign.status !== "DRAFT") {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Campaign is not sending or scheduled",
+					message: "Can only add recipients to a draft campaign",
 				});
 			}
 
-			// Update campaign and create activity log in a single transaction
-			const updatedCampaign = await prisma.$transaction(async (tx) => {
-				const updated = await tx.campaign.update({
-					where: { id: input.id },
-					data: {
-						status: "PAUSED",
-						updatedAt: new Date(),
-					},
-				});
+			const now = new Date();
+			const existing = await prisma.campaignRecipient.findMany({
+				where: { campaignId: input.campaignId },
+				select: { toEmail: true },
+			});
+			const existingSet = new Set(existing.map((r) => r.toEmail.toLowerCase()));
+			const toAdd = input.emails.filter(
+				(e) => !existingSet.has(e.toLowerCase()),
+			);
 
-				await tx.campaignActivityLog.create({
+			for (const email of toAdd) {
+				await prisma.campaignRecipient.create({
 					data: {
 						id: crypto.randomUUID(),
-						userId,
-						campaignId: campaign.id,
-						action: "PAUSE",
-						description: `Campaign ${campaign.name} paused`,
-						createdAt: new Date(),
+						campaignId: input.campaignId,
+						toEmail: email,
+						createdAt: now,
+						updatedAt: now,
 					},
 				});
+			}
 
-				return updated;
+			return { added: toAdd.length };
+		}),
+
+	listRecipients: protectedProcedure
+		.input(campaignRecipientListFiltersSchema)
+		.query(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "User session not found",
+				});
+			}
+
+			const campaign = await prisma.emailCampaign.findUnique({
+				where: { id: input.campaignId },
 			});
 
-			return campaignDetailSchema.parse({
-				...updatedCampaign,
-				recipientEmails: updatedCampaign.recipientEmails,
-				description: updatedCampaign.description ?? null,
-				fromName: updatedCampaign.fromName ?? null,
-				emailDomainId: updatedCampaign.emailDomainId ?? null,
-				emailTemplateId: updatedCampaign.emailTemplateId ?? null,
-				htmlContent: updatedCampaign.htmlContent ?? null,
-				textContent: updatedCampaign.textContent ?? null,
-				metadata: updatedCampaign.metadata ?? null,
-				teamId: updatedCampaign.teamId ?? null,
-				scheduledAt: updatedCampaign.scheduledAt ?? null,
-				sentAt: updatedCampaign.sentAt ?? null,
+			if (!campaign) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Campaign not found",
+				});
+			}
+
+			if (campaign.userId !== userId) {
+				if (campaign.teamId) {
+					const member = await prisma.teamMember.findUnique({
+						where: {
+							teamId_userId: { teamId: campaign.teamId, userId },
+						},
+					});
+					if (!member) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "Access denied",
+						});
+					}
+				} else {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Access denied",
+					});
+				}
+			}
+
+			const where: { campaignId: string; toEmail?: { contains: string; mode: "insensitive" } } = {
+				campaignId: input.campaignId,
+			};
+			if (input.search) {
+				where.toEmail = { contains: input.search, mode: "insensitive" };
+			}
+
+			const [recipients, total] = await Promise.all([
+				prisma.campaignRecipient.findMany({
+					where,
+					skip: input.offset,
+					take: input.limit,
+					orderBy: { createdAt: "desc" },
+				}),
+				prisma.campaignRecipient.count({ where }),
+			]);
+
+			return campaignRecipientListResponseSchema.parse({
+				recipients: recipients.map(mapRecipient),
+				total,
 			});
 		}),
 });

@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Mail, EllipsisVertical, CheckCircle2, Clock, XCircle, Send, Pause, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Mail, EllipsisVertical, CheckCircle2, Clock, XCircle, Trash2, RefreshCw } from "lucide-react";
 import {
 	Table,
 	TableBody,
@@ -42,18 +44,18 @@ type CampaignSummary = RouterOutputs["emailMarketing"]["campaigns"]["list"]["cam
 
 const getStatusBadge = (status: string) => {
 	switch (status) {
-		case "SENT":
+		case "COMPLETED":
 			return (
 				<Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
 					<CheckCircle2 className="mr-1 h-3 w-3" />
 					Sent
 				</Badge>
 			);
-		case "SENDING":
+		case "FAILED":
 			return (
-				<Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800">
-					<Send className="mr-1 h-3 w-3" />
-					Sending
+				<Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">
+					<XCircle className="mr-1 h-3 w-3" />
+					Failed
 				</Badge>
 			);
 		case "SCHEDULED":
@@ -63,15 +65,12 @@ const getStatusBadge = (status: string) => {
 					Scheduled
 				</Badge>
 			);
-		case "PAUSED":
+		case "DRAFT":
 			return (
-				<Badge variant="outline" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 border-orange-200 dark:border-orange-800">
-					<Pause className="mr-1 h-3 w-3" />
-					Paused
+				<Badge variant="outline" className="bg-muted text-muted-foreground">
+					Draft
 				</Badge>
 			);
-		// Removed FAILED status display - campaigns are only marked as FAILED if ALL emails failed
-		// If some emails were sent, status is SENT
 		default:
 			return (
 				<Badge variant="outline">
@@ -98,26 +97,26 @@ interface CampaignRowActionsProps {
 }
 
 function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
+	const router = useRouter();
 	const utils = trpc.useUtils();
-	const [isPausing, setIsPausing] = React.useState(false);
 	const [isDeleting, setIsDeleting] = React.useState(false);
-	const [showPauseDialog, setShowPauseDialog] = React.useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+	const [isRefreshing, setIsRefreshing] = React.useState(false);
 
-	const pauseMutation = trpc.emailMarketing.campaigns.pause.useMutation({
-		onSuccess: () => {
-			toast.success("Campaign paused successfully", {
-				description: `Campaign ${campaign.name} has been paused.`,
-			});
-			utils.emailMarketing.campaigns.list.invalidate();
-			onRefetch?.();
-			setIsPausing(false);
-		},
-		onError: (e) => {
-			toast.error("Failed to pause campaign", { description: e.message });
-			setIsPausing(false);
-		},
-	});
+	const handleRefresh = async () => {
+		if (isRefreshing) return;
+		setIsRefreshing(true);
+		toast.loading("Refreshing…", { id: "campaigns-list-refresh" });
+		try {
+			await utils.emailMarketing.campaigns.list.invalidate();
+			await onRefetch?.();
+			toast.success("Campaigns list refreshed", { id: "campaigns-list-refresh" });
+		} catch {
+			toast.error("Failed to refresh", { id: "campaigns-list-refresh" });
+		} finally {
+			setIsRefreshing(false);
+		}
+	};
 
 	const deleteMutation = trpc.emailMarketing.campaigns.delete.useMutation({
 		onSuccess: () => {
@@ -128,20 +127,11 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 			onRefetch?.();
 			setIsDeleting(false);
 		},
-		onError: (e) => {
+		onError: (e: { message: string }) => {
 			toast.error("Failed to delete campaign", { description: e.message });
 			setIsDeleting(false);
 		},
 	});
-
-	const handlePause = async () => {
-		setIsPausing(true);
-		try {
-			await pauseMutation.mutateAsync({ id: campaign.id });
-		} catch (error) {
-			// Error handled in mutation
-		}
-	};
 
 	const handleDelete = async () => {
 		setIsDeleting(true);
@@ -152,7 +142,7 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 		}
 	};
 
-	const busy = isPausing || isDeleting;
+	const busy = isDeleting || isRefreshing;
 
 	return (
 		<>
@@ -167,19 +157,12 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-48">
-								{campaign.status === "SCHEDULED" && (
-									<>
-										<DropdownMenuItem
-											onClick={() => setShowPauseDialog(true)}
-											disabled={busy}
-										>
-											{busy ? "Pausing..." : "Pause Campaign"}
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-									</>
-								)}
-								<DropdownMenuItem disabled>
+								<DropdownMenuItem onClick={() => router.push(`/agency/email-marketing/campaigns/${campaign.id}`)}>
 									View Details
+								</DropdownMenuItem>
+								<DropdownMenuItem onClick={handleRefresh} disabled={isRefreshing}>
+									<RefreshCw className={`mr-2 h-4 w-4 shrink-0 ${isRefreshing ? "animate-spin" : ""}`} />
+									{isRefreshing ? "Refreshing…" : "Refresh"}
 								</DropdownMenuItem>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem
@@ -195,24 +178,6 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 					<TooltipContent>Actions</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
-
-			{/* Pause Confirmation Dialog */}
-			<AlertDialog open={showPauseDialog} onOpenChange={setShowPauseDialog}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Pause Campaign</AlertDialogTitle>
-						<AlertDialogDescription>
-							Are you sure you want to pause campaign "{campaign.name}"? You can resume it later.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={isPausing}>Cancel</AlertDialogCancel>
-						<AlertDialogAction onClick={handlePause} disabled={isPausing}>
-							{isPausing ? "Pausing..." : "Pause Campaign"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
 
 			{/* Delete Confirmation Dialog */}
 			<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -241,7 +206,7 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 
 export interface CampaignsTableProps {
 	campaigns: CampaignSummary[];
-	onRefetch?: () => void;
+	onRefetch?: () => void | Promise<unknown>;
 }
 
 export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
@@ -251,10 +216,8 @@ export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
 				<TableHeader>
 					<TableRow>
 						<TableHead className="pl-6">Campaign Name</TableHead>
-						<TableHead>Subject</TableHead>
 						<TableHead>Status</TableHead>
 						<TableHead>Recipients</TableHead>
-						<TableHead>Sent</TableHead>
 						<TableHead>Created At</TableHead>
 						<TableHead className="w-12 pr-6"></TableHead>
 					</TableRow>
@@ -263,22 +226,19 @@ export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
 					{campaigns.map((campaign) => (
 						<TableRow key={campaign.id}>
 							<TableCell className="pl-6">
-								<div className="flex items-center gap-2">
-									<Mail className="h-4 w-4 text-muted-foreground" />
-									<span className="font-medium">{campaign.name}</span>
-								</div>
-							</TableCell>
-							<TableCell>
-								<span className="text-sm">{campaign.subject}</span>
+								<Link
+									href={`/agency/email-marketing/campaigns/${campaign.id}`}
+									className="flex items-center gap-2 font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
+								>
+									<Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+									<span>{campaign.name}</span>
+								</Link>
 							</TableCell>
 							<TableCell>
 								{getStatusBadge(campaign.status)}
 							</TableCell>
 							<TableCell>
-								{formatNumber(campaign.totalRecipients)}
-							</TableCell>
-							<TableCell>
-								{formatNumber(campaign.sentCount)} / {formatNumber(campaign.totalRecipients)}
+								{formatNumber(campaign.recipientCount)}
 							</TableCell>
 							<TableCell>
 								{formatDate(campaign.createdAt)}

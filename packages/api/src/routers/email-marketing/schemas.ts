@@ -3,6 +3,7 @@ import { z } from "zod";
 /**
  * Email Marketing API Schemas
  * Independent from DB/Prisma. Used for input validation and output shaping.
+ * Do not import enums or types from the db layer.
  */
 
 // ============================================================================
@@ -17,44 +18,43 @@ export const emailDomainStatusSchema = z.enum([
 ]);
 export type EmailDomainStatus = z.infer<typeof emailDomainStatusSchema>;
 
-export const contactStatusSchema = z.enum([
-	"ACTIVE",
-	"UNSUBSCRIBED",
-	"BOUNCED",
-	"COMPLAINED",
-	"INACTIVE",
-]);
-export type ContactStatus = z.infer<typeof contactStatusSchema>;
-
-export const campaignStatusSchema = z.enum([
+export const emailCampaignStatusSchema = z.enum([
 	"DRAFT",
 	"SCHEDULED",
-	"SENDING",
-	"SENT",
-	"PAUSED",
-	"CANCELLED",
+	"COMPLETED",
 	"FAILED",
 ]);
-export type CampaignStatus = z.infer<typeof campaignStatusSchema>;
+export type EmailCampaignStatus = z.infer<typeof emailCampaignStatusSchema>;
 
-export const campaignTypeSchema = z.enum(["TRANSACTIONAL", "MARKETING"]);
-export type CampaignType = z.infer<typeof campaignTypeSchema>;
-
-export const emailLogStatusSchema = z.enum([
-	"PENDING",
-	"SENT",
-	"DELIVERED",
-	"BOUNCED",
-	"FAILED",
-	"OPENED",
-	"CLICKED",
-	"COMPLAINED",
-	"UNSUBSCRIBED",
+export const emailEventTypeSchema = z.enum([
+	"email_bounced",
+	"email_clicked",
+	"email_complained",
+	"email_delivered",
+	"email_delivery_delayed",
+	"email_failed",
+	"email_opened",
+	"email_received",
+	"email_scheduled",
+	"email_sent",
+	"email_suppressed",
 ]);
-export type EmailLogStatus = z.infer<typeof emailLogStatusSchema>;
+export type EmailEventType = z.infer<typeof emailEventTypeSchema>;
 
-export const emailLogTypeSchema = z.enum(["TRANSACTIONAL", "CAMPAIGN"]);
-export type EmailLogType = z.infer<typeof emailLogTypeSchema>;
+/** Resend webhook type string (e.g. "email.bounced") -> API enum */
+export const RESEND_EVENT_TYPE_TO_ENUM: Record<string, z.infer<typeof emailEventTypeSchema>> = {
+	"email.bounced": "email_bounced",
+	"email.clicked": "email_clicked",
+	"email.complained": "email_complained",
+	"email.delivered": "email_delivered",
+	"email.delivery_delayed": "email_delivery_delayed",
+	"email.failed": "email_failed",
+	"email.opened": "email_opened",
+	"email.received": "email_received",
+	"email.scheduled": "email_scheduled",
+	"email.sent": "email_sent",
+	"email.suppressed": "email_suppressed",
+};
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -64,7 +64,6 @@ const optStr = () => z.string().optional();
 const optStrNullable = () => z.string().optional().nullable();
 const optDate = () => z.coerce.date().optional();
 const optDateNullable = () => z.coerce.date().optional().nullable();
-const optInt = () => z.number().int().optional();
 const optJson = () => z.unknown().optional().nullable();
 
 // ============================================================================
@@ -131,160 +130,7 @@ export type EmailDomainListResponse = z.infer<
 >;
 
 // ============================================================================
-// CONTACT SCHEMAS
-// ============================================================================
-
-export const contactCreateInputSchema = z.object({
-	email: z.string().email("Invalid email address"),
-	firstName: optStrNullable(),
-	lastName: optStrNullable(),
-	phone: optStrNullable(),
-	company: optStrNullable(),
-	jobTitle: optStrNullable(),
-	address: optStrNullable(),
-	city: optStrNullable(),
-	state: optStrNullable(),
-	country: optStrNullable(),
-	postalCode: optStrNullable(),
-	customFields: optJson(),
-	teamId: optStrNullable(),
-});
-export type ContactCreateInput = z.infer<typeof contactCreateInputSchema>;
-
-export const contactUpdateInputSchema = z.object({
-	id: z.string().min(1),
-	email: z.string().email("Invalid email address").optional(),
-	firstName: optStrNullable(),
-	lastName: optStrNullable(),
-	phone: optStrNullable(),
-	company: optStrNullable(),
-	jobTitle: optStrNullable(),
-	address: optStrNullable(),
-	city: optStrNullable(),
-	state: optStrNullable(),
-	country: optStrNullable(),
-	postalCode: optStrNullable(),
-	status: contactStatusSchema.optional(),
-	customFields: optJson(),
-});
-export type ContactUpdateInput = z.infer<typeof contactUpdateInputSchema>;
-
-export const contactListFiltersSchema = z.object({
-	teamId: optStrNullable(),
-	status: contactStatusSchema.optional(),
-	search: optStr(),
-	limit: z.number().int().min(1).max(100).optional().default(50),
-	offset: z.number().int().min(0).optional().default(0),
-});
-export type ContactListFilters = z.infer<typeof contactListFiltersSchema>;
-
-export const contactSummarySchema = z.object({
-	id: z.string(),
-	email: z.string(),
-	firstName: z.string().nullable(),
-	lastName: z.string().nullable(),
-	status: contactStatusSchema,
-	userId: z.string(),
-	teamId: z.string().nullable(),
-	createdAt: z.date(),
-	updatedAt: z.date(),
-});
-export type ContactSummary = z.infer<typeof contactSummarySchema>;
-
-export const contactDetailSchema = contactSummarySchema.extend({
-	phone: z.string().nullable(),
-	company: z.string().nullable(),
-	jobTitle: z.string().nullable(),
-	address: z.string().nullable(),
-	city: z.string().nullable(),
-	state: z.string().nullable(),
-	country: z.string().nullable(),
-	postalCode: z.string().nullable(),
-	customFields: z.unknown().nullable(),
-	lastContactedAt: z.date().nullable(),
-	unsubscribedAt: z.date().nullable(),
-});
-export type ContactDetail = z.infer<typeof contactDetailSchema>;
-
-export const contactListResponseSchema = z.object({
-	contacts: z.array(contactSummarySchema),
-	total: z.number().int().nonnegative(),
-});
-export type ContactListResponse = z.infer<typeof contactListResponseSchema>;
-
-// ============================================================================
-// EMAIL TEMPLATE SCHEMAS
-// ============================================================================
-
-export const emailTemplateCreateInputSchema = z.object({
-	name: z.string().min(1, "Template name is required"),
-	description: optStrNullable(),
-	subject: optStrNullable(),
-	htmlContent: optStrNullable(),
-	textContent: optStrNullable(),
-	variables: optJson(),
-	teamId: optStrNullable(),
-});
-export type EmailTemplateCreateInput = z.infer<
-	typeof emailTemplateCreateInputSchema
->;
-
-export const emailTemplateUpdateInputSchema = z.object({
-	id: z.string().min(1),
-	name: optStr(),
-	description: optStrNullable(),
-	subject: optStrNullable(),
-	htmlContent: optStrNullable(),
-	textContent: optStrNullable(),
-	variables: optJson(),
-	isActive: z.boolean().optional(),
-});
-export type EmailTemplateUpdateInput = z.infer<
-	typeof emailTemplateUpdateInputSchema
->;
-
-export const emailTemplateListFiltersSchema = z.object({
-	teamId: optStrNullable(),
-	isActive: z.boolean().optional(),
-	search: optStr(),
-	limit: z.number().int().min(1).max(100).optional().default(50),
-	offset: z.number().int().min(0).optional().default(0),
-});
-export type EmailTemplateListFilters = z.infer<
-	typeof emailTemplateListFiltersSchema
->;
-
-export const emailTemplateSummarySchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	description: z.string().nullable(),
-	subject: z.string().nullable(),
-	isActive: z.boolean(),
-	userId: z.string(),
-	teamId: z.string().nullable(),
-	createdAt: z.date(),
-	updatedAt: z.date(),
-});
-export type EmailTemplateSummary = z.infer<typeof emailTemplateSummarySchema>;
-
-export const emailTemplateDetailSchema = emailTemplateSummarySchema.extend({
-	htmlContent: z.string().nullable(),
-	textContent: z.string().nullable(),
-	variables: z.unknown().nullable(),
-	metadata: z.unknown().nullable(),
-});
-export type EmailTemplateDetail = z.infer<typeof emailTemplateDetailSchema>;
-
-export const emailTemplateListResponseSchema = z.object({
-	templates: z.array(emailTemplateSummarySchema),
-	total: z.number().int().nonnegative(),
-});
-export type EmailTemplateListResponse = z.infer<
-	typeof emailTemplateListResponseSchema
->;
-
-// ============================================================================
-// CAMPAIGN SCHEMAS
+// EMAIL CAMPAIGN SCHEMAS
 // ============================================================================
 
 export const campaignCreateInputSchema = z.object({
@@ -293,14 +139,13 @@ export const campaignCreateInputSchema = z.object({
 	subject: z.string().min(1, "Subject is required"),
 	fromEmail: z.string().email("Invalid from email address"),
 	fromName: optStrNullable(),
-	type: campaignTypeSchema.optional(),
-	recipientEmails: z.array(z.string().email("Invalid email address")).min(1, "At least one recipient email is required"),
+	recipientEmails: z
+		.array(z.string().email("Invalid email address"))
+		.min(1, "At least one recipient email is required"),
 	emailDomainId: optStrNullable(),
-	emailTemplateId: optStrNullable(),
 	htmlContent: optStrNullable(),
 	textContent: optStrNullable(),
 	scheduledAt: optDateNullable(),
-	metadata: optJson(),
 	teamId: optStrNullable(),
 });
 export type CampaignCreateInput = z.infer<typeof campaignCreateInputSchema>;
@@ -312,41 +157,45 @@ export const campaignUpdateInputSchema = z.object({
 	subject: optStr(),
 	fromEmail: z.string().email("Invalid from email address").optional(),
 	fromName: optStrNullable(),
-	type: campaignTypeSchema.optional(),
-	status: campaignStatusSchema.optional(),
-	recipientEmails: z.array(z.string().email("Invalid email address")).optional(),
+	recipientEmails: z
+		.array(z.string().email("Invalid email address"))
+		.optional(),
 	emailDomainId: optStrNullable(),
-	emailTemplateId: optStrNullable(),
 	htmlContent: optStrNullable(),
 	textContent: optStrNullable(),
 	scheduledAt: optDateNullable(),
-	metadata: optJson(),
 });
 export type CampaignUpdateInput = z.infer<typeof campaignUpdateInputSchema>;
 
 export const campaignListFiltersSchema = z.object({
 	teamId: optStrNullable(),
-	status: campaignStatusSchema.optional(),
-	type: campaignTypeSchema.optional(),
+	status: emailCampaignStatusSchema.optional(),
 	search: optStr(),
 	limit: z.number().int().min(1).max(100).optional().default(50),
 	offset: z.number().int().min(0).optional().default(0),
 });
 export type CampaignListFilters = z.infer<typeof campaignListFiltersSchema>;
 
+export const campaignRecipientSummarySchema = z.object({
+	id: z.string(),
+	campaignId: z.string(),
+	toEmail: z.string(),
+	resendId: z.string().nullable(),
+	resendMessageId: z.string().nullable(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+export type CampaignRecipientSummary = z.infer<
+	typeof campaignRecipientSummarySchema
+>;
+
 export const campaignSummarySchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	subject: z.string(),
 	fromEmail: z.string(),
-	type: campaignTypeSchema,
-	status: campaignStatusSchema,
-	recipientEmails: z.array(z.string()),
-	totalRecipients: z.number().int(),
-	sentCount: z.number().int(),
-	deliveredCount: z.number().int(),
-	openedCount: z.number().int(),
-	clickedCount: z.number().int(),
+	status: emailCampaignStatusSchema,
+	recipientCount: z.number().int(),
 	userId: z.string(),
 	teamId: z.string().nullable(),
 	createdAt: z.date(),
@@ -360,13 +209,9 @@ export const campaignDetailSchema = campaignSummarySchema.extend({
 	description: z.string().nullable(),
 	fromName: z.string().nullable(),
 	emailDomainId: z.string().nullable(),
-	emailTemplateId: z.string().nullable(),
 	htmlContent: z.string().nullable(),
 	textContent: z.string().nullable(),
-	bouncedCount: z.number().int(),
-	complainedCount: z.number().int(),
-	unsubscribedCount: z.number().int(),
-	metadata: z.unknown().nullable(),
+	recipients: z.array(campaignRecipientSummarySchema),
 });
 export type CampaignDetail = z.infer<typeof campaignDetailSchema>;
 
@@ -374,71 +219,127 @@ export const campaignListResponseSchema = z.object({
 	campaigns: z.array(campaignSummarySchema),
 	total: z.number().int().nonnegative(),
 });
-export type CampaignListResponse = z.infer<typeof campaignListResponseSchema>;
+export type CampaignListResponse = z.infer<
+	typeof campaignListResponseSchema
+>;
 
-// Campaign actions
 export const campaignSendInputSchema = z.object({
 	id: z.string().min(1),
+	/** If true, send now. If false/undefined and campaign.scheduledAt is in the future, schedule for that time. */
+	immediate: z.boolean().optional(),
 });
 export type CampaignSendInput = z.infer<typeof campaignSendInputSchema>;
 
-export const campaignPauseInputSchema = z.object({
-	id: z.string().min(1),
+// ============================================================================
+// CAMPAIGN RECIPIENT SCHEMAS
+// ============================================================================
+
+export const campaignRecipientAddInputSchema = z.object({
+	campaignId: z.string().min(1),
+	emails: z.array(z.string().email("Invalid email address")).min(1),
 });
-export type CampaignPauseInput = z.infer<typeof campaignPauseInputSchema>;
+export type CampaignRecipientAddInput = z.infer<
+	typeof campaignRecipientAddInputSchema
+>;
 
-// ============================================================================
-// EMAIL LOG SCHEMAS
-// ============================================================================
-
-export const emailLogListFiltersSchema = z.object({
-	teamId: optStrNullable(),
-	campaignId: optStr(),
-	contactId: optStr(),
-	emailDomainId: optStr(),
-	status: emailLogStatusSchema.optional(),
-	type: emailLogTypeSchema.optional(),
-	toEmail: optStr(),
+export const campaignRecipientListFiltersSchema = z.object({
+	campaignId: z.string().min(1),
 	search: optStr(),
+	limit: z.number().int().min(1).max(500).optional().default(50),
+	offset: z.number().int().min(0).optional().default(0),
+});
+export type CampaignRecipientListFilters = z.infer<
+	typeof campaignRecipientListFiltersSchema
+>;
+
+export const campaignRecipientListResponseSchema = z.object({
+	recipients: z.array(campaignRecipientSummarySchema),
+	total: z.number().int().nonnegative(),
+});
+export type CampaignRecipientListResponse = z.infer<
+	typeof campaignRecipientListResponseSchema
+>;
+
+// ============================================================================
+// EMAIL EVENT SCHEMAS (Resend webhook events)
+// ============================================================================
+
+export const emailEventListFiltersSchema = z.object({
+	campaignRecipientId: optStr(),
+	campaignId: optStr(),
+	type: emailEventTypeSchema.optional(),
 	limit: z.number().int().min(1).max(100).optional().default(50),
 	offset: z.number().int().min(0).optional().default(0),
 });
-export type EmailLogListFilters = z.infer<typeof emailLogListFiltersSchema>;
+export type EmailEventListFilters = z.infer<
+	typeof emailEventListFiltersSchema
+>;
 
-export const emailLogSummarySchema = z.object({
+export const emailEventSummarySchema = z.object({
 	id: z.string(),
-	toEmail: z.string(),
-	fromEmail: z.string(),
-	subject: z.string(),
-	type: emailLogTypeSchema,
-	status: emailLogStatusSchema,
+	campaignRecipientId: z.string(),
+	type: emailEventTypeSchema,
+	eventCreatedAt: z.date(),
 	resendEmailId: z.string().nullable(),
-	campaignId: z.string().nullable(),
-	contactId: z.string().nullable(),
+	data: z.unknown(),
 	createdAt: z.date(),
-	sentAt: z.date().nullable(),
-	deliveredAt: z.date().nullable(),
 });
-export type EmailLogSummary = z.infer<typeof emailLogSummarySchema>;
+export type EmailEventSummary = z.infer<typeof emailEventSummarySchema>;
 
-export const emailLogDetailSchema = emailLogSummarySchema.extend({
-	resendMessageId: z.string().nullable(),
-	emailDomainId: z.string().nullable(),
-	htmlContent: z.string().nullable(),
-	textContent: z.string().nullable(),
-	openedAt: z.date().nullable(),
-	clickedAt: z.date().nullable(),
-	bouncedAt: z.date().nullable(),
-	complainedAt: z.date().nullable(),
-	unsubscribedAt: z.date().nullable(),
-	errorMessage: z.string().nullable(),
-	metadata: z.unknown().nullable(),
-	updatedAt: z.date(),
+/** Event in list response; may include recipientEmail when listing by campaignId */
+export const emailEventInListSchema = emailEventSummarySchema.extend({
+	recipientEmail: z.string().nullable().optional(),
 });
-export type EmailLogDetail = z.infer<typeof emailLogDetailSchema>;
+export type EmailEventInList = z.infer<typeof emailEventInListSchema>;
 
-export const emailLogListResponseSchema = z.object({
-	emailLogs: z.array(emailLogSummarySchema),
+export const emailEventDetailSchema = emailEventSummarySchema;
+export type EmailEventDetail = z.infer<typeof emailEventDetailSchema>;
+
+export const emailEventListResponseSchema = z.object({
+	events: z.array(emailEventInListSchema),
 	total: z.number().int().nonnegative(),
 });
-export type EmailLogListResponse = z.infer<typeof emailLogListResponseSchema>;
+export type EmailEventListResponse = z.infer<
+	typeof emailEventListResponseSchema
+>;
+
+/** Top clicked links: URL + click count */
+export const topClickedLinksInputSchema = z.object({
+	campaignId: z.string().min(1),
+	limit: z.number().int().min(1).max(50).optional().default(10),
+});
+export type TopClickedLinksInput = z.infer<typeof topClickedLinksInputSchema>;
+
+export const topClickedLinkItemSchema = z.object({
+	url: z.string(),
+	clicks: z.number().int().nonnegative(),
+});
+export type TopClickedLinkItem = z.infer<typeof topClickedLinkItemSchema>;
+
+export const topClickedLinksResponseSchema = z.array(topClickedLinkItemSchema);
+export type TopClickedLinksResponse = z.infer<
+	typeof topClickedLinksResponseSchema
+>;
+
+// Campaign event summary (aggregated counts per type for metric cards)
+export const campaignEventSummaryInputSchema = z.object({
+	campaignId: z.string().min(1),
+});
+export type CampaignEventSummaryInput = z.infer<
+	typeof campaignEventSummaryInputSchema
+>;
+
+export const campaignEventSummarySchema = z.object({
+	delivered: z.number().int().nonnegative(),
+	bounced: z.number().int().nonnegative(),
+	suppressed: z.number().int().nonnegative(),
+	// Engagement: unique = distinct recipients (for rates ≤100%), total = event count (for aggregates)
+	opened: z.number().int().nonnegative(),
+	openedTotal: z.number().int().nonnegative(),
+	clicked: z.number().int().nonnegative(),
+	clickedTotal: z.number().int().nonnegative(),
+	complained: z.number().int().nonnegative(),
+	unsubscribed: z.number().int().nonnegative(),
+	totalRecipients: z.number().int().nonnegative(),
+});
+export type CampaignEventSummary = z.infer<typeof campaignEventSummarySchema>;

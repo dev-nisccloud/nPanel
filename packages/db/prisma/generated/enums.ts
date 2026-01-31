@@ -264,59 +264,42 @@ export const EmailDomainStatus = {
 export type EmailDomainStatus = (typeof EmailDomainStatus)[keyof typeof EmailDomainStatus]
 
 
-export const ContactStatus = {
-  ACTIVE: 'ACTIVE',
-  UNSUBSCRIBED: 'UNSUBSCRIBED',
-  BOUNCED: 'BOUNCED',
-  COMPLAINED: 'COMPLAINED',
-  INACTIVE: 'INACTIVE'
-} as const
-
-export type ContactStatus = (typeof ContactStatus)[keyof typeof ContactStatus]
-
-
-export const CampaignStatus = {
+export const EmailCampaignStatus = {
   DRAFT: 'DRAFT',
   SCHEDULED: 'SCHEDULED',
-  SENDING: 'SENDING',
-  SENT: 'SENT',
-  PAUSED: 'PAUSED',
-  CANCELLED: 'CANCELLED',
+  COMPLETED: 'COMPLETED',
   FAILED: 'FAILED'
 } as const
 
-export type CampaignStatus = (typeof CampaignStatus)[keyof typeof CampaignStatus]
+export type EmailCampaignStatus = (typeof EmailCampaignStatus)[keyof typeof EmailCampaignStatus]
 
 
-export const CampaignType = {
-  TRANSACTIONAL: 'TRANSACTIONAL',
-  MARKETING: 'MARKETING'
-} as const
-
-export type CampaignType = (typeof CampaignType)[keyof typeof CampaignType]
-
-
-export const EmailLogStatus = {
-  PENDING: 'PENDING',
-  SENT: 'SENT',
-  DELIVERED: 'DELIVERED',
-  BOUNCED: 'BOUNCED',
+export const CampaignSendJobStatus = {
+  QUEUED: 'QUEUED',
+  RUNNING: 'RUNNING',
+  COMPLETED: 'COMPLETED',
   FAILED: 'FAILED',
-  OPENED: 'OPENED',
-  CLICKED: 'CLICKED',
-  COMPLAINED: 'COMPLAINED',
-  UNSUBSCRIBED: 'UNSUBSCRIBED'
+  CANCELLED: 'CANCELLED'
 } as const
 
-export type EmailLogStatus = (typeof EmailLogStatus)[keyof typeof EmailLogStatus]
+export type CampaignSendJobStatus = (typeof CampaignSendJobStatus)[keyof typeof CampaignSendJobStatus]
 
 
-export const EmailLogType = {
-  TRANSACTIONAL: 'TRANSACTIONAL',
-  CAMPAIGN: 'CAMPAIGN'
+export const EmailEventType = {
+  email_bounced: 'email_bounced',
+  email_clicked: 'email_clicked',
+  email_complained: 'email_complained',
+  email_delivered: 'email_delivered',
+  email_delivery_delayed: 'email_delivery_delayed',
+  email_failed: 'email_failed',
+  email_opened: 'email_opened',
+  email_received: 'email_received',
+  email_scheduled: 'email_scheduled',
+  email_sent: 'email_sent',
+  email_suppressed: 'email_suppressed'
 } as const
 
-export type EmailLogType = (typeof EmailLogType)[keyof typeof EmailLogType]
+export type EmailEventType = (typeof EmailEventType)[keyof typeof EmailEventType]
 
 
 export const GoogleAdsIntegrationStatus = {

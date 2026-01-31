@@ -231,8 +231,7 @@ export type EmailDomainWhereInput = {
   verifiedAt?: Prisma.DateTimeNullableFilter<"EmailDomain"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
-  emailLogs?: Prisma.EmailLogListRelationFilter
-  campaigns?: Prisma.CampaignListRelationFilter
+  campaigns?: Prisma.EmailCampaignListRelationFilter
   activityLogs?: Prisma.EmailDomainActivityLogListRelationFilter
 }
 
@@ -251,8 +250,7 @@ export type EmailDomainOrderByWithRelationInput = {
   verifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   team?: Prisma.TeamOrderByWithRelationInput
-  emailLogs?: Prisma.EmailLogOrderByRelationAggregateInput
-  campaigns?: Prisma.CampaignOrderByRelationAggregateInput
+  campaigns?: Prisma.EmailCampaignOrderByRelationAggregateInput
   activityLogs?: Prisma.EmailDomainActivityLogOrderByRelationAggregateInput
 }
 
@@ -274,8 +272,7 @@ export type EmailDomainWhereUniqueInput = Prisma.AtLeast<{
   verifiedAt?: Prisma.DateTimeNullableFilter<"EmailDomain"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   team?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
-  emailLogs?: Prisma.EmailLogListRelationFilter
-  campaigns?: Prisma.CampaignListRelationFilter
+  campaigns?: Prisma.EmailCampaignListRelationFilter
   activityLogs?: Prisma.EmailDomainActivityLogListRelationFilter
 }, "id" | "domainName">
 
@@ -328,8 +325,7 @@ export type EmailDomainCreateInput = {
   verifiedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutEmailDomainsInput
   team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
-  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutEmailDomainInput
-  campaigns?: Prisma.CampaignCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.EmailCampaignCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -346,8 +342,7 @@ export type EmailDomainUncheckedCreateInput = {
   createdAt: Date | string
   updatedAt: Date | string
   verifiedAt?: Date | string | null
-  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput
-  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -364,8 +359,7 @@ export type EmailDomainUpdateInput = {
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutEmailDomainsNestedInput
   team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
-  emailLogs?: Prisma.EmailLogUpdateManyWithoutEmailDomainNestedInput
-  campaigns?: Prisma.CampaignUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.EmailCampaignUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUpdateManyWithoutEmailDomainNestedInput
 }
 
@@ -382,8 +376,7 @@ export type EmailDomainUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput
-  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedUpdateManyWithoutEmailDomainNestedInput
 }
 
@@ -595,22 +588,6 @@ export type EmailDomainUpdateOneWithoutCampaignsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.EmailDomainUpdateToOneWithWhereWithoutCampaignsInput, Prisma.EmailDomainUpdateWithoutCampaignsInput>, Prisma.EmailDomainUncheckedUpdateWithoutCampaignsInput>
 }
 
-export type EmailDomainCreateNestedOneWithoutEmailLogsInput = {
-  create?: Prisma.XOR<Prisma.EmailDomainCreateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedCreateWithoutEmailLogsInput>
-  connectOrCreate?: Prisma.EmailDomainCreateOrConnectWithoutEmailLogsInput
-  connect?: Prisma.EmailDomainWhereUniqueInput
-}
-
-export type EmailDomainUpdateOneWithoutEmailLogsNestedInput = {
-  create?: Prisma.XOR<Prisma.EmailDomainCreateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedCreateWithoutEmailLogsInput>
-  connectOrCreate?: Prisma.EmailDomainCreateOrConnectWithoutEmailLogsInput
-  upsert?: Prisma.EmailDomainUpsertWithoutEmailLogsInput
-  disconnect?: Prisma.EmailDomainWhereInput | boolean
-  delete?: Prisma.EmailDomainWhereInput | boolean
-  connect?: Prisma.EmailDomainWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.EmailDomainUpdateToOneWithWhereWithoutEmailLogsInput, Prisma.EmailDomainUpdateWithoutEmailLogsInput>, Prisma.EmailDomainUncheckedUpdateWithoutEmailLogsInput>
-}
-
 export type EmailDomainCreateNestedOneWithoutActivityLogsInput = {
   create?: Prisma.XOR<Prisma.EmailDomainCreateWithoutActivityLogsInput, Prisma.EmailDomainUncheckedCreateWithoutActivityLogsInput>
   connectOrCreate?: Prisma.EmailDomainCreateOrConnectWithoutActivityLogsInput
@@ -637,8 +614,7 @@ export type EmailDomainCreateWithoutUserInput = {
   updatedAt: Date | string
   verifiedAt?: Date | string | null
   team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
-  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutEmailDomainInput
-  campaigns?: Prisma.CampaignCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.EmailCampaignCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -654,8 +630,7 @@ export type EmailDomainUncheckedCreateWithoutUserInput = {
   createdAt: Date | string
   updatedAt: Date | string
   verifiedAt?: Date | string | null
-  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput
-  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -715,8 +690,7 @@ export type EmailDomainCreateWithoutTeamInput = {
   updatedAt: Date | string
   verifiedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutEmailDomainsInput
-  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutEmailDomainInput
-  campaigns?: Prisma.CampaignCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.EmailCampaignCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -732,8 +706,7 @@ export type EmailDomainUncheckedCreateWithoutTeamInput = {
   createdAt: Date | string
   updatedAt: Date | string
   verifiedAt?: Date | string | null
-  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput
-  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -776,7 +749,6 @@ export type EmailDomainCreateWithoutCampaignsInput = {
   verifiedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutEmailDomainsInput
   team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
-  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -793,7 +765,6 @@ export type EmailDomainUncheckedCreateWithoutCampaignsInput = {
   createdAt: Date | string
   updatedAt: Date | string
   verifiedAt?: Date | string | null
-  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedCreateNestedManyWithoutEmailDomainInput
 }
 
@@ -826,7 +797,6 @@ export type EmailDomainUpdateWithoutCampaignsInput = {
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutEmailDomainsNestedInput
   team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
-  emailLogs?: Prisma.EmailLogUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUpdateManyWithoutEmailDomainNestedInput
 }
 
@@ -843,91 +813,6 @@ export type EmailDomainUncheckedUpdateWithoutCampaignsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput
-  activityLogs?: Prisma.EmailDomainActivityLogUncheckedUpdateManyWithoutEmailDomainNestedInput
-}
-
-export type EmailDomainCreateWithoutEmailLogsInput = {
-  id: string
-  domainName: string
-  resendDomainId?: string | null
-  status?: $Enums.EmailDomainStatus
-  verificationStatus?: string | null
-  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  createdAt: Date | string
-  updatedAt: Date | string
-  verifiedAt?: Date | string | null
-  user: Prisma.UserCreateNestedOneWithoutEmailDomainsInput
-  team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
-  campaigns?: Prisma.CampaignCreateNestedManyWithoutEmailDomainInput
-  activityLogs?: Prisma.EmailDomainActivityLogCreateNestedManyWithoutEmailDomainInput
-}
-
-export type EmailDomainUncheckedCreateWithoutEmailLogsInput = {
-  id: string
-  domainName: string
-  resendDomainId?: string | null
-  status?: $Enums.EmailDomainStatus
-  userId: string
-  teamId?: string | null
-  verificationStatus?: string | null
-  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  createdAt: Date | string
-  updatedAt: Date | string
-  verifiedAt?: Date | string | null
-  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutEmailDomainInput
-  activityLogs?: Prisma.EmailDomainActivityLogUncheckedCreateNestedManyWithoutEmailDomainInput
-}
-
-export type EmailDomainCreateOrConnectWithoutEmailLogsInput = {
-  where: Prisma.EmailDomainWhereUniqueInput
-  create: Prisma.XOR<Prisma.EmailDomainCreateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedCreateWithoutEmailLogsInput>
-}
-
-export type EmailDomainUpsertWithoutEmailLogsInput = {
-  update: Prisma.XOR<Prisma.EmailDomainUpdateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedUpdateWithoutEmailLogsInput>
-  create: Prisma.XOR<Prisma.EmailDomainCreateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedCreateWithoutEmailLogsInput>
-  where?: Prisma.EmailDomainWhereInput
-}
-
-export type EmailDomainUpdateToOneWithWhereWithoutEmailLogsInput = {
-  where?: Prisma.EmailDomainWhereInput
-  data: Prisma.XOR<Prisma.EmailDomainUpdateWithoutEmailLogsInput, Prisma.EmailDomainUncheckedUpdateWithoutEmailLogsInput>
-}
-
-export type EmailDomainUpdateWithoutEmailLogsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
-  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  user?: Prisma.UserUpdateOneRequiredWithoutEmailDomainsNestedInput
-  team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
-  campaigns?: Prisma.CampaignUpdateManyWithoutEmailDomainNestedInput
-  activityLogs?: Prisma.EmailDomainActivityLogUpdateManyWithoutEmailDomainNestedInput
-}
-
-export type EmailDomainUncheckedUpdateWithoutEmailLogsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  domainName?: Prisma.StringFieldUpdateOperationsInput | string
-  resendDomainId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.EnumEmailDomainStatusFieldUpdateOperationsInput | $Enums.EmailDomainStatus
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
-  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  verificationStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  verificationData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  dnsRecords?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedUpdateManyWithoutEmailDomainNestedInput
 }
 
@@ -944,8 +829,7 @@ export type EmailDomainCreateWithoutActivityLogsInput = {
   verifiedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutEmailDomainsInput
   team?: Prisma.TeamCreateNestedOneWithoutEmailDomainsInput
-  emailLogs?: Prisma.EmailLogCreateNestedManyWithoutEmailDomainInput
-  campaigns?: Prisma.CampaignCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.EmailCampaignCreateNestedManyWithoutEmailDomainInput
 }
 
 export type EmailDomainUncheckedCreateWithoutActivityLogsInput = {
@@ -961,8 +845,7 @@ export type EmailDomainUncheckedCreateWithoutActivityLogsInput = {
   createdAt: Date | string
   updatedAt: Date | string
   verifiedAt?: Date | string | null
-  emailLogs?: Prisma.EmailLogUncheckedCreateNestedManyWithoutEmailDomainInput
-  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutEmailDomainInput
+  campaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutEmailDomainInput
 }
 
 export type EmailDomainCreateOrConnectWithoutActivityLogsInput = {
@@ -994,8 +877,7 @@ export type EmailDomainUpdateWithoutActivityLogsInput = {
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutEmailDomainsNestedInput
   team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
-  emailLogs?: Prisma.EmailLogUpdateManyWithoutEmailDomainNestedInput
-  campaigns?: Prisma.CampaignUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.EmailCampaignUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainUncheckedUpdateWithoutActivityLogsInput = {
@@ -1011,8 +893,7 @@ export type EmailDomainUncheckedUpdateWithoutActivityLogsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput
-  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
 }
 
 export type EmailDomainCreateManyUserInput = {
@@ -1041,8 +922,7 @@ export type EmailDomainUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   team?: Prisma.TeamUpdateOneWithoutEmailDomainsNestedInput
-  emailLogs?: Prisma.EmailLogUpdateManyWithoutEmailDomainNestedInput
-  campaigns?: Prisma.CampaignUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.EmailCampaignUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUpdateManyWithoutEmailDomainNestedInput
 }
 
@@ -1058,8 +938,7 @@ export type EmailDomainUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput
-  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedUpdateManyWithoutEmailDomainNestedInput
 }
 
@@ -1103,8 +982,7 @@ export type EmailDomainUpdateWithoutTeamInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutEmailDomainsNestedInput
-  emailLogs?: Prisma.EmailLogUpdateManyWithoutEmailDomainNestedInput
-  campaigns?: Prisma.CampaignUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.EmailCampaignUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUpdateManyWithoutEmailDomainNestedInput
 }
 
@@ -1120,8 +998,7 @@ export type EmailDomainUncheckedUpdateWithoutTeamInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   verifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  emailLogs?: Prisma.EmailLogUncheckedUpdateManyWithoutEmailDomainNestedInput
-  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
+  campaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutEmailDomainNestedInput
   activityLogs?: Prisma.EmailDomainActivityLogUncheckedUpdateManyWithoutEmailDomainNestedInput
 }
 
@@ -1145,13 +1022,11 @@ export type EmailDomainUncheckedUpdateManyWithoutTeamInput = {
  */
 
 export type EmailDomainCountOutputType = {
-  emailLogs: number
   campaigns: number
   activityLogs: number
 }
 
 export type EmailDomainCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  emailLogs?: boolean | EmailDomainCountOutputTypeCountEmailLogsArgs
   campaigns?: boolean | EmailDomainCountOutputTypeCountCampaignsArgs
   activityLogs?: boolean | EmailDomainCountOutputTypeCountActivityLogsArgs
 }
@@ -1169,15 +1044,8 @@ export type EmailDomainCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.
 /**
  * EmailDomainCountOutputType without action
  */
-export type EmailDomainCountOutputTypeCountEmailLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.EmailLogWhereInput
-}
-
-/**
- * EmailDomainCountOutputType without action
- */
 export type EmailDomainCountOutputTypeCountCampaignsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.CampaignWhereInput
+  where?: Prisma.EmailCampaignWhereInput
 }
 
 /**
@@ -1203,7 +1071,6 @@ export type EmailDomainSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   verifiedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
-  emailLogs?: boolean | Prisma.EmailDomain$emailLogsArgs<ExtArgs>
   campaigns?: boolean | Prisma.EmailDomain$campaignsArgs<ExtArgs>
   activityLogs?: boolean | Prisma.EmailDomain$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.EmailDomainCountOutputTypeDefaultArgs<ExtArgs>
@@ -1262,7 +1129,6 @@ export type EmailDomainOmit<ExtArgs extends runtime.Types.Extensions.InternalArg
 export type EmailDomainInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   team?: boolean | Prisma.EmailDomain$teamArgs<ExtArgs>
-  emailLogs?: boolean | Prisma.EmailDomain$emailLogsArgs<ExtArgs>
   campaigns?: boolean | Prisma.EmailDomain$campaignsArgs<ExtArgs>
   activityLogs?: boolean | Prisma.EmailDomain$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.EmailDomainCountOutputTypeDefaultArgs<ExtArgs>
@@ -1281,8 +1147,7 @@ export type $EmailDomainPayload<ExtArgs extends runtime.Types.Extensions.Interna
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
     team: Prisma.$TeamPayload<ExtArgs> | null
-    emailLogs: Prisma.$EmailLogPayload<ExtArgs>[]
-    campaigns: Prisma.$CampaignPayload<ExtArgs>[]
+    campaigns: Prisma.$EmailCampaignPayload<ExtArgs>[]
     activityLogs: Prisma.$EmailDomainActivityLogPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1694,8 +1559,7 @@ export interface Prisma__EmailDomainClient<T, Null = never, ExtArgs extends runt
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   team<T extends Prisma.EmailDomain$teamArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$teamArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  emailLogs<T extends Prisma.EmailDomain$emailLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$emailLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  campaigns<T extends Prisma.EmailDomain$campaignsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$campaignsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  campaigns<T extends Prisma.EmailDomain$campaignsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$campaignsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailCampaignPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityLogs<T extends Prisma.EmailDomain$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmailDomain$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailDomainActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -2153,51 +2017,27 @@ export type EmailDomain$teamArgs<ExtArgs extends runtime.Types.Extensions.Intern
 }
 
 /**
- * EmailDomain.emailLogs
- */
-export type EmailDomain$emailLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the EmailLog
-   */
-  select?: Prisma.EmailLogSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the EmailLog
-   */
-  omit?: Prisma.EmailLogOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.EmailLogInclude<ExtArgs> | null
-  where?: Prisma.EmailLogWhereInput
-  orderBy?: Prisma.EmailLogOrderByWithRelationInput | Prisma.EmailLogOrderByWithRelationInput[]
-  cursor?: Prisma.EmailLogWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.EmailLogScalarFieldEnum | Prisma.EmailLogScalarFieldEnum[]
-}
-
-/**
  * EmailDomain.campaigns
  */
 export type EmailDomain$campaignsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Campaign
+   * Select specific fields to fetch from the EmailCampaign
    */
-  select?: Prisma.CampaignSelect<ExtArgs> | null
+  select?: Prisma.EmailCampaignSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Campaign
+   * Omit specific fields from the EmailCampaign
    */
-  omit?: Prisma.CampaignOmit<ExtArgs> | null
+  omit?: Prisma.EmailCampaignOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.CampaignInclude<ExtArgs> | null
-  where?: Prisma.CampaignWhereInput
-  orderBy?: Prisma.CampaignOrderByWithRelationInput | Prisma.CampaignOrderByWithRelationInput[]
-  cursor?: Prisma.CampaignWhereUniqueInput
+  include?: Prisma.EmailCampaignInclude<ExtArgs> | null
+  where?: Prisma.EmailCampaignWhereInput
+  orderBy?: Prisma.EmailCampaignOrderByWithRelationInput | Prisma.EmailCampaignOrderByWithRelationInput[]
+  cursor?: Prisma.EmailCampaignWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.CampaignScalarFieldEnum | Prisma.CampaignScalarFieldEnum[]
+  distinct?: Prisma.EmailCampaignScalarFieldEnum | Prisma.EmailCampaignScalarFieldEnum[]
 }
 
 /**

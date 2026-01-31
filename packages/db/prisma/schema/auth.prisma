@@ -474,10 +474,7 @@ model User {
   seoReports                   SeoReport[]
   // Email Marketing Relations
   emailDomains                 EmailDomain[]
-  contacts                     Contact[]
-  campaigns                    Campaign[]
-  emailLogs                    EmailLog[]
-  emailTemplates               EmailTemplate[]
+  emailCampaigns               EmailCampaign[]
 
   @@unique([email])
   @@index([role])
@@ -572,10 +569,7 @@ model Team {
   seoReports                   SeoReport[]
   // Email Marketing Relations
   emailDomains                 EmailDomain[]
-  contacts                     Contact[]
-  campaigns                    Campaign[]
-  emailLogs                    EmailLog[]
-  emailTemplates               EmailTemplate[]
+  emailCampaigns               EmailCampaign[]
 
   @@index([slug])
   @@index([createdById])

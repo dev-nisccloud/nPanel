@@ -40,9 +40,14 @@ const sheetVariants = cva(
         right:
           "inset-y-0 right-0 h-full w-3/4 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-[520px]",
       },
+      size: {
+        default: "",
+        wide: "sm:!max-w-4xl",
+      },
     },
     defaultVariants: {
       side: "right",
+      size: "default",
     },
   },
 );
@@ -58,7 +63,7 @@ const SheetContent = React.forwardRef<
   SheetContentProps
 >(
   (
-    { side = "right", stack = false, className, children, title, ...props },
+    { side = "right", size = "default", stack = false, className, children, title, ...props },
     ref,
   ) => (
     <SheetPortal>
@@ -66,7 +71,7 @@ const SheetContent = React.forwardRef<
       <SheetPrimitive.Content
         onOpenAutoFocus={(e) => e.preventDefault()}
         ref={ref}
-        className={cn("md:p-4", sheetVariants({ side }))}
+        className={cn("md:p-4", sheetVariants({ side, size }))}
         aria-describedby={props["aria-describedby"] || undefined}
         {...props}
       >
