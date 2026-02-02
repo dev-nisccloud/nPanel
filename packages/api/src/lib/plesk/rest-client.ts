@@ -1,8 +1,8 @@
 import { request, Agent } from 'undici';
 // Sentry removed; provide a no-op shim to avoid touching call sites
 const Sentry = {
-  addBreadcrumb: (..._args: any[]) => {},
-  captureException: (..._args: any[]) => {},
+  addBreadcrumb: (..._args: any[]) => { },
+  captureException: (..._args: any[]) => { },
 };
 
 const PLESK_REST_ENDPOINT =
@@ -40,7 +40,7 @@ interface NetworkError extends Error {
 function isHostUnreachableError(error: Error): boolean {
   const message = error.message.toLowerCase();
   const name = error.name.toLowerCase();
-  
+
   return (
     message.includes('econnrefused') ||
     message.includes('econnaborted') ||
@@ -67,7 +67,7 @@ function isAuthError(error: Error, statusCode?: number): boolean {
 
 export async function sendPleskRestRequest(
   endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' = 'GET',
   body?: any
 ): Promise<PleskRestResult> {
   console.log('Starting Plesk REST request...');
@@ -78,7 +78,7 @@ export async function sendPleskRestRequest(
   // TEMPORARILY COMMENTED OUT - Testing secret key only authentication
   // console.log('Has USERNAME:', !!PLESK_XML_USERNAME);
   // console.log('Has PASSWORD:', !!PLESK_XML_PASSWORD);
-  
+
   const fullUrl = `${PLESK_REST_ENDPOINT}${endpoint}`;
 
   // TEMPORARILY COMMENTED OUT - Testing secret key only authentication
@@ -92,14 +92,14 @@ export async function sendPleskRestRequest(
   //     'Missing required Plesk environment variables. Set either PLESK_SECRET_KEY or both PLESK_XML_USERNAME and PLESK_XML_PASSWORD.'
   //   );
   // }
-  
+
   // SECRET KEY ONLY - No fallback to basic auth
   if (!PLESK_REST_ENDPOINT) {
     throw new Error(
       'PLESK_REST_ENDPOINT environment variable is required'
     );
   }
-  
+
   if (!PLESK_SECRET_KEY) {
     throw new Error(
       'PLESK_SECRET_KEY environment variable is required. Secret key authentication only (basic auth temporarily disabled for testing).'
@@ -125,7 +125,7 @@ export async function sendPleskRestRequest(
       dispatcher: pleskRestAgent,
       signal: AbortSignal.timeout(5000)
     });
-    
+
     Sentry.addBreadcrumb({
       message: 'Host reachability check passed',
       category: 'plesk-rest-api',
@@ -166,7 +166,7 @@ export async function sendPleskRestRequest(
       // This should not happen due to validation above, but kept for safety
       throw new Error('PLESK_SECRET_KEY is required. Basic auth is temporarily disabled for testing.');
     }
-    
+
     // TEMPORARILY COMMENTED OUT - Testing secret key only authentication
     // if (PLESK_SECRET_KEY) {
     //   console.log('Using SECRET_KEY authentication');
@@ -183,7 +183,7 @@ export async function sendPleskRestRequest(
 
     console.log('Making request to:', fullUrl);
     const startTime = Date.now();
-    
+
     const requestOptions: any = {
       method,
       headers,
@@ -191,8 +191,8 @@ export async function sendPleskRestRequest(
       signal: AbortSignal.timeout(30_000), // 30 seconds timeout
     };
 
-    // Add body for POST/PUT/DELETE requests
-    if (body && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {
+    // Add body for POST/PUT/DELETE/PATCH requests
+    if (body && (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH')) {
       requestOptions.body = JSON.stringify(body);
     }
 
@@ -267,7 +267,7 @@ export async function sendPleskRestRequest(
       code: err.code,
       stack: err.stack
     });
-    
+
     const isHostUnreachable = isHostUnreachableError(err);
     const isAuthErrorResult = isAuthError(err);
 

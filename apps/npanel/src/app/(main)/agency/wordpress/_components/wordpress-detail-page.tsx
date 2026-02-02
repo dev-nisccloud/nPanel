@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, MoreVertical, Unlink, Edit, LayoutDashboard, ChevronRight, Lock, Code, FileText } from "lucide-react";
+import { ArrowLeft, MoreVertical, Unlink, Edit, LayoutDashboard, ChevronRight, Lock, Code, FileText, Settings } from "lucide-react";
 import Link from "next/link";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -39,6 +39,7 @@ import { WordPressOverview } from "./wordpress-overview";
 import { WordPressSiteCredentials } from "./wordpress-site-credentials";
 import { WordPressPlugins } from "./wordpress-plugins";
 import { WordPressThemes } from "./wordpress-themes";
+import { WordPressTools } from "./wordpress-tools";
 import { wordpressInstallationSchema } from "./schema";
 import { useWordPressDetailBatched } from "./use-wordpress-detail-batched";
 import { LinkToTeamDialog } from "./link-to-team-dialog";
@@ -74,6 +75,8 @@ function WordPressDetailSkeleton() {
           <Skeleton className="h-10 w-20" />
           <Skeleton className="h-10 w-16" />
           <Skeleton className="h-10 w-16" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
         </div>
@@ -133,9 +136,9 @@ function WordPressDetailError({ error, onRetry }: { error: Error; onRetry: () =>
             </Button>
           </Link>
         </div>
-        </div>
       </div>
-    );
+    </div>
+  );
 }
 
 export function WordPressDetailPage({ installationId }: WordPressDetailPageProps) {
@@ -202,156 +205,173 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/agency/wordpress">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {wpData.displayTitle || wpData.title || `Installation ${wpData.id}`}
-            </h1>
-            <p className="text-muted-foreground">WordPress installation details</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {getStatusBadge()}
-          <DropdownMenu open={isActionMenuOpen} onOpenChange={setIsActionMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon"
-              >
-                <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Open menu</span>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/agency/wordpress">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem 
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setIsActionMenuOpen(false);
-                  setTimeout(() => setIsLinkToTeamOpen(true), 0);
-                }}
-                disabled={isLinkedToTeam}
-              >
-                Link to Team
-              </DropdownMenuItem>
-              {isLinkedToTeam && (
-                <DropdownMenuItem 
+            </Link>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {wpData.displayTitle || wpData.title || `Installation ${wpData.id}`}
+              </h1>
+              <p className="text-muted-foreground">WordPress installation details</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {getStatusBadge()}
+            <DropdownMenu open={isActionMenuOpen} onOpenChange={setIsActionMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
                   onSelect={(e) => {
                     e.preventDefault();
                     setIsActionMenuOpen(false);
-                    setTimeout(() => setIsUnlinkDialogOpen(true), 0);
+                    setTimeout(() => setIsLinkToTeamOpen(true), 0);
                   }}
-                  className="text-destructive focus:text-destructive"
+                  disabled={isLinkedToTeam}
                 >
-                  <Unlink className="mr-2 h-4 w-4" />
-                  Unlink from Team
+                  Link to Team
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              {/* Commented out menu items - to be restored later */}
-              {/* <DropdownMenuItem>View Details</DropdownMenuItem> */}
-              {/* <DropdownMenuItem>Edit Installation</DropdownMenuItem> */}
-              {/* <DropdownMenuItem>Update WordPress</DropdownMenuItem> */}
-              {/* <DropdownMenuSeparator /> */}
-              {/* <DropdownMenuSub> */}
-              {/*   <DropdownMenuSubTrigger>Manage</DropdownMenuSubTrigger> */}
-              {/*   <DropdownMenuSubContent> */}
-              {/*     <DropdownMenuItem>Manage Plugins</DropdownMenuItem> */}
-              {/*     <DropdownMenuItem>Manage Themes</DropdownMenuItem> */}
-              {/*     <DropdownMenuItem>Backup</DropdownMenuItem> */}
-              {/*   </DropdownMenuSubContent> */}
-              {/* </DropdownMenuSub> */}
-              {/* <DropdownMenuSeparator /> */}
-              {/* <DropdownMenuItem>Clone</DropdownMenuItem> */}
-              {/* <DropdownMenuItem variant="destructive">Delete Installation</DropdownMenuItem> */}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {isLinkedToTeam && (
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setIsActionMenuOpen(false);
+                      setTimeout(() => setIsUnlinkDialogOpen(true), 0);
+                    }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Unlink className="mr-2 h-4 w-4" />
+                    Unlink from Team
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                {/* Commented out menu items - to be restored later */}
+                {/* <DropdownMenuItem>View Details</DropdownMenuItem> */}
+                {/* <DropdownMenuItem>Edit Installation</DropdownMenuItem> */}
+                {/* <DropdownMenuItem>Update WordPress</DropdownMenuItem> */}
+                {/* <DropdownMenuSeparator /> */}
+                {/* <DropdownMenuSub> */}
+                {/*   <DropdownMenuSubTrigger>Manage</DropdownMenuSubTrigger> */}
+                {/*   <DropdownMenuSubContent> */}
+                {/*     <DropdownMenuItem>Manage Plugins</DropdownMenuItem> */}
+                {/*     <DropdownMenuItem>Manage Themes</DropdownMenuItem> */}
+                {/*     <DropdownMenuItem>Backup</DropdownMenuItem> */}
+                {/*   </DropdownMenuSubContent> */}
+                {/* </DropdownMenuSub> */}
+                {/* <DropdownMenuSeparator /> */}
+                {/* <DropdownMenuItem>Clone</DropdownMenuItem> */}
+                {/* <DropdownMenuItem variant="destructive">Delete Installation</DropdownMenuItem> */}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="mt-6">
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-4 h-auto p-0 bg-transparent">
-          <TabsTrigger 
-            value="overview"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Overview</span>
-              <span className="text-xs text-muted-foreground">Details</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="site-credentials"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Lock className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Site Credentials</span>
-              <span className="text-xs text-muted-foreground">Access</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="plugins"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Code className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Plugins</span>
-              <span className="text-xs text-muted-foreground">Extensions</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="themes"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <FileText className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Themes</span>
-              <span className="text-xs text-muted-foreground">Designs</span>
-            </div>
-          </TabsTrigger>
-        </TabsList>
+        {/* Tabs */}
+        <div className="mt-6">
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-5 h-auto p-0 bg-transparent">
+              <TabsTrigger
+                value="overview"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Overview</span>
+                  <span className="text-xs text-muted-foreground">Details</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="site-credentials"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Lock className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Site Credentials</span>
+                  <span className="text-xs text-muted-foreground">Access</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="plugins"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Code className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Plugins</span>
+                  <span className="text-xs text-muted-foreground">Extensions</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="themes"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <FileText className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Themes</span>
+                  <span className="text-xs text-muted-foreground">Designs</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="tools"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Settings className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Tools</span>
+                  <span className="text-xs text-muted-foreground">Settings</span>
+                </div>
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="overview" className="mt-6">
-          <WordPressOverview wpData={wpData} />
-        </TabsContent>
+            <TabsContent value="overview" className="mt-6">
+              <WordPressOverview wpData={wpData} />
+            </TabsContent>
 
-        <TabsContent value="site-credentials" className="mt-6">
-          <WordPressSiteCredentials installationId={String(wpData.id)} />
-        </TabsContent>
+            <TabsContent value="site-credentials" className="mt-6">
+              <WordPressSiteCredentials installationId={String(wpData.id)} />
+            </TabsContent>
 
-        <TabsContent value="plugins" className="mt-6">
-          <WordPressPlugins installationId={String(wpData.id)} />
-        </TabsContent>
+            <TabsContent value="plugins" className="mt-6">
+              <WordPressPlugins installationId={String(wpData.id)} />
+            </TabsContent>
 
-        <TabsContent value="themes" className="mt-6">
-          <WordPressThemes installationId={String(wpData.id)} />
-        </TabsContent>
-      </Tabs>
-      </div>
+            <TabsContent value="themes" className="mt-6">
+              <WordPressThemes installationId={String(wpData.id)} />
+            </TabsContent>
+
+            <TabsContent value="tools" className="mt-6">
+              <WordPressTools installationId={String(wpData.id)} />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
       {/* Link to Team Dialog */}

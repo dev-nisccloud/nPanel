@@ -1,15 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { 
-  Package, 
-  Shield, 
-  ShieldAlert, 
+import {
+  Package,
+  Shield,
+  ShieldAlert,
   Settings,
   ExternalLink,
   RefreshCw,
   AlertTriangle,
   MoreHorizontal,
+  Trash2,
   Info,
   Plus,
   CheckSquare,
@@ -127,7 +128,7 @@ function PluginTableRow({
   deletePlugins: any;
   bulkAutoUpdatePlugins: any;
 }) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [uninstallDialogOpen, setUninstallDialogOpen] = React.useState(false);
 
   return (
     <>
@@ -201,7 +202,7 @@ function PluginTableRow({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {plugin.status ? (
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => onAction('deactivate', plugin)}
                   disabled={updatePluginStatus.isPending}
                 >
@@ -218,7 +219,7 @@ function PluginTableRow({
                   )}
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => onAction('activate', plugin)}
                   disabled={updatePluginStatus.isPending}
                 >
@@ -278,25 +279,25 @@ function PluginTableRow({
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => setDeleteDialogOpen(true)}
+              <DropdownMenuItem
+                onClick={() => setUninstallDialogOpen(true)}
                 className="text-red-600 focus:text-red-600"
               >
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                Delete
+                <Trash2 className="mr-2 h-4 w-4" />
+                Uninstall
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </TableCell>
       </TableRow>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Uninstall Confirmation Dialog */}
+      <AlertDialog open={uninstallDialogOpen} onOpenChange={setUninstallDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Plugin</AlertDialogTitle>
+            <AlertDialogTitle>Uninstall Plugin</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the plugin{" "}
+              Are you sure you want to uninstall the plugin{" "}
               <span className="font-semibold text-foreground">
                 {plugin.title}
               </span>
@@ -305,9 +306,9 @@ function PluginTableRow({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               disabled={deletePlugins.isPending}
-              onClick={() => setDeleteDialogOpen(false)}
+              onClick={() => setUninstallDialogOpen(false)}
             >
               Cancel
             </AlertDialogCancel>
@@ -318,9 +319,9 @@ function PluginTableRow({
                     installationId: parseInt(installationId),
                     plugins: [plugin.slug!]
                   });
-                  setDeleteDialogOpen(false);
+                  setUninstallDialogOpen(false);
                 } catch (error) {
-                  console.error("Error deleting plugin:", error);
+                  console.error("Error uninstalling plugin:", error);
                 }
               }}
               disabled={deletePlugins.isPending}
@@ -329,10 +330,10 @@ function PluginTableRow({
               {deletePlugins.isPending ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
-                  Deleting...
+                  Uninstalling...
                 </>
               ) : (
-                "Delete Plugin"
+                "Uninstall Plugin"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -381,11 +382,11 @@ export function PluginsTable({ installationId }: PluginsTableProps) {
   // tRPC mutation for deleting plugins
   const deletePlugins = trpc.plesk.wpPluginsDelete.delete.useMutation({
     onSuccess: () => {
-      toast.success("Plugin deleted successfully!");
+      toast.success("Plugin uninstalled successfully!");
       refetch();
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to delete plugin");
+      toast.error(error.message || "Failed to uninstall plugin");
     },
   });
 
@@ -446,8 +447,8 @@ export function PluginsTable({ installationId }: PluginsTableProps) {
         installationId: parseInt(installationId),
         plugins: selectedPluginSlugs.map(slug => {
           const plugin = plugins?.find(p => p.slug === slug);
-          return { 
-            slug, 
+          return {
+            slug,
             autoUpdates: true,
             status: plugin?.status || false
           };

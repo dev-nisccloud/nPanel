@@ -62,8 +62,8 @@ function transformWordPressInstanceToDetail(
       } : undefined,
       restorePoint: installation.features.restorePoint ? {
         available: installation.features.restorePoint.available,
-        restorePointTimestamp: typeof installation.features.restorePoint.restorePointTimestamp === 'number' 
-          ? String(installation.features.restorePoint.restorePointTimestamp) 
+        restorePointTimestamp: typeof installation.features.restorePoint.restorePointTimestamp === 'number'
+          ? String(installation.features.restorePoint.restorePointTimestamp)
           : installation.features.restorePoint.restorePointTimestamp ?? undefined,
         displayTimestamp: installation.features.restorePoint.displayTimestamp ?? undefined,
       } : undefined,
@@ -141,7 +141,7 @@ function transformWordPressInstanceToDetail(
  */
 export function useWordPressDetailBatched(installationId: string) {
   const installationIdNumber = parseInt(installationId, 10);
-  
+
   const {
     data: batchedData,
     isLoading,
@@ -177,7 +177,7 @@ export function useWordPressDetailBatched(installationId: string) {
   useEffect(() => {
     if (error) {
       console.error("WordPress installation fetch error:", error);
-      
+
       // Show user-friendly error messages
       if (error?.data?.code === "UNAUTHORIZED") {
         toast.error("Authentication failed. Please check your Plesk credentials.");
@@ -210,7 +210,7 @@ export function useWordPressDetailBatched(installationId: string) {
       console.error("Data transformation error:", error);
       console.error("Raw API response:", batchedData);
       transformationError = error as Error;
-      
+
       // Provide more specific error messages based on the error type
       if (error instanceof z.ZodError) {
         console.error("Zod validation errors:", error.issues);
@@ -224,7 +224,7 @@ export function useWordPressDetailBatched(installationId: string) {
   return {
     data: transformedData,
     subscription: subscriptionData,
-    isLoading: isLoading || isRefetching,
+    isLoading: isLoading,
     isError: isError || !!transformationError,
     error: error || transformationError,
     refetch,

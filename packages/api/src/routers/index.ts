@@ -37,6 +37,7 @@ import { wpThemesStatusRouter } from "./plesk/wp-themes-status";
 import { wpUpdatesInfoRouter } from "./plesk/wp-updates-info";
 import { wpUpdatesSettingsRouter } from "./plesk/wp-updates-settings";
 import { wpInstallRouter } from "./plesk/wp-install";
+import { wpFeaturesRouter } from "./plesk/wp-features";
 import { ftpRouter } from "./plesk/ftp";
 import { pleskHealthCheckRouter } from "./plesk/health-check";
 import { openProviderRouter } from "./openprovider";
@@ -133,6 +134,8 @@ export const appRouter = router({
 		wpUpdatesSettings: wpUpdatesSettingsRouter,
 		// WordPress Toolkit - Installation
 		wpInstall: wpInstallRouter,
+		// WordPress Toolkit - Extended Features
+		wpFeatures: wpFeaturesRouter,
 		// FTP File Manager
 		ftp: ftpRouter,
 	}),

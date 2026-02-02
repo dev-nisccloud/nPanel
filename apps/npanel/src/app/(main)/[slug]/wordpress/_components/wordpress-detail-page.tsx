@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, LayoutDashboard, ChevronRight, Lock, Code, FileText } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, ChevronRight, Lock, Code, FileText, Settings } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { WordPressOverview } from "./wordpress-overview";
 import { WordPressSiteCredentials } from "./wordpress-site-credentials";
 import { WordPressPlugins } from "./wordpress-plugins";
 import { WordPressThemes } from "./wordpress-themes";
+import { WordPressTools } from "./wordpress-tools";
 import { useWordPressDetailBatched } from "./use-wordpress-detail-batched";
 
 interface WordPressDetailPageProps {
@@ -45,6 +46,7 @@ function WordPressDetailSkeleton() {
           <Skeleton className="h-10 w-20" />
           <Skeleton className="h-10 w-16" />
           <Skeleton className="h-10 w-16" />
+          <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
         </div>
@@ -104,9 +106,9 @@ function WordPressDetailError({ error, onRetry, backHref }: { error: Error; onRe
             </Button>
           </Link>
         </div>
-        </div>
       </div>
-    );
+    </div>
+  );
 }
 
 export function WordPressDetailPage({ installationId }: WordPressDetailPageProps) {
@@ -150,103 +152,120 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href={backHref}>
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {wpData.displayTitle || wpData.title || `Installation ${wpData.id}`}
-            </h1>
-            <p className="text-muted-foreground">WordPress installation details</p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href={backHref}>
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {wpData.displayTitle || wpData.title || `Installation ${wpData.id}`}
+              </h1>
+              <p className="text-muted-foreground">WordPress installation details</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {getStatusBadge()}
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          {getStatusBadge()}
+
+        {/* Tabs */}
+        <div className="mt-6">
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-5 h-auto p-0 bg-transparent">
+              <TabsTrigger
+                value="overview"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Overview</span>
+                  <span className="text-xs text-muted-foreground">Details</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="site-credentials"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Lock className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Site Credentials</span>
+                  <span className="text-xs text-muted-foreground">Access</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="plugins"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Code className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Plugins</span>
+                  <span className="text-xs text-muted-foreground">Extensions</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="themes"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <FileText className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Themes</span>
+                  <span className="text-xs text-muted-foreground">Designs</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="tools"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Settings className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Tools</span>
+                  <span className="text-xs text-muted-foreground">Settings</span>
+                </div>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="mt-6">
+              <WordPressOverview wpData={wpData} />
+            </TabsContent>
+
+            <TabsContent value="site-credentials" className="mt-6">
+              <WordPressSiteCredentials installationId={String(wpData.id)} />
+            </TabsContent>
+
+            <TabsContent value="plugins" className="mt-6">
+              <WordPressPlugins installationId={String(wpData.id)} />
+            </TabsContent>
+
+            <TabsContent value="themes" className="mt-6">
+              <WordPressThemes installationId={String(wpData.id)} />
+            </TabsContent>
+
+            <TabsContent value="tools" className="mt-6">
+              <WordPressTools installationId={String(wpData.id)} />
+            </TabsContent>
+          </Tabs>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="mt-6">
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-4 h-auto p-0 bg-transparent">
-          <TabsTrigger 
-            value="overview"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Overview</span>
-              <span className="text-xs text-muted-foreground">Details</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="site-credentials"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Lock className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Site Credentials</span>
-              <span className="text-xs text-muted-foreground">Access</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="plugins"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Code className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Plugins</span>
-              <span className="text-xs text-muted-foreground">Extensions</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="themes"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <FileText className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Themes</span>
-              <span className="text-xs text-muted-foreground">Designs</span>
-            </div>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="mt-6">
-          <WordPressOverview wpData={wpData} />
-        </TabsContent>
-
-        <TabsContent value="site-credentials" className="mt-6">
-          <WordPressSiteCredentials installationId={String(wpData.id)} />
-        </TabsContent>
-
-        <TabsContent value="plugins" className="mt-6">
-          <WordPressPlugins installationId={String(wpData.id)} />
-        </TabsContent>
-
-        <TabsContent value="themes" className="mt-6">
-          <WordPressThemes installationId={String(wpData.id)} />
-        </TabsContent>
-      </Tabs>
-      </div>
       </div>
     </div>
   );

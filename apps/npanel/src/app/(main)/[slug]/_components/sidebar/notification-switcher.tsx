@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Bell, Check, Mail, Loader2 } from "lucide-react";
+import { Bell, Check, Mail, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 
@@ -46,6 +46,8 @@ export function NotificationSwitcher() {
   const [sseUnseenCount, setSseUnseenCount] = React.useState<number | null>(null);
   const [expandedNotifications, setExpandedNotifications] = React.useState<Set<string>>(new Set());
   const [updatingNotificationId, setUpdatingNotificationId] = React.useState<string | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+
   const notificationsRef = React.useRef<Array<{
     id: string;
     createdAt: Date | string;
@@ -108,7 +110,7 @@ export function NotificationSwitcher() {
   // Update notifications ref when data changes
   React.useEffect(() => {
     if (notifications) {
-      notificationsRef.current = notifications as Array<{ id: string; createdAt: Date | string; updatedAt: Date | string; [key: string]: unknown; }>;
+      notificationsRef.current = notifications as Array<{ id: string; createdAt: Date | string; updatedAt: Date | string;[key: string]: unknown; }>;
     }
   }, [notifications]);
 
@@ -128,11 +130,11 @@ export function NotificationSwitcher() {
 
   // SSE for real-time updates (when popover is open)
   const { isConnected: sseConnected } = useNotificationsSSE(
-      (notification) => {
-        // New notification received via SSE
-        // Add to the beginning of the list
-        const updated = [notification as unknown as { id: string; createdAt: Date | string; updatedAt: Date | string; [key: string]: unknown; }, ...notificationsRef.current.filter(n => n.id !== notification.id)];
-        notificationsRef.current = updated;
+    (notification) => {
+      // New notification received via SSE
+      // Add to the beginning of the list
+      const updated = [notification as unknown as { id: string; createdAt: Date | string; updatedAt: Date | string;[key: string]: unknown; }, ...notificationsRef.current.filter(n => n.id !== notification.id)];
+      notificationsRef.current = updated;
       refetch(); // Refresh to get full data
       toast.info(notification.title || "New notification", {
         description: notification.message,
@@ -185,6 +187,27 @@ export function NotificationSwitcher() {
     },
   });
 
+  // Delete mutation
+  const deleteMutation = trpc.notifications.delete.useMutation({
+    onMutate: (variables) => {
+      setUpdatingNotificationId(variables.id);
+    },
+    onSuccess: () => {
+      refetch();
+      refetchUnseenCount();
+      setUpdatingNotificationId(null);
+      setDeletingId(null);
+      toast.success("Notification deleted");
+    },
+    onError: (error) => {
+      toast.error("Failed to delete notification", {
+        description: error.message,
+      });
+      setUpdatingNotificationId(null);
+      setDeletingId(null);
+    },
+  });
+
   // Mark all as read mutation
   const markAllAsSeenMutation = trpc.notifications.markAllAsSeen.useMutation({
     onSuccess: () => {
@@ -218,6 +241,24 @@ export function NotificationSwitcher() {
       markAsUnseenMutation.mutate({ id: notification.id });
     } else {
       markAsSeenMutation.mutate({ id: notification.id });
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>, notificationId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (deletingId === notificationId) {
+      // Confirm delete
+      deleteMutation.mutate({ id: notificationId });
+    } else {
+      // Initial click - show confirmation
+      setDeletingId(notificationId);
+
+      // Auto-reset confirmation after 3 seconds if not clicked
+      setTimeout(() => {
+        setDeletingId((current) => current === notificationId ? null : current);
+      }, 3000);
     }
   };
 
@@ -257,7 +298,7 @@ export function NotificationSwitcher() {
         <ScrollArea className="h-[400px]">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <Spinner variant="ellipsis" className="text-primary mb-2" />
+              <Spinner variant="ellipsis" className="text-primary mb-2" size={20} />
               <p className="text-sm text-muted-foreground">Loading notifications...</p>
             </div>
           ) : notifications.length === 0 ? (
@@ -271,8 +312,8 @@ export function NotificationSwitcher() {
                 // Convert createdAt string to Date if needed
                 // tRPC serializes Date objects to strings, so we need to handle both
                 const createdAtValue = notification.createdAt as Date | string;
-                const createdAt = createdAtValue instanceof Date 
-                  ? createdAtValue 
+                const createdAt = createdAtValue instanceof Date
+                  ? createdAtValue
                   : typeof createdAtValue === 'string'
                     ? new Date(createdAtValue)
                     : new Date(String(createdAtValue));
@@ -282,7 +323,7 @@ export function NotificationSwitcher() {
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
                     className={cn(
-                      "w-full text-left px-4 py-3 hover:bg-accent transition-colors cursor-pointer",
+                      "w-full text-left px-4 py-3 hover:bg-accent transition-colors cursor-pointer group",
                       !notification.seen && "bg-accent/50"
                     )}
                   >
@@ -325,7 +366,38 @@ export function NotificationSwitcher() {
                           })}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {/* Delete Button */}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className={cn(
+                                  "h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity",
+                                  deletingId === notification.id && "opacity-100 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                )}
+                                onClick={(e) => handleDeleteClick(e, notification.id)}
+                                type="button"
+                                disabled={updatingNotificationId === notification.id}
+                              >
+                                {updatingNotificationId === notification.id && deletingId === notification.id ? (
+                                  <Spinner size={14} className="text-destructive" />
+                                ) : deletingId === notification.id ? (
+                                  <Check className="h-3.5 w-3.5" />
+                                ) : (
+                                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{deletingId === notification.id ? "Confirm delete" : "Delete notification"}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        {/* Mark Read/Unread Button */}
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -335,10 +407,10 @@ export function NotificationSwitcher() {
                                 className="h-7 w-7"
                                 onClick={(e) => handleToggleReadStatus(e, notification)}
                                 type="button"
-                                disabled={updatingNotificationId === notification.id}
+                                disabled={updatingNotificationId === notification.id && deletingId !== notification.id}
                               >
-                                {updatingNotificationId === notification.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                {updatingNotificationId === notification.id && deletingId !== notification.id ? (
+                                  <Spinner size={14} />
                                 ) : notification.seen ? (
                                   <Mail className="h-3.5 w-3.5" />
                                 ) : (
@@ -351,8 +423,9 @@ export function NotificationSwitcher() {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+
                         {!notification.seen && (
-                          <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                          <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 ml-1" />
                         )}
                       </div>
                     </div>
