@@ -9512,6 +9512,11 @@ export const UserScalarFieldEnum = {
   status: 'status',
   lastAccessedTeamId: 'lastAccessedTeamId',
   lastLoginAt: 'lastLoginAt',
+  notificationSoundEnabled: 'notificationSoundEnabled',
+  browserNotificationsEnabled: 'browserNotificationsEnabled',
+  notificationSoundVolume: 'notificationSoundVolume',
+  browserNotificationPermission: 'browserNotificationPermission',
+  notificationPreferencesUpdatedAt: 'notificationPreferencesUpdatedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

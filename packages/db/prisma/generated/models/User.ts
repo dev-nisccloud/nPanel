@@ -19,8 +19,18 @@ export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayloa
 
 export type AggregateUser = {
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
+}
+
+export type UserAvgAggregateOutputType = {
+  notificationSoundVolume: number | null
+}
+
+export type UserSumAggregateOutputType = {
+  notificationSoundVolume: number | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -33,6 +43,11 @@ export type UserMinAggregateOutputType = {
   status: $Enums.UserStatus | null
   lastAccessedTeamId: string | null
   lastLoginAt: Date | null
+  notificationSoundEnabled: boolean | null
+  browserNotificationsEnabled: boolean | null
+  notificationSoundVolume: number | null
+  browserNotificationPermission: string | null
+  notificationPreferencesUpdatedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -47,6 +62,11 @@ export type UserMaxAggregateOutputType = {
   status: $Enums.UserStatus | null
   lastAccessedTeamId: string | null
   lastLoginAt: Date | null
+  notificationSoundEnabled: boolean | null
+  browserNotificationsEnabled: boolean | null
+  notificationSoundVolume: number | null
+  browserNotificationPermission: string | null
+  notificationPreferencesUpdatedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -61,11 +81,24 @@ export type UserCountAggregateOutputType = {
   status: number
   lastAccessedTeamId: number
   lastLoginAt: number
+  notificationSoundEnabled: number
+  browserNotificationsEnabled: number
+  notificationSoundVolume: number
+  browserNotificationPermission: number
+  notificationPreferencesUpdatedAt: number
   createdAt: number
   updatedAt: number
   _all: number
 }
 
+
+export type UserAvgAggregateInputType = {
+  notificationSoundVolume?: true
+}
+
+export type UserSumAggregateInputType = {
+  notificationSoundVolume?: true
+}
 
 export type UserMinAggregateInputType = {
   id?: true
@@ -77,6 +110,11 @@ export type UserMinAggregateInputType = {
   status?: true
   lastAccessedTeamId?: true
   lastLoginAt?: true
+  notificationSoundEnabled?: true
+  browserNotificationsEnabled?: true
+  notificationSoundVolume?: true
+  browserNotificationPermission?: true
+  notificationPreferencesUpdatedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -91,6 +129,11 @@ export type UserMaxAggregateInputType = {
   status?: true
   lastAccessedTeamId?: true
   lastLoginAt?: true
+  notificationSoundEnabled?: true
+  browserNotificationsEnabled?: true
+  notificationSoundVolume?: true
+  browserNotificationPermission?: true
+  notificationPreferencesUpdatedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -105,6 +148,11 @@ export type UserCountAggregateInputType = {
   status?: true
   lastAccessedTeamId?: true
   lastLoginAt?: true
+  notificationSoundEnabled?: true
+  browserNotificationsEnabled?: true
+  notificationSoundVolume?: true
+  browserNotificationPermission?: true
+  notificationPreferencesUpdatedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -148,6 +196,18 @@ export type UserAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserMinAggregateInputType
@@ -178,6 +238,8 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: UserCountAggregateInputType | true
+  _avg?: UserAvgAggregateInputType
+  _sum?: UserSumAggregateInputType
   _min?: UserMinAggregateInputType
   _max?: UserMaxAggregateInputType
 }
@@ -192,9 +254,16 @@ export type UserGroupByOutputType = {
   status: $Enums.UserStatus
   lastAccessedTeamId: string | null
   lastLoginAt: Date | null
+  notificationSoundEnabled: boolean | null
+  browserNotificationsEnabled: boolean | null
+  notificationSoundVolume: number | null
+  browserNotificationPermission: string | null
+  notificationPreferencesUpdatedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
@@ -227,6 +296,11 @@ export type UserWhereInput = {
   status?: Prisma.EnumUserStatusFilter<"User"> | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.StringNullableFilter<"User"> | string | null
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  notificationSoundEnabled?: Prisma.BoolNullableFilter<"User"> | boolean | null
+  browserNotificationsEnabled?: Prisma.BoolNullableFilter<"User"> | boolean | null
+  notificationSoundVolume?: Prisma.IntNullableFilter<"User"> | number | null
+  browserNotificationPermission?: Prisma.StringNullableFilter<"User"> | string | null
+  notificationPreferencesUpdatedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   sessions?: Prisma.SessionListRelationFilter
@@ -276,6 +350,11 @@ export type UserOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   lastAccessedTeamId?: Prisma.SortOrderInput | Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  notificationSoundEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
+  browserNotificationsEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
+  notificationSoundVolume?: Prisma.SortOrderInput | Prisma.SortOrder
+  browserNotificationPermission?: Prisma.SortOrderInput | Prisma.SortOrder
+  notificationPreferencesUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   sessions?: Prisma.SessionOrderByRelationAggregateInput
@@ -328,6 +407,11 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumUserStatusFilter<"User"> | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.StringNullableFilter<"User"> | string | null
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  notificationSoundEnabled?: Prisma.BoolNullableFilter<"User"> | boolean | null
+  browserNotificationsEnabled?: Prisma.BoolNullableFilter<"User"> | boolean | null
+  notificationSoundVolume?: Prisma.IntNullableFilter<"User"> | number | null
+  browserNotificationPermission?: Prisma.StringNullableFilter<"User"> | string | null
+  notificationPreferencesUpdatedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   sessions?: Prisma.SessionListRelationFilter
@@ -377,11 +461,18 @@ export type UserOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   lastAccessedTeamId?: Prisma.SortOrderInput | Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  notificationSoundEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
+  browserNotificationsEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
+  notificationSoundVolume?: Prisma.SortOrderInput | Prisma.SortOrder
+  browserNotificationPermission?: Prisma.SortOrderInput | Prisma.SortOrder
+  notificationPreferencesUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
+  _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
+  _sum?: Prisma.UserSumOrderByAggregateInput
 }
 
 export type UserScalarWhereWithAggregatesInput = {
@@ -397,6 +488,11 @@ export type UserScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumUserStatusWithAggregatesFilter<"User"> | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   lastLoginAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  notificationSoundEnabled?: Prisma.BoolNullableWithAggregatesFilter<"User"> | boolean | null
+  browserNotificationsEnabled?: Prisma.BoolNullableWithAggregatesFilter<"User"> | boolean | null
+  notificationSoundVolume?: Prisma.IntNullableWithAggregatesFilter<"User"> | number | null
+  browserNotificationPermission?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  notificationPreferencesUpdatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
@@ -411,6 +507,11 @@ export type UserCreateInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -460,6 +561,11 @@ export type UserUncheckedCreateInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -509,6 +615,11 @@ export type UserUpdateInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -558,6 +669,11 @@ export type UserUncheckedUpdateInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -607,6 +723,11 @@ export type UserCreateManyInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
 }
@@ -621,6 +742,11 @@ export type UserUpdateManyMutationInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -635,6 +761,11 @@ export type UserUncheckedUpdateManyInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -654,8 +785,17 @@ export type UserCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   lastAccessedTeamId?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  notificationSoundEnabled?: Prisma.SortOrder
+  browserNotificationsEnabled?: Prisma.SortOrder
+  notificationSoundVolume?: Prisma.SortOrder
+  browserNotificationPermission?: Prisma.SortOrder
+  notificationPreferencesUpdatedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserAvgOrderByAggregateInput = {
+  notificationSoundVolume?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -668,6 +808,11 @@ export type UserMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   lastAccessedTeamId?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  notificationSoundEnabled?: Prisma.SortOrder
+  browserNotificationsEnabled?: Prisma.SortOrder
+  notificationSoundVolume?: Prisma.SortOrder
+  browserNotificationPermission?: Prisma.SortOrder
+  notificationPreferencesUpdatedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -682,8 +827,17 @@ export type UserMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   lastAccessedTeamId?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  notificationSoundEnabled?: Prisma.SortOrder
+  browserNotificationsEnabled?: Prisma.SortOrder
+  notificationSoundVolume?: Prisma.SortOrder
+  browserNotificationPermission?: Prisma.SortOrder
+  notificationPreferencesUpdatedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserSumOrderByAggregateInput = {
+  notificationSoundVolume?: Prisma.SortOrder
 }
 
 export type UserNullableScalarRelationFilter = {
@@ -1207,6 +1361,11 @@ export type UserCreateWithoutCustomerIntegrationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -1255,6 +1414,11 @@ export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -1319,6 +1483,11 @@ export type UserUpdateWithoutCustomerIntegrationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -1367,6 +1536,11 @@ export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1415,6 +1589,11 @@ export type UserCreateWithoutSessionsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
@@ -1463,6 +1642,11 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
@@ -1527,6 +1711,11 @@ export type UserUpdateWithoutSessionsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
@@ -1575,6 +1764,11 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -1623,6 +1817,11 @@ export type UserCreateWithoutAccountsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -1671,6 +1870,11 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -1735,6 +1939,11 @@ export type UserUpdateWithoutAccountsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -1783,6 +1992,11 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1831,6 +2045,11 @@ export type UserCreateWithoutTeamMembershipsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -1879,6 +2098,11 @@ export type UserUncheckedCreateWithoutTeamMembershipsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -1943,6 +2167,11 @@ export type UserUpdateWithoutTeamMembershipsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -1991,6 +2220,11 @@ export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -2039,6 +2273,11 @@ export type UserCreateWithoutProfileInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -2087,6 +2326,11 @@ export type UserUncheckedCreateWithoutProfileInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -2151,6 +2395,11 @@ export type UserUpdateWithoutProfileInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -2199,6 +2448,11 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -2247,6 +2501,11 @@ export type UserCreateWithoutActivityLogsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -2295,6 +2554,11 @@ export type UserUncheckedCreateWithoutActivityLogsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -2359,6 +2623,11 @@ export type UserUpdateWithoutActivityLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -2407,6 +2676,11 @@ export type UserUncheckedUpdateWithoutActivityLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -2455,6 +2729,11 @@ export type UserCreateWithoutDomainsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -2503,6 +2782,11 @@ export type UserUncheckedCreateWithoutDomainsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -2567,6 +2851,11 @@ export type UserUpdateWithoutDomainsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -2615,6 +2904,11 @@ export type UserUncheckedUpdateWithoutDomainsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -2663,6 +2957,11 @@ export type UserCreateWithoutDomainRenewalsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -2711,6 +3010,11 @@ export type UserUncheckedCreateWithoutDomainRenewalsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -2775,6 +3079,11 @@ export type UserUpdateWithoutDomainRenewalsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -2823,6 +3132,11 @@ export type UserUncheckedUpdateWithoutDomainRenewalsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -2871,6 +3185,11 @@ export type UserCreateWithoutCreatedDomainTransfersInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -2919,6 +3238,11 @@ export type UserUncheckedCreateWithoutCreatedDomainTransfersInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -2983,6 +3307,11 @@ export type UserUpdateWithoutCreatedDomainTransfersInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -3031,6 +3360,11 @@ export type UserUncheckedUpdateWithoutCreatedDomainTransfersInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -3079,6 +3413,11 @@ export type UserCreateWithoutCreativeBriefsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -3127,6 +3466,11 @@ export type UserUncheckedCreateWithoutCreativeBriefsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -3180,6 +3524,11 @@ export type UserCreateWithoutApprovedCreativeBriefsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -3228,6 +3577,11 @@ export type UserUncheckedCreateWithoutApprovedCreativeBriefsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -3292,6 +3646,11 @@ export type UserUpdateWithoutCreativeBriefsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -3340,6 +3699,11 @@ export type UserUncheckedUpdateWithoutCreativeBriefsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -3399,6 +3763,11 @@ export type UserUpdateWithoutApprovedCreativeBriefsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -3447,6 +3816,11 @@ export type UserUncheckedUpdateWithoutApprovedCreativeBriefsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -3495,6 +3869,11 @@ export type UserCreateWithoutEmailDomainsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -3543,6 +3922,11 @@ export type UserUncheckedCreateWithoutEmailDomainsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -3607,6 +3991,11 @@ export type UserUpdateWithoutEmailDomainsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -3655,6 +4044,11 @@ export type UserUncheckedUpdateWithoutEmailDomainsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -3703,6 +4097,11 @@ export type UserCreateWithoutEmailCampaignsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -3751,6 +4150,11 @@ export type UserUncheckedCreateWithoutEmailCampaignsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -3815,6 +4219,11 @@ export type UserUpdateWithoutEmailCampaignsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -3863,6 +4272,11 @@ export type UserUncheckedUpdateWithoutEmailCampaignsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -3911,6 +4325,11 @@ export type UserCreateWithoutGoogleAdsIntegrationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -3959,6 +4378,11 @@ export type UserUncheckedCreateWithoutGoogleAdsIntegrationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -4023,6 +4447,11 @@ export type UserUpdateWithoutGoogleAdsIntegrationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -4071,6 +4500,11 @@ export type UserUncheckedUpdateWithoutGoogleAdsIntegrationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -4119,6 +4553,11 @@ export type UserCreateWithoutImageGeneratorGenerationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -4167,6 +4606,11 @@ export type UserUncheckedCreateWithoutImageGeneratorGenerationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -4231,6 +4675,11 @@ export type UserUpdateWithoutImageGeneratorGenerationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -4279,6 +4728,11 @@ export type UserUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -4327,6 +4781,11 @@ export type UserCreateWithoutBackgroundRemoverGenerationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -4375,6 +4834,11 @@ export type UserUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -4439,6 +4903,11 @@ export type UserUpdateWithoutBackgroundRemoverGenerationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -4487,6 +4956,11 @@ export type UserUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -4535,6 +5009,11 @@ export type UserCreateWithoutImageGenProjectsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -4583,6 +5062,11 @@ export type UserUncheckedCreateWithoutImageGenProjectsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -4647,6 +5131,11 @@ export type UserUpdateWithoutImageGenProjectsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -4695,6 +5184,11 @@ export type UserUncheckedUpdateWithoutImageGenProjectsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -4743,6 +5237,11 @@ export type UserCreateWithoutImageGenTemplatesInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -4791,6 +5290,11 @@ export type UserUncheckedCreateWithoutImageGenTemplatesInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -4855,6 +5359,11 @@ export type UserUpdateWithoutImageGenTemplatesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -4903,6 +5412,11 @@ export type UserUncheckedUpdateWithoutImageGenTemplatesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -4951,6 +5465,11 @@ export type UserCreateWithoutImageGenUploadInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -4999,6 +5518,11 @@ export type UserUncheckedCreateWithoutImageGenUploadInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -5063,6 +5587,11 @@ export type UserUpdateWithoutImageGenUploadInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -5111,6 +5640,11 @@ export type UserUncheckedUpdateWithoutImageGenUploadInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -5159,6 +5693,11 @@ export type UserCreateWithoutImageGenAiGenerationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -5207,6 +5746,11 @@ export type UserUncheckedCreateWithoutImageGenAiGenerationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -5271,6 +5815,11 @@ export type UserUpdateWithoutImageGenAiGenerationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -5319,6 +5868,11 @@ export type UserUncheckedUpdateWithoutImageGenAiGenerationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -5367,6 +5921,11 @@ export type UserCreateWithoutMetaAdsAccountActivityLogsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -5415,6 +5974,11 @@ export type UserUncheckedCreateWithoutMetaAdsAccountActivityLogsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -5479,6 +6043,11 @@ export type UserUpdateWithoutMetaAdsAccountActivityLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -5527,6 +6096,11 @@ export type UserUncheckedUpdateWithoutMetaAdsAccountActivityLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -5575,6 +6149,11 @@ export type UserCreateWithoutMetaAdsCampaignActivityLogsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -5623,6 +6202,11 @@ export type UserUncheckedCreateWithoutMetaAdsCampaignActivityLogsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -5687,6 +6271,11 @@ export type UserUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -5735,6 +6324,11 @@ export type UserUncheckedUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -5783,6 +6377,11 @@ export type UserCreateWithoutMetaAdsAdSetActivityLogsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -5831,6 +6430,11 @@ export type UserUncheckedCreateWithoutMetaAdsAdSetActivityLogsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -5895,6 +6499,11 @@ export type UserUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -5943,6 +6552,11 @@ export type UserUncheckedUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -5991,6 +6605,11 @@ export type UserCreateWithoutMetaAdsAdActivityLogsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -6039,6 +6658,11 @@ export type UserUncheckedCreateWithoutMetaAdsAdActivityLogsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -6103,6 +6727,11 @@ export type UserUpdateWithoutMetaAdsAdActivityLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -6151,6 +6780,11 @@ export type UserUncheckedUpdateWithoutMetaAdsAdActivityLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -6199,6 +6833,11 @@ export type UserCreateWithoutNotificationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -6247,6 +6886,11 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -6311,6 +6955,11 @@ export type UserUpdateWithoutNotificationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -6359,6 +7008,11 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -6407,6 +7061,11 @@ export type UserCreateWithoutSeoReportsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -6455,6 +7114,11 @@ export type UserUncheckedCreateWithoutSeoReportsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -6519,6 +7183,11 @@ export type UserUpdateWithoutSeoReportsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -6567,6 +7236,11 @@ export type UserUncheckedUpdateWithoutSeoReportsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -6615,6 +7289,11 @@ export type UserCreateWithoutSocialMediaIntegrationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -6663,6 +7342,11 @@ export type UserUncheckedCreateWithoutSocialMediaIntegrationsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -6727,6 +7411,11 @@ export type UserUpdateWithoutSocialMediaIntegrationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -6775,6 +7464,11 @@ export type UserUncheckedUpdateWithoutSocialMediaIntegrationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -6823,6 +7517,11 @@ export type UserCreateWithoutSocialMediaPageTokensInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -6871,6 +7570,11 @@ export type UserUncheckedCreateWithoutSocialMediaPageTokensInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -6935,6 +7639,11 @@ export type UserUpdateWithoutSocialMediaPageTokensInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -6983,6 +7692,11 @@ export type UserUncheckedUpdateWithoutSocialMediaPageTokensInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -7031,6 +7745,11 @@ export type UserCreateWithoutMetaContentCalendarPostsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -7079,6 +7798,11 @@ export type UserUncheckedCreateWithoutMetaContentCalendarPostsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -7143,6 +7867,11 @@ export type UserUpdateWithoutMetaContentCalendarPostsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -7191,6 +7920,11 @@ export type UserUncheckedUpdateWithoutMetaContentCalendarPostsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -7239,6 +7973,11 @@ export type UserCreateWithoutLinkedInContentCalendarInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -7287,6 +8026,11 @@ export type UserUncheckedCreateWithoutLinkedInContentCalendarInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -7351,6 +8095,11 @@ export type UserUpdateWithoutLinkedInContentCalendarInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -7399,6 +8148,11 @@ export type UserUncheckedUpdateWithoutLinkedInContentCalendarInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -7447,6 +8201,11 @@ export type UserCreateWithoutCreatedTicketsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -7495,6 +8254,11 @@ export type UserUncheckedCreateWithoutCreatedTicketsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -7548,6 +8312,11 @@ export type UserCreateWithoutAssignedTicketsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -7596,6 +8365,11 @@ export type UserUncheckedCreateWithoutAssignedTicketsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -7660,6 +8434,11 @@ export type UserUpdateWithoutCreatedTicketsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -7708,6 +8487,11 @@ export type UserUncheckedUpdateWithoutCreatedTicketsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -7767,6 +8551,11 @@ export type UserUpdateWithoutAssignedTicketsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -7815,6 +8604,11 @@ export type UserUncheckedUpdateWithoutAssignedTicketsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -7863,6 +8657,11 @@ export type UserCreateWithoutTicketMessagesInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -7911,6 +8710,11 @@ export type UserUncheckedCreateWithoutTicketMessagesInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -7975,6 +8779,11 @@ export type UserUpdateWithoutTicketMessagesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -8023,6 +8832,11 @@ export type UserUncheckedUpdateWithoutTicketMessagesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -8071,6 +8885,11 @@ export type UserCreateWithoutTicketAttachmentsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -8119,6 +8938,11 @@ export type UserUncheckedCreateWithoutTicketAttachmentsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -8183,6 +9007,11 @@ export type UserUpdateWithoutTicketAttachmentsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -8231,6 +9060,11 @@ export type UserUncheckedUpdateWithoutTicketAttachmentsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -8279,6 +9113,11 @@ export type UserCreateWithoutWebDesignQuoteRequestsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -8327,6 +9166,11 @@ export type UserUncheckedCreateWithoutWebDesignQuoteRequestsInput = {
   status?: $Enums.UserStatus
   lastAccessedTeamId?: string | null
   lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
   createdAt: Date | string
   updatedAt: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -8391,6 +9235,11 @@ export type UserUpdateWithoutWebDesignQuoteRequestsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -8439,6 +9288,11 @@ export type UserUncheckedUpdateWithoutWebDesignQuoteRequestsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -8815,6 +9669,11 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   status?: boolean
   lastAccessedTeamId?: boolean
   lastLoginAt?: boolean
+  notificationSoundEnabled?: boolean
+  browserNotificationsEnabled?: boolean
+  notificationSoundVolume?: boolean
+  browserNotificationPermission?: boolean
+  notificationPreferencesUpdatedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
@@ -8865,6 +9724,11 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   status?: boolean
   lastAccessedTeamId?: boolean
   lastLoginAt?: boolean
+  notificationSoundEnabled?: boolean
+  browserNotificationsEnabled?: boolean
+  notificationSoundVolume?: boolean
+  browserNotificationPermission?: boolean
+  notificationPreferencesUpdatedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -8879,6 +9743,11 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   status?: boolean
   lastAccessedTeamId?: boolean
   lastLoginAt?: boolean
+  notificationSoundEnabled?: boolean
+  browserNotificationsEnabled?: boolean
+  notificationSoundVolume?: boolean
+  browserNotificationPermission?: boolean
+  notificationPreferencesUpdatedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -8893,11 +9762,16 @@ export type UserSelectScalar = {
   status?: boolean
   lastAccessedTeamId?: boolean
   lastLoginAt?: boolean
+  notificationSoundEnabled?: boolean
+  browserNotificationsEnabled?: boolean
+  notificationSoundVolume?: boolean
+  browserNotificationPermission?: boolean
+  notificationPreferencesUpdatedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "role" | "status" | "lastAccessedTeamId" | "lastLoginAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "role" | "status" | "lastAccessedTeamId" | "lastLoginAt" | "notificationSoundEnabled" | "browserNotificationsEnabled" | "notificationSoundVolume" | "browserNotificationPermission" | "notificationPreferencesUpdatedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
@@ -8988,6 +9862,11 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     status: $Enums.UserStatus
     lastAccessedTeamId: string | null
     lastLoginAt: Date | null
+    notificationSoundEnabled: boolean | null
+    browserNotificationsEnabled: boolean | null
+    notificationSoundVolume: number | null
+    browserNotificationPermission: string | null
+    notificationPreferencesUpdatedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["user"]>
@@ -9457,6 +10336,11 @@ export interface UserFieldRefs {
   readonly status: Prisma.FieldRef<"User", 'UserStatus'>
   readonly lastAccessedTeamId: Prisma.FieldRef<"User", 'String'>
   readonly lastLoginAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly notificationSoundEnabled: Prisma.FieldRef<"User", 'Boolean'>
+  readonly browserNotificationsEnabled: Prisma.FieldRef<"User", 'Boolean'>
+  readonly notificationSoundVolume: Prisma.FieldRef<"User", 'Int'>
+  readonly browserNotificationPermission: Prisma.FieldRef<"User", 'String'>
+  readonly notificationPreferencesUpdatedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }

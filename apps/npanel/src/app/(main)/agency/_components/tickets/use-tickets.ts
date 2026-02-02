@@ -28,13 +28,15 @@ export function useTicketsList(filters?: {
     {
       refetchOnWindowFocus: false,
       refetchOnMount: true,
+      refetchInterval: 10_000, // Poll every 10s for global updates
+      refetchIntervalInBackground: true, // Keep polling even when backgrounded
     }
   );
 
   // Transform and validate data
   const tickets: TicketListItem[] = React.useMemo(() => {
     if (!query.data) return [];
-    
+
     return query.data.map((ticket) => {
       const parsed = ticketListItemSchema.safeParse(ticket);
       if (parsed.success) {
@@ -69,7 +71,7 @@ export function useTicket(ticketId: string | null) {
 
   const ticket: Ticket | null = React.useMemo(() => {
     if (!query.data) return null;
-    
+
     const parsed = ticketSchema.safeParse(query.data);
     if (parsed.success) {
       return parsed.data;
@@ -96,13 +98,14 @@ export function useTicketMessages(ticketId: string | null) {
     {
       enabled: !!ticketId,
       refetchOnWindowFocus: false,
-      refetchInterval: 15_000, // Poll every 15s so customer replies show without manual refresh
+      refetchOnMount: "always",
+      refetchInterval: 3_000, // Poll every 3s so customer replies show without manual refresh
     }
   );
 
   const messages: TicketMessage[] = React.useMemo(() => {
     if (!query.data?.messages) return [];
-    
+
     return query.data.messages.map((msg) => {
       const parsed = ticketMessageSchema.safeParse(msg);
       if (parsed.success) {

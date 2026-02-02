@@ -52,6 +52,18 @@ export function useTicketMutations() {
     },
   });
 
+  const markAllTicketMessagesAsRead = trpc.tickets.markAllTicketMessagesAsRead.useMutation({
+    onSuccess: (_, variables) => {
+      utils.tickets.getMessages.invalidate({ ticketId: variables.ticketId });
+      utils.tickets.getById.invalidate({ id: variables.ticketId });
+      // Use selective list invalidation or just invalidate the list
+      utils.tickets.getList.invalidate();
+    },
+    onError: (error) => {
+      console.error("Failed to mark messages as read:", error);
+    },
+  });
+
   const assignTicket = trpc.tickets.assign.useMutation({
     onSuccess: () => {
       utils.tickets.getList.invalidate();
@@ -87,6 +99,7 @@ export function useTicketMutations() {
     updateTicket,
     createMessage,
     markMessageRead,
+    markAllTicketMessagesAsRead,
     assignTicket,
     updateStatus,
     archiveTicket,

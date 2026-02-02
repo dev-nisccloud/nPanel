@@ -39,9 +39,21 @@ export function useTicketMutations() {
     },
   });
 
+  const markAllTicketMessagesAsRead = trpc.tickets.markAllTicketMessagesAsRead.useMutation({
+    onSuccess: () => {
+      utils.tickets.getMessages.invalidate();
+      utils.tickets.getById.invalidate();
+      utils.tickets.getList.invalidate();
+    },
+    onError: (error) => {
+      console.error("Failed to mark messages as read:", error);
+    },
+  });
+
   return {
     createTicket,
     createMessage,
     markMessageRead,
+    markAllTicketMessagesAsRead,
   };
 }

@@ -75,6 +75,7 @@ import { pagespeedInsightsRouter } from "./pagespeed-insights";
 import { seoReportsRouter } from "./seo-reports";
 import { emailMarketingRouter } from "./email-marketing";
 import { webDesignQuotesRouter } from "./web-design-quotes";
+import { userRouter } from "./user";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -210,5 +211,7 @@ export const appRouter = router({
 	emailMarketing: emailMarketingRouter,
 	// Web Design Quote Requests (domain portfolio dialog)
 	webDesignQuotes: webDesignQuotesRouter,
+	// User preferences and profile
+	user: userRouter,
 });
 export type AppRouter = typeof appRouter;

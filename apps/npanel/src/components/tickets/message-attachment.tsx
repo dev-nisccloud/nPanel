@@ -4,6 +4,7 @@ import * as React from "react";
 import { Download, File, Image as ImageIcon, Video, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 // MIME type constants
 const IMAGE_MIME_TYPES = [
@@ -93,7 +94,7 @@ export function MessageAttachment({ attachment, isUserMessage = false }: Message
           />
           {isImageLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-muted">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+              <Spinner size={24} />
             </div>
           )}
           {/* Download overlay */}
@@ -124,7 +125,7 @@ export function MessageAttachment({ attachment, isUserMessage = false }: Message
           </video>
           {isVideoLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-t-lg">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+              <Spinner size={24} />
             </div>
           )}
           {/* Download overlay */}
