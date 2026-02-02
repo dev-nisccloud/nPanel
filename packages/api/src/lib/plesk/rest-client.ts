@@ -21,7 +21,7 @@ const pleskRestAgent = new Agent({
   keepAliveMaxTimeout: 60000,
 });
 
-interface PleskRestResult {
+export interface PleskRestResult {
   data: any | null;
   isAuthError: boolean;
   isHostUnreachable: boolean;
