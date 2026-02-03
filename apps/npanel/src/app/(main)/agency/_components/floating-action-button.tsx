@@ -182,8 +182,17 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   );
   const { createTicket, createMessage, updateStatus, assignTicket, archiveTicket, markMessageRead, markAllTicketMessagesAsRead } = useTicketMutations({ currentUserId });
 
+  // Callback for when a new message is received while chat is open
+  const handleNewMessage = React.useCallback((message: any) => {
+    // Auto-mark messages as read when user is actively viewing the chat
+    if (selectedChatId) {
+      markAllTicketMessagesAsRead.mutate({ ticketId: selectedChatId });
+    }
+  }, [selectedChatId, markAllTicketMessagesAsRead]);
+
   // Initialize new message detectors
-  useNewMessageDetector(messages, currentUserId, selectedChatId);
+  const isChatOpen = isOpen && currentView === "chat";
+  useNewMessageDetector(messages, currentUserId, selectedChatId, isChatOpen, handleNewMessage);
   useGlobalNotificationDetector(tickets, selectedChatId);
 
   // Transform API messages to ChatMessage format

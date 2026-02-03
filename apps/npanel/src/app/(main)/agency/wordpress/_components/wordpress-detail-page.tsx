@@ -148,6 +148,8 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
   const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
 
+  const [activeTab, setActiveTab] = React.useState("overview");
+
   // Get installation ID as number from wpData or fallback to installationId prop
   const wpInstallationId = wpData?.id ? Number(wpData.id) : Number(installationId);
 
@@ -282,7 +284,7 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
 
         {/* Tabs */}
         <div className="mt-6">
-          <Tabs defaultValue="overview" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-5 h-auto p-0 bg-transparent">
               <TabsTrigger
                 value="overview"
@@ -352,7 +354,7 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
-              <WordPressOverview wpData={wpData} />
+              <WordPressOverview wpData={wpData} onNavigateToTab={setActiveTab} />
             </TabsContent>
 
             <TabsContent value="site-credentials" className="mt-6">

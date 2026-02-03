@@ -119,6 +119,8 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
   const fromHosting = searchParams.get("fromHosting");
   const backHref = fromHosting && slug ? `/${slug}/hosting/${fromHosting}` : `${basePath}/wordpress`;
 
+  const [activeTab, setActiveTab] = React.useState("overview");
+
   // Use batched endpoint - fetches both WordPress installation and subscription link in one request
   const { data: wpData, isLoading, isError, error, refetch } = useWordPressDetailBatched(installationId);
 
@@ -176,7 +178,7 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
 
         {/* Tabs */}
         <div className="mt-6">
-          <Tabs defaultValue="overview" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-5 h-auto p-0 bg-transparent">
               <TabsTrigger
                 value="overview"
@@ -246,7 +248,7 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
-              <WordPressOverview wpData={wpData} />
+              <WordPressOverview wpData={wpData} onNavigateToTab={setActiveTab} />
             </TabsContent>
 
             <TabsContent value="site-credentials" className="mt-6">

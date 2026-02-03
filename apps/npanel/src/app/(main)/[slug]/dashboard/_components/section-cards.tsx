@@ -51,7 +51,7 @@ export function SectionCards() {
 
 	const { data: invoiceData, isLoading: isInvoicesLoading } =
 		trpc.invoicing.list.useQuery(
-			{ teamId: teamId ?? undefined, limit: 500 },
+			{ teamId: teamId ?? undefined, limit: 100 },
 			{ enabled: !!teamId }
 		);
 

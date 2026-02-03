@@ -1,16 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  Shield, 
-  Globe, 
-  Code, 
-  Database as DatabaseIcon, 
-  HardDrive, 
-  Cpu, 
+import {
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Shield,
+  Globe,
+  Code,
+  Database as DatabaseIcon,
+  HardDrive,
+  Cpu,
   Lock,
   RefreshCw,
   FileText,
@@ -20,15 +20,17 @@ import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
 import { wordpressInstallationSchema } from "./schema";
 
 interface WordPressOverviewProps {
   wpData: z.infer<typeof wordpressInstallationSchema>;
+  onNavigateToTab?: (tab: string) => void;
 }
 
-export function WordPressOverview({ wpData }: WordPressOverviewProps) {
+export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverviewProps) {
   const getStatusBadge = () => {
     if (wpData.status?.infected) {
       return <Badge variant="destructive">Infected</Badge>;
@@ -203,11 +205,21 @@ export function WordPressOverview({ wpData }: WordPressOverviewProps) {
                     <p className="text-sm text-muted-foreground">Available updates</p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end">
                   <p className="text-2xl font-bold">{wpData.features?.updates?.amountOfPluginsWithUpdates || 0}</p>
                   <Badge variant={wpData.features?.updates?.amountOfPluginsWithUpdates ? "destructive" : "default"}>
                     {wpData.features?.updates?.amountOfPluginsWithUpdates ? "Updates Available" : "Up to Date"}
                   </Badge>
+                  {(wpData.features?.updates?.amountOfPluginsWithUpdates || 0) > 0 && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs mt-2"
+                      onClick={() => onNavigateToTab?.("plugins")}
+                    >
+                      View Updates
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -221,11 +233,21 @@ export function WordPressOverview({ wpData }: WordPressOverviewProps) {
                     <p className="text-sm text-muted-foreground">Available updates</p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end">
                   <p className="text-2xl font-bold">{wpData.features?.updates?.amountOfThemesWithUpdates || 0}</p>
                   <Badge variant={wpData.features?.updates?.amountOfThemesWithUpdates ? "destructive" : "default"}>
                     {wpData.features?.updates?.amountOfThemesWithUpdates ? "Updates Available" : "Up to Date"}
                   </Badge>
+                  {(wpData.features?.updates?.amountOfThemesWithUpdates || 0) > 0 && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs mt-2"
+                      onClick={() => onNavigateToTab?.("themes")}
+                    >
+                      View Updates
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
