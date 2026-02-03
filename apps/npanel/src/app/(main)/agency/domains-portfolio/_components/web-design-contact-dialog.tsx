@@ -129,8 +129,8 @@ export function WebDesignContactDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="p-0 overflow-hidden flex flex-col max-h-[90vh] sm:max-w-lg">
+        <DialogHeader className="p-6 pb-2 flex-none">
           <DialogTitle>Get Professional Web Design & Development</DialogTitle>
           <DialogDescription>
             Transform your domain into a powerful online presence. Our expert team delivers custom
@@ -141,9 +141,12 @@ export function WebDesignContactDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <ScrollArea className="max-h-[60vh] pr-3 -mr-1">
-              <div className="space-y-4 pb-2">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col flex-1 min-h-0 overflow-hidden"
+          >
+            <ScrollArea className="flex-1 min-h-0 px-6">
+              <div className="space-y-4 pb-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -328,7 +331,7 @@ export function WebDesignContactDialog({
               </div>
             </ScrollArea>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t">
+            <div className="p-6 pt-4 border-t flex-none flex flex-wrap items-center justify-between gap-3">
               <Button
                 type="button"
                 variant="outline"
@@ -344,6 +347,7 @@ export function WebDesignContactDialog({
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
                   onClick={() => {
                     form.reset({
                       name: "",
@@ -363,7 +367,7 @@ export function WebDesignContactDialog({
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" size="sm" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <div className="flex items-center gap-2">
                       <Spinner
@@ -382,6 +386,6 @@ export function WebDesignContactDialog({
           </form>
         </Form>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 }

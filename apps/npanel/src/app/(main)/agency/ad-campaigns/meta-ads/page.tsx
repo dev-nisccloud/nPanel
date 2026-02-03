@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { type DateRange } from "react-day-picker";
-import { 
+import {
 	Target,
 	BarChart3,
 	RefreshCw,
@@ -27,7 +28,7 @@ import type { MetaAdsAccount } from "./_components/schemas";
 
 export default function MetaAdsPage() {
 	const [selectedAccountId, setSelectedAccountId] = React.useState<string>("");
-	
+
 	// Date range state
 	const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
 		from: new Date(new Date().setDate(new Date().getDate() - 30)), // Default to last 30 days
@@ -122,7 +123,7 @@ export default function MetaAdsPage() {
 		error: campaignsError,
 		refetch: refetchCampaigns,
 	} = trpc.metaAds.campaigns.listCampaigns.useQuery(
-		{ 
+		{
 			accountId: selectedAccountId,
 			timeRange,
 		},
@@ -196,7 +197,7 @@ export default function MetaAdsPage() {
 	const formatNumber = (value: number | string): string => {
 		const num = typeof value === 'string' ? parseFloat(value) : value;
 		if (isNaN(num)) return '0';
-		
+
 		// If it's a whole number, don't show decimals
 		if (num % 1 === 0) {
 			return num.toLocaleString('en-US', { maximumFractionDigits: 0 });
@@ -211,7 +212,7 @@ export default function MetaAdsPage() {
 	const formatCurrency = (value: number | string): string => {
 		const num = typeof value === 'string' ? parseFloat(value) : value;
 		if (isNaN(num)) return '0';
-		
+
 		try {
 			const formatter = new Intl.NumberFormat('en-US', {
 				style: 'currency',
@@ -226,20 +227,30 @@ export default function MetaAdsPage() {
 		}
 	};
 
-	const getStatusVariant = (status?: string): "default" | "secondary" | "destructive" => {
-		if (!status) return "secondary";
+	const getStatusStyles = (status?: string) => {
+		if (!status) return { variant: "secondary" as const };
 		const upperStatus = status.toUpperCase();
-		if (upperStatus === "ACTIVE") return "default";
-		if (upperStatus === "DISABLED" || upperStatus === "CLOSED") return "destructive";
-		return "secondary";
+		if (upperStatus === "ACTIVE") {
+			return {
+				variant: "outline" as const,
+				className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 font-sans rounded-full",
+			};
+		}
+		if (upperStatus === "DISABLED" || upperStatus === "CLOSED") return { variant: "destructive" as const };
+		return { variant: "secondary" as const };
 	};
 
-	const getCampaignStatusVariant = (status?: string): "default" | "secondary" | "destructive" => {
-		if (!status) return "secondary";
+	const getCampaignStatusStyles = (status?: string) => {
+		if (!status) return { variant: "secondary" as const };
 		const upperStatus = status.toUpperCase();
-		if (upperStatus === "ACTIVE") return "default";
-		if (upperStatus === "DELETED") return "destructive";
-		return "secondary";
+		if (upperStatus === "ACTIVE") {
+			return {
+				variant: "outline" as const,
+				className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 font-sans rounded-full",
+			};
+		}
+		if (upperStatus === "DELETED") return { variant: "destructive" as const };
+		return { variant: "secondary" as const };
 	};
 
 	/**
@@ -289,7 +300,7 @@ export default function MetaAdsPage() {
 						<ConnectMetaAds onConnected={handleRefetchAccounts} />
 						{(credentialsError || requiresReconnect) && (
 							<div className="mt-4 text-sm text-muted-foreground">
-								{requiresReconnect 
+								{requiresReconnect
 									? "Your Facebook session has been invalidated. Please reconnect your account."
 									: credentialsError?.message || "Please connect your Meta account to continue."
 								}
@@ -358,14 +369,19 @@ export default function MetaAdsPage() {
 														<div className="flex items-center gap-2">
 															<Building2 className="h-5 w-5 text-muted-foreground" />
 															<span className="font-medium">
-																{accounts.find((acc: MetaAdsAccount) => acc.accountId === selectedAccountId)?.accountName || 
-																 `Account ${selectedAccountId}`}
+																{accounts.find((acc: MetaAdsAccount) => acc.accountId === selectedAccountId)?.accountName ||
+																	`Account ${selectedAccountId}`}
 															</span>
-															{accounts.find((acc: MetaAdsAccount) => acc.accountId === selectedAccountId)?.status && (
-																<Badge variant={getStatusVariant(accounts.find((acc: MetaAdsAccount) => acc.accountId === selectedAccountId)?.status)}>
-																	{accounts.find((acc: MetaAdsAccount) => acc.accountId === selectedAccountId)?.status}
-																</Badge>
-															)}
+															{(() => {
+																const account = accounts.find((acc: MetaAdsAccount) => acc.accountId === selectedAccountId);
+																if (!account?.status) return null;
+																const styles = getStatusStyles(account.status);
+																return (
+																	<Badge variant={styles.variant} className={styles.className}>
+																		{account.status}
+																	</Badge>
+																);
+															})()}
 														</div>
 													)}
 												</SelectValue>
@@ -381,7 +397,10 @@ export default function MetaAdsPage() {
 																</span>
 															</div>
 															{account.status && (
-																<Badge variant={getStatusVariant(account.status)} className="flex-shrink-0">
+																<Badge
+																	variant={getStatusStyles(account.status).variant}
+																	className={cn("flex-shrink-0", getStatusStyles(account.status).className)}
+																>
 																	{account.status}
 																</Badge>
 															)}
@@ -556,17 +575,20 @@ export default function MetaAdsPage() {
 																			{/* Status at the top on its own row */}
 																			{campaign.status && (
 																				<div>
-																					<Badge variant={getCampaignStatusVariant(campaign.status)}>
+																					<Badge
+																						variant={getCampaignStatusStyles(campaign.status).variant}
+																						className={getCampaignStatusStyles(campaign.status).className}
+																					>
 																						{campaign.status}
 																					</Badge>
 																				</div>
 																			)}
-																			
+
 																			{/* Campaign name - 2 rows max with ellipsis */}
 																			<div className="font-medium line-clamp-2 min-h-[2.5rem]">
 																				{campaign.name || `Campaign ${campaign.id}`}
 																			</div>
-																			
+
 																			{/* Objective */}
 																			{campaign.objective && (
 																				<div className="flex items-center gap-1.5 text-xs">
@@ -576,29 +598,29 @@ export default function MetaAdsPage() {
 																					</span>
 																				</div>
 																			)}
-																			
+
 																			{/* Start Date */}
 																			<div className="flex items-center gap-1.5 text-xs">
 																				<CalendarIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
 																				<span className="text-muted-foreground">
-																					Start: {campaign.start_time 
+																					Start: {campaign.start_time
 																						? new Date(campaign.start_time).toLocaleDateString()
 																						: "-"
 																					}
 																				</span>
 																			</div>
-																			
+
 																			{/* End Date */}
 																			<div className="flex items-center gap-1.5 text-xs">
 																				<CalendarIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
 																				<span className="text-muted-foreground">
-																					End: {campaign.stop_time 
+																					End: {campaign.stop_time
 																						? new Date(campaign.stop_time).toLocaleDateString()
 																						: "-"
 																					}
 																				</span>
 																			</div>
-																			
+
 																			{/* Metrics Section */}
 																			<div className="mt-4 pt-4 border-t">
 																				{campaign.insights ? (
@@ -610,7 +632,7 @@ export default function MetaAdsPage() {
 																								{formatNumber(campaign.insights.reach || 0)}
 																							</div>
 																						</div>
-																						
+
 																						{/* Impressions */}
 																						<div className="p-2 rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900">
 																							<div className="text-[10px] text-purple-700 dark:text-purple-300 font-medium mb-0.5">Impressions</div>
@@ -618,7 +640,7 @@ export default function MetaAdsPage() {
 																								{formatNumber(campaign.insights.impressions || 0)}
 																							</div>
 																						</div>
-																						
+
 																						{/* Link Clicks */}
 																						<div className="p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
 																							<div className="text-[10px] text-green-700 dark:text-green-300 font-medium mb-0.5">Link Clicks</div>
@@ -626,7 +648,7 @@ export default function MetaAdsPage() {
 																								{formatNumber(campaign.insights.link_clicks || campaign.insights.clicks || 0)}
 																							</div>
 																						</div>
-																						
+
 																						{/* Cost Per Click */}
 																						<div className="p-2 rounded-md bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900">
 																							<div className="text-[10px] text-orange-700 dark:text-orange-300 font-medium mb-0.5">CPC</div>
@@ -634,7 +656,7 @@ export default function MetaAdsPage() {
 																								{formatCurrency(campaign.insights.cpc || 0)}
 																							</div>
 																						</div>
-																						
+
 																						{/* CTR */}
 																						<div className="p-2 rounded-md bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900">
 																							<div className="text-[10px] text-indigo-700 dark:text-indigo-300 font-medium mb-0.5">CTR</div>
@@ -650,7 +672,7 @@ export default function MetaAdsPage() {
 																								})()}
 																							</div>
 																						</div>
-																						
+
 																						{/* Amount Spent */}
 																						<div className="p-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
 																							<div className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium mb-0.5">Amount Spent</div>

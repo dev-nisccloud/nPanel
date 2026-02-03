@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { 
-  Palette, 
-  ShieldAlert, 
+import {
+  Palette,
+  ShieldAlert,
   Download,
   Settings,
   ExternalLink,
@@ -52,14 +52,14 @@ interface WordPressThemesProps {
 // Expandable description component
 function ExpandableDescription({ description }: { description?: string }) {
   const [isExpanded, setIsExpanded] = React.useState(false);
-  
+
   if (!description) return null;
-  
+
   const shouldShowToggle = description.length > 150; // Show toggle if description is long
-  const displayText = isExpanded || !shouldShowToggle 
-    ? description 
+  const displayText = isExpanded || !shouldShowToggle
+    ? description
     : description.substring(0, 150) + "...";
-  
+
   return (
     <div className="text-sm text-muted-foreground">
       <p className="whitespace-pre-wrap leading-relaxed">{displayText}</p>
@@ -134,20 +134,23 @@ function ThemesError({ error, onRetry }: { error: Error; onRetry: () => void }) 
 }
 
 // Individual theme card
-function ThemeCard({ 
-  theme, 
-  isSelected, 
+function ThemeCard({
+  theme,
+  isSelected,
   onSelect,
   installationId,
-  onRefetch
-}: { 
-  theme: WordPressTheme; 
-  isSelected: boolean; 
+  onRefetch,
+  allThemes
+}: {
+  theme: WordPressTheme;
+  isSelected: boolean;
   onSelect: (selected: boolean) => void;
   installationId: string;
   onRefetch?: () => void;
+  allThemes?: WordPressTheme[];
 }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [activateDialogOpen, setActivateDialogOpen] = React.useState(false);
 
   // tRPC mutation for updating theme status
   const updateThemeStatus = trpc.plesk.wpThemesStatus.setStatus.useMutation({
@@ -158,9 +161,9 @@ function ThemeCard({
     },
     onError: (error: any) => {
       console.error("Error updating theme status:", error);
-      
+
       let errorMessage = "Please try again.";
-      
+
       if (error?.data?.code === "BAD_REQUEST") {
         errorMessage = error.message || "Invalid theme data.";
       } else if (error?.data?.code === "UNAUTHORIZED") {
@@ -174,7 +177,7 @@ function ThemeCard({
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       toast.error("Failed to update theme", {
         description: errorMessage,
       });
@@ -191,9 +194,9 @@ function ThemeCard({
     },
     onError: (error: any) => {
       console.error("Error deleting theme:", error);
-      
+
       let errorMessage = "Please try again.";
-      
+
       if (error?.data?.code === "BAD_REQUEST") {
         errorMessage = error.message || "Invalid theme data.";
       } else if (error?.data?.code === "UNAUTHORIZED") {
@@ -207,7 +210,7 @@ function ThemeCard({
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       toast.error("Failed to delete theme", {
         description: errorMessage,
       });
@@ -233,15 +236,14 @@ function ThemeCard({
   const handleAction = async (action: string) => {
     switch (action) {
       case 'activate':
-        try {
-          await updateThemeStatus.mutateAsync({
-            installationId: parseInt(installationId),
-            slug: theme.slug!,
-            status: true
-          });
-        } catch (error) {
-          // Error handling is done in the mutation's onError callback
-          console.error("Error in handleAction activate:", error);
+        // Check if there's already an active theme
+        const activeTheme = allThemes?.find(t => t.status && t.slug !== theme.slug);
+        if (activeTheme) {
+          // Show confirmation dialog
+          setActivateDialogOpen(true);
+        } else {
+          // No active theme, proceed directly
+          await confirmActivate();
         }
         break;
       case 'deactivate':
@@ -259,6 +261,20 @@ function ThemeCard({
       case 'delete':
         setDeleteDialogOpen(true);
         break;
+    }
+  };
+
+  const confirmActivate = async () => {
+    try {
+      await updateThemeStatus.mutateAsync({
+        installationId: parseInt(installationId),
+        slug: theme.slug!,
+        status: true
+      });
+      setActivateDialogOpen(false);
+    } catch (error) {
+      // Error handling is done in the mutation's onError callback
+      console.error("Error in confirmActivate:", error);
     }
   };
 
@@ -285,12 +301,12 @@ function ThemeCard({
               onCheckedChange={onSelect}
             />
           </div>
-          
+
           {/* Theme Icon */}
           <div className="flex-shrink-0">
             <Palette className="h-8 w-8 text-muted-foreground" />
           </div>
-          
+
           {/* Theme Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
@@ -299,9 +315,9 @@ function ThemeCard({
                 <ShieldAlert className="h-4 w-4 text-red-500" />
               )}
             </div>
-            
+
             <ExpandableDescription description={theme.description} />
-            
+
             <div className="flex items-center gap-2 mt-2">
               <span className="text-xs text-muted-foreground">
                 v{theme.version}
@@ -316,14 +332,14 @@ function ThemeCard({
               )}
             </div>
           </div>
-          
+
           {/* Badges and Actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="flex items-center gap-1">
               {getStatusBadge()}
               {getUpdateBadge()}
             </div>
-            
+
             {/* Action Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -333,7 +349,7 @@ function ThemeCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {theme.status ? (
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => handleAction('deactivate')}
                     disabled={updateThemeStatus.isPending}
                   >
@@ -350,7 +366,7 @@ function ThemeCard({
                     )}
                   </DropdownMenuItem>
                 ) : (
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => handleAction('activate')}
                     disabled={updateThemeStatus.isPending}
                   >
@@ -374,7 +390,7 @@ function ThemeCard({
                     View Changelog
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => handleAction('delete')}
                   className="text-red-600 focus:text-red-600"
                 >
@@ -410,6 +426,44 @@ function ThemeCard({
                 </>
               ) : (
                 "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Activation Confirmation Dialog */}
+      <AlertDialog open={activateDialogOpen} onOpenChange={setActivateDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Replace Active Theme?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                You are about to activate <strong>"{theme.title}"</strong> which will replace your currently active theme{" "}
+                <strong>"{allThemes?.find(t => t.status && t.slug !== theme.slug)?.title}"</strong>.
+              </p>
+              <p className="text-amber-600 dark:text-amber-400">
+                This will change your website's appearance immediately. Make sure you have a backup before proceeding.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updateThemeStatus.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmActivate}
+              disabled={updateThemeStatus.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {updateThemeStatus.isPending ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Activating...
+                </>
+              ) : (
+                "Activate Theme"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -466,7 +520,7 @@ function WordPressThemesLegacy({ installationId }: WordPressThemesProps) {
   const handleBulkAction = (action: string) => {
     const selectedThemeSlugs = Array.from(selectedThemes);
     console.log(`Bulk ${action} for themes:`, selectedThemeSlugs);
-    
+
     switch (action) {
       case 'update':
         // Handle bulk update
@@ -478,7 +532,7 @@ function WordPressThemesLegacy({ installationId }: WordPressThemesProps) {
         // Handle bulk deactivate
         break;
     }
-    
+
     // Clear selection after action
     setSelectedThemes(new Set());
   };
@@ -588,13 +642,14 @@ function WordPressThemesLegacy({ installationId }: WordPressThemesProps) {
             </div>
           ) : (
             filteredThemes.map((theme) => (
-              <ThemeCard 
-                key={theme.slug} 
-                theme={theme} 
+              <ThemeCard
+                key={theme.slug}
+                theme={theme}
                 isSelected={selectedThemes.has(theme.slug!)}
                 onSelect={(selected) => handleSelectTheme(theme.slug!, selected)}
                 installationId={installationId}
                 onRefetch={refetch}
+                allThemes={themes}
               />
             ))
           )}

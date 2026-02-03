@@ -39,10 +39,7 @@ export default function DomainsPortfolioPage() {
   const [limit] = React.useState(100);
   const [offset, setOffset] = React.useState(0);
   const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
-  const [isNavigating, setIsNavigating] = React.useState(false);
-
   const handleNavigation = (path: string) => {
-    setIsNavigating(true);
     router.push(path);
   };
 
@@ -313,17 +310,6 @@ export default function DomainsPortfolioPage() {
           )}
         </div>
       </div>
-
-      {isNavigating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4">
-            <Spinner size={48} />
-            <p className="text-sm font-medium text-muted-foreground animate-pulse">
-              Loading domain details...
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

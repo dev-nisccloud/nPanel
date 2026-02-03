@@ -474,6 +474,7 @@ export class MetaAdsClient {
 			metrics?: string[];
 			datePreset?: string; // e.g., 'last_7d', 'last_30d', 'lifetime'
 			timeRange?: { since: string; until: string }; // YYYY-MM-DD format
+			timeIncrement?: number | 'all_days';
 			breakdowns?: string[]; // e.g., ['age', 'gender', 'placement']
 			limit?: number;
 			after?: string;
@@ -502,7 +503,7 @@ export class MetaAdsClient {
 
 		const fieldsList = options?.metrics || defaultMetrics;
 		const fieldsString = fieldsList.join(',');
-		
+
 		const params: Record<string, any> = {
 			level: options?.level || 'account',
 			// Meta API uses 'fields' parameter for insights endpoint
@@ -518,6 +519,10 @@ export class MetaAdsClient {
 				since: options.timeRange.since,
 				until: options.timeRange.until,
 			});
+		}
+
+		if (options?.timeIncrement) {
+			params.time_increment = options.timeIncrement;
 		}
 
 		if (options?.breakdowns && options.breakdowns.length > 0) {

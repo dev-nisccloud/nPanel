@@ -5,16 +5,49 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
-	DialogHeader,
 	DialogTitle,
-} from "@/components/ui/dialog";
+} from "@nPanel/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
-import { Target, Layers, FileText, CalendarIcon, TrendingUp, MapPin, Users, Heart, Crosshair, ChevronDown, ChevronUp } from "lucide-react";
+import { Target, Layers, FileText, CalendarIcon, TrendingUp, MapPin, Users, Heart, Crosshair, ChevronDown, ChevronUp, X, BarChart3, PieChart as PieChartIcon, Activity } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+	ChartContainer,
+	ChartTooltip,
+	ChartTooltipContent,
+	ChartLegend,
+	ChartLegendContent,
+	type ChartConfig,
+} from "@/components/ui/chart";
+import {
+	LineChart,
+	Line,
+	XAxis,
+	YAxis,
+	CartesianGrid,
+	Tooltip as RechartsTooltip,
+	ResponsiveContainer,
+	AreaChart,
+	Area,
+	BarChart,
+	Bar,
+	PieChart,
+	Pie,
+	Cell,
+	Label,
+} from "recharts";
 
 // ---------------------------------------------------------------------------
 // Targeting helpers (Meta Ad Set targeting: audience, location, age, interest)
@@ -208,7 +241,7 @@ export function CampaignDetailsDialog({
 		isLoading: isLoadingAdSets,
 		error: adSetsError,
 	} = trpc.metaAds.adSets.listAdSets.useQuery(
-		{ 
+		{
 			campaignId: campaign?.id,
 			timeRange: timeRange ? {
 				since: timeRange.since,
@@ -224,12 +257,55 @@ export function CampaignDetailsDialog({
 
 	const adSets = adSetsData?.data || [];
 
-	const getStatusVariant = (status: string) => {
+	// Default date range if none provided (last 30 days)
+	const defaultSince = format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+	const defaultUntil = format(new Date(), 'yyyy-MM-dd');
+	const effectiveTimeRange = timeRange || { since: defaultSince, until: defaultUntil };
+
+	// Insights Queries
+	const { data: dailyPerformance, isLoading: isLoadingDaily } = trpc.metaAds.insights.getDailyPerformance.useQuery(
+		{ entityId: campaign?.id, level: 'campaign', timeRange: effectiveTimeRange },
+		{ enabled: open && !!campaign?.id, refetchOnWindowFocus: false }
+	);
+
+	const { data: genderBreakdown, isLoading: isLoadingGender } = trpc.metaAds.insights.getBreakdowns.useQuery(
+		{ entityId: campaign?.id, level: 'campaign', timeRange: effectiveTimeRange, breakdown: 'gender' },
+		{ enabled: open && !!campaign?.id, refetchOnWindowFocus: false }
+	);
+
+	const { data: platformBreakdown, isLoading: isLoadingPlatform } = trpc.metaAds.insights.getBreakdowns.useQuery(
+		{ entityId: campaign?.id, level: 'campaign', timeRange: effectiveTimeRange, breakdown: 'publisher_platform' },
+		{ enabled: open && !!campaign?.id, refetchOnWindowFocus: false }
+	);
+
+	const performanceChartConfig = {
+		spend: { label: "Spend", color: "var(--chart-3)" },
+		impressions: { label: "Impressions", color: "var(--chart-2)" },
+		link_clicks: { label: "Link Clicks", color: "var(--chart-1)" },
+	} satisfies ChartConfig;
+
+	const breakdownChartConfig = {
+		value: { label: "Impressions" },
+		male: { label: "Male", color: "var(--chart-1)" },
+		female: { label: "Female", color: "var(--chart-2)" },
+		unknown: { label: "Unknown", color: "var(--chart-3)" },
+		facebook: { label: "Facebook", color: "var(--chart-1)" },
+		instagram: { label: "Instagram", color: "var(--chart-2)" },
+		messenger: { label: "Messenger", color: "var(--chart-3)" },
+		audience_network: { label: "Audience Network", color: "var(--chart-4)" },
+	} satisfies ChartConfig;
+
+	const getStatusStyles = (status: string) => {
 		const statusUpper = status.toUpperCase();
-		if (statusUpper === "ACTIVE") return "default";
-		if (statusUpper === "PAUSED") return "secondary";
-		if (statusUpper === "ARCHIVED") return "outline";
-		return "outline";
+		if (statusUpper === "ACTIVE") {
+			return {
+				variant: "outline" as const,
+				className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 font-sans rounded-full",
+			};
+		}
+		if (statusUpper === "PAUSED") return { variant: "secondary" as const };
+		if (statusUpper === "ARCHIVED") return { variant: "outline" as const };
+		return { variant: "outline" as const };
 	};
 
 	const parseObjective = (objective: string) => {
@@ -242,138 +318,455 @@ export function CampaignDetailsDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-7xl w-[95vw] max-h-[85vh] overflow-y-auto">
-				<DialogHeader>
-					<DialogTitle className="flex items-center gap-2">
-						<Target className="h-5 w-5" />
-						{campaign?.name || `Campaign ${campaign?.id}`}
-					</DialogTitle>
-					<DialogDescription>
-						Campaign ID: {campaign?.id}
-					</DialogDescription>
-				</DialogHeader>
+			<DialogContent
+				className="max-w-[65vw] w-[65vw] h-[80vh] p-0 gap-0 overflow-hidden flex flex-col"
+				hideClose
+			>
+				<DialogTitle className="sr-only">Campaign Details</DialogTitle>
+				<DialogDescription className="sr-only">
+					View details and performance metrics for campaign {campaign?.name}
+				</DialogDescription>
 
-				<div className="space-y-6 mt-4">
-					{/* Campaign Information Section */}
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-lg">Campaign Information</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-								<div className="space-y-1">
-									<p className="text-xs text-muted-foreground">Status</p>
-									<Badge variant={getStatusVariant(campaign?.status || '')}>
-										{campaign?.status || '-'}
-									</Badge>
-								</div>
-								{campaign?.objective && (
-									<div className="space-y-1">
-										<p className="text-xs text-muted-foreground">Objective</p>
-										<p className="text-sm font-medium">{parseObjective(campaign.objective)}</p>
-									</div>
-								)}
-								{campaign?.start_time && (
-									<div className="space-y-1">
-										<p className="text-xs text-muted-foreground">Start Date</p>
-										<p className="text-sm font-medium">
-											{new Date(campaign.start_time).toLocaleDateString()}
-										</p>
-									</div>
-								)}
-								{campaign?.stop_time && (
-									<div className="space-y-1">
-										<p className="text-xs text-muted-foreground">End Date</p>
-										<p className="text-sm font-medium">
-											{new Date(campaign.stop_time).toLocaleDateString()}
-										</p>
-									</div>
-								)}
-							</div>
-							{(campaign?.daily_budget || campaign?.lifetime_budget) && (
-								<div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t">
-									{campaign?.daily_budget && (
-										<div className="space-y-1">
-											<p className="text-xs text-muted-foreground">Daily Budget</p>
-											<p className="text-sm font-medium">{campaign.daily_budget}</p>
-										</div>
-									)}
-									{campaign?.lifetime_budget && (
-										<div className="space-y-1">
-											<p className="text-xs text-muted-foreground">Lifetime Budget</p>
-											<p className="text-sm font-medium">{campaign.lifetime_budget}</p>
-										</div>
-									)}
-									{campaign?.budget_remaining && (
-										<div className="space-y-1">
-											<p className="text-xs text-muted-foreground">Budget Remaining</p>
-											<p className="text-sm font-medium">{campaign.budget_remaining}</p>
-										</div>
-									)}
-								</div>
-							)}
-						</CardContent>
-					</Card>
-
-					{/* Campaign Metrics Section */}
-					{campaign?.insights && (
-						<Card>
-							<CardHeader>
-								<CardTitle className="text-lg">Campaign Performance Metrics</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<MetricsDisplay 
-									insights={campaign.insights} 
-									currency={currency}
-									budget={campaign.daily_budget || campaign.lifetime_budget || null}
-								/>
-							</CardContent>
-						</Card>
-					)}
-
-					<Separator />
-
-					{/* Ad Sets Section */}
-					<div>
-						<h3 className="text-lg font-semibold mb-4">Ad Sets</h3>
-						{isLoadingAdSets ? (
-							<div className="space-y-3">
-								{[...Array(2)].map((_, i) => (
-									<AdSetSkeleton key={i} />
-								))}
-							</div>
-						) : adSetsError ? (
-							<div className="flex flex-col items-center justify-center py-12 text-center">
-								<p className="text-sm text-destructive mb-2">
-									{adSetsError.message || "Failed to load ad sets"}
-								</p>
-								{adSetsError.message?.includes('rate limit') && (
-									<p className="text-xs text-muted-foreground">
-										Please wait a moment and try again.
-									</p>
-								)}
-							</div>
-						) : adSets.length === 0 ? (
-							<div className="flex flex-col items-center justify-center py-12 text-center">
-								<Layers className="h-12 w-12 text-muted-foreground mb-4" />
-								<p className="text-sm text-muted-foreground">
-									No ad sets found for this campaign.
-								</p>
-							</div>
-						) : (
-							<div className="space-y-4">
-								{adSets.map((adSet: any) => (
-									<AdSetItem
-										key={adSet.id}
-										adSet={adSet}
-										getStatusVariant={getStatusVariant}
-										timeRange={timeRange}
-										currency={currency}
-									/>
-								))}
-							</div>
-						)}
+				<div className="flex flex-col h-full min-h-0">
+					<div className="flex-shrink-0 px-4 py-3 border-b flex items-center justify-between bg-background">
+						<div className="flex items-center gap-2 min-w-0">
+							<Target className="h-5 w-5 shrink-0" />
+							<h2 className="font-semibold truncate">
+								{campaign?.name || `Campaign ${campaign?.id}`}
+							</h2>
+						</div>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-8 w-8 shrink-0"
+							onClick={() => onOpenChange(false)}
+						>
+							<X className="h-4 w-4" />
+							<span className="sr-only">Close</span>
+						</Button>
 					</div>
+
+					<Tabs defaultValue="overview" className="flex-1 min-h-0 flex flex-col">
+						<div className="flex-shrink-0 px-4 py-2 border-b bg-muted/30">
+							<TabsList className="h-9 w-full justify-start space-x-2 bg-transparent p-0">
+								<TabsTrigger
+									value="overview"
+									className="text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-1.5"
+								>
+									Overview
+								</TabsTrigger>
+								<TabsTrigger
+									value="performance"
+									className="text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-1.5"
+								>
+									Performance Trends
+								</TabsTrigger>
+								<TabsTrigger
+									value="audience"
+									className="text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-1.5"
+								>
+									Audience & Delivery
+								</TabsTrigger>
+							</TabsList>
+						</div>
+
+						<ScrollArea className="flex-1 min-h-0">
+							<TabsContent value="overview" className="m-0 p-4 md:p-6 pb-8 space-y-6">
+								{/* Campaign Information Section */}
+								<Card>
+									<CardHeader>
+										<CardTitle className="text-lg">Campaign Information</CardTitle>
+									</CardHeader>
+									<CardContent className="space-y-4">
+										<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+											<div className="space-y-1">
+												<p className="text-xs text-muted-foreground">Status</p>
+												{campaign?.status && (
+													<Badge
+														variant={getStatusStyles(campaign.status).variant}
+														className={getStatusStyles(campaign.status).className}
+													>
+														{campaign.status}
+													</Badge>
+												)}
+											</div>
+											{campaign?.objective && (
+												<div className="space-y-1">
+													<p className="text-xs text-muted-foreground">Objective</p>
+													<p className="text-sm font-medium">{parseObjective(campaign.objective)}</p>
+												</div>
+											)}
+											{campaign?.start_time && (
+												<div className="space-y-1">
+													<p className="text-xs text-muted-foreground">Start Date</p>
+													<p className="text-sm font-medium">
+														{new Date(campaign.start_time).toLocaleDateString()}
+													</p>
+												</div>
+											)}
+											{campaign?.stop_time && (
+												<div className="space-y-1">
+													<p className="text-xs text-muted-foreground">End Date</p>
+													<p className="text-sm font-medium">
+														{new Date(campaign.stop_time).toLocaleDateString()}
+													</p>
+												</div>
+											)}
+										</div>
+										{(campaign?.daily_budget || campaign?.lifetime_budget) && (
+											<div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t">
+												{campaign?.daily_budget && (
+													<div className="space-y-1">
+														<p className="text-xs text-muted-foreground">Daily Budget</p>
+														<p className="text-sm font-medium">{campaign.daily_budget}</p>
+													</div>
+												)}
+												{campaign?.lifetime_budget && (
+													<div className="space-y-1">
+														<p className="text-xs text-muted-foreground">Lifetime Budget</p>
+														<p className="text-sm font-medium">{campaign.lifetime_budget}</p>
+													</div>
+												)}
+												{campaign?.budget_remaining && (
+													<div className="space-y-1">
+														<p className="text-xs text-muted-foreground">Budget Remaining</p>
+														<p className="text-sm font-medium">{campaign.budget_remaining}</p>
+													</div>
+												)}
+											</div>
+										)}
+									</CardContent>
+								</Card>
+
+								{/* Campaign Metrics Section */}
+								{campaign?.insights && (
+									<Card>
+										<CardHeader>
+											<CardTitle className="text-lg">Campaign Performance Metrics</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<MetricsDisplay
+												insights={campaign.insights}
+												currency={currency}
+												budget={campaign.daily_budget || campaign.lifetime_budget || null}
+											/>
+										</CardContent>
+									</Card>
+								)}
+
+								<Separator />
+
+								{/* Ad Sets Section */}
+								<div>
+									<h3 className="text-lg font-semibold mb-4">Ad Sets</h3>
+									{isLoadingAdSets ? (
+										<div className="space-y-3">
+											{[...Array(2)].map((_, i) => (
+												<AdSetSkeleton key={i} />
+											))}
+										</div>
+									) : (adSets.length === 0 && !isLoadingAdSets) ? (
+										<div className="flex flex-col items-center justify-center py-12 text-center">
+											<Layers className="h-12 w-12 text-muted-foreground mb-4" />
+											<p className="text-sm text-muted-foreground">
+												No ad sets found for this campaign.
+											</p>
+										</div>
+									) : (
+										<div className="space-y-4">
+											{adSets.map((adSet: any) => (
+												<AdSetItem
+													key={adSet.id}
+													adSet={adSet}
+													getStatusStyles={getStatusStyles}
+													timeRange={timeRange}
+													currency={currency}
+												/>
+											))}
+										</div>
+									)}
+								</div>
+							</TabsContent>
+
+							<TabsContent value="performance" className="m-0 p-4 md:p-6 pb-8 space-y-6">
+								<Card>
+									<CardHeader className="flex flex-row items-center justify-between pb-2">
+										<div className="space-y-1">
+											<CardTitle className="text-lg">Performance Trends</CardTitle>
+											<CardDescription className="text-xs">
+												Daily performance for the selected period
+											</CardDescription>
+										</div>
+										<Activity className="h-4 w-4 text-muted-foreground" />
+									</CardHeader>
+									<CardContent className="pt-4">
+										{isLoadingDaily ? (
+											<div className="h-[350px] flex items-center justify-center">
+												<Skeleton className="h-[300px] w-full" />
+											</div>
+										) : dailyPerformance?.data && dailyPerformance.data.length > 0 ? (
+											<ChartContainer config={performanceChartConfig} className="h-[350px] w-full">
+												<LineChart
+													data={dailyPerformance.data
+														.sort((a: any, b: any) => (a.date_start || '').localeCompare(b.date_start || ''))
+														.map((item: any) => {
+															const linkClicks = parseInt(item.inline_link_clicks || '0') ||
+																(item.actions?.find((a: any) => a.action_type === 'link_click')?.value || 0);
+															return {
+																date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : '—',
+																spend: parseFloat(item.spend || '0'),
+																impressions: parseInt(item.impressions || '0'),
+																link_clicks: parseInt(linkClicks.toString()),
+															};
+														})}
+													margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+												>
+													<CartesianGrid strokeDasharray="3 3" vertical={false} />
+													<XAxis
+														dataKey="date"
+														axisLine={false}
+														tickLine={false}
+														tick={{ fontSize: 10 }}
+														dy={10}
+													/>
+													<YAxis
+														axisLine={false}
+														tickLine={false}
+														tick={{ fontSize: 10 }}
+														dx={-10}
+													/>
+													<ChartTooltip content={<ChartTooltipContent />} />
+													<ChartLegend content={<ChartLegendContent />} />
+													<Line
+														type="monotone"
+														dataKey="impressions"
+														stroke="var(--color-impressions)"
+														strokeWidth={2}
+														dot={{ r: 3, fill: "var(--color-impressions)" }}
+														activeDot={{ r: 5 }}
+														name="Impressions"
+													/>
+													<Line
+														type="monotone"
+														dataKey="link_clicks"
+														stroke="var(--color-link_clicks)"
+														strokeWidth={2}
+														dot={{ r: 3, fill: "var(--color-link_clicks)" }}
+														activeDot={{ r: 5 }}
+														name="Link Clicks"
+													/>
+												</LineChart>
+											</ChartContainer>
+										) : (
+											<div className="h-[350px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+												<BarChart3 className="h-10 w-10 text-muted-foreground mb-3 opacity-20" />
+												<p className="text-sm text-muted-foreground">No trend data available for this range</p>
+											</div>
+										)}
+									</CardContent>
+								</Card>
+
+								<Card>
+									<CardHeader className="flex flex-row items-center justify-between pb-2">
+										<div className="space-y-1">
+											<CardTitle className="text-lg">Daily Spend</CardTitle>
+											<CardDescription className="text-xs">
+												Campaign spend over time
+											</CardDescription>
+										</div>
+										<TrendingUp className="h-4 w-4 text-muted-foreground" />
+									</CardHeader>
+									<CardContent className="pt-4">
+										{isLoadingDaily ? (
+											<div className="h-[250px] flex items-center justify-center">
+												<Skeleton className="h-[200px] w-full" />
+											</div>
+										) : dailyPerformance?.data && dailyPerformance.data.length > 0 ? (
+											<ChartContainer config={performanceChartConfig} className="h-[250px] w-full">
+												<AreaChart
+													data={dailyPerformance.data
+														.sort((a: any, b: any) => (a.date_start || '').localeCompare(b.date_start || ''))
+														.map((item: any) => ({
+															date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : '—',
+															spend: parseFloat(item.spend || '0'),
+														}))}
+													margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+												>
+													<defs>
+														<linearGradient id="fillSpend" x1="0" y1="0" x2="0" y2="1">
+															<stop offset="5%" stopColor="var(--color-spend)" stopOpacity={0.1} />
+															<stop offset="95%" stopColor="var(--color-spend)" stopOpacity={0} />
+														</linearGradient>
+													</defs>
+													<CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+													<XAxis
+														dataKey="date"
+														axisLine={false}
+														tickLine={false}
+														tick={{ fontSize: 9 }}
+													/>
+													<YAxis hide />
+													<ChartTooltip content={<ChartTooltipContent />} />
+													<Area
+														type="monotone"
+														dataKey="spend"
+														stroke="var(--color-spend)"
+														fillOpacity={1}
+														fill="url(#fillSpend)"
+														strokeWidth={2}
+														name="Spend"
+													/>
+												</AreaChart>
+											</ChartContainer>
+										) : (
+											<div className="h-[250px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+												<p className="text-xs text-muted-foreground">No spend data available</p>
+											</div>
+										)}
+									</CardContent>
+								</Card>
+							</TabsContent>
+
+							<TabsContent value="audience" className="m-0 p-4 md:p-6 pb-8 space-y-6">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-base">Gender Distribution</CardTitle>
+											<CardDescription className="text-xs">Impressions by gender</CardDescription>
+										</CardHeader>
+										<CardContent className="h-[300px]">
+											{isLoadingGender ? (
+												<div className="h-full flex items-center justify-center">
+													<Skeleton className="h-40 w-40 rounded-full" />
+												</div>
+											) : genderBreakdown?.data && genderBreakdown.data.length > 0 ? (
+												<ChartContainer config={breakdownChartConfig} className="h-[250px] w-full">
+													<PieChart>
+														<Pie
+															data={genderBreakdown.data
+																.filter((item: any) => item.gender?.toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0)
+																.map((item: any, index: number) => ({
+																	gender: item.gender,
+																	value: parseInt(item.impressions || '0'),
+																}))}
+															dataKey="value"
+															nameKey="gender"
+															cx="50%"
+															cy="50%"
+															innerRadius={60}
+															outerRadius={80}
+															paddingAngle={5}
+														>
+															{genderBreakdown.data
+																.filter((item: any) => item.gender?.toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0)
+																.map((entry: any, index: number) => (
+																	<Cell key={`cell-${index}`} fill={`var(--chart-${(index % 5) + 1})`} />
+																))}
+															<Label
+																content={({ viewBox }) => {
+																	if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+																		const total = genderBreakdown.data
+																			.filter((item: any) => item.gender !== 'unknown' && parseInt(item.impressions || '0') > 0)
+																			.reduce((acc: number, curr: any) => acc + parseInt(curr.impressions || '0'), 0);
+																		return (
+																			<text
+																				x={viewBox.cx}
+																				y={viewBox.cy}
+																				textAnchor="middle"
+																				dominantBaseline="middle"
+																			>
+																				<tspan
+																					x={viewBox.cx}
+																					y={viewBox.cy}
+																					className="fill-foreground text-xl font-bold"
+																				>
+																					{total.toLocaleString()}
+																				</tspan>
+																				<tspan
+																					x={viewBox.cx}
+																					y={(viewBox.cy || 0) + 24}
+																					className="fill-muted-foreground text-xs"
+																				>
+																					Impressions
+																				</tspan>
+																			</text>
+																		);
+																	}
+																}}
+															/>
+														</Pie>
+														<ChartTooltip content={<ChartTooltipContent />} />
+													</PieChart>
+												</ChartContainer>
+											) : (
+												<div className="h-full flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+													<Users className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+													<p className="text-xs text-muted-foreground">No gender data</p>
+												</div>
+											)}
+										</CardContent>
+									</Card>
+
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-base">Platform Delivery</CardTitle>
+											<CardDescription className="text-xs">Impressions by publisher platform</CardDescription>
+										</CardHeader>
+										<CardContent className="h-[300px]">
+											{isLoadingPlatform ? (
+												<div className="h-full flex flex-col gap-2 justify-center">
+													{[...Array(4)].map((_, i) => (
+														<Skeleton key={i} className="h-8 w-full" />
+													))}
+												</div>
+											) : platformBreakdown?.data && platformBreakdown.data.filter((item: any) => (item.publisher_platform || '').toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0).length > 0 ? (
+												<ChartContainer config={breakdownChartConfig} className="h-full w-full">
+													<BarChart
+														data={platformBreakdown.data
+															.filter((item: any) => (item.publisher_platform || '').toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0)
+															.map((item: any) => ({
+																platform: item.publisher_platform,
+																value: parseInt(item.impressions || '0'),
+															}))}
+														layout="vertical"
+														margin={{ left: 0, right: 30, top: 10, bottom: 10 }}
+													>
+														<XAxis type="number" hide />
+														<YAxis
+															dataKey="platform"
+															type="category"
+															axisLine={false}
+															tickLine={false}
+															tickFormatter={(value) => breakdownChartConfig[value as keyof typeof breakdownChartConfig]?.label as string || value}
+															width={100}
+															tick={{ fontSize: 10 }}
+														/>
+														<ChartTooltip content={<ChartTooltipContent hideLabel />} />
+														<Bar
+															dataKey="value"
+															radius={5}
+															barSize={32}
+														>
+															{platformBreakdown.data
+																.filter((item: any) => (item.publisher_platform || '').toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0)
+																.map((entry: any, index: number) => (
+																	<Cell key={`cell-${index}`} fill={`var(--chart-${(index % 5) + 1})`} />
+																))}
+														</Bar>
+													</BarChart>
+												</ChartContainer>
+											) : (
+												<div className="h-full flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+													<PieChartIcon className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+													<p className="text-xs text-muted-foreground">No platform data</p>
+												</div>
+											)}
+										</CardContent>
+									</Card>
+								</div>
+							</TabsContent>
+						</ScrollArea>
+					</Tabs>
 				</div>
 			</DialogContent>
 		</Dialog>
@@ -382,7 +775,7 @@ export function CampaignDetailsDialog({
 
 interface AdSetItemProps {
 	adSet: any;
-	getStatusVariant: (status: string) => "default" | "secondary" | "outline" | "destructive";
+	getStatusStyles: (status: string) => { variant: "default" | "secondary" | "outline" | "destructive"; className?: string };
 	timeRange?: {
 		since: string;
 		until: string;
@@ -390,14 +783,14 @@ interface AdSetItemProps {
 	currency?: string;
 }
 
-function AdSetItem({ adSet, getStatusVariant, timeRange, currency = 'USD' }: AdSetItemProps) {
+function AdSetItem({ adSet, getStatusStyles, timeRange, currency = 'USD' }: AdSetItemProps) {
 	// Load ads when ad set is rendered
 	const {
 		data: adsData,
 		isLoading: isLoadingAds,
 		error: adsError,
 	} = trpc.metaAds.ads.listAds.useQuery(
-		{ 
+		{
 			adSetId: adSet.id,
 			timeRange: timeRange ? {
 				since: timeRange.since,
@@ -431,9 +824,14 @@ function AdSetItem({ adSet, getStatusVariant, timeRange, currency = 'USD' }: AdS
 						<div>
 							<div className="flex items-center gap-2 mb-1">
 								<CardTitle className="text-base">{adSet.name}</CardTitle>
-								<Badge variant={getStatusVariant(adSet.status)}>
-									{adSet.status}
-								</Badge>
+								{adSet.status && (
+									<Badge
+										variant={getStatusStyles(adSet.status).variant}
+										className={getStatusStyles(adSet.status).className}
+									>
+										{adSet.status}
+									</Badge>
+								)}
 							</div>
 							<p className="text-xs text-muted-foreground">
 								ID: {adSet.id}
@@ -542,8 +940,8 @@ function AdSetItem({ adSet, getStatusVariant, timeRange, currency = 'USD' }: AdS
 				<div>
 					<p className="text-sm font-medium text-muted-foreground mb-3">Ad Set Performance Metrics</p>
 					{adSet.insights ? (
-						<MetricsDisplay 
-							insights={adSet.insights} 
+						<MetricsDisplay
+							insights={adSet.insights}
 							currency={currency}
 							budget={adSet.daily_budget || adSet.lifetime_budget || null}
 						/>
@@ -598,9 +996,14 @@ function AdSetItem({ adSet, getStatusVariant, timeRange, currency = 'USD' }: AdS
 												<div className="flex-1 min-w-0">
 													<div className="flex items-center gap-2 mb-1">
 														<p className="text-sm font-medium truncate">{ad.name}</p>
-														<Badge variant={getStatusVariant(ad.status)} className="text-xs">
-															{ad.status}
-														</Badge>
+														{ad.status && (
+															<Badge
+																variant={getStatusStyles(ad.status).variant}
+																className={cn("text-xs", getStatusStyles(ad.status).className)}
+															>
+																{ad.status}
+															</Badge>
+														)}
 													</div>
 													<p className="text-xs text-muted-foreground">
 														ID: {ad.id}
@@ -686,10 +1089,10 @@ function MetricsDisplay({ insights, currency = 'USD', compact = false, budget = 
 	const impressionsNum = insights.impressions ? (typeof insights.impressions === 'string' ? parseFloat(insights.impressions) : insights.impressions) : 0;
 	const clicksNum = insights.clicks ? (typeof insights.clicks === 'string' ? parseFloat(insights.clicks) : insights.clicks) : 0;
 	const spendNum = insights.spend ? (typeof insights.spend === 'string' ? parseFloat(insights.spend) : insights.spend) : 0;
-	
+
 	// CTR (all) = (clicks / impressions) * 100
 	const ctrAll = impressionsNum > 0 && clicksNum > 0 ? (clicksNum / impressionsNum) : null;
-	
+
 	// CPC (all) = spend / clicks
 	const cpcAll = clicksNum > 0 && spendNum > 0 ? (spendNum / clicksNum) : null;
 

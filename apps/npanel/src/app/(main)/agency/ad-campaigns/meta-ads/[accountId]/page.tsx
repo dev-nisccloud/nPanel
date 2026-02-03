@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { type DateRange } from "react-day-picker";
-import { 
+import {
 	ArrowLeft,
 	Target,
 	BarChart3,
@@ -63,7 +64,7 @@ export default function MetaAdsAccountDetailPage() {
 		error: campaignsError,
 		refetch: refetchCampaigns,
 	} = trpc.metaAds.campaigns.listCampaigns.useQuery(
-		{ 
+		{
 			accountId,
 			timeRange,
 		},
@@ -133,7 +134,7 @@ export default function MetaAdsAccountDetailPage() {
 	const formatNumber = (value: number | string): string => {
 		const num = typeof value === 'string' ? parseFloat(value) : value;
 		if (isNaN(num)) return '0';
-		
+
 		// If it's a whole number, don't show decimals
 		if (num % 1 === 0) {
 			return num.toLocaleString('en-US', { maximumFractionDigits: 0 });
@@ -148,7 +149,7 @@ export default function MetaAdsAccountDetailPage() {
 	const formatCurrency = (value: number | string): string => {
 		const num = typeof value === 'string' ? parseFloat(value) : value;
 		if (isNaN(num)) return '0';
-		
+
 		try {
 			const formatter = new Intl.NumberFormat('en-US', {
 				style: 'currency',
@@ -163,20 +164,30 @@ export default function MetaAdsAccountDetailPage() {
 		}
 	};
 
-	const getStatusVariant = (status?: string): "default" | "secondary" | "destructive" => {
-		if (!status) return "secondary";
+	const getStatusStyles = (status?: string) => {
+		if (!status) return { variant: "secondary" as const };
 		const upperStatus = status.toUpperCase();
-		if (upperStatus === "ACTIVE") return "default";
-		if (upperStatus === "DISABLED" || upperStatus === "CLOSED") return "destructive";
-		return "secondary";
+		if (upperStatus === "ACTIVE") {
+			return {
+				variant: "outline" as const,
+				className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 font-sans rounded-full",
+			};
+		}
+		if (upperStatus === "DISABLED" || upperStatus === "CLOSED") return { variant: "destructive" as const };
+		return { variant: "secondary" as const };
 	};
 
-	const getCampaignStatusVariant = (status?: string): "default" | "secondary" | "destructive" => {
-		if (!status) return "secondary";
+	const getCampaignStatusStyles = (status?: string) => {
+		if (!status) return { variant: "secondary" as const };
 		const upperStatus = status.toUpperCase();
-		if (upperStatus === "ACTIVE") return "default";
-		if (upperStatus === "DELETED") return "destructive";
-		return "secondary";
+		if (upperStatus === "ACTIVE") {
+			return {
+				variant: "outline" as const,
+				className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 font-sans rounded-full",
+			};
+		}
+		if (upperStatus === "DELETED") return { variant: "destructive" as const };
+		return { variant: "secondary" as const };
 	};
 
 	/**
@@ -378,160 +389,163 @@ export default function MetaAdsAccountDetailPage() {
 					</div>
 				</CardHeader>
 				<CardContent>
-							{isLoadingCampaigns ? (
-								<div className="flex items-center justify-center py-12">
-									<Spinner size={32} />
-								</div>
-							) : campaigns.length === 0 ? (
-								<div className="flex flex-col items-center justify-center py-12 text-center">
-									<Target className="h-12 w-12 text-muted-foreground mb-4" />
-									<p className="text-sm text-muted-foreground">
-										No campaigns found for this ad account.
-									</p>
-								</div>
-							) : (
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{campaigns.map((campaign: any) => (
-										<Card
-											key={campaign.id}
-											className="hover:bg-accent/50 transition-colors cursor-pointer"
-											onClick={() => {
-												setSelectedCampaign(campaign);
-											}}
-										>
-											<CardContent className="p-4">
-												<div className="flex flex-col gap-3">
-													{/* Status at the top on its own row */}
-													{campaign.status && (
-														<div>
-															<Badge variant={getCampaignStatusVariant(campaign.status)}>
-																{campaign.status}
-															</Badge>
-														</div>
-													)}
-													
-													{/* Campaign name - 2 rows max with ellipsis */}
-													<div className="font-medium line-clamp-2 min-h-[2.5rem]">
-														{campaign.name || `Campaign ${campaign.id}`}
-													</div>
-													
-													{/* ID */}
-													<div className="text-xs text-muted-foreground">
-														ID: {campaign.id}
-													</div>
-													
-													{/* Objective */}
-													{campaign.objective && (
-														<div className="flex items-center gap-1.5 text-xs">
-															<TrendingUp className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-															<span className="text-muted-foreground">
-																{parseObjective(campaign.objective)}
-															</span>
-														</div>
-													)}
-													
-													{/* Start Date */}
-													<div className="flex items-center gap-1.5 text-xs">
-														<CalendarIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-														<span className="text-muted-foreground">
-															Start: {campaign.start_time 
-																? new Date(campaign.start_time).toLocaleDateString()
-																: "-"
-															}
-														</span>
-													</div>
-													
-													{/* End Date */}
-													<div className="flex items-center gap-1.5 text-xs">
-														<CalendarIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-														<span className="text-muted-foreground">
-															End: {campaign.stop_time 
-																? new Date(campaign.stop_time).toLocaleDateString()
-																: "-"
-															}
-														</span>
-													</div>
-													
-													{/* Metrics Section */}
-													<div className="mt-4 pt-4 border-t">
-														{campaign.insights ? (
-															<div className="grid grid-cols-2 gap-2">
-																{/* Reach */}
-																<div className="p-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
-																	<div className="text-[10px] text-blue-700 dark:text-blue-300 font-medium mb-0.5">Reach</div>
-																	<div className="text-xs font-semibold text-blue-900 dark:text-blue-100">
-																		{formatNumber(campaign.insights.reach || 0)}
-																	</div>
-																</div>
-																
-																{/* Impressions */}
-																<div className="p-2 rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900">
-																	<div className="text-[10px] text-purple-700 dark:text-purple-300 font-medium mb-0.5">Impressions</div>
-																	<div className="text-xs font-semibold text-purple-900 dark:text-purple-100">
-																		{formatNumber(campaign.insights.impressions || 0)}
-																	</div>
-																</div>
-																
-																{/* Link Clicks */}
-																<div className="p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
-																	<div className="text-[10px] text-green-700 dark:text-green-300 font-medium mb-0.5">Link Clicks</div>
-																	<div className="text-xs font-semibold text-green-900 dark:text-green-100">
-																		{formatNumber(campaign.insights.link_clicks || campaign.insights.clicks || 0)}
-																	</div>
-																</div>
-																
-																{/* Cost Per Click */}
-																<div className="p-2 rounded-md bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900">
-																	<div className="text-[10px] text-orange-700 dark:text-orange-300 font-medium mb-0.5">CPC</div>
-																	<div className="text-xs font-semibold text-orange-900 dark:text-orange-100">
-																		{formatCurrency(campaign.insights.cpc || 0)}
-																	</div>
-																</div>
-																
-																{/* CTR */}
-																<div className="p-2 rounded-md bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900">
-																	<div className="text-[10px] text-indigo-700 dark:text-indigo-300 font-medium mb-0.5">CTR</div>
-																	<div className="text-xs font-semibold text-indigo-900 dark:text-indigo-100">
-																		{(() => {
-																			const ctr = campaign.insights.ctr;
-																			if (!ctr || ctr === '0') return '0%';
-																			// CTR might already be a percentage string or a decimal
-																			const ctrNum = typeof ctr === 'string' ? parseFloat(ctr) : ctr;
-																			// If it's less than 1, it's likely a decimal (e.g., 0.0123 = 1.23%)
-																			// If it's >= 1, it might already be a percentage
-																			return ctrNum < 1 ? `${(ctrNum * 100).toFixed(2)}%` : `${ctrNum.toFixed(2)}%`;
-																		})()}
-																	</div>
-																</div>
-																
-																{/* Amount Spent */}
-																<div className="p-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
-																	<div className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium mb-0.5">Amount Spent</div>
-																	<div className="text-xs font-semibold text-emerald-900 dark:text-emerald-100">
-																		{formatCurrency(campaign.insights.spend || 0)}
-																	</div>
-																</div>
-															</div>
-														) : (
-															<div className="flex flex-col items-center justify-center py-6 text-center">
-																<BarChart3 className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
-																<p className="text-xs text-muted-foreground">
-																	No performance data available
-																</p>
-																<p className="text-[10px] text-muted-foreground mt-1">
-																	Insights may not be available for this campaign or date range
-																</p>
-															</div>
-														)}
-													</div>
+					{isLoadingCampaigns ? (
+						<div className="flex items-center justify-center py-12">
+							<Spinner size={32} />
+						</div>
+					) : campaigns.length === 0 ? (
+						<div className="flex flex-col items-center justify-center py-12 text-center">
+							<Target className="h-12 w-12 text-muted-foreground mb-4" />
+							<p className="text-sm text-muted-foreground">
+								No campaigns found for this ad account.
+							</p>
+						</div>
+					) : (
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+							{campaigns.map((campaign: any) => (
+								<Card
+									key={campaign.id}
+									className="hover:bg-accent/50 transition-colors cursor-pointer"
+									onClick={() => {
+										setSelectedCampaign(campaign);
+									}}
+								>
+									<CardContent className="p-4">
+										<div className="flex flex-col gap-3">
+											{/* Status at the top on its own row */}
+											{campaign.status && (
+												<div>
+													<Badge
+														variant={getCampaignStatusStyles(campaign.status).variant}
+														className={getCampaignStatusStyles(campaign.status).className}
+													>
+														{campaign.status}
+													</Badge>
 												</div>
-											</CardContent>
-										</Card>
-									))}
-								</div>
-							)}
-						</CardContent>
-					</Card>
+											)}
+
+											{/* Campaign name - 2 rows max with ellipsis */}
+											<div className="font-medium line-clamp-2 min-h-[2.5rem]">
+												{campaign.name || `Campaign ${campaign.id}`}
+											</div>
+
+											{/* ID */}
+											<div className="text-xs text-muted-foreground">
+												ID: {campaign.id}
+											</div>
+
+											{/* Objective */}
+											{campaign.objective && (
+												<div className="flex items-center gap-1.5 text-xs">
+													<TrendingUp className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+													<span className="text-muted-foreground">
+														{parseObjective(campaign.objective)}
+													</span>
+												</div>
+											)}
+
+											{/* Start Date */}
+											<div className="flex items-center gap-1.5 text-xs">
+												<CalendarIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+												<span className="text-muted-foreground">
+													Start: {campaign.start_time
+														? new Date(campaign.start_time).toLocaleDateString()
+														: "-"
+													}
+												</span>
+											</div>
+
+											{/* End Date */}
+											<div className="flex items-center gap-1.5 text-xs">
+												<CalendarIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+												<span className="text-muted-foreground">
+													End: {campaign.stop_time
+														? new Date(campaign.stop_time).toLocaleDateString()
+														: "-"
+													}
+												</span>
+											</div>
+
+											{/* Metrics Section */}
+											<div className="mt-4 pt-4 border-t">
+												{campaign.insights ? (
+													<div className="grid grid-cols-2 gap-2">
+														{/* Reach */}
+														<div className="p-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
+															<div className="text-[10px] text-blue-700 dark:text-blue-300 font-medium mb-0.5">Reach</div>
+															<div className="text-xs font-semibold text-blue-900 dark:text-blue-100">
+																{formatNumber(campaign.insights.reach || 0)}
+															</div>
+														</div>
+
+														{/* Impressions */}
+														<div className="p-2 rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900">
+															<div className="text-[10px] text-purple-700 dark:text-purple-300 font-medium mb-0.5">Impressions</div>
+															<div className="text-xs font-semibold text-purple-900 dark:text-purple-100">
+																{formatNumber(campaign.insights.impressions || 0)}
+															</div>
+														</div>
+
+														{/* Link Clicks */}
+														<div className="p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
+															<div className="text-[10px] text-green-700 dark:text-green-300 font-medium mb-0.5">Link Clicks</div>
+															<div className="text-xs font-semibold text-green-900 dark:text-green-100">
+																{formatNumber(campaign.insights.link_clicks || campaign.insights.clicks || 0)}
+															</div>
+														</div>
+
+														{/* Cost Per Click */}
+														<div className="p-2 rounded-md bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900">
+															<div className="text-[10px] text-orange-700 dark:text-orange-300 font-medium mb-0.5">CPC</div>
+															<div className="text-xs font-semibold text-orange-900 dark:text-orange-100">
+																{formatCurrency(campaign.insights.cpc || 0)}
+															</div>
+														</div>
+
+														{/* CTR */}
+														<div className="p-2 rounded-md bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900">
+															<div className="text-[10px] text-indigo-700 dark:text-indigo-300 font-medium mb-0.5">CTR</div>
+															<div className="text-xs font-semibold text-indigo-900 dark:text-indigo-100">
+																{(() => {
+																	const ctr = campaign.insights.ctr;
+																	if (!ctr || ctr === '0') return '0%';
+																	// CTR might already be a percentage string or a decimal
+																	const ctrNum = typeof ctr === 'string' ? parseFloat(ctr) : ctr;
+																	// If it's less than 1, it's likely a decimal (e.g., 0.0123 = 1.23%)
+																	// If it's >= 1, it might already be a percentage
+																	return ctrNum < 1 ? `${(ctrNum * 100).toFixed(2)}%` : `${ctrNum.toFixed(2)}%`;
+																})()}
+															</div>
+														</div>
+
+														{/* Amount Spent */}
+														<div className="p-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
+															<div className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium mb-0.5">Amount Spent</div>
+															<div className="text-xs font-semibold text-emerald-900 dark:text-emerald-100">
+																{formatCurrency(campaign.insights.spend || 0)}
+															</div>
+														</div>
+													</div>
+												) : (
+													<div className="flex flex-col items-center justify-center py-6 text-center">
+														<BarChart3 className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
+														<p className="text-xs text-muted-foreground">
+															No performance data available
+														</p>
+														<p className="text-[10px] text-muted-foreground mt-1">
+															Insights may not be available for this campaign or date range
+														</p>
+													</div>
+												)}
+											</div>
+										</div>
+									</CardContent>
+								</Card>
+							))}
+						</div>
+					)}
+				</CardContent>
+			</Card>
 
 			{/* Campaign Details Dialog */}
 			{selectedCampaign && (

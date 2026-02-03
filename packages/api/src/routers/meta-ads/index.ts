@@ -4,6 +4,7 @@ import { metaAdsAccountsRouter } from './accounts';
 import { metaAdsCampaignsRouter } from './campaigns';
 import { metaAdsAdSetsRouter } from './ad-sets';
 import { metaAdsAdsRouter } from './ads';
+import { metaAdsInsightsRouter } from './insights';
 
 export const metaAdsRouter = router({
 	/**
@@ -34,9 +35,8 @@ export const metaAdsRouter = router({
 
 	/**
 	 * Insights and reporting endpoints
-	 * TODO: Implement in Phase 3
 	 */
-	// insights: metaAdsInsightsRouter,
+	insights: metaAdsInsightsRouter,
 });
 
 

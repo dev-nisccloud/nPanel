@@ -339,6 +339,8 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedThemes, setSelectedThemes] = React.useState<Set<string>>(new Set());
   const [marketplaceOpen, setMarketplaceOpen] = React.useState(false);
+  const [activateDialogOpen, setActivateDialogOpen] = React.useState(false);
+  const [themeToActivate, setThemeToActivate] = React.useState<WordPressTheme | null>(null);
 
   // tRPC mutation for updating theme status
   const updateThemeStatus = trpc.plesk.wpThemesStatus.setStatus.useMutation({
@@ -435,14 +437,13 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
   const handleAction = async (action: string, theme: WordPressTheme) => {
     switch (action) {
       case 'activate':
-        try {
-          await updateThemeStatus.mutateAsync({
-            installationId: parseInt(installationId),
-            slug: theme.slug!,
-            status: true
-          });
-        } catch (error) {
-          console.error("Error activating theme:", error);
+        // Check if there's already an active theme
+        const activeTheme = themes?.find(t => t.status && t.slug !== theme.slug);
+        if (activeTheme) {
+          setThemeToActivate(theme);
+          setActivateDialogOpen(true);
+        } else {
+          await confirmActivate(theme);
         }
         break;
       case 'deactivate':
@@ -459,6 +460,19 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
       case 'delete':
         // Will be handled by delete dialog
         break;
+    }
+  };
+
+  const confirmActivate = async (theme: WordPressTheme) => {
+    try {
+      await updateThemeStatus.mutateAsync({
+        installationId: parseInt(installationId),
+        slug: theme.slug!,
+        status: true
+      });
+      setActivateDialogOpen(false);
+    } catch (error) {
+      console.error("Error activating theme:", error);
     }
   };
 
@@ -621,6 +635,44 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
         installationId={installationId}
         onInstallSuccess={() => refetch()}
       />
+
+      {/* Activation Confirmation Dialog */}
+      <AlertDialog open={activateDialogOpen} onOpenChange={setActivateDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Replace Active Theme?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                You are about to activate <strong>"{themeToActivate?.title}"</strong> which will replace your currently active theme{" "}
+                <strong>"{themes?.find(t => t.status && t.slug !== themeToActivate?.slug)?.title}"</strong>.
+              </p>
+              <p className="text-amber-600 dark:text-amber-400">
+                This will change your website's appearance immediately. Make sure you have a backup before proceeding.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updateThemeStatus.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => themeToActivate && confirmActivate(themeToActivate)}
+              disabled={updateThemeStatus.isPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {updateThemeStatus.isPending ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Activating...
+                </>
+              ) : (
+                "Activate Theme"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
