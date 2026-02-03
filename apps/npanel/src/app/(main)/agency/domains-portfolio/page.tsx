@@ -39,13 +39,19 @@ export default function DomainsPortfolioPage() {
   const [limit] = React.useState(100);
   const [offset, setOffset] = React.useState(0);
   const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
+  const [isNavigating, setIsNavigating] = React.useState(false);
+
+  const handleNavigation = (path: string) => {
+    setIsNavigating(true);
+    router.push(path);
+  };
 
   // Fetch domains from OpenProvider
-  const { 
-    data: domainsData, 
-    isLoading, 
-    error, 
-    refetch 
+  const {
+    data: domainsData,
+    isLoading,
+    error,
+    refetch
   } = trpc.openProvider.domains.list.useQuery(
     {
       limit,
@@ -68,7 +74,7 @@ export default function DomainsPortfolioPage() {
   const filteredDomains = React.useMemo(() => {
     const domains = (domainsData?.data || []) as DomainPortfolio[];
     if (!searchQuery.trim()) return domains;
-    
+
     const query = searchQuery.toLowerCase().trim();
     return domains.filter((domain) => {
       return (
@@ -149,10 +155,10 @@ export default function DomainsPortfolioPage() {
             </TableRow>
           ) : (
             filteredDomains.map((domain) => (
-              <TableRow 
+              <TableRow
                 key={domain.id}
                 className="cursor-pointer"
-                onClick={() => router.push(`/agency/domains-portfolio/${domain.id}`)}
+                onClick={() => handleNavigation(`/agency/domains-portfolio/${domain.id}`)}
               >
                 <TableCell className="pl-6">
                   <div className="flex items-center gap-2">
@@ -186,10 +192,8 @@ export default function DomainsPortfolioPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-32">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/agency/domains-portfolio/${domain.id}`}>
-                                View Details
-                              </Link>
+                            <DropdownMenuItem onClick={() => handleNavigation(`/agency/domains-portfolio/${domain.id}`)}>
+                              View Details
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -212,7 +216,7 @@ export default function DomainsPortfolioPage() {
     <DomainPortfolioCardsList
       data={filteredDomains as DomainPortfolio[]}
       cols={4}
-      onView={(id) => router.push(`/agency/domains-portfolio/${id}`)}
+      onView={(id) => handleNavigation(`/agency/domains-portfolio/${id}`)}
     />
   );
 
@@ -230,85 +234,96 @@ export default function DomainsPortfolioPage() {
         <div className="mt-6">
           <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search domains by name, client, or status..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          {/* View Mode Toggle */}
-          <div className="flex items-center border rounded-md">
-            <Button
-              variant={viewMode === "card" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("card")}
-              className="rounded-r-none"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleRefresh}
-            disabled={isLoading}
-            title="Refresh"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-          <Button onClick={() => router.push("/agency/domains")}>
-            <Plus className="mr-2 h-4 w-4" />
-            Register Domain
-          </Button>
-        </div>
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search domains by name, client, or status..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              {/* View Mode Toggle */}
+              <div className="flex items-center border rounded-md">
+                <Button
+                  variant={viewMode === "card" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("card")}
+                  className="rounded-r-none"
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "table" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("table")}
+                  className="rounded-l-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                title="Refresh"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button onClick={() => router.push("/agency/domains")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Register Domain
+              </Button>
+            </div>
           </div>
         </div>
 
         <div className="mt-6">
-      {isLoading && !domainsData ? (
-        <div className="flex items-center justify-center py-12">
-          <Spinner size={32} />
-        </div>
-      ) : !domains || domains.length === 0 ? (
-        <EmptyState />
-      ) : filteredDomains.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Globe className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-semibold mb-2">No domains found</p>
-          <p className="text-muted-foreground mb-4">
-            No domains match your search query "{searchQuery}".
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => setSearchQuery("")}
-          >
-            Clear Search
-          </Button>
-        </div>
-      ) : (
-        <>
-          {viewMode === "card" ? <CardView /> : <TableView />}
-          {domainsData?.meta && domainsData.meta.total > filteredDomains.length && (
-            <div className="text-center text-sm text-muted-foreground">
-              Showing {filteredDomains.length} of {domainsData.meta.total} domains
+          {isLoading && !domainsData ? (
+            <div className="flex items-center justify-center py-12">
+              <Spinner size={32} />
             </div>
+          ) : !domains || domains.length === 0 ? (
+            <EmptyState />
+          ) : filteredDomains.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Globe className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-semibold mb-2">No domains found</p>
+              <p className="text-muted-foreground mb-4">
+                No domains match your search query "{searchQuery}".
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setSearchQuery("")}
+              >
+                Clear Search
+              </Button>
+            </div>
+          ) : (
+            <>
+              {viewMode === "card" ? <CardView /> : <TableView />}
+              {domainsData?.meta && domainsData.meta.total > filteredDomains.length && (
+                <div className="text-center text-sm text-muted-foreground">
+                  Showing {filteredDomains.length} of {domainsData.meta.total} domains
+                </div>
+              )}
+            </>
           )}
-        </>
+        </div>
+      </div>
+
+      {isNavigating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4">
+            <Spinner size={48} />
+            <p className="text-sm font-medium text-muted-foreground animate-pulse">
+              Loading domain details...
+            </p>
+          </div>
+        </div>
       )}
-      </div>
-      </div>
     </div>
   );
 }

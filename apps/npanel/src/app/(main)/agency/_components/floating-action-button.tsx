@@ -180,7 +180,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const { messages, isLoading: isLoadingMessages, isError: isErrorMessages, error: messagesError, refetch: refetchMessages } = useTicketMessages(
     shouldFetchMessages ? selectedChatId : null
   );
-  const { createTicket, createMessage, updateStatus, assignTicket, archiveTicket, markMessageRead, markAllTicketMessagesAsRead } = useTicketMutations();
+  const { createTicket, createMessage, updateStatus, assignTicket, archiveTicket, markMessageRead, markAllTicketMessagesAsRead } = useTicketMutations({ currentUserId });
 
   // Initialize new message detectors
   useNewMessageDetector(messages, currentUserId, selectedChatId);

@@ -42,12 +42,12 @@ interface FileViewerSheetProps {
 // Determine if a file is viewable based on its extension
 function isViewableFile(file: FileManagerItem): boolean {
   if (file.type !== "file") return false;
-  
+
   const extension = file.extension?.toLowerCase() || "";
-  
+
   // Text files
   const textExtensions = ['txt', 'md', 'log', 'csv', 'readme', 'license'];
-  
+
   // Code files
   const codeExtensions = [
     'js', 'jsx', 'ts', 'tsx', 'json', 'xml', 'html', 'htm', 'css', 'scss', 'sass', 'less',
@@ -57,19 +57,19 @@ function isViewableFile(file: FileManagerItem): boolean {
     'sql', 'graphql', 'gql', 'vue', 'svelte', 'astro',
     'r', 'm', 'pl', 'pm', 'lua', 'vim', 'clj', 'hs', 'elm', 'ex', 'exs',
   ];
-  
+
   // Config files
   const configExtensions = ['config', 'conf', 'ini', 'env', 'properties', 'cfg'];
-  
-  return textExtensions.includes(extension) || 
-         codeExtensions.includes(extension) || 
-         configExtensions.includes(extension);
+
+  return textExtensions.includes(extension) ||
+    codeExtensions.includes(extension) ||
+    configExtensions.includes(extension);
 }
 
 // Get language for syntax highlighting (if we add it later)
 function getLanguageFromExtension(extension: string | undefined): string {
   if (!extension) return 'text';
-  
+
   const ext = extension.toLowerCase();
   const languageMap: Record<string, string> = {
     'js': 'javascript',
@@ -96,20 +96,20 @@ function getLanguageFromExtension(extension: string | undefined): string {
     'sql': 'sql',
     'md': 'markdown',
   };
-  
+
   return languageMap[ext] || 'text';
 }
 
-export function FileViewerSheet({ 
-  open, 
-  onOpenChange, 
+export function FileViewerSheet({
+  open,
+  onOpenChange,
   file,
-  hostingData 
+  hostingData
 }: FileViewerSheetProps) {
   const [fileContent, setFileContent] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
-  
+
   // Edit mode state
   const [isEditMode, setIsEditMode] = React.useState(false);
   const [originalContent, setOriginalContent] = React.useState<string | null>(null);
@@ -161,8 +161,8 @@ export function FileViewerSheet({
     },
     onError: (error) => {
       console.error('Error reading file:', error);
-      toast.error("Failed to load file", { 
-        description: error.message || "Please try again." 
+      toast.error("Failed to load file", {
+        description: error.message || "Please try again."
       });
       setIsLoading(false);
       setFileContent(null);
@@ -184,8 +184,8 @@ export function FileViewerSheet({
     },
     onError: (error) => {
       console.error('Error saving file:', error);
-      toast.error("Failed to save file", { 
-        description: error.message || "Please try again." 
+      toast.error("Failed to save file", {
+        description: error.message || "Please try again."
       });
       setIsSaving(false);
     },
@@ -200,7 +200,7 @@ export function FileViewerSheet({
       setEditedContent(null);
       setHasUnsavedChanges(false);
       setIsEditMode(false);
-      
+
       const credentials = getFtpCredentials();
       readFile.mutate({
         credentials,
@@ -252,12 +252,12 @@ export function FileViewerSheet({
   // Handle save
   const handleSave = async () => {
     if (!editedContent || !file) return;
-    
+
     setIsSaving(true);
-    
+
     try {
       const credentials = getFtpCredentials();
-      
+
       // Convert text content to base64 (browser-compatible)
       // Use btoa for browser environment, or Buffer if available
       let base64Content: string;
@@ -270,12 +270,12 @@ export function FileViewerSheet({
       } else {
         throw new Error('Unable to encode content to base64');
       }
-      
+
       // Get parent directory path
       const pathParts = file.path.split('/');
       pathParts.pop(); // Remove filename
       const parentPath = pathParts.join('/') || '/';
-      
+
       await uploadFile.mutateAsync({
         credentials,
         fileData: base64Content,
@@ -389,7 +389,7 @@ export function FileViewerSheet({
         onOpenChange(newOpen);
       }
     }}>
-      <SheetContent 
+      <SheetContent
         className="sm:max-w-[90vw] lg:max-w-[85vw] xl:max-w-[80vw] w-full p-0"
         side="right"
       >
@@ -496,8 +496,8 @@ export function FileViewerSheet({
                   </>
                 )}
                 <SheetClose asChild>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="icon"
                     onClick={(e) => {
                       e.preventDefault();
@@ -514,7 +514,9 @@ export function FileViewerSheet({
           </SheetHeader>
 
           {/* Content */}
-          <div className="flex-1 overflow-hidden">
+          {/* Content */}
+          {/* Content */}
+          <div className="flex-1 overflow-hidden relative flex flex-col min-h-0">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
@@ -530,26 +532,35 @@ export function FileViewerSheet({
                 </div>
               </div>
             ) : isEditMode ? (
-              <div className="flex flex-col h-full">
-                <div className="flex-1 p-6">
-                  <Textarea
-                    value={editedContent || ''}
-                    onChange={(e) => handleContentChange(e.target.value)}
-                    className="w-full h-full font-mono text-sm resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-muted/50 rounded-lg p-4"
-                    placeholder="File content will appear here..."
-                    disabled={isSaving}
-                    spellCheck={false}
-                  />
+              <>
+                <div className="flex-1 min-h-0 relative w-full">
+                  <div className="h-full p-6">
+                    <Textarea
+                      value={editedContent || ''}
+                      onChange={(e) => handleContentChange(e.target.value)}
+                      className="w-full h-full font-mono text-sm resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-muted/50 rounded-lg p-4"
+                      placeholder="File content will appear here..."
+                      disabled={isSaving}
+                      spellCheck={false}
+                    />
+                  </div>
                 </div>
                 {hasUnsavedChanges && (
-                  <div className="border-t px-6 py-3 bg-amber-50 dark:bg-amber-950/20">
-                    <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
-                      <AlertCircle className="h-4 w-4" />
-                      <span>You have unsaved changes. Press Ctrl+S to save or Cancel to discard.</span>
+                  <div className="border-t px-6 py-4 bg-background z-10 shrink-0">
+                    <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900/50">
+                      <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>You have unsaved changes.</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground hidden sm:inline">Press Ctrl+S to save</span>
+                        <Button size="sm" variant="ghost" onClick={handleDiscardChanges} className="h-7 text-xs hover:bg-amber-100 dark:hover:bg-amber-900/40">Discard</Button>
+                        <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-7 text-xs">Save</Button>
+                      </div>
                     </div>
                   </div>
                 )}
-              </div>
+              </>
             ) : (
               <ScrollArea className="h-full">
                 <div className="p-6">

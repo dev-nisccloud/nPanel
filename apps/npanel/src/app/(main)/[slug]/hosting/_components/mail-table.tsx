@@ -88,7 +88,7 @@ function MailTableSkeleton() {
                       <Skeleton className="h-8 w-8" />
                     </div>
                   </div>
-                  
+
                   {/* Card content skeleton */}
                   <div className="grid grid-cols-5 gap-4">
                     <div className="space-y-1">
@@ -124,7 +124,7 @@ function MailTableSkeleton() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Additional info skeleton */}
                   <div className="mt-4 pt-4 border-t space-y-2">
                     <div className="space-y-1">
@@ -205,7 +205,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
 
   const filteredData = React.useMemo(() => {
     if (!emailsData) return [];
-    
+
     let filtered = emailsData;
 
     if (searchTerm.trim()) {
@@ -323,9 +323,9 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
               const quota = email.mailbox?.quota ?? -1;
               const usageText = formatBytes(usage);
               const quotaText = quota === -1 ? "Unlimited" : formatBytes(quota);
-              
+
               return (
-                <TableRow 
+                <TableRow
                   key={email.id}
                   className="cursor-pointer"
                   onClick={() => handleEdit(email.id)}
@@ -344,7 +344,10 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={email.mailbox?.enabled ? "default" : "secondary"}>
+                    <Badge
+                      variant={email.mailbox?.enabled ? "outline" : "destructive"}
+                      className={email.mailbox?.enabled ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
+                    >
                       {email.mailbox?.enabled ? "Enabled" : "Disabled"}
                     </Badge>
                   </TableCell>
@@ -370,7 +373,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 variant="destructive"
                                 onClick={() => handleDelete(email.id)}
                               >
@@ -442,7 +445,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
             </SelectContent>
           </Select>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
           {/* View Mode Toggle */}
           <div className="flex items-center border rounded-md">
@@ -463,9 +466,9 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => {
               setSheetMode('create');
@@ -491,10 +494,10 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
       <DataTablePagination table={table} /> */}
 
       {/* Add Mail Address Sheet */}
-      <AddMailAddressSheet 
+      <AddMailAddressSheet
         open={isAddMailOpen}
-        onOpenChange={(open) => { 
-          setIsAddMailOpen(open); 
+        onOpenChange={(open) => {
+          setIsAddMailOpen(open);
           if (!open) {
             // Reset all states when sheet closes
             setSheetInitial(null);

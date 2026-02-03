@@ -187,7 +187,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const { messages, isLoading: isLoadingMessages, isError: isErrorMessages, error: messagesError, refetch: refetchMessages } = useTicketMessages(
     shouldFetchMessages ? selectedTicketId : null
   );
-  const { createTicket, createMessage, markMessageRead, markAllTicketMessagesAsRead } = useTicketMutations();
+  const { createTicket, createMessage, markMessageRead, markAllTicketMessagesAsRead } = useTicketMutations({ currentUserId });
   // Initialize new message detectors
   useNewMessageDetector(messages, currentUserId, selectedTicketId);
   useGlobalNotificationDetector(tickets, selectedTicketId);

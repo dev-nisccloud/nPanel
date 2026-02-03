@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Bell, BellRing, Volume2, Settings, Info, Check, X, AlertCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -165,21 +166,12 @@ export function NotificationSettingsBanner() {
                         </div>
 
                         {preferences?.notificationSoundEnabled && (
-                            <div className="space-y-2 pt-1">
-                                <div className="flex items-center justify-between text-[11px]">
-                                    <span className="text-muted-foreground">Volume</span>
-                                    <span>{preferences.notificationSoundVolume}%</span>
-                                </div>
-                                <Slider
-                                    value={[preferences.notificationSoundVolume]}
-                                    max={100}
-                                    step={1}
-                                    onValueChange={([val]) => updatePreferences({ notificationSoundVolume: val })}
-                                />
-                                <Button variant="outline" size="sm" className="w-full h-7 text-[10px]" onClick={playSound}>
-                                    Test Sound
-                                </Button>
-                            </div>
+                            <VolumeControl
+                                initialVolume={preferences.notificationSoundVolume}
+                                onSave={async (volume) => { await updatePreferences({ notificationSoundVolume: volume }); }}
+                                isUpdating={isUpdating}
+                                playSound={playSound}
+                            />
                         )}
 
                         <div className="flex items-center justify-between">
@@ -215,6 +207,83 @@ export function NotificationSettingsBanner() {
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+function VolumeControl({
+    initialVolume,
+    onSave,
+    isUpdating,
+    playSound
+}: {
+    initialVolume: number;
+    onSave: (vol: number) => Promise<void>;
+    isUpdating: boolean;
+    playSound: () => void;
+}) {
+    const [localVolume, setLocalVolume] = React.useState(initialVolume);
+    const isDirty = localVolume !== initialVolume;
+
+    // Sync local volume if initial volume changes externally (and we are not editing potentially?)
+    // Actually, good practice to sync if the DB value changes to reflect it, 
+    // unless the user is actively dragging. For simplicity, we sync on mount or if initial changes.
+    React.useEffect(() => {
+        setLocalVolume(initialVolume);
+    }, [initialVolume]);
+
+    const handleSave = async () => {
+        await onSave(localVolume);
+        // Sound check on save
+        playSound();
+    };
+
+    return (
+        <div className="space-y-2 pt-1">
+            <div className="flex items-center justify-between text-[11px] h-6">
+                <span className="text-muted-foreground">Volume</span>
+                {isDirty ? (
+                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-200">
+                        <span className="text-primary font-medium">{localVolume}%</span>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-5 w-5 rounded-full bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                        onClick={handleSave}
+                                        disabled={isUpdating}
+                                    >
+                                        {isUpdating ? (
+                                            <Spinner size={10} />
+                                        ) : (
+                                            <Check className="h-3 w-3" />
+                                        )}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="text-[10px]">
+                                    Save changes
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                ) : (
+                    <span className="animate-in fade-in duration-200">{localVolume}%</span>
+                )}
+            </div>
+            <Slider
+                value={[localVolume]}
+                max={100}
+                step={1}
+                onValueChange={([val]) => setLocalVolume(val)}
+                className="py-1"
+            />
+            {/* Removed the separate Test Sound button since we confirm with the tick now, 
+                or maybe play sound on release? The user asked for "slide without updating DB". 
+                We can play sound on slide end if we want, but let's stick to the confirm logic first.
+                Actually, the requirements said "tooltip to confirm the update instead with proper loader".
+            */}
         </div>
     );
 }
