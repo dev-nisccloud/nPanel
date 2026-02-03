@@ -28,15 +28,7 @@ export function TransferPrerequisites() {
           <div>
             <h3 className="font-medium text-foreground">The domain is unlocked</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Transfer lock must be off at your current provider.{" "}
-              <a
-                href="https://support.openprovider.eu/hc/en-us/articles/360019068300-Whois-Statuses-Explained"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline underline-offset-4 hover:no-underline"
-              >
-                Here&apos;s how to unlock a domain
-              </a>
+              Transfer lock must be off at your current provider. Contact your domain provider for more details.
             </p>
           </div>
         </div>

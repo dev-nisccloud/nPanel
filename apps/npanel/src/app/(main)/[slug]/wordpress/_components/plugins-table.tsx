@@ -115,6 +115,7 @@ function PluginTableRow({
   updatePluginStatus,
   deletePlugins,
   bulkAutoUpdatePlugins,
+  isProcessing,
 }: {
   plugin: WordPressPlugin;
   isSelected: boolean;
@@ -127,6 +128,7 @@ function PluginTableRow({
   updatePluginStatus: any;
   deletePlugins: any;
   bulkAutoUpdatePlugins: any;
+  isProcessing: boolean;
 }) {
   const [uninstallDialogOpen, setUninstallDialogOpen] = React.useState(false);
 
@@ -194,100 +196,80 @@ function PluginTableRow({
           )}
         </TableCell>
         <TableCell>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {plugin.status ? (
-                <DropdownMenuItem
-                  onClick={() => onAction('deactivate', plugin)}
-                  disabled={updatePluginStatus.isPending}
-                >
-                  {updatePluginStatus.isPending ? (
-                    <>
-                      <Spinner className="mr-2 h-4 w-4" />
-                      Deactivating...
-                    </>
-                  ) : (
-                    <>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Deactivate
-                    </>
-                  )}
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem
-                  onClick={() => onAction('activate', plugin)}
-                  disabled={updatePluginStatus.isPending}
-                >
-                  {updatePluginStatus.isPending ? (
-                    <>
-                      <Spinner className="mr-2 h-4 w-4" />
-                      Activating...
-                    </>
-                  ) : (
-                    <>
-                      <Package className="mr-2 h-4 w-4" />
-                      Activate
-                    </>
-                  )}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={async () => {
-                  try {
-                    await bulkAutoUpdatePlugins.mutateAsync({
-                      installationId: parseInt(installationId),
-                      plugins: [{
-                        slug: plugin.slug!,
-                        autoUpdates: !plugin.autoUpdates,
-                        status: plugin.status || false
-                      }]
-                    });
-                    onRefetch();
-                  } catch (error) {
-                    console.error("Error updating auto-update:", error);
-                  }
-                }}
-                disabled={bulkAutoUpdatePlugins?.isPending}
-              >
-                {bulkAutoUpdatePlugins?.isPending ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Updating...
-                  </>
-                ) : plugin.autoUpdates ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Disable Auto-Update
-                  </>
+          {isProcessing ? (
+            <div className="flex items-center justify-center p-2">
+              <Spinner className="h-4 w-4" />
+            </div>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {plugin.status ? (
+                  <DropdownMenuItem
+                    onClick={() => onAction('deactivate', plugin)}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Deactivate
+                  </DropdownMenuItem>
                 ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Enable Auto-Update
-                  </>
+                  <DropdownMenuItem
+                    onClick={() => onAction('activate', plugin)}
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    Activate
+                  </DropdownMenuItem>
                 )}
-              </DropdownMenuItem>
-              {plugin.changeLogUrl && (
-                <DropdownMenuItem onClick={() => window.open(plugin.changeLogUrl!, '_blank', 'noopener,noreferrer')}>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View Changelog
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={async () => {
+                    try {
+                      await bulkAutoUpdatePlugins.mutateAsync({
+                        installationId: parseInt(installationId),
+                        plugins: [{
+                          slug: plugin.slug!,
+                          autoUpdates: !plugin.autoUpdates,
+                          status: plugin.status || false
+                        }]
+                      });
+                      onRefetch();
+                    } catch (error) {
+                      console.error("Error updating auto-update:", error);
+                    }
+                  }}
+                >
+                  {plugin.autoUpdates ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Disable Auto-Update
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Enable Auto-Update
+                    </>
+                  )}
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setUninstallDialogOpen(true)}
-                className="text-red-600 focus:text-red-600"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Uninstall
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {plugin.changeLogUrl && (
+                  <DropdownMenuItem onClick={() => window.open(plugin.changeLogUrl!, '_blank', 'noopener,noreferrer')}>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View Changelog
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setUninstallDialogOpen(true)}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Uninstall
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </TableCell>
       </TableRow>
 
@@ -314,12 +296,12 @@ function PluginTableRow({
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
+                setUninstallDialogOpen(false);
                 try {
                   await deletePlugins.mutateAsync({
                     installationId: parseInt(installationId),
                     plugins: [plugin.slug!]
                   });
-                  setUninstallDialogOpen(false);
                 } catch (error) {
                   console.error("Error uninstalling plugin:", error);
                 }
@@ -327,14 +309,7 @@ function PluginTableRow({
               disabled={deletePlugins.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deletePlugins.isPending ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  Uninstalling...
-                </>
-              ) : (
-                "Uninstall Plugin"
-              )}
+              Uninstall Plugin
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -615,6 +590,11 @@ export function PluginsTable({ installationId }: PluginsTableProps) {
                 const hasUpdate = !!(plugin.availableVersion && plugin.availableVersion !== plugin.version);
                 const isActive = plugin.status === true;
 
+                const isProcessing =
+                  (updatePluginStatus.isPending && updatePluginStatus.variables?.slug === plugin.slug) ||
+                  (deletePlugins.isPending && deletePlugins.variables?.plugins?.includes(plugin.slug!)) ||
+                  (bulkAutoUpdatePlugins.isPending && bulkAutoUpdatePlugins.variables?.plugins?.some(p => p.slug === plugin.slug));
+
                 return (
                   <PluginTableRow
                     key={plugin.slug}
@@ -629,6 +609,7 @@ export function PluginsTable({ installationId }: PluginsTableProps) {
                     updatePluginStatus={updatePluginStatus}
                     deletePlugins={deletePlugins}
                     bulkAutoUpdatePlugins={bulkAutoUpdatePlugins}
+                    isProcessing={isProcessing}
                   />
                 );
               })

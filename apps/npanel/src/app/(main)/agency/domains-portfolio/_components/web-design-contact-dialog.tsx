@@ -121,10 +121,10 @@ export function WebDesignContactDialog({
   const isSubmitting = createMutation.isPending;
 
   const handleCallUs = () => {
-      window.location.href = `tel:+254748777666`;
-      toast.info("Phone number not configured", {
-        description: "Please use the form to submit your request, or contact your administrator for the support number.",
-      });
+    window.location.href = `tel:+254748777666`;
+    toast.info("Phone number not configured", {
+      description: "Please use the form to submit your request, or contact your administrator for the support number.",
+    });
   };
 
   return (
@@ -142,7 +142,7 @@ export function WebDesignContactDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <ScrollArea className="max-h-[50vh] pr-3 -mr-1">
+            <ScrollArea className="max-h-[60vh] pr-3 -mr-1">
               <div className="space-y-4 pb-2">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField

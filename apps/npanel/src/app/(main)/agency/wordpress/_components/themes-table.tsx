@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { 
-  Palette, 
-  Shield, 
-  ShieldAlert, 
+import {
+  Palette,
+  Shield,
+  ShieldAlert,
   Settings,
   ExternalLink,
   RefreshCw,
@@ -131,6 +131,7 @@ function ThemeTableRow({
   updateThemeStatus,
   deleteThemes,
   bulkAutoUpdateThemes,
+  isProcessing,
 }: {
   theme: WordPressTheme;
   isSelected: boolean;
@@ -143,6 +144,7 @@ function ThemeTableRow({
   updateThemeStatus: any;
   deleteThemes: any;
   bulkAutoUpdateThemes: any;
+  isProcessing: boolean;
 }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
@@ -210,100 +212,80 @@ function ThemeTableRow({
           )}
         </TableCell>
         <TableCell>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {theme.status ? (
-                <DropdownMenuItem 
-                  onClick={() => onAction('deactivate', theme)}
-                  disabled={updateThemeStatus.isPending}
-                >
-                  {updateThemeStatus.isPending ? (
-                    <>
-                      <Spinner className="mr-2 h-4 w-4" />
-                      Deactivating...
-                    </>
-                  ) : (
-                    <>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Deactivate
-                    </>
-                  )}
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem 
-                  onClick={() => onAction('activate', theme)}
-                  disabled={updateThemeStatus.isPending}
-                >
-                  {updateThemeStatus.isPending ? (
-                    <>
-                      <Spinner className="mr-2 h-4 w-4" />
-                      Activating...
-                    </>
-                  ) : (
-                    <>
-                      <Palette className="mr-2 h-4 w-4" />
-                      Activate
-                    </>
-                  )}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={async () => {
-                  try {
-                    await bulkAutoUpdateThemes.mutateAsync({
-                      installationId: parseInt(installationId),
-                      themes: [{
-                        slug: theme.slug!,
-                        autoUpdates: !theme.autoUpdates,
-                        status: theme.status || false
-                      }]
-                    });
-                    onRefetch();
-                  } catch (error) {
-                    console.error("Error updating auto-update:", error);
-                  }
-                }}
-                disabled={bulkAutoUpdateThemes.isPending}
-              >
-                {bulkAutoUpdateThemes.isPending ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Updating...
-                  </>
-                ) : theme.autoUpdates ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Disable Auto-Update
-                  </>
+          {isProcessing ? (
+            <div className="flex items-center justify-center p-2">
+              <Spinner className="h-4 w-4" />
+            </div>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {theme.status ? (
+                  <DropdownMenuItem
+                    onClick={() => onAction('deactivate', theme)}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Deactivate
+                  </DropdownMenuItem>
                 ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Enable Auto-Update
-                  </>
+                  <DropdownMenuItem
+                    onClick={() => onAction('activate', theme)}
+                  >
+                    <Palette className="mr-2 h-4 w-4" />
+                    Activate
+                  </DropdownMenuItem>
                 )}
-              </DropdownMenuItem>
-              {theme.changeLogUrl && (
-                <DropdownMenuItem onClick={() => window.open(theme.changeLogUrl!, '_blank', 'noopener,noreferrer')}>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View Changelog
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={async () => {
+                    try {
+                      await bulkAutoUpdateThemes.mutateAsync({
+                        installationId: parseInt(installationId),
+                        themes: [{
+                          slug: theme.slug!,
+                          autoUpdates: !theme.autoUpdates,
+                          status: theme.status || false
+                        }]
+                      });
+                      onRefetch();
+                    } catch (error) {
+                      console.error("Error updating auto-update:", error);
+                    }
+                  }}
+                >
+                  {theme.autoUpdates ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Disable Auto-Update
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Enable Auto-Update
+                    </>
+                  )}
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => setDeleteDialogOpen(true)}
-                className="text-red-600 focus:text-red-600"
-              >
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {theme.changeLogUrl && (
+                  <DropdownMenuItem onClick={() => window.open(theme.changeLogUrl!, '_blank', 'noopener,noreferrer')}>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View Changelog
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </TableCell>
       </TableRow>
 
@@ -322,7 +304,7 @@ function ThemeTableRow({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               disabled={deleteThemes.isPending}
               onClick={() => setDeleteDialogOpen(false)}
             >
@@ -330,12 +312,12 @@ function ThemeTableRow({
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
+                setDeleteDialogOpen(false);
                 try {
                   await deleteThemes.mutateAsync({
                     installationId: parseInt(installationId),
                     themes: [theme.slug!]
                   });
-                  setDeleteDialogOpen(false);
                 } catch (error) {
                   console.error("Error deleting theme:", error);
                 }
@@ -343,14 +325,7 @@ function ThemeTableRow({
               disabled={deleteThemes.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteThemes.isPending ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete Theme"
-              )}
+              Delete Theme
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -444,8 +419,8 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
         installationId: parseInt(installationId),
         themes: selectedThemeSlugs.map(slug => {
           const theme = themes?.find(t => t.slug === slug);
-          return { 
-            slug, 
+          return {
+            slug,
             autoUpdates: true,
             status: theme?.status || false
           };
@@ -612,6 +587,11 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
                 const hasUpdate = !!(theme.availableVersion && theme.availableVersion !== theme.version);
                 const isActive = theme.status === true;
 
+                const isProcessing =
+                  (updateThemeStatus.isPending && updateThemeStatus.variables?.slug === theme.slug) ||
+                  (deleteThemes.isPending && deleteThemes.variables?.themes?.includes(theme.slug!)) ||
+                  (bulkAutoUpdateThemes.isPending && bulkAutoUpdateThemes.variables?.themes?.some(t => t.slug === theme.slug));
+
                 return (
                   <ThemeTableRow
                     key={theme.slug}
@@ -626,6 +606,7 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
                     updateThemeStatus={updateThemeStatus}
                     deleteThemes={deleteThemes}
                     bulkAutoUpdateThemes={bulkAutoUpdateThemes}
+                    isProcessing={isProcessing}
                   />
                 );
               })
