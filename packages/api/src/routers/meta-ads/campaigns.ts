@@ -82,10 +82,17 @@ export const metaAdsCampaignsRouter = router({
 									'clicks',
 									'spend',
 									'reach',
+									'frequency',
 									'ctr',
 									'cpc',
 									'cpm',
 									'cpp',
+									'unique_clicks',
+									'unique_ctr',
+									'purchase_roas',
+									'quality_ranking',
+									'engagement_rate_ranking',
+									'conversion_rate_ranking',
 									'inline_link_click_ctr',
 									'cost_per_result',
 									'cost_per_action_type',
@@ -118,7 +125,7 @@ export const metaAdsCampaignsRouter = router({
 
 							// Fetch insights for this campaign
 							const insightsResponse = await client.getInsights(campaign.id, insightsOptions);
-							
+
 							if (insightsResponse.data && insightsResponse.data.length > 0) {
 								insights = insightsResponse.data[0]; // Get first (and usually only) insight record
 							}
@@ -176,6 +183,13 @@ export const metaAdsCampaignsRouter = router({
 								spend: (insights.spend && insights.spend !== '') ? String(insights.spend) : null,
 								cpm: (insights.cpm && insights.cpm !== '') ? String(insights.cpm) : null,
 								cpp: (insights.cpp && insights.cpp !== '') ? String(insights.cpp) : null,
+								frequency: (insights.frequency && insights.frequency !== '') ? String(insights.frequency) : null,
+								unique_clicks: (insights.unique_clicks && insights.unique_clicks !== '') ? String(insights.unique_clicks) : null,
+								unique_ctr: (insights.unique_ctr && insights.unique_ctr !== '') ? String(insights.unique_ctr) : null,
+								purchase_roas: insights.purchase_roas || null,
+								quality_ranking: insights.quality_ranking || null,
+								engagement_rate_ranking: insights.engagement_rate_ranking || null,
+								conversion_rate_ranking: insights.conversion_rate_ranking || null,
 								// cost_per_result might be cost_per_action_type or need calculation
 								cost_per_result: (() => {
 									// Try direct field first

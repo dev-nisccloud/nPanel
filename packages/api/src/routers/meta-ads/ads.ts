@@ -51,16 +51,16 @@ export const metaAdsAdsRouter = router({
 				}
 
 				const client = new MetaAdsClient({ accessToken: tokenData.accessToken });
-				
+
 				// Add initial delay before making requests to avoid hitting rate limits
 				await new Promise(resolve => setTimeout(resolve, 300));
-				
+
 				const response = await client.getAds(input.adSetId, {
 					fields: [
 						'id',
 						'name',
 						'status',
-						'creative',
+						'creative{image_url,thumbnail_url,name,title,body}',
 						'created_time',
 						'updated_time',
 					],
@@ -70,30 +70,37 @@ export const metaAdsAdsRouter = router({
 				// Process sequentially with delay to avoid rate limits
 				const adsWithInsights = [];
 				let rateLimitHit = false;
-				
+
 				for (let i = 0; i < (response.data || []).length; i++) {
 					const ad = response.data[i];
 					let insights = null;
-					
+
 					// Skip insights if we've hit rate limit
 					if (input.timeRange?.since && input.timeRange?.until && !rateLimitHit) {
 						try {
 							const insightsResponse = await client.getInsights(ad.id, {
 								level: 'ad',
-									metrics: [
-										'impressions',
-										'clicks',
-										'spend',
-										'reach',
-										'ctr',
-										'cpc',
-										'cpm',
-										'cpp',
-										'inline_link_click_ctr',
-										'cost_per_result',
-										'cost_per_action_type',
-										'actions',
-									],
+								metrics: [
+									'impressions',
+									'clicks',
+									'spend',
+									'reach',
+									'frequency',
+									'ctr',
+									'cpc',
+									'cpm',
+									'cpp',
+									'unique_clicks',
+									'unique_ctr',
+									'purchase_roas',
+									'quality_ranking',
+									'engagement_rate_ranking',
+									'conversion_rate_ranking',
+									'inline_link_click_ctr',
+									'cost_per_result',
+									'cost_per_action_type',
+									'actions',
+								],
 								timeRange: {
 									since: input.timeRange.since,
 									until: input.timeRange.until,
@@ -111,7 +118,7 @@ export const metaAdsAdsRouter = router({
 								rateLimitHit = true;
 							}
 						}
-						
+
 						// Add delay between requests to avoid rate limits (500ms delay)
 						// Increase delay if we're getting close to rate limit
 						const delay = rateLimitHit ? 1000 : 500;
@@ -147,6 +154,13 @@ export const metaAdsAdsRouter = router({
 							spend: (insights.spend && insights.spend !== '') ? String(insights.spend) : null,
 							cpm: (insights.cpm && insights.cpm !== '') ? String(insights.cpm) : null,
 							cpp: (insights.cpp && insights.cpp !== '') ? String(insights.cpp) : null,
+							frequency: (insights.frequency && insights.frequency !== '') ? String(insights.frequency) : null,
+							unique_clicks: (insights.unique_clicks && insights.unique_clicks !== '') ? String(insights.unique_clicks) : null,
+							unique_ctr: (insights.unique_ctr && insights.unique_ctr !== '') ? String(insights.unique_ctr) : null,
+							purchase_roas: insights.purchase_roas || null,
+							quality_ranking: insights.quality_ranking || null,
+							engagement_rate_ranking: insights.engagement_rate_ranking || null,
+							conversion_rate_ranking: insights.conversion_rate_ranking || null,
 							// cost_per_result might be cost_per_action_type or need calculation
 							cost_per_result: (() => {
 								// Try direct field first
@@ -181,13 +195,13 @@ export const metaAdsAdsRouter = router({
 				};
 			} catch (error: any) {
 				console.error('Meta Ads API list ads error:', error);
-				
+
 				// Handle OAuth token errors - delete credentials and require re-authentication
 				const oauthError = await handleMetaAdsOAuthError(error);
 				if (oauthError) {
 					throw oauthError;
 				}
-				
+
 				// Handle rate limit errors specifically
 				if (error.code === 17 || error.message?.includes('request limit') || error.message?.includes('rate limit')) {
 					throw new TRPCError({
@@ -196,7 +210,7 @@ export const metaAdsAdsRouter = router({
 						cause: error,
 					});
 				}
-				
+
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
 					message: error.message || 'Failed to fetch ads. Please try again.',
@@ -255,13 +269,13 @@ export const metaAdsAdsRouter = router({
 				};
 			} catch (error: any) {
 				console.error('Meta Ads API get ad details error:', error);
-				
+
 				// Handle OAuth token errors - delete credentials and require re-authentication
 				const oauthError = await handleMetaAdsOAuthError(error);
 				if (oauthError) {
 					throw oauthError;
 				}
-				
+
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
 					message: error.message || 'Failed to fetch ad details. Please try again.',

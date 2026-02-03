@@ -51,8 +51,19 @@ export const metaAdsInsightsRouter = router({
                         'inline_link_clicks',
                         'spend',
                         'reach',
+                        'frequency', // Added: Ad fatigue
                         'ctr',
                         'cpc',
+                        'unique_clicks', // Added: Real reach
+                        'unique_ctr', // Added: Real CTR
+                        'purchase_roas', // Added: ROI
+                        'quality_ranking', // Added: Ad relevance
+                        'engagement_rate_ranking', // Added: Ad relevance
+                        'conversion_rate_ranking', // Added: Ad relevance
+                        'video_p25_watched_actions', // Added: Funnel
+                        'video_p50_watched_actions', // Added: Funnel
+                        'video_p75_watched_actions', // Added: Funnel
+                        'video_p100_watched_actions', // Added: Funnel
                         'date_start',
                         'date_stop',
                         'actions',
@@ -86,7 +97,7 @@ export const metaAdsInsightsRouter = router({
                     since: z.string(),
                     until: z.string(),
                 }),
-                breakdown: z.enum(['age', 'gender', 'publisher_platform', 'device_platform']),
+                breakdown: z.enum(['age', 'gender', 'publisher_platform', 'device_platform', 'region', 'platform_position']),
             })
         )
         .query(async ({ input }) => {
@@ -94,10 +105,16 @@ export const metaAdsInsightsRouter = router({
                 const { accessToken } = await getUserIntegration();
                 const client = new MetaAdsClient({ accessToken });
 
+                const breakdowns = input.breakdown === 'platform_position'
+                    ? ['publisher_platform', 'platform_position']
+                    : input.breakdown === 'device_platform'
+                        ? ['publisher_platform', 'device_platform']
+                        : [input.breakdown];
+
                 const response = await client.getInsights(input.entityId, {
                     level: input.level,
                     timeRange: input.timeRange,
-                    breakdowns: [input.breakdown],
+                    breakdowns,
                     metrics: [
                         'impressions',
                         'clicks',

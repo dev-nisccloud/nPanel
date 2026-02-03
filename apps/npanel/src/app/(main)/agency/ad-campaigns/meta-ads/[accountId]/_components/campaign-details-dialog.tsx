@@ -151,6 +151,97 @@ function formatAgeRange(age: { min: number | null; max: number | null }): string
 	return "";
 }
 
+function formatPlacementLabel(placement: string): string {
+	const p = placement.toLowerCase();
+	const parts = p.split('_');
+
+	// Identify Platform
+	let platform = '';
+	if (p.includes('facebook')) platform = 'FB';
+	else if (p.includes('instagram')) platform = 'IG';
+	else if (p.includes('messenger')) platform = 'Msg';
+	else if (p.includes('audience_network')) platform = 'AN';
+
+	// Identify Position
+	let pos = placement;
+	if (p.includes('feed')) pos = 'Feed';
+	else if (p.includes('story')) pos = 'Stories';
+	else if (p.includes('reels')) pos = 'Reels';
+	else if (p.includes('search')) pos = 'Search';
+	else if (p.includes('right_column')) pos = 'Right Column';
+	else if (p.includes('instant_article')) pos = 'Articles';
+	else if (p.includes('suggested_video')) pos = 'Video';
+	else if (p.includes('marketplace')) pos = 'Marketplace';
+
+	// Fallback for unknown positions in the string
+	if (pos === placement && parts.length > 1) {
+		pos = parts.slice(1).join(' ').replace(/\b\w/g, l => l.toUpperCase());
+	}
+
+	return platform ? `${platform}: ${pos}` : pos;
+}
+
+function VideoRetentionChart({ data }: { data: any[] }) {
+	const aggregates = React.useMemo(() => {
+		let p25 = 0, p50 = 0, p75 = 0, p100 = 0;
+
+		data.forEach(item => {
+			const actions = item.actions || [];
+			p25 += parseInt(item.video_p25_watched_actions?.[0]?.value || '0');
+			p50 += parseInt(item.video_p50_watched_actions?.[0]?.value || '0');
+			p75 += parseInt(item.video_p75_watched_actions?.[0]?.value || '0');
+			p100 += parseInt(item.video_p100_watched_actions?.[0]?.value || '0');
+		});
+
+		const max = Math.max(p25, 1);
+		return [
+			{ name: '25%', value: p25, percentage: 100, fill: "var(--chart-1)" },
+			{ name: '50%', value: p50, percentage: Math.round((p50 / max) * 100), fill: "var(--chart-2)" },
+			{ name: '75%', value: p75, percentage: Math.round((p75 / max) * 100), fill: "var(--chart-3)" },
+			{ name: '100%', value: p100, percentage: Math.round((p100 / max) * 100), fill: "var(--chart-4)" },
+		];
+	}, [data]);
+
+	const config = {
+		value: { label: "Views" },
+	} satisfies ChartConfig;
+
+	return (
+		<ChartContainer config={config} className="h-[250px] w-full">
+			<BarChart data={aggregates} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+				<CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+				<XAxis
+					dataKey="name"
+					axisLine={false}
+					tickLine={false}
+					tick={{ fontSize: 12, fontWeight: 500 }}
+				/>
+				<YAxis hide />
+				<ChartTooltip
+					cursor={{ fill: 'transparent' }}
+					content={<ChartTooltipContent hideLabel indicator="dashed" />}
+				/>
+				<Bar
+					dataKey="percentage"
+					radius={[4, 4, 0, 0]}
+					barSize={40}
+					label={{
+						position: 'top',
+						formatter: (val: number) => `${val}%`,
+						fontSize: 10,
+						fontWeight: 600,
+						fill: "var(--muted-foreground)"
+					}}
+				>
+					{aggregates.map((entry, index) => (
+						<Cell key={`cell-${index}`} fill={entry.fill} />
+					))}
+				</Bar>
+			</BarChart>
+		</ChartContainer>
+	);
+}
+
 /** Targeting field: bold primary label, content with word spacing, Show more/less after 3 lines */
 function TargetingField({
 	label,
@@ -278,6 +369,21 @@ export function CampaignDetailsDialog({
 		{ enabled: open && !!campaign?.id, refetchOnWindowFocus: false }
 	);
 
+	const { data: deviceBreakdown, isLoading: isLoadingDevice } = trpc.metaAds.insights.getBreakdowns.useQuery(
+		{ entityId: campaign?.id, level: 'campaign', timeRange: effectiveTimeRange, breakdown: 'device_platform' },
+		{ enabled: open && !!campaign?.id, refetchOnWindowFocus: false }
+	);
+
+	const { data: regionBreakdown, isLoading: isLoadingRegion } = trpc.metaAds.insights.getBreakdowns.useQuery(
+		{ entityId: campaign?.id, level: 'campaign', timeRange: effectiveTimeRange, breakdown: 'region' },
+		{ enabled: open && !!campaign?.id, refetchOnWindowFocus: false }
+	);
+
+	const { data: placementBreakdown, isLoading: isLoadingPlacement } = trpc.metaAds.insights.getBreakdowns.useQuery(
+		{ entityId: campaign?.id, level: 'campaign', timeRange: effectiveTimeRange, breakdown: 'platform_position' },
+		{ enabled: open && !!campaign?.id, refetchOnWindowFocus: false }
+	);
+
 	const performanceChartConfig = {
 		spend: { label: "Spend", color: "var(--chart-3)" },
 		impressions: { label: "Impressions", color: "var(--chart-2)" },
@@ -293,6 +399,10 @@ export function CampaignDetailsDialog({
 		instagram: { label: "Instagram", color: "var(--chart-2)" },
 		messenger: { label: "Messenger", color: "var(--chart-3)" },
 		audience_network: { label: "Audience Network", color: "var(--chart-4)" },
+		feed: { label: "Feed", color: "var(--chart-1)" },
+		stories: { label: "Stories", color: "var(--chart-2)" },
+		reels: { label: "Reels", color: "var(--chart-3)" },
+		other: { label: "Other", color: "var(--chart-4)" },
 	} satisfies ChartConfig;
 
 	const getStatusStyles = (status: string) => {
@@ -362,10 +472,16 @@ export function CampaignDetailsDialog({
 									Performance Trends
 								</TabsTrigger>
 								<TabsTrigger
-									value="audience"
+									value="delivery"
 									className="text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-1.5"
 								>
-									Audience & Delivery
+									Delivery & Placement
+								</TabsTrigger>
+								<TabsTrigger
+									value="geography"
+									className="text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-1.5"
+								>
+									Geography
 								</TabsTrigger>
 							</TabsList>
 						</div>
@@ -566,78 +682,104 @@ export function CampaignDetailsDialog({
 									</CardContent>
 								</Card>
 
-								<Card>
-									<CardHeader className="flex flex-row items-center justify-between pb-2">
-										<div className="space-y-1">
-											<CardTitle className="text-lg">Daily Spend</CardTitle>
-											<CardDescription className="text-xs">
-												Campaign spend over time
-											</CardDescription>
-										</div>
-										<TrendingUp className="h-4 w-4 text-muted-foreground" />
-									</CardHeader>
-									<CardContent className="pt-4">
-										{isLoadingDaily ? (
-											<div className="h-[250px] flex items-center justify-center">
-												<Skeleton className="h-[200px] w-full" />
-											</div>
-										) : dailyPerformance?.data && dailyPerformance.data.length > 0 ? (
-											<ChartContainer config={performanceChartConfig} className="h-[250px] w-full">
-												<AreaChart
-													data={dailyPerformance.data
-														.sort((a: any, b: any) => (a.date_start || '').localeCompare(b.date_start || ''))
-														.map((item: any) => ({
-															date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : '—',
-															spend: parseFloat(item.spend || '0'),
-														}))}
-													margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-												>
-													<defs>
-														<linearGradient id="fillSpend" x1="0" y1="0" x2="0" y2="1">
-															<stop offset="5%" stopColor="var(--color-spend)" stopOpacity={0.1} />
-															<stop offset="95%" stopColor="var(--color-spend)" stopOpacity={0} />
-														</linearGradient>
-													</defs>
-													<CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-													<XAxis
-														dataKey="date"
-														axisLine={false}
-														tickLine={false}
-														tick={{ fontSize: 9 }}
-													/>
-													<YAxis hide />
-													<ChartTooltip content={<ChartTooltipContent />} />
-													<Area
-														type="monotone"
-														dataKey="spend"
-														stroke="var(--color-spend)"
-														fillOpacity={1}
-														fill="url(#fillSpend)"
-														strokeWidth={2}
-														name="Spend"
-													/>
-												</AreaChart>
-											</ChartContainer>
-										) : (
-											<div className="h-[250px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
-												<p className="text-xs text-muted-foreground">No spend data available</p>
-											</div>
-										)}
-									</CardContent>
-								</Card>
-							</TabsContent>
-
-							<TabsContent value="audience" className="m-0 p-4 md:p-6 pb-8 space-y-6">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+								<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 									<Card>
-										<CardHeader className="pb-2">
-											<CardTitle className="text-base">Gender Distribution</CardTitle>
-											<CardDescription className="text-xs">Impressions by gender</CardDescription>
+										<CardHeader className="flex flex-row items-center justify-between pb-2">
+											<div className="space-y-1">
+												<CardTitle className="text-lg">Daily Spend</CardTitle>
+												<CardDescription className="text-xs">
+													Campaign spend over time
+												</CardDescription>
+											</div>
+											<TrendingUp className="h-4 w-4 text-muted-foreground" />
 										</CardHeader>
-										<CardContent className="h-[300px]">
+										<CardContent className="pt-4">
+											{isLoadingDaily ? (
+												<div className="h-[250px] flex items-center justify-center">
+													<Skeleton className="h-[200px] w-full" />
+												</div>
+											) : dailyPerformance?.data && dailyPerformance.data.length > 0 ? (
+												<ChartContainer config={performanceChartConfig} className="h-[250px] w-full">
+													<AreaChart
+														data={dailyPerformance.data
+															.sort((a: any, b: any) => (a.date_start || '').localeCompare(b.date_start || ''))
+															.map((item: any) => ({
+																date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : '—',
+																spend: parseFloat(item.spend || '0'),
+															}))}
+														margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+													>
+														<defs>
+															<linearGradient id="fillSpend" x1="0" y1="0" x2="0" y2="1">
+																<stop offset="5%" stopColor="var(--color-spend)" stopOpacity={0.1} />
+																<stop offset="95%" stopColor="var(--color-spend)" stopOpacity={0} />
+															</linearGradient>
+														</defs>
+														<CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+														<XAxis
+															dataKey="date"
+															axisLine={false}
+															tickLine={false}
+															tick={{ fontSize: 9 }}
+														/>
+														<YAxis hide />
+														<ChartTooltip content={<ChartTooltipContent />} />
+														<Area
+															type="monotone"
+															dataKey="spend"
+															stroke="var(--color-spend)"
+															fillOpacity={1}
+															fill="url(#fillSpend)"
+															strokeWidth={2}
+															name="Spend"
+														/>
+													</AreaChart>
+												</ChartContainer>
+											) : (
+												<div className="h-[250px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+													<p className="text-xs text-muted-foreground">No spend data available</p>
+												</div>
+											)}
+										</CardContent>
+									</Card>
+
+									<Card>
+										<CardHeader className="flex flex-row items-center justify-between pb-2">
+											<div className="space-y-1">
+												<CardTitle className="text-lg">Video Retention</CardTitle>
+												<CardDescription className="text-xs">
+													Watch time engagement
+												</CardDescription>
+											</div>
+											<FileText className="h-4 w-4 text-muted-foreground" />
+										</CardHeader>
+										<CardContent className="pt-4">
+											{isLoadingDaily ? (
+												<div className="h-[250px] flex items-center justify-center">
+													<Skeleton className="h-[200px] w-full" />
+												</div>
+											) : dailyPerformance?.data && dailyPerformance.data.some((d: any) => d.video_p25_watched_actions) ? (
+												<VideoRetentionChart data={dailyPerformance.data} />
+											) : (
+												<div className="h-[250px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+													<p className="text-xs text-muted-foreground">No video funnel data</p>
+												</div>
+											)}
+										</CardContent>
+									</Card>
+
+									<Card>
+										<CardHeader className="flex flex-row items-center justify-between pb-2">
+											<div className="space-y-1">
+												<CardTitle className="text-lg">Gender Distribution</CardTitle>
+												<CardDescription className="text-xs">Impressions by gender</CardDescription>
+											</div>
+											<Users className="h-4 w-4 text-muted-foreground" />
+										</CardHeader>
+										<CardContent className="pt-4">
 											{isLoadingGender ? (
-												<div className="h-full flex items-center justify-center">
-													<Skeleton className="h-40 w-40 rounded-full" />
+												<div className="h-[250px] flex items-center justify-center">
+													<Skeleton className="h-32 w-32 rounded-full" />
 												</div>
 											) : genderBreakdown?.data && genderBreakdown.data.length > 0 ? (
 												<ChartContainer config={breakdownChartConfig} className="h-[250px] w-full">
@@ -645,7 +787,7 @@ export function CampaignDetailsDialog({
 														<Pie
 															data={genderBreakdown.data
 																.filter((item: any) => item.gender?.toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0)
-																.map((item: any, index: number) => ({
+																.map((item: any) => ({
 																	gender: item.gender,
 																	value: parseInt(item.impressions || '0'),
 																}))}
@@ -653,8 +795,8 @@ export function CampaignDetailsDialog({
 															nameKey="gender"
 															cx="50%"
 															cy="50%"
-															innerRadius={60}
-															outerRadius={80}
+															innerRadius={45}
+															outerRadius={65}
 															paddingAngle={5}
 														>
 															{genderBreakdown.data
@@ -669,25 +811,9 @@ export function CampaignDetailsDialog({
 																			.filter((item: any) => item.gender !== 'unknown' && parseInt(item.impressions || '0') > 0)
 																			.reduce((acc: number, curr: any) => acc + parseInt(curr.impressions || '0'), 0);
 																		return (
-																			<text
-																				x={viewBox.cx}
-																				y={viewBox.cy}
-																				textAnchor="middle"
-																				dominantBaseline="middle"
-																			>
-																				<tspan
-																					x={viewBox.cx}
-																					y={viewBox.cy}
-																					className="fill-foreground text-xl font-bold"
-																				>
-																					{total.toLocaleString()}
-																				</tspan>
-																				<tspan
-																					x={viewBox.cx}
-																					y={(viewBox.cy || 0) + 24}
-																					className="fill-muted-foreground text-xs"
-																				>
-																					Impressions
+																			<text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+																				<tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-sm font-bold">
+																					{total > 1000 ? `${(total / 1000).toFixed(1)}k` : total}
 																				</tspan>
 																			</text>
 																		);
@@ -699,33 +825,35 @@ export function CampaignDetailsDialog({
 													</PieChart>
 												</ChartContainer>
 											) : (
-												<div className="h-full flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
-													<Users className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+												<div className="h-[250px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
 													<p className="text-xs text-muted-foreground">No gender data</p>
 												</div>
 											)}
 										</CardContent>
 									</Card>
+								</div>
+							</TabsContent>
 
+							<TabsContent value="delivery" className="m-0 p-4 md:p-6 pb-8 space-y-6">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 									<Card>
 										<CardHeader className="pb-2">
-											<CardTitle className="text-base">Platform Delivery</CardTitle>
-											<CardDescription className="text-xs">Impressions by publisher platform</CardDescription>
+											<CardTitle className="text-base">Top Placements</CardTitle>
+											<CardDescription className="text-xs">Impressions by position</CardDescription>
 										</CardHeader>
-										<CardContent className="h-[300px]">
-											{isLoadingPlatform ? (
-												<div className="h-full flex flex-col gap-2 justify-center">
-													{[...Array(4)].map((_, i) => (
-														<Skeleton key={i} className="h-8 w-full" />
-													))}
+										<CardContent className="h-[350px]">
+											{isLoadingPlacement ? (
+												<div className="h-full flex items-center justify-center">
+													<Skeleton className="h-40 w-full" />
 												</div>
-											) : platformBreakdown?.data && platformBreakdown.data.filter((item: any) => (item.publisher_platform || '').toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0).length > 0 ? (
+											) : placementBreakdown?.data && placementBreakdown.data.length > 0 ? (
 												<ChartContainer config={breakdownChartConfig} className="h-full w-full">
 													<BarChart
-														data={platformBreakdown.data
-															.filter((item: any) => (item.publisher_platform || '').toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0)
+														data={placementBreakdown.data
+															.sort((a: any, b: any) => parseInt(b.impressions || '0') - parseInt(a.impressions || '0'))
+															.slice(0, 10)
 															.map((item: any) => ({
-																platform: item.publisher_platform,
+																placement: `${item.publisher_platform || ''}_${item.platform_position || ''}`,
 																value: parseInt(item.impressions || '0'),
 															}))}
 														layout="vertical"
@@ -733,43 +861,180 @@ export function CampaignDetailsDialog({
 													>
 														<XAxis type="number" hide />
 														<YAxis
-															dataKey="platform"
+															dataKey="placement"
 															type="category"
 															axisLine={false}
 															tickLine={false}
-															tickFormatter={(value) => breakdownChartConfig[value as keyof typeof breakdownChartConfig]?.label as string || value}
-															width={100}
+															tickFormatter={formatPlacementLabel}
+															width={120}
 															tick={{ fontSize: 10 }}
 														/>
 														<ChartTooltip content={<ChartTooltipContent hideLabel />} />
 														<Bar
 															dataKey="value"
 															radius={5}
-															barSize={32}
+															barSize={24}
 														>
-															{platformBreakdown.data
-																.filter((item: any) => (item.publisher_platform || '').toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0)
-																.map((entry: any, index: number) => (
-																	<Cell key={`cell-${index}`} fill={`var(--chart-${(index % 5) + 1})`} />
-																))}
+															{placementBreakdown.data.slice(0, 10).map((entry: any, index: number) => (
+																<Cell key={`cell-${index}`} fill={`var(--chart-${(index % 5) + 1})`} />
+															))}
 														</Bar>
 													</BarChart>
 												</ChartContainer>
 											) : (
 												<div className="h-full flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
-													<PieChartIcon className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
-													<p className="text-xs text-muted-foreground">No platform data</p>
+													<Layers className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+													<p className="text-xs text-muted-foreground">No placement data</p>
 												</div>
 											)}
 										</CardContent>
 									</Card>
+
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-base">Device & Platform Delivery</CardTitle>
+											<CardDescription className="text-xs">Impressions by device and publisher</CardDescription>
+										</CardHeader>
+										<CardContent className="h-[350px] space-y-6">
+											{/* Platform Mini Chart */}
+											<div className="h-[140px]">
+												<p className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Publisher Platforms</p>
+												{isLoadingPlatform ? (
+													<Skeleton className="h-full w-full" />
+												) : platformBreakdown?.data && platformBreakdown.data.length > 0 ? (
+													<ChartContainer config={breakdownChartConfig} className="h-full w-full">
+														<BarChart
+															data={platformBreakdown.data
+																.filter((item: any) => (item.publisher_platform || '').toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0)
+																.map((item: any) => ({
+																	name: item.publisher_platform,
+																	value: parseInt(item.impressions || '0'),
+																}))}
+															layout="vertical"
+															margin={{ left: 0, right: 30, top: 0, bottom: 0 }}
+														>
+															<XAxis type="number" hide />
+															<YAxis
+																dataKey="name"
+																type="category"
+																axisLine={false}
+																tickLine={false}
+																width={80}
+																tick={{ fontSize: 9 }}
+															/>
+															<Bar dataKey="value" radius={4} barSize={16}>
+																{platformBreakdown.data.map((entry: any, index: number) => (
+																	<Cell key={`cell-${index}`} fill={`var(--chart-${(index % 5) + 1})`} />
+																))}
+															</Bar>
+														</BarChart>
+													</ChartContainer>
+												) : (
+													<p className="text-xs text-muted-foreground italic">No platform data</p>
+												)}
+											</div>
+
+											{/* Device Mini Chart */}
+											<div className="h-[140px]">
+												<p className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Device Types</p>
+												{isLoadingDevice ? (
+													<Skeleton className="h-full w-full" />
+												) : deviceBreakdown?.data && deviceBreakdown.data.length > 0 ? (
+													<ChartContainer config={breakdownChartConfig} className="h-full w-full">
+														<BarChart
+															data={deviceBreakdown.data
+																.filter((item: any) => (item.device_platform || '').toLowerCase() !== 'unknown' && parseInt(item.impressions || '0') > 0)
+																.map((item: any) => ({
+																	name: item.device_platform,
+																	value: parseInt(item.impressions || '0'),
+																}))}
+															layout="vertical"
+															margin={{ left: 0, right: 30, top: 0, bottom: 0 }}
+														>
+															<XAxis type="number" hide />
+															<YAxis
+																dataKey="name"
+																type="category"
+																axisLine={false}
+																tickLine={false}
+																width={80}
+																tick={{ fontSize: 9 }}
+															/>
+															<Bar dataKey="value" radius={4} barSize={16}>
+																{deviceBreakdown.data.map((entry: any, index: number) => (
+																	<Cell key={`cell-${index}`} fill={`var(--chart-${((index + 2) % 5) + 1})`} />
+																))}
+															</Bar>
+														</BarChart>
+													</ChartContainer>
+												) : (
+													<p className="text-xs text-muted-foreground italic">No device data</p>
+												)}
+											</div>
+										</CardContent>
+									</Card>
 								</div>
+							</TabsContent>
+
+							<TabsContent value="geography" className="m-0 p-4 md:p-6 pb-8 space-y-6">
+								<Card>
+									<CardHeader className="pb-2">
+										<CardTitle className="text-base">Top Regions</CardTitle>
+										<CardDescription className="text-xs">Performance by geographic region</CardDescription>
+									</CardHeader>
+									<CardContent className="min-h-[400px]">
+										{isLoadingRegion ? (
+											<div className="space-y-4 pt-4">
+												{[...Array(5)].map((_, i) => (
+													<Skeleton key={i} className="h-10 w-full" />
+												))}
+											</div>
+										) : regionBreakdown?.data && regionBreakdown.data.length > 0 ? (
+											<ChartContainer config={breakdownChartConfig} className="min-h-[400px] w-full">
+												<BarChart
+													data={regionBreakdown.data
+														.sort((a: any, b: any) => parseInt(b.impressions || '0') - parseInt(a.impressions || '0'))
+														.slice(0, 15)
+														.map((item: any) => ({
+															region: item.region,
+															impressions: parseInt(item.impressions || '0'),
+															spend: parseFloat(item.spend || '0'),
+														}))}
+													layout="vertical"
+													margin={{ left: 20, right: 30, top: 10, bottom: 10 }}
+												>
+													<XAxis type="number" hide />
+													<YAxis
+														dataKey="region"
+														type="category"
+														axisLine={false}
+														tickLine={false}
+														width={130}
+														tick={{ fontSize: 11, fontWeight: 500 }}
+													/>
+													<ChartTooltip content={<ChartTooltipContent />} />
+													<Bar
+														dataKey="impressions"
+														fill="var(--chart-1)"
+														radius={[0, 4, 4, 0]}
+														barSize={20}
+													/>
+												</BarChart>
+											</ChartContainer>
+										) : (
+											<div className="h-[300px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+												<MapPin className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+												<p className="text-sm text-muted-foreground">No geographic data available</p>
+											</div>
+										)}
+									</CardContent>
+								</Card>
 							</TabsContent>
 						</ScrollArea>
 					</Tabs>
 				</div>
-			</DialogContent>
-		</Dialog>
+			</DialogContent >
+		</Dialog >
 	);
 }
 
@@ -990,24 +1255,54 @@ function AdSetItem({ adSet, getStatusStyles, timeRange, currency = 'USD' }: AdSe
 							{ads.map((ad: any) => (
 								<Card key={ad.id} className="bg-muted/50">
 									<CardContent className="p-4">
-										<div className="flex items-center justify-between mb-3">
-											<div className="flex items-center gap-2 flex-1 min-w-0">
-												<FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-												<div className="flex-1 min-w-0">
-													<div className="flex items-center gap-2 mb-1">
-														<p className="text-sm font-medium truncate">{ad.name}</p>
-														{ad.status && (
-															<Badge
-																variant={getStatusStyles(ad.status).variant}
-																className={cn("text-xs", getStatusStyles(ad.status).className)}
-															>
-																{ad.status}
-															</Badge>
-														)}
-													</div>
-													<p className="text-xs text-muted-foreground">
-														ID: {ad.id}
+										<div className="flex items-start gap-4 mb-4">
+											{ad.creative?.thumbnail_url ? (
+												<div className="h-20 w-20 rounded-lg overflow-hidden border bg-background shrink-0 shadow-sm">
+													<img
+														src={ad.creative.thumbnail_url}
+														alt={ad.name}
+														className="h-full w-full object-cover"
+													/>
+												</div>
+											) : (
+												<div className="h-20 w-20 rounded-lg border bg-muted flex items-center justify-center shrink-0 shadow-sm">
+													<FileText className="h-8 w-8 text-muted-foreground/40" />
+												</div>
+											)}
+											<div className="flex-1 min-w-0 pt-0.5">
+												<div className="flex items-center gap-2 mb-2">
+													<p className="text-base font-bold truncate leading-tight">{ad.name}</p>
+													{ad.status && (
+														<Badge
+															variant={getStatusStyles(ad.status).variant}
+															className={cn("text-[10px] uppercase font-bold tracking-wider py-0 px-2", getStatusStyles(ad.status).className)}
+														>
+															{ad.status}
+														</Badge>
+													)}
+												</div>
+												{ad.creative?.title && (
+													<p className="text-xs font-semibold text-foreground mb-0.5 line-clamp-1 italic">
+														"{ad.creative.title}"
 													</p>
+												)}
+												{ad.creative?.body && (
+													<p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+														{ad.creative.body}
+													</p>
+												)}
+												<div className="mt-2 flex items-center gap-3">
+													<p className="text-[10px] font-mono text-muted-foreground/60">ID: {ad.id}</p>
+													{ad.creative?.image_url && (
+														<a
+															href={ad.creative.image_url}
+															target="_blank"
+															rel="noreferrer"
+															className="text-[10px] text-primary hover:underline font-medium"
+														>
+															View Full Creative
+														</a>
+													)}
 												</div>
 											</div>
 										</div>
@@ -1047,7 +1342,13 @@ function MetricsDisplay({ insights, currency = 'USD', compact = false, budget = 
 	// Format number with commas
 	const formatNumber = (value: number | string | null | undefined): string => {
 		if (value === null || value === undefined || value === '') return '-';
-		const num = typeof value === 'string' ? parseFloat(value) : value;
+
+		let val = value;
+		if (Array.isArray(value)) {
+			val = value[0]?.value ?? '-';
+		}
+
+		const num = typeof val === 'string' ? parseFloat(val) : val;
 		if (isNaN(num)) return '-';
 		if (num % 1 === 0) {
 			return num.toLocaleString('en-US', { maximumFractionDigits: 0 });
@@ -1058,7 +1359,13 @@ function MetricsDisplay({ insights, currency = 'USD', compact = false, budget = 
 	// Format currency
 	const formatCurrency = (value: number | string | null | undefined): string => {
 		if (value === null || value === undefined || value === '') return '-';
-		const num = typeof value === 'string' ? parseFloat(value) : value;
+
+		let val = value;
+		if (Array.isArray(value)) {
+			val = value[0]?.value ?? '-';
+		}
+
+		const num = typeof val === 'string' ? parseFloat(val) : val;
 		if (isNaN(num)) return '-';
 		try {
 			const formatter = new Intl.NumberFormat('en-US', {
@@ -1089,6 +1396,7 @@ function MetricsDisplay({ insights, currency = 'USD', compact = false, budget = 
 	const impressionsNum = insights.impressions ? (typeof insights.impressions === 'string' ? parseFloat(insights.impressions) : insights.impressions) : 0;
 	const clicksNum = insights.clicks ? (typeof insights.clicks === 'string' ? parseFloat(insights.clicks) : insights.clicks) : 0;
 	const spendNum = insights.spend ? (typeof insights.spend === 'string' ? parseFloat(insights.spend) : insights.spend) : 0;
+	const uniqueClicksNum = insights.unique_clicks ? (typeof insights.unique_clicks === 'string' ? parseFloat(insights.unique_clicks) : insights.unique_clicks) : 0;
 
 	// CTR (all) = (clicks / impressions) * 100
 	const ctrAll = impressionsNum > 0 && clicksNum > 0 ? (clicksNum / impressionsNum) : null;
@@ -1104,8 +1412,27 @@ function MetricsDisplay({ insights, currency = 'USD', compact = false, budget = 
 		return formatCurrency(num);
 	};
 
+	const formatRanking = (ranking: string | undefined | null) => {
+		if (!ranking || ranking === 'UNKNOWN') return '-';
+		const label = ranking.replace(/_/g, ' ');
+		const isAbove = ranking.includes('ABOVE');
+		const isBelow = ranking.includes('BELOW');
+
+		return (
+			<span className={cn(
+				"font-bold uppercase tracking-tighter text-[10px]",
+				isAbove ? "text-emerald-600 dark:text-emerald-400" :
+					isBelow ? "text-rose-600 dark:text-rose-400" :
+						"text-amber-600 dark:text-amber-400"
+			)}>
+				{label}
+			</span>
+		);
+	};
+
 	const metrics = [
 		{ label: 'Reach', value: formatNumber(insights.reach), color: 'blue' },
+		{ label: 'Frequency', value: formatNumber(insights.frequency), color: 'blue' },
 		{ label: 'Cost per Result', value: formatCurrency(insights.cost_per_result), color: 'orange' },
 		{ label: 'Budget', value: formatBudgetDisplay(budget), color: 'purple' },
 		{ label: 'Amount Spent', value: formatCurrency(insights.spend), color: 'emerald' },
@@ -1114,6 +1441,12 @@ function MetricsDisplay({ insights, currency = 'USD', compact = false, budget = 
 		{ label: 'Link Clicks', value: formatNumber(insights.link_clicks), color: 'green' },
 		{ label: 'CPC', value: formatCurrency(insights.cpc), color: 'orange' },
 		{ label: 'CTR', value: formatPercentage(insights.ctr), color: 'indigo' },
+		{ label: 'Unique Clicks', value: formatNumber(insights.unique_clicks), color: 'green' },
+		{ label: 'Unique CTR', value: formatPercentage(insights.unique_ctr), color: 'indigo' },
+		{ label: 'Purchase ROAS', value: formatNumber(insights.purchase_roas), color: 'emerald' },
+		{ label: 'Quality Ranking', value: formatRanking(insights.quality_ranking), color: 'orange' },
+		{ label: 'Engagement Ranking', value: formatRanking(insights.engagement_rate_ranking), color: 'orange' },
+		{ label: 'Conversion Ranking', value: formatRanking(insights.conversion_rate_ranking), color: 'orange' },
 		{ label: 'Clicks (all)', value: formatNumber(insights.clicks), color: 'green' },
 		{ label: 'CTR (all)', value: formatPercentage(ctrAll), color: 'indigo' },
 		{ label: 'CPC (all)', value: formatCurrency(cpcAll), color: 'orange' },
