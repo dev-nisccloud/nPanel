@@ -19,7 +19,7 @@ export type WordPressCredentials = z.infer<typeof wordpressCredentialsSchema>;
  */
 export function useWordPressCredentials(installationId: string) {
   const installationIdNumber = parseInt(installationId, 10);
-  
+
   const {
     data: credentialsData,
     isLoading,
@@ -40,6 +40,8 @@ export function useWordPressCredentials(installationId: string) {
         if (error?.data?.code === "SERVICE_UNAVAILABLE") return false;
         // Don't retry on not found errors
         if (error?.data?.code === "NOT_FOUND") return false;
+        // Don't retry on internal server errors (WP Toolkit 500 errors)
+        if (error?.data?.code === "INTERNAL_SERVER_ERROR") return false;
         // Retry up to 3 times for other errors
         return failureCount < 3;
       },
@@ -53,7 +55,7 @@ export function useWordPressCredentials(installationId: string) {
   useEffect(() => {
     if (error) {
       console.error("WordPress credentials fetch error:", error);
-      
+
       // Show user-friendly error messages
       if (error?.data?.code === "UNAUTHORIZED") {
         toast.error("Authentication failed. Please check your Plesk credentials.");
@@ -77,11 +79,11 @@ export function useWordPressCredentials(installationId: string) {
     try {
       // The API returns { data: {...} } wrapper
       const validatedData = wordpressCredentialsSchema.parse(credentialsData.data);
-      
+
       // Extract credentials from direct structure
       const credentials = validatedData.credentials;
       const loginUrl = validatedData.loginUrl;
-      
+
       if (credentials?.login && credentials?.password && loginUrl) {
         transformedData = {
           login: credentials.login,
@@ -95,7 +97,7 @@ export function useWordPressCredentials(installationId: string) {
     } catch (error) {
       console.error("WordPress credentials data transformation error:", error);
       transformationError = error instanceof Error ? error : new Error("Unknown transformation error");
-      
+
       if (error instanceof z.ZodError) {
         console.error("Zod validation errors:", error.issues);
         toast.error("WordPress credentials data validation failed. Some fields may be missing or invalid.");

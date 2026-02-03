@@ -180,8 +180,10 @@ jobs:
         run: |
           response=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK_STAGING }}")
           http_code=$(echo "$response" | tail -n 1)
-          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 201 ]; then
-            echo "✅ Deployment triggered successfully"
+          # Render returns 202 Accepted for async deploy hooks (standard for webhooks)
+          # See: https://docs.render.com/deploy-hooks
+          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 201 ] || [ "$http_code" -eq 202 ]; then
+            echo "✅ Deployment triggered successfully (HTTP $http_code)"
           else
             echo "❌ Deployment trigger failed with code: $http_code"
             exit 1
@@ -278,8 +280,10 @@ jobs:
         run: |
           response=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK_PRODUCTION }}")
           http_code=$(echo "$response" | tail -n 1)
-          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 201 ]; then
-            echo "✅ Production deployment triggered successfully"
+          # Render returns 202 Accepted for async deploy hooks (standard for webhooks)
+          # See: https://docs.render.com/deploy-hooks
+          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 201 ] || [ "$http_code" -eq 202 ]; then
+            echo "✅ Production deployment triggered successfully (HTTP $http_code)"
           else
             echo "❌ Deployment trigger failed with code: $http_code"
             exit 1
