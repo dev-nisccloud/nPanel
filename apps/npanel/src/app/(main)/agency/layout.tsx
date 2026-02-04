@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-export const dynamic = "force-dynamic";
+// dynamic export removed to enable Client Router Cache
 
 import { cookies } from "next/headers";
 
@@ -35,13 +35,13 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
   // First check if user is authenticated
   const user = await requireAuth();
   const userRole = (user as { role?: string }).role;
-  
+
   // If user is a CUSTOMER, redirect them to their customer dashboard
   if (userRole === "CUSTOMER") {
     const teamSlug = await ensureCustomerHasTeam(user as any);
     redirect(`/${teamSlug}/dashboard`);
   }
-  
+
   // All other roles (AGENCY_*, or any other role) are allowed
 
   const cookieStore = await cookies();

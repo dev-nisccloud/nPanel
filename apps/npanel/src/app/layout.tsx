@@ -21,8 +21,10 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const themeMode = await getPreference<ThemeMode>("theme_mode", THEME_MODE_VALUES, "light");
-  const themePreset = await getPreference<ThemePreset>("theme_preset", THEME_PRESET_VALUES, "twitter");
+  const [themeMode, themePreset] = await Promise.all([
+    getPreference<ThemeMode>("theme_mode", THEME_MODE_VALUES, "light"),
+    getPreference<ThemePreset>("theme_preset", THEME_PRESET_VALUES, "twitter"),
+  ]);
 
   return (
     <html

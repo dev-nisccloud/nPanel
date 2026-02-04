@@ -47,7 +47,7 @@ export function NotificationSwitcher() {
   const [expandedNotifications, setExpandedNotifications] = React.useState<Set<string>>(new Set());
   const [updatingNotificationId, setUpdatingNotificationId] = React.useState<string | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
-  
+
   const notificationsRef = React.useRef<Array<{
     id: string;
     createdAt: Date | string;
@@ -110,7 +110,7 @@ export function NotificationSwitcher() {
   // Update notifications ref when data changes
   React.useEffect(() => {
     if (notifications) {
-      notificationsRef.current = notifications as Array<{ id: string; createdAt: Date | string; updatedAt: Date | string; [key: string]: unknown; }>;
+      notificationsRef.current = notifications as Array<{ id: string; createdAt: Date | string; updatedAt: Date | string;[key: string]: unknown; }>;
     }
   }, [notifications]);
 
@@ -130,11 +130,11 @@ export function NotificationSwitcher() {
 
   // SSE for real-time updates (when popover is open)
   const { isConnected: sseConnected } = useNotificationsSSE(
-      (notification) => {
-        // New notification received via SSE
-        // Add to the beginning of the list
-        const updated = [notification as unknown as { id: string; createdAt: Date | string; updatedAt: Date | string; [key: string]: unknown; }, ...notificationsRef.current.filter(n => n.id !== notification.id)];
-        notificationsRef.current = updated;
+    (notification) => {
+      // New notification received via SSE
+      // Add to the beginning of the list
+      const updated = [notification as unknown as { id: string; createdAt: Date | string; updatedAt: Date | string;[key: string]: unknown; }, ...notificationsRef.current.filter(n => n.id !== notification.id)];
+      notificationsRef.current = updated;
       refetch(); // Refresh to get full data
       toast.info(notification.title || "New notification", {
         description: notification.message,
@@ -151,70 +151,223 @@ export function NotificationSwitcher() {
   // Use SSE count if available, otherwise use polling count
   const unseenCount = sseUnseenCount !== null ? sseUnseenCount : (unseenCountData?.count ?? 0);
 
+  const utils = trpc.useUtils();
+
   // Mark as seen mutation
   const markAsSeenMutation = trpc.notifications.markAsSeen.useMutation({
-    onMutate: (variables) => {
+    onMutate: async (variables) => {
       setUpdatingNotificationId(variables.id);
+
+      // Cancel any outgoing refetches
+      await utils.notifications.getAll.cancel();
+      await utils.notifications.getUnseenCount.cancel();
+
+      // Snapshot the previous value
+      const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
+      const previousUnseenCount = utils.notifications.getUnseenCount.getData();
+      const previousSseUnseenCount = sseUnseenCount;
+
+      // Optimistically update list
+      utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
+        if (!old) return [];
+        return old.map((n) =>
+          n.id === variables.id ? { ...n, seen: true } : n
+        );
+      });
+
+      // Calculate if count should change
+      const wasUnseen = previousNotifications?.find(n => n.id === variables.id)?.seen === false;
+
+      // Update TRPC cache for consistency
+      utils.notifications.getUnseenCount.setData(undefined, (old) => {
+        if (!old) return { count: 0 };
+        return wasUnseen ? { count: Math.max(0, old.count - 1) } : old;
+      });
+
+      // KEY FIX: Always update local state to prevent glitching from stale server data
+      // We calculate current effective count and modify it
+      const currentCount = sseUnseenCount ?? previousUnseenCount?.count ?? 0;
+      if (wasUnseen) {
+        setSseUnseenCount(Math.max(0, currentCount - 1));
+      }
+
+      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
     },
     onSuccess: () => {
-      refetch();
-      refetchUnseenCount();
       setUpdatingNotificationId(null);
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback
+      if (context?.previousNotifications) {
+        utils.notifications.getAll.setData({ limit: 50, offset: 0 }, context.previousNotifications);
+      }
+      if (context?.previousUnseenCount) {
+        utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
+      }
+      // Restore previous local state (even if it was undefined/null)
+      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
+
       toast.error("Failed to mark notification as read", {
         description: error.message,
       });
       setUpdatingNotificationId(null);
     },
+    onSettled: () => {
+      // Only invalidate list, NOT count (let SSE or natural poll handle count to avoid glitch)
+      utils.notifications.getAll.invalidate();
+    },
   });
 
   // Mark as unseen mutation
   const markAsUnseenMutation = trpc.notifications.markAsUnseen.useMutation({
-    onMutate: (variables) => {
+    onMutate: async (variables) => {
       setUpdatingNotificationId(variables.id);
+
+      await utils.notifications.getAll.cancel();
+      await utils.notifications.getUnseenCount.cancel();
+
+      const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
+      const previousUnseenCount = utils.notifications.getUnseenCount.getData();
+      const previousSseUnseenCount = sseUnseenCount;
+
+      utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
+        if (!old) return [];
+        return old.map((n) =>
+          n.id === variables.id ? { ...n, seen: false } : n
+        );
+      });
+
+      const wasSeen = previousNotifications?.find(n => n.id === variables.id)?.seen === true;
+
+      utils.notifications.getUnseenCount.setData(undefined, (old) => {
+        if (!old) return { count: 0 };
+        return wasSeen ? { count: old.count + 1 } : old;
+      });
+
+      // Always update local state
+      const currentCount = sseUnseenCount ?? previousUnseenCount?.count ?? 0;
+      if (wasSeen) {
+        setSseUnseenCount(currentCount + 1);
+      }
+
+      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
     },
     onSuccess: () => {
-      refetch();
-      refetchUnseenCount();
       setUpdatingNotificationId(null);
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      if (context?.previousNotifications) {
+        utils.notifications.getAll.setData({ limit: 50, offset: 0 }, context.previousNotifications);
+      }
+      if (context?.previousUnseenCount) {
+        utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
+      }
+      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
+
       toast.error("Failed to mark notification as unread", {
         description: error.message,
       });
       setUpdatingNotificationId(null);
     },
+    onSettled: () => {
+      // Only invalidate list, NOT count (let SSE or natural poll handle count to avoid glitch)
+      utils.notifications.getAll.invalidate();
+    },
   });
 
   // Delete mutation
   const deleteMutation = trpc.notifications.delete.useMutation({
-    onMutate: (variables) => {
+    onMutate: async (variables) => {
       setUpdatingNotificationId(variables.id);
+
+      await utils.notifications.getAll.cancel();
+      await utils.notifications.getUnseenCount.cancel();
+
+      const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
+      const previousUnseenCount = utils.notifications.getUnseenCount.getData();
+      const previousSseUnseenCount = sseUnseenCount;
+
+      // Optimistically remove from list
+      utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
+        if (!old) return [];
+        return old.filter((n) => n.id !== variables.id);
+      });
+
+      const wasUnseen = previousNotifications?.find(n => n.id === variables.id)?.seen === false;
+
+      // Optimistically decrement count if it was unseen
+      utils.notifications.getUnseenCount.setData(undefined, (old) => {
+        if (!old) return { count: 0 };
+        return wasUnseen ? { count: Math.max(0, old.count - 1) } : old;
+      });
+
+      // Always update local state
+      const currentCount = sseUnseenCount ?? previousUnseenCount?.count ?? 0;
+      if (wasUnseen) {
+        setSseUnseenCount(Math.max(0, currentCount - 1));
+      }
+
+      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
     },
     onSuccess: () => {
-      refetch();
-      refetchUnseenCount();
+      toast.success("Notification deleted");
       setUpdatingNotificationId(null);
       setDeletingId(null);
-      toast.success("Notification deleted");
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      if (context?.previousNotifications) {
+        utils.notifications.getAll.setData({ limit: 50, offset: 0 }, context.previousNotifications);
+      }
+      if (context?.previousUnseenCount) {
+        utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
+      }
+      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
+
       toast.error("Failed to delete notification", {
         description: error.message,
       });
       setUpdatingNotificationId(null);
       setDeletingId(null);
     },
+    onSettled: () => {
+      utils.notifications.getAll.invalidate();
+    },
   });
 
   // Mark all as read mutation
   const markAllAsSeenMutation = trpc.notifications.markAllAsSeen.useMutation({
+    onMutate: async () => {
+      await utils.notifications.getAll.cancel();
+      await utils.notifications.getUnseenCount.cancel();
+
+      const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
+      const previousUnseenCount = utils.notifications.getUnseenCount.getData();
+      const previousSseUnseenCount = sseUnseenCount;
+
+      utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
+        if (!old) return [];
+        return old.map((n) => ({ ...n, seen: true }));
+      });
+
+      utils.notifications.getUnseenCount.setData(undefined, { count: 0 });
+
+      // Always update local state
+      setSseUnseenCount(0);
+
+      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
+    },
     onSuccess: () => {
-      refetch();
       toast.success("All notifications marked as read");
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      if (context?.previousNotifications) {
+        utils.notifications.getAll.setData({ limit: 50, offset: 0 }, context.previousNotifications);
+      }
+      if (context?.previousUnseenCount) {
+        utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
+      }
+      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
+
       toast.error("Failed to mark all as read", {
         description: error.message,
       });
@@ -247,14 +400,14 @@ export function NotificationSwitcher() {
   const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>, notificationId: string) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     if (deletingId === notificationId) {
       // Confirm delete
       deleteMutation.mutate({ id: notificationId });
     } else {
       // Initial click - show confirmation
       setDeletingId(notificationId);
-      
+
       // Auto-reset confirmation after 3 seconds if not clicked
       setTimeout(() => {
         setDeletingId((current) => current === notificationId ? null : current);
@@ -312,8 +465,8 @@ export function NotificationSwitcher() {
                 // Convert createdAt string to Date if needed
                 // tRPC serializes Date objects to strings, so we need to handle both
                 const createdAtValue = notification.createdAt as Date | string;
-                const createdAt = createdAtValue instanceof Date 
-                  ? createdAtValue 
+                const createdAt = createdAtValue instanceof Date
+                  ? createdAtValue
                   : typeof createdAtValue === 'string'
                     ? new Date(createdAtValue)
                     : new Date(String(createdAtValue));
@@ -423,7 +576,7 @@ export function NotificationSwitcher() {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        
+
                         {!notification.seen && (
                           <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 ml-1" />
                         )}

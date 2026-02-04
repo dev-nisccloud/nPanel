@@ -15,22 +15,13 @@ export function NavigationLoader() {
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (pathname !== previousPathnameRef.current) {
-      setLocalLoading(true);
-      previousPathnameRef.current = pathname;
-
-      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = setTimeout(() => {
-        setLocalLoading(false);
-        loadingTimeoutRef.current = null;
-      }, HIDE_DELAY_MS);
-    }
-    return () => {
-      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
-    };
+    // Only show loading state if context says we are navigating
+    setLocalLoading(false);
   }, [pathname]);
 
   useEffect(() => {
+    // This effect handles the "click" detection for internal links
+    // It sets localLoading to true immediately on click
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const link = target.closest("a");
@@ -48,6 +39,15 @@ export function NavigationLoader() {
     document.addEventListener("click", handleClick, true);
     return () => document.removeEventListener("click", handleClick, true);
   }, [pathname]);
+
+  // Clean up any stray timeouts if component unmounts
+  useEffect(() => {
+    return () => {
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+    };
+  }, []);
+
+
 
   const showOverlay = localLoading || contextNavigating;
   if (!showOverlay) return null;

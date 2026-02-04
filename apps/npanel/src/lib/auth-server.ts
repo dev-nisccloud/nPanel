@@ -30,80 +30,22 @@ interface UserWithStatus {
  * This prevents multiple DB calls when checking auth in layouts + pages
  * Uses fetch() to match middleware behavior and avoid origin validation issues
  */
+// Direct import from the auth package - requires no HTTP overhead
+import { auth } from "@nPanel/auth";
+
+/**
+ * Get the current session (cached per request)
+ * This prevents multiple DB calls when checking auth in layouts + pages
+ * optimized: Uses direct function call instead of HTTP fetch to avoid internal network overhead and deadlocks
+ */
 export const getSession = cache(async () => {
   const headers = await getHeaders();
   try {
-    // CRITICAL FIX: Construct URL that works in both dev and production
-    // Strategy:
-    // 1. Use INTERNAL_SERVER_URL env var if set (for production - e.g., Render internal URL)
-    // 2. Use BETTER_AUTH_URL if set (fallback)
-    // 3. Construct from request headers (works for same-server requests)
-    // 4. Fallback to localhost only in development
-    
-    // Get host and protocol from headers
-    const host = headers.get("x-forwarded-host") || headers.get("host") || "";
-    const xfProto = headers.get("x-forwarded-proto") || "";
-    const proto = xfProto.includes("https") ? "https" : (xfProto.includes("http") ? "http" : "http");
-    
-    // Determine the internal server URL
-    // In production (Render, Vercel, etc.), you can set INTERNAL_SERVER_URL to the actual server URL
-    // For example: INTERNAL_SERVER_URL=https://your-app.onrender.com
-    // If not set, we'll use the host from headers (which works for same-server requests)
-    let internalUrl = process.env.INTERNAL_SERVER_URL || process.env.BETTER_AUTH_URL;
-    
-    if (!internalUrl) {
-      // Use the host from headers - this will be the actual server URL
-      // In dev: localhost:3001
-      // In production: your-app.onrender.com (or whatever your server URL is)
-      if (host) {
-        internalUrl = `${proto}://${host}`;
-      } else {
-        // Last resort: localhost with PORT (development only)
-        internalUrl = process.env.PORT 
-          ? `http://localhost:${process.env.PORT}`
-          : "http://localhost:3001";
-      }
-    }
-    
-    const url = new URL("/api/auth/get-session", internalUrl);
-    
-    // Preserve original request headers for Better Auth validation
-    // The x-forwarded-host header tells Better Auth what the external/original domain was
-    // This is critical for origin validation against trustedOrigins
-    const originalHost = headers.get("x-forwarded-host") || host;
-    
-    console.log("[Auth Server] Fetching session from:", url.toString(), "(server URL:", internalUrl, ", original host:", originalHost, ")");
-    
-    const res = await fetch(url.toString(), {
-      method: "GET",
-      redirect: "manual",
-      headers: {
-        cookie: headers.get("cookie") ?? "",
-        // Preserve original request headers for proper origin detection in Better Auth
-        // x-forwarded-host is the key - it tells Better Auth the external domain
-        host: originalHost || url.host,
-        "x-forwarded-host": originalHost || url.host,
-        "x-forwarded-proto": proto,
-        "user-agent": headers.get("user-agent") ?? "",
-        accept: "application/json",
-        "accept-language": headers.get("accept-language") ?? "en",
-      },
-      cache: "no-store",
+    // Direct call to Better Auth - 0ms overhead vs 25s+ HTTP fetch loop
+    const session = await auth.api.getSession({
+      headers: headers,
     });
-    
-    console.log("[Auth Server] Session fetch response status:", res.status, res.statusText);
-    
-    if (!res.ok) {
-      console.log("[Auth Server] Session fetch failed, status:", res.status);
-      return null;
-    }
-    
-    const session = await res.json().catch((err) => {
-      console.error("[Auth Server] Failed to parse session JSON:", err);
-      return null;
-    });
-    
-    console.log("[Auth Server] Session result:", session ? `User: ${session.user?.email || 'no email'}` : "null");
+
     return session;
   } catch (error) {
     console.error("[Auth Server] Error fetching session:", error);
@@ -117,31 +59,8 @@ export const getSession = cache(async () => {
 async function signOutUser() {
   try {
     const headers = await getHeaders();
-    // Use fetch() to match middleware behavior and avoid origin validation issues
-    const host = headers.get("x-forwarded-host") || headers.get("host") || "";
-    const xfProto = headers.get("x-forwarded-proto") || "";
-    const proto = xfProto.includes("https") ? "https" : (xfProto.includes("http") ? "http" : "https");
-    const origin = host ? `${proto}://${host}` : "";
-    
-    if (!origin) {
-      console.error("[Auth Server] Could not determine origin for sign out");
-      return;
-    }
-    
-    const url = new URL("/api/auth/sign-out", origin);
-    
-    await fetch(url, {
-      method: "POST",
-      redirect: "manual",
-      headers: {
-        cookie: headers.get("cookie") ?? "",
-        host,
-        "x-forwarded-host": headers.get("x-forwarded-host") ?? host,
-        "x-forwarded-proto": proto,
-        "user-agent": headers.get("user-agent") ?? "",
-        accept: "application/json",
-      },
-      cache: "no-store",
+    await auth.api.signOut({
+      headers: headers,
     });
   } catch (error) {
     console.error("[Auth Server] Error signing out user:", error);
@@ -163,11 +82,11 @@ export const getCurrentUser = cache(async () => {
  */
 async function validateUserStatus(user: UserWithStatus) {
   const userStatus = user.status;
-  
+
   if (!userStatus || userStatus !== "ACTIVE") {
     // Sign out the user immediately
     await signOutUser();
-    
+
     // Redirect to account status page with the status
     const statusParam = userStatus || "INACTIVE";
     redirect(`/account-status?status=${statusParam}`);
@@ -182,17 +101,17 @@ export async function requireAuth() {
   console.log("[Auth Server] requireAuth() called");
   const user = await getCurrentUser();
   console.log("[Auth Server] requireAuth() - getCurrentUser() returned:", user ? `User ID: ${user.id}` : "null");
-  
+
   if (!user) {
     console.log("[Auth Server] requireAuth() - No user, redirecting to /auth/login");
     redirect("/auth/login");
   }
-  
+
   // Validate account status (ACTIVE, SUSPENDED, BANNED)
   console.log("[Auth Server] requireAuth() - Validating user status");
   await validateUserStatus(user as UserWithStatus);
   console.log("[Auth Server] requireAuth() - User validated, returning user");
-  
+
   return user;
 }
 
@@ -208,18 +127,18 @@ export async function requireRole(allowedRoles: string[]) {
   const user = await requireAuth();
   const userRole = (user as UserWithStatus).role;
   console.log("[Auth Server] requireRole() - User role:", userRole);
-  
+
   if (!userRole) {
     console.log("[Auth Server] requireRole() - No role assigned, redirecting to customer dashboard");
     // No role assigned - ensure team and redirect to customer dashboard
     const teamSlug = await ensureCustomerHasTeam(user as UserWithStatus);
     redirect(`/${teamSlug}/dashboard`);
   }
-  
+
   // Check if user's role is in the allowed roles
   const isAllowed = allowedRoles.includes(userRole);
   console.log("[Auth Server] requireRole() - Is allowed:", isAllowed);
-  
+
   if (!isAllowed) {
     console.log("[Auth Server] requireRole() - Role not allowed, redirecting based on role");
     // Redirect to appropriate dashboard based on role
@@ -228,22 +147,22 @@ export async function requireRole(allowedRoles: string[]) {
       const teamSlug = await ensureCustomerHasTeam(user as UserWithStatus);
       redirect(`/${teamSlug}/dashboard`);
     }
-    
+
     if (userRole.includes("AGENCY")) {
       console.log("[Auth Server] requireRole() - Redirecting AGENCY user to /agency/dashboard");
       redirect("/agency/dashboard");
     }
-    
+
     // Fallback - ensure team for customer
     const teamSlug = await ensureCustomerHasTeam(user as UserWithStatus);
     redirect(`/${teamSlug}/dashboard`);
   }
-  
+
   // If user is a CUSTOMER with correct role, ensure they have a team
   if (userRole === "CUSTOMER" && isAllowed) {
     await ensureCustomerHasTeam(user as UserWithStatus);
   }
-  
+
   console.log("[Auth Server] requireRole() - Role check passed, returning user");
   return user;
 }
@@ -255,7 +174,7 @@ export async function requireRole(allowedRoles: string[]) {
 export async function isCustomer() {
   const user = await getCurrentUser();
   if (!user) return false;
-  
+
   const userRole = (user as UserWithStatus).role;
   return userRole === "CUSTOMER";
 }
@@ -267,7 +186,7 @@ export async function isCustomer() {
 export async function isAgency() {
   const user = await getCurrentUser();
   if (!user) return false;
-  
+
   const userRole = (user as UserWithStatus).role;
   return userRole?.includes("AGENCY") ?? false;
 }
@@ -282,9 +201,9 @@ export async function isAgency() {
 export async function verifyTeamAccess(slug: string) {
   const user = await getCurrentUser();
   if (!user) return null;
-  
+
   const userId = user.id;
-  
+
   // Find the team by slug
   const team = await prisma.team.findUnique({
     where: { slug },
@@ -297,9 +216,9 @@ export async function verifyTeamAccess(slug: string) {
       isActive: true,
     },
   });
-  
+
   if (!team || !team.isActive) return null;
-  
+
   // Check if user is a member of this team
   const membership = await prisma.teamMember.findUnique({
     where: {
@@ -312,9 +231,9 @@ export async function verifyTeamAccess(slug: string) {
       role: true,
     },
   });
-  
+
   if (!membership) return null;
-  
+
   // Update lastAccessedTeamId if different from current
   // Batch: Update user and log activity in a single transaction
   // This reduces connection usage from 2 sequential queries to 1 transaction
@@ -326,7 +245,7 @@ export async function verifyTeamAccess(slug: string) {
         where: { id: userId },
         data: { lastAccessedTeamId: team.id },
       });
-      
+
       // Log the team access
       await tx.userActivityLog.create({
         data: {
@@ -345,7 +264,7 @@ export async function verifyTeamAccess(slug: string) {
       });
     });
   }
-  
+
   return {
     ...team,
     role: membership.role,
@@ -363,7 +282,7 @@ export async function verifyTeamAccess(slug: string) {
 export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<string> {
   const userId = user.id;
   const lastAccessedTeamId = user.lastAccessedTeamId;
-  
+
   // If user already has a lastAccessedTeamId, verify it still exists
   if (lastAccessedTeamId) {
     const teamStillExists = await prisma.teamMember.findFirst({
@@ -380,13 +299,13 @@ export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<strin
         },
       },
     });
-    
+
     // If team exists and is active, return its slug
     if (teamStillExists && teamStillExists.team.isActive) {
       return teamStillExists.team.slug;
     }
   }
-  
+
   // Find all teams user is a member of
   const userTeams = await prisma.teamMember.findMany({
     where: {
@@ -406,20 +325,20 @@ export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<strin
       createdAt: "asc", // Get oldest membership first
     },
   });
-  
+
   // Filter for active teams only
   const activeTeams = userTeams.filter((membership) => membership.team.isActive);
-  
+
   // If user has no active teams, redirect to create-team page
   if (activeTeams.length === 0) {
     redirect("/create-team");
   }
-  
+
   // Pick the first active team
   const firstTeam = activeTeams[0];
   const teamId = firstTeam.team.id;
   const teamSlug = firstTeam.team.slug;
-  
+
   // Batch: Update user's lastAccessedTeamId and log activity in a single transaction
   // This reduces connection usage from 2 queries to 1 transaction
   await prisma.$transaction(async (tx) => {
@@ -428,7 +347,7 @@ export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<strin
       where: { id: userId },
       data: { lastAccessedTeamId: teamId },
     });
-    
+
     // Log the team access
     await tx.userActivityLog.create({
       data: {
@@ -446,7 +365,7 @@ export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<strin
       },
     });
   });
-  
+
   return teamSlug;
 }
 
@@ -459,22 +378,22 @@ export async function redirectIfAuthenticated() {
   console.log("[Auth Server] redirectIfAuthenticated() called");
   const user = await getCurrentUser();
   console.log("[Auth Server] getCurrentUser() returned:", user ? `User ID: ${user.id}, Role: ${(user as UserWithStatus).role}` : "null");
-  
+
   if (user) {
     console.log("[Auth Server] User found, validating status and redirecting...");
     // Validate account status first
     await validateUserStatus(user as UserWithStatus);
-    
+
     const userRole = (user as UserWithStatus).role;
     console.log("[Auth Server] User role:", userRole);
-    
+
     if (userRole === "CUSTOMER") {
       // Ensure customer has a team, redirect to /create-team if not
       const teamSlug = await ensureCustomerHasTeam(user as UserWithStatus);
       console.log("[Auth Server] Redirecting CUSTOMER to:", `/${teamSlug}/dashboard`);
       redirect(`/${teamSlug}/dashboard`);
     }
-    
+
     if (userRole?.includes("AGENCY")) {
       console.log("[Auth Server] Redirecting AGENCY to: /agency/dashboard");
       console.log("[Auth Server] About to call redirect() - this will throw a NEXT_REDIRECT error");
@@ -486,7 +405,7 @@ export async function redirectIfAuthenticated() {
       // This line should never be reached
       console.error("[Auth Server] ERROR: redirect() did not throw - this should never happen!");
     }
-    
+
     // Fallback
     const teamSlug = await ensureCustomerHasTeam(user as UserWithStatus);
     console.log("[Auth Server] Redirecting fallback to:", `/${teamSlug}/dashboard`);

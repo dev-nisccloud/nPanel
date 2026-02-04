@@ -151,73 +151,229 @@ export function NotificationSwitcher() {
   // Use SSE count if available, otherwise use polling count
   const unseenCount = sseUnseenCount !== null ? sseUnseenCount : (unseenCountData?.count ?? 0);
 
+  const utils = trpc.useUtils();
+
   // Mark as seen mutation
   const markAsSeenMutation = trpc.notifications.markAsSeen.useMutation({
-    onMutate: (variables) => {
+    onMutate: async (variables) => {
       setUpdatingNotificationId(variables.id);
+
+      // Cancel any outgoing refetches
+      await utils.notifications.getAll.cancel();
+      await utils.notifications.getUnseenCount.cancel();
+
+      // Snapshot the previous value
+      const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
+      const previousUnseenCount = utils.notifications.getUnseenCount.getData();
+      const previousSseUnseenCount = sseUnseenCount;
+
+      // Optimistically update list
+      utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
+        if (!old) return [];
+        return old.map((n) =>
+          n.id === variables.id ? { ...n, seen: true } : n
+        );
+      });
+
+      // Calculate if count should change
+      const wasUnseen = previousNotifications?.find(n => n.id === variables.id)?.seen === false;
+
+      // Update TRPC cache for consistency
+      utils.notifications.getUnseenCount.setData(undefined, (old) => {
+        if (!old) return { count: 0 };
+        return wasUnseen ? { count: Math.max(0, old.count - 1) } : old;
+      });
+
+      // KEY FIX: Always update local state to prevent glitching from stale server data
+      const currentCount = sseUnseenCount ?? previousUnseenCount?.count ?? 0;
+      if (wasUnseen) {
+        setSseUnseenCount(Math.max(0, currentCount - 1));
+      }
+
+      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
     },
     onSuccess: () => {
-      refetch();
-      refetchUnseenCount();
       setUpdatingNotificationId(null);
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback
+      if (context?.previousNotifications) {
+        utils.notifications.getAll.setData({ limit: 50, offset: 0 }, context.previousNotifications);
+      }
+      if (context?.previousUnseenCount) {
+        utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
+      }
+      // Restore previous local state
+      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
+
       toast.error("Failed to mark notification as read", {
         description: error.message,
       });
       setUpdatingNotificationId(null);
     },
+    onSettled: () => {
+      // Only invalidate list, NOT count
+      utils.notifications.getAll.invalidate();
+    },
   });
 
   // Mark as unseen mutation
   const markAsUnseenMutation = trpc.notifications.markAsUnseen.useMutation({
-    onMutate: (variables) => {
+    onMutate: async (variables) => {
       setUpdatingNotificationId(variables.id);
+
+      await utils.notifications.getAll.cancel();
+      await utils.notifications.getUnseenCount.cancel();
+
+      const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
+      const previousUnseenCount = utils.notifications.getUnseenCount.getData();
+      const previousSseUnseenCount = sseUnseenCount;
+
+      utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
+        if (!old) return [];
+        return old.map((n) =>
+          n.id === variables.id ? { ...n, seen: false } : n
+        );
+      });
+
+      const wasSeen = previousNotifications?.find(n => n.id === variables.id)?.seen === true;
+
+      utils.notifications.getUnseenCount.setData(undefined, (old) => {
+        if (!old) return { count: 0 };
+        return wasSeen ? { count: old.count + 1 } : old;
+      });
+
+      // Always update local state
+      const currentCount = sseUnseenCount ?? previousUnseenCount?.count ?? 0;
+      if (wasSeen) {
+        setSseUnseenCount(currentCount + 1);
+      }
+
+      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
     },
     onSuccess: () => {
-      refetch();
-      refetchUnseenCount();
       setUpdatingNotificationId(null);
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      if (context?.previousNotifications) {
+        utils.notifications.getAll.setData({ limit: 50, offset: 0 }, context.previousNotifications);
+      }
+      if (context?.previousUnseenCount) {
+        utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
+      }
+      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
+
       toast.error("Failed to mark notification as unread", {
         description: error.message,
       });
       setUpdatingNotificationId(null);
     },
+    onSettled: () => {
+      utils.notifications.getAll.invalidate();
+    },
   });
 
   // Delete mutation
   const deleteMutation = trpc.notifications.delete.useMutation({
-    onMutate: (variables) => {
+    onMutate: async (variables) => {
       setUpdatingNotificationId(variables.id);
+
+      await utils.notifications.getAll.cancel();
+      await utils.notifications.getUnseenCount.cancel();
+
+      const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
+      const previousUnseenCount = utils.notifications.getUnseenCount.getData();
+      const previousSseUnseenCount = sseUnseenCount;
+
+      // Find the notification to check if it was seen or unseen
+      const notification = previousNotifications?.find(n => n.id === variables.id);
+      const isUnseen = notification?.seen === false;
+
+      utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
+        if (!old) return [];
+        return old.filter((n) => n.id !== variables.id);
+      });
+
+      if (isUnseen) {
+        utils.notifications.getUnseenCount.setData(undefined, (old) => {
+          if (!old) return { count: 0 };
+          return { count: Math.max(0, old.count - 1) };
+        });
+      }
+
+      // Always update local state if needed
+      if (isUnseen) {
+        const currentCount = sseUnseenCount ?? previousUnseenCount?.count ?? 0;
+        setSseUnseenCount(Math.max(0, currentCount - 1));
+      }
+
+      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
     },
     onSuccess: () => {
-      refetch();
-      refetchUnseenCount();
       setUpdatingNotificationId(null);
       setDeletingId(null);
       toast.success("Notification deleted");
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      if (context?.previousNotifications) {
+        utils.notifications.getAll.setData({ limit: 50, offset: 0 }, context.previousNotifications);
+      }
+      if (context?.previousUnseenCount) {
+        utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
+      }
+      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
+
       toast.error("Failed to delete notification", {
         description: error.message,
       });
       setUpdatingNotificationId(null);
       setDeletingId(null);
     },
+    onSettled: () => {
+      utils.notifications.getAll.invalidate();
+    },
   });
 
   // Mark all as read mutation
   const markAllAsSeenMutation = trpc.notifications.markAllAsSeen.useMutation({
+    onMutate: async () => {
+      await utils.notifications.getAll.cancel();
+      await utils.notifications.getUnseenCount.cancel();
+
+      const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
+      const previousUnseenCount = utils.notifications.getUnseenCount.getData();
+      const previousSseUnseenCount = sseUnseenCount;
+
+      utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
+        if (!old) return [];
+        return old.map((n) => ({ ...n, seen: true }));
+      });
+
+      utils.notifications.getUnseenCount.setData(undefined, { count: 0 });
+
+      // Always update local state
+      setSseUnseenCount(0);
+
+      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
+    },
     onSuccess: () => {
-      refetch();
       toast.success("All notifications marked as read");
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      if (context?.previousNotifications) {
+        utils.notifications.getAll.setData({ limit: 50, offset: 0 }, context.previousNotifications);
+      }
+      if (context?.previousUnseenCount) {
+        utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
+      }
+      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
+
       toast.error("Failed to mark all as read", {
         description: error.message,
       });
+    },
+    onSettled: () => {
+      utils.notifications.getAll.invalidate();
     },
   });
 

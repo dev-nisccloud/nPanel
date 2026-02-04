@@ -32,38 +32,38 @@ import {
 } from "@/contexts/switching-team-context";
 import { NavigationLoadingProvider } from "@/contexts/navigation-loading-context";
 
-export const dynamic = "force-dynamic";
+// dynamic export removed to enable Client Router Cache
 
-export default async function TeamLayout({ 
-  children, 
-  params 
-}: Readonly<{ 
+export default async function TeamLayout({
+  children,
+  params
+}: Readonly<{
   children: ReactNode;
   params: Promise<{ slug: string }>;
 }>) {
   // Await params in Next.js 15+
   const { slug } = await params;
-  
+
   // CRITICAL: Prevent /agency routes from ever matching this [slug] layout
   // This must be the FIRST check to prevent Next.js from compiling this route for /agency
   if (slug === "agency") {
     // Redirect immediately to prevent this layout from executing
     redirect("/agency/dashboard");
   }
-  
+
   // Check user role first - if they have an agency role, redirect to agency dashboard
   // This prevents agency users from accessing customer routes
   const user = await getCurrentUser();
   if (user && (user as { role?: string }).role?.includes("AGENCY")) {
     redirect("/agency/dashboard");
   }
-  
+
   // Server-side auth check - redirects if not authenticated or not a customer
   await requireRole(["CUSTOMER"]);
-  
+
   // Verify user has access to this team
   const team = await verifyTeamAccess(slug);
-  
+
   if (!team) {
     // User doesn't have access to this team, redirect to create-team
     // The auth system will redirect them to their correct team
@@ -92,9 +92,9 @@ export default async function TeamLayout({
       <SwitchingTeamProvider>
         <SidebarProvider defaultOpen={defaultOpen}>
           <PrefetchTeams />
-          <AppSidebar 
-            variant={sidebarVariant} 
-            collapsible={sidebarCollapsible} 
+          <AppSidebar
+            variant={sidebarVariant}
+            collapsible={sidebarCollapsible}
             teamSlug={team.slug}
           />
           <SidebarInset

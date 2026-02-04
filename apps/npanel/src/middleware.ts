@@ -8,7 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   // console.log("[Middleware] Processing request for:", pathname);
-  
+
   // CRITICAL: Prevent /agency routes from matching [slug] pattern
   // This must be checked BEFORE any other route matching
   if (pathname.startsWith("/agency")) {
@@ -26,7 +26,7 @@ export async function middleware(req: NextRequest) {
     // console.log("[Middleware] Allowing /agency route through");
     return NextResponse.next();
   }
-  
+
   // Allow root to resolve auth server-side (prevents ping-pong at entry)
   if (pathname === "/") {
     return NextResponse.next();
@@ -46,7 +46,7 @@ export async function middleware(req: NextRequest) {
     // console.log("[Middleware] Allowing /auth route through");
     return NextResponse.next();
   }
-  
+
   // Skip auth check for public routes
   const publicRoutes = ["/auth", "/api", "/_next", "/accept-invite", "/create-team", "/account-status", "/unauthorized", "/update-role"];
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
@@ -83,50 +83,14 @@ export const config = {
 };
 
 async function isSessionValid(req: NextRequest): Promise<boolean> {
-  try {
-    // CRITICAL FIX: Construct origin from headers to handle ngrok/production correctly
-    // Use the same approach as auth-server.ts to ensure consistency
-    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "";
-    const xfProto = req.headers.get("x-forwarded-proto") || "";
-    const proto = xfProto.includes("https") ? "https" : (xfProto.includes("http") ? "http" : (req.nextUrl.protocol === "https:" ? "https" : "http"));
-    const origin = host ? `${proto}://${host}` : req.nextUrl.origin;
-    
-    const url = new URL("/api/auth/get-session", origin);
-    
-    // Get all cookies from the request - CRITICAL for redirect scenarios
-    const cookieHeader = req.headers.get("cookie") ?? "";
-    // console.log("[Middleware] isSessionValid() - Cookie header length:", cookieHeader.length, "pathname:", req.nextUrl.pathname, "origin:", origin, "url:", url.toString());
-    
-    const res = await fetch(url.toString(), {
-      method: "GET",
-      redirect: "manual",
-      headers: {
-        cookie: cookieHeader,
-        // Preserve all relevant headers for proper origin detection
-        host: host || url.host,
-        "x-forwarded-host": req.headers.get("x-forwarded-host") || host || url.host,
-        "x-forwarded-proto": proto,
-        "x-real-ip": req.headers.get("x-real-ip") ?? "",
-        "user-agent": req.headers.get("user-agent") ?? "",
-        accept: req.headers.get("accept") ?? "application/json",
-        "accept-language": req.headers.get("accept-language") ?? "en",
-      },
-    });
-    
-    // console.log("[Middleware] isSessionValid() - Response status:", res.status, "for pathname:", req.nextUrl.pathname);
-    
-    if (!res.ok) {
-      // console.log("[Middleware] isSessionValid() - Response not OK, returning false");
-      return false;
-    }
-    
-    const data = await res.json().catch(() => null);
-    const isValid = Boolean(data?.user);
-    // console.log("[Middleware] isSessionValid() - Session valid:", isValid, "for pathname:", req.nextUrl.pathname);
-    return isValid;
-  } catch (error) {
-    // console.error("[Middleware] isSessionValid() - Error:", error instanceof Error ? error.message : String(error), "for pathname:", req.nextUrl.pathname);
-    // If fetch fails, we can't verify the session, so return false
-    return false;
-  }
+  // OPTIMISTIC CHECK: Only check for the presence of the session cookie.
+  // We do NOT fetch the session here because:
+  // 1. It causes deadlocks in dev mode (Middleware waits for API, API waits for compiler).
+  // 2. It adds massive latency to every request.
+  // 3. The actual security verification happens in the Server Components (Layouts/Pages) via lib/auth-server.ts
+
+  const cookieName = "better-auth.session_token";
+  const sessionCookie = req.cookies.get(cookieName);
+
+  return !!sessionCookie?.value;
 }
