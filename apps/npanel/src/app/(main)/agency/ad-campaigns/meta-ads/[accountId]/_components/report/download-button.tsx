@@ -92,6 +92,7 @@ interface DownloadReportButtonProps {
         until: string;
     };
     currency: string;
+    accountName?: string;
 }
 
 export function DownloadReportButton({
@@ -101,7 +102,8 @@ export function DownloadReportButton({
     adSets,
     breakdowns,
     timeRange,
-    currency
+    currency,
+    accountName
 }: DownloadReportButtonProps) {
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -159,6 +161,7 @@ export function DownloadReportButton({
                     timeRange={timeRange}
                     primaryColor={safePrimaryColor}
                     currency={currency}
+                    accountName={accountName}
                 />
             ).toBlob();
 

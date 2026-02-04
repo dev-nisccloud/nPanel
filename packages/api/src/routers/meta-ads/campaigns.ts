@@ -279,12 +279,133 @@ export const metaAdsCampaignsRouter = router({
 				// Get campaign details directly from Meta API
 				const campaignDetails = await client.getCampaignDetails(input.campaignId);
 
+				let insights = null;
+				try {
+					// Determine time range for insights
+					let insightsOptions: {
+						level: 'campaign';
+						metrics: string[];
+						datePreset?: string;
+						timeRange?: { since: string; until: string };
+					} = {
+						level: 'campaign',
+						metrics: [
+							'impressions',
+							'clicks',
+							'spend',
+							'reach',
+							'frequency',
+							'ctr',
+							'cpc',
+							'cpm',
+							'cpp',
+							'unique_clicks',
+							'unique_ctr',
+							'purchase_roas',
+							'quality_ranking',
+							'engagement_rate_ranking',
+							'conversion_rate_ranking',
+							'inline_link_click_ctr',
+							'cost_per_result',
+							'cost_per_action_type',
+							'actions',
+						],
+					};
+
+					if (campaignDetails.start_time) {
+						// If campaign has a start_time, use time range from start to now
+						const startDate = new Date(campaignDetails.start_time);
+						const endDate = new Date();
+						const sinceStr = startDate.toISOString().split('T')[0];
+						const untilStr = endDate.toISOString().split('T')[0];
+						if (sinceStr && untilStr) {
+							insightsOptions.timeRange = {
+								since: sinceStr, // YYYY-MM-DD format
+								until: untilStr,
+							};
+						}
+					} else {
+						// Fallback to last 365 days if no start_time
+						insightsOptions.datePreset = 'last_365d';
+					}
+
+					// Fetch insights for this campaign
+					const insightsResponse = await client.getInsights(campaignDetails.id, insightsOptions);
+
+					if (insightsResponse.data && insightsResponse.data.length > 0) {
+						insights = insightsResponse.data[0]; // Get first (and usually only) insight record
+					}
+				} catch (error) {
+					// If insights fail, continue without them
+					console.error('Failed to fetch insights for campaign details:', error);
+				}
+
+				// Format budget values
+				const formatBudget = (budget: string | number | null | undefined): string | null => {
+					if (budget === null || budget === undefined) return null;
+					if (budget === '') return null;
+					const num = typeof budget === 'string' ? parseFloat(budget) : budget;
+					if (isNaN(num)) return null;
+					return String(num / 100);
+				};
+
 				// Return campaign details exactly as returned from Meta API
 				return {
 					success: true,
 					data: {
 						// Include all fields from Meta API response
 						...campaignDetails,
+						daily_budget: formatBudget(campaignDetails.daily_budget),
+						lifetime_budget: formatBudget(campaignDetails.lifetime_budget),
+						budget_remaining: formatBudget(campaignDetails.budget_remaining),
+						insights: insights ? {
+							reach: (insights.reach && insights.reach !== '') ? String(insights.reach) : null,
+							impressions: (insights.impressions && insights.impressions !== '') ? String(insights.impressions) : null,
+							clicks: (insights.clicks && insights.clicks !== '') ? String(insights.clicks) : null,
+							link_clicks: (() => {
+								if (insights.actions && Array.isArray(insights.actions)) {
+									const linkClickAction = insights.actions.find(
+										(action: any) => action.action_type === 'link_click' || action.action_type === 'inline_link_click'
+									);
+									if (linkClickAction && linkClickAction.value) {
+										return String(linkClickAction.value);
+									}
+								}
+								return null;
+							})(),
+							cpc: (insights.cpc && insights.cpc !== '') ? String(insights.cpc) : null,
+							ctr: (insights.ctr && insights.ctr !== '') ? String(insights.ctr) : null,
+							spend: (insights.spend && insights.spend !== '') ? String(insights.spend) : null,
+							cpm: (insights.cpm && insights.cpm !== '') ? String(insights.cpm) : null,
+							cpp: (insights.cpp && insights.cpp !== '') ? String(insights.cpp) : null,
+							frequency: (insights.frequency && insights.frequency !== '') ? String(insights.frequency) : null,
+							unique_clicks: (insights.unique_clicks && insights.unique_clicks !== '') ? String(insights.unique_clicks) : null,
+							unique_ctr: (insights.unique_ctr && insights.unique_ctr !== '') ? String(insights.unique_ctr) : null,
+							purchase_roas: insights.purchase_roas || null,
+							quality_ranking: insights.quality_ranking || null,
+							engagement_rate_ranking: insights.engagement_rate_ranking || null,
+							conversion_rate_ranking: insights.conversion_rate_ranking || null,
+							cost_per_result: (() => {
+								if (insights.cost_per_result && insights.cost_per_result !== '') {
+									return String(insights.cost_per_result);
+								}
+								if (insights.cost_per_action_type && Array.isArray(insights.cost_per_action_type)) {
+									const resultAction = insights.cost_per_action_type.find(
+										(action: any) => action.action_type === 'onsite_conversion.messaging_conversation_started_7d' ||
+											action.action_type === 'link_click' ||
+											action.action_type === 'offsite_conversion.fb_pixel_purchase'
+									);
+									if (resultAction && resultAction.value) {
+										return String(resultAction.value);
+									}
+									if (insights.cost_per_action_type[0]?.value) {
+										return String(insights.cost_per_action_type[0].value);
+									}
+								}
+								return null;
+							})(),
+							actions: insights.actions || [],
+						} : null,
 					},
 				};
 			} catch (error) {

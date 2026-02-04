@@ -1,15 +1,15 @@
 /* eslint-disable jsx-a11y/alt-text */
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Image, Svg, Path, Line, G, Circle, Rect } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Image, Svg, Path, Line, G, Circle, Rect, Link } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 
-// Styles
+// Styles - Completely redesigned for better spacing and professional appearance
 const styles = StyleSheet.create({
     page: {
         backgroundColor: '#ffffff',
         fontFamily: 'Helvetica',
-        paddingTop: 0,
-        paddingBottom: 0,
+        paddingTop: 50,
+        paddingBottom: 65,
         paddingLeft: 0,
         paddingRight: 0,
     },
@@ -25,8 +25,8 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 40,
         right: 40,
-        width: 150,
-        height: 60,
+        width: 220,
+        height: 90,
     },
     logo: {
         width: '100%',
@@ -60,6 +60,19 @@ const styles = StyleSheet.create({
         padding: 10,
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         borderRadius: 8,
+    },
+    accountNameContainer: {
+        marginTop: 10,
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    accountNameText: {
+        fontSize: 14,
+        color: '#ffffff',
+        fontWeight: 'bold',
+        opacity: 0.9,
     },
     objectiveText: {
         fontSize: 12,
@@ -103,198 +116,205 @@ const styles = StyleSheet.create({
     },
     // Header
     header: {
-        padding: 20,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        padding: 15,
         borderBottomWidth: 1,
-        borderBottomColor: '#eeeeee',
-        marginBottom: 20,
+        borderBottomColor: '#e5e7eb',
         display: 'flex',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        backgroundColor: '#ffffff',
     },
     headerTitle: {
-        fontSize: 10,
-        color: '#666666',
+        fontSize: 9,
+        color: '#4b5563',
+        fontWeight: 'bold',
     },
     headerDate: {
-        fontSize: 10,
-        color: '#999999',
+        fontSize: 8,
+        color: '#9ca3af',
     },
     // Sections
     sectionTitle: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
-        color: '#1a1a1a',
-        marginBottom: 10,
-        marginTop: 20,
-        paddingHorizontal: 20,
+        color: '#1f2937',
+        marginBottom: 12,
+        marginTop: 15,
+        paddingHorizontal: 40,
     },
     subSectionTitle: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 'bold',
-        color: '#4b5563',
+        color: '#374151',
         marginBottom: 8,
-        marginTop: 4,
+        marginTop: 8,
     },
-    // Metrics - Strict Grid
+    // NEW: Compact 3-column Metric Cards
     metricsGrid: {
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'wrap',
-        paddingHorizontal: 20,
-        marginBottom: 10,
+        paddingHorizontal: 40,
+        marginBottom: 12,
     },
+    metricCard: {
+        width: '31.5%',
+        padding: 8,
+        backgroundColor: '#f9fafb',
+        borderRadius: 4,
+        borderLeftWidth: 3,
+        borderLeftColor: '#6366f1',
+        marginBottom: 6,
+    },
+    metricLabel: {
+        fontSize: 7,
+        color: '#6b7280',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 3,
+    },
+    metricValue: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#111827',
+    },
+    // Compact metrics for nested sections (ads, ad sets)
     metricsGridCompact: {
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'wrap',
-        paddingHorizontal: 0, // Ad Cards handle padding
-        marginBottom: 6,
-    },
-    metricCard: {
-        width: '32%', // Strict 3 columns
-        marginRight: '1%',
-        marginBottom: 10,
-        borderRadius: 6,
-        padding: 10,
-        backgroundColor: '#f8f9fa',
-        borderLeftWidth: 3,
+        marginTop: 6,
     },
     metricCardCompact: {
-        width: '24%', // 4 columns for compact
-        marginRight: '1%',
-        marginBottom: 6,
-        borderRadius: 4,
-        padding: 6,
-        backgroundColor: '#f8f9fa',
+        width: '24%',
+        padding: 4,
+        backgroundColor: '#f3f4f6',
+        borderRadius: 3,
         borderLeftWidth: 2,
-    },
-    metricLabel: {
-        fontSize: 9,
-        color: '#666666',
+        borderLeftColor: '#8b5cf6',
         marginBottom: 4,
-        textTransform: 'uppercase',
     },
     metricLabelCompact: {
-        fontSize: 7,
-        color: '#666666',
-        marginBottom: 2,
+        fontSize: 6,
+        color: '#6b7280',
         textTransform: 'uppercase',
-    },
-    metricValue: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
+        marginBottom: 2,
     },
     metricValueCompact: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 'bold',
-        color: '#1a1a1a',
+        color: '#1f2937',
     },
-    // Full Width Tables
+    // Tables
     tableContainer: {
-        paddingHorizontal: 20,
-        marginBottom: 15,
-        width: '100%',
+        paddingHorizontal: 40,
+        marginBottom: 12,
     },
     tableHeader: {
         flexDirection: 'row',
-        borderBottomColor: '#cccccc',
-        borderBottomWidth: 1,
-        backgroundColor: '#f8f9fa',
-        alignItems: 'center',
-        height: 24,
-        fontWeight: 'bold',
+        borderBottomColor: '#d1d5db',
+        borderBottomWidth: 1.5,
+        backgroundColor: '#f3f4f6',
+        paddingVertical: 6,
+        paddingHorizontal: 8,
     },
     tableRow: {
         flexDirection: 'row',
-        borderBottomColor: '#eeeeee',
-        borderBottomWidth: 1,
-        alignItems: 'center',
-        height: 24,
+        borderBottomColor: '#e5e7eb',
+        borderBottomWidth: 0.5,
+        paddingVertical: 5,
+        paddingHorizontal: 8,
     },
-    tableCellName: { width: '50%', textAlign: 'left', fontSize: 9, paddingLeft: 8 },
-    tableCellValue: { width: '25%', textAlign: 'right', fontSize: 9, paddingRight: 8 },
+    tableCellName: {
+        width: '50%',
+        fontSize: 8,
+        color: '#374151',
+    },
+    tableCellValue: {
+        width: '25%',
+        textAlign: 'right',
+        fontSize: 8,
+        color: '#1f2937',
+        fontWeight: 'bold',
+    },
     // Charts
     chartContainer: {
-        paddingHorizontal: 20,
-        marginBottom: 20,
+        paddingHorizontal: 40,
+        marginBottom: 15,
     },
-    // Ad Hierarchy
+    // NEW: Streamlined Ad Hierarchy
     adSetContainer: {
-        paddingHorizontal: 20,
-        marginBottom: 20,
+        paddingHorizontal: 40,
+        marginBottom: 15,
     },
     adSetHeader: {
-        backgroundColor: '#f1f5f9',
+        backgroundColor: '#f3f4f6',
         padding: 10,
         borderRadius: 4,
-        marginBottom: 10,
+        borderLeftWidth: 4,
+        borderLeftColor: '#6366f1',
+        marginBottom: 8,
     },
     adSetTitle: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 'bold',
-        color: '#0f172a',
-        marginBottom: 4,
+        color: '#111827',
+        marginBottom: 3,
     },
     adSetMeta: {
-        fontSize: 9,
-        color: '#64748b',
-        marginBottom: 2,
+        fontSize: 7,
+        color: '#6b7280',
+        marginBottom: 1,
     },
-    // Targeting Block (Rich Text Mimic)
+    // Targeting - More compact
     targetingBlock: {
-        marginBottom: 15,
-        paddingLeft: 10,
+        marginBottom: 10,
+        paddingLeft: 8,
         borderLeftWidth: 2,
-        borderLeftColor: '#e2e8f0',
+        borderLeftColor: '#e5e7eb',
     },
     targetingLabel: {
-        fontSize: 9,
+        fontSize: 8,
         fontWeight: 'bold',
-        color: '#334155',
-        marginTop: 6,
+        color: '#374151',
+        marginTop: 4,
         marginBottom: 2,
     },
     targetingContent: {
-        fontSize: 9,
-        color: '#475569',
-        lineHeight: 1.4,
+        fontSize: 7,
+        color: '#6b7280',
+        lineHeight: 1.3,
     },
-    // Ads List
+    // Ads List - Simplified
     adsContainer: {
-        marginTop: 15,
+        marginTop: 10,
         borderTopWidth: 1,
-        borderTopColor: '#e2e8f0',
-        paddingTop: 10,
+        borderTopColor: '#e5e7eb',
+        paddingTop: 8,
     },
-    adCard: {
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 6,
-        padding: 10,
-    },
-    adHeader: {
-        flexDirection: 'row',
+    adRow: {
         marginBottom: 8,
-        alignItems: 'flex-start',
-    },
-    adThumbnail: {
-        width: 40,
-        height: 40,
-        backgroundColor: '#f1f5f9',
-        borderRadius: 4,
-        marginRight: 10,
-    },
-    adInfo: {
-        flex: 1,
+        padding: 8,
+        backgroundColor: '#fafafa',
+        borderRadius: 3,
+        borderWidth: 0.5,
+        borderColor: '#e5e7eb',
     },
     adName: {
-        fontSize: 11,
+        fontSize: 9,
         fontWeight: 'bold',
-        color: '#0f172a',
+        color: '#111827',
         marginBottom: 2,
+    },
+    adMeta: {
+        fontSize: 7,
+        color: '#6b7280',
+        marginBottom: 4,
     },
     // Footer
     pageFooter: {
@@ -303,8 +323,8 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         textAlign: 'center',
-        fontSize: 9,
-        color: '#94a3b8'
+        fontSize: 8,
+        color: '#9ca3af',
     },
     endPageContent: {
         flex: 1,
@@ -334,8 +354,9 @@ const styles = StyleSheet.create({
     },
     contactTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, color: '#1a1a1a' },
     contactRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    contactIcon: { width: 20, height: 20, marginRight: 10, backgroundColor: '#E0F2FE', borderRadius: 10 },
-    contactText: { fontSize: 12, color: '#0EA5E9' },
+    contactIcon: { width: 24, height: 24, marginRight: 12, alignItems: 'center', justifyContent: 'center' },
+    contactText: { fontSize: 12, color: '#0EA5E9', textDecoration: 'none' },
+    contactLink: { fontSize: 12, color: '#0EA5E9', textDecoration: 'none' },
 });
 
 interface MetaAdsReportProps {
@@ -356,14 +377,28 @@ interface MetaAdsReportProps {
     };
     primaryColor: string;
     currency: string;
+    accountName?: string;
 }
 
 const formatDate = (dateString: string) => {
     try {
+        if (!dateString) return '';
         return format(new Date(dateString), 'MMM dd, yyyy');
     } catch (e) {
         return dateString;
     }
+};
+
+const formatCampaignPeriod = (campaign: any, timeRange: any) => {
+    const start = campaign?.start_time || timeRange.since;
+    const end = campaign?.stop_time || campaign?.end_time;
+
+    if (start && end) {
+        return `${formatDate(start)} - ${formatDate(end)}`;
+    } else if (start) {
+        return `${formatDate(start)} - Ongoing`;
+    }
+    return `${formatDate(timeRange.since)} - ${formatDate(timeRange.until)}`;
 };
 
 const formatCurrency = (amount: number, currency: string) => {
@@ -383,7 +418,7 @@ const formatPercentage = (num: number) => {
     return num < 1 ? `${(num * 100).toFixed(2)}%` : `${num.toFixed(2)}%`;
 };
 
-// --- Helper Components ---
+// --- Helper Components - REDESIGNED ---
 
 const MetricCard = ({ label, value, color, compact = false }: { label: string, value: string, color: string, compact?: boolean }) => (
     <View style={[
@@ -396,47 +431,61 @@ const MetricCard = ({ label, value, color, compact = false }: { label: string, v
 );
 
 const MetricsGrid = ({ insights, currency, compact = false }: { insights: any, currency: string, compact?: boolean }) => {
-    // 19 Metrics from Dialog
     const getValue = (k: string) => insights?.[k] || 0;
     const num = (v: any) => formatNumber(typeof v === 'string' ? parseFloat(v) : v);
     const curr = (v: any) => formatCurrency(typeof v === 'string' ? parseFloat(v) : v, currency);
     const pct = (v: any) => formatPercentage(typeof v === 'string' ? parseFloat(v) : v);
 
-    // CTR (all) Calculation if missing
-    let ctrAll = getValue('ctr');
-    let cpcAll = getValue('cpc');
-
-    // Safely parse
     const imp = parseFloat(getValue('impressions') || '0');
-    const clicks = parseFloat(getValue('clicks') || '0'); // All clicks
+    const clicks = parseFloat(getValue('clicks') || '0');
     const spend = parseFloat(getValue('spend') || '0');
 
-    // If API returns link clicks as 'clicks' in some versions, ensure 'clicks' is typically 'all clicks'
-    // Calculate manually if needed for parity 
-    // Dialog logic:
-    // const ctrAll = impressionsNum > 0 && clicksNum > 0 ? (clicksNum / impressionsNum) : null;
     const ctrAllVal = (imp > 0 && clicks > 0) ? (clicks / imp) * 100 : 0;
     const cpcAllVal = (clicks > 0 && spend > 0) ? (spend / clicks) : 0;
 
-    const metricsList = [
-        { label: 'Reach', value: num(getValue('reach')), color: 'blue' },
-        { label: 'Frequency', value: num(getValue('frequency')), color: 'blue' },
-        { label: 'Cost per Result', value: curr(getValue('cost_per_result')), color: 'orange' },
-        { label: 'Amount Spent', value: curr(getValue('spend')), color: 'emerald' },
-        { label: 'Impressions', value: num(getValue('impressions')), color: 'purple' },
-        { label: 'CPM', value: curr(getValue('cpm')), color: 'indigo' },
-        { label: 'Link Clicks', value: num(getValue('link_clicks')), color: 'green' },
-        { label: 'CPC', value: curr(getValue('cpc')), color: 'orange' },
-        { label: 'CTR', value: pct(getValue('ctr')), color: 'indigo' },
-        { label: 'Unique Clicks', value: num(getValue('unique_clicks')), color: 'green' },
-        { label: 'Unique CTR', value: pct(getValue('unique_ctr')), color: 'indigo' },
-        { label: 'Purchase ROAS', value: num(getValue('purchase_roas')), color: 'emerald' },
-        { label: 'Clicks (all)', value: num(clicks), color: 'green' },
-        { label: 'CTR (all)', value: pct(ctrAllVal), color: 'indigo' }, // Calculated
-        { label: 'CPC (all)', value: curr(cpcAllVal), color: 'orange' }, // Calculated
+    // Color palette for different metric types
+    const colors = {
+        blue: '#3b82f6',
+        purple: '#8b5cf6',
+        green: '#10b981',
+        orange: '#f97316',
+        indigo: '#6366f1',
+    };
+
+    // Full metrics for campaign level
+    const fullMetricsList = [
+        { label: 'Impressions', value: num(getValue('impressions')), color: colors.purple },
+        { label: 'Reach', value: num(getValue('reach')), color: colors.blue },
+        { label: 'Frequency', value: num(getValue('frequency')), color: colors.blue },
+        { label: 'Amount Spent', value: curr(getValue('spend')), color: colors.green },
+        { label: 'CPM', value: curr(getValue('cpm')), color: colors.indigo },
+        { label: 'Cost per Result', value: curr(getValue('cost_per_result')), color: colors.orange },
+        { label: 'Link Clicks', value: num(getValue('link_clicks')), color: colors.green },
+        { label: 'CPC (Link)', value: curr(getValue('cpc')), color: colors.orange },
+        { label: 'CTR (Link)', value: pct(getValue('ctr')), color: colors.indigo },
+        { label: 'Unique Clicks', value: num(getValue('unique_clicks')), color: colors.green },
+        { label: 'Unique CTR', value: pct(getValue('unique_ctr')), color: colors.indigo },
+        { label: 'Clicks (All)', value: num(clicks), color: colors.green },
+        { label: 'CTR (All)', value: pct(ctrAllVal), color: colors.indigo },
+        { label: 'CPC (All)', value: curr(cpcAllVal), color: colors.orange },
+        { label: 'Purchase ROAS', value: num(getValue('purchase_roas')), color: colors.green },
     ];
 
-    if (!insights) return <Text style={{ fontSize: 9, color: '#999' }}>No metrics available</Text>;
+    // Compact metrics for nested sections (ad sets and ads) - only 8 key metrics
+    const compactMetricsList = [
+        { label: 'Impressions', value: num(getValue('impressions')), color: colors.purple },
+        { label: 'Reach', value: num(getValue('reach')), color: colors.blue },
+        { label: 'Spent', value: curr(getValue('spend')), color: colors.green },
+        { label: 'CPM', value: curr(getValue('cpm')), color: colors.indigo },
+        { label: 'Link Clicks', value: num(getValue('link_clicks')), color: colors.green },
+        { label: 'CPC', value: curr(getValue('cpc')), color: colors.orange },
+        { label: 'CTR', value: pct(getValue('ctr')), color: colors.indigo },
+        { label: 'ROAS', value: num(getValue('purchase_roas')), color: colors.green },
+    ];
+
+    const metricsList = compact ? compactMetricsList : fullMetricsList;
+
+    if (!insights) return <Text style={{ fontSize: 8, color: '#9ca3af' }}>No metrics available</Text>;
 
     return (
         <View style={compact ? styles.metricsGridCompact : styles.metricsGrid}>
@@ -445,7 +494,7 @@ const MetricsGrid = ({ insights, currency, compact = false }: { insights: any, c
                     key={i}
                     label={m.label}
                     value={m.value}
-                    color={m.color === 'blue' ? '#3b82f6' : m.color === 'emerald' ? '#10b981' : m.color === 'orange' ? '#f97316' : '#8b5cf6'}
+                    color={m.color}
                     compact={compact}
                 />
             ))}
@@ -457,17 +506,17 @@ const BreakdownTable = ({ title, data, primaryColor, nameKey = 'name', valueKey 
     if (!data || data.length === 0) return null;
     const sortedData = [...data]
         .sort((a, b) => (parseInt(b[valueKey] || 0) - parseInt(a[valueKey] || 0)))
-        .slice(0, 10);
+        .slice(0, 8); // Reduced from 10 to 8 for better spacing
     const totalValue = sortedData.reduce((acc, curr) => acc + parseInt(curr[valueKey] || 0), 0);
     const maxValue = Math.max(...sortedData.map(d => parseInt(d[valueKey] || 0)));
 
     return (
-        <View style={styles.tableContainer} break={false}>
+        <View style={styles.tableContainer} wrap={false}>
             <Text style={styles.subSectionTitle}>{title}</Text>
             <View style={styles.tableHeader}>
                 <Text style={styles.tableCellName}>{nameKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</Text>
                 <Text style={styles.tableCellValue}>Impressions</Text>
-                <Text style={{ width: '25%', fontSize: 9, paddingRight: 8, textAlign: 'right' }}>Share</Text>
+                <Text style={{ width: '25%', fontSize: 8, textAlign: 'right' }}>Share</Text>
             </View>
             {sortedData.map((item, index) => {
                 const value = parseInt(item[valueKey] || 0);
@@ -476,17 +525,13 @@ const BreakdownTable = ({ title, data, primaryColor, nameKey = 'name', valueKey 
 
                 return (
                     <View key={index} style={styles.tableRow}>
-                        <View style={styles.tableCellName}>
-                            <Text>{item[nameKey] || 'Unknown'}</Text>
-                        </View>
-                        <View style={styles.tableCellValue}>
-                            <Text>{formatNumber(value)}</Text>
-                        </View>
-                        <View style={{ width: '25%', paddingRight: 8, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-                            <View style={{ width: 50, height: 4, backgroundColor: '#eeeeee', marginRight: 4 }}>
-                                <View style={{ width: `${percentage}%`, height: '100%', backgroundColor: primaryColor }} />
+                        <Text style={styles.tableCellName}>{item[nameKey] || 'Unknown'}</Text>
+                        <Text style={styles.tableCellValue}>{formatNumber(value)}</Text>
+                        <View style={{ width: '25%', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+                            <View style={{ width: 40, height: 3, backgroundColor: '#e5e7eb', marginRight: 4, borderRadius: 2 }}>
+                                <View style={{ width: `${percentage}%`, height: '100%', backgroundColor: primaryColor, borderRadius: 2 }} />
                             </View>
-                            <Text style={{ fontSize: 8 }}>{share.toFixed(1)}%</Text>
+                            <Text style={{ fontSize: 7, color: '#6b7280' }}>{share.toFixed(1)}%</Text>
                         </View>
                     </View>
                 );
@@ -495,7 +540,7 @@ const BreakdownTable = ({ title, data, primaryColor, nameKey = 'name', valueKey 
     );
 };
 
-// SVG Charts
+// SVG Charts - Optimized sizes
 const GenderPieChart = ({ data }: { data: any[] }) => {
     if (!data || data.length === 0) return null;
 
@@ -504,48 +549,69 @@ const GenderPieChart = ({ data }: { data: any[] }) => {
         .map(d => ({ label: d.gender, value: parseInt(d.impressions) }));
 
     const allZero = validData.every(d => d.value === 0);
-    if (allZero) return null;
+    if (allZero || validData.length === 0) return null;
 
     const total = validData.reduce((acc, curr) => acc + curr.value, 0);
     let startAngle = 0;
-    const colors = ['#3b82f6', '#ec4899', '#a855f7']; // Blue (Male), Pink (Female), Purple
+    const colors = ['#3b82f6', '#ec4899', '#a855f7'];
 
     const size = 100;
     const cx = size / 2;
     const cy = size / 2;
-    const r = 40;
+    const outerRadius = 35;
+    const innerRadius = 25;
 
     return (
-        <View style={[styles.chartContainer, { alignItems: 'center' }]} break={false}>
+        <View style={[styles.chartContainer, { alignItems: 'center' }]} wrap={false}>
             <Text style={styles.subSectionTitle}>Gender Distribution</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
                 <Svg height={size} width={size}>
                     {validData.map((slice, i) => {
                         const angle = (slice.value / total) * 360;
                         const endAngle = startAngle + angle;
                         const startRad = (startAngle - 90) * Math.PI / 180;
                         const endRad = (endAngle - 90) * Math.PI / 180;
-                        const x1 = cx + r * Math.cos(startRad);
-                        const y1 = cy + r * Math.sin(startRad);
-                        const x2 = cx + r * Math.cos(endRad);
-                        const y2 = cy + r * Math.sin(endRad);
+
+                        const x1_out = cx + outerRadius * Math.cos(startRad);
+                        const y1_out = cy + outerRadius * Math.sin(startRad);
+                        const x2_out = cx + outerRadius * Math.cos(endRad);
+                        const y2_out = cy + outerRadius * Math.sin(endRad);
+
+                        const x1_in = cx + innerRadius * Math.cos(endRad);
+                        const y1_in = cy + innerRadius * Math.sin(endRad);
+                        const x2_in = cx + innerRadius * Math.cos(startRad);
+                        const y2_in = cy + innerRadius * Math.sin(startRad);
+
                         const largeArc = angle > 180 ? 1 : 0;
+
                         const pathData = [
-                            `M ${cx} ${cy}`,
-                            `L ${x1} ${y1}`,
-                            `A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`,
+                            `M ${x1_out} ${y1_out}`,
+                            `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${x2_out} ${y2_out}`,
+                            `L ${x1_in} ${y1_in}`,
+                            `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x2_in} ${y2_in}`,
                             `Z`
                         ].join(' ');
+
                         startAngle += angle;
                         return <Path key={i} d={pathData} fill={colors[i % colors.length]} />;
                     })}
+                    {/* Center Text for total (similar to UI) */}
+                    <Text
+                        x={cx}
+                        y={cy + 3}
+                        textAnchor="middle"
+                        style={{ fontSize: 8, fontWeight: 'bold' }}
+                        fill="#111827"
+                    >
+                        {formatNumber(total)}
+                    </Text>
                 </Svg>
                 <View style={{ marginLeft: 20 }}>
                     {validData.map((slice, i) => (
-                        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                            <View style={{ width: 8, height: 8, backgroundColor: colors[i % colors.length], marginRight: 6 }} />
-                            <Text style={{ fontSize: 10, width: 50 }}>{slice.label}</Text>
-                            <Text style={{ fontSize: 10, fontWeight: 'bold' }}>{((slice.value / total) * 100).toFixed(1)}%</Text>
+                        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                            <View style={{ width: 8, height: 8, backgroundColor: colors[i % colors.length], marginRight: 6, borderRadius: 2 }} />
+                            <Text style={{ fontSize: 9, color: '#374151', width: 50, textTransform: 'capitalize' }}>{slice.label.toLowerCase()}</Text>
+                            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#111827' }}>{((slice.value / total) * 100).toFixed(1)}%</Text>
                         </View>
                     ))}
                 </View>
@@ -554,23 +620,19 @@ const GenderPieChart = ({ data }: { data: any[] }) => {
     );
 };
 
-// Dual Line Chart: Impressions vs Link Clicks
+// Performance Trend Chart - Optimized
 const PerformanceTrendChart = ({ data, primaryColor }: { data: any[], primaryColor: string }) => {
     if (!data || data.length === 0) return null;
-    const validData = data.filter(d => d.date); // Allow sparse data
-
-    // Safety check
+    const validData = data.filter(d => d.date);
     if (validData.length === 0) return null;
 
-    const height = 150;
-    const width = 500;
-    const padding = 20;
+    const height = 120; // Reduced from 150
+    const width = 480; // Slightly reduced
+    const padding = 15;
 
-    // Scales
     const maxImp = Math.max(...validData.map(d => parseInt(d.impressions || '0'))) || 100;
     const maxClicks = Math.max(...validData.map(d => parseInt(d.link_clicks || '0'))) || 10;
 
-    // Points
     const getPoints = (key: string, max: number) => {
         if (validData.length === 1) {
             const val = parseInt(validData[0][key] || '0');
@@ -593,33 +655,35 @@ const PerformanceTrendChart = ({ data, primaryColor }: { data: any[], primaryCol
     const clickData = getPoints('link_clicks', maxClicks);
 
     return (
-        <View style={styles.chartContainer} break={false}>
-            <Text style={styles.subSectionTitle}>Performance Trends (Impressions vs Clicks)</Text>
+        <View style={styles.chartContainer} wrap={false}>
+            <Text style={styles.subSectionTitle}>Performance Trends</Text>
             <Svg height={height} width="100%">
-                <Line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#cbd5e1" strokeWidth={1} />
+                <Line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#d1d5db" strokeWidth={1} />
+                <Line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#d1d5db" strokeWidth={1} />
 
-                {/* Impressions - Blue */}
+                <Text x={5} y={padding + 5} style={{ fontSize: 7 }} fill="#6b7280">{formatNumber(maxImp)}</Text>
+                <Text x={5} y={height - padding - 5} style={{ fontSize: 7 }} fill="#6b7280">0</Text>
+
                 {impData.single ? (
-                    <Circle cx={impData.single.x} cy={impData.single.y} r={4} fill="#8b5cf6" />
+                    <Circle cx={impData.single.x} cy={impData.single.y} r={3} fill="#8b5cf6" />
                 ) : (
-                    <Path d={`M ${impData.points}`} stroke="#8b5cf6" strokeWidth={2} fill="none" />
+                    <Path d={`M ${impData.points}`} stroke="#8b5cf6" strokeWidth={1.5} fill="none" />
                 )}
 
-                {/* Link Clicks - Green */}
                 {clickData.single ? (
-                    <Circle cx={clickData.single.x} cy={clickData.single.y} r={4} fill="#22c55e" />
+                    <Circle cx={clickData.single.x} cy={clickData.single.y} r={3} fill="#10b981" />
                 ) : (
-                    <Path d={`M ${clickData.points}`} stroke="#22c55e" strokeWidth={2} fill="none" />
+                    <Path d={`M ${clickData.points}`} stroke="#10b981" strokeWidth={1.5} fill="none" />
                 )}
             </Svg>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 8, gap: 20 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{ width: 8, height: 8, backgroundColor: '#8b5cf6', borderRadius: 4, marginRight: 4 }} />
-                    <Text style={{ fontSize: 9, color: '#64748b' }}>Impressions</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 15 }}>
+                    <View style={{ width: 6, height: 6, backgroundColor: '#8b5cf6', borderRadius: 3, marginRight: 3 }} />
+                    <Text style={{ fontSize: 7, color: '#6b7280' }}>Impressions</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{ width: 8, height: 8, backgroundColor: '#22c55e', borderRadius: 4, marginRight: 4 }} />
-                    <Text style={{ fontSize: 9, color: '#64748b' }}>Link Clicks</Text>
+                    <View style={{ width: 6, height: 6, backgroundColor: '#10b981', borderRadius: 3, marginRight: 3 }} />
+                    <Text style={{ fontSize: 7, color: '#6b7280' }}>Link Clicks</Text>
                 </View>
             </View>
         </View>
@@ -629,59 +693,92 @@ const PerformanceTrendChart = ({ data, primaryColor }: { data: any[], primaryCol
 const DailySpendChart = ({ data, primaryColor }: { data: any[], primaryColor: string }) => {
     if (!data || data.length === 0) return null;
     const validData = data.filter(d => !isNaN(parseFloat(d.spend)));
+    if (validData.length === 0) return null;
+
     const height = 100;
-    const width = 500;
+    const width = 480;
     const maxSpend = Math.max(...validData.map(d => parseFloat(d.spend))) || 100;
 
-    // Points
-    const getPoints = () => {
-        // Area chart path construct... simplified to line for robust PDF rendering
-        // Area gradients in ReactPDF are tricky/unsupported. Using filled path with opacity? No opacity support in standard PDF fill often.
-        // Sticking to Line for stability.
-        if (validData.length === 1) {
-            const x = width / 2;
-            const y = height - (parseFloat(validData[0].spend) / maxSpend) * (height - 20) - 10;
-            return { points: '', single: { x, y } };
-        }
-        return {
-            points: validData.map((d, i) => {
-                const x = (i / (validData.length - 1)) * (width - 20) + 10;
-                const y = height - (parseFloat(d.spend) / maxSpend) * (height - 20) - 10;
-                return `${x},${y}`;
-            }).join(' '),
-            single: null
-        };
-    }
+    const marginL = 45;
+    const marginR = 20;
+    const marginB = 30;
+    const marginT = 15;
 
-    const p = getPoints();
+    const points = validData.map((d, i) => {
+        const x = (i / (validData.length > 1 ? validData.length - 1 : 1)) * (width - marginL - marginR) + marginL;
+        const y = height - (parseFloat(d.spend) / maxSpend) * (height - marginB - marginT) - marginB;
+        return { x, y, value: parseFloat(d.spend) };
+    });
 
     return (
-        <View style={styles.chartContainer} break={false}>
+        <View style={styles.chartContainer} wrap={false}>
             <Text style={styles.subSectionTitle}>Daily Spend</Text>
             <Svg height={height} width="100%">
-                <Line x1={10} y1={height - 10} x2={width - 10} y2={height - 10} stroke="#cbd5e1" strokeWidth={1} />
-                {p.single ? (
-                    <Circle cx={p.single.x} cy={p.single.y} r={4} fill={primaryColor} />
-                ) : (
-                    <Path d={`M ${p.points}`} stroke={primaryColor} strokeWidth={2} fill="none" />
+                {/* Axes and Grid lines */}
+                <Line x1={marginL} y1={height - marginB + 5} x2={width - marginR + 5} y2={height - marginB + 5} stroke="#d1d5db" strokeWidth={1} />
+                <Line x1={marginL} y1={marginT - 5} x2={marginL} y2={height - marginB + 5} stroke="#d1d5db" strokeWidth={1} />
+
+                {/* Y Axis Labels (Spend) */}
+                <Text x={5} y={marginT} style={{ fontSize: 6 }} fill="#9ca3af">{formatNumber(maxSpend)}</Text>
+                <Text x={5} y={height - marginB} style={{ fontSize: 6 }} fill="#9ca3af">0</Text>
+                <G transform={`translate(12, ${height / 2}) rotate(-90)`}>
+                    <Text x={0} y={0} style={{ fontSize: 7, fontWeight: 'bold' }} fill="#6b7280">Spend</Text>
+                </G>
+
+                {points.length > 1 && (
+                    <Path
+                        d={`M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`}
+                        stroke={primaryColor}
+                        strokeWidth={1.5}
+                        fill="none"
+                        strokeDasharray="4 4"
+                    />
                 )}
+                {points.map((p, i) => (
+                    <G key={i}>
+                        <Circle
+                            cx={p.x}
+                            cy={p.y}
+                            r={8}
+                            fill={primaryColor}
+                        />
+                        <Text
+                            x={p.x}
+                            y={p.y + 3}
+                            textAnchor="middle"
+                            style={{ fontSize: 6, fontWeight: 'bold' }}
+                            fill="#ffffff"
+                        >
+                            {Math.round(p.value).toString()}
+                        </Text>
+
+                        {/* X Axis Labels (Dates) */}
+                        {(i === 0 || i === Math.floor(points.length / 2) || i === points.length - 1) && (
+                            <Text
+                                x={p.x}
+                                y={height - 10}
+                                textAnchor="middle"
+                                style={{ fontSize: 6 }}
+                                fill="#9ca3af"
+                            >
+                                {validData[i].date ? format(new Date(validData[i].date), 'MMM dd') : ''}
+                            </Text>
+                        )}
+                    </G>
+                ))}
             </Svg>
         </View>
     );
-}
+};
 
 const VideoRetentionChart = ({ insights, primaryColor }: { insights: any, primaryColor: string }) => {
-    // Flatten logic
     const getValue = (key: string) => {
-        const val = insights[key] || (insights[0]?.[key]); // Handle array or object
+        const val = insights[key] || (insights[0]?.[key]);
         if (Array.isArray(val) && val.length > 0) return parseInt(val[0].value || '0');
         if (typeof val === 'number') return val;
-        // Sometimes distinct keys in root
         return 0;
     };
 
-    // Specifically for campaign level, insights is object. For daily, it might be array.
-    // Ensure we look for keys.
     const videoData = [
         { label: '25%', value: getValue('video_p25_watched_actions') },
         { label: '50%', value: getValue('video_p50_watched_actions') },
@@ -689,20 +786,19 @@ const VideoRetentionChart = ({ insights, primaryColor }: { insights: any, primar
         { label: '100%', value: getValue('video_p100_watched_actions') },
     ];
 
-    // Check if any data exists
     if (videoData.every(d => d.value === 0)) return null;
 
     const maxVal = Math.max(...videoData.map(d => d.value));
 
     return (
-        <View style={styles.chartContainer} break={false}>
+        <View style={styles.chartContainer} wrap={false}>
             <Text style={styles.subSectionTitle}>Video Retention</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 100, gap: 20, paddingTop: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 80, paddingTop: 8 }}>
                 {videoData.map((d, i) => (
-                    <View key={i} style={{ flex: 1, alignItems: 'center' }}>
-                        <Text style={{ fontSize: 8, marginBottom: 4 }}>{formatNumber(d.value)}</Text>
-                        <View style={{ width: '60%', height: maxVal > 0 ? (d.value / maxVal) * 80 : 0, backgroundColor: primaryColor, borderRadius: 2 }} />
-                        <Text style={{ fontSize: 9, marginTop: 4, fontWeight: 'bold' }}>{d.label}</Text>
+                    <View key={i} style={{ flex: 1, alignItems: 'center', marginHorizontal: 7.5 }}>
+                        <Text style={{ fontSize: 7, marginBottom: 3 }}>{formatNumber(d.value)}</Text>
+                        <View style={{ width: '70%', height: maxVal > 0 ? (d.value / maxVal) * 60 : 0, backgroundColor: primaryColor, borderRadius: 2 }} />
+                        <Text style={{ fontSize: 8, marginTop: 3, fontWeight: 'bold' }}>{d.label}</Text>
                     </View>
                 ))}
             </View>
@@ -710,7 +806,7 @@ const VideoRetentionChart = ({ insights, primaryColor }: { insights: any, primar
     );
 };
 
-// Bar Chart for Delivery
+// Simple Bar Chart for Delivery
 const SimpleBarChart = ({ title, data, limit = 5, primaryColor }: any) => {
     if (!data || data.length === 0) return null;
     const sorted = [...data].sort((a, b) => b.value - a.value).slice(0, limit);
@@ -718,16 +814,16 @@ const SimpleBarChart = ({ title, data, limit = 5, primaryColor }: any) => {
     const max = sorted[0].value || 1;
 
     return (
-        <View style={{ flex: 1, marginRight: 10 }}>
-            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#666', marginBottom: 8, textTransform: 'uppercase' }}>{title}</Text>
+        <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#6b7280', marginBottom: 6, textTransform: 'uppercase' }}>{title}</Text>
             {sorted.map((d, i) => (
-                <View key={i} style={{ marginBottom: 6 }}>
+                <View key={i} style={{ marginBottom: 5 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
-                        <Text style={{ fontSize: 9 }}>{d.label}</Text>
-                        <Text style={{ fontSize: 9, fontWeight: 'bold' }}>{formatNumber(d.value)}</Text>
+                        <Text style={{ fontSize: 8, color: '#374151' }}>{d.label}</Text>
+                        <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#1f2937' }}>{formatNumber(d.value)}</Text>
                     </View>
-                    <View style={{ height: 6, width: '100%', backgroundColor: '#f1f5f9', borderRadius: 3 }}>
-                        <View style={{ height: '100%', width: `${(d.value / max) * 100}%`, backgroundColor: primaryColor, borderRadius: 3 }} />
+                    <View style={{ height: 4, width: '100%', backgroundColor: '#e5e7eb', borderRadius: 2 }}>
+                        <View style={{ height: '100%', width: `${(d.value / max) * 100}%`, backgroundColor: primaryColor, borderRadius: 2 }} />
                     </View>
                 </View>
             ))}
@@ -735,26 +831,27 @@ const SimpleBarChart = ({ title, data, limit = 5, primaryColor }: any) => {
     )
 }
 
-// --- Main Content Components ---
+// --- Main Content Components - REDESIGNED ---
 
 const TargetingSection = ({ adSet }: { adSet: any }) => {
     const { targetingSentenceLines } = adSet;
     const hasSentences = targetingSentenceLines && targetingSentenceLines.length > 0;
 
     return (
-        <View style={styles.targetingBlock}>
-            <Text style={{ fontSize: 10, fontWeight: 'bold', marginBottom: 4, color: '#1e293b' }}>Targeting</Text>
+        <View style={styles.targetingBlock} wrap={false}>
+            <Text style={{ fontSize: 9, fontWeight: 'bold', marginBottom: 4, color: '#1f2937' }}>Targeting</Text>
             {hasSentences ? (
-                targetingSentenceLines.map((line: any, i: number) => (
-                    <View key={i} style={{ marginBottom: 6 }}>
+                targetingSentenceLines.slice(0, 4).map((line: any, i: number) => ( // Limit to 4 items
+                    <View key={i} style={{ marginBottom: 4 }}>
                         <Text style={styles.targetingLabel}>{line.content}</Text>
                         <Text style={styles.targetingContent}>
-                            {Array.isArray(line.children) ? line.children.join(', ') : ''}
+                            {Array.isArray(line.children) ? line.children.slice(0, 5).join(', ') : ''}
+                            {Array.isArray(line.children) && line.children.length > 5 ? '...' : ''}
                         </Text>
                     </View>
                 ))
             ) : (
-                <Text style={{ fontSize: 9, color: '#94a3b8', fontStyle: 'italic' }}>No detailed targeting info available.</Text>
+                <Text style={{ fontSize: 7, color: '#9ca3af', fontStyle: 'italic' }}>No targeting info available.</Text>
             )}
         </View>
     );
@@ -764,36 +861,34 @@ const AdsList = ({ ads, currency }: { ads: any[], currency: string }) => {
     if (!ads || ads.length === 0) return null;
     return (
         <View style={styles.adsContainer}>
-            <Text style={{ fontSize: 11, fontWeight: 'bold', marginBottom: 8, color: '#334155' }}>Ads ({ads.length})</Text>
-            {ads.map((ad, i) => (
-                <View key={i} style={styles.adCard} break={false}>
-                    <View style={styles.adHeader}>
-                        {ad.creative?.thumbnail_url && <Image src={ad.creative.thumbnail_url} style={styles.adThumbnail} />}
-                        <View style={styles.adInfo}>
-                            <Text style={styles.adName}>{ad.name}</Text>
-                            <Text style={{ fontSize: 9, color: '#64748b' }}>{ad.status} • {ad.creative?.title || 'No Title'}</Text>
-                        </View>
+            <Text style={{ fontSize: 10, fontWeight: 'bold', marginBottom: 6, color: '#374151' }} wrap={false}>Ads ({ads.length})</Text>
+            {ads.slice(0, 2).map((ad, i) => ( // Limit to 2 ads per ad set for space
+                <View key={i} style={styles.adRow}>
+                    <View wrap={false}>
+                        <Text style={styles.adName}>{ad.name}</Text>
+                        <Text style={styles.adMeta}>{ad.status} • {ad.creative?.title || 'No Title'}</Text>
                     </View>
-
-                    {/* Nested Ad Metrics */}
-                    <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Ad Performance</Text>
                     <MetricsGrid insights={ad.insights?.[0] || ad.insights || {}} currency={currency} compact />
                 </View>
             ))}
+            {ads.length > 2 && (
+                <Text style={{ fontSize: 7, color: '#6b7280', fontStyle: 'italic', marginTop: 4 }}>
+                    + {ads.length - 2} more ads
+                </Text>
+            )}
         </View>
     );
 }
 
 const AdHierarchy = ({ adSets, currency }: { adSets: any[], currency: string }) => {
     return (
-        <View style={{ marginTop: 20 }}>
+        <View style={{ marginTop: 15 }}>
             <Text style={styles.sectionTitle}>Campaign Hierarchy: Ad Sets & Ads</Text>
             {adSets.map((adSet, i) => (
-                <View key={i} style={styles.adSetContainer} break={true}>
-                    {/* Header */}
-                    <View style={styles.adSetHeader}>
-                        <Text style={styles.adSetTitle}>Ad Set: {adSet.name}</Text>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <View key={i} style={styles.adSetContainer} break={i > 0}>
+                    <View style={styles.adSetHeader} wrap={false}>
+                        <Text style={styles.adSetTitle}>{adSet.name}</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
                             <Text style={styles.adSetMeta}>Status: {adSet.status}</Text>
                             <Text style={styles.adSetMeta}>
                                 Budget: {adSet.daily_budget ? `${adSet.daily_budget} (Daily)` :
@@ -802,14 +897,11 @@ const AdHierarchy = ({ adSets, currency }: { adSets: any[], currency: string }) 
                         </View>
                     </View>
 
-                    {/* Ad Set Metrics (Nested) */}
-                    <Text style={[styles.subSectionTitle, { marginTop: 0 }]}>Ad Set Performance</Text>
-                    <MetricsGrid insights={adSet.insights} currency={currency} />
+                    <Text style={[styles.subSectionTitle, { marginTop: 6, paddingHorizontal: 0 }]} wrap={false}>Ad Set Performance</Text>
+                    <MetricsGrid insights={adSet.insights} currency={currency} compact />
 
-                    {/* Targeting */}
                     <TargetingSection adSet={adSet} />
 
-                    {/* Ads */}
                     <AdsList ads={adSet.ads} currency={currency} />
                 </View>
             ))}
@@ -818,25 +910,22 @@ const AdHierarchy = ({ adSets, currency }: { adSets: any[], currency: string }) 
 }
 
 const ReportContentPage = ({ campaign, insights, dailyPerformance, adSets, breakdowns, timeRange, primaryColor, currency }: any) => {
-
-    // Prepare Delivery Data
     const platformData = breakdowns.platform?.data?.map((d: any) => ({ label: d.publisher_platform, value: parseInt(d.impressions) })) || [];
     const deviceData = breakdowns.device?.data?.map((d: any) => ({ label: d.device_platform, value: parseInt(d.impressions) })) || [];
 
     return (
         <Page size="A4" style={styles.page}>
-            <View style={styles.header}>
-                <Text style={[styles.headerTitle, { color: primaryColor, fontWeight: 'bold' }]}>
-                    {campaign?.name}
+            <View style={styles.header} fixed>
+                <Text style={[styles.headerTitle, { color: primaryColor }]}>
+                    {campaign?.name || 'Campaign Report'}
                 </Text>
                 <Text style={styles.headerDate}>
-                    {formatDate(timeRange.since)} - {formatDate(timeRange.until)}
+                    {formatCampaignPeriod(campaign, timeRange)}
                 </Text>
             </View>
 
             {/* Campaign Metrics */}
-            <Text style={styles.sectionTitle}>Campaign Key Performance Indicators</Text>
-            {/* Standard Metrics Grid - Top Level */}
+            <Text style={styles.sectionTitle}>Campaign Performance Overview</Text>
             <MetricsGrid insights={insights} currency={currency} />
 
             {/* Charts Section */}
@@ -847,7 +936,7 @@ const ReportContentPage = ({ campaign, insights, dailyPerformance, adSets, break
 
             {/* Delivery Section */}
             <Text style={styles.sectionTitle}>Device & Platform Delivery</Text>
-            <View style={{ flexDirection: 'row', paddingHorizontal: 20, marginBottom: 20 }}>
+            <View style={{ paddingHorizontal: 40, marginBottom: 15, flexDirection: 'row' }} wrap={false}>
                 <SimpleBarChart title="Publisher Platforms" data={platformData} primaryColor={primaryColor} />
                 <SimpleBarChart title="Device Types" data={deviceData} primaryColor={primaryColor} />
             </View>
@@ -855,7 +944,7 @@ const ReportContentPage = ({ campaign, insights, dailyPerformance, adSets, break
             {/* Gender Pie Chart */}
             {breakdowns.gender?.data && <GenderPieChart data={breakdowns.gender.data} />}
 
-            {/* Audience Breakdowns (Full Rows) */}
+            {/* Audience Breakdowns */}
             <Text style={styles.sectionTitle}>Audience & Delivery</Text>
 
             {breakdowns.region?.data && (
@@ -891,47 +980,55 @@ const ReportContentPage = ({ campaign, insights, dailyPerformance, adSets, break
             {/* Detailed Ad Hierarchy */}
             <AdHierarchy adSets={adSets} currency={currency} />
 
-
             <Text style={styles.pageFooter} render={({ pageNumber, totalPages }) => (
-                `${pageNumber} / ${totalPages}`
+                `Page ${pageNumber} of ${totalPages}`
             )} fixed />
         </Page>
     );
 };
 
-// ... ReportCoverPage and ReportEndPage (Unchanged)
-const ReportCoverPage = ({ campaign, timeRange, primaryColor }: { campaign: any, timeRange: any, primaryColor: string }) => (
-    <Page size="A4" style={[styles.page, { backgroundColor: primaryColor }]}>
-        <View style={styles.coverPage}>
-            <View style={styles.logoContainer}>
-                <Image src="/nisclogowhite.png" style={styles.logo} />
+// Cover and End Pages (Unchanged)
+const ReportCoverPage = (props: { campaign: any, timeRange: any, primaryColor: string, accountName?: string }) => {
+    const { campaign, timeRange, primaryColor } = props;
+    return (
+        <Page size="A4" style={[styles.page, { backgroundColor: primaryColor }]}>
+            <View style={styles.coverPage}>
+                <View style={styles.logoContainer}>
+                    <Image src="/nisclogowhite.png" style={styles.logo} />
+                </View>
+                <View style={styles.coverContent}>
+                    <Text style={styles.campaignTitle}>{campaign?.name || 'Campaign Report'}</Text>
+                    <Text style={styles.periodText}>
+                        Period: {formatCampaignPeriod(campaign, timeRange)}
+                    </Text>
+                    {props.accountName && (
+                        <View style={styles.accountNameContainer}>
+                            <Text style={{ fontSize: 12, color: '#ffffff', opacity: 0.8, marginRight: 6 }}>Ad Account:</Text>
+                            <Text style={styles.accountNameText}>{props.accountName}</Text>
+                        </View>
+                    )}
+                    {campaign?.objective && (
+                        <View style={styles.objectiveContainer}>
+                            <Text style={styles.objectiveText}>
+                                {campaign.objective.replace(/_/g, ' - ')}
+                            </Text>
+                        </View>
+                    )}
+                </View>
+                <View style={styles.createdByContainer}>
+                    <Text style={styles.createdByLabel}>Report Generated by:</Text>
+                    <Text style={styles.createdByText}>Nisc Cloud</Text>
+                </View>
+                <View style={styles.disclaimerContainer}>
+                    <Text style={styles.disclaimerText}>
+                        This report provides a comprehensive overview of the campaign's performance from its
+                        inception on {formatDate(timeRange.since)} until {formatDate(timeRange.until)}.
+                    </Text>
+                </View>
             </View>
-            <View style={styles.coverContent}>
-                <Text style={styles.campaignTitle}>{campaign?.name || 'Campaign Report'}</Text>
-                <Text style={styles.periodText}>
-                    Period: {formatDate(timeRange.since)} - {formatDate(timeRange.until)}
-                </Text>
-                {campaign?.objective && (
-                    <View style={styles.objectiveContainer}>
-                        <Text style={styles.objectiveText}>
-                            {campaign.objective.replace(/_/g, ' ')}
-                        </Text>
-                    </View>
-                )}
-            </View>
-            <View style={styles.createdByContainer}>
-                <Text style={styles.createdByLabel}>Created By:</Text>
-                <Text style={styles.createdByText}>Nisc Cloud Creative Team</Text>
-            </View>
-            <View style={styles.disclaimerContainer}>
-                <Text style={styles.disclaimerText}>
-                    Information in this report represents data from the period selected in your date filter
-                    ({formatDate(timeRange.since)} - {formatDate(timeRange.until)}).
-                </Text>
-            </View>
-        </View>
-    </Page>
-);
+        </Page>
+    );
+};
 
 const ReportEndPage = ({ primaryColor }: { primaryColor: string }) => (
     <Page size="A4" style={styles.endPageContent}>
@@ -939,20 +1036,40 @@ const ReportEndPage = ({ primaryColor }: { primaryColor: string }) => (
         <View style={styles.contactInfoContainer}>
             <Text style={styles.contactTitle}>For more information</Text>
             <View style={styles.contactRow}>
-                <View style={[styles.contactIcon, { backgroundColor: '#E0F2FE' }]} />
+                <View style={[styles.contactIcon]}>
+                    <Svg width={20} height={20} viewBox="0 0 24 24" stroke="#ffffff" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round">
+                        <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <Circle cx={12} cy={10} r={3} />
+                    </Svg>
+                </View>
                 <Text style={styles.contactText}>AppleWood Adams, Ngong Road, Office No 805</Text>
             </View>
             <View style={styles.contactRow}>
-                <View style={[styles.contactIcon, { backgroundColor: '#E0F2FE' }]} />
-                <Text style={styles.contactText}>+254 777 666 550</Text>
+                <View style={[styles.contactIcon]}>
+                    <Svg width={20} height={20} viewBox="0 0 24 24" stroke="#ffffff" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round">
+                        <Path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                    </Svg>
+                </View>
+                <Link src="tel:+254777666550" style={styles.contactLink}>+254 777 666 550</Link>
             </View>
             <View style={styles.contactRow}>
-                <View style={[styles.contactIcon, { backgroundColor: '#E0F2FE' }]} />
-                <Text style={styles.contactText}>enquiries@nisccloud.com</Text>
+                <View style={[styles.contactIcon]}>
+                    <Svg width={20} height={20} viewBox="0 0 24 24" stroke="#ffffff" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round">
+                        <Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <Path d="M22 6l-10 7L2 6" />
+                    </Svg>
+                </View>
+                <Link src="mailto:enquiries@nisccloud.com" style={styles.contactLink}>enquiries@nisccloud.com</Link>
             </View>
             <View style={styles.contactRow}>
-                <View style={[styles.contactIcon, { backgroundColor: '#E0F2FE' }]} />
-                <Text style={styles.contactText}>nisccloud.com</Text>
+                <View style={[styles.contactIcon]}>
+                    <Svg width={20} height={20} viewBox="0 0 24 24" stroke="#ffffff" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round">
+                        <Circle cx={12} cy={12} r={10} />
+                        <Line x1={2} y1={12} x2={22} y2={12} />
+                        <Path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </Svg>
+                </View>
+                <Link src="https://www.nisccloud.com" style={styles.contactLink}>www.nisccloud.com</Link>
             </View>
         </View>
     </Page>

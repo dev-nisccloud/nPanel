@@ -320,7 +320,7 @@ importers:
         specifier: ^4.2.0
         version: 4.2.0(react@19.2.1)
       radix-ui:
-        specifier: ^1.4.2
+        specifier: ^1.4.3
         version: 1.4.3(@types/react-dom@19.2.3(@types/react@19.2.8))(@types/react@19.2.8)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       react:
         specifier: 19.2.1
@@ -691,13 +691,13 @@ importers:
         version: 2.9.1
       '@tiptap/core':
         specifier: ^3.6.6
-        version: 3.6.6(@tiptap/pm@2.26.3)
+        version: 3.6.6(@tiptap/pm@3.9.0)
       '@tiptap/extension-link':
         specifier: ^2.26.3
-        version: 2.26.3(@tiptap/core@3.6.6(@tiptap/pm@2.26.3))(@tiptap/pm@2.26.3)
+        version: 2.26.3(@tiptap/core@3.6.6(@tiptap/pm@3.9.0))(@tiptap/pm@3.9.0)
       '@tiptap/extension-underline':
         specifier: ^2.26.3
-        version: 2.26.3(@tiptap/core@3.6.6(@tiptap/pm@2.26.3))
+        version: 2.26.3(@tiptap/core@3.6.6(@tiptap/pm@3.9.0))
       '@tiptap/starter-kit':
         specifier: ^2.26.3
         version: 2.26.3
@@ -741,7 +741,7 @@ importers:
     devDependencies:
       '@react-email/preview-server':
         specifier: 4.3.2
-        version: 4.3.2(@emotion/is-prop-valid@1.4.0)(@opentelemetry/api@1.9.0)(postcss@8.5.6)(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3))
+        version: 4.3.2(@emotion/is-prop-valid@1.4.0)(@opentelemetry/api@1.9.0)(postcss@8.5.6)(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3))
       '@types/react':
         specifier: ^19.2.8
         version: 19.2.8
@@ -905,10 +905,10 @@ importers:
         version: 2.5.3
       tailwindcss:
         specifier: ^3.4.13
-        version: 3.4.18(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3))
+        version: 3.4.18(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3))
       tailwindcss-animate:
         specifier: ^1.0.7
-        version: 1.0.7(tailwindcss@3.4.18(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3)))
+        version: 1.0.7(tailwindcss@3.4.18(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3)))
       vaul:
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.8))(@types/react@19.2.8)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -8414,10 +8414,12 @@ packages:
   tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
 
   tar@7.5.1:
     resolution: {integrity: sha512-nlGpxf+hv0v7GkWBK2V9spgactGOp0qvfWRxUMjqHyzrt3SgwE48DIv/FhqPHJYLHpgW1opq3nERbz5Anq7n1g==}
     engines: {node: '>=18'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
 
   teeny-request@10.1.0:
     resolution: {integrity: sha512-3ZnLvgWF29jikg1sAQ1g0o+lr5JX6sVgYvfUJazn7ZjJroDBUTWp44/+cFVX0bULjv4vci+rBD+oGVAkWqhUbw==}
@@ -11750,7 +11752,7 @@ snapshots:
       marked: 15.0.12
       react: 19.2.1
 
-  '@react-email/preview-server@4.3.2(@emotion/is-prop-valid@1.4.0)(@opentelemetry/api@1.9.0)(postcss@8.5.6)(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3))':
+  '@react-email/preview-server@4.3.2(@emotion/is-prop-valid@1.4.0)(@opentelemetry/api@1.9.0)(postcss@8.5.6)(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3))':
     dependencies:
       '@babel/core': 7.26.10
       '@babel/parser': 7.27.0
@@ -11790,7 +11792,7 @@ snapshots:
       spamc: 0.0.5
       stacktrace-parser: 0.1.11
       tailwind-merge: 3.2.0
-      tailwindcss: 3.4.0(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3))
+      tailwindcss: 3.4.0(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3))
       use-debounce: 10.0.4(react@19.0.0)
       zod: 3.24.3
     transitivePeerDependencies:
@@ -12558,9 +12560,9 @@ snapshots:
     dependencies:
       '@tiptap/pm': 2.26.3
 
-  '@tiptap/core@3.6.6(@tiptap/pm@2.26.3)':
+  '@tiptap/core@3.6.6(@tiptap/pm@3.9.0)':
     dependencies:
-      '@tiptap/pm': 2.26.3
+      '@tiptap/pm': 3.9.0
 
   '@tiptap/core@3.9.0(@tiptap/pm@3.9.0)':
     dependencies:
@@ -12703,10 +12705,10 @@ snapshots:
       '@tiptap/pm': 2.26.3
       linkifyjs: 4.3.2
 
-  '@tiptap/extension-link@2.26.3(@tiptap/core@3.6.6(@tiptap/pm@2.26.3))(@tiptap/pm@2.26.3)':
+  '@tiptap/extension-link@2.26.3(@tiptap/core@3.6.6(@tiptap/pm@3.9.0))(@tiptap/pm@3.9.0)':
     dependencies:
-      '@tiptap/core': 3.6.6(@tiptap/pm@2.26.3)
-      '@tiptap/pm': 2.26.3
+      '@tiptap/core': 3.6.6(@tiptap/pm@3.9.0)
+      '@tiptap/pm': 3.9.0
       linkifyjs: 4.3.2
 
   '@tiptap/extension-link@3.9.0(@tiptap/core@3.9.0(@tiptap/pm@3.9.0))(@tiptap/pm@3.9.0)':
@@ -12782,9 +12784,9 @@ snapshots:
     dependencies:
       '@tiptap/core': 2.26.3(@tiptap/pm@2.26.3)
 
-  '@tiptap/extension-underline@2.26.3(@tiptap/core@3.6.6(@tiptap/pm@2.26.3))':
+  '@tiptap/extension-underline@2.26.3(@tiptap/core@3.6.6(@tiptap/pm@3.9.0))':
     dependencies:
-      '@tiptap/core': 3.6.6(@tiptap/pm@2.26.3)
+      '@tiptap/core': 3.6.6(@tiptap/pm@3.9.0)
 
   '@tiptap/extension-underline@3.9.0(@tiptap/core@3.9.0(@tiptap/pm@3.9.0))':
     dependencies:
@@ -14936,7 +14938,7 @@ snapshots:
     dependencies:
       loader-utils: 2.0.4
       schema-utils: 3.3.0
-      webpack: 5.102.1(esbuild@0.25.10)
+      webpack: 5.102.1
 
   file-saver@2.0.5: {}
 
@@ -17092,13 +17094,13 @@ snapshots:
       camelcase-css: 2.0.1
       postcss: 8.5.6
 
-  postcss-load-config@4.0.2(postcss@8.5.6)(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3)):
+  postcss-load-config@4.0.2(postcss@8.5.6)(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3)):
     dependencies:
       lilconfig: 3.1.3
       yaml: 2.8.1
     optionalDependencies:
       postcss: 8.5.6
-      ts-node: 10.9.2(@types/node@24.6.2)(typescript@5.9.3)
+      ts-node: 10.9.2(@types/node@22.18.8)(typescript@5.9.3)
 
   postcss-nested@6.2.0(postcss@8.5.6):
     dependencies:
@@ -18481,15 +18483,15 @@ snapshots:
 
   tailwind-merge@3.3.1: {}
 
-  tailwindcss-animate@1.0.7(tailwindcss@3.4.18(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3))):
+  tailwindcss-animate@1.0.7(tailwindcss@3.4.18(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3))):
     dependencies:
-      tailwindcss: 3.4.18(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3))
+      tailwindcss: 3.4.18(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3))
 
   tailwindcss-animate@1.0.7(tailwindcss@4.1.14):
     dependencies:
       tailwindcss: 4.1.14
 
-  tailwindcss@3.4.0(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3)):
+  tailwindcss@3.4.0(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3)):
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
@@ -18508,7 +18510,7 @@ snapshots:
       postcss: 8.5.6
       postcss-import: 15.1.0(postcss@8.5.6)
       postcss-js: 4.1.0(postcss@8.5.6)
-      postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3))
+      postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3))
       postcss-nested: 6.2.0(postcss@8.5.6)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.10
@@ -18516,7 +18518,7 @@ snapshots:
     transitivePeerDependencies:
       - ts-node
 
-  tailwindcss@3.4.18(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3)):
+  tailwindcss@3.4.18(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3)):
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
@@ -18535,7 +18537,7 @@ snapshots:
       postcss: 8.5.6
       postcss-import: 15.1.0(postcss@8.5.6)
       postcss-js: 4.1.0(postcss@8.5.6)
-      postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3))
+      postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3))
       postcss-nested: 6.2.0(postcss@8.5.6)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.10
@@ -18593,6 +18595,15 @@ snapshots:
       webpack: 5.102.1(esbuild@0.25.10)
     optionalDependencies:
       esbuild: 0.25.10
+
+  terser-webpack-plugin@5.3.14(webpack@5.102.1):
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      jest-worker: 27.5.1
+      schema-utils: 4.3.3
+      serialize-javascript: 6.0.2
+      terser: 5.44.0
+      webpack: 5.102.1
 
   terser@5.44.0:
     dependencies:
@@ -18676,14 +18687,14 @@ snapshots:
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
 
-  ts-node@10.9.2(@types/node@24.6.2)(typescript@5.9.3):
+  ts-node@10.9.2(@types/node@22.18.8)(typescript@5.9.3):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.11
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
-      '@types/node': 24.6.2
+      '@types/node': 22.18.8
       acorn: 8.15.0
       acorn-walk: 8.3.4
       arg: 4.1.3
@@ -19099,6 +19110,38 @@ snapshots:
   webidl-conversions@3.0.1: {}
 
   webpack-sources@3.3.3: {}
+
+  webpack@5.102.1:
+    dependencies:
+      '@types/eslint-scope': 3.7.7
+      '@types/estree': 1.0.8
+      '@types/json-schema': 7.0.15
+      '@webassemblyjs/ast': 1.14.1
+      '@webassemblyjs/wasm-edit': 1.14.1
+      '@webassemblyjs/wasm-parser': 1.14.1
+      acorn: 8.15.0
+      acorn-import-phases: 1.0.4(acorn@8.15.0)
+      browserslist: 4.26.3
+      chrome-trace-event: 1.0.4
+      enhanced-resolve: 5.18.3
+      es-module-lexer: 1.7.0
+      eslint-scope: 5.1.1
+      events: 3.3.0
+      glob-to-regexp: 0.4.1
+      graceful-fs: 4.2.11
+      json-parse-even-better-errors: 2.3.1
+      loader-runner: 4.3.0
+      mime-types: 2.1.35
+      neo-async: 2.6.2
+      schema-utils: 4.3.3
+      tapable: 2.3.0
+      terser-webpack-plugin: 5.3.14(webpack@5.102.1)
+      watchpack: 2.4.4
+      webpack-sources: 3.3.3
+    transitivePeerDependencies:
+      - '@swc/core'
+      - esbuild
+      - uglify-js
 
   webpack@5.102.1(esbuild@0.25.10):
     dependencies:

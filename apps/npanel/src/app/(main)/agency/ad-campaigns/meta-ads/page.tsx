@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,11 +23,11 @@ import {
 	Building2
 } from "lucide-react";
 import { ConnectMetaAds } from "./_components/connect-meta-ads";
-import { CampaignDetailsDialog } from "./[accountId]/_components/campaign-details-dialog";
 import type { StoredCredentials } from "./_components/schemas";
 import type { MetaAdsAccount } from "./_components/schemas";
 
 export default function MetaAdsPage() {
+	const router = useRouter();
 	const [selectedAccountId, setSelectedAccountId] = React.useState<string>("");
 
 	// Date range state
@@ -567,7 +568,7 @@ export default function MetaAdsPage() {
 																	key={campaign.id}
 																	className="hover:bg-accent/50 transition-colors cursor-pointer"
 																	onClick={() => {
-																		setSelectedCampaign(campaign);
+																		router.push(`/agency/ad-campaigns/meta-ads/${selectedAccountId}/campaigns/${campaign.id}`);
 																	}}
 																>
 																	<CardContent className="p-4">
@@ -703,8 +704,8 @@ export default function MetaAdsPage() {
 											</Card>
 										</div>
 
-										{/* Campaign Details Dialog */}
-										{selectedCampaign && (
+										{/* Campaign Details Dialog - Commented out, now using dedicated page */}
+										{/* {selectedCampaign && (
 											<CampaignDetailsDialog
 												campaign={selectedCampaign}
 												open={!!selectedCampaign}
@@ -716,7 +717,7 @@ export default function MetaAdsPage() {
 												timeRange={timeRange}
 												currency={currency}
 											/>
-										)}
+										)} */}
 									</>
 								) : accountError ? (
 									<div className="mt-6">

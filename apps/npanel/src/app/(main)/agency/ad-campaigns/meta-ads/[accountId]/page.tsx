@@ -21,7 +21,6 @@ import {
 	TrendingUp,
 	Calendar as CalendarIcon
 } from "lucide-react";
-import { CampaignDetailsDialog } from "./_components/campaign-details-dialog";
 
 export default function MetaAdsAccountDetailPage() {
 	const params = useParams();
@@ -407,7 +406,7 @@ export default function MetaAdsAccountDetailPage() {
 									key={campaign.id}
 									className="hover:bg-accent/50 transition-colors cursor-pointer"
 									onClick={() => {
-										setSelectedCampaign(campaign);
+										router.push(`/agency/ad-campaigns/meta-ads/${accountId}/campaigns/${campaign.id}`);
 									}}
 								>
 									<CardContent className="p-4">
@@ -547,20 +546,7 @@ export default function MetaAdsAccountDetailPage() {
 				</CardContent>
 			</Card>
 
-			{/* Campaign Details Dialog */}
-			{selectedCampaign && (
-				<CampaignDetailsDialog
-					campaign={selectedCampaign}
-					open={!!selectedCampaign}
-					onOpenChange={(open) => {
-						if (!open) {
-							setSelectedCampaign(null);
-						}
-					}}
-					timeRange={timeRange}
-					currency={currency}
-				/>
-			)}
+
 		</div>
 	);
 }
