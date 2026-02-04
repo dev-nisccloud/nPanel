@@ -4,6 +4,7 @@ import { googleAdsAccountsRouter } from './accounts';
 import { googleAdsCampaignsRouter } from './campaigns';
 import { googleAdsAdGroupsRouter } from './ad-groups';
 import { googleAdsAdsRouter } from './ads';
+import { googleAdsInsightsRouter } from './insights';
 
 export const googleAdsRouter = router({
 	auth: googleAdsAuthRouter,
@@ -11,6 +12,7 @@ export const googleAdsRouter = router({
 	campaigns: googleAdsCampaignsRouter,
 	adGroups: googleAdsAdGroupsRouter,
 	ads: googleAdsAdsRouter,
+	insights: googleAdsInsightsRouter,
 });
 
 

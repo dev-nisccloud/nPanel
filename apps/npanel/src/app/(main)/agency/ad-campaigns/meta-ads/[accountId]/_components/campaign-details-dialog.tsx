@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
+import { DownloadReportButton } from "./report/download-button";
 import { Target, Layers, FileText, CalendarIcon, TrendingUp, MapPin, Users, Heart, Crosshair, ChevronDown, ChevronUp, X, BarChart3, PieChart as PieChartIcon, Activity } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -179,6 +180,16 @@ function formatPlacementLabel(placement: string): string {
 	}
 
 	return platform ? `${platform}: ${pos}` : pos;
+}
+
+function formatRegionLabel(region: string | null | undefined): string {
+	if (!region || region.toLowerCase().includes('unknown')) return 'Other / Uncategorized';
+
+	// Handle cases like 'CALIFORNIA' -> 'California' or 'new york' -> 'New York'
+	return region
+		.split(' ')
+		.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+		.join(' ');
 }
 
 function VideoRetentionChart({ data }: { data: any[] }) {
@@ -426,6 +437,75 @@ export function CampaignDetailsDialog({
 		return objective;
 	};
 
+	// State to lift data from AdSetItems
+	const [adsByAdSet, setAdsByAdSet] = React.useState<Record<string, any[]>>({});
+	const [targetingByAdSet, setTargetingByAdSet] = React.useState<Record<string, any[]>>({});
+
+	const handleAdsLoaded = React.useCallback((adSetId: string, ads: any[]) => {
+		setAdsByAdSet(prev => {
+			// Simple check to avoid infinite loops if ref reference changes but data is same
+			if (prev[adSetId]?.length === ads.length && JSON.stringify(prev[adSetId]) === JSON.stringify(ads)) return prev;
+			return { ...prev, [adSetId]: ads };
+		});
+	}, []);
+
+	const handleTargetingLoaded = React.useCallback((adSetId: string, lines: any[]) => {
+		setTargetingByAdSet(prev => {
+			if (prev[adSetId]?.length === lines.length && JSON.stringify(prev[adSetId]) === JSON.stringify(lines)) return prev;
+			return { ...prev, [adSetId]: lines };
+		});
+	}, []);
+
+	// Prepare data for PDF Report
+	const pdfData = React.useMemo(() => {
+		// Process Ad Sets with Targeting AND Ads
+		const processedAdSets = adSets.map((adSet: any) => ({
+			...adSet,
+			targetingInfo: parseTargeting(adSet.targeting),
+			targetingSentenceLines: targetingByAdSet[adSet.id] || [], // Lifted data
+			ads: adsByAdSet[adSet.id] || [], // Lifted data
+		}));
+
+		// Helper to capitalize
+		const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
+
+		// Process Breakdowns
+		const processedBreakdowns = {
+			gender: genderBreakdown ? {
+				...genderBreakdown,
+				data: genderBreakdown.data.map((item: any) => ({ ...item, gender: capitalize(item.gender) }))
+			} : undefined,
+			platform: platformBreakdown ? {
+				...platformBreakdown,
+				data: platformBreakdown.data.map((item: any) => ({ ...item, publisher_platform: capitalize(item.publisher_platform) }))
+			} : undefined,
+			device: deviceBreakdown ? {
+				...deviceBreakdown,
+				data: deviceBreakdown.data.map((item: any) => ({ ...item, device_platform: capitalize(item.device_platform) }))
+			} : undefined,
+			region: regionBreakdown ? {
+				...regionBreakdown,
+				data: regionBreakdown.data.map((item: any) => ({
+					...item,
+					region: formatRegionLabel(item.region),
+				})),
+			} : undefined,
+			placement: placementBreakdown ? {
+				...placementBreakdown,
+				data: placementBreakdown.data.map((item: any) => ({
+					...item,
+					platform_position: formatPlacementLabel(item.platform_position),
+				})),
+			} : undefined,
+		};
+
+		return {
+			adSets: processedAdSets,
+			breakdowns: processedBreakdowns,
+			dailyPerformance: dailyPerformance?.data || [],
+		};
+	}, [adSets, genderBreakdown, platformBreakdown, deviceBreakdown, regionBreakdown, placementBreakdown, adsByAdSet, targetingByAdSet, dailyPerformance]);
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
@@ -442,18 +522,28 @@ export function CampaignDetailsDialog({
 						<div className="flex items-center gap-2 min-w-0">
 							<Target className="h-5 w-5 shrink-0" />
 							<h2 className="font-semibold truncate">
-								{campaign?.name || `Campaign ${campaign?.id}`}
 							</h2>
 						</div>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-8 w-8 shrink-0"
-							onClick={() => onOpenChange(false)}
-						>
-							<X className="h-4 w-4" />
-							<span className="sr-only">Close</span>
-						</Button>
+						<div className="flex items-center gap-2">
+							<DownloadReportButton
+								campaign={campaign}
+								insights={campaign?.insights}
+								dailyPerformance={dailyPerformance?.data || []}
+								adSets={pdfData.adSets}
+								breakdowns={pdfData.breakdowns}
+								timeRange={effectiveTimeRange}
+								currency={currency}
+							/>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-8 w-8 shrink-0"
+								onClick={() => onOpenChange(false)}
+							>
+								<X className="h-4 w-4" />
+								<span className="sr-only">Close</span>
+							</Button>
+						</div>
 					</div>
 
 					<Tabs defaultValue="overview" className="flex-1 min-h-0 flex flex-col">
@@ -597,6 +687,8 @@ export function CampaignDetailsDialog({
 													getStatusStyles={getStatusStyles}
 													timeRange={timeRange}
 													currency={currency}
+													onAdsLoaded={handleAdsLoaded}
+													onTargetingLoaded={handleTargetingLoaded}
 												/>
 											))}
 										</div>
@@ -993,10 +1085,11 @@ export function CampaignDetailsDialog({
 											<ChartContainer config={breakdownChartConfig} className="min-h-[400px] w-full">
 												<BarChart
 													data={regionBreakdown.data
+														.filter((item: any) => parseInt(item.impressions || '0') > 0)
 														.sort((a: any, b: any) => parseInt(b.impressions || '0') - parseInt(a.impressions || '0'))
 														.slice(0, 15)
 														.map((item: any) => ({
-															region: item.region,
+															region: formatRegionLabel(item.region),
 															impressions: parseInt(item.impressions || '0'),
 															spend: parseFloat(item.spend || '0'),
 														}))}
@@ -1046,9 +1139,11 @@ interface AdSetItemProps {
 		until: string;
 	};
 	currency?: string;
+	onAdsLoaded?: (adSetId: string, ads: any[]) => void;
+	onTargetingLoaded?: (adSetId: string, lines: any[]) => void;
 }
 
-function AdSetItem({ adSet, getStatusStyles, timeRange, currency = 'USD' }: AdSetItemProps) {
+function AdSetItem({ adSet, getStatusStyles, timeRange, currency = 'USD', onAdsLoaded, onTargetingLoaded }: AdSetItemProps) {
 	// Load ads when ad set is rendered
 	const {
 		data: adsData,
@@ -1079,6 +1174,19 @@ function AdSetItem({ adSet, getStatusStyles, timeRange, currency = 'USD' }: AdSe
 	const sentenceLines = sentenceLinesData?.data ?? [];
 	const parsed = parseTargeting(adSet.targeting);
 	const hasTargeting = parsed.hasAny || sentenceLines.length > 0;
+
+	// Lift data up to parent
+	React.useEffect(() => {
+		if (onAdsLoaded && ads.length > 0) {
+			onAdsLoaded(adSet.id, ads);
+		}
+	}, [ads, adSet.id, onAdsLoaded]);
+
+	React.useEffect(() => {
+		if (onTargetingLoaded && sentenceLines.length > 0) {
+			onTargetingLoaded(adSet.id, sentenceLines);
+		}
+	}, [sentenceLines, adSet.id, onTargetingLoaded]);
 
 	return (
 		<Card>

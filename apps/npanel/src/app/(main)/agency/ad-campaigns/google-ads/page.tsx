@@ -110,9 +110,9 @@ export default function GoogleAdsPage() {
 	const timeRange =
 		dateRange?.from && dateRange?.to
 			? {
-					since: format(dateRange.from, "yyyy-MM-dd"),
-					until: format(dateRange.to, "yyyy-MM-dd"),
-				}
+				since: format(dateRange.from, "yyyy-MM-dd"),
+				until: format(dateRange.to, "yyyy-MM-dd"),
+			}
 			: undefined;
 
 	// Fetch campaigns when account is selected
@@ -209,24 +209,30 @@ export default function GoogleAdsPage() {
 		}
 	};
 
-	const getStatusVariant = (
-		status?: string
-	): "default" | "secondary" | "destructive" => {
-		if (!status) return "secondary";
+	const getStatusVariant = (status?: string) => {
+		if (!status) return { variant: "secondary" as const };
 		const upper = status.toUpperCase();
-		if (upper === "ACTIVE" || upper === "ENABLED") return "default";
-		if (upper === "PAUSED" || upper === "REMOVED") return "destructive";
-		return "secondary";
+		if (upper === "ACTIVE" || upper === "ENABLED") {
+			return {
+				variant: "outline" as const,
+				className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 font-sans rounded-full",
+			};
+		}
+		if (upper === "PAUSED" || upper === "REMOVED") return { variant: "destructive" as const };
+		return { variant: "secondary" as const };
 	};
 
-	const getCampaignStatusVariant = (
-		status?: string | number
-	): "default" | "secondary" | "destructive" => {
-		if (status === undefined || status === null) return "secondary";
+	const getCampaignStatusVariant = (status?: string | number) => {
+		if (status === undefined || status === null) return { variant: "secondary" as const };
 		const upper = String(status).toUpperCase();
-		if (upper === "ENABLED" || upper === "ACTIVE") return "default";
-		if (upper === "REMOVED" || upper === "DELETED") return "destructive";
-		return "secondary";
+		if (upper === "ENABLED" || upper === "ACTIVE") {
+			return {
+				variant: "outline" as const,
+				className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 font-sans rounded-full",
+			};
+		}
+		if (upper === "REMOVED" || upper === "DELETED") return { variant: "destructive" as const };
+		return { variant: "secondary" as const };
 	};
 
 	const formatGoogleDate = (yyyyMMdd: string | undefined): string => {
@@ -345,18 +351,23 @@ export default function GoogleAdsPage() {
 																{(accounts.find(
 																	(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
 																) as GoogleAdsAccount)?.status && (
-																	<Badge
-																		variant={getStatusVariant(
-																			(accounts.find(
+																		<Badge
+																			variant={getStatusVariant(
+																				(accounts.find(
+																					(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
+																				) as GoogleAdsAccount)?.status
+																			).variant}
+																			className={getStatusVariant(
+																				(accounts.find(
+																					(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
+																				) as GoogleAdsAccount)?.status
+																			).className}
+																		>
+																			{(accounts.find(
 																				(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
-																			) as GoogleAdsAccount)?.status
-																		)}
-																	>
-																		{(accounts.find(
-																			(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
-																		) as GoogleAdsAccount)?.status}
-																	</Badge>
-																)}
+																			) as GoogleAdsAccount)?.status}
+																		</Badge>
+																	)}
 															</div>
 														)}
 												</SelectValue>
@@ -373,8 +384,8 @@ export default function GoogleAdsPage() {
 															</div>
 															{accountItem.status && (
 																<Badge
-																	variant={getStatusVariant(accountItem.status)}
-																	className="flex-shrink-0"
+																	variant={getStatusVariant(accountItem.status).variant}
+																	className={getStatusVariant(accountItem.status).className}
 																>
 																	{accountItem.status}
 																</Badge>
@@ -543,7 +554,10 @@ export default function GoogleAdsPage() {
 																		<div className="flex flex-col gap-3">
 																			{campaign.status && (
 																				<div>
-																					<Badge variant={getCampaignStatusVariant(campaign.status)}>
+																					<Badge
+																						variant={getCampaignStatusVariant(campaign.status).variant}
+																						className={getCampaignStatusVariant(campaign.status).className}
+																					>
 																						{campaign.status}
 																					</Badge>
 																				</div>
