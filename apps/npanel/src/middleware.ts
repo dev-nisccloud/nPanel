@@ -89,8 +89,10 @@ async function isSessionValid(req: NextRequest): Promise<boolean> {
   // 2. It adds massive latency to every request.
   // 3. The actual security verification happens in the Server Components (Layouts/Pages) via lib/auth-server.ts
 
-  const cookieName = "better-auth.session_token";
-  const sessionCookie = req.cookies.get(cookieName);
+  // Check for both insecure (dev) and secure (prod) cookie names
+  // Better Auth prefixes cookies with __Secure- in production/https environments
+  const sessionCookie = req.cookies.get("better-auth.session_token") ||
+    req.cookies.get("__Secure-better-auth.session_token");
 
   return !!sessionCookie?.value;
 }
