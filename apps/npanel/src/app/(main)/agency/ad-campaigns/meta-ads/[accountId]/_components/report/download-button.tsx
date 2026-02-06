@@ -78,8 +78,10 @@ const registerFonts = async (): Promise<boolean> => {
 interface DownloadReportButtonProps {
     campaign: any;
     insights: any;
-    dailyPerformance: any[]; // New prop
-    adSets: any[]; // New prop
+    dailyPerformance: any[];
+    hourlyPerformance: any[];
+    engagementActions: any[];
+    adSets: any[];
     breakdowns: {
         gender: any;
         platform: any;
@@ -99,6 +101,8 @@ export function DownloadReportButton({
     campaign,
     insights,
     dailyPerformance,
+    hourlyPerformance,
+    engagementActions,
     adSets,
     breakdowns,
     timeRange,
@@ -156,6 +160,8 @@ export function DownloadReportButton({
                     campaign={campaign}
                     insights={insights}
                     dailyPerformance={dailyPerformance}
+                    hourlyPerformance={hourlyPerformance}
+                    engagementActions={engagementActions}
                     adSets={adSets}
                     breakdowns={breakdowns}
                     timeRange={timeRange}

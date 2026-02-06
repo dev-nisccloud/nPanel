@@ -34,7 +34,9 @@ import {
     PieChart as PieChartIcon,
     Activity,
     AlertCircle,
-    RefreshCw
+    RefreshCw,
+    Clock,
+    MousePointer2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -582,14 +584,37 @@ function ValueLineRegionChart({ breakdown, config }: { breakdown: any, config: C
 
     const chartData = React.useMemo(() => {
         if (!breakdown?.data) return [];
+
+        // Detect data types for intelligent formatting
+        const firstItem = breakdown.data[0];
+        const isAgeData = firstItem?.age !== undefined;
+        const isRegionData = firstItem?.region !== undefined;
+
         return breakdown.data
-            .filter((item: any) => parseInt(item.impressions || '0') > 0)
-            .sort((a: any, b: any) => parseInt(b.impressions || '0') - parseInt(a.impressions || '0'))
+            .filter((item: any) => {
+                const val = parseInt(item.impressions || item.value || '0');
+                return val > 0;
+            })
+            .sort((a: any, b: any) => {
+                const valA = parseInt(a.impressions || a.value || '0');
+                const valB = parseInt(b.impressions || b.value || '0');
+                return valB - valA;
+            })
             .slice(0, 10)
-            .map((item: any) => ({
-                region: formatRegionLabel(item.region),
-                impressions: parseInt(item.impressions || '0'),
-            }));
+            .map((item: any) => {
+                // Priority: Explicit label -> Age -> Formatted Region -> Fallback
+                let label = item.label;
+                if (!label) {
+                    if (isAgeData) label = item.age;
+                    else if (isRegionData) label = formatRegionLabel(item.region);
+                    else label = "Other / Uncategorized";
+                }
+
+                return {
+                    label,
+                    impressions: parseInt(item.impressions || item.value || '0'),
+                };
+            });
     }, [breakdown]);
 
     const maxValueIndex = React.useMemo(() => {
@@ -633,7 +658,7 @@ function ValueLineRegionChart({ breakdown, config }: { breakdown: any, config: C
                 margin={{ left: REGION_CHART_MARGIN, right: 10, top: 20, bottom: 60 }}
             >
                 <XAxis
-                    dataKey="region"
+                    dataKey="label"
                     tickLine={false}
                     tickMargin={10}
                     axisLine={false}
@@ -702,8 +727,143 @@ const CustomReferenceLabel = (props: any) => {
 
 
 // ---------------------------------------------------------------------------
-// Metrics Display Component
+// Hourly Performance Distribution Component
 // ---------------------------------------------------------------------------
+
+function HourlyPerformanceDistribution({ data, config }: { data: any[], config: ChartConfig }) {
+    const chartData = React.useMemo(() => {
+        // Meta returns a 24-hour profile when aggregated by 'all_days'
+        const stats = Array(24).fill(0).map((_, i) => ({
+            hour: i,
+            label: `${i.toString().padStart(2, '0')}:00`,
+            impressions: 0
+        }));
+
+        data.forEach(item => {
+            const hourField = item.hourly_stats_aggregated_by_audience_time_zone;
+            if (hourField) {
+                const hour = parseInt(hourField.split(':')[0]);
+                if (!isNaN(hour) && hour >= 0 && hour < 24) {
+                    stats[hour].impressions += parseInt(item.impressions || '0');
+                }
+            }
+        });
+
+        return stats;
+    }, [data]);
+
+    return (
+        <div className="space-y-4">
+            <ChartContainer config={config} className="h-[250px] w-full">
+                <BarChart accessibilityLayer data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 20 }}>
+                    <rect
+                        x="0"
+                        y="0"
+                        width="100%"
+                        height="100%"
+                        fill="url(#hourly-pattern-dots)"
+                    />
+                    <defs>
+                        <DottedBackgroundPattern id="hourly-pattern-dots" />
+                    </defs>
+                    <XAxis
+                        dataKey="label"
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 9 }}
+                        interval={2}
+                    />
+                    <YAxis hide />
+                    <ChartTooltip
+                        cursor={false}
+                        content={<ChartTooltipContent hideLabel />}
+                    />
+                    <Bar
+                        dataKey="impressions"
+                        fill="var(--chart-1)"
+                        shape={<CustomHatchedBar />}
+                        radius={4}
+                    />
+                </BarChart>
+            </ChartContainer>
+            <div className="flex justify-between text-[10px] text-muted-foreground px-2">
+                <span>Morning</span>
+                <span>Afternoon</span>
+                <span>Evening</span>
+                <span>Night</span>
+            </div>
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Conversion Funnel Component
+// ---------------------------------------------------------------------------
+
+function ConversionFunnel({ insights }: { insights: any }) {
+    const funnelData = React.useMemo(() => {
+        if (!insights) return null;
+
+        const impressions = parseInt(insights.impressions || '0');
+        const clicks = parseInt(insights.inline_link_clicks || '0') ||
+            (insights.actions?.find((a: any) => a.action_type === 'link_click')?.value || 0);
+
+        // Conversions: Priority to leads, then general actions
+        const leads = parseInt(insights.actions?.find((a: any) => a.action_type === 'lead')?.value || '0');
+        const purchases = parseInt(insights.actions?.find((a: any) => a.action_type === 'purchase')?.value || '0');
+        const conversions = leads || purchases || 0;
+
+        const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+        const convRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
+
+        return [
+            { label: 'Impressions', value: impressions, color: 'var(--chart-2)', subtext: 'Total reach' },
+            { label: 'Link Clicks', value: clicks, color: 'var(--chart-1)', subtext: `${ctr.toFixed(2)}% CTR` },
+            { label: 'Conversions', value: conversions, color: 'var(--chart-5)', subtext: `${convRate.toFixed(2)}% Conv.` },
+        ];
+    }, [insights]);
+
+    if (!funnelData) return null;
+
+    const maxVal = funnelData[0].value || 1;
+
+    return (
+        <div className="space-y-6 py-4">
+            {funnelData.map((step, i) => (
+                <div key={step.label} className="relative">
+                    <div className="flex justify-between items-end mb-1 px-1">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{step.label}</span>
+                        <span className="text-sm font-mono font-bold">{step.value.toLocaleString()}</span>
+                    </div>
+                    <div className="h-10 w-full bg-muted/30 rounded-md overflow-hidden relative group">
+                        <div
+                            className="h-full transition-all duration-500 ease-out relative"
+                            style={{
+                                width: `${(step.value / maxVal) * 100}%`,
+                                backgroundColor: step.color,
+                                opacity: 0.8
+                            }}
+                        >
+                            <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+                        </div>
+                        <div className="absolute inset-y-0 right-3 flex items-center">
+                            <Badge variant="outline" className="bg-background/80 backdrop-blur-sm text-[10px] py-0 h-5 border-none shadow-sm">
+                                {step.subtext}
+                            </Badge>
+                        </div>
+                    </div>
+                    {i < funnelData.length - 1 && (
+                        <div className="flex justify-center -my-2 relative z-10">
+                            <div className="bg-background p-1 rounded-full border shadow-sm">
+                                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
 
 // ---------------------------------------------------------------------------
 // Metrics Display Component
@@ -783,13 +943,45 @@ function MetricsDisplay({
 
     // Note: 'clicks' in the API often refers to "All Clicks" while 'link_clicks' is specific
 
+    // Extract lead count from actions array
+    // Lead action types: 'lead', 'onsite_conversion.lead_grouped', 'offsite_conversion.fb_pixel_lead'
+    const leadCount = (() => {
+        if (!insights.actions || !Array.isArray(insights.actions)) return null;
+
+        const leadActions = insights.actions.filter((action: any) =>
+            action.action_type === 'lead' ||
+            action.action_type === 'onsite_conversion.lead_grouped' ||
+            action.action_type === 'offsite_conversion.fb_pixel_lead'
+        );
+
+        if (leadActions.length === 0) return null;
+
+        // Sum all lead actions
+        const total = leadActions.reduce((sum: number, action: any) =>
+            sum + parseInt(action.value || '0'), 0
+        );
+
+        return total > 0 ? total : null;
+    })();
+
+    // Calculate Cost per Lead if we have leads
+    const costPerLead = leadCount && leadCount > 0 && spendNum > 0
+        ? spendNum / leadCount
+        : null;
+
     // We try to use the order from the dialog:
     // Reach, Frequency, Cost per Result, Budget, Amount Spent, Impressions, CPM, Link Clicks, CPC, CTR, Unique Clicks, Unique CTR, ROAS, Rankings..., All Clicks, All CTR, All CPC
+    // For lead campaigns, add Leads and Cost per Lead after Cost per Result
 
     const metrics = [
         { label: 'Reach', value: formatNumber(insights.reach), color: 'blue' },
         { label: 'Frequency', value: formatNumber(insights.frequency), color: 'blue' },
         { label: 'Cost per Result', value: formatCurrency(insights.cost_per_result), color: 'orange' },
+        // Add lead metrics for lead generation campaigns
+        ...(leadCount !== null ? [
+            { label: 'Leads', value: formatNumber(leadCount), color: 'emerald' },
+            { label: 'Cost per Lead', value: costPerLead !== null ? formatCurrency(costPerLead) : '—', color: 'orange' },
+        ] : []),
         { label: 'Budget', value: formatBudgetDisplay(budget), color: 'purple' },
         { label: 'Amount Spent', value: formatCurrency(insights.spend), color: 'emerald' },
         { label: 'Impressions', value: formatNumber(insights.impressions), color: 'purple' },
@@ -1421,7 +1613,17 @@ export default function CampaignDetailsPage() {
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
-    const isRefreshing = isFetchingCampaign || isFetchingAccount || isFetchingAdSets || isFetchingDaily || isFetchingGender || isFetchingPlatform || isFetchingDevice || isFetchingRegion || isFetchingPlacement;
+    const { data: ageBreakdown, isLoading: isLoadingAge, isFetching: isFetchingAge, refetch: refetchAge } = trpc.metaAds.insights.getBreakdowns.useQuery(
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'age' },
+        { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
+    );
+
+    const { data: hourlyPerformance, isLoading: isLoadingHourly, isFetching: isFetchingHourly, refetch: refetchHourly } = trpc.metaAds.insights.getBreakdowns.useQuery(
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'hourly_stats_aggregated_by_audience_time_zone' },
+        { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
+    );
+
+    const isRefreshing = isFetchingCampaign || isFetchingAccount || isFetchingAdSets || isFetchingDaily || isFetchingGender || isFetchingPlatform || isFetchingDevice || isFetchingRegion || isFetchingPlacement || isFetchingAge || isFetchingHourly;
 
     const handleRefresh = async () => {
         await utils.metaAds.invalidate();
@@ -1447,6 +1649,31 @@ export default function CampaignDetailsPage() {
             return { ...prev, [adSetId]: lines };
         });
     }, []);
+
+    // Process Engagement Actions for the bar chart
+    const engagementActionsData = React.useMemo(() => {
+        if (!campaign?.insights?.actions) return null;
+
+        const actionLabels: Record<string, string> = {
+            'post_reaction': 'Reactions',
+            'comment': 'Comments',
+            'post': 'Shares',
+            'link_click': 'Clicks',
+            'video_view': 'Video Views',
+            'onsite_conversion.post_save': 'Saves',
+            'landing_page_view': 'Page Views'
+        };
+
+        const processed = (campaign.insights.actions as any[])
+            .filter((a: any) => actionLabels[a.action_type])
+            .map((a: any) => ({
+                label: actionLabels[a.action_type],
+                impressions: parseInt(a.value || '0')
+            }))
+            .sort((a, b) => b.impressions - a.impressions);
+
+        return processed.length > 0 ? { data: processed } : null;
+    }, [campaign]);
 
     // Chart configs
     const performanceChartConfig = {
@@ -1514,8 +1741,10 @@ export default function CampaignDetailsPage() {
             adSets: processedAdSets,
             breakdowns: processedBreakdowns,
             dailyPerformance: dailyPerformance?.data || [],
+            hourlyPerformance: hourlyPerformance?.data || [],
+            engagementActions: engagementActionsData?.data || [],
         };
-    }, [adSets, genderBreakdown, platformBreakdown, deviceBreakdown, regionBreakdown, placementBreakdown, dailyPerformance, adsByAdSet, targetingByAdSet]);
+    }, [adSets, genderBreakdown, platformBreakdown, deviceBreakdown, regionBreakdown, placementBreakdown, dailyPerformance, hourlyPerformance, engagementActionsData, adsByAdSet, targetingByAdSet]);
 
     // Loading state
     if (isLoadingCampaign || isLoadingAccount) {
@@ -1605,6 +1834,8 @@ export default function CampaignDetailsPage() {
                                 campaign={campaign}
                                 insights={campaign.insights}
                                 dailyPerformance={pdfData.dailyPerformance}
+                                hourlyPerformance={pdfData.hourlyPerformance}
+                                engagementActions={pdfData.engagementActions}
                                 adSets={pdfData.adSets}
                                 breakdowns={pdfData.breakdowns}
                                 timeRange={timeRange}
@@ -2124,36 +2355,124 @@ export default function CampaignDetailsPage() {
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* Performance Breakdown Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                        {/* Hourly Performance */}
+                        <Card className="bg-card shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base">Hourly Performance</CardTitle>
+                                <CardDescription className="text-xs">Impressions distribution by hour of day</CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-4">
+                                {isLoadingHourly ? (
+                                    <div className="space-y-4 pt-4">
+                                        <Skeleton className="h-[200px] w-full" />
+                                    </div>
+                                ) : hourlyPerformance?.data && hourlyPerformance.data.length > 0 ? (
+                                    <HourlyPerformanceDistribution data={hourlyPerformance.data} config={breakdownChartConfig} />
+                                ) : (
+                                    <div className="h-[200px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+                                        <Clock className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+                                        <p className="text-sm text-muted-foreground">No hourly data available</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Conversion Funnel */}
+                        <Card className="bg-card shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base">Conversion Funnel</CardTitle>
+                                <CardDescription className="text-xs">Customer journey from reach to conversion</CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-4">
+                                {campaign?.insights ? (
+                                    <ConversionFunnel insights={campaign.insights} />
+                                ) : (
+                                    <div className="h-[200px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+                                        <Activity className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+                                        <p className="text-sm text-muted-foreground">No funnel data available</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
 
-                {/* SECTION 4: GEOGRAPHY */}
+                {/* SECTION 4: DISTRIBUTIONS */}
                 <div className="space-y-6 pt-6 border-t">
                     <div className="flex items-center gap-2 pb-2">
-                        <h2 className="text-lg font-semibold">Geography</h2>
+                        <h2 className="text-lg font-semibold">Distributions</h2>
                     </div>
-                    {/* Region Breakdown */}
-                    <Card className="bg-card shadow-sm">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Top Regions</CardTitle>
-                            <CardDescription className="text-xs">Performance by geographic region</CardDescription>
-                        </CardHeader>
-                        <CardContent className="min-h-[400px]">
-                            {isLoadingRegion ? (
-                                <div className="space-y-4 pt-4">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Skeleton key={i} className="h-10 w-full" />
-                                    ))}
-                                </div>
-                            ) : regionBreakdown?.data && regionBreakdown.data.length > 0 ? (
-                                <ValueLineRegionChart breakdown={regionBreakdown} config={breakdownChartConfig} />
-                            ) : (
-                                <div className="h-[300px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
-                                    <MapPin className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
-                                    <p className="text-sm text-muted-foreground">No geographic data available</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Age Distribution */}
+                        <Card className="bg-card shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base">Age Distribution</CardTitle>
+                                <CardDescription className="text-xs">Performance by age group</CardDescription>
+                            </CardHeader>
+                            <CardContent className="min-h-[400px]">
+                                {isLoadingAge ? (
+                                    <div className="space-y-4 pt-4">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Skeleton key={i} className="h-10 w-full" />
+                                        ))}
+                                    </div>
+                                ) : ageBreakdown?.data && ageBreakdown.data.length > 0 ? (
+                                    <ValueLineRegionChart breakdown={ageBreakdown} config={breakdownChartConfig} />
+                                ) : (
+                                    <div className="h-[300px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+                                        <Users className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+                                        <p className="text-sm text-muted-foreground">No age data available</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Region Breakdown */}
+                        <Card className="bg-card shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base">Top Regions</CardTitle>
+                                <CardDescription className="text-xs">Performance by geographic region</CardDescription>
+                            </CardHeader>
+                            <CardContent className="min-h-[400px]">
+                                {isLoadingRegion ? (
+                                    <div className="space-y-4 pt-4">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Skeleton key={i} className="h-10 w-full" />
+                                        ))}
+                                    </div>
+                                ) : regionBreakdown?.data && regionBreakdown.data.length > 0 ? (
+                                    <ValueLineRegionChart breakdown={regionBreakdown} config={breakdownChartConfig} />
+                                ) : (
+                                    <div className="h-[300px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+                                        <MapPin className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+                                        <p className="text-sm text-muted-foreground">No geographic data available</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Engagement Actions Breakdown */}
+                        <Card className="bg-card shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base">Engagement Actions</CardTitle>
+                                <CardDescription className="text-xs">Social interactions and engagements</CardDescription>
+                            </CardHeader>
+                            <CardContent className="min-h-[400px]">
+                                {engagementActionsData ? (
+                                    <ValueLineRegionChart breakdown={engagementActionsData} config={breakdownChartConfig} />
+                                ) : (
+                                    <div className="h-[300px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
+                                        <MousePointer2 className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+                                        <p className="text-sm text-muted-foreground">No engagement data available</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
         </div>

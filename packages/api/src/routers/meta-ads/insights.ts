@@ -97,7 +97,7 @@ export const metaAdsInsightsRouter = router({
                     since: z.string(),
                     until: z.string(),
                 }),
-                breakdown: z.enum(['age', 'gender', 'publisher_platform', 'device_platform', 'region', 'platform_position']),
+                breakdown: z.enum(['age', 'gender', 'publisher_platform', 'device_platform', 'region', 'platform_position', 'hourly_stats_aggregated_by_audience_time_zone']),
             })
         )
         .query(async ({ input }) => {

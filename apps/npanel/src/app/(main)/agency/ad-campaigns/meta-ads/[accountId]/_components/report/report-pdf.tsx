@@ -363,6 +363,8 @@ interface MetaAdsReportProps {
     campaign: any;
     insights: any;
     dailyPerformance: any[];
+    hourlyPerformance: any[];
+    engagementActions: any[];
     adSets: any[];
     breakdowns: {
         gender: any;
@@ -620,63 +622,85 @@ const GenderPieChart = ({ data }: { data: any[] }) => {
     );
 };
 
-// Performance Trend Chart - Optimized
+// --- Chart Components with Labels ---
+
 const PerformanceTrendChart = ({ data, primaryColor }: { data: any[], primaryColor: string }) => {
     if (!data || data.length === 0) return null;
-    const validData = data.filter(d => d.date);
+    const validData = data.filter(d => d.date_start || d.date);
     if (validData.length === 0) return null;
 
-    const height = 120; // Reduced from 150
-    const width = 480; // Slightly reduced
-    const padding = 15;
+    const height = 140;
+    const width = 480;
+    const paddingL = 40;
+    const paddingB = 30;
+    const paddingT = 20;
+    const paddingR = 20;
 
     const maxImp = Math.max(...validData.map(d => parseInt(d.impressions || '0'))) || 100;
     const maxClicks = Math.max(...validData.map(d => parseInt(d.link_clicks || '0'))) || 10;
 
     const getPoints = (key: string, max: number) => {
-        if (validData.length === 1) {
-            const val = parseInt(validData[0][key] || '0');
-            const x = width / 2;
-            const y = height - (val / max) * (height - 2 * padding) - padding;
-            return { points: '', single: { x, y } };
-        }
-        return {
-            points: validData.map((d, i) => {
-                const x = (i / (validData.length - 1)) * (width - 2 * padding) + padding;
-                const val = parseInt(d[key] || '0');
-                const y = height - (val / max) * (height - 2 * padding) - padding;
-                return `${x},${y}`;
-            }).join(' '),
-            single: null
-        }
+        return validData.map((d, i) => {
+            const x = (i / (validData.length > 1 ? validData.length - 1 : 1)) * (width - paddingL - paddingR) + paddingL;
+            const val = parseInt(d[key] || '0');
+            const y = height - (val / max) * (height - paddingB - paddingT) - paddingB;
+            return { x, y, value: val };
+        });
     };
 
-    const impData = getPoints('impressions', maxImp);
-    const clickData = getPoints('link_clicks', maxClicks);
+    const impPoints = getPoints('impressions', maxImp);
+    const clickPoints = getPoints('link_clicks', maxClicks);
 
     return (
         <View style={styles.chartContainer} wrap={false}>
             <Text style={styles.subSectionTitle}>Performance Trends</Text>
             <Svg height={height} width="100%">
-                <Line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#d1d5db" strokeWidth={1} />
-                <Line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#d1d5db" strokeWidth={1} />
+                {/* Horizontal Grid Lines */}
+                {[0, 0.25, 0.5, 0.75, 1].map((level, i) => {
+                    const y = height - paddingB - level * (height - paddingB - paddingT);
+                    return (
+                        <G key={i}>
+                            <Line x1={paddingL} y1={y} x2={width - paddingR} y2={y} stroke="#e5e7eb" strokeWidth={0.5} />
+                            <Text x={5} y={y + 3} style={{ fontSize: 6 }} fill="#9ca3af">{formatNumber(Math.round(level * maxImp))}</Text>
+                        </G>
+                    );
+                })}
 
-                <Text x={5} y={padding + 5} style={{ fontSize: 7 }} fill="#6b7280">{formatNumber(maxImp)}</Text>
-                <Text x={5} y={height - padding - 5} style={{ fontSize: 7 }} fill="#6b7280">0</Text>
+                {/* X-Axis labels */}
+                {validData.map((d, i) => {
+                    if (i % Math.ceil(validData.length / 5) === 0 || i === validData.length - 1) {
+                        const x = (i / (validData.length > 1 ? validData.length - 1 : 1)) * (width - paddingL - paddingR) + paddingL;
+                        const dateStr = d.date_start || d.date;
+                        return (
+                            <Text key={i} x={x} y={height - 10} textAnchor="middle" style={{ fontSize: 6 }} fill="#9ca3af">
+                                {dateStr ? format(new Date(dateStr), 'MMM dd') : ''}
+                            </Text>
+                        );
+                    }
+                    return null;
+                })}
 
-                {impData.single ? (
-                    <Circle cx={impData.single.x} cy={impData.single.y} r={3} fill="#8b5cf6" />
-                ) : (
-                    <Path d={`M ${impData.points}`} stroke="#8b5cf6" strokeWidth={1.5} fill="none" />
-                )}
+                {/* Paths */}
+                {impPoints.length > 1 && <Path d={`M ${impPoints.map(p => `${p.x},${p.y}`).join(' L ')}`} stroke="#8b5cf6" strokeWidth={1.5} fill="none" />}
+                {clickPoints.length > 1 && <Path d={`M ${clickPoints.map(p => `${p.x},${p.y}`).join(' L ')}`} stroke="#10b981" strokeWidth={1.5} fill="none" />}
 
-                {clickData.single ? (
-                    <Circle cx={clickData.single.x} cy={clickData.single.y} r={3} fill="#10b981" />
-                ) : (
-                    <Path d={`M ${clickData.points}`} stroke="#10b981" strokeWidth={1.5} fill="none" />
+                {/* Tooltip-like values for the last point */}
+                {impPoints.length > 0 && (
+                    <G>
+                        <Circle cx={impPoints[impPoints.length - 1].x} cy={impPoints[impPoints.length - 1].y} r={3} fill="#8b5cf6" />
+                        <Text
+                            x={impPoints[impPoints.length - 1].x}
+                            y={impPoints[impPoints.length - 1].y - 5}
+                            textAnchor="end"
+                            style={{ fontSize: 7, fontWeight: 'bold' }}
+                            fill="#8b5cf6"
+                        >
+                            {formatNumber(impPoints[impPoints.length - 1].value)} imps
+                        </Text>
+                    </G>
                 )}
             </Svg>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 6 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 10 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 15 }}>
                     <View style={{ width: 6, height: 6, backgroundColor: '#8b5cf6', borderRadius: 3, marginRight: 3 }} />
                     <Text style={{ fontSize: 7, color: '#6b7280' }}>Impressions</Text>
@@ -687,83 +711,63 @@ const PerformanceTrendChart = ({ data, primaryColor }: { data: any[], primaryCol
                 </View>
             </View>
         </View>
-    )
-}
+    );
+};
 
 const DailySpendChart = ({ data, primaryColor }: { data: any[], primaryColor: string }) => {
     if (!data || data.length === 0) return null;
-    const validData = data.filter(d => !isNaN(parseFloat(d.spend)));
+    const validData = data.filter(d => d.date_start || d.date);
     if (validData.length === 0) return null;
 
-    const height = 100;
+    const height = 120;
     const width = 480;
-    const maxSpend = Math.max(...validData.map(d => parseFloat(d.spend))) || 100;
+    const paddingL = 50;
+    const paddingB = 30;
+    const paddingT = 20;
+    const paddingR = 20;
 
-    const marginL = 45;
-    const marginR = 20;
-    const marginB = 30;
-    const marginT = 15;
+    const maxSpend = Math.max(...validData.map(d => parseFloat(d.spend || '0'))) || 10;
 
     const points = validData.map((d, i) => {
-        const x = (i / (validData.length > 1 ? validData.length - 1 : 1)) * (width - marginL - marginR) + marginL;
-        const y = height - (parseFloat(d.spend) / maxSpend) * (height - marginB - marginT) - marginB;
-        return { x, y, value: parseFloat(d.spend) };
+        const x = (i / (validData.length > 1 ? validData.length - 1 : 1)) * (width - paddingL - paddingR) + paddingL;
+        const val = parseFloat(d.spend || '0');
+        const y = height - (val / maxSpend) * (height - paddingB - paddingT) - paddingB;
+        return { x, y, value: val };
     });
 
     return (
         <View style={styles.chartContainer} wrap={false}>
             <Text style={styles.subSectionTitle}>Daily Spend</Text>
             <Svg height={height} width="100%">
-                {/* Axes and Grid lines */}
-                <Line x1={marginL} y1={height - marginB + 5} x2={width - marginR + 5} y2={height - marginB + 5} stroke="#d1d5db" strokeWidth={1} />
-                <Line x1={marginL} y1={marginT - 5} x2={marginL} y2={height - marginB + 5} stroke="#d1d5db" strokeWidth={1} />
+                <Line x1={paddingL} y1={height - paddingB} x2={width - paddingR} y2={height - paddingB} stroke="#d1d5db" strokeWidth={1} />
+                {[0, 0.5, 1].map((level, i) => {
+                    const y = height - paddingB - level * (height - paddingB - paddingT);
+                    return (
+                        <G key={i}>
+                            <Line x1={paddingL} y1={y} x2={width - paddingR} y2={y} stroke="#e5e7eb" strokeWidth={0.5} strokeDasharray="2 2" />
+                            <Text x={5} y={y + 3} style={{ fontSize: 6 }} fill="#9ca3af">{Math.round(level * maxSpend)}</Text>
+                        </G>
+                    );
+                })}
 
-                {/* Y Axis Labels (Spend) */}
-                <Text x={5} y={marginT} style={{ fontSize: 6 }} fill="#9ca3af">{formatNumber(maxSpend)}</Text>
-                <Text x={5} y={height - marginB} style={{ fontSize: 6 }} fill="#9ca3af">0</Text>
-                <G transform={`translate(12, ${height / 2}) rotate(-90)`}>
-                    <Text x={0} y={0} style={{ fontSize: 7, fontWeight: 'bold' }} fill="#6b7280">Spend</Text>
-                </G>
+                {validData.map((d, i) => {
+                    if (i % Math.ceil(validData.length / 5) === 0 || i === validData.length - 1) {
+                        const x = (i / (validData.length > 1 ? validData.length - 1 : 1)) * (width - paddingL - paddingR) + paddingL;
+                        const dateStr = d.date_start || d.date;
+                        return (
+                            <Text key={i} x={x} y={height - 10} textAnchor="middle" style={{ fontSize: 6 }} fill="#9ca3af">
+                                {dateStr ? format(new Date(dateStr), 'MMM dd') : ''}
+                            </Text>
+                        );
+                    }
+                    return null;
+                })}
 
-                {points.length > 1 && (
-                    <Path
-                        d={`M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`}
-                        stroke={primaryColor}
-                        strokeWidth={1.5}
-                        fill="none"
-                        strokeDasharray="4 4"
-                    />
-                )}
+                {points.length > 1 && <Path d={`M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`} stroke={primaryColor} strokeWidth={1.5} fill="none" strokeDasharray="4 4" />}
                 {points.map((p, i) => (
                     <G key={i}>
-                        <Circle
-                            cx={p.x}
-                            cy={p.y}
-                            r={8}
-                            fill={primaryColor}
-                        />
-                        <Text
-                            x={p.x}
-                            y={p.y + 3}
-                            textAnchor="middle"
-                            style={{ fontSize: 6, fontWeight: 'bold' }}
-                            fill="#ffffff"
-                        >
-                            {Math.round(p.value).toString()}
-                        </Text>
-
-                        {/* X Axis Labels (Dates) */}
-                        {(i === 0 || i === Math.floor(points.length / 2) || i === points.length - 1) && (
-                            <Text
-                                x={p.x}
-                                y={height - 10}
-                                textAnchor="middle"
-                                style={{ fontSize: 6 }}
-                                fill="#9ca3af"
-                            >
-                                {validData[i].date ? format(new Date(validData[i].date), 'MMM dd') : ''}
-                            </Text>
-                        )}
+                        <Circle cx={p.x} cy={p.y} r={6} fill={primaryColor} />
+                        <Text x={p.x} y={p.y + 2} textAnchor="middle" style={{ fontSize: 5, fontWeight: 'bold' }} fill="#ffffff">{Math.round(p.value)}</Text>
                     </G>
                 ))}
             </Svg>
@@ -772,11 +776,10 @@ const DailySpendChart = ({ data, primaryColor }: { data: any[], primaryColor: st
 };
 
 const VideoRetentionChart = ({ insights, primaryColor }: { insights: any, primaryColor: string }) => {
+    if (!insights) return null;
     const getValue = (key: string) => {
-        const val = insights[key] || (insights[0]?.[key]);
-        if (Array.isArray(val) && val.length > 0) return parseInt(val[0].value || '0');
-        if (typeof val === 'number') return val;
-        return 0;
+        const val = insights[key] || (insights.actions?.find((a: any) => a.action_type === key)?.value || 0);
+        return parseInt(val || '0');
     };
 
     const videoData = [
@@ -787,18 +790,184 @@ const VideoRetentionChart = ({ insights, primaryColor }: { insights: any, primar
     ];
 
     if (videoData.every(d => d.value === 0)) return null;
-
-    const maxVal = Math.max(...videoData.map(d => d.value));
+    const maxVal = Math.max(...videoData.map(d => d.value)) || 1;
 
     return (
         <View style={styles.chartContainer} wrap={false}>
             <Text style={styles.subSectionTitle}>Video Retention</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 80, paddingTop: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 100, paddingTop: 20 }}>
                 {videoData.map((d, i) => (
-                    <View key={i} style={{ flex: 1, alignItems: 'center', marginHorizontal: 7.5 }}>
-                        <Text style={{ fontSize: 7, marginBottom: 3 }}>{formatNumber(d.value)}</Text>
-                        <View style={{ width: '70%', height: maxVal > 0 ? (d.value / maxVal) * 60 : 0, backgroundColor: primaryColor, borderRadius: 2 }} />
-                        <Text style={{ fontSize: 8, marginTop: 3, fontWeight: 'bold' }}>{d.label}</Text>
+                    <View key={i} style={{ flex: 1, alignItems: 'center', marginHorizontal: 10 }}>
+                        <Text style={{ fontSize: 8, marginBottom: 4, fontWeight: 'bold' }}>{formatNumber(d.value)}</Text>
+                        <View style={{ width: '80%', height: (d.value / maxVal) * 60, backgroundColor: primaryColor, borderRadius: 2 }} />
+                        <Text style={{ fontSize: 8, marginTop: 4, color: '#6b7280' }}>{d.label}</Text>
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
+};
+
+// --- New Labeled Chart Components ---
+
+const EngagementActionsChart = ({ data, primaryColor }: { data: any[], primaryColor: string }) => {
+    if (!data || data.length === 0) return null;
+    const maxVal = Math.max(...data.map(d => d.impressions)) || 1;
+
+    return (
+        <View style={styles.chartContainer} wrap={false}>
+            <Text style={styles.sectionTitle}>Engagement Breakdown</Text>
+            <View style={{ marginTop: 8 }}>
+                {data.map((d, i) => (
+                    <View key={i} style={{ marginBottom: 12 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
+                            <Text style={{ fontSize: 9, color: '#374151', fontWeight: 'bold' }}>{d.label}</Text>
+                            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#111827' }}>{formatNumber(d.impressions)}</Text>
+                        </View>
+                        <View style={{ height: 8, width: '100%', backgroundColor: '#f3f4f6', borderRadius: 4 }}>
+                            <View style={{ height: '100%', width: `${(d.impressions / maxVal) * 100}%`, backgroundColor: primaryColor, borderRadius: 4 }} />
+                        </View>
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
+};
+
+const HourlyPerformanceChart = ({ data, primaryColor }: { data: any[], primaryColor: string }) => {
+    if (!data || data.length === 0) return null;
+
+    // Process to 24-hour array
+    const stats = Array(24).fill(0).map((_, i) => ({ hour: i, impressions: 0 }));
+    data.forEach(item => {
+        const hourField = item.hourly_stats_aggregated_by_audience_time_zone;
+        if (hourField) {
+            const hour = parseInt(hourField.split(':')[0]);
+            if (!isNaN(hour) && hour >= 0 && hour < 24) {
+                stats[hour].impressions += parseInt(item.impressions || '0');
+            }
+        }
+    });
+
+    const maxVal = Math.max(...stats.map(s => s.impressions)) || 1;
+    const height = 140;
+    const width = 480;
+    const paddingL = 50;
+    const paddingB = 40;
+    const paddingT = 20;
+    const paddingR = 20;
+
+    return (
+        <View style={styles.chartContainer} wrap={false}>
+            <Text style={styles.sectionTitle}>Hourly Distribution</Text>
+            <Svg height={height} width="100%">
+                {/* Horizontal Grid Lines & Y-Axis Labels */}
+                {[0, 0.5, 1].map((level, i) => {
+                    const y = height - paddingB - level * (height - paddingB - paddingT);
+                    return (
+                        <G key={i}>
+                            <Line x1={paddingL} y1={y} x2={width - paddingR} y2={y} stroke="#e5e7eb" strokeWidth={0.5} strokeDasharray="2 2" />
+                            <Text x={5} y={y + 3} style={{ fontSize: 6 }} fill="#9ca3af">{formatNumber(Math.round(level * maxVal))}</Text>
+                        </G>
+                    );
+                })}
+
+                {/* Y-Axis Title */}
+                <G transform={`translate(15, ${(height - paddingB + paddingT) / 2}) rotate(-90)`}>
+                    <Text x={0} y={0} textAnchor="middle" style={{ fontSize: 7, fontWeight: 'bold' }} fill="#6b7280">Impressions</Text>
+                </G>
+
+                {/* Bars */}
+                {stats.map((d, i) => {
+                    const barWidth = (width - paddingL - paddingR) / 24 - 2;
+                    const x = paddingL + i * ((width - paddingL - paddingR) / 24) + 1;
+                    const barHeight = (d.impressions / maxVal) * (height - paddingB - paddingT);
+                    const y = height - paddingB - barHeight;
+
+                    return (
+                        <Rect
+                            key={i}
+                            x={x}
+                            y={y}
+                            width={barWidth}
+                            height={barHeight}
+                            fill={primaryColor}
+                            opacity={0.8}
+                            rx={1}
+                        />
+                    );
+                })}
+
+                {/* X-Axis ticks and labels */}
+                {stats.map((d, i) => {
+                    if (i % 4 === 0 || i === 23) {
+                        const x = paddingL + i * ((width - paddingL - paddingR) / 24) + ((width - paddingL - paddingR) / 48);
+                        return (
+                            <Text key={i} x={x} y={height - paddingB + 10} textAnchor="middle" style={{ fontSize: 6 }} fill="#9ca3af">
+                                {i}:00
+                            </Text>
+                        );
+                    }
+                    return null;
+                })}
+
+                {/* X-Axis Title */}
+                <Text
+                    x={(width + paddingL - paddingR) / 2}
+                    y={height - 5}
+                    textAnchor="middle"
+                    style={{ fontSize: 7, fontWeight: 'bold' }}
+                    fill="#6b7280"
+                >
+                    Time of Day
+                </Text>
+            </Svg>
+        </View>
+    );
+};
+
+const ConversionFunnelChart = ({ insights, primaryColor }: { insights: any, primaryColor: string }) => {
+    if (!insights) return null;
+
+    const imp = parseInt(insights.impressions || '0');
+    const clicks = parseInt(insights.inline_link_clicks || '0') ||
+        (insights.actions?.find((a: any) => a.action_type === 'link_click')?.value || 0);
+    const leads = parseInt(insights.actions?.find((a: any) => a.action_type === 'lead')?.value || '0');
+    const purchases = parseInt(insights.actions?.find((a: any) => a.action_type === 'purchase')?.value || '0');
+    const conversions = leads || purchases || 0;
+
+    const ctr = imp > 0 ? (clicks / imp) * 100 : 0;
+    const convRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
+
+    const data = [
+        { label: 'Impressions', value: imp, sub: 'Total Reach' },
+        { label: 'Link Clicks', value: clicks, sub: `${ctr.toFixed(2)}% CTR` },
+        { label: 'Conversions', value: conversions, sub: `${convRate.toFixed(2)}% CR` },
+    ];
+
+    const maxVal = imp || 1;
+
+    return (
+        <View style={styles.chartContainer} wrap={false}>
+            <Text style={styles.sectionTitle}>Conversion Funnel</Text>
+            <View style={{ marginTop: 10 }}>
+                {data.map((step, i) => (
+                    <View key={i} style={{ marginBottom: 15, alignItems: 'center' }}>
+                        <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 5 }}>
+                            <Text style={{ fontSize: 8, color: '#6b7280', fontWeight: 'bold' }}>{step.label}</Text>
+                            <Text style={{ fontSize: 9, fontWeight: 'bold' }}>{formatNumber(step.value)}</Text>
+                        </View>
+                        <View style={{ width: '100%', height: 25, backgroundColor: '#f3f4f6', borderRadius: 4, marginVertical: 4, position: 'relative', overflow: 'hidden' }}>
+                            <View style={{ height: '100%', width: `${(step.value / maxVal) * 100}%`, backgroundColor: primaryColor, opacity: 0.7 }} />
+                            <View style={{ position: 'absolute', right: 10, top: 7 }}>
+                                <Text style={{ fontSize: 8, color: '#111827', fontWeight: 'bold' }}>{step.sub}</Text>
+                            </View>
+                        </View>
+                        {i < 2 && (
+                            <Svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth={3}>
+                                <Path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
+                            </Svg>
+                        )}
                     </View>
                 ))}
             </View>
@@ -909,7 +1078,20 @@ const AdHierarchy = ({ adSets, currency }: { adSets: any[], currency: string }) 
     );
 }
 
-const ReportContentPage = ({ campaign, insights, dailyPerformance, adSets, breakdowns, timeRange, primaryColor, currency }: any) => {
+const ReportContentPage = (props: any) => {
+    const {
+        campaign,
+        insights,
+        dailyPerformance = [],
+        hourlyPerformance = [],
+        engagementActions = [],
+        adSets = [],
+        breakdowns = {},
+        timeRange,
+        primaryColor,
+        currency
+    } = props;
+
     const platformData = breakdowns.platform?.data?.map((d: any) => ({ label: d.publisher_platform, value: parseInt(d.impressions) })) || [];
     const deviceData = breakdowns.device?.data?.map((d: any) => ({ label: d.device_platform, value: parseInt(d.impressions) })) || [];
 
@@ -933,6 +1115,11 @@ const ReportContentPage = ({ campaign, insights, dailyPerformance, adSets, break
             <PerformanceTrendChart data={dailyPerformance} primaryColor={primaryColor} />
             <DailySpendChart data={dailyPerformance} primaryColor={primaryColor} />
             <VideoRetentionChart insights={insights} primaryColor={primaryColor} />
+
+            <EngagementActionsChart data={engagementActions} primaryColor={primaryColor} />
+
+            <HourlyPerformanceChart data={hourlyPerformance} primaryColor={primaryColor} />
+            <ConversionFunnelChart insights={insights} primaryColor={primaryColor} />
 
             {/* Delivery Section */}
             <Text style={styles.sectionTitle}>Device & Platform Delivery</Text>
@@ -1042,7 +1229,7 @@ const ReportEndPage = ({ primaryColor }: { primaryColor: string }) => (
                         <Circle cx={12} cy={10} r={3} />
                     </Svg>
                 </View>
-                <Text style={styles.contactText}>AppleWood Adams, Ngong Road, Office No 805</Text>
+                <Text style={styles.contactText}>AppleWood Adams, Ngong Road</Text>
             </View>
             <View style={styles.contactRow}>
                 <View style={[styles.contactIcon]}>

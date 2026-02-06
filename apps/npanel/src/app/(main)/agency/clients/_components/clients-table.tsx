@@ -126,9 +126,7 @@ export function ClientsTable({
 									<div className="flex items-center gap-2 font-medium">
 										<User className="h-4 w-4 text-muted-foreground" />
 										{client.name}
-										{client.emailVerified && (
-											<BadgeCheck className="h-4 w-4 text-blue-500 flex-shrink-0 fill-blue-500" />
-										)}
+
 									</div>
 								</TableCell>
 								<TableCell>
@@ -151,7 +149,7 @@ export function ClientsTable({
 										variant="outline"
 										className={
 											isActive
-												? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
+												? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
 												: ""
 										}
 									>

@@ -205,7 +205,14 @@ export function TransactionsTable({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getStatusBadgeVariant(transaction.status)}>
+                  <Badge
+                    variant={transaction.status === "SUCCESS" ? "outline" : getStatusBadgeVariant(transaction.status)}
+                    className={
+                      transaction.status === "SUCCESS"
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+                        : ""
+                    }
+                  >
                     {getStatusDisplayText(transaction.status)}
                   </Badge>
                 </TableCell>

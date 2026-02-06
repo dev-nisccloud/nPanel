@@ -73,7 +73,7 @@ export default function ManageTeamsPage() {
   const filteredTeams = React.useMemo(() => {
     if (!teams) return [];
     if (!searchQuery.trim()) return teams;
-    
+
     const query = searchQuery.toLowerCase().trim();
     return teams.filter((team) => {
       return (
@@ -91,7 +91,7 @@ export default function ManageTeamsPage() {
         if (typeof value === 'string') return new Date(value);
         return new Date(String(value));
       };
-      
+
       const mappedTeam = {
         ...team,
         createdAt: toDate(team.createdAt),
@@ -212,101 +212,101 @@ export default function ManageTeamsPage() {
         </div>
 
         <div className="mt-6">
-      {!teams || teams.length === 0 ? (
-        <EmptyState
-          title="No teams found"
-          description="No teams have been created yet."
-        />
-      ) : filteredTeams.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-lg font-semibold mb-2">No teams found</p>
-          <p className="text-muted-foreground mb-4">
-            No teams match your search query "{searchQuery}".
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => setSearchQuery("")}
-          >
-            Clear Search
-          </Button>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-6">Team Name</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Currency</TableHead>
-                <TableHead>Members</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-12 pr-6"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTeams.map((team) => (
-                <TableRow
-                  key={team.id}
-                  className="cursor-pointer"
-                  onClick={() => handleView(team.id)}
-                >
-                  <TableCell className="pl-6">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{team.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{team.slug}</TableCell>
-                  <TableCell>{team.baseCurrency}</TableCell>
-                  <TableCell>{team.memberCount ?? 0}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        team.isActive
-                          ? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
-                          : ""
-                      }
+          {!teams || teams.length === 0 ? (
+            <EmptyState
+              title="No teams found"
+              description="No teams have been created yet."
+            />
+          ) : filteredTeams.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-lg font-semibold mb-2">No teams found</p>
+              <p className="text-muted-foreground mb-4">
+                No teams match your search query "{searchQuery}".
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setSearchQuery("")}
+              >
+                Clear Search
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-6">Team Name</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead>Currency</TableHead>
+                    <TableHead>Members</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-12 pr-6"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTeams.map((team) => (
+                    <TableRow
+                      key={team.id}
+                      className="cursor-pointer"
+                      onClick={() => handleView(team.id)}
                     >
-                      {team.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()} className="pr-6">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <EllipsisVertical className="h-4 w-4" />
-                                <span className="sr-only">Actions</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuItem onSelect={() => handleEdit(team.id)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onSelect={() => handleDelete(team.id)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TooltipTrigger>
-                        <TooltipContent>Actions</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+                      <TableCell className="pl-6">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{team.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{team.slug}</TableCell>
+                      <TableCell>{team.baseCurrency}</TableCell>
+                      <TableCell>{team.memberCount ?? 0}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            team.isActive
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+                              : ""
+                          }
+                        >
+                          {team.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()} className="pr-6">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <EllipsisVertical className="h-4 w-4" />
+                                    <span className="sr-only">Actions</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-40">
+                                  <DropdownMenuItem onSelect={() => handleEdit(team.id)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onSelect={() => handleDelete(team.id)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TooltipTrigger>
+                            <TooltipContent>Actions</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
       </div>
 

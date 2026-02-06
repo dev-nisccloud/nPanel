@@ -205,7 +205,7 @@ export function SubscriptionsTable({ onPlanNameClick }: SubscriptionsTableProps)
 													variant="outline"
 													className={
 														isActive
-															? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
+															? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
 															: ""
 													}
 												>

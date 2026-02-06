@@ -34,7 +34,7 @@ export function ClientViewDialog({
 
   // Use efficient query - get client from the list cache or fetch user info
   const utils = trpc.useUtils();
-  
+
   // Try to get client from cache first
   const clientsData = utils.clients.getAll.getData();
   const clientFromCache = React.useMemo(() => {
@@ -144,9 +144,7 @@ export function ClientViewDialog({
               <div>
                 <div className="flex items-center gap-2">
                   <DialogTitle className="text-2xl">{displayClient.name}</DialogTitle>
-                  {displayClient.emailVerified && (
-                    <BadgeCheck className="h-5 w-5 text-blue-500 flex-shrink-0 fill-blue-500" />
-                  )}
+
                 </div>
                 <DialogDescription>Client account details</DialogDescription>
               </div>

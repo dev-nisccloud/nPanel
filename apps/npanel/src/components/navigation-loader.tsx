@@ -20,24 +20,39 @@ export function NavigationLoader() {
   }, [pathname]);
 
   useEffect(() => {
-    // This effect handles the "click" detection for internal links
-    // It sets localLoading to true immediately on click
+    // "Smart Delay" Logic:
+    // We only show the full-screen overlay if standard navigation + skeleton takes longer than 300ms.
+    // This prevents the overlay from blocking "instant" transitions while still providing feedback for slow loads.
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const link = target.closest("a");
+
       if (link?.href && !link.target && !link.hasAttribute("download")) {
         try {
           const url = new URL(link.href, window.location.origin);
+          // Only trigger if it's an internal link to a different path
           if (url.origin === window.location.origin && url.pathname !== pathname) {
-            setLocalLoading(true);
+            // Clear any existing timeout
+            if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+
+            // Set timeout to show overlay ONLY after 300ms
+            loadingTimeoutRef.current = setTimeout(() => {
+              setLocalLoading(true);
+            }, 300);
           }
         } catch {
           /* ignore */
         }
       }
     };
+
     document.addEventListener("click", handleClick, true);
-    return () => document.removeEventListener("click", handleClick, true);
+
+    // Cleanup: Remove listener and clear timeout
+    return () => {
+      document.removeEventListener("click", handleClick, true);
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+    };
   }, [pathname]);
 
   // Clean up any stray timeouts if component unmounts

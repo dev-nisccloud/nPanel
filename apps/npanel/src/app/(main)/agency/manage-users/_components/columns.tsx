@@ -97,7 +97,7 @@ export const createUserColumns = ({ onEditUser }: UserColumnsProps = {}): Column
             return "outline";
         }
       };
-      
+
       return (
         <Badge variant={getRoleVariant(role)}>
           {role.replace(/_/g, " ")}
@@ -114,7 +114,7 @@ export const createUserColumns = ({ onEditUser }: UserColumnsProps = {}): Column
       const getStatusVariant = (status: string) => {
         switch (status) {
           case "active":
-            return "default";
+            return "outline";
           case "suspended":
             return "secondary";
           case "banned":
@@ -125,9 +125,16 @@ export const createUserColumns = ({ onEditUser }: UserColumnsProps = {}): Column
             return "outline";
         }
       };
-      
+
       return (
-        <Badge variant={getStatusVariant(status)}>
+        <Badge
+          variant={getStatusVariant(status)}
+          className={
+            status === "active"
+              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+              : ""
+          }
+        >
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </Badge>
       );

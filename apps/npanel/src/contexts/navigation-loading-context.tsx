@@ -11,7 +11,7 @@ type NavigationLoadingContextValue = {
 
 const NavigationLoadingContext = React.createContext<NavigationLoadingContextValue | null>(null);
 
-const HIDE_DELAY_MS = 400;
+const HIDE_DELAY_MS = 0; // Instant transition, no artificial delay
 
 export function NavigationLoadingProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -71,7 +71,7 @@ export function useNavigationLoading() {
  */
 export function useAppRouter() {
   const router = useRouter();
-  const { startNavigation } = useNavigationLoading() ?? { startNavigation: () => {} };
+  const { startNavigation } = useNavigationLoading() ?? { startNavigation: () => { } };
 
   const push = React.useCallback(
     (url: string) => {
