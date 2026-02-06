@@ -72,81 +72,66 @@ export const metaAdsAdSetsRouter = router({
 					],
 				});
 
-				// Fetch insights for each ad set if timeRange is provided
-				// Process sequentially with delay to avoid rate limits
-				const adSetsWithInsights = [];
-				let rateLimitHit = false;
+				// Fetch insights for all ad sets in bulk at the campaign level
+				let adSetInsightsMap: Record<string, any> = {};
+				try {
+					if (input.timeRange?.since && input.timeRange?.until) {
+						const insightsResponse = await client.getInsights(input.campaignId, {
+							level: 'adset',
+							metrics: [
+								'adset_id',
+								'impressions',
+								'clicks',
+								'spend',
+								'reach',
+								'frequency',
+								'ctr',
+								'cpc',
+								'cpm',
+								'cpp',
+								'unique_clicks',
+								'unique_ctr',
+								'purchase_roas',
+								'quality_ranking',
+								'engagement_rate_ranking',
+								'conversion_rate_ranking',
+								'inline_link_click_ctr',
+								'cost_per_result',
+								'cost_per_action_type',
+								'actions',
+							],
+							timeRange: {
+								since: input.timeRange.since,
+								until: input.timeRange.until,
+							},
+						});
 
-				for (let i = 0; i < (response.data || []).length; i++) {
-					const adSet = response.data[i];
-					let insights = null;
-
-					// Skip insights if we've hit rate limit
-					if (input.timeRange?.since && input.timeRange?.until && !rateLimitHit) {
-						try {
-							const insightsResponse = await client.getInsights(adSet.id, {
-								level: 'adset',
-								metrics: [
-									'impressions',
-									'clicks',
-									'spend',
-									'reach',
-									'frequency',
-									'ctr',
-									'cpc',
-									'cpm',
-									'cpp',
-									'unique_clicks',
-									'unique_ctr',
-									'purchase_roas',
-									'quality_ranking',
-									'engagement_rate_ranking',
-									'conversion_rate_ranking',
-									'inline_link_click_ctr',
-									'cost_per_result',
-									'cost_per_action_type',
-									'actions',
-								],
-								timeRange: {
-									since: input.timeRange.since,
-									until: input.timeRange.until,
-								},
+						if (insightsResponse.data && insightsResponse.data.length > 0) {
+							insightsResponse.data.forEach((insight: any) => {
+								if (insight.adset_id) {
+									adSetInsightsMap[insight.adset_id] = insight;
+								}
 							});
-
-							if (insightsResponse.data && insightsResponse.data.length > 0) {
-								insights = insightsResponse.data[0];
-							}
-						} catch (error: any) {
-							// Insights are optional, continue without them
-							// If rate limit hit, stop making insights requests for remaining items
-							if (error.code === 17 || error.message?.includes('request limit') || error.message?.includes('rate limit')) {
-								console.warn(`Rate limit hit for ad set ${adSet.id}, skipping remaining insights`);
-								rateLimitHit = true;
-							}
-						}
-
-						// Add delay between requests to avoid rate limits (500ms delay)
-						// Increase delay if we're getting close to rate limit
-						const delay = rateLimitHit ? 1000 : 500;
-						if (i < (response.data || []).length - 1) {
-							await new Promise(resolve => setTimeout(resolve, delay));
 						}
 					}
+				} catch (error) {
+					console.error('Failed to fetch bulk insights for ad sets:', error);
+					// Insights are optional, continue with empty map
+				}
 
-					// Format budget values - Meta API returns budgets in smallest currency unit (cents for USD)
-					// Convert to currency units by dividing by 100
+				const adSetsWithInsights = response.data.map((adSet: any) => {
+					const insights = adSetInsightsMap[adSet.id] || null;
+
+					// Format budget values
 					const formatBudget = (budget: string | number | null | undefined): string | null => {
 						if (budget === null || budget === undefined) return null;
-						// Handle empty string
 						if (budget === '') return null;
 						const num = typeof budget === 'string' ? parseFloat(budget) : budget;
 						if (isNaN(num)) return null;
-						// Meta API returns budget in smallest currency unit (e.g., 10000 = $100.00)
-						// Always divide by 100 to convert to currency units
 						return String(num / 100);
 					};
 
-					adSetsWithInsights.push({
+					return {
 						id: adSet.id,
 						name: adSet.name || `Ad Set ${adSet.id}`,
 						status: mapAdSetStatus(adSet.status || 'ACTIVE'),
@@ -186,13 +171,10 @@ export const metaAdsAdSetsRouter = router({
 							quality_ranking: insights.quality_ranking || null,
 							engagement_rate_ranking: insights.engagement_rate_ranking || null,
 							conversion_rate_ranking: insights.conversion_rate_ranking || null,
-							// cost_per_result might be cost_per_action_type or need calculation
 							cost_per_result: (() => {
-								// Try direct field first
 								if (insights.cost_per_result && insights.cost_per_result !== '') {
 									return String(insights.cost_per_result);
 								}
-								// Try cost_per_action_type
 								if (insights.cost_per_action_type && Array.isArray(insights.cost_per_action_type)) {
 									const resultAction = insights.cost_per_action_type.find(
 										(action: any) => action.action_type === 'onsite_conversion.messaging_conversation_started_7d' ||
@@ -202,7 +184,6 @@ export const metaAdsAdSetsRouter = router({
 									if (resultAction && resultAction.value) {
 										return String(resultAction.value);
 									}
-									// If no specific action type, use first available
 									if (insights.cost_per_action_type[0]?.value) {
 										return String(insights.cost_per_action_type[0].value);
 									}
@@ -211,8 +192,8 @@ export const metaAdsAdSetsRouter = router({
 							})(),
 							actions: insights.actions || [],
 						} : null,
-					});
-				}
+					};
+				});
 
 				return {
 					data: adSetsWithInsights,
@@ -366,6 +347,65 @@ export const metaAdsAdSetsRouter = router({
 
 				// On rate limit or other errors, return empty so UI can show parsed targeting instead
 				return { data: [] };
+			}
+		}),
+
+	/**
+	 * Get human-readable targeting descriptions for multiple ad sets in bulk
+	 */
+	getBulkTargetingSentenceLines: protectedProcedure
+		.input(
+			z.object({
+				adSetIds: z.array(z.string()).min(1, 'Ad Set IDs are required'),
+			})
+		)
+		.query(async ({ input, ctx }) => {
+			try {
+				const userId = ctx.session?.user?.id;
+				if (!userId) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'User session not found',
+					});
+				}
+
+				const tokenData = await getStoredMetaAccessToken();
+				if (!tokenData) {
+					throw new TRPCError({
+						code: 'BAD_REQUEST',
+						message: 'No active Meta integration found. Please connect your account first.',
+					});
+				}
+
+				const client = new MetaAdsClient({ accessToken: tokenData.accessToken });
+
+				// Fetch targeting for each ad set in parallel
+				const results = await Promise.all(
+					input.adSetIds.map(async (id) => {
+						try {
+							const res = await client.getTargetingSentenceLines(id);
+							return { id, data: res.targetingsentencelines || [] };
+						} catch (e) {
+							console.warn(`Failed to fetch targeting for ad set ${id}:`, e);
+							return { id, data: [] };
+						}
+					})
+				);
+
+				const targetingMap: Record<string, any[]> = {};
+				results.forEach(r => {
+					targetingMap[r.id] = r.data;
+				});
+
+				return {
+					data: targetingMap,
+				};
+			} catch (error) {
+				console.error('Meta Ads API bulk targeting error:', error);
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: error instanceof Error ? error.message : 'Failed to fetch bulk targeting',
+				});
 			}
 		}),
 });

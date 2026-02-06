@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,14 +28,68 @@ import type { MetaAdsAccount } from "./_components/schemas";
 
 export default function MetaAdsPage() {
 	const router = useRouter();
-	const [selectedAccountId, setSelectedAccountId] = React.useState<string>("");
+	const searchParams = useSearchParams();
+	const pathname = usePathname();
+
+	// Initialize state from URL search params
+	const paramAccountId = searchParams.get("accountId");
+	const paramFrom = searchParams.get("from");
+	const paramTo = searchParams.get("to");
+
+	const [selectedAccountId, setSelectedAccountId] = React.useState<string>(paramAccountId || "");
 
 	// Date range state
-	const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
-		from: new Date(new Date().setDate(new Date().getDate() - 30)), // Default to last 30 days
-		to: new Date(),
+	const [dateRange, setDateRange] = React.useState<DateRange | undefined>(() => {
+		if (paramFrom && paramTo) {
+			const fromDate = new Date(paramFrom);
+			const toDate = new Date(paramTo);
+			if (!isNaN(fromDate.getTime()) && !isNaN(toDate.getTime())) {
+				return { from: fromDate, to: toDate };
+			}
+		}
+		return {
+			from: new Date(new Date().setDate(new Date().getDate() - 30)), // Default to last 30 days
+			to: new Date(),
+		};
 	});
 	const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
+
+	/**
+	 * Update URL search parameters
+	 */
+	const updateSearchParams = React.useCallback((updates: Record<string, string | undefined>) => {
+		const current = new URLSearchParams(Array.from(searchParams.entries()));
+
+		Object.entries(updates).forEach(([key, value]) => {
+			if (value) {
+				current.set(key, value);
+			} else {
+				current.delete(key);
+			}
+		});
+
+		const search = current.toString();
+		const query = search ? `?${search}` : "";
+		router.replace(`${pathname}${query}`, { scroll: false });
+	}, [searchParams, pathname, router]);
+
+	// Sync selection changes to URL
+	React.useEffect(() => {
+		const updates: Record<string, string | undefined> = {};
+
+		if (selectedAccountId) {
+			updates.accountId = selectedAccountId;
+		}
+
+		if (dateRange?.from && dateRange?.to) {
+			updates.from = format(dateRange.from, "yyyy-MM-dd");
+			updates.to = format(dateRange.to, "yyyy-MM-dd");
+		}
+
+		if (Object.keys(updates).length > 0) {
+			updateSearchParams(updates);
+		}
+	}, [selectedAccountId, dateRange, updateSearchParams]);
 
 	// Campaign dialog state
 	const [selectedCampaign, setSelectedCampaign] = React.useState<any | null>(null);

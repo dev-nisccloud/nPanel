@@ -57,9 +57,11 @@ export default function MetaAdsAccountDetailPage() {
 		until: format(dateRange.to, "yyyy-MM-dd"),
 	} : undefined;
 
+	const utils = trpc.useUtils();
 	const {
 		data: campaignsData,
 		isLoading: isLoadingCampaigns,
+		isFetching: isFetchingCampaigns,
 		error: campaignsError,
 		refetch: refetchCampaigns,
 	} = trpc.metaAds.campaigns.listCampaigns.useQuery(
@@ -240,7 +242,7 @@ export default function MetaAdsAccountDetailPage() {
 					<Button
 						variant="ghost"
 						size="icon"
-						onClick={() => router.push("/agency/ad-campaigns/meta-ads")}
+						onClick={() => router.back()}
 						title="Back to accounts"
 					>
 						<ArrowLeft className="h-4 w-4" />
@@ -257,12 +259,14 @@ export default function MetaAdsAccountDetailPage() {
 				<Button
 					variant="outline"
 					size="icon"
+					disabled={isLoadingAccount || isFetchingCampaigns}
 					onClick={() => {
-						refetchAccount();
+						utils.metaAds.accounts.getAccountDetails.invalidate({ accountId });
+						utils.metaAds.campaigns.listCampaigns.invalidate({ accountId, timeRange });
 					}}
 					title="Refresh account"
 				>
-					<RefreshCw className="h-4 w-4" />
+					<RefreshCw className={cn("h-4 w-4", (isLoadingAccount || isFetchingCampaigns) && "animate-spin")} />
 				</Button>
 			</div>
 
@@ -377,12 +381,13 @@ export default function MetaAdsAccountDetailPage() {
 							<Button
 								variant="outline"
 								size="icon"
+								disabled={isLoadingCampaigns || isFetchingCampaigns}
 								onClick={() => {
-									refetchCampaigns();
+									utils.metaAds.campaigns.listCampaigns.invalidate({ accountId, timeRange });
 								}}
 								title="Refresh campaigns"
 							>
-								<RefreshCw className="h-4 w-4" />
+								<RefreshCw className={cn("h-4 w-4", (isLoadingCampaigns || isFetchingCampaigns) && "animate-spin")} />
 							</Button>
 						</div>
 					</div>

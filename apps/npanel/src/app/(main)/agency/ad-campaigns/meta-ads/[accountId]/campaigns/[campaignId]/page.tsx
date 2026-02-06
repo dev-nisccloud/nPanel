@@ -880,8 +880,10 @@ function MetricsDisplay({
     budget?: string | null;
     compact?: boolean;
 }) {
-    const formatCurrency = (amount: string | number) => {
+    const formatCurrency = (amount: string | number | null | undefined) => {
+        if (amount === null || amount === undefined || amount === '' || amount === 'null') return '—';
         const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+        if (isNaN(num)) return '—';
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: currency,
@@ -890,13 +892,17 @@ function MetricsDisplay({
         }).format(num);
     };
 
-    const formatNumber = (num: string | number) => {
+    const formatNumber = (num: string | number | null | undefined) => {
+        if (num === null || num === undefined || num === '' || num === 'null') return '—';
         const n = typeof num === 'string' ? parseFloat(num) : num;
+        if (isNaN(n)) return '—';
         return new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(n);
     };
 
-    const formatPercentage = (num: string | number) => {
+    const formatPercentage = (num: string | number | null | undefined) => {
+        if (num === null || num === undefined || num === '' || num === 'null') return '—';
         const n = typeof num === 'string' ? parseFloat(num) : num;
+        if (isNaN(n)) return '—';
         return n < 1 ? `${(n * 100).toFixed(2)}%` : `${n.toFixed(2)}%`;
     };
 
@@ -905,9 +911,9 @@ function MetricsDisplay({
     const cardPadding = compact ? 'p-2' : 'p-3';
 
     // Calculate derived metrics
-    const impressionsNum = insights.impressions ? (typeof insights.impressions === 'string' ? parseFloat(insights.impressions) : insights.impressions) : 0;
-    const clicksNum = insights.clicks ? (typeof insights.clicks === 'string' ? parseFloat(insights.clicks) : insights.clicks) : 0;
-    const spendNum = insights.spend ? (typeof insights.spend === 'string' ? parseFloat(insights.spend) : insights.spend) : 0;
+    const impressionsNum = insights?.impressions ? (typeof insights.impressions === 'string' ? parseFloat(insights.impressions) : insights.impressions) : 0;
+    const clicksNum = insights?.clicks ? (typeof insights.clicks === 'string' ? parseFloat(insights.clicks) : insights.clicks) : 0;
+    const spendNum = insights?.spend ? (typeof insights.spend === 'string' ? parseFloat(insights.spend) : insights.spend) : 0;
 
     // CTR (all) = (clicks / impressions) * 100
     const ctrAll = impressionsNum > 0 && clicksNum > 0 ? (clicksNum / impressionsNum) : null;
@@ -1189,54 +1195,26 @@ interface AdSetItemProps {
         until: string;
     };
     currency?: string;
-    onAdsLoaded?: (adSetId: string, ads: any[]) => void;
-    onTargetingLoaded?: (adSetId: string, lines: any[]) => void;
+    ads?: any[];
+    targetingSentenceLines?: any[];
+    isLoadingAds?: boolean;
+    adsError?: any;
 }
 
-function AdSetItem({ adSet, getStatusStyles, timeRange, currency = 'USD', onAdsLoaded, onTargetingLoaded }: AdSetItemProps) {
+function AdSetItem({
+    adSet,
+    getStatusStyles,
+    timeRange,
+    currency = 'USD',
+    ads = [],
+    targetingSentenceLines = [],
+    isLoadingAds = false,
+    adsError = null
+}: AdSetItemProps) {
     const [isExpanded, setIsExpanded] = React.useState(false);
 
-    // Fetch targeting sentence lines
-    const { data: targetingData } = trpc.metaAds.adSets.getTargetingSentenceLines.useQuery(
-        { adSetId: adSet.id },
-        { enabled: true, refetchOnWindowFocus: false, retry: 0, staleTime: 0, refetchOnMount: 'always' }
-    );
-
-    // Fetch ads for this ad set
-    const {
-        data: adsData,
-        isLoading: isLoadingAds,
-        isFetching: isFetchingAds,
-        error: adsError,
-        refetch: refetchAds
-    } = trpc.metaAds.ads.listAds.useQuery(
-        {
-            adSetId: adSet.id,
-            timeRange: timeRange ? {
-                since: timeRange.since,
-                until: timeRange.until,
-            } : undefined
-        },
-        { enabled: true, refetchOnWindowFocus: false, retry: 1, staleTime: 0, refetchOnMount: 'always' }
-    );
-
     const targetingInfo = parseTargeting(adSet.targeting);
-    const targetingSentenceLines = targetingData?.data || [];
-    const ads = adsData?.data || [];
     const hasTargeting = targetingInfo.hasAny || targetingSentenceLines.length > 0;
-
-    // Lift data up to parent
-    React.useEffect(() => {
-        if (onAdsLoaded && ads.length > 0) {
-            onAdsLoaded(adSet.id, ads);
-        }
-    }, [ads, adSet.id, onAdsLoaded]);
-
-    React.useEffect(() => {
-        if (onTargetingLoaded && targetingSentenceLines.length > 0) {
-            onTargetingLoaded(adSet.id, targetingSentenceLines);
-        }
-    }, [targetingSentenceLines, adSet.id, onTargetingLoaded]);
 
     const statusStyles = getStatusStyles(adSet.status);
 
@@ -1560,11 +1538,19 @@ export default function CampaignDetailsPage() {
     const account = accountData?.data;
     const currency = account?.currency || campaign?.currency || 'USD';
 
-    // Default time range (last 30 days)
-    const timeRange = React.useMemo(() => ({
-        since: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-        until: format(new Date(), 'yyyy-MM-dd'),
-    }), []);
+    // Default time range (lifespan or last 30 days)
+    const timeRange = React.useMemo(() => {
+        if (campaign?.start_time) {
+            return {
+                since: campaign.start_time.split('T')[0],
+                until: format(new Date(), 'yyyy-MM-dd'),
+            };
+        }
+        return {
+            since: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+            until: format(new Date(), 'yyyy-MM-dd'),
+        };
+    }, [campaign?.start_time]);
 
     // Fetch ad sets
     const {
@@ -1632,23 +1618,47 @@ export default function CampaignDetailsPage() {
 
     const adSets = adSetsData?.data || [];
 
-    // State to lift data from AdSetItems for PDF export
-    const [adsByAdSet, setAdsByAdSet] = React.useState<Record<string, any[]>>({});
-    const [targetingByAdSet, setTargetingByAdSet] = React.useState<Record<string, any[]>>({});
+    // Fetch ads in bulk for the campaign
+    const {
+        data: adsData,
+        isLoading: isLoadingAds,
+        isFetching: isFetchingAds,
+    } = trpc.metaAds.ads.listCampaignAds.useQuery(
+        { accountId, campaignId, timeRange },
+        {
+            enabled: !!campaignId && !!campaign,
+            refetchOnWindowFocus: false,
+            staleTime: 0,
+            refetchOnMount: 'always'
+        }
+    );
 
-    const handleAdsLoaded = React.useCallback((adSetId: string, ads: any[]) => {
-        setAdsByAdSet(prev => {
-            if (prev[adSetId]?.length === ads.length && JSON.stringify(prev[adSetId]) === JSON.stringify(ads)) return prev;
-            return { ...prev, [adSetId]: ads };
-        });
-    }, []);
+    const allAds = adsData?.data || [];
 
-    const handleTargetingLoaded = React.useCallback((adSetId: string, lines: any[]) => {
-        setTargetingByAdSet(prev => {
-            if (prev[adSetId]?.length === lines.length && JSON.stringify(prev[adSetId]) === JSON.stringify(lines)) return prev;
-            return { ...prev, [adSetId]: lines };
+    // Group ads by ad set ID
+    const adsByAdSet = React.useMemo(() => {
+        const map: Record<string, any[]> = {};
+        allAds.forEach(ad => {
+            const adsetId = ad.adset_id ? String(ad.adset_id) : null;
+            if (adsetId) {
+                if (!map[adsetId]) map[adsetId] = [];
+                map[adsetId].push(ad);
+            }
         });
-    }, []);
+        return map;
+    }, [allAds]);
+
+    // Fetch targeting sentence lines in bulk
+    const adSetIds = React.useMemo(() => adSets.map((a: any) => a.id), [adSets]);
+    const {
+        data: bulkTargetingData,
+        isLoading: isLoadingTargeting
+    } = trpc.metaAds.adSets.getBulkTargetingSentenceLines.useQuery(
+        { adSetIds },
+        { enabled: adSetIds.length > 0, refetchOnWindowFocus: false }
+    );
+
+    const targetingByAdSet = bulkTargetingData?.data || {};
 
     // Process Engagement Actions for the bar chart
     const engagementActionsData = React.useMemo(() => {
@@ -1960,8 +1970,9 @@ export default function CampaignDetailsPage() {
                                         timeRange={timeRange}
                                         currency={currency}
                                         getStatusStyles={getStatusStyles}
-                                        onAdsLoaded={handleAdsLoaded}
-                                        onTargetingLoaded={handleTargetingLoaded}
+                                        targetingSentenceLines={targetingByAdSet[String(adSet.id)]}
+                                        isLoadingAds={isLoadingAds}
+                                        ads={adsByAdSet[String(adSet.id)]}
                                     />
                                 ))}
                             </div>
