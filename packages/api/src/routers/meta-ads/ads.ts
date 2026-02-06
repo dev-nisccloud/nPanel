@@ -42,6 +42,7 @@ export const metaAdsAdsRouter = router({
 		.input(
 			z.object({
 				adSetId: z.string().min(1, 'Ad Set ID is required'),
+				datePreset: z.string().optional(),
 				timeRange: z.object({
 					since: z.string().optional(),
 					until: z.string().optional(),
@@ -85,44 +86,57 @@ export const metaAdsAdsRouter = router({
 				// Fetch insights for all ads in bulk at the ad set level
 				let adInsightsMap: Record<string, any> = {};
 				try {
-					if (input.timeRange?.since && input.timeRange?.until) {
-						const insightsResponse = await client.getInsights(input.adSetId, {
-							level: 'ad',
-							metrics: [
-								'ad_id',
-								'impressions',
-								'clicks',
-								'spend',
-								'reach',
-								'frequency',
-								'ctr',
-								'cpc',
-								'cpm',
-								'cpp',
-								'unique_clicks',
-								'unique_ctr',
-								'purchase_roas',
-								'quality_ranking',
-								'engagement_rate_ranking',
-								'conversion_rate_ranking',
-								'inline_link_click_ctr',
-								'cost_per_result',
-								'cost_per_action_type',
-								'actions',
-							],
-							timeRange: {
-								since: input.timeRange.since,
-								until: input.timeRange.until,
-							},
-						});
+					let insightsOptions: {
+						level: 'ad';
+						metrics: string[];
+						datePreset?: string;
+						timeRange?: { since: string; until: string };
+					} = {
+						level: 'ad',
+						metrics: [
+							'ad_id',
+							'impressions',
+							'clicks',
+							'spend',
+							'reach',
+							'frequency',
+							'ctr',
+							'cpc',
+							'cpm',
+							'cpp',
+							'unique_clicks',
+							'unique_ctr',
+							'purchase_roas',
+							'quality_ranking',
+							'engagement_rate_ranking',
+							'conversion_rate_ranking',
+							'inline_link_click_ctr',
+							'cost_per_result',
+							'cost_per_action_type',
+							'actions',
+						],
+					};
 
-						if (insightsResponse.data && insightsResponse.data.length > 0) {
-							insightsResponse.data.forEach((insight: any) => {
-								if (insight.ad_id) {
-									adInsightsMap[insight.ad_id] = insight;
-								}
-							});
-						}
+					if (input.timeRange?.since && input.timeRange?.until) {
+						insightsOptions.timeRange = {
+							since: input.timeRange.since,
+							until: input.timeRange.until,
+						};
+					} else if (input.datePreset) {
+						insightsOptions.datePreset = input.datePreset;
+					} else {
+						// Default to maximum (lifetime) if no range provided
+						insightsOptions.datePreset = 'maximum';
+					}
+
+					const insightsResponse = await client.getInsights(input.adSetId, insightsOptions);
+
+					if (insightsResponse.data && insightsResponse.data.length > 0) {
+						insightsResponse.data.forEach((insight: any) => {
+							if (insight.ad_id) {
+								adInsightsMap[insight.ad_id] = insight;
+							}
+						});
 					}
 				} catch (error) {
 					console.error('Failed to fetch bulk insights for ads:', error);
@@ -181,6 +195,28 @@ export const metaAdsAdsRouter = router({
 									}
 									if (insights.cost_per_action_type[0]?.value) {
 										return String(insights.cost_per_action_type[0].value);
+									}
+								}
+								return null;
+							})(),
+							leads: (() => {
+								if (insights.actions && Array.isArray(insights.actions)) {
+									const leadAction = insights.actions.find(
+										(action: any) => action.action_type === 'lead'
+									);
+									if (leadAction && leadAction.value) {
+										return String(leadAction.value);
+									}
+								}
+								return null;
+							})(),
+							cost_per_lead: (() => {
+								if (insights.cost_per_action_type && Array.isArray(insights.cost_per_action_type)) {
+									const leadCost = insights.cost_per_action_type.find(
+										(action: any) => action.action_type === 'lead'
+									);
+									if (leadCost && leadCost.value) {
+										return String(leadCost.value);
 									}
 								}
 								return null;
@@ -293,6 +329,7 @@ export const metaAdsAdsRouter = router({
 			z.object({
 				accountId: z.string().min(1, 'Account ID is required'),
 				campaignId: z.string().min(1, 'Campaign ID is required'),
+				datePreset: z.string().optional(),
 				timeRange: z.object({
 					since: z.string().optional(),
 					until: z.string().optional(),
@@ -339,44 +376,57 @@ export const metaAdsAdsRouter = router({
 				// 2. Fetch insights for all ads in bulk at the campaign level
 				let adInsightsMap: Record<string, any> = {};
 				try {
-					if (input.timeRange?.since && input.timeRange?.until) {
-						const insightsResponse = await client.getInsights(input.campaignId, {
-							level: 'ad',
-							metrics: [
-								'ad_id',
-								'impressions',
-								'clicks',
-								'spend',
-								'reach',
-								'frequency',
-								'ctr',
-								'cpc',
-								'cpm',
-								'cpp',
-								'unique_clicks',
-								'unique_ctr',
-								'purchase_roas',
-								'quality_ranking',
-								'engagement_rate_ranking',
-								'conversion_rate_ranking',
-								'inline_link_click_ctr',
-								'cost_per_result',
-								'cost_per_action_type',
-								'actions',
-							],
-							timeRange: {
-								since: input.timeRange.since,
-								until: input.timeRange.until,
-							},
-						});
+					let insightsOptions: {
+						level: 'ad';
+						metrics: string[];
+						datePreset?: string;
+						timeRange?: { since: string; until: string };
+					} = {
+						level: 'ad',
+						metrics: [
+							'ad_id',
+							'impressions',
+							'clicks',
+							'spend',
+							'reach',
+							'frequency',
+							'ctr',
+							'cpc',
+							'cpm',
+							'cpp',
+							'unique_clicks',
+							'unique_ctr',
+							'purchase_roas',
+							'quality_ranking',
+							'engagement_rate_ranking',
+							'conversion_rate_ranking',
+							'inline_link_click_ctr',
+							'cost_per_result',
+							'cost_per_action_type',
+							'actions',
+						],
+					};
 
-						if (insightsResponse.data && insightsResponse.data.length > 0) {
-							insightsResponse.data.forEach((insight: any) => {
-								if (insight.ad_id) {
-									adInsightsMap[insight.ad_id] = insight;
-								}
-							});
-						}
+					if (input.timeRange?.since && input.timeRange?.until) {
+						insightsOptions.timeRange = {
+							since: input.timeRange.since,
+							until: input.timeRange.until,
+						};
+					} else if (input.datePreset) {
+						insightsOptions.datePreset = input.datePreset;
+					} else {
+						// Default to maximum (lifetime) if no range provided
+						insightsOptions.datePreset = 'maximum';
+					}
+
+					const insightsResponse = await client.getInsights(input.campaignId, insightsOptions);
+
+					if (insightsResponse.data && insightsResponse.data.length > 0) {
+						insightsResponse.data.forEach((insight: any) => {
+							if (insight.ad_id) {
+								adInsightsMap[insight.ad_id] = insight;
+							}
+						});
 					}
 				} catch (error) {
 					console.error('Failed to fetch bulk insights for campaign ads:', error);
@@ -436,6 +486,28 @@ export const metaAdsAdsRouter = router({
 									}
 									if (insights.cost_per_action_type[0]?.value) {
 										return String(insights.cost_per_action_type[0].value);
+									}
+								}
+								return null;
+							})(),
+							leads: (() => {
+								if (insights.actions && Array.isArray(insights.actions)) {
+									const leadAction = insights.actions.find(
+										(action: any) => action.action_type === 'lead'
+									);
+									if (leadAction && leadAction.value) {
+										return String(leadAction.value);
+									}
+								}
+								return null;
+							})(),
+							cost_per_lead: (() => {
+								if (insights.cost_per_action_type && Array.isArray(insights.cost_per_action_type)) {
+									const leadCost = insights.cost_per_action_type.find(
+										(action: any) => action.action_type === 'lead'
+									);
+									if (leadCost && leadCost.value) {
+										return String(leadCost.value);
 									}
 								}
 								return null;

@@ -58,10 +58,12 @@ import { DnsCardsList } from "./dns-cards";
 import { dnsRecordSchema } from "./dns-schema";
 import { useDnsBySiteId } from "./use-dns-by-site-id";
 import { AddDnsRecordSheet } from "./add-dns-record-sheet";
+import { EditDnsRecordSheet } from "./edit-dns-record-sheet";
 import { ViewDnsRecordSheet } from "./view-dns-record-sheet";
 
 interface DnsTableProps {
   siteId: number;
+  domainName?: string;
 }
 
 // Loading skeleton component
@@ -79,7 +81,7 @@ function DnsTableSkeleton() {
           <Skeleton className="h-10 w-24" />
         </div>
       </div>
-      
+
       {/* Cards skeleton */}
       <div className="rounded-lg border bg-card">
         <ScrollArea className="h-[850px]">
@@ -95,7 +97,7 @@ function DnsTableSkeleton() {
                       <Skeleton className="h-8 w-8" />
                     </div>
                   </div>
-                  
+
                   {/* Card content skeleton */}
                   <div className="grid grid-cols-4 gap-4">
                     <div className="space-y-1">
@@ -140,15 +142,17 @@ function DnsTableError({ error, onRetry }: { error: Error; onRetry: () => void }
   );
 }
 
-export function DnsTable({ siteId }: DnsTableProps) {
+export function DnsTable({ siteId, domainName }: DnsTableProps) {
   const { data: dnsData, isLoading, isError, error, refetch } = useDnsBySiteId(siteId);
-  
+
   const [searchTerm, setSearchTerm] = React.useState("");
   const [recordTypeFilter, setRecordTypeFilter] = React.useState("all");
   const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
   const [isAddRecordOpen, setIsAddRecordOpen] = React.useState(false);
   const [isViewRecordOpen, setIsViewRecordOpen] = React.useState(false);
-  const [recordToView, setRecordToView] = React.useState<z.infer<typeof dnsRecordSchema> | null>(null);
+  const [selectedRecord, setSelectedRecord] = React.useState<z.infer<typeof dnsRecordSchema> | null>(null);
+  const [isEditRecordOpen, setIsEditRecordOpen] = React.useState(false);
+  const [recordToEdit, setRecordToEdit] = React.useState<z.infer<typeof dnsRecordSchema> | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [recordToDelete, setRecordToDelete] = React.useState<{ id: number; host: string; type: string } | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -166,10 +170,10 @@ export function DnsTable({ siteId }: DnsTableProps) {
     onError: (error) => {
       console.error("Error deleting DNS record:", error);
       setIsDeleting(false);
-      
+
       // Handle different types of errors
       let errorMessage = "Please try again.";
-      
+
       if (error?.data?.code === "BAD_REQUEST") {
         errorMessage = error.message || "Invalid DNS record ID.";
       } else if (error?.data?.code === "UNAUTHORIZED") {
@@ -181,7 +185,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       toast.error("Failed to delete DNS record", {
         description: errorMessage,
       });
@@ -190,7 +194,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
 
   const filteredData = React.useMemo(() => {
     if (!dnsData) return [];
-    
+
     let filtered = dnsData;
 
     if (searchTerm.trim()) {
@@ -225,13 +229,18 @@ export function DnsTable({ siteId }: DnsTableProps) {
   // };
 
   const handleView = (data: z.infer<typeof dnsRecordSchema>) => {
-    setRecordToView(data);
+    setSelectedRecord(data);
     setIsViewRecordOpen(true);
+  };
+
+  const handleEdit = (record: z.infer<typeof dnsRecordSchema>) => {
+    setRecordToEdit(record);
+    setIsEditRecordOpen(true);
   };
 
   const handleDelete = (id: number | undefined) => {
     if (!id) return;
-    
+
     // Find the record to get its details for the confirmation dialog
     const record = dnsData?.find(r => r.id === id);
     if (record) {
@@ -246,9 +255,9 @@ export function DnsTable({ siteId }: DnsTableProps) {
 
   const confirmDelete = async () => {
     if (!recordToDelete) return;
-    
+
     setIsDeleting(true);
-    
+
     try {
       await deleteDnsRecord.mutateAsync({ recordId: recordToDelete.id });
     } catch (error) {
@@ -301,7 +310,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
             </TableRow>
           ) : (
             filteredData.map((record) => (
-              <TableRow 
+              <TableRow
                 key={record.id}
                 className="cursor-pointer"
                 onClick={() => handleView(record)}
@@ -314,7 +323,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
                     {record.type || "A"}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-bold text-primary text-sm max-w-[200px] truncate">
+                <TableCell className="text-primary text-sm max-w-[200px] truncate">
                   {record.value || "Unknown Value"}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
@@ -332,8 +341,11 @@ export function DnsTable({ siteId }: DnsTableProps) {
                             <DropdownMenuItem onClick={() => handleView(record)}>
                               View
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(record)}>
+                              Edit
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               variant="destructive"
                               onClick={() => handleDelete(record.id)}
                             >
@@ -407,7 +419,7 @@ export function DnsTable({ siteId }: DnsTableProps) {
             </SelectContent>
           </Select>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2">
           {/* View Mode Toggle */}
           <div className="flex items-center border rounded-md">
@@ -428,9 +440,9 @@ export function DnsTable({ siteId }: DnsTableProps) {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => setIsAddRecordOpen(true)}
             className="flex-shrink-0"
@@ -452,15 +464,23 @@ export function DnsTable({ siteId }: DnsTableProps) {
       
       <DataTablePagination table={table} /> */}
 
-      {/* Add Record Sheet */}
-      <AddDnsRecordSheet 
+      {/* Add DNS Record Sheet */}
+      <AddDnsRecordSheet
         open={isAddRecordOpen}
         onOpenChange={setIsAddRecordOpen}
         siteId={siteId}
-        onSuccess={() => {
-          // Refetch DNS data after successful creation
-          refetch();
-        }}
+        domainName={domainName}
+        onSuccess={refetch}
+      />
+
+      {/* Edit DNS Record Sheet */}
+      <EditDnsRecordSheet
+        open={isEditRecordOpen}
+        onOpenChange={setIsEditRecordOpen}
+        siteId={siteId}
+        domainName={domainName}
+        record={recordToEdit}
+        onSuccess={refetch}
       />
 
       {/* View Record Sheet */}
@@ -470,10 +490,10 @@ export function DnsTable({ siteId }: DnsTableProps) {
           setIsViewRecordOpen(newOpen);
           if (!newOpen) {
             // Clear the record data when sheet closes
-            setRecordToView(null);
+            setSelectedRecord(null);
           }
         }}
-        data={recordToView}
+        data={selectedRecord}
       />
 
       {/* Delete Confirmation Dialog */}

@@ -167,7 +167,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     { pleskFilterId },
     { enabled: !!pleskFilterId && pleskFilterId !== "" }
   );
-  
+
   // Check if hosting subscription is already linked to a service subscription
   const { data: existingServiceSubscription } = trpc.serviceSubscriptions.getByHostingSubscriptionId.useQuery(
     { hostingSubscriptionId: hostingSubscriptionByFilter?.id || "" },
@@ -210,7 +210,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const getStatusBadge = (status: number) => {
     const isActive = status === 0;
     return (
-      <Badge 
+      <Badge
         variant={getStatusBadgeVariant(status)}
         className={isActive ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
       >
@@ -224,229 +224,229 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
       <div className="w-full max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/agency/hosting">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {hostingData.gen_info.name || `Subscription ${hostingData.id}`}
-            </h1>
-            <p className="text-muted-foreground">Hosting subscription details</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {getStatusBadge(hostingData.gen_info.status ?? 0)}
-          <DropdownMenu open={isActionMenuOpen} onOpenChange={setIsActionMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon"
-              >
-                <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Open menu</span>
+          <div className="flex items-center gap-4">
+            <Link href="/agency/hosting">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem 
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setIsActionMenuOpen(false);
-                  setTimeout(() => setIsLinkToTeamOpen(true), 0);
-                }}
-                disabled={isLinkedToTeam}
-              >
-                Link to Team
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setIsActionMenuOpen(false);
-                  setTimeout(() => setIsLinkToSubscriptionOpen(true), 0);
-                }}
-                disabled={isLinkedToServiceSubscription}
-              >
-                Link to Subscription
-              </DropdownMenuItem>
-              {isLinkedToTeam && (
-                <DropdownMenuItem 
+            </Link>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight">
+                {hostingData.gen_info.name || `Subscription ${hostingData.id}`}
+              </h1>
+              <p className="text-sm text-muted-foreground">Hosting subscription details</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {getStatusBadge(hostingData.gen_info.status ?? 0)}
+            <DropdownMenu open={isActionMenuOpen} onOpenChange={setIsActionMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
                   onSelect={(e) => {
                     e.preventDefault();
                     setIsActionMenuOpen(false);
-                    setTimeout(() => setIsUnlinkDialogOpen(true), 0);
+                    setTimeout(() => setIsLinkToTeamOpen(true), 0);
                   }}
-                  className="text-destructive focus:text-destructive"
+                  disabled={isLinkedToTeam}
                 >
-                  <Unlink className="mr-2 h-4 w-4" />
-                  Unlink from Team
+                  Link to Team
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuItem 
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setIsActionMenuOpen(false);
-                  setTimeout(() => setIsEditSubscriptionOpen(true), 0);
-                }}
-                disabled={!subscriptionData}
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Subscription
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {/* Commented out menu items - to be restored later */}
-              {/* <DropdownMenuItem>View Details</DropdownMenuItem> */}
-              {/* <DropdownMenuItem>Renew</DropdownMenuItem> */}
-              {/* <DropdownMenuSeparator /> */}
-              {/* <DropdownMenuSub> */}
-              {/*   <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger> */}
-              {/*   <DropdownMenuSubContent> */}
-              {/*     <DropdownMenuItem>Active</DropdownMenuItem> */}
-              {/*     <DropdownMenuItem>Suspended</DropdownMenuItem> */}
-              {/*     <DropdownMenuItem>Disabled</DropdownMenuItem> */}
-              {/*   </DropdownMenuSubContent> */}
-              {/* </DropdownMenuSub> */}
-              {/* <DropdownMenuSeparator /> */}
-              {/* <DropdownMenuItem>Suspend</DropdownMenuItem> */}
-              {/* <DropdownMenuItem variant="destructive">Cancel</DropdownMenuItem> */}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setIsActionMenuOpen(false);
+                    setTimeout(() => setIsLinkToSubscriptionOpen(true), 0);
+                  }}
+                  disabled={isLinkedToServiceSubscription}
+                >
+                  Link to Subscription
+                </DropdownMenuItem>
+                {isLinkedToTeam && (
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setIsActionMenuOpen(false);
+                      setTimeout(() => setIsUnlinkDialogOpen(true), 0);
+                    }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Unlink className="mr-2 h-4 w-4" />
+                    Unlink from Team
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setIsActionMenuOpen(false);
+                    setTimeout(() => setIsEditSubscriptionOpen(true), 0);
+                  }}
+                  disabled={!subscriptionData}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Subscription
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {/* Commented out menu items - to be restored later */}
+                {/* <DropdownMenuItem>View Details</DropdownMenuItem> */}
+                {/* <DropdownMenuItem>Renew</DropdownMenuItem> */}
+                {/* <DropdownMenuSeparator /> */}
+                {/* <DropdownMenuSub> */}
+                {/*   <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger> */}
+                {/*   <DropdownMenuSubContent> */}
+                {/*     <DropdownMenuItem>Active</DropdownMenuItem> */}
+                {/*     <DropdownMenuItem>Suspended</DropdownMenuItem> */}
+                {/*     <DropdownMenuItem>Disabled</DropdownMenuItem> */}
+                {/*   </DropdownMenuSubContent> */}
+                {/* </DropdownMenuSub> */}
+                {/* <DropdownMenuSeparator /> */}
+                {/* <DropdownMenuItem>Suspend</DropdownMenuItem> */}
+                {/* <DropdownMenuItem variant="destructive">Cancel</DropdownMenuItem> */}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="mt-6">
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-7 h-auto p-0 bg-transparent">
-          <TabsTrigger 
-            value="overview"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Overview</span>
-              <span className="text-xs text-muted-foreground">Details</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="dns"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Network className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">DNS</span>
-              <span className="text-xs text-muted-foreground">Records</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="mail"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Mail className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Mail</span>
-              <span className="text-xs text-muted-foreground">Accounts</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="file-manager"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Folder className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">File Manager</span>
-              <span className="text-xs text-muted-foreground">Files</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="subdomains"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Layers className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Subdomains</span>
-              <span className="text-xs text-muted-foreground">Domains</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="databases"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Database className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">Databases</span>
-              <span className="text-xs text-muted-foreground">MySQL/PostgreSQL</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="wordpress"
-            className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Icons.Wordpress className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col items-start gap-1 w-full">
-              <span className="font-semibold text-sm">WordPress</span>
-              <span className="text-xs text-muted-foreground">Instances</span>
-            </div>
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="mt-6">
-          <HostingOverview hostingData={hostingData} />
-        </TabsContent>
-        
-        <TabsContent value="dns" className="mt-6">
-          <DnsTable siteId={hostingData.id} />
-        </TabsContent>
-        
-        <TabsContent value="mail" className="mt-6">
-          <MailTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
-        </TabsContent>
-        
-        <TabsContent value="file-manager" className="mt-6">
-          <FileManager hostingData={hostingData} />
-        </TabsContent>
-        
-        <TabsContent value="subdomains" className="mt-6">
-          <SubdomainsTable domainName={hostingData.gen_info?.name || ""} />
-        </TabsContent>
-        
-        <TabsContent value="databases" className="mt-6">
-          <DatabasesTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
-        </TabsContent>
-        
-        <TabsContent value="wordpress" className="mt-6">
-          <WordPressInstancesTable 
-            domainName={hostingData.gen_info?.name || ""} 
-            hostingData={hostingData}
-            onInstallClick={() => setInstallWordPressOpen(true)}
-          />
-        </TabsContent>
-      </Tabs>
-      </div>
+        {/* Tabs */}
+        <div className="mt-6">
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-7 h-auto p-0 bg-transparent">
+              <TabsTrigger
+                value="overview"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Overview</span>
+                  <span className="text-xs text-muted-foreground">Details</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="dns"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Network className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">DNS</span>
+                  <span className="text-xs text-muted-foreground">Records</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="mail"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Mail className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Mail</span>
+                  <span className="text-xs text-muted-foreground">Accounts</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="file-manager"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Folder className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">File Manager</span>
+                  <span className="text-xs text-muted-foreground">Files</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="subdomains"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Layers className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Subdomains</span>
+                  <span className="text-xs text-muted-foreground">Domains</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="databases"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Database className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">Databases</span>
+                  <span className="text-xs text-muted-foreground">MySQL/PostgreSQL</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="wordpress"
+                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Icons.Wordpress className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <span className="font-semibold text-sm">WordPress</span>
+                  <span className="text-xs text-muted-foreground">Instances</span>
+                </div>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="mt-6">
+              <HostingOverview hostingData={hostingData} />
+            </TabsContent>
+
+            <TabsContent value="dns" className="mt-6">
+              <DnsTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
+            </TabsContent>
+
+            <TabsContent value="mail" className="mt-6">
+              <MailTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
+            </TabsContent>
+
+            <TabsContent value="file-manager" className="mt-6">
+              <FileManager hostingData={hostingData} />
+            </TabsContent>
+
+            <TabsContent value="subdomains" className="mt-6">
+              <SubdomainsTable domainName={hostingData.gen_info?.name || ""} />
+            </TabsContent>
+
+            <TabsContent value="databases" className="mt-6">
+              <DatabasesTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
+            </TabsContent>
+
+            <TabsContent value="wordpress" className="mt-6">
+              <WordPressInstancesTable
+                domainName={hostingData.gen_info?.name || ""}
+                hostingData={hostingData}
+                onInstallClick={() => setInstallWordPressOpen(true)}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
       {/* Link to Team Dialog */}
@@ -486,8 +486,8 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         onSuccess={() => {
           // Invalidate queries to refresh data
           if (hostingSubscriptionByFilter?.id) {
-            utils.serviceSubscriptions.getByHostingSubscriptionId.invalidate({ 
-              hostingSubscriptionId: hostingSubscriptionByFilter.id 
+            utils.serviceSubscriptions.getByHostingSubscriptionId.invalidate({
+              hostingSubscriptionId: hostingSubscriptionByFilter.id
             });
           }
           utils.hosting.getByPleskFilterId.invalidate({ pleskFilterId });

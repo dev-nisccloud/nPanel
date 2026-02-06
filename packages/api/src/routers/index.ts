@@ -16,6 +16,7 @@ import { servicePlansRouter } from "./plesk/service-plans";
 import { customersCreateRouter } from "./plesk/customers-create";
 import { dnsCreateRouter } from "./plesk/dns-create";
 import { dnsDeleteRouter } from "./plesk/dns-delete";
+import { dnsUpdateRouter } from "./plesk/dns-update";
 import { emailsCreateRouter } from "./plesk/emails-create";
 import { emailsDeleteRouter } from "./plesk/emails-delete";
 import { emailsUpdateRouter } from "./plesk/emails-update";
@@ -110,6 +111,7 @@ export const appRouter = router({
 		customersCreate: customersCreateRouter,
 		dnsCreate: dnsCreateRouter,
 		dnsDelete: dnsDeleteRouter,
+		dnsUpdate: dnsUpdateRouter,
 		emailsCreate: emailsCreateRouter,
 		emailsDelete: emailsDeleteRouter,
 		emailsUpdate: emailsUpdateRouter,

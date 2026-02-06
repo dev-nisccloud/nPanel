@@ -17,11 +17,11 @@ interface SubdomainCardProps {
   className?: string;
 }
 
-export function SubdomainCard({ 
-  data, 
+export function SubdomainCard({
+  data,
   onView,
   onDelete,
-  className 
+  className
 }: SubdomainCardProps) {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -52,7 +52,7 @@ export function SubdomainCard({
   };
 
   return (
-    <Card 
+    <Card
       className={cn("group cursor-pointer transition-all hover:shadow-md hover:border-primary/50", className)}
       onClick={handleCardClick}
     >
@@ -70,9 +70,9 @@ export function SubdomainCard({
             </Badge>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-8 w-8 p-0"
                   onClick={handleOpenInNewTab}
                 >
@@ -86,9 +86,9 @@ export function SubdomainCard({
             {onDelete && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={handleDelete}
                   >
@@ -114,19 +114,19 @@ export function SubdomainCard({
               {data.parent || "N/A"}
             </p>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               SSL Security
             </p>
-            <Badge 
+            <Badge
               variant={data.properties?.ssl ? "default" : "secondary"}
-              className="text-xs w-fit"
+              className={cn("text-xs w-fit", data.properties?.ssl && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800")}
             >
               {data.properties?.ssl ? "Enabled" : "Disabled"}
             </Badge>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Document Root
@@ -150,15 +150,15 @@ interface SubdomainCardsListProps {
   className?: string;
 }
 
-export function SubdomainCardsList({ 
-  data, 
+export function SubdomainCardsList({
+  data,
   onView,
   onDelete,
   cols = 3,
-  className 
+  className
 }: SubdomainCardsListProps) {
   return (
-    <div 
+    <div
       className={cn(
         "grid gap-4",
         cols === 1 && "grid-cols-1",

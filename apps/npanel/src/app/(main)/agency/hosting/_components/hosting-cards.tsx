@@ -5,10 +5,10 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  getStatusDisplayText, 
-  getStatusBadgeVariant, 
-  formatFileSize 
+import {
+  getStatusDisplayText,
+  getStatusBadgeVariant,
+  formatFileSize
 } from "./hosting-utils";
 import { hostingSubscriptionSchema } from "./schema";
 
@@ -21,13 +21,13 @@ interface HostingCardProps {
   className?: string;
 }
 
-export function HostingCard({ 
-  data, 
-  onViewDetails, 
-  onEdit, 
-  onSuspend, 
+export function HostingCard({
+  data,
+  onViewDetails,
+  onEdit,
+  onSuspend,
   onCancel,
-  className 
+  className
 }: HostingCardProps) {
   const handleViewDetails = () => {
     if (onViewDetails) {
@@ -36,7 +36,7 @@ export function HostingCard({
   };
 
   return (
-    <Card 
+    <Card
       className={cn("group cursor-pointer transition-all hover:shadow-md hover:border-primary/50", className)}
       onClick={handleViewDetails}
     >
@@ -45,8 +45,8 @@ export function HostingCard({
           <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
             {data.subscriptionName}
           </CardTitle>
-          <Badge 
-            variant={getStatusBadgeVariant(data.status)} 
+          <Badge
+            variant={getStatusBadgeVariant(data.status)}
             className={cn(
               "flex-shrink-0",
               data.status === 0 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""
@@ -63,21 +63,21 @@ export function HostingCard({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               SSL Security
             </p>
-            <Badge 
+            <Badge
               variant={data.sslEnabled ? "default" : "destructive"}
-              className="text-xs w-fit"
+              className={cn("text-xs w-fit", data.sslEnabled && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800")}
             >
               {data.sslEnabled ? "Enabled" : "Disabled"}
             </Badge>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Disk Usage
             </p>
             <p className="text-sm font-semibold">{formatFileSize(data.realSize)}</p>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Total Traffic
@@ -101,17 +101,17 @@ interface HostingCardsListProps {
   className?: string;
 }
 
-export function HostingCardsList({ 
-  data, 
-  onViewDetails, 
-  onEdit, 
-  onSuspend, 
+export function HostingCardsList({
+  data,
+  onViewDetails,
+  onEdit,
+  onSuspend,
   onCancel,
   cols = 1,
-  className 
+  className
 }: HostingCardsListProps) {
   return (
-    <div 
+    <div
       className={cn(
         "grid gap-4",
         cols === 1 && "grid-cols-1",
@@ -146,14 +146,14 @@ interface HostingCardsGridProps {
   className?: string;
 }
 
-export function HostingCardsGrid({ 
-  data, 
-  onViewDetails, 
-  onEdit, 
-  onSuspend, 
+export function HostingCardsGrid({
+  data,
+  onViewDetails,
+  onEdit,
+  onSuspend,
   onCancel,
   cols = 3,
-  className 
+  className
 }: HostingCardsGridProps) {
   return (
     <div className={cn("grid gap-4", className)}>

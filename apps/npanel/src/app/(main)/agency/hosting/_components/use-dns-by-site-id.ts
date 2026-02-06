@@ -11,7 +11,7 @@ function transformPleskDnsToComponent(
   pleskResponse: z.infer<typeof pleskDnsResponseSchema>
 ): z.infer<typeof dnsRecordSchema>[] {
   const records = pleskResponse.parsed.packet.dns["get_rec"].result;
-  
+
   return records.map((record) => ({
     id: record.id ?? 0,
     "site-id": record.data?.["site-id"] ?? 0,
@@ -19,6 +19,7 @@ function transformPleskDnsToComponent(
     host: record.data?.host ?? "Unknown Host",
     value: record.data?.value ?? "Unknown Value",
     opt: record.data?.opt ?? "",
+    ttl: record.data?.ttl ?? 3600,
     status: record.status ?? "unknown",
   }));
 }
@@ -61,7 +62,7 @@ export function useDnsBySiteId(siteId: number) {
   useEffect(() => {
     if (error) {
       console.error("DNS fetch error:", error);
-      
+
       // Show user-friendly error messages
       if (error?.data?.code === "UNAUTHORIZED") {
         toast.error("Authentication failed. Please check your Plesk credentials.");
@@ -90,7 +91,7 @@ export function useDnsBySiteId(siteId: number) {
       console.error("Data transformation error:", error);
       console.error("Raw API response:", pleskData);
       transformationError = error as Error;
-      
+
       // Provide more specific error messages based on the error type
       if (error instanceof z.ZodError) {
         console.error("Zod validation errors:", error.issues);

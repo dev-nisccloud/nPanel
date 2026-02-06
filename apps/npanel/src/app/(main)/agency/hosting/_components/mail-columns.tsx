@@ -59,7 +59,7 @@ export const createMailColumns = (domainName?: string): ColumnDef<z.infer<typeof
     cell: ({ row }) => {
       const enabled = row.original.mailbox?.enabled ?? false;
       return (
-        <Badge variant={enabled ? "default" : "secondary"}>
+        <Badge variant={enabled ? "default" : "secondary"} className={enabled ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}>
           {enabled ? "Enabled" : "Disabled"}
         </Badge>
       );
@@ -71,7 +71,7 @@ export const createMailColumns = (domainName?: string): ColumnDef<z.infer<typeof
     cell: ({ row }) => {
       const usage = row.original.mailbox?.usage ?? 0;
       const quota = row.original.mailbox?.quota ?? -1;
-      
+
       const formatBytes = (bytes: number) => {
         if (bytes === 0) return "0 B";
         const k = 1024;
@@ -82,7 +82,7 @@ export const createMailColumns = (domainName?: string): ColumnDef<z.infer<typeof
 
       const usageText = formatBytes(usage);
       const quotaText = quota === -1 ? "Unlimited" : formatBytes(quota);
-      
+
       return (
         <div className="text-sm">
           <div className="font-medium">{usageText}</div>
@@ -97,13 +97,13 @@ export const createMailColumns = (domainName?: string): ColumnDef<z.infer<typeof
     cell: ({ row }) => {
       const enabled = row.original.forwarding?.enabled ?? false;
       const addresses = row.original.forwarding?.addresses ?? [];
-      
+
       if (!enabled) {
         return <Badge variant="secondary">Disabled</Badge>;
       }
-      
+
       const addressCount = addresses.length;
-      
+
       return (
         <div className="flex items-center gap-2">
           <Forward className="h-4 w-4 text-green-600" />
@@ -119,7 +119,7 @@ export const createMailColumns = (domainName?: string): ColumnDef<z.infer<typeof
     header: ({ column }) => <DataTableColumnHeader column={column} title="Auto Reply" />,
     cell: ({ row }) => {
       const enabled = row.original.autoresponder?.enabled ?? false;
-      
+
       return (
         <div className="flex items-center gap-2">
           <Reply className="h-4 w-4 text-muted-foreground" />
@@ -135,7 +135,7 @@ export const createMailColumns = (domainName?: string): ColumnDef<z.infer<typeof
     header: ({ column }) => <DataTableColumnHeader column={column} title="Antivirus" />,
     cell: ({ row }) => {
       const antivir = row.original.antivir ?? "off";
-      
+
       const getAntivirColor = (status: string) => {
         switch (status) {
           case "off":

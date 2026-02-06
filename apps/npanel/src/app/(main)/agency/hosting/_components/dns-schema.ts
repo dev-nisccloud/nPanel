@@ -16,6 +16,7 @@ export const pleskDnsResponseSchema = z.object({
               host: z.string().optional(),
               value: z.string().optional(),
               opt: z.union([z.string(), z.number()]).optional(),
+              ttl: z.number().optional(),
             }).optional(),
           })),
         }),
@@ -24,7 +25,6 @@ export const pleskDnsResponseSchema = z.object({
   }),
 });
 
-// Schema for individual DNS record (used in components)
 export const dnsRecordSchema = z.object({
   id: z.number().optional(),
   "site-id": z.number().optional(),
@@ -32,6 +32,7 @@ export const dnsRecordSchema = z.object({
   host: z.string().optional(),
   value: z.string().optional(),
   opt: z.union([z.string(), z.number()]).optional(),
+  ttl: z.number().optional(),
   status: z.string().optional(),
 });
 

@@ -108,7 +108,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Domain Name</p>
               <div className="flex items-center gap-2">
-                <p className="text-base font-bold text-primary flex-1">{domainName}</p>
+                <p className="text-base text-primary flex-1">{domainName}</p>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -151,7 +151,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">IP Address</p>
               <div className="flex items-center gap-2">
-                <p className="text-base font-bold text-primary flex-1">{ipAddress}</p>
+                <p className="text-base text-primary flex-1">{ipAddress}</p>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -176,7 +176,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
               <p className="text-sm font-medium text-muted-foreground">SSL Certificate</p>
               <div>
                 {sslEnabled ? (
-                  <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Enabled
                   </Badge>
@@ -217,7 +217,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
                       className="h-8 w-8"
                       onClick={() => {
                         // TODO: Implement edit FTP password functionality
-                        toast.info("Edit FTP password functionality coming soon");
+                        toast.info("Edit FTP password functionality");
                       }}
                     >
                       <Edit className="h-4 w-4" />
@@ -234,7 +234,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">FTP IP (Hostname)</p>
               <div className="flex items-center gap-2">
-                <p className="text-base font-bold text-primary flex-1">{ftpHost}</p>
+                <p className="text-base text-primary flex-1">{ftpHost}</p>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -258,7 +258,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">FTP Username</p>
               <div className="flex items-center gap-2">
-                <p className="text-base font-bold text-primary flex-1">{ftpLogin}</p>
+                <p className="text-base text-primary flex-1">{ftpLogin}</p>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -281,14 +281,14 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             {/* FTP Port */}
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">FTP Port</p>
-              <p className="text-base font-bold text-primary">{ftpPort}</p>
+              <p className="text-base text-primary">{ftpPort}</p>
             </div>
 
             {/* FTP Password */}
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Password</p>
               <div className="flex items-center gap-2">
-                <p className="text-base font-bold text-primary flex-1">
+                <p className="text-base text-primary flex-1">
                   {showPassword ? String(ftpPassword) : "••••••••"}
                 </p>
                 <TooltipProvider>
@@ -355,12 +355,12 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
               const radius = 30;
               const circumference = 2 * Math.PI * radius;
               const offset = circumference - (percentage / 100) * circumference;
-              
+
               // Determine color based on usage vs soft/hard limits
               let circleColor = "rgb(34 197 94)"; // Green
               let bgColor = "rgb(220 252 231)"; // Light green
               let iconColor = "text-green-600";
-              
+
               if (softLimit && softLimit > 0 && used >= softLimit) {
                 if (percentage >= 95) {
                   circleColor = "rgb(239 68 68)"; // Red
@@ -372,7 +372,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
                   iconColor = "text-yellow-600";
                 }
               }
-              
+
               return (
                 <div className="flex items-center gap-4">
                   <div className="relative flex-shrink-0">
@@ -424,12 +424,12 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
               const radius = 30;
               const circumference = 2 * Math.PI * radius;
               const offset = circumference - (percentage / 100) * circumference;
-              
+
               // Determine color based on usage vs soft/hard limits
               let circleColor = "rgb(34 197 94)"; // Green
               let bgColor = "rgb(220 252 231)"; // Light green
               let iconColor = "text-green-600";
-              
+
               if (softLimit && softLimit > 0 && used >= softLimit) {
                 if (percentage >= 95) {
                   circleColor = "rgb(239 68 68)"; // Red
@@ -441,7 +441,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
                   iconColor = "text-yellow-600";
                 }
               }
-              
+
               return (
                 <div className="flex items-center gap-4">
                   <div className="relative flex-shrink-0">
@@ -493,7 +493,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
               const circumference = 2 * Math.PI * radius;
               const offset = circumference - (percentage / 100) * circumference;
               const isHighUsage = percentage >= 80;
-              
+
               return (
                 <div className="flex items-center gap-4">
                   <div className="relative flex-shrink-0">
@@ -540,7 +540,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
               const circumference = 2 * Math.PI * radius;
               const offset = circumference - (percentage / 100) * circumference;
               const isHighUsage = percentage >= 80;
-              
+
               return (
                 <div className="flex items-center gap-4">
                   <div className="relative flex-shrink-0">
@@ -622,9 +622,9 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Overuse Policy</p>
                 <p className="text-lg font-semibold capitalize">
-                  {hostingData.limits?.overuse === "block" ? "Blocked" : 
-                   hostingData.limits?.overuse === "normal" ? "Allowed" : 
-                   "Not Set"}
+                  {hostingData.limits?.overuse === "block" ? "Blocked" :
+                    hostingData.limits?.overuse === "normal" ? "Allowed" :
+                      "Not Set"}
                 </p>
               </div>
             </div>

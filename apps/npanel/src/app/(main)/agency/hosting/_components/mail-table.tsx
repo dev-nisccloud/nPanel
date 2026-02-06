@@ -331,10 +331,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant={email.mailbox?.enabled ? "outline" : "destructive"}
-                    className={email.mailbox?.enabled ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
-                  >
+                  <Badge variant={email.mailbox?.enabled ? "default" : "secondary"} className={email.mailbox?.enabled ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}>
                     {email.mailbox?.enabled ? "Enabled" : "Disabled"}
                   </Badge>
                 </TableCell>

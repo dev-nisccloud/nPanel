@@ -69,10 +69,10 @@ const getRecordTypeDescription = (type: string | undefined) => {
 export function ViewDnsRecordSheet({ open, onOpenChange, data }: ViewDnsRecordSheetProps) {
   if (!data) return null;
 
-  const ttl = typeof data.opt === 'number' ? data.opt : (typeof data.opt === 'string' ? parseInt(data.opt) || 3600 : 3600);
-  const priority = (data.type?.toUpperCase() === "MX" || data.type?.toUpperCase() === "SRV") && typeof data.opt === 'number' 
-    ? data.opt 
-    : (typeof data.opt === 'string' && !isNaN(parseInt(data.opt)) ? parseInt(data.opt) : undefined);
+  const ttl = data.ttl || 3600;
+  const priority = (data.type?.toUpperCase() === "MX" || data.type?.toUpperCase() === "SRV")
+    ? (typeof data.opt === 'number' ? data.opt : (typeof data.opt === 'string' && !isNaN(parseInt(data.opt)) ? parseInt(data.opt) : undefined))
+    : undefined;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

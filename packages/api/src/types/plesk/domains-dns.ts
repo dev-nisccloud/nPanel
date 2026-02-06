@@ -16,6 +16,7 @@ export interface DnsRecordData {
   host: string;
   value: string;
   opt: string | number;
+  ttl?: number;
 }
 
 // DNS record result
@@ -62,10 +63,10 @@ export type DomainsDnsRecordResult = DnsRecordResult;
 
 // Type guards for runtime type checking
 export function isDomainsDnsResponse(obj: any): obj is DomainsDnsResponse {
-  return obj && 
-    typeof obj === 'object' && 
-    obj['?xml'] && 
-    obj.packet && 
+  return obj &&
+    typeof obj === 'object' &&
+    obj['?xml'] &&
+    obj.packet &&
     obj.packet.dns &&
     obj.packet.dns.get_rec &&
     Array.isArray(obj.packet.dns.get_rec.result);
@@ -306,57 +307,60 @@ export function isValidSrvPriority(priority: number): boolean {
   return priority >= 0 && priority <= 65535;
 }
 
-export function isSpfRecord(value: string): boolean {
-  return value.startsWith('v=spf1');
+export function isSpfRecord(value: string | undefined): boolean {
+  return typeof value === 'string' && value.startsWith('v=spf1');
 }
 
-export function isDkimRecord(value: string): boolean {
-  return value.startsWith('v=DKIM1');
+export function isDkimRecord(value: string | undefined): boolean {
+  return typeof value === 'string' && value.startsWith('v=DKIM1');
 }
 
-export function isDmarcRecord(value: string): boolean {
-  return value.startsWith('v=DMARC1');
+export function isDmarcRecord(value: string | undefined): boolean {
+  return typeof value === 'string' && value.startsWith('v=DMARC1');
 }
 
-export function isAcmeChallengeRecord(host: string): boolean {
-  return host.startsWith('_acme-challenge.');
+export function isAcmeChallengeRecord(host: string | undefined): boolean {
+  return typeof host === 'string' && host.startsWith('_acme-challenge.');
 }
 
-export function isDomainKeyRecord(host: string): boolean {
-  return host.includes('_domainkey.');
+export function isDomainKeyRecord(host: string | undefined): boolean {
+  return typeof host === 'string' && host.includes('_domainkey.');
 }
 
-export function isDmarcHostRecord(host: string): boolean {
-  return host.startsWith('_dmarc.');
+export function isDmarcHostRecord(host: string | undefined): boolean {
+  return typeof host === 'string' && host.startsWith('_dmarc.');
 }
 
 // Helper functions for parsing DNS records
-export function parseSrvRecord(opt: string): { priority: number; weight: number; port: number } | null {
-  const parts = opt.split(' ');
+export function parseSrvRecord(opt: string | number | undefined): { priority: number; weight: number; port: number } | null {
+  if (!opt) return null;
+  const optStr = typeof opt === 'number' ? opt.toString() : opt;
+  const parts = optStr.split(' ');
   if (parts.length !== 3) return null;
-  
+
   const priority = parseInt(parts[0], 10);
   const weight = parseInt(parts[1], 10);
   const port = parseInt(parts[2], 10);
-  
+
   if (isNaN(priority) || isNaN(weight) || isNaN(port)) return null;
-  
+
   return { priority, weight, port };
 }
 
-export function parseMxRecord(opt: string | number): number {
+export function parseMxRecord(opt: string | number | undefined): number {
+  if (opt === undefined || opt === null) return 10;
   if (typeof opt === 'number') return opt;
   const priority = parseInt(opt.toString(), 10);
   return isNaN(priority) ? 10 : priority;
 }
 
-export function parseSpfRecord(value: string): { mechanisms: string[]; qualifiers: string[] } {
-  if (!isSpfRecord(value)) return { mechanisms: [], qualifiers: [] };
-  
+export function parseSpfRecord(value: string | undefined): { mechanisms: string[]; qualifiers: string[] } {
+  if (!value || !isSpfRecord(value)) return { mechanisms: [], qualifiers: [] };
+
   const parts = value.split(' ').slice(1); // Remove 'v=spf1'
   const mechanisms: string[] = [];
   const qualifiers: string[] = [];
-  
+
   parts.forEach(part => {
     if (part.startsWith('+') || part.startsWith('-') || part.startsWith('~') || part.startsWith('?')) {
       qualifiers.push(part[0]);
@@ -366,39 +370,39 @@ export function parseSpfRecord(value: string): { mechanisms: string[]; qualifier
       mechanisms.push(part);
     }
   });
-  
+
   return { mechanisms, qualifiers };
 }
 
-export function parseDmarcRecord(value: string): Record<string, string> {
-  if (!isDmarcRecord(value)) return {};
-  
+export function parseDmarcRecord(value: string | undefined): Record<string, string> {
+  if (!value || !isDmarcRecord(value)) return {};
+
   const params: Record<string, string> = {};
   const parts = value.split(';').map(p => p.trim());
-  
+
   parts.forEach(part => {
     const [key, val] = part.split('=').map(p => p.trim());
     if (key && val) {
       params[key] = val;
     }
   });
-  
+
   return params;
 }
 
-export function parseDkimRecord(value: string): Record<string, string> {
-  if (!isDkimRecord(value)) return {};
-  
+export function parseDkimRecord(value: string | undefined): Record<string, string> {
+  if (!value || !isDkimRecord(value)) return {};
+
   const params: Record<string, string> = {};
   const parts = value.split(';').map(p => p.trim());
-  
+
   parts.forEach(part => {
     const [key, val] = part.split('=').map(p => p.trim());
     if (key && val) {
       params[key] = val;
     }
   });
-  
+
   return params;
 }
 
@@ -423,6 +427,7 @@ export interface DnsRecordCreateResponse {
   opt?: string | number;
   ttl?: number;
 }
+
 
 export interface DnsRecordDeleteResponse {
   id: number;

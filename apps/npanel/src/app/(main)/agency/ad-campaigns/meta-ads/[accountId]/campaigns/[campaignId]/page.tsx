@@ -949,9 +949,14 @@ function MetricsDisplay({
 
     // Note: 'clicks' in the API often refers to "All Clicks" while 'link_clicks' is specific
 
-    // Extract lead count from actions array
+    // Extract lead count from actions array or use API provided value
     // Lead action types: 'lead', 'onsite_conversion.lead_grouped', 'offsite_conversion.fb_pixel_lead'
     const leadCount = (() => {
+        if (insights.leads) {
+            const val = parseFloat(insights.leads);
+            return isNaN(val) ? null : val;
+        }
+
         if (!insights.actions || !Array.isArray(insights.actions)) return null;
 
         const leadActions = insights.actions.filter((action: any) =>
@@ -970,10 +975,17 @@ function MetricsDisplay({
         return total > 0 ? total : null;
     })();
 
-    // Calculate Cost per Lead if we have leads
-    const costPerLead = leadCount && leadCount > 0 && spendNum > 0
-        ? spendNum / leadCount
-        : null;
+    // Calculate Cost per Lead if we have leads, or use API provided value
+    const costPerLead = (() => {
+        if (insights.cost_per_lead) {
+            const val = parseFloat(insights.cost_per_lead);
+            return isNaN(val) ? null : val;
+        }
+
+        return leadCount && leadCount > 0 && spendNum > 0
+            ? spendNum / leadCount
+            : null;
+    })();
 
     // We try to use the order from the dialog:
     // Reach, Frequency, Cost per Result, Budget, Amount Spent, Impressions, CPM, Link Clicks, CPC, CTR, Unique Clicks, Unique CTR, ROAS, Rankings..., All Clicks, All CTR, All CPC
@@ -1825,7 +1837,7 @@ export default function CampaignDetailsPage() {
                             Back
                         </Button>
                         <div className="min-w-0 flex-1">
-                            <h1 className="text-2xl font-bold truncate">{campaign.name}</h1>
+                            <h1 className="text-xl font-bold truncate">{campaign.name}</h1>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">

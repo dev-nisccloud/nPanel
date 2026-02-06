@@ -101,8 +101,8 @@ export const metaAdsCampaignsRouter = router({
 					} else if (input.datePreset) {
 						insightsOptions.datePreset = input.datePreset;
 					} else {
-						// Default to last 365 days if no range provided
-						insightsOptions.datePreset = 'last_365d';
+						// Default to maximum (lifetime) if no range provided to ensure we get data for all campaigns
+						insightsOptions.datePreset = 'maximum';
 					}
 
 					const insightsResponse = await client.getInsights(normalizedAccountId, insightsOptions);
@@ -299,8 +299,8 @@ export const metaAdsCampaignsRouter = router({
 							};
 						}
 					} else {
-						// Fallback to last 365 days if no start_time
-						insightsOptions.datePreset = 'last_365d';
+						// Fallback to maximum (lifetime) if no start_time
+						insightsOptions.datePreset = 'maximum';
 					}
 
 					// Fetch insights for this campaign

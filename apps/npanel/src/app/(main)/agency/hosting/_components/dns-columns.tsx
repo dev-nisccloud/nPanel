@@ -51,11 +51,11 @@ export const dnsColumns: ColumnDef<z.infer<typeof dnsRecordSchema>>[] = [
     ),
   },
   {
-    accessorKey: "opt",
+    accessorKey: "ttl",
     header: ({ column }) => <DataTableColumnHeader column={column} title="TTL" />,
     cell: ({ row }) => (
       <div className="text-sm">
-        {typeof row.original.opt === 'number' ? row.original.opt : (row.original.opt || "3600")}s
+        {row.original.ttl || 3600}s
       </div>
     ),
   },
@@ -100,13 +100,13 @@ export const dnsColumns: ColumnDef<z.infer<typeof dnsRecordSchema>>[] = [
     cell: ({ row }) => {
       const record = row.original;
       let displayValue = record.value || "Unknown Value";
-      
+
       // Add priority for MX records
       if (record.type === "MX" && record.opt) {
         const priority = typeof record.opt === 'number' ? record.opt : record.opt;
         displayValue = `${priority} ${record.value}`;
       }
-      
+
       // Add priority, weight, port for SRV records
       if (record.type === "SRV" && record.opt) {
         const optValue = typeof record.opt === 'string' ? record.opt : String(record.opt);
@@ -118,7 +118,7 @@ export const dnsColumns: ColumnDef<z.infer<typeof dnsRecordSchema>>[] = [
       }
 
       return (
-        <div className="font-bold text-primary text-sm max-w-[200px] truncate" title={displayValue}>
+        <div className="text-primary text-sm max-w-[200px] truncate" title={displayValue}>
           {displayValue}
         </div>
       );
@@ -135,6 +135,7 @@ export const dnsColumns: ColumnDef<z.infer<typeof dnsRecordSchema>>[] = [
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
+          <DropdownMenuItem>View</DropdownMenuItem>
           <DropdownMenuItem>Edit</DropdownMenuItem>
           <DropdownMenuItem>Duplicate</DropdownMenuItem>
           <DropdownMenuSeparator />

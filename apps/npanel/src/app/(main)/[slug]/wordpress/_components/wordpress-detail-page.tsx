@@ -241,7 +241,7 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
                 <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Tools</span>
+                  <span className="font-semibold text-sm">WP Tools</span>
                   <span className="text-xs text-muted-foreground">Settings</span>
                 </div>
               </TabsTrigger>
