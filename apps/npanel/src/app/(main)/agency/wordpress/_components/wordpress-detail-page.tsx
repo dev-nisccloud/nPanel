@@ -217,10 +217,10 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-base font-semibold tracking-tight">
                 {wpData.displayTitle || wpData.title || `Installation ${wpData.id}`}
               </h1>
-              <p className="text-sm text-muted-foreground">WordPress installation details</p>
+              <p className="text-xs text-muted-foreground">WordPress installation details</p>
             </div>
           </div>
 

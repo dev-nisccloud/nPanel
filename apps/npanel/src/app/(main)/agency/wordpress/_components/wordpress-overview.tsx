@@ -98,27 +98,27 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Site Title</p>
-              <p className="text-lg">{wpData.title || "Not Available"}</p>
+              <p className="text-base text-primary flex-1">{wpData.title || "Not Available"}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Display Title</p>
-              <p className="text-lg">{wpData.displayTitle || "Not Available"}</p>
+              <p className="text-base text-primary flex-1">{wpData.displayTitle || "Not Available"}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Domain</p>
-              <p className="text-lg">{wpData.domain?.name || "Not Available"}</p>
+              <p className="text-base text-primary flex-1">{wpData.domain?.name || "Not Available"}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Owner</p>
-              <p className="text-lg">{wpData.owner?.name || wpData.owner?.login || "Not Available"}</p>
+              <p className="text-base text-primary flex-1">{wpData.owner?.name || wpData.owner?.login || "Not Available"}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Installation Type</p>
-              <p className="text-lg">{wpData.installationType || "Not Available"}</p>
+              <p className="text-base text-primary flex-1">{wpData.installationType || "Not Available"}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Path</p>
-              <p className="text-sm font-mono text-muted-foreground break-all">{wpData.path || "Not Available"}</p>
+              <p className="text-base text-primary flex-1">{wpData.path || "Not Available"}</p>
             </div>
           </CardContent>
         </Card>

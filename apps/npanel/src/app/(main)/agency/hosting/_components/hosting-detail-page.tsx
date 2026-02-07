@@ -232,10 +232,10 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-base font-semibold tracking-tight">
                 {hostingData.gen_info.name || `Subscription ${hostingData.id}`}
               </h1>
-              <p className="text-sm text-muted-foreground">Hosting subscription details</p>
+              <p className="text-xs text-muted-foreground">Hosting subscription details</p>
             </div>
           </div>
 
@@ -330,7 +330,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
                 <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Overview</span>
+                  <span className="font-semibold text-base">Overview</span>
                   <span className="text-xs text-muted-foreground">Details</span>
                 </div>
               </TabsTrigger>
@@ -343,7 +343,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
                 <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">DNS</span>
+                  <span className="font-semibold text-base">DNS</span>
                   <span className="text-xs text-muted-foreground">Records</span>
                 </div>
               </TabsTrigger>
@@ -356,7 +356,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
                 <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Mail</span>
+                  <span className="font-semibold text-base">Mail</span>
                   <span className="text-xs text-muted-foreground">Accounts</span>
                 </div>
               </TabsTrigger>
@@ -369,7 +369,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
                 <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">File Manager</span>
+                  <span className="font-semibold text-base">File Manager</span>
                   <span className="text-xs text-muted-foreground">Files</span>
                 </div>
               </TabsTrigger>
@@ -382,7 +382,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
                 <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Subdomains</span>
+                  <span className="font-semibold text-base">Subdomains</span>
                   <span className="text-xs text-muted-foreground">Domains</span>
                 </div>
               </TabsTrigger>
@@ -395,7 +395,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
                 <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Databases</span>
+                  <span className="font-semibold text-base">Databases</span>
                   <span className="text-xs text-muted-foreground">MySQL/PostgreSQL</span>
                 </div>
               </TabsTrigger>
@@ -408,7 +408,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
                 <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">WordPress</span>
+                  <span className="font-semibold text-base">WordPress</span>
                   <span className="text-xs text-muted-foreground">Instances</span>
                 </div>
               </TabsTrigger>

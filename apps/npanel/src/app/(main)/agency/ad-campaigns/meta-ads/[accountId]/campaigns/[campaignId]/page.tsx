@@ -1836,8 +1836,12 @@ export default function CampaignDetailsPage() {
                             <ArrowLeft className="h-4 w-4 mr-2" />
                             Back
                         </Button>
+
                         <div className="min-w-0 flex-1">
-                            <h1 className="text-xl font-bold truncate">{campaign.name}</h1>
+                            <h1 className="text-base font-semibold tracking-tight truncate">
+                                {campaign.name}
+                            </h1>
+                            <p className="text-xs text-muted-foreground">Meta Ads campaign details</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">

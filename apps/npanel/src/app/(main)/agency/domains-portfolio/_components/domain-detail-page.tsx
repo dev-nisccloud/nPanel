@@ -200,8 +200,8 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Domain Details</h1>
-              <p className="text-muted-foreground">Manage and monitor your domain</p>
+              <h1 className="text-base font-semibold tracking-tight">Domain Details</h1>
+              <p className="text-xs text-muted-foreground">Manage and monitor your domain</p>
             </div>
           </div>
           <DropdownMenu>
