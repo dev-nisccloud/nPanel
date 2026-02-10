@@ -136,6 +136,7 @@ In your GitHub Repository, go to **Settings** > **Secrets and variables** > **Ac
 -   `GCP_SA_KEY`: The **entire content** of the JSON key file you just downloaded.
 -   `GCP_REGION`: The region (e.g., `us-central1`).
 -   `GCP_ARTIFACT_REPO`: The repository name in Artifact Registry (e.g., `npanel-repo`).
+-   `PRISMA_BINARY_TARGETS`: Your Prisma binary targets (usually `["native", "debian-openssl-3.0.x"]`).
 
 > **Note**: Ensure `DATABASE_URL` is also set in your GitHub Secrets (using your staging database URL).
 
