@@ -101,8 +101,8 @@ export default function InvoiceIndex() {
 			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 				<div className="w-full max-w-7xl mx-auto">
 					<div className="flex flex-col gap-2">
-						<Skeleton className="h-8 w-48" />
-						<Skeleton className="h-4 w-96" />
+						<Skeleton className="h-5 w-32" />
+						<Skeleton className="h-4 w-72" />
 					</div>
 					<div className="mt-6 flex items-center justify-between gap-4">
 						<Skeleton className="h-10 flex-1 max-w-sm" />
@@ -141,8 +141,8 @@ export default function InvoiceIndex() {
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 			<div className="w-full max-w-7xl mx-auto">
 				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-semibold tracking-tight">Invoices</h1>
-					<p className="text-muted-foreground">
+					<h1 className="text-base font-semibold tracking-tight">Invoices</h1>
+					<p className="text-xs text-muted-foreground">
 						Review invoices issued to teams, monitor statuses, and keep billing on track.
 					</p>
 				</div>
@@ -178,25 +178,25 @@ export default function InvoiceIndex() {
 				</div>
 
 				<div className="mt-6">
-			{invoices.length === 0 ? (
-				<EmptyState
-					title="No invoices yet"
-					description="Create an invoice to start billing your teams."
-					action={
-						<Button onClick={() => router.push("/agency/invoices/create")}>
-							<Plus className="mr-2 h-4 w-4" />
-							Create Invoice
-						</Button>
-					}
-				/>
-			) : filteredInvoices.length === 0 ? (
-				<EmptyState
-					title="No invoices match your search"
-					description={`We couldn't find invoices for "${searchTerm}". Try updating your search.`}
-				/>
-			) : (
-				<InvoicesTable invoices={filteredInvoices as InvoiceSummary[]} onRefetch={refetch} />
-			)}
+					{invoices.length === 0 ? (
+						<EmptyState
+							title="No invoices yet"
+							description="Create an invoice to start billing your teams."
+							action={
+								<Button onClick={() => router.push("/agency/invoices/create")}>
+									<Plus className="mr-2 h-4 w-4" />
+									Create Invoice
+								</Button>
+							}
+						/>
+					) : filteredInvoices.length === 0 ? (
+						<EmptyState
+							title="No invoices match your search"
+							description={`We couldn't find invoices for "${searchTerm}". Try updating your search.`}
+						/>
+					) : (
+						<InvoicesTable invoices={filteredInvoices as InvoiceSummary[]} onRefetch={refetch} />
+					)}
 				</div>
 			</div>
 		</div>

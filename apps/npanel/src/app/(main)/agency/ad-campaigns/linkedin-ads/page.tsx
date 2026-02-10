@@ -45,8 +45,8 @@ export default function LinkedInAdsPage() {
 			<div className="w-full max-w-7xl mx-auto">
 				<div className="flex items-start justify-between gap-4">
 					<div className="flex flex-col gap-2">
-						<h1 className="text-2xl font-semibold tracking-tight">LinkedIn Ads</h1>
-						<p className="text-muted-foreground">
+						<h1 className="text-base font-semibold tracking-tight">LinkedIn Ads</h1>
+						<p className="text-xs text-muted-foreground">
 							Manage your LinkedIn ad campaigns, ad sets, and ads from one place.
 						</p>
 					</div>

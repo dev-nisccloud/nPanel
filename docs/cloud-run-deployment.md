@@ -219,6 +219,28 @@ The deployment workflow `deploy-cloudrun.yml` handles the build and deployment.
     -   `--vpc-connector npanel-connector` (Enables the static IP)
     -   `--vpc-egress all-traffic` (Forces all traffic through the VPC/NAT)
 
+## 5. Managing Environment Variables
+
+Once your service is deployed, you can manage environment variables and secrets through the GCP Console without needing to re-build the container.
+
+### Step 5.1: Adding/Updating Variables
+1.  Go to the **Cloud Run** page in the GCP Console.
+2.  Click on your service name (**npanel**).
+3.  Click **Edit & Deploy New Revision** at the top.
+4.  Go to the **Variables & Secrets** tab.
+5.  Click **Add Variable** and enter the name and value.
+    -   *Example*: `BETTER_AUTH_SECRET`, `RESEND_API_KEY`, etc.
+6.  Click **Deploy** at the bottom. This will create a new revision with the updated variables.
+
+### Step 5.2: Using Secrets (Recommended for Sensitive Data)
+For sensitive data like API keys, it's better to use **Secret Manager**:
+1.  Go to **Security** > **Secret Manager**.
+2.  Create a secret (e.g., `prod-db-url`).
+3.  Back in **Cloud Run > Edit & Deploy New Revision > Variables & Secrets**, select **Reference a Secret**.
+4.  Map the secret version to an environment variable.
+
+---
+
 ## Troubleshooting
 
 -   **Service Not Found**: Ensure your `GCP_PROJECT_ID` is correct. The first time you deploy, the service is created. Subsequent deploys update it.

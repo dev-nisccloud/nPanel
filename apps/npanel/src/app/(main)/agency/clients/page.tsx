@@ -59,7 +59,7 @@ export default function ClientsPage() {
   const filteredClients = React.useMemo(() => {
     if (!clients) return [];
     if (!searchQuery.trim()) return clients;
-    
+
     const query = searchQuery.toLowerCase().trim();
     return clients.filter((client) => {
       return (
@@ -80,7 +80,7 @@ export default function ClientsPage() {
         if (typeof value === 'string') return new Date(value);
         return new Date(String(value));
       };
-      
+
       const mappedClient = {
         ...client,
         createdAt: toDate(client.createdAt),
@@ -173,8 +173,8 @@ export default function ClientsPage() {
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-base font-semibold tracking-tight">Clients</h1>
+          <p className="text-xs text-muted-foreground">
             Manage your client accounts, view their activity, and handle their services.
           </p>
         </div>
@@ -211,50 +211,50 @@ export default function ClientsPage() {
         </div>
 
         <div className="mt-6">
-      {!clients || clients.length === 0 ? (
-        <EmptyState
-          title="No clients found"
-          description="Get started by creating a new client account."
-          action={
-            <Button onClick={() => setIsCreateSheetOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Client
-            </Button>
-          }
-        />
-      ) : filteredClients.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-lg font-semibold mb-2">No clients found</p>
-          <p className="text-muted-foreground mb-4">
-            No clients match your search query "{searchQuery}".
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => setSearchQuery("")}
-          >
-            Clear Search
-          </Button>
-        </div>
-      ) : (
-        <ClientsTable
-          data={transformedClients}
-          onView={handleView}
-          onDeactivate={(id) => {
-            handleStatusChange(id, "DEACTIVATED", "deactivate");
-          }}
-          onReactivate={(id) => {
-            handleStatusChange(id, "ACTIVE", "reactivate");
-          }}
-          onBan={(id) => {
-            handleStatusChange(id, "BANNED", "ban");
-          }}
-          onUnban={handleUnban}
-          onSuspend={(id) => {
-            handleStatusChange(id, "SUSPENDED", "suspend");
-          }}
-          onUnsuspend={handleUnsuspend}
-        />
-      )}
+          {!clients || clients.length === 0 ? (
+            <EmptyState
+              title="No clients found"
+              description="Get started by creating a new client account."
+              action={
+                <Button onClick={() => setIsCreateSheetOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Client
+                </Button>
+              }
+            />
+          ) : filteredClients.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-lg font-semibold mb-2">No clients found</p>
+              <p className="text-muted-foreground mb-4">
+                No clients match your search query "{searchQuery}".
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setSearchQuery("")}
+              >
+                Clear Search
+              </Button>
+            </div>
+          ) : (
+            <ClientsTable
+              data={transformedClients}
+              onView={handleView}
+              onDeactivate={(id) => {
+                handleStatusChange(id, "DEACTIVATED", "deactivate");
+              }}
+              onReactivate={(id) => {
+                handleStatusChange(id, "ACTIVE", "reactivate");
+              }}
+              onBan={(id) => {
+                handleStatusChange(id, "BANNED", "ban");
+              }}
+              onUnban={handleUnban}
+              onSuspend={(id) => {
+                handleStatusChange(id, "SUSPENDED", "suspend");
+              }}
+              onUnsuspend={handleUnsuspend}
+            />
+          )}
         </div>
       </div>
 
@@ -290,7 +290,7 @@ export default function ClientsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {statusChangeDialog.action} this client account? 
+              Are you sure you want to {statusChangeDialog.action} this client account?
               {statusChangeDialog.status && ` This action will change their account status to ${statusChangeDialog.status}.`}
             </AlertDialogDescription>
           </AlertDialogHeader>

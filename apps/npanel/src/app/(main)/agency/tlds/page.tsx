@@ -18,7 +18,7 @@ export default function TldsPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTld, setSelectedTld] = React.useState<OpenproviderTld | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  
+
   // Allow fetching all TLDs - rate limits only occur on rapid successive requests
   const [limit] = React.useState(2500); // Max limit to get all TLDs
   const [offset] = React.useState(0);
@@ -46,40 +46,40 @@ export default function TldsPage() {
       gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
       retry: (failureCount, error: any) => {
         // Check if it's a rate limit error (429 or error code 299)
-        const isRateLimit = 
+        const isRateLimit =
           error?.data?.code === "TIMEOUT" ||
           error?.data?.httpStatus === 429 ||
           error?.message?.includes("429") ||
           error?.message?.includes("rate limit") ||
           error?.message?.includes("OpenProvider API Error 299");
-        
+
         // Don't retry rate limit errors immediately - they need exponential backoff
         if (isRateLimit) {
           return failureCount < 2; // Only retry twice for rate limits
         }
-        
+
         // Don't retry on 4xx errors (client errors) except rate limits
         if (error?.data?.httpStatus >= 400 && error?.data?.httpStatus < 500) {
           return false;
         }
-        
+
         // Retry up to 3 times for other errors
         return failureCount < 3;
       },
       retryDelay: (attemptIndex, error: any) => {
         // Check if it's a rate limit error
-        const isRateLimit = 
+        const isRateLimit =
           error?.data?.code === "TIMEOUT" ||
           error?.data?.httpStatus === 429 ||
           error?.message?.includes("429") ||
           error?.message?.includes("rate limit") ||
           error?.message?.includes("OpenProvider API Error 299");
-        
+
         if (isRateLimit) {
           // Exponential backoff for rate limits: 5s, 10s
           return Math.min(5000 * Math.pow(2, attemptIndex), 30000);
         }
-        
+
         // Standard exponential backoff for other errors
         return Math.min(1000 * Math.pow(2, attemptIndex), 30000);
       },
@@ -137,7 +137,7 @@ export default function TldsPage() {
             <AlertDescription>
               {isRateLimitError ? (
                 <>
-                  Rate limit exceeded. You've made too many requests in a short time. 
+                  Rate limit exceeded. You've made too many requests in a short time.
                   Please wait a moment before refreshing again.
                 </>
               ) : (
@@ -146,8 +146,8 @@ export default function TldsPage() {
             </AlertDescription>
           </Alert>
           <div className="flex justify-center mt-6">
-            <Button 
-              onClick={() => refetch()} 
+            <Button
+              onClick={() => refetch()}
               variant="outline"
               disabled={isLoading}
             >
@@ -165,8 +165,8 @@ export default function TldsPage() {
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">TLDs</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-base font-semibold tracking-tight">TLDs</h1>
+          <p className="text-xs text-muted-foreground">
             Browse and search available top-level domains (TLDs) with pricing and
             registration information.
           </p>
@@ -174,76 +174,76 @@ export default function TldsPage() {
 
         {/* Search Box and Refresh Button */}
         <div className="mt-6 flex items-center gap-2">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search TLDs by name (e.g., .com, .net)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleRefresh}
-          disabled={isLoading}
-          title="Refresh TLDs"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-        </Button>
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search TLDs by name (e.g., .com, .net)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            title="Refresh TLDs"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
         </div>
 
         {/* Content */}
         <div className="mt-6">
-      {isLoading && !tldsData ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <TldCardSkeleton key={index} />
-          ))}
-        </div>
-      ) : !tlds || tlds.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Globe className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-semibold mb-2">No TLDs found</p>
-          <p className="text-muted-foreground">
-            Unable to load TLDs. Please try again later.
-          </p>
-        </div>
-      ) : filteredTlds.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Globe className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-semibold mb-2">No TLDs found</p>
-          <p className="text-muted-foreground mb-4">
-            No TLDs match your search query "{searchQuery}".
-          </p>
-          <Button variant="outline" onClick={() => setSearchQuery("")}>
-            Clear Search
-          </Button>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {filteredTlds.map((tld, index) => (
-              <TldCard
-                key={`${tld.name}-${index}`}
-                tld={tld}
-                onClick={() => handleTldClick(tld)}
-              />
-            ))}
-          </div>
-          {tldsData?.meta && (
-            <div className="text-center text-sm text-muted-foreground">
-              {tldsData.meta.total > filteredTlds.length ? (
-                <>Showing {filteredTlds.length} of {tldsData.meta.total} TLDs</>
-              ) : (
-                <>Showing all {filteredTlds.length} TLDs</>
-              )}
+          {isLoading && !tldsData ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <TldCardSkeleton key={index} />
+              ))}
             </div>
+          ) : !tlds || tlds.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Globe className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-semibold mb-2">No TLDs found</p>
+              <p className="text-muted-foreground">
+                Unable to load TLDs. Please try again later.
+              </p>
+            </div>
+          ) : filteredTlds.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Globe className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-semibold mb-2">No TLDs found</p>
+              <p className="text-muted-foreground mb-4">
+                No TLDs match your search query "{searchQuery}".
+              </p>
+              <Button variant="outline" onClick={() => setSearchQuery("")}>
+                Clear Search
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {filteredTlds.map((tld, index) => (
+                  <TldCard
+                    key={`${tld.name}-${index}`}
+                    tld={tld}
+                    onClick={() => handleTldClick(tld)}
+                  />
+                ))}
+              </div>
+              {tldsData?.meta && (
+                <div className="text-center text-sm text-muted-foreground">
+                  {tldsData.meta.total > filteredTlds.length ? (
+                    <>Showing {filteredTlds.length} of {tldsData.meta.total} TLDs</>
+                  ) : (
+                    <>Showing all {filteredTlds.length} TLDs</>
+                  )}
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
         </div>
       </div>
 

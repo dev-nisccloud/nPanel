@@ -37,7 +37,7 @@ export function DomainSearch() {
 
 function DomainSearchContent() {
   // const [mainTab, setMainTab] = React.useState("find"); // Temporarily disabled
-  
+
   // Use custom hooks
   const domainSearch = useDomainSearch();
   // const aiGeneration = useAIDomainGeneration(); // Temporarily disabled
@@ -54,13 +54,13 @@ function DomainSearchContent() {
       <Card className="border-0 shadow-lg">
         <CardContent className="p-6">
           <div className="space-y-4">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold text-foreground">Find Your Perfect Domain</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
+            <div className="text-center space-y-1">
+              <h2 className="text-base font-semibold tracking-tight">Find Your Perfect Domain</h2>
+              <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
                 Search for available domain names and find the perfect match for your business.
               </p>
             </div>
-            
+
             <div className="flex gap-3 max-w-2xl mx-auto">
               <Input
                 placeholder="Enter domain name (e.g., mybusiness)"
@@ -92,7 +92,7 @@ function DomainSearchContent() {
                 )}
               </Button>
             </div>
-            
+
             {/* TLD Pricing Cards */}
             <TLDPricingCards />
           </div>

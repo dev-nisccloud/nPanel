@@ -12,8 +12,8 @@ export default function DomainTransferPage() {
       <div className="@container/main flex flex-col gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
         <div className="w-full max-w-4xl mx-auto space-y-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">Domain Transfer</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-base font-semibold tracking-tight">Domain Transfer</h1>
+            <p className="text-xs text-muted-foreground">
               Transfer domains from other registrars to Nisc Cloud. Enter the domain to check eligibility and price, then complete the transfer with your authorization code.
             </p>
           </div>

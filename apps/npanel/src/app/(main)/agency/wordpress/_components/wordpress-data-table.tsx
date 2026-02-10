@@ -37,37 +37,37 @@ function WordPressTableSkeleton() {
         </div>
       </div>
 
-            {/* Cards skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-lg border p-4">
-                  {/* Card header skeleton */}
-                  <div className="flex items-start justify-between mb-4">
-                    <Skeleton className="h-5 w-32 flex-1" />
-                    <Skeleton className="h-6 w-16 ml-2" />
-                  </div>
-                  {/* Card content skeleton */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Skeleton className="h-3 w-16" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                    <div className="space-y-1">
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="h-4 w-16" />
-                    </div>
-                    <div className="space-y-1">
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="h-4 w-16" />
-                    </div>
-                    <div className="space-y-1">
-                      <Skeleton className="h-3 w-16" />
-                      <Skeleton className="h-4 w-12" />
-                    </div>
-                  </div>
-                </div>
-              ))}
+      {/* Cards skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="rounded-lg border p-4">
+            {/* Card header skeleton */}
+            <div className="flex items-start justify-between mb-4">
+              <Skeleton className="h-5 w-32 flex-1" />
+              <Skeleton className="h-6 w-16 ml-2" />
             </div>
+            {/* Card content skeleton */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-4 w-12" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -130,23 +130,47 @@ export function WordPressDataTable() {
 
   const getStatusBadge = (item: z.infer<typeof wordpressInstallationSchema>) => {
     if (item.status?.infected) {
-      return <Badge variant="destructive">Infected</Badge>;
+      return (
+        <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
+          Infected
+        </Badge>
+      );
     }
     if (item.status?.unsupported) {
-      return <Badge variant="secondary">Unsupported</Badge>;
+      return (
+        <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
+          Unsupported
+        </Badge>
+      );
     }
     if (item.status?.alive) {
-      return <Badge variant="default">Online</Badge>;
+      return (
+        <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 px-2 py-0.5">
+          Online
+        </Badge>
+      );
     }
-    return <Badge variant="secondary">Offline</Badge>;
+    return (
+      <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
+        Offline
+      </Badge>
+    );
   };
 
   const getSecurityBadge = (item: z.infer<typeof wordpressInstallationSchema>) => {
     const securityStatus = item.features?.security?.status;
     if (securityStatus === "secureRecommended") {
-      return <Badge variant="default">Secure</Badge>;
+      return (
+        <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 px-2 py-0.5">
+          Secure
+        </Badge>
+      );
     }
-    return <Badge variant="secondary">Needs Attention</Badge>;
+    return (
+      <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
+        Needs Attention
+      </Badge>
+    );
   };
 
   if (isLoading) {
@@ -180,7 +204,7 @@ export function WordPressDataTable() {
             filteredData.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="pl-6">
-                  <Link 
+                  <Link
                     href={`/agency/wordpress/${item.id}`}
                     className="font-medium text-primary hover:underline"
                   >
@@ -240,7 +264,7 @@ export function WordPressDataTable() {
             </Badge>
           )}
         </div>
-        
+
         {/* View Mode Toggle */}
         <div className="flex items-center border rounded-md">
           <Button
@@ -261,7 +285,7 @@ export function WordPressDataTable() {
           </Button>
         </div>
       </div>
-      
+
       {/* Content */}
       {viewMode === "card" ? <CardView /> : <TableView />}
     </div>

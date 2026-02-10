@@ -146,8 +146,8 @@ export default function OrdersPage() {
 			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 				<div className="w-full max-w-7xl mx-auto">
 					<div className="flex flex-col gap-2">
-						<Skeleton className="h-8 w-48" />
-						<Skeleton className="h-4 w-96" />
+						<Skeleton className="h-5 w-32" />
+						<Skeleton className="h-4 w-72" />
 					</div>
 					<div className="mt-6 flex items-center justify-between gap-4">
 						<Skeleton className="h-10 flex-1 max-w-sm" />
@@ -185,8 +185,8 @@ export default function OrdersPage() {
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 			<div className="w-full max-w-7xl mx-auto">
 				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
-					<p className="text-muted-foreground">
+					<h1 className="text-base font-semibold tracking-tight">Orders</h1>
+					<p className="text-xs text-muted-foreground">
 						Manage your orders, track their status, and handle payments.
 					</p>
 				</div>
@@ -223,117 +223,117 @@ export default function OrdersPage() {
 				</div>
 
 				<div className="mt-6">
-			{!data || data.orders.length === 0 ? (
-				<EmptyState
-					title="No orders found"
-					description="Get started by creating your first order for a team."
-					action={
-						<Button onClick={() => setIsAddOrderOpen(true)}>
-							<Plus className="mr-2 h-4 w-4" />
-							Create Order
-						</Button>
-					}
-				/>
-			) : filteredOrders.length === 0 ? (
-				<div className="flex flex-col items-center justify-center py-12 text-center">
-					<p className="text-lg font-semibold mb-2">No orders found</p>
-					<p className="text-muted-foreground mb-4">
-						No orders match your search query "{searchQuery}".
-					</p>
-					<Button
-						variant="outline"
-						onClick={() => setSearchQuery("")}
-					>
-						Clear Search
-					</Button>
-				</div>
-			) : (
-				<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead className="pl-6">Order #</TableHead>
-								<TableHead>Team</TableHead>
-								<TableHead>Type</TableHead>
-								<TableHead>Total</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead>Date</TableHead>
-								<TableHead className="w-12 pr-6"></TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filteredOrders.map((order) => {
-								const isActiveStatus = order.status === "COMPLETED" || order.status === "PROCESSING";
-								return (
-									<TableRow
-										key={order.id}
-										className="cursor-pointer"
-										onClick={() => setSelectedOrderId(order.id)}
-									>
-										<TableCell className="pl-6">
-											<div className="flex items-center gap-2">
-												<Receipt className="h-4 w-4 text-muted-foreground" />
-												<span className="font-medium">{order.orderNumber}</span>
-											</div>
-										</TableCell>
-										<TableCell>{order.team?.name || "—"}</TableCell>
-										<TableCell>{ORDER_TYPE_NAMES[order.type] || order.type}</TableCell>
-										<TableCell>
-											{order.total
-												? `${order.currency} ${parseFloat(order.total).toFixed(2)}`
-												: "—"}
-										</TableCell>
-										<TableCell>
-											<Badge
-												variant="outline"
-												className={
-													isActiveStatus
-														? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
-														: ""
-												}
-											>
-												{order.status}
-											</Badge>
-										</TableCell>
-										<TableCell>
-											{new Date(order.createdAt).toLocaleDateString()}
-										</TableCell>
-										<TableCell onClick={(e) => e.stopPropagation()} className="pr-6">
-											<TooltipProvider>
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<DropdownMenu>
-															<DropdownMenuTrigger asChild>
-																<Button variant="ghost" size="icon" className="h-8 w-8">
-																	<EllipsisVertical className="h-4 w-4" />
-																	<span className="sr-only">Actions</span>
-																</Button>
-															</DropdownMenuTrigger>
-															<DropdownMenuContent align="end" className="w-40">
-																<DropdownMenuItem onSelect={() => setSelectedOrderId(order.id)}>
-																	View details
-																</DropdownMenuItem>
-																<DropdownMenuItem
-																	onSelect={() => handleDelete(order.id)}
-																	className="text-destructive focus:text-destructive"
-																>
-																	<Trash2 className="mr-2 h-4 w-4" />
-																	Delete
-																</DropdownMenuItem>
-															</DropdownMenuContent>
-														</DropdownMenu>
-													</TooltipTrigger>
-													<TooltipContent>Actions</TooltipContent>
-												</Tooltip>
-											</TooltipProvider>
-										</TableCell>
+					{!data || data.orders.length === 0 ? (
+						<EmptyState
+							title="No orders found"
+							description="Get started by creating your first order for a team."
+							action={
+								<Button onClick={() => setIsAddOrderOpen(true)}>
+									<Plus className="mr-2 h-4 w-4" />
+									Create Order
+								</Button>
+							}
+						/>
+					) : filteredOrders.length === 0 ? (
+						<div className="flex flex-col items-center justify-center py-12 text-center">
+							<p className="text-lg font-semibold mb-2">No orders found</p>
+							<p className="text-muted-foreground mb-4">
+								No orders match your search query "{searchQuery}".
+							</p>
+							<Button
+								variant="outline"
+								onClick={() => setSearchQuery("")}
+							>
+								Clear Search
+							</Button>
+						</div>
+					) : (
+						<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead className="pl-6">Order #</TableHead>
+										<TableHead>Team</TableHead>
+										<TableHead>Type</TableHead>
+										<TableHead>Total</TableHead>
+										<TableHead>Status</TableHead>
+										<TableHead>Date</TableHead>
+										<TableHead className="w-12 pr-6"></TableHead>
 									</TableRow>
-								);
-							})}
-						</TableBody>
-					</Table>
-				</div>
-			)}
+								</TableHeader>
+								<TableBody>
+									{filteredOrders.map((order) => {
+										const isActiveStatus = order.status === "COMPLETED" || order.status === "PROCESSING";
+										return (
+											<TableRow
+												key={order.id}
+												className="cursor-pointer"
+												onClick={() => setSelectedOrderId(order.id)}
+											>
+												<TableCell className="pl-6">
+													<div className="flex items-center gap-2">
+														<Receipt className="h-4 w-4 text-muted-foreground" />
+														<span className="font-medium">{order.orderNumber}</span>
+													</div>
+												</TableCell>
+												<TableCell>{order.team?.name || "—"}</TableCell>
+												<TableCell>{ORDER_TYPE_NAMES[order.type] || order.type}</TableCell>
+												<TableCell>
+													{order.total
+														? `${order.currency} ${parseFloat(order.total).toFixed(2)}`
+														: "—"}
+												</TableCell>
+												<TableCell>
+													<Badge
+														variant="outline"
+														className={
+															isActiveStatus
+																? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
+																: ""
+														}
+													>
+														{order.status}
+													</Badge>
+												</TableCell>
+												<TableCell>
+													{new Date(order.createdAt).toLocaleDateString()}
+												</TableCell>
+												<TableCell onClick={(e) => e.stopPropagation()} className="pr-6">
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<DropdownMenu>
+																	<DropdownMenuTrigger asChild>
+																		<Button variant="ghost" size="icon" className="h-8 w-8">
+																			<EllipsisVertical className="h-4 w-4" />
+																			<span className="sr-only">Actions</span>
+																		</Button>
+																	</DropdownMenuTrigger>
+																	<DropdownMenuContent align="end" className="w-40">
+																		<DropdownMenuItem onSelect={() => setSelectedOrderId(order.id)}>
+																			View details
+																		</DropdownMenuItem>
+																		<DropdownMenuItem
+																			onSelect={() => handleDelete(order.id)}
+																			className="text-destructive focus:text-destructive"
+																		>
+																			<Trash2 className="mr-2 h-4 w-4" />
+																			Delete
+																		</DropdownMenuItem>
+																	</DropdownMenuContent>
+																</DropdownMenu>
+															</TooltipTrigger>
+															<TooltipContent>Actions</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												</TableCell>
+											</TableRow>
+										);
+									})}
+								</TableBody>
+							</Table>
+						</div>
+					)}
 				</div>
 			</div>
 

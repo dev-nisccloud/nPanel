@@ -33,25 +33,25 @@ interface WordPressOverviewProps {
 export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverviewProps) {
   const getStatusBadge = () => {
     if (wpData.status?.infected) {
-      return <Badge variant="destructive">Infected</Badge>;
+      return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">Infected</Badge>;
     }
     if (wpData.status?.unsupported) {
-      return <Badge variant="secondary">Unsupported</Badge>;
+      return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">Unsupported</Badge>;
     }
     if (wpData.status?.alive) {
-      return <Badge variant="default">Online</Badge>;
+      return <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">Online</Badge>;
     }
-    return <Badge variant="secondary">Offline</Badge>;
+    return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">Offline</Badge>;
   };
 
   const getSecurityBadge = () => {
     if (wpData.features?.security?.status === "secureRecommended") {
-      return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+      return <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
         <Shield className="h-3 w-3 mr-1" />
         Secure
       </Badge>;
     }
-    return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+    return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">
       <AlertTriangle className="h-3 w-3 mr-1" />
       Needs Attention
     </Badge>;
@@ -59,12 +59,12 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
 
   const getSslBadge = () => {
     if (wpData.domain?.ssl?.enabled) {
-      return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+      return <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
         <CheckCircle className="h-3 w-3 mr-1" />
         Enabled
       </Badge>;
     }
-    return <Badge variant="destructive">
+    return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">
       <XCircle className="h-3 w-3 mr-1" />
       Disabled
     </Badge>;

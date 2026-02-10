@@ -15,9 +15,9 @@ export default function MyAccountPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Account</h1>
-        <p className="text-muted-foreground">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-base font-semibold tracking-tight">My Account</h1>
+        <p className="text-xs text-muted-foreground">
           Manage your account settings and view your account activities
         </p>
       </div>

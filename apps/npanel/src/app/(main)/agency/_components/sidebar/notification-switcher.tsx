@@ -46,7 +46,6 @@ export function NotificationSwitcher() {
   const [sseUnseenCount, setSseUnseenCount] = React.useState<number | null>(null);
   const [expandedNotifications, setExpandedNotifications] = React.useState<Set<string>>(new Set());
   const [updatingNotificationId, setUpdatingNotificationId] = React.useState<string | null>(null);
-  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   const notificationsRef = React.useRef<Array<{
     id: string;
@@ -312,7 +311,6 @@ export function NotificationSwitcher() {
     onSuccess: () => {
       toast.success("Notification deleted");
       setUpdatingNotificationId(null);
-      setDeletingId(null);
     },
     onError: (error, variables, context) => {
       if (context?.previousNotifications) {
@@ -327,7 +325,6 @@ export function NotificationSwitcher() {
         description: error.message,
       });
       setUpdatingNotificationId(null);
-      setDeletingId(null);
     },
     onSettled: () => {
       utils.notifications.getAll.invalidate();
@@ -400,19 +397,7 @@ export function NotificationSwitcher() {
   const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>, notificationId: string) => {
     e.stopPropagation();
     e.preventDefault();
-
-    if (deletingId === notificationId) {
-      // Confirm delete
-      deleteMutation.mutate({ id: notificationId });
-    } else {
-      // Initial click - show confirmation
-      setDeletingId(notificationId);
-
-      // Auto-reset confirmation after 3 seconds if not clicked
-      setTimeout(() => {
-        setDeletingId((current) => current === notificationId ? null : current);
-      }, 3000);
-    }
+    deleteMutation.mutate({ id: notificationId });
   };
 
   const handleMarkAllAsRead = () => {
@@ -527,25 +512,20 @@ export function NotificationSwitcher() {
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className={cn(
-                                  "h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity",
-                                  deletingId === notification.id && "opacity-100 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                )}
+                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={(e) => handleDeleteClick(e, notification.id)}
                                 type="button"
                                 disabled={updatingNotificationId === notification.id}
                               >
-                                {updatingNotificationId === notification.id && deletingId === notification.id ? (
+                                {updatingNotificationId === notification.id ? (
                                   <Spinner size={14} className="text-destructive" />
-                                ) : deletingId === notification.id ? (
-                                  <Check className="h-3.5 w-3.5" />
                                 ) : (
                                   <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
                                 )}
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>{deletingId === notification.id ? "Confirm delete" : "Delete notification"}</p>
+                              <p>Delete notification</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -560,9 +540,9 @@ export function NotificationSwitcher() {
                                 className="h-7 w-7"
                                 onClick={(e) => handleToggleReadStatus(e, notification)}
                                 type="button"
-                                disabled={updatingNotificationId === notification.id && deletingId !== notification.id}
+                                disabled={updatingNotificationId === notification.id}
                               >
-                                {updatingNotificationId === notification.id && deletingId !== notification.id ? (
+                                {updatingNotificationId === notification.id ? (
                                   <Spinner size={14} />
                                 ) : notification.seen ? (
                                   <Mail className="h-3.5 w-3.5" />

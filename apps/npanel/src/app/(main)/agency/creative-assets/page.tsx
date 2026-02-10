@@ -115,34 +115,34 @@ export default function CreativeAssetsPage() {
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Creative Assets</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-base font-semibold tracking-tight">Creative Assets</h1>
+          <p className="text-xs text-muted-foreground">
             Manage creative assets, versions, approvals, and collaborate with your team and clients.
           </p>
         </div>
 
         <div className="mt-6">
-          <CreativeAssetsListing 
-        data={(assets || []).map(asset => ({
-          ...asset,
-          status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
-          versions: asset.versions?.map(version => ({
-            ...version,
-            fileMetadata: (version as any).fileMetadata ?? null,
-            internalApprovalStatus: version.internalApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
-            publicApprovalStatus: version.publicApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
-          })) || [],
-        }))}
-        isLoading={isLoading}
-        isError={isError}
-        error={error ? new Error(error.message || "An error occurred") : undefined}
-        onRetry={() => refetch()}
-        onEdit={handleEdit}
-        onArchive={handleArchive}
-        onUnarchive={handleUnarchive}
-        archivingAssetId={archivingAssetId}
-        unarchivingAssetId={unarchivingAssetId}
-        onAddAsset={() => setIsAddAssetOpen(true)}
+          <CreativeAssetsListing
+            data={(assets || []).map(asset => ({
+              ...asset,
+              status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
+              versions: asset.versions?.map(version => ({
+                ...version,
+                fileMetadata: (version as any).fileMetadata ?? null,
+                internalApprovalStatus: version.internalApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+                publicApprovalStatus: version.publicApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+              })) || [],
+            }))}
+            isLoading={isLoading}
+            isError={isError}
+            error={error ? new Error(error.message || "An error occurred") : undefined}
+            onRetry={() => refetch()}
+            onEdit={handleEdit}
+            onArchive={handleArchive}
+            onUnarchive={handleUnarchive}
+            archivingAssetId={archivingAssetId}
+            unarchivingAssetId={unarchivingAssetId}
+            onAddAsset={() => setIsAddAssetOpen(true)}
           />
         </div>
       </div>

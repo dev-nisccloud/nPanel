@@ -344,8 +344,8 @@ export default function MetaAdsPage() {
 			<div className="w-full max-w-7xl mx-auto">
 				{/* Header */}
 				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-semibold tracking-tight">Meta Ads</h1>
-					<p className="text-muted-foreground">
+					<h1 className="text-base font-semibold tracking-tight">Meta Ads</h1>
+					<p className="text-xs text-muted-foreground">
 						Manage your Meta (Facebook/Instagram) ad campaigns, ad sets, and ads from one place.
 					</p>
 				</div>

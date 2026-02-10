@@ -74,7 +74,7 @@ export default function ManageUsersPage() {
   const filteredUsers = React.useMemo(() => {
     if (!users) return [];
     if (!searchQuery.trim()) return users;
-    
+
     const query = searchQuery.toLowerCase().trim();
     return users.filter((user) => {
       return (
@@ -93,7 +93,7 @@ export default function ManageUsersPage() {
         if (typeof value === 'string') return new Date(value);
         return new Date(String(value));
       };
-      
+
       const mappedUser = {
         ...user,
         createdAt: toDate(user.createdAt),
@@ -186,8 +186,8 @@ export default function ManageUsersPage() {
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Manage Users</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-base font-semibold tracking-tight">Manage Users</h1>
+          <p className="text-xs text-muted-foreground">
             Manage agency user accounts, view their activity, and handle their permissions.
           </p>
         </div>
@@ -223,98 +223,98 @@ export default function ManageUsersPage() {
         </div>
 
         <div className="mt-6">
-      {!users || users.length === 0 ? (
-        <EmptyState
-          title="No users found"
-          description="Get started by creating a new agency user account."
-          action={
-            <Button onClick={() => setIsCreateSheetOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create User
-            </Button>
-          }
-        />
-      ) : filteredUsers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-lg font-semibold mb-2">No users found</p>
-          <p className="text-muted-foreground mb-4">
-            No users match your search query "{searchQuery}".
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => setSearchQuery("")}
-          >
-            Clear Search
-          </Button>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-6">Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-12 pr-6"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow
-                  key={user.id}
-                  className="cursor-pointer"
-                  onClick={() => handleView(user.id)}
-                >
-                  <TableCell className="pl-6">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{user.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                  <TableCell>{user.role.replace(/_/g, " ")}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        user.status === "ACTIVE"
-                          ? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
-                          : ""
-                      }
+          {!users || users.length === 0 ? (
+            <EmptyState
+              title="No users found"
+              description="Get started by creating a new agency user account."
+              action={
+                <Button onClick={() => setIsCreateSheetOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create User
+                </Button>
+              }
+            />
+          ) : filteredUsers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-lg font-semibold mb-2">No users found</p>
+              <p className="text-muted-foreground mb-4">
+                No users match your search query "{searchQuery}".
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setSearchQuery("")}
+              >
+                Clear Search
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-6">Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-12 pr-6"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow
+                      key={user.id}
+                      className="cursor-pointer"
+                      onClick={() => handleView(user.id)}
                     >
-                      {user.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()} className="pr-6">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <EllipsisVertical className="h-4 w-4" />
-                                <span className="sr-only">Actions</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuItem onSelect={() => handleView(user.id)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View details
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TooltipTrigger>
-                        <TooltipContent>Actions</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+                      <TableCell className="pl-6">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{user.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                      <TableCell>{user.role.replace(/_/g, " ")}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            user.status === "ACTIVE"
+                              ? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
+                              : ""
+                          }
+                        >
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()} className="pr-6">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <EllipsisVertical className="h-4 w-4" />
+                                    <span className="sr-only">Actions</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-40">
+                                  <DropdownMenuItem onSelect={() => handleView(user.id)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View details
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TooltipTrigger>
+                            <TooltipContent>Actions</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
       </div>
 
@@ -350,7 +350,7 @@ export default function ManageUsersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {statusChangeDialog.action} this user account? 
+              Are you sure you want to {statusChangeDialog.action} this user account?
               {statusChangeDialog.status && ` This action will change their account status to ${statusChangeDialog.status}.`}
             </AlertDialogDescription>
           </AlertDialogHeader>

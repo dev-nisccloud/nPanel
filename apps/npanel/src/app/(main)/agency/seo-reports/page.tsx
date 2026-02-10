@@ -28,8 +28,8 @@ export default function SeoReportsPage() {
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">SEO Reports</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-base font-semibold tracking-tight">SEO Reports</h1>
+          <p className="text-xs text-muted-foreground">
             Create and view monthly SEO reports. Enter metrics manually to build dashboards.
           </p>
         </div>
@@ -76,7 +76,7 @@ export default function SeoReportsPage() {
       <CreateReportSheet
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
-        onSuccess={() => {}}
+        onSuccess={() => { }}
       />
 
       <EditReportSheet

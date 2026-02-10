@@ -46,7 +46,7 @@ export const wordpressColumns: ColumnDef<z.infer<typeof wordpressInstallationSch
     accessorKey: "displayTitle",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Site" />,
     cell: ({ row }) => (
-      <Link 
+      <Link
         href={`/agency/wordpress/${row.original.id}`}
         className="font-medium text-primary hover:underline"
       >
@@ -78,16 +78,28 @@ export const wordpressColumns: ColumnDef<z.infer<typeof wordpressInstallationSch
     cell: ({ row }) => {
       const isAlive = row.original.status?.alive;
       const isInfected = row.original.status?.infected;
-      
+
       if (isInfected) {
-        return <Badge variant="destructive">Infected</Badge>;
+        return (
+          <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
+            Infected
+          </Badge>
+        );
       }
-      
+
       if (!isAlive) {
-        return <Badge variant="secondary">Offline</Badge>;
+        return (
+          <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
+            Offline
+          </Badge>
+        );
       }
-      
-      return <Badge variant="default">Online</Badge>;
+
+      return (
+        <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 px-2 py-0.5">
+          Online
+        </Badge>
+      );
     },
   },
   {
@@ -95,12 +107,20 @@ export const wordpressColumns: ColumnDef<z.infer<typeof wordpressInstallationSch
     header: ({ column }) => <DataTableColumnHeader column={column} title="Security" />,
     cell: ({ row }) => {
       const securityStatus = row.original.features?.security?.status;
-      
+
       if (securityStatus === "secureRecommended") {
-        return <Badge variant="default">Secure</Badge>;
+        return (
+          <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 px-2 py-0.5">
+            Secure
+          </Badge>
+        );
       }
-      
-      return <Badge variant="secondary">Needs Attention</Badge>;
+
+      return (
+        <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
+          Needs Attention
+        </Badge>
+      );
     },
   },
   {

@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 import { HostingOverview } from "./hosting-overview";
 import { DnsTable } from "./dns-table";
@@ -318,127 +319,130 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         </div>
 
         {/* Tabs */}
-        <div className="mt-6">
+        <div className="mt-8">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-7 h-auto p-0 bg-transparent">
-              <TabsTrigger
-                value="overview"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-base">Overview</span>
-                  <span className="text-xs text-muted-foreground">Details</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="dns"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Network className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-base">DNS</span>
-                  <span className="text-xs text-muted-foreground">Records</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="mail"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Mail className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-base">Mail</span>
-                  <span className="text-xs text-muted-foreground">Accounts</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="file-manager"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Folder className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-base">File Manager</span>
-                  <span className="text-xs text-muted-foreground">Files</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="subdomains"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Layers className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-base">Subdomains</span>
-                  <span className="text-xs text-muted-foreground">Domains</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="databases"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Database className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-base">Databases</span>
-                  <span className="text-xs text-muted-foreground">MySQL/PostgreSQL</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="wordpress"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Icons.Wordpress className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-base">WordPress</span>
-                  <span className="text-xs text-muted-foreground">Instances</span>
-                </div>
-              </TabsTrigger>
-            </TabsList>
+            <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
+              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 bg-muted/50 rounded-lg border border-border/50">
+                <TabsTrigger
+                  value="overview"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">Overview</span>
+                    <span className="text-xs text-muted-foreground">Details</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="dns"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Network className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">DNS</span>
+                    <span className="text-xs text-muted-foreground">Records</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="mail"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Mail className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">Mail</span>
+                    <span className="text-xs text-muted-foreground">Accounts</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="file-manager"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Folder className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">File Manager</span>
+                    <span className="text-xs text-muted-foreground">Files</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="subdomains"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Layers className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">Subdomains</span>
+                    <span className="text-xs text-muted-foreground">Domains</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="databases"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Database className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">Databases</span>
+                    <span className="text-xs text-muted-foreground">MySQL/PostgreSQL</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="wordpress"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Icons.Wordpress className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">WordPress</span>
+                    <span className="text-xs text-muted-foreground">Instances</span>
+                  </div>
+                </TabsTrigger>
+              </TabsList>
+              <ScrollBar orientation="horizontal" className="flex" />
+            </ScrollArea>
 
-            <TabsContent value="overview" className="mt-6">
+            <TabsContent value="overview" className="mt-10">
               <HostingOverview hostingData={hostingData} />
             </TabsContent>
 
-            <TabsContent value="dns" className="mt-6">
+            <TabsContent value="dns" className="mt-10">
               <DnsTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
             </TabsContent>
 
-            <TabsContent value="mail" className="mt-6">
+            <TabsContent value="mail" className="mt-10">
               <MailTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
             </TabsContent>
 
-            <TabsContent value="file-manager" className="mt-6">
+            <TabsContent value="file-manager" className="mt-10">
               <FileManager hostingData={hostingData} />
             </TabsContent>
 
-            <TabsContent value="subdomains" className="mt-6">
+            <TabsContent value="subdomains" className="mt-10">
               <SubdomainsTable domainName={hostingData.gen_info?.name || ""} />
             </TabsContent>
 
-            <TabsContent value="databases" className="mt-6">
+            <TabsContent value="databases" className="mt-10">
               <DatabasesTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
             </TabsContent>
 
-            <TabsContent value="wordpress" className="mt-6">
+            <TabsContent value="wordpress" className="mt-10">
               <WordPressInstancesTable
                 domainName={hostingData.gen_info?.name || ""}
                 hostingData={hostingData}

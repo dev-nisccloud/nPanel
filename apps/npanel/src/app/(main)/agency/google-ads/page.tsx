@@ -70,8 +70,8 @@ export default function GoogleAdsPage() {
 		<div className="@container/main flex flex-col gap-4 md:gap-6">
 			<div className="flex items-start justify-between gap-4">
 				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-semibold tracking-tight">Google Ads</h1>
-					<p className="text-muted-foreground">
+					<h1 className="text-base font-semibold tracking-tight">Google Ads</h1>
+					<p className="text-xs text-muted-foreground">
 						Manage your Google Ads campaigns, keywords, and performance from one place.
 					</p>
 				</div>
