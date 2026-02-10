@@ -23,12 +23,18 @@ RUN npm install -g pnpm
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 
+# Copy essential root configs that turbo prune might miss
+COPY tsconfig.json tsconfig.base.json turbo.json ./
+
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+# We use --ignore-scripts because some postinstalls might depend on files in 'full'
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
 COPY --from=pruner /app/out/full/ .
-COPY turbo.json turbo.json
+
+# Re-run install to trigger postinstalls properly now that 'full' is present
+RUN pnpm install --frozen-lockfile
 
 # Build the project
 ENV NODE_ENV=production
