@@ -220,7 +220,6 @@ jobs:
           env_vars: |
             NODE_ENV=production
             DATABASE_URL=${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
-            PORT=3000
             HOSTNAME=0.0.0.0
 
       - name: Health check

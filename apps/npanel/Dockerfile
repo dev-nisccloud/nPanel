@@ -70,7 +70,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/npanel/.next/static ./apps/n
 
 EXPOSE 3000
 
-ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # In standalone mode, Next.js generates a server.js in the root of the output
