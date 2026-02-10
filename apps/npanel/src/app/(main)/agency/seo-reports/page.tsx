@@ -11,7 +11,7 @@ import { SeoReportViewDialog } from "./_components/seo-report-view-dialog";
 import { SeoReportsTable } from "./_components/seo-reports-table";
 
 export default function SeoReportsPage() {
-  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  // const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [editingReportId, setEditingReportId] = React.useState<string | null>(null);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -50,10 +50,10 @@ export default function SeoReportsPage() {
               <Button variant="outline" size="icon" onClick={handleRefresh} title="Refresh">
                 <RefreshCw className="h-4 w-4" />
               </Button>
-              <Button onClick={() => setIsCreateOpen(true)}>
+              {/* <Button onClick={() => setIsCreateOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create report
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
@@ -73,11 +73,11 @@ export default function SeoReportsPage() {
         </div>
       </div>
 
-      <CreateReportSheet
+      {/* <CreateReportSheet
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         onSuccess={() => { }}
-      />
+      /> */}
 
       <EditReportSheet
         open={!!editingReportId}
