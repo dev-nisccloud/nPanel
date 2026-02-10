@@ -30,7 +30,11 @@
 		},
 		"db:push": {
 			"cache": false,
-			"persistent": true
+			"persistent": true,
+			"env": [
+				"DATABASE_URL",
+				"PRISMA_BINARY_TARGETS"
+			]
 		},
 		"db:studio": {
 			"cache": false,
@@ -38,10 +42,18 @@
 		},
 		"db:migrate": {
 			"cache": false,
-			"persistent": true
+			"persistent": true,
+			"env": [
+				"DATABASE_URL",
+				"PRISMA_BINARY_TARGETS"
+			]
 		},
 		"db:generate": {
-			"cache": false
+			"cache": false,
+			"env": [
+				"DATABASE_URL",
+				"PRISMA_BINARY_TARGETS"
+			]
 		}
 	}
 }

@@ -204,6 +204,7 @@ jobs:
         run: |
           docker build -f apps/npanel/Dockerfile \
             --build-arg DOCKER_BUILD=true \
+            --build-arg NEXT_PUBLIC_APP_URL=${{ secrets.STAGING_URL }} \
             -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             .
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}

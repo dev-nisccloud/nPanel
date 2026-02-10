@@ -39,12 +39,18 @@ RUN pnpm install --frozen-lockfile
 # Generate Prisma Client
 # Internal packages like @nPanel/db need the generated client to build
 # We include both musl (for Alpine) and debian (for CI runners) to be safe
-ENV PRISMA_BINARY_TARGETS='["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]'
-RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" pnpm turbo run db:generate --filter=npanel...
+RUN PRISMA_BINARY_TARGETS='["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]' \
+    DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" \
+    pnpm turbo run db:generate --filter=npanel...
 
 # Build the project
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_PLESK_HOST="orion.nisccloud.com"
 ENV NODE_ENV=production
 ENV DOCKER_BUILD=true
+# Skip env validation during build to prevent failures due to missing runtime secrets
+ENV SKIP_ENV_VALIDATION=1
 RUN pnpm turbo run build --filter=npanel...
 
 FROM base AS runner
@@ -67,4 +73,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "apps/npanel/server.js"]
+# In standalone mode, Next.js generates a server.js in the root of the output
+CMD ["node", "server.js"]
