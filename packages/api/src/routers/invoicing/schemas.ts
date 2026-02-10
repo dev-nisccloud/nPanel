@@ -322,7 +322,95 @@ export const submitInvoiceSchema = invoiceCreateInputSchema.extend({
 	updatedBy: z.string().optional(), // Set from authenticated user context
 });
 export type SubmitInvoiceInput = z.infer<typeof submitInvoiceSchema>;
+/**
+ * Schema for Team eTIMS settings
+ */
+export const teamETimsSettingsSchema = z.object({
+	id: z.string().uuid(),
+	teamId: z.string(),
+	kraPin: z.string(),
+	branchId: z.string(),
+	deviceSerialNumber: z.string(),
+	cmcKey: z.string().nullable(),
+	isInitialized: z.boolean(),
+	isSandbox: z.boolean(),
+	lastSyncAt: z.date().nullable(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+export type TeamETimsSettings = z.infer<typeof teamETimsSettingsSchema>;
 
+/**
+ * Schema for initial eTIMS setup/initialization
+ */
+export const initializeETimsSchema = z.object({
+	teamId: z.string().uuid(),
+	kraPin: z.string(),
+	branchId: z.string().default("00"),
+	deviceSerialNumber: z.string(),
+	isSandbox: z.boolean().default(true),
+});
+export type InitializeETimsInput = z.infer<typeof initializeETimsSchema>;
 
+/**
+ * Schema for updating eTIMS settings
+ */
+export const updateETimsSettingsSchema = z.object({
+	teamId: z.string().uuid(),
+	kraPin: z.string().optional(),
+	branchId: z.string().optional(),
+	deviceSerialNumber: z.string().optional(),
+	isSandbox: z.boolean().optional(),
+});
+/**
+ * Schema for Team eTIMS Item
+ */
+export const teamETimsItemSchema = z.object({
+	id: z.string().uuid(),
+	teamId: z.string(),
+	itemCd: z.string(),
+	itemClsCd: z.string(),
+	itemNm: z.string(),
+	itemClsNm: z.string().nullable(),
+	taxTyCd: z.string(),
+	pkgUnitCd: z.string(),
+	qtyUnitCd: z.string(),
+	prc: z.string().nullable(),
+	isService: z.boolean(),
+	metadata: nullableJsonSchema,
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+export type TeamETimsItem = z.infer<typeof teamETimsItemSchema>;
 
+export const registerETimsItemSchema = z.object({
+	teamId: z.string().uuid(),
+	itemCd: z.string(),
+	itemClsCd: z.string(),
+	itemNm: z.string(),
+	taxTyCd: z.string().default("A"),
+	pkgUnitCd: z.string().default("OU"),
+	qtyUnitCd: z.string().default("OU"),
+	prc: z.string().optional(),
+	isService: z.boolean().default(true),
+});
+export type RegisterETimsItemInput = z.infer<typeof registerETimsItemSchema>;
+
+/**
+ * Schema for Team eTIMS Branch
+ */
+export const teamETimsBranchSchema = z.object({
+	id: z.string().uuid(),
+	teamId: z.string(),
+	bhfId: z.string(),
+	bhfNm: z.string(),
+	bhfSttsCd: z.string(),
+	addr: z.string().nullable(),
+	mgrNm: z.string().nullable(),
+	mgrTelNo: z.string().nullable(),
+	metadata: nullableJsonSchema,
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+export type TeamETimsBranch = z.infer<typeof teamETimsBranchSchema>;
 

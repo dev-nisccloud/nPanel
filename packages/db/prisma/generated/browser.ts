@@ -432,6 +432,21 @@ export type CreditNoteActivityLog = Prisma.CreditNoteActivityLogModel
  */
 export type InvoiceCounter = Prisma.InvoiceCounterModel
 /**
+ * Model TeamETimsSettings
+ * 
+ */
+export type TeamETimsSettings = Prisma.TeamETimsSettingsModel
+/**
+ * Model TeamETimsItem
+ * 
+ */
+export type TeamETimsItem = Prisma.TeamETimsItemModel
+/**
+ * Model TeamETimsBranch
+ * 
+ */
+export type TeamETimsBranch = Prisma.TeamETimsBranchModel
+/**
  * Model MetaAdsAccount
  * 
  */

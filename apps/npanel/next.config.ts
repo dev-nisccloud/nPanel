@@ -41,9 +41,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Removed standalone output - it increases runtime memory usage
-  // Using default output which is more memory-efficient for Render free tier
-  // output: 'standalone',
+  // Output standalone for Docker builds to optimize container size
+  output: process.env.DOCKER_BUILD === 'true' ? 'standalone' : undefined,
   // Reduce memory usage during build
   experimental: {
     // Optimize memory usage

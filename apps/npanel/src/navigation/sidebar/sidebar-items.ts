@@ -49,7 +49,7 @@ export const sidebarItems: NavGroup[] = [
     id: 1,
     label: "Cloud Services",
     items: [
-      {     
+      {
         title: "Home",
         url: "/dashboard/dashboard",
         icon: (props: any) => React.createElement(Icons.Home, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
@@ -194,7 +194,7 @@ export const agencysidebarItems: NavGroup[] = [
     id: 1,
     label: "Cloud Services",
     items: [
-      {     
+      {
         title: "Home",
         url: "/agency/dashboard",
         icon: (props: any) => React.createElement(Icons.Home, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
@@ -269,7 +269,7 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Seo, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "SEO Reports", url: "/agency/seo-reports", },
-          { title: "Google Analytics", url: "/agency/google-analytics", },
+          // { title: "Google Analytics", url: "/agency/google-analytics", },
         ],
       },
       {
@@ -348,6 +348,20 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Invoices", url: "/agency/invoices", },
           { title: "Subscriptions", url: "/agency/subscriptions", },
           // { title: "Quotations", url: "/agency/quotations", },
+        ],
+      },
+      {
+        title: "KRA eTIMS",
+        url: "/agency/kra-etims",
+        icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Dashboard", url: "/agency/kra-etims", },
+          { title: "Sales", url: "/agency/kra-etims/sales", },
+          { title: "Purchases", url: "/agency/kra-etims/purchases", },
+          { title: "Stock", url: "/agency/kra-etims/stock", },
+          { title: "Products", url: "/agency/kra-etims/products", },
+          { title: "Branches", url: "/agency/kra-etims/branches", },
+          { title: "Settings", url: "/agency/kra-etims/settings", },
         ],
       },
       // {

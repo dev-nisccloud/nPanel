@@ -131,6 +131,9 @@ export const ModelName = {
   InvoiceTransactionActivityLog: 'InvoiceTransactionActivityLog',
   CreditNoteActivityLog: 'CreditNoteActivityLog',
   InvoiceCounter: 'InvoiceCounter',
+  TeamETimsSettings: 'TeamETimsSettings',
+  TeamETimsItem: 'TeamETimsItem',
+  TeamETimsBranch: 'TeamETimsBranch',
   MetaAdsAccount: 'MetaAdsAccount',
   MetaAdsCampaign: 'MetaAdsCampaign',
   MetaAdsAdSet: 'MetaAdsAdSet',
@@ -1548,7 +1551,14 @@ export const InvoiceScalarFieldEnum = {
   createdBy: 'createdBy',
   updatedBy: 'updatedBy',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  kraInvoiceNumber: 'kraInvoiceNumber',
+  kraReceiptNumber: 'kraReceiptNumber',
+  kraSignature: 'kraSignature',
+  kraQrCode: 'kraQrCode',
+  kraVerifiedDate: 'kraVerifiedDate',
+  kraStatus: 'kraStatus',
+  kraError: 'kraError'
 } as const
 
 export type InvoiceScalarFieldEnum = (typeof InvoiceScalarFieldEnum)[keyof typeof InvoiceScalarFieldEnum]
@@ -1669,6 +1679,63 @@ export const InvoiceCounterScalarFieldEnum = {
 } as const
 
 export type InvoiceCounterScalarFieldEnum = (typeof InvoiceCounterScalarFieldEnum)[keyof typeof InvoiceCounterScalarFieldEnum]
+
+
+export const TeamETimsSettingsScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  kraPin: 'kraPin',
+  branchId: 'branchId',
+  deviceSerialNumber: 'deviceSerialNumber',
+  cmcKey: 'cmcKey',
+  isInitialized: 'isInitialized',
+  isSandbox: 'isSandbox',
+  apigeeAppId: 'apigeeAppId',
+  authConsumerKey: 'authConsumerKey',
+  authConsumerSecret: 'authConsumerSecret',
+  lastSyncAt: 'lastSyncAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TeamETimsSettingsScalarFieldEnum = (typeof TeamETimsSettingsScalarFieldEnum)[keyof typeof TeamETimsSettingsScalarFieldEnum]
+
+
+export const TeamETimsItemScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  itemCd: 'itemCd',
+  itemClsCd: 'itemClsCd',
+  itemNm: 'itemNm',
+  itemClsNm: 'itemClsNm',
+  taxTyCd: 'taxTyCd',
+  pkgUnitCd: 'pkgUnitCd',
+  qtyUnitCd: 'qtyUnitCd',
+  prc: 'prc',
+  isService: 'isService',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TeamETimsItemScalarFieldEnum = (typeof TeamETimsItemScalarFieldEnum)[keyof typeof TeamETimsItemScalarFieldEnum]
+
+
+export const TeamETimsBranchScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  bhfId: 'bhfId',
+  bhfNm: 'bhfNm',
+  bhfSttsCd: 'bhfSttsCd',
+  addr: 'addr',
+  mgrNm: 'mgrNm',
+  mgrTelNo: 'mgrTelNo',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TeamETimsBranchScalarFieldEnum = (typeof TeamETimsBranchScalarFieldEnum)[keyof typeof TeamETimsBranchScalarFieldEnum]
 
 
 export const MetaAdsAccountScalarFieldEnum = {

@@ -471,6 +471,9 @@ export const ModelName = {
   InvoiceTransactionActivityLog: 'InvoiceTransactionActivityLog',
   CreditNoteActivityLog: 'CreditNoteActivityLog',
   InvoiceCounter: 'InvoiceCounter',
+  TeamETimsSettings: 'TeamETimsSettings',
+  TeamETimsItem: 'TeamETimsItem',
+  TeamETimsBranch: 'TeamETimsBranch',
   MetaAdsAccount: 'MetaAdsAccount',
   MetaAdsCampaign: 'MetaAdsCampaign',
   MetaAdsAdSet: 'MetaAdsAdSet',
@@ -522,7 +525,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "emailCampaignSendJob" | "campaignRecipient" | "emailEvent" | "emailEventActivityLog" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog" | "webDesignQuoteRequest"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "emailCampaignSendJob" | "campaignRecipient" | "emailEvent" | "emailEventActivityLog" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "teamETimsSettings" | "teamETimsItem" | "teamETimsBranch" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog" | "webDesignQuoteRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -6668,6 +6671,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TeamETimsSettings: {
+      payload: Prisma.$TeamETimsSettingsPayload<ExtArgs>
+      fields: Prisma.TeamETimsSettingsFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TeamETimsSettingsFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TeamETimsSettingsFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
+        }
+        findFirst: {
+          args: Prisma.TeamETimsSettingsFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TeamETimsSettingsFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
+        }
+        findMany: {
+          args: Prisma.TeamETimsSettingsFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>[]
+        }
+        create: {
+          args: Prisma.TeamETimsSettingsCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
+        }
+        createMany: {
+          args: Prisma.TeamETimsSettingsCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TeamETimsSettingsCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>[]
+        }
+        delete: {
+          args: Prisma.TeamETimsSettingsDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
+        }
+        update: {
+          args: Prisma.TeamETimsSettingsUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
+        }
+        deleteMany: {
+          args: Prisma.TeamETimsSettingsDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TeamETimsSettingsUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TeamETimsSettingsUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>[]
+        }
+        upsert: {
+          args: Prisma.TeamETimsSettingsUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
+        }
+        aggregate: {
+          args: Prisma.TeamETimsSettingsAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTeamETimsSettings>
+        }
+        groupBy: {
+          args: Prisma.TeamETimsSettingsGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TeamETimsSettingsGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TeamETimsSettingsCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TeamETimsSettingsCountAggregateOutputType> | number
+        }
+      }
+    }
+    TeamETimsItem: {
+      payload: Prisma.$TeamETimsItemPayload<ExtArgs>
+      fields: Prisma.TeamETimsItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TeamETimsItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TeamETimsItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
+        }
+        findFirst: {
+          args: Prisma.TeamETimsItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TeamETimsItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
+        }
+        findMany: {
+          args: Prisma.TeamETimsItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>[]
+        }
+        create: {
+          args: Prisma.TeamETimsItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
+        }
+        createMany: {
+          args: Prisma.TeamETimsItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TeamETimsItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>[]
+        }
+        delete: {
+          args: Prisma.TeamETimsItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
+        }
+        update: {
+          args: Prisma.TeamETimsItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.TeamETimsItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TeamETimsItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TeamETimsItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.TeamETimsItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
+        }
+        aggregate: {
+          args: Prisma.TeamETimsItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTeamETimsItem>
+        }
+        groupBy: {
+          args: Prisma.TeamETimsItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TeamETimsItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TeamETimsItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TeamETimsItemCountAggregateOutputType> | number
+        }
+      }
+    }
+    TeamETimsBranch: {
+      payload: Prisma.$TeamETimsBranchPayload<ExtArgs>
+      fields: Prisma.TeamETimsBranchFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TeamETimsBranchFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TeamETimsBranchFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
+        }
+        findFirst: {
+          args: Prisma.TeamETimsBranchFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TeamETimsBranchFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
+        }
+        findMany: {
+          args: Prisma.TeamETimsBranchFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>[]
+        }
+        create: {
+          args: Prisma.TeamETimsBranchCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
+        }
+        createMany: {
+          args: Prisma.TeamETimsBranchCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TeamETimsBranchCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>[]
+        }
+        delete: {
+          args: Prisma.TeamETimsBranchDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
+        }
+        update: {
+          args: Prisma.TeamETimsBranchUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
+        }
+        deleteMany: {
+          args: Prisma.TeamETimsBranchDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TeamETimsBranchUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TeamETimsBranchUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>[]
+        }
+        upsert: {
+          args: Prisma.TeamETimsBranchUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
+        }
+        aggregate: {
+          args: Prisma.TeamETimsBranchAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTeamETimsBranch>
+        }
+        groupBy: {
+          args: Prisma.TeamETimsBranchGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TeamETimsBranchGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TeamETimsBranchCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TeamETimsBranchCountAggregateOutputType> | number
+        }
+      }
+    }
     MetaAdsAccount: {
       payload: Prisma.$MetaAdsAccountPayload<ExtArgs>
       fields: Prisma.MetaAdsAccountFieldRefs
@@ -10734,7 +10959,14 @@ export const InvoiceScalarFieldEnum = {
   createdBy: 'createdBy',
   updatedBy: 'updatedBy',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  kraInvoiceNumber: 'kraInvoiceNumber',
+  kraReceiptNumber: 'kraReceiptNumber',
+  kraSignature: 'kraSignature',
+  kraQrCode: 'kraQrCode',
+  kraVerifiedDate: 'kraVerifiedDate',
+  kraStatus: 'kraStatus',
+  kraError: 'kraError'
 } as const
 
 export type InvoiceScalarFieldEnum = (typeof InvoiceScalarFieldEnum)[keyof typeof InvoiceScalarFieldEnum]
@@ -10855,6 +11087,63 @@ export const InvoiceCounterScalarFieldEnum = {
 } as const
 
 export type InvoiceCounterScalarFieldEnum = (typeof InvoiceCounterScalarFieldEnum)[keyof typeof InvoiceCounterScalarFieldEnum]
+
+
+export const TeamETimsSettingsScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  kraPin: 'kraPin',
+  branchId: 'branchId',
+  deviceSerialNumber: 'deviceSerialNumber',
+  cmcKey: 'cmcKey',
+  isInitialized: 'isInitialized',
+  isSandbox: 'isSandbox',
+  apigeeAppId: 'apigeeAppId',
+  authConsumerKey: 'authConsumerKey',
+  authConsumerSecret: 'authConsumerSecret',
+  lastSyncAt: 'lastSyncAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TeamETimsSettingsScalarFieldEnum = (typeof TeamETimsSettingsScalarFieldEnum)[keyof typeof TeamETimsSettingsScalarFieldEnum]
+
+
+export const TeamETimsItemScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  itemCd: 'itemCd',
+  itemClsCd: 'itemClsCd',
+  itemNm: 'itemNm',
+  itemClsNm: 'itemClsNm',
+  taxTyCd: 'taxTyCd',
+  pkgUnitCd: 'pkgUnitCd',
+  qtyUnitCd: 'qtyUnitCd',
+  prc: 'prc',
+  isService: 'isService',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TeamETimsItemScalarFieldEnum = (typeof TeamETimsItemScalarFieldEnum)[keyof typeof TeamETimsItemScalarFieldEnum]
+
+
+export const TeamETimsBranchScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  bhfId: 'bhfId',
+  bhfNm: 'bhfNm',
+  bhfSttsCd: 'bhfSttsCd',
+  addr: 'addr',
+  mgrNm: 'mgrNm',
+  mgrTelNo: 'mgrTelNo',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TeamETimsBranchScalarFieldEnum = (typeof TeamETimsBranchScalarFieldEnum)[keyof typeof TeamETimsBranchScalarFieldEnum]
 
 
 export const MetaAdsAccountScalarFieldEnum = {
@@ -12604,6 +12893,9 @@ export type GlobalOmitConfig = {
   invoiceTransactionActivityLog?: Prisma.InvoiceTransactionActivityLogOmit
   creditNoteActivityLog?: Prisma.CreditNoteActivityLogOmit
   invoiceCounter?: Prisma.InvoiceCounterOmit
+  teamETimsSettings?: Prisma.TeamETimsSettingsOmit
+  teamETimsItem?: Prisma.TeamETimsItemOmit
+  teamETimsBranch?: Prisma.TeamETimsBranchOmit
   metaAdsAccount?: Prisma.MetaAdsAccountOmit
   metaAdsCampaign?: Prisma.MetaAdsCampaignOmit
   metaAdsAdSet?: Prisma.MetaAdsAdSetOmit

@@ -22,8 +22,15 @@ import {
 	nullableStringSchema,
 	submitInvoiceSchema,
 	updatePaymentInputSchema,
+	initializeETimsSchema,
+	teamETimsSettingsSchema,
+	updateETimsSettingsSchema,
+	registerETimsItemSchema,
+	teamETimsItemSchema,
+	teamETimsBranchSchema,
 } from "./schemas";
 import type { InvoiceDetail } from "./schemas";
+import { ETimsClient } from "../../lib/etims-client";
 
 // Type that accepts both PrismaClient instance and transaction client
 // Uses typeof to avoid importing Prisma types directly - maintains API layer independence
@@ -67,7 +74,7 @@ async function getAuthenticatedUser(ctx: Context) {
 	// Optimize: Use role from session if available (set by auth hooks)
 	// This avoids an unnecessary database query
 	const sessionRole = (user as { role?: string })?.role;
-	
+
 	if (sessionRole) {
 		// Role is in session, no need to query database
 		return { id: user.id, role: sessionRole };
@@ -87,6 +94,106 @@ async function getAuthenticatedUser(ctx: Context) {
 	}
 
 	return { id: dbUser.id, role: dbUser.role as string };
+}
+
+function getETimsClient({ isSandbox }: {
+	isSandbox: boolean;
+}) {
+	return new ETimsClient({
+		baseUrl: isSandbox
+			? process.env.KRA_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1"
+			: process.env.KRA_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1",
+	});
+}
+
+function mapInvoiceToETimsTransaction(
+	invoice: any,
+	user: { id: string; name: string },
+): any {
+	const now = new Date();
+	const formatDate = (date: Date) => date.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+	const formatDt = (date: Date) => date.toISOString().replace(/-/g, "").slice(0, 8);
+
+	const items = (invoice.lineItems ?? []).map((item: any, index: number) => {
+		const price = parseFloat(item.price || "0");
+		const qty = item.quantity || 1;
+		const splyAmt = price * qty;
+		const taxAmt = (splyAmt * (invoice.taxPercentage || 0)) / 100;
+
+		return {
+			itemSeq: index + 1,
+			itemCd: item.metadata?.kraItemCd || "GENERIC",
+			itemClsCd: item.metadata?.kraItemClsCd || "80101500", // Professional Services
+			itemNm: item.name || "Service",
+			bcd: null,
+			pkgUnitCd: "OU",
+			pkg: 1,
+			qtyUnitCd: "OU",
+			qty: qty,
+			prc: price,
+			splyAmt: splyAmt,
+			dcRt: 0,
+			dcAmt: 0,
+			taxTyCd: "A", // 16% VAT
+			taxblAmt: splyAmt,
+			taxAmt: taxAmt,
+			totAmt: splyAmt + taxAmt,
+		};
+	});
+
+	const totTaxblAmt = items.reduce((sum: number, item: any) => sum + item.taxblAmt, 0);
+	const totTaxAmt = items.reduce((sum: number, item: any) => sum + item.taxAmt, 0);
+	const totAmt = items.reduce((sum: number, item: any) => sum + item.totAmt, 0);
+
+	return {
+		invcNo: parseInt(invoice.invoiceNumber?.replace(/\D/g, "") || "0"),
+		orgInvcNo: 0,
+		custTin: null,
+		custNm: invoice.customerName || "Customer",
+		salesTyCd: "N",
+		rcptTyCd: "R",
+		pmtTyCd: "01",
+		salesSttsCd: "02",
+		cfmDt: formatDate(now),
+		salesDt: formatDt(now),
+		totItemCnt: items.length,
+		taxblAmtA: totTaxblAmt,
+		taxblAmtB: 0,
+		taxblAmtC: 0,
+		taxblAmtD: 0,
+		taxblAmtE: 0,
+		taxRtA: invoice.taxPercentage || 16,
+		taxRtB: 0,
+		taxRtC: 0,
+		taxRtD: 0,
+		taxRtE: 0,
+		taxAmtA: totTaxAmt,
+		taxAmtB: 0,
+		taxAmtC: 0,
+		taxAmtD: 0,
+		taxAmtE: 0,
+		totTaxblAmt,
+		totTaxAmt,
+		totAmt,
+		prchrAcptcYn: "N",
+		remark: null,
+		regrId: user.id,
+		regrNm: user.name,
+		modrId: user.id,
+		modrNm: user.name,
+		receipt: {
+			custTin: null,
+			custMblNo: null,
+			rptNo: parseInt(invoice.invoiceNumber?.replace(/\D/g, "") || "0"),
+			rcptPbctDt: formatDate(now),
+			trdeNm: "Nisc Cloud Limited",
+			adrs: "Nairobi, Kenya",
+			topMsg: "Thank you for your business",
+			btmMsg: "Electronically Signed by eTIMS",
+			prchrAcptcYn: "N",
+		},
+		itemList: items,
+	};
 }
 
 async function ensureTeamAccess(db: DbClient, userId: string, role: string, teamId: string | null | undefined) {
@@ -184,7 +291,7 @@ function buildInvoiceData(input: z.infer<typeof invoiceCreateInputSchema>) {
 		createdBy: input.createdBy,
 		updatedBy: input.updatedBy ?? input.createdBy,
 	};
-	
+
 	// Only include Json fields if they are defined and not null
 	if (input.metadata !== undefined && input.metadata !== null) {
 		data.metadata = input.metadata;
@@ -210,7 +317,7 @@ function buildInvoiceData(input: z.infer<typeof invoiceCreateInputSchema>) {
 	if (input.bottomBlock !== undefined && input.bottomBlock !== null) {
 		data.bottomBlock = input.bottomBlock;
 	}
-	
+
 	return data;
 }
 
@@ -336,20 +443,20 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 
 	const creditNote = invoice.creditNote
 		? creditNoteOutputSchema.parse({
-				...invoice.creditNote,
-				activityLogs: (invoice.creditNote.activityLogs ?? []).map((log: any) =>
-					activityLogSchema.parse({
-						id: log.id,
-						userId: log.userId,
-						action: log.action,
-						description: log.description ?? null,
-						...(log.metadata !== undefined && { metadata: log.metadata }),
-						ipAddress: log.ipAddress ?? null,
-						userAgent: log.userAgent ?? null,
-						createdAt: log.createdAt,
-					}),
-				),
-			})
+			...invoice.creditNote,
+			activityLogs: (invoice.creditNote.activityLogs ?? []).map((log: any) =>
+				activityLogSchema.parse({
+					id: log.id,
+					userId: log.userId,
+					action: log.action,
+					description: log.description ?? null,
+					...(log.metadata !== undefined && { metadata: log.metadata }),
+					ipAddress: log.ipAddress ?? null,
+					userAgent: log.userAgent ?? null,
+					createdAt: log.createdAt,
+				}),
+			),
+		})
 		: null;
 
 	const activityLogs = (invoice.activityLogs ?? []).map((log: any) =>
@@ -358,7 +465,7 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 			userId: log.userId,
 			action: log.action,
 			description: log.description ?? null,
-						...(log.metadata !== undefined && { metadata: log.metadata }),
+			...(log.metadata !== undefined && { metadata: log.metadata }),
 			ipAddress: log.ipAddress ?? null,
 			userAgent: log.userAgent ?? null,
 			createdAt: log.createdAt,
@@ -471,11 +578,11 @@ async function logInvoiceActivity(
 		description: params.description ?? null,
 		createdAt: new Date(),
 	};
-	
+
 	if (params.metadata !== undefined && params.metadata !== null) {
 		logData.metadata = params.metadata;
 	}
-	
+
 	await db.invoiceActivityLog.create({
 		data: logData as any, // Type assertion for JsonValue compatibility
 	});
@@ -507,11 +614,11 @@ async function logTransactionActivity(
 		description: params.description ?? null,
 		createdAt: new Date(),
 	};
-	
+
 	if (params.metadata !== undefined && params.metadata !== null) {
 		logData.metadata = params.metadata;
 	}
-	
+
 	await db.invoiceTransactionActivityLog.create({
 		data: logData as any, // Type assertion for JsonValue compatibility
 	});
@@ -543,11 +650,11 @@ async function logCreditNoteActivity(
 		description: params.description ?? null,
 		createdAt: new Date(),
 	};
-	
+
 	if (params.metadata !== undefined && params.metadata !== null) {
 		logData.metadata = params.metadata;
 	}
-	
+
 	await db.creditNoteActivityLog.create({
 		data: logData as any, // Type assertion for JsonValue compatibility
 	});
@@ -621,6 +728,271 @@ async function generateNextInvoiceNumber(tx: DbClient): Promise<string> {
 }
 
 export const invoicingRouter = router({
+	initializeETims: protectedProcedure
+		.input(initializeETimsSchema)
+		.output(teamETimsSettingsSchema)
+		.mutation(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
+
+			const client = new ETimsClient({
+				baseUrl: input.isSandbox
+					? process.env.KRA_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1"
+					: process.env.KRA_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1",
+			});
+
+			try {
+				// Call KRA to initialize
+				const response = await client.initializeDevice(input.kraPin, input.branchId, input.deviceSerialNumber);
+
+				// Based on official documentation, response contains cmcKey in data.info
+				const cmcKey = response.data?.info?.cmcKey || response.data?.cmcKey || response.cmcKey;
+
+				const settings = await prisma.teamETimsSettings.upsert({
+					where: { teamId: input.teamId },
+					create: {
+						id: crypto.randomUUID(),
+						teamId: input.teamId,
+						kraPin: input.kraPin,
+						branchId: input.branchId,
+						deviceSerialNumber: input.deviceSerialNumber,
+						cmcKey,
+						isInitialized: true,
+						isSandbox: input.isSandbox,
+						createdAt: new Date(),
+						updatedAt: new Date(),
+					},
+					update: {
+						kraPin: input.kraPin,
+						branchId: input.branchId,
+						deviceSerialNumber: input.deviceSerialNumber,
+						cmcKey,
+						isInitialized: true,
+						isSandbox: input.isSandbox,
+						updatedAt: new Date(),
+					},
+				});
+
+				return settings;
+			} catch (error: any) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `eTIMS Initialization failed: ${error.message}`,
+					cause: error,
+				});
+			}
+		}),
+
+	getETimsSettings: protectedProcedure
+		.input(z.object({ teamId: z.string().uuid() }))
+		.output(teamETimsSettingsSchema.nullable())
+		.query(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
+
+			return prisma.teamETimsSettings.findUnique({
+				where: { teamId: input.teamId },
+			});
+		}),
+
+	updateETimsSettings: protectedProcedure
+		.input(updateETimsSettingsSchema)
+		.output(teamETimsSettingsSchema)
+		.mutation(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
+
+			const settings = await prisma.teamETimsSettings.update({
+				where: { teamId: input.teamId },
+				data: {
+					...input,
+					updatedAt: new Date(),
+				},
+			});
+
+			return settings;
+		}),
+
+	listETimsItems: protectedProcedure
+		.input(z.object({ teamId: z.string().uuid() }))
+		.output(z.array(teamETimsItemSchema))
+		.query(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
+
+			return (prisma as any).teamETimsItem.findMany({
+				where: { teamId: input.teamId },
+				orderBy: { createdAt: "desc" },
+			});
+		}),
+
+	registerETimsItem: protectedProcedure
+		.input(registerETimsItemSchema)
+		.output(teamETimsItemSchema)
+		.mutation(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
+
+			const settings = await prisma.teamETimsSettings.findUnique({
+				where: { teamId: input.teamId },
+			});
+
+			if (!settings?.isInitialized) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "eTIMS must be initialized before registering items.",
+				});
+			}
+
+			const client = getETimsClient({
+				isSandbox: settings.isSandbox,
+			});
+
+			try {
+				const response = await client.saveItem(
+					{
+						tin: settings.kraPin,
+						bhfId: settings.branchId,
+						cmcKey: settings.cmcKey!,
+					},
+					{
+						itemCd: input.itemCd,
+						itemClsCd: input.itemClsCd,
+						itemNm: input.itemNm,
+						bcd: null,
+						pkgUnitCd: input.pkgUnitCd,
+						qtyUnitCd: input.qtyUnitCd,
+						invntUnitCd: input.qtyUnitCd,
+						taxTyCd: input.taxTyCd,
+						buPrc: parseFloat(input.prc || "0"),
+						selPrc: parseFloat(input.prc || "0"),
+						isStckYn: input.isService ? "N" : "Y",
+						useYn: "Y",
+						regrId: user.id,
+						regrNm: (ctx.session?.user as any)?.name || "User",
+						modrId: user.id,
+						modrNm: (ctx.session?.user as any)?.name || "User",
+					}
+				);
+
+				if (response.resultCd !== "000") {
+					throw new Error(response.resultMsg);
+				}
+
+				return (prisma as any).teamETimsItem.upsert({
+					where: { teamId_itemCd: { teamId: input.teamId, itemCd: input.itemCd } },
+					create: {
+						id: crypto.randomUUID(),
+						teamId: input.teamId,
+						itemCd: input.itemCd,
+						itemClsCd: input.itemClsCd,
+						itemNm: input.itemNm,
+						taxTyCd: input.taxTyCd,
+						pkgUnitCd: input.pkgUnitCd,
+						qtyUnitCd: input.qtyUnitCd,
+						prc: input.prc,
+						isService: input.isService,
+						updatedAt: new Date(),
+					},
+					update: {
+						itemNm: input.itemNm,
+						itemClsCd: input.itemClsCd,
+						taxTyCd: input.taxTyCd,
+						prc: input.prc,
+						isService: input.isService,
+						updatedAt: new Date(),
+					},
+				});
+			} catch (error: any) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Item registration failed: ${error.message}`,
+				});
+			}
+		}),
+
+	listETimsBranches: protectedProcedure
+		.input(z.object({ teamId: z.string().uuid() }))
+		.output(z.array(teamETimsBranchSchema))
+		.query(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
+
+			return (prisma as any).teamETimsBranch.findMany({
+				where: { teamId: input.teamId },
+				orderBy: { bhfId: "asc" },
+			});
+		}),
+
+	syncETimsBranches: protectedProcedure
+		.input(z.object({ teamId: z.string().uuid() }))
+		.output(z.array(teamETimsBranchSchema))
+		.mutation(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
+
+			const settings = await prisma.teamETimsSettings.findUnique({
+				where: { teamId: input.teamId },
+			});
+
+			if (!settings?.isInitialized) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "eTIMS must be initialized before syncing branches.",
+				});
+			}
+
+			const client = getETimsClient({
+				isSandbox: settings.isSandbox,
+			});
+
+			try {
+				const response = await client.selectBhfList({
+					tin: settings.kraPin,
+					bhfId: settings.branchId,
+					cmcKey: settings.cmcKey!,
+				}, settings.lastSyncAt ? settings.lastSyncAt.toISOString().replace(/[-:T]/g, "").slice(0, 14) : "20230101000000");
+
+				if (response.resultCd !== "000") {
+					throw new Error(response.resultMsg);
+				}
+
+				const branches = response.data?.bhfList || [];
+				for (const branch of branches) {
+					await (prisma as any).teamETimsBranch.upsert({
+						where: { teamId_bhfId: { teamId: input.teamId, bhfId: branch.bhfId } },
+						create: {
+							id: crypto.randomUUID(),
+							teamId: input.teamId,
+							bhfId: branch.bhfId,
+							bhfNm: branch.bhfNm,
+							bhfSttsCd: branch.bhfSttsCd,
+							addr: branch.addr,
+							mgrNm: branch.mgrNm,
+							mgrTelNo: branch.mgrTelNo,
+							updatedAt: new Date(),
+						},
+						update: {
+							bhfNm: branch.bhfNm,
+							bhfSttsCd: branch.bhfSttsCd,
+							addr: branch.addr,
+							mgrNm: branch.mgrNm,
+							mgrTelNo: branch.mgrTelNo,
+							updatedAt: new Date(),
+						},
+					});
+				}
+
+				return (prisma as any).teamETimsBranch.findMany({
+					where: { teamId: input.teamId },
+				});
+			} catch (error: any) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Branch sync failed: ${error.message}`,
+				});
+			}
+		}),
 	list: protectedProcedure
 		.input(invoiceListFiltersSchema)
 		.output(invoiceListResponseSchema)
@@ -755,9 +1127,9 @@ export const invoicingRouter = router({
 				})),
 				creditNote: invoice.creditNote
 					? creditNoteOutputSchema.parse({
-							...invoice.creditNote,
-							activityLogs: invoice.creditNote.activityLogs,
-						})
+						...invoice.creditNote,
+						activityLogs: invoice.creditNote.activityLogs,
+					})
 					: null,
 				activityLogs: invoice.activityLogs,
 			});
@@ -876,9 +1248,9 @@ export const invoicingRouter = router({
 				})),
 				creditNote: updated.creditNote
 					? creditNoteOutputSchema.parse({
-							...updated.creditNote,
-							activityLogs: updated.creditNote.activityLogs,
-						})
+						...updated.creditNote,
+						activityLogs: updated.creditNote.activityLogs,
+					})
 					: null,
 				activityLogs: updated.activityLogs,
 			});
@@ -887,21 +1259,21 @@ export const invoicingRouter = router({
 	getNextInvoiceNumber: protectedProcedure
 		.output(nextInvoiceNumberSchema)
 		.query(async () => {
-		// Peek at the next invoice number without incrementing
-		// This allows the frontend to preview the number before creating
-		const counter = await prisma.invoiceCounter.findUnique({
-			where: { id: "invoice-counter" },
-			select: { lastNumber: true },
-		});
+			// Peek at the next invoice number without incrementing
+			// This allows the frontend to preview the number before creating
+			const counter = await prisma.invoiceCounter.findUnique({
+				where: { id: "invoice-counter" },
+				select: { lastNumber: true },
+			});
 
-		const nextNumber = (counter?.lastNumber ?? 0) + 1;
-		// Format with 4-digit zero-padding (e.g., INV-0001)
-		const invoiceNumber = `INV-${nextNumber.toString().padStart(4, "0")}`;
+			const nextNumber = (counter?.lastNumber ?? 0) + 1;
+			// Format with 4-digit zero-padding (e.g., INV-0001)
+			const invoiceNumber = `INV-${nextNumber.toString().padStart(4, "0")}`;
 
-		return {
-			invoiceNumber,
-			nextNumber,
-		};
+			return {
+				invoiceNumber,
+				nextNumber,
+			};
 		}),
 
 	create: protectedProcedure
@@ -1130,7 +1502,7 @@ export const invoicingRouter = router({
 						if (item.metadata !== undefined && item.metadata !== null) {
 							lineItemData.metadata = item.metadata;
 						}
-						
+
 						if (item.id) {
 							await tx.invoiceLineItem.update({
 								where: { id: item.id },
@@ -1473,12 +1845,12 @@ export const invoicingRouter = router({
 				// Always generate the next invoice number FIRST to ensure counter is incremented atomically
 				// This ensures thread-safety and prevents counter from getting out of sync
 				const generatedNumber = await generateNextInvoiceNumber(tx);
-				
+
 				// Use provided invoice number if valid and matches generated, otherwise use generated
 				if (input.invoiceNumber && input.invoiceNumber.trim() !== "") {
 					const providedParsed = parseInvoiceNumber(input.invoiceNumber);
 					const generatedParsed = parseInvoiceNumber(generatedNumber);
-					
+
 					// If provided number matches what we generated, use it (counter already updated)
 					if (providedParsed !== null && generatedParsed !== null && providedParsed === generatedParsed) {
 						invoiceNumber = input.invoiceNumber;
@@ -1498,7 +1870,7 @@ export const invoicingRouter = router({
 								message: `Invoice number ${input.invoiceNumber} already exists${input.teamId ? " for this team" : ""}.`,
 							});
 						}
-						
+
 						// Use provided number and update counter to reflect it
 						invoiceNumber = input.invoiceNumber;
 						await updateInvoiceCounter(tx, invoiceNumber);
@@ -1583,14 +1955,76 @@ export const invoicingRouter = router({
 				savedInvoice = await fetchInvoiceDetail(tx, invoiceId);
 			});
 
+			// eTIMS Integration
+			const etimsSettings = input.teamId
+				? await prisma.teamETimsSettings.findUnique({
+					where: { teamId: input.teamId },
+				})
+				: null;
+
+			if (etimsSettings?.isInitialized) {
+				try {
+					const client = getETimsClient({
+						isSandbox: etimsSettings.isSandbox,
+					});
+
+					const kraTransaction = mapInvoiceToETimsTransaction(savedInvoice, {
+						id: user.id,
+						name: (ctx.session?.user as any)?.name || "User",
+					});
+
+					const response = await client.sendSalesTransaction(
+						{
+							tin: etimsSettings.kraPin,
+							bhfId: etimsSettings.branchId,
+							cmcKey: etimsSettings.cmcKey!,
+						},
+						kraTransaction
+					);
+
+					if (response.resultCd === "000") {
+						await prisma.invoice.update({
+							where: { id: invoiceId },
+							data: {
+								kraInvoiceNumber: response.data?.invcNo?.toString(),
+								kraReceiptNumber: response.data?.rcptNo?.toString(),
+								kraSignature: response.data?.intrlData,
+								kraQrCode: response.data?.qrCode,
+								kraVerifiedDate: new Date(),
+								kraStatus: "SUCCESS",
+							},
+						});
+						// Refresh savedInvoice to include KRA metadata for email/UI
+						savedInvoice = await fetchInvoiceDetail(prisma, invoiceId);
+					} else {
+						await prisma.invoice.update({
+							where: { id: invoiceId },
+							data: {
+								kraStatus: "FAILED",
+								kraError: response.resultMsg,
+							},
+						});
+					}
+				} catch (kraError: any) {
+					console.error("eTIMS Signature failed:", kraError);
+					await prisma.invoice.update({
+						where: { id: invoiceId },
+						data: {
+							kraStatus: "FAILED",
+							kraError: kraError.message,
+						},
+					});
+				}
+			}
+
 			// Generate PDF filename from invoice number (use saved invoice's invoice number)
 			// Sanitize filename to remove invalid characters
 			const savedInvoiceNumber = savedInvoice.invoiceNumber;
 			const sanitizeFilename = (name: string): string => {
 				return name.replace(/[^a-zA-Z0-9._-]/g, "_");
 			};
-			const pdfFilename = savedInvoiceNumber 
-				? `${sanitizeFilename(savedInvoiceNumber)}.pdf` 
+			const pdfFilename = savedInvoiceNumber
+				? `${sanitizeFilename(savedInvoiceNumber)}.pdf`
 				: "Invoice.pdf";
 
 			// Prepare services list for email
@@ -1794,8 +2228,8 @@ export const invoicingRouter = router({
 			const sanitizeFilename = (name: string): string => {
 				return name.replace(/[^a-zA-Z0-9._-]/g, "_");
 			};
-			const pdfFilename = invoice.invoiceNumber 
-				? `${sanitizeFilename(invoice.invoiceNumber)}.pdf` 
+			const pdfFilename = invoice.invoiceNumber
+				? `${sanitizeFilename(invoice.invoiceNumber)}.pdf`
 				: "Invoice.pdf";
 
 			// Prepare PDF attachment
