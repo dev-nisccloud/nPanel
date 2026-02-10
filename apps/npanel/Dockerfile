@@ -36,6 +36,12 @@ COPY --from=pruner /app/out/full/ .
 # Re-run install to trigger postinstalls properly now that 'full' is present
 RUN pnpm install --frozen-lockfile
 
+# Generate Prisma Client
+# Internal packages like @nPanel/db need the generated client to build
+# We include both musl (for Alpine) and debian (for CI runners) to be safe
+ENV PRISMA_BINARY_TARGETS='["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]'
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" pnpm turbo run db:generate --filter=npanel...
+
 # Build the project
 ENV NODE_ENV=production
 ENV DOCKER_BUILD=true
