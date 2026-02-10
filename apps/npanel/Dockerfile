@@ -69,9 +69,10 @@ COPY --from=builder /app/apps/npanel/public ./apps/npanel/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/npanel/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/npanel/.next/static ./apps/npanel/.next/static
 
-EXPOSE 3000
-
 ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV=production
+# Fallback secret to prevent startup crash if not provided by GCP dashboard yet
+ENV BETTER_AUTH_SECRET="6314f0d045ce9041126b81021bc5123bd51f718ec650ed8aa06f3ffe5ac45558"
 
-# In standalone mode, Next.js generates a server.js in the root of the output
-CMD ["node", "server.js"]
+# In monorepo standalone mode, the entrypoint is nested in the apps folder
+CMD ["node", "apps/npanel/server.js"]
