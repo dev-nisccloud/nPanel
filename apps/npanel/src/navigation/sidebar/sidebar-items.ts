@@ -260,7 +260,7 @@ export const agencysidebarItems: NavGroup[] = [
           // { title: "Audiences", url: "/agency/email-marketing/audiences", },
           // { title: "Segments", url: "/agency/segments", },
           // { title: "Templates", url: "/agency/email-marketing/templates", },
-          // { title: "Email Builder", url: "/agency/email-marketing/email-builder", },
+          { title: "Email Builder", url: "/agency/email-marketing/email-builder", },
         ],
       },
       {

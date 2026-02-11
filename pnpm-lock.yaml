@@ -241,6 +241,42 @@ importers:
       '@upstash/qstash':
         specifier: ^2.8.4
         version: 2.8.4
+      '@usewaypoint/block-avatar':
+        specifier: ^0.0.3
+        version: 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-button':
+        specifier: ^0.0.3
+        version: 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-columns-container':
+        specifier: ^0.0.3
+        version: 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-container':
+        specifier: ^0.0.2
+        version: 0.0.2(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-divider':
+        specifier: ^0.0.4
+        version: 0.0.4(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-heading':
+        specifier: ^0.0.3
+        version: 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-html':
+        specifier: ^0.0.3
+        version: 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-image':
+        specifier: ^0.0.5
+        version: 0.0.5(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-spacer':
+        specifier: ^0.0.3
+        version: 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-text':
+        specifier: ^0.0.7
+        version: 0.0.7(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/document-core':
+        specifier: ^0.0.6
+        version: 0.0.6(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/email-builder':
+        specifier: ^0.0.9
+        version: 0.0.9(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(zod@4.1.12)
       ai:
         specifier: ^5.0.76
         version: 5.0.76(zod@4.1.12)
@@ -289,15 +325,24 @@ importers:
       geist:
         specifier: ^1.5.1
         version: 1.5.1(next@15.5.4(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))
+      highlight.js:
+        specifier: ^11.11.1
+        version: 11.11.1
       input-otp:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      insane:
+        specifier: ^2.6.2
+        version: 2.6.2
       lodash.debounce:
         specifier: ^4.0.8
         version: 4.0.8
       lucide-react:
         specifier: ^0.487.0
         version: 0.487.0(react@19.2.1)
+      marked:
+        specifier: ^16.4.1
+        version: 16.4.1
       material-colors:
         specifier: ^1.2.6
         version: 1.2.6
@@ -328,6 +373,9 @@ importers:
       react-color:
         specifier: ^2.19.3
         version: 2.19.3(react@19.2.1)
+      react-colorful:
+        specifier: ^5.6.1
+        version: 5.6.1(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       react-day-picker:
         specifier: ^9.11.1
         version: 9.11.1(react@19.2.1)
@@ -1026,6 +1074,7 @@ packages:
   '@aws-sdk/credential-provider-web-identity@3.917.0':
     resolution: {integrity: sha512-pZncQhFbwW04pB0jcD5OFv3x2gAddDYCVxyJVixgyhSw7bKCYxqu6ramfq1NxyVpmm+qsw+ijwi/3cCmhUHF/A==}
     engines: {node: '>=18.0.0'}
+    deprecated: This version contains a compilation TypeScript error https://github.com/aws/aws-sdk-js-v3/issues/7457 - please use @aws-sdk/credential-providers@3.918.0 or higher
 
   '@aws-sdk/middleware-host-header@3.914.0':
     resolution: {integrity: sha512-7r9ToySQ15+iIgXMF/h616PcQStByylVkCshmQqcdeynD/lCn2l667ynckxW4+ql0Q+Bo/URljuhJRxVJzydNA==}
@@ -4128,6 +4177,79 @@ packages:
   '@upstash/redis@1.35.6':
     resolution: {integrity: sha512-aSEIGJgJ7XUfTYvhQcQbq835re7e/BXjs8Janq6Pvr6LlmTZnyqwT97RziZLO/8AVUL037RLXqqiQC6kCt+5pA==}
 
+  '@usewaypoint/block-avatar@0.0.3':
+    resolution: {integrity: sha512-3BM6P4ztMmqDbSijtVQqI1canRkcENOEHZ2X9BYNv8BZGJbmitTrzANvwmmYXfFEuWPCAyABvujdZds15Zg8Qg==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/block-button@0.0.3':
+    resolution: {integrity: sha512-LXSI3FmCTv13voYX4wdHY7iJdsfyRfpDJZCFKSun5EF1j9FXrqMDGScpk/yokopkQWvWkYXQNAne7W0yWhRQlg==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/block-columns-container@0.0.3':
+    resolution: {integrity: sha512-r5jaojU1Fr6Svtl0a9dDlBHgslJQ04M+XaXaEO+GZ12+35fdAirpLkrEhuyBIA1FFXzRTG740wkbkr++iv1kuA==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/block-container@0.0.2':
+    resolution: {integrity: sha512-li9GVdiahVpJ+MNRdkoCkP6/hBTdcpaLRGpaFBSQRkVt+cYAeB7qPNIo+242hUvVTm5Qky8ceGLDVblGYSZb7A==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/block-divider@0.0.4':
+    resolution: {integrity: sha512-q54ydWvKdg7Zwc4hzIwE6i/mC8dFYxfPRACEEEyu2dvSNa9cbKFIsPD9ipVSntK+Ib3Ml84uT4aHQmOlzP6hZA==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/block-heading@0.0.3':
+    resolution: {integrity: sha512-1dMrf1U34nq2FuwTUfsq+hBOdLQz1H+lVMEH9xvyCq5I7nSXCzpeo7QgumZ3zZEHtu3QgSEGafJaZyrj2paC0w==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/block-html@0.0.3':
+    resolution: {integrity: sha512-ZI9oYDibMzs5y/YzfvUwuUBzHDKHOIjiStiVCvlmIA+VtJTycqT8X/ECjn+KmwesLTg5DhG07CC4WY2SL3AnJw==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/block-image@0.0.5':
+    resolution: {integrity: sha512-b66jAXF79idsrIRc2QoBlZctIXdqg/qOAL7/QvKvENZH2KmuXoZhEUx+Z7sACvEQD/VI0u7TK5msDsA5S0/oVQ==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/block-spacer@0.0.3':
+    resolution: {integrity: sha512-CCcMtwcpeC2rHvawQdh5f0Hez7o4xA/edWl/6I3RuA6Yb6STyyrGjmPFs2ZxHQsLOGUK+0OvBenuHlSTCZwuuA==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/block-text@0.0.7':
+    resolution: {integrity: sha512-gbwzlUy0u47S/D+//9feYFlGvd8Py3Gx72Ldst/eyCGWFxBLRTwbbN1xpKTGQGR3VmDZd+asNYdX563PLkPX6w==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/document-core@0.0.6':
+    resolution: {integrity: sha512-Hg10gszVCZRJhA4nIWwAi2rTXuoxPL+ATMe0hU243PFBIUZOwDIQus4XZSeoHsenMCq1uBFCRiFW4hl2+tVwgA==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
+  '@usewaypoint/email-builder@0.0.9':
+    resolution: {integrity: sha512-cw7C1u0YQBy2glhGyK39Vi8hVWlHZjQG5uYGsYc+aw1+tPdEv+xqle0zJffcmbASy97ybQwSmYjkdy7luagMsA==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      react-dom: ^16 || ^17 || ^18
+      zod: ^1 || ^2 || ^3
+
   '@vercel/oidc@3.0.3':
     resolution: {integrity: sha512-yNEQvPcVrK9sIe637+I0jD6leluPxzwJKx/Haw6F4H77CdDsszUn5V3o96LPziXkSNE2B83+Z3mjqGKBK/R6Gg==}
     engines: {node: '>= 20'}
@@ -4361,6 +4483,9 @@ packages:
   asn1js@3.0.6:
     resolution: {integrity: sha512-UOCGPYbl0tv8+006qks/dTgV9ajs97X2p0FAbyS2iyCRrmLSRolDaHdp+v/CLgnzHc3fVB+CwYiUmei7ndFcgA==}
     engines: {node: '>=12.0.0'}
+
+  assignment@2.0.0:
+    resolution: {integrity: sha512-naMULXjtgCs9SVUEtyvJNt68aF18em7/W+dhbR59kbz9cXWPEvUkCun2tqlgqRPSqZaKPpqLc5ZnwL8jVmJRvw==}
 
   ast-kit@2.1.3:
     resolution: {integrity: sha512-TH+b3Lv6pUjy/Nu0m6A2JULtdzLpmqF9x1Dhj00ZoEiML8qvVA9j1flkzTKNYgdEhWrjDwtWNpyyCUbfQe514g==}
@@ -5808,16 +5933,18 @@ packages:
 
   glob@10.4.5:
     resolution: {integrity: sha512-7Bv8RF0k6xjo7d4A/PxYLbUCfb6c+Vpd2/mB2yRDlew7Jb5hEXiCD9ibfO7wpk8i4sevK6DFny9h7EYbM3/sHg==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@11.0.3:
     resolution: {integrity: sha512-2Nim7dha1KVkaiF4q6Dj+ngPPMdfvLJEOpZk/jKiUAkqKebpGAWQXAq9z1xu9HKu5lWfqw/FASuccEjyznjPaA==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   globals@11.12.0:
     resolution: {integrity: sha512-WOBp/EEGUiIsJSp7wcv/y6MO+lV9UoncWqxuFfm8eBwzWNgyfBd6Gz+IeKQ9jCmyhoH99g15M3T+QaVHFjizVA==}
@@ -5924,9 +6051,17 @@ packages:
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
 
+  he@0.5.0:
+    resolution: {integrity: sha512-DoufbNNOFzwRPy8uecq+j+VCPQ+JyDelHTmSgygrA5TsR8Cbw4Qcir5sGtWiusB4BdT89nmlaVDhSJOqC/33vw==}
+    hasBin: true
+
   he@1.2.0:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
+
+  highlight.js@11.11.1:
+    resolution: {integrity: sha512-Xwwo44whKBVCYoliBQwaPvtd/2tYFkRQtXDWj1nackaV2JPXx3L0+Jvd8/qCJ2p+ML0/XVkJ2q+Mr+UVdpJK5w==}
+    engines: {node: '>=12.0.0'}
 
   hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
@@ -6026,6 +6161,9 @@ packages:
     peerDependencies:
       react: ^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc
+
+  insane@2.6.2:
+    resolution: {integrity: sha512-BqEL1CJsjJi+/C/zKZxv31zs3r6zkLH5Nz1WMFb7UBX2KHY2yXDpbFTSEmNHzomBbGDysIfkTX55A0mQZ2CQiw==}
 
   internal-slot@1.1.0:
     resolution: {integrity: sha512-4gd7VpWNQNB4UKKCFFVcp1AVv+FMOgs9NKzjHKusc8jTMhd5eL1NqQqOpE0KzMds804/yHlglp3uxgluOqAPLw==}
@@ -6562,9 +6700,19 @@ packages:
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
+  marked@12.0.2:
+    resolution: {integrity: sha512-qXUm7e/YKFoqFPYPa3Ukg9xlI5cyAtGmyEIzMfW//m6kXwCy2Ps9DYf5ioijFKQ8qyuscrHoY04iJGctu2Kg0Q==}
+    engines: {node: '>= 18'}
+    hasBin: true
+
   marked@15.0.12:
     resolution: {integrity: sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA==}
     engines: {node: '>= 18'}
+    hasBin: true
+
+  marked@16.4.1:
+    resolution: {integrity: sha512-ntROs7RaN3EvWfy3EZi14H4YxmT6A5YvywfhO+0pm+cH/dnSQRmdAmoFIc3B9aiwTehyk7pESH4ofyBY+V5hZg==}
+    engines: {node: '>= 20'}
     hasBin: true
 
   material-colors@1.2.6:
@@ -7590,6 +7738,12 @@ packages:
     resolution: {integrity: sha512-LEeGE/ZzNLIsFWa1TMe8y5VYqr7bibneWmvJwm1pCn/eNmrabWDh659JSPn9BuaMpEfU83WTOJfnCcjDZwNQTA==}
     peerDependencies:
       react: '*'
+
+  react-colorful@5.6.1:
+    resolution: {integrity: sha512-1exovf0uGTGyq5mXQT0zgQ80uvj2PCwvF8zY1RN9/vbJVSjSo3fsB/4L3ObbF7u70NduSiK4xu4Y6q1MHoUGEw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   react-day-picker@9.11.1:
     resolution: {integrity: sha512-l3ub6o8NlchqIjPKrRFUCkTUEq6KwemQlfv3XZzzwpUeGwmDJ+0u0Upmt38hJyd7D/vn2dQoOoLV/qAp0o3uUw==}
@@ -13316,6 +13470,80 @@ snapshots:
     dependencies:
       uncrypto: 0.1.3
 
+  '@usewaypoint/block-avatar@0.0.3(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/block-button@0.0.3(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/block-columns-container@0.0.3(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/block-container@0.0.2(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/block-divider@0.0.4(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/block-heading@0.0.3(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/block-html@0.0.3(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/block-image@0.0.5(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/block-spacer@0.0.3(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/block-text@0.0.7(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      insane: 2.6.2
+      marked: 12.0.2
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/document-core@0.0.6(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      react: 19.2.1
+      zod: 4.1.12
+
+  '@usewaypoint/email-builder@0.0.9(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(zod@4.1.12)':
+    dependencies:
+      '@usewaypoint/block-avatar': 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-button': 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-columns-container': 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-container': 0.0.2(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-divider': 0.0.4(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-heading': 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-html': 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-image': 0.0.5(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-spacer': 0.0.3(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/block-text': 0.0.7(react@19.2.1)(zod@4.1.12)
+      '@usewaypoint/document-core': 0.0.6(react@19.2.1)(zod@4.1.12)
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
+      zod: 4.1.12
+
   '@vercel/oidc@3.0.3': {}
 
   '@webassemblyjs/ast@1.14.1':
@@ -13612,6 +13840,8 @@ snapshots:
       pvtsutils: 1.3.6
       pvutils: 1.1.3
       tslib: 2.8.1
+
+  assignment@2.0.0: {}
 
   ast-kit@2.1.3:
     dependencies:
@@ -14939,7 +15169,7 @@ snapshots:
     dependencies:
       loader-utils: 2.0.4
       schema-utils: 3.3.0
-      webpack: 5.102.1(esbuild@0.25.10)
+      webpack: 5.102.1
 
   file-saver@2.0.5: {}
 
@@ -15487,7 +15717,11 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.4
 
+  he@0.5.0: {}
+
   he@1.2.0: {}
+
+  highlight.js@11.11.1: {}
 
   hookable@5.5.3: {}
 
@@ -15583,6 +15817,11 @@ snapshots:
     dependencies:
       react: 19.2.1
       react-dom: 19.2.1(react@19.2.1)
+
+  insane@2.6.2:
+    dependencies:
+      assignment: 2.0.0
+      he: 0.5.0
 
   internal-slot@1.1.0:
     dependencies:
@@ -16081,7 +16320,11 @@ snapshots:
 
   markdown-table@3.0.4: {}
 
+  marked@12.0.2: {}
+
   marked@15.0.12: {}
+
+  marked@16.4.1: {}
 
   material-colors@1.2.6: {}
 
@@ -17431,6 +17674,11 @@ snapshots:
       reactcss: 1.2.3(react@19.2.1)
       tinycolor2: 1.6.0
 
+  react-colorful@5.6.1(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
+    dependencies:
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
+
   react-day-picker@9.11.1(react@19.2.1):
     dependencies:
       '@date-fns/tz': 1.4.1
@@ -18597,6 +18845,15 @@ snapshots:
     optionalDependencies:
       esbuild: 0.25.10
 
+  terser-webpack-plugin@5.3.14(webpack@5.102.1):
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      jest-worker: 27.5.1
+      schema-utils: 4.3.3
+      serialize-javascript: 6.0.2
+      terser: 5.44.0
+      webpack: 5.102.1
+
   terser@5.44.0:
     dependencies:
       '@jridgewell/source-map': 0.3.11
@@ -19102,6 +19359,38 @@ snapshots:
   webidl-conversions@3.0.1: {}
 
   webpack-sources@3.3.3: {}
+
+  webpack@5.102.1:
+    dependencies:
+      '@types/eslint-scope': 3.7.7
+      '@types/estree': 1.0.8
+      '@types/json-schema': 7.0.15
+      '@webassemblyjs/ast': 1.14.1
+      '@webassemblyjs/wasm-edit': 1.14.1
+      '@webassemblyjs/wasm-parser': 1.14.1
+      acorn: 8.15.0
+      acorn-import-phases: 1.0.4(acorn@8.15.0)
+      browserslist: 4.26.3
+      chrome-trace-event: 1.0.4
+      enhanced-resolve: 5.18.3
+      es-module-lexer: 1.7.0
+      eslint-scope: 5.1.1
+      events: 3.3.0
+      glob-to-regexp: 0.4.1
+      graceful-fs: 4.2.11
+      json-parse-even-better-errors: 2.3.1
+      loader-runner: 4.3.0
+      mime-types: 2.1.35
+      neo-async: 2.6.2
+      schema-utils: 4.3.3
+      tapable: 2.3.0
+      terser-webpack-plugin: 5.3.14(webpack@5.102.1)
+      watchpack: 2.4.4
+      webpack-sources: 3.3.3
+    transitivePeerDependencies:
+      - '@swc/core'
+      - esbuild
+      - uglify-js
 
   webpack@5.102.1(esbuild@0.25.10):
     dependencies:
