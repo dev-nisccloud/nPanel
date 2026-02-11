@@ -21,6 +21,12 @@ export default function ColumnWidthsInput({ defaultValue, onChange }: ColumnsLay
         return [null, null, null];
     });
 
+    React.useEffect(() => {
+        if (defaultValue) {
+            setCurrentValue(defaultValue);
+        }
+    }, [defaultValue]);
+
     const setIndexValue = (index: 0 | 1 | 2, value: string | null) => {
         const nValue: FixedWidths = [...currentValue];
         nValue[index] = value;

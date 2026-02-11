@@ -32,6 +32,12 @@ export default function PaddingInput({ label, defaultValue, onChange }: Props) {
         };
     });
 
+    React.useEffect(() => {
+        if (defaultValue) {
+            setValue(defaultValue);
+        }
+    }, [defaultValue]);
+
     function handleChange(internalName: keyof TPaddingValue, nValue: number) {
         const v = {
             ...value,

@@ -11,6 +11,10 @@ type Props = {
 export default function FontWeightInput({ label, defaultValue, onChange }: Props) {
     const [value, setValue] = useState(defaultValue);
 
+    React.useEffect(() => {
+        setValue(defaultValue);
+    }, [defaultValue]);
+
     return (
         <RadioGroupInput
             label={label}

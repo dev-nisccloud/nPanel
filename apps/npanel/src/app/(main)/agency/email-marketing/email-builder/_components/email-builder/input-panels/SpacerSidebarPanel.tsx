@@ -11,16 +11,8 @@ type SpacerSidebarPanelProps = {
 };
 
 export default function SpacerSidebarPanel({ data, setData }: SpacerSidebarPanelProps) {
-    const [, setErrors] = useState<ZodError | null>(null);
-
-    const updateData = (d: unknown) => {
-        const res = SpacerPropsSchema.safeParse(d);
-        if (res.success) {
-            setData(res.data);
-            setErrors(null);
-        } else {
-            setErrors(res.error);
-        }
+    const updateData = (d: any) => {
+        setData(d);
     };
 
     return (

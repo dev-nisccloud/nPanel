@@ -56,111 +56,89 @@ export function InspectorDrawer() {
             case 'Button':
                 return (
                     <ButtonSidebarPanel
+                        key={selectedBlockId}
                         data={data as ButtonProps}
-                        setData={(v) => {
-                            const res = ButtonPropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             case 'Image':
                 return (
                     <ImageSidebarPanel
+                        key={selectedBlockId}
                         data={data as ImageProps}
-                        setData={(v) => {
-                            const res = ImagePropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             case 'Avatar':
                 return (
                     <AvatarSidebarPanel
+                        key={selectedBlockId}
                         data={data as AvatarProps}
-                        setData={(v) => {
-                            const res = AvatarPropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             case 'Text':
                 return (
                     <TextSidebarPanel
+                        key={selectedBlockId}
                         data={data as TextProps}
-                        setData={(v) => {
-                            const res = TextPropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             case 'Heading':
                 return (
                     <HeadingSidebarPanel
+                        key={selectedBlockId}
                         data={data as HeadingProps}
-                        setData={(v) => {
-                            const res = HeadingPropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             case 'Divider':
                 return (
                     <DividerSidebarPanel
+                        key={selectedBlockId}
                         data={data as DividerProps}
-                        setData={(v) => {
-                            const res = DividerPropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             case 'Spacer':
                 return (
                     <SpacerSidebarPanel
+                        key={selectedBlockId}
                         data={data as SpacerProps}
-                        setData={(v) => {
-                            const res = SpacerPropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             case 'Html':
                 return (
                     <HtmlSidebarPanel
+                        key={selectedBlockId}
                         data={data as HtmlProps}
-                        setData={(v) => {
-                            const res = HtmlPropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             case 'Container':
                 return (
                     <ContainerSidebarPanel
+                        key={selectedBlockId}
                         data={data as ContainerProps}
-                        setData={(v) => {
-                            const res = ContainerPropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             case 'ColumnsContainer':
                 return (
                     <ColumnsContainerSidebarPanel
+                        key={selectedBlockId}
                         data={data as ColumnsContainerProps}
-                        setData={(v) => {
-                            const res = ColumnsContainerPropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             case 'EmailLayout':
                 return (
                     <EmailLayoutSidebarPanel
+                        key={selectedBlockId}
                         data={data as EmailLayoutProps}
-                        setData={(v) => {
-                            const res = EmailLayoutPropsSchema.safeParse(v);
-                            if (res.success) setData(res.data);
-                        }}
+                        setData={(v) => setData(v)}
                     />
                 );
             default:

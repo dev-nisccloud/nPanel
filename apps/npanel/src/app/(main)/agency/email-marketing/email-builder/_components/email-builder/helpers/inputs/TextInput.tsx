@@ -21,6 +21,10 @@ export default function TextInput({
     onChange
 }: Props) {
     const [value, setValue] = useState(defaultValue);
+
+    React.useEffect(() => {
+        setValue(defaultValue);
+    }, [defaultValue]);
     const isMultiline = typeof rows === 'number' && rows > 1;
 
     return (

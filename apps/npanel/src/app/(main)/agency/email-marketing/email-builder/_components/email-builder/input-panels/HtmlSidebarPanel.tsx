@@ -11,16 +11,8 @@ type HtmlSidebarPanelProps = {
 };
 
 export default function HtmlSidebarPanel({ data, setData }: HtmlSidebarPanelProps) {
-    const [, setErrors] = useState<ZodError | null>(null);
-
-    const updateData = (d: unknown) => {
-        const res = HtmlPropsSchema.safeParse(d);
-        if (res.success) {
-            setData(res.data);
-            setErrors(null);
-        } else {
-            setErrors(res.error);
-        }
+    const updateData = (d: any) => {
+        setData(d);
     };
 
     return (

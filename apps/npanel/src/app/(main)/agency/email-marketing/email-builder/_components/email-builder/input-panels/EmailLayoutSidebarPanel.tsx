@@ -12,17 +12,9 @@ type EmailLayoutSidebarPanelProps = {
 };
 
 export default function EmailLayoutSidebarPanel({ data, setData }: EmailLayoutSidebarPanelProps) {
-    const [, setErrors] = useState<ZodError | null>(null);
-
     const updateData = (updates: Partial<typeof data.props>) => {
         const newData: EmailLayoutProps = { ...data, props: { ...data.props, ...updates } };
-        const res = EmailLayoutPropsSchema.safeParse(newData.props);
-        if (res.success) {
-            setData(newData);
-            setErrors(null);
-        } else {
-            setErrors(res.error);
-        }
+        setData(newData);
     };
 
     return (

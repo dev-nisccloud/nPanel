@@ -22,6 +22,10 @@ export default function SliderInput({
 }: SliderInputProps) {
     const [value, setValue] = useState(defaultValue);
 
+    React.useEffect(() => {
+        setValue(defaultValue);
+    }, [defaultValue]);
+
     return (
         <div className="space-y-2">
             <Label>{label}</Label>

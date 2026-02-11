@@ -15,16 +15,8 @@ type ColumnsContainerSidebarPanelProps = {
 };
 
 export default function ColumnsContainerSidebarPanel({ data, setData }: ColumnsContainerSidebarPanelProps) {
-    const [, setErrors] = useState<ZodError | null>(null);
-
-    const updateData = (d: unknown) => {
-        const res = ColumnsContainerPropsSchema.safeParse(d);
-        if (res.success) {
-            setData(res.data);
-            setErrors(null);
-        } else {
-            setErrors(res.error);
-        }
+    const updateData = (d: any) => {
+        setData(d);
     };
 
     const columnsCount = data.props?.columnsCount ?? 3;

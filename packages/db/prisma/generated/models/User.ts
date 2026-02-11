@@ -338,6 +338,7 @@ export type UserWhereInput = {
   seoReports?: Prisma.SeoReportListRelationFilter
   emailDomains?: Prisma.EmailDomainListRelationFilter
   emailCampaigns?: Prisma.EmailCampaignListRelationFilter
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -392,6 +393,7 @@ export type UserOrderByWithRelationInput = {
   seoReports?: Prisma.SeoReportOrderByRelationAggregateInput
   emailDomains?: Prisma.EmailDomainOrderByRelationAggregateInput
   emailCampaigns?: Prisma.EmailCampaignOrderByRelationAggregateInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -449,6 +451,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   seoReports?: Prisma.SeoReportListRelationFilter
   emailDomains?: Prisma.EmailDomainListRelationFilter
   emailCampaigns?: Prisma.EmailCampaignListRelationFilter
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -549,6 +552,7 @@ export type UserCreateInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -603,6 +607,7 @@ export type UserUncheckedCreateInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -657,6 +662,7 @@ export type UserUpdateInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -711,6 +717,7 @@ export type UserUncheckedUpdateInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -1007,6 +1014,20 @@ export type UserUpdateOneWithoutApprovedCreativeBriefsNestedInput = {
   delete?: Prisma.UserWhereInput | boolean
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutApprovedCreativeBriefsInput, Prisma.UserUpdateWithoutApprovedCreativeBriefsInput>, Prisma.UserUncheckedUpdateWithoutApprovedCreativeBriefsInput>
+}
+
+export type UserCreateNestedOneWithoutEmailBuilderDesignInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutEmailBuilderDesignInput, Prisma.UserUncheckedCreateWithoutEmailBuilderDesignInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutEmailBuilderDesignInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutEmailBuilderDesignNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutEmailBuilderDesignInput, Prisma.UserUncheckedCreateWithoutEmailBuilderDesignInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutEmailBuilderDesignInput
+  upsert?: Prisma.UserUpsertWithoutEmailBuilderDesignInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutEmailBuilderDesignInput, Prisma.UserUpdateWithoutEmailBuilderDesignInput>, Prisma.UserUncheckedUpdateWithoutEmailBuilderDesignInput>
 }
 
 export type UserCreateNestedOneWithoutEmailDomainsInput = {
@@ -1402,6 +1423,7 @@ export type UserCreateWithoutCustomerIntegrationsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
@@ -1455,6 +1477,7 @@ export type UserUncheckedCreateWithoutCustomerIntegrationsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCustomerIntegrationsInput = {
@@ -1524,6 +1547,7 @@ export type UserUpdateWithoutCustomerIntegrationsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
@@ -1577,6 +1601,7 @@ export type UserUncheckedUpdateWithoutCustomerIntegrationsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSessionsInput = {
@@ -1630,6 +1655,7 @@ export type UserCreateWithoutSessionsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -1683,6 +1709,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -1752,6 +1779,7 @@ export type UserUpdateWithoutSessionsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1805,6 +1833,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -1858,6 +1887,7 @@ export type UserCreateWithoutAccountsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -1911,6 +1941,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -1980,6 +2011,7 @@ export type UserUpdateWithoutAccountsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -2033,6 +2065,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTeamMembershipsInput = {
@@ -2086,6 +2119,7 @@ export type UserCreateWithoutTeamMembershipsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTeamMembershipsInput = {
@@ -2139,6 +2173,7 @@ export type UserUncheckedCreateWithoutTeamMembershipsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTeamMembershipsInput = {
@@ -2208,6 +2243,7 @@ export type UserUpdateWithoutTeamMembershipsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
@@ -2261,6 +2297,7 @@ export type UserUncheckedUpdateWithoutTeamMembershipsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutProfileInput = {
@@ -2314,6 +2351,7 @@ export type UserCreateWithoutProfileInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutProfileInput = {
@@ -2367,6 +2405,7 @@ export type UserUncheckedCreateWithoutProfileInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProfileInput = {
@@ -2436,6 +2475,7 @@ export type UserUpdateWithoutProfileInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProfileInput = {
@@ -2489,6 +2529,7 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutActivityLogsInput = {
@@ -2542,6 +2583,7 @@ export type UserCreateWithoutActivityLogsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutActivityLogsInput = {
@@ -2595,6 +2637,7 @@ export type UserUncheckedCreateWithoutActivityLogsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutActivityLogsInput = {
@@ -2664,6 +2707,7 @@ export type UserUpdateWithoutActivityLogsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutActivityLogsInput = {
@@ -2717,6 +2761,7 @@ export type UserUncheckedUpdateWithoutActivityLogsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDomainsInput = {
@@ -2770,6 +2815,7 @@ export type UserCreateWithoutDomainsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDomainsInput = {
@@ -2823,6 +2869,7 @@ export type UserUncheckedCreateWithoutDomainsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDomainsInput = {
@@ -2892,6 +2939,7 @@ export type UserUpdateWithoutDomainsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDomainsInput = {
@@ -2945,6 +2993,7 @@ export type UserUncheckedUpdateWithoutDomainsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDomainRenewalsInput = {
@@ -2998,6 +3047,7 @@ export type UserCreateWithoutDomainRenewalsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDomainRenewalsInput = {
@@ -3051,6 +3101,7 @@ export type UserUncheckedCreateWithoutDomainRenewalsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDomainRenewalsInput = {
@@ -3120,6 +3171,7 @@ export type UserUpdateWithoutDomainRenewalsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDomainRenewalsInput = {
@@ -3173,6 +3225,7 @@ export type UserUncheckedUpdateWithoutDomainRenewalsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCreatedDomainTransfersInput = {
@@ -3226,6 +3279,7 @@ export type UserCreateWithoutCreatedDomainTransfersInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCreatedDomainTransfersInput = {
@@ -3279,6 +3333,7 @@ export type UserUncheckedCreateWithoutCreatedDomainTransfersInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCreatedDomainTransfersInput = {
@@ -3348,6 +3403,7 @@ export type UserUpdateWithoutCreatedDomainTransfersInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedDomainTransfersInput = {
@@ -3401,6 +3457,7 @@ export type UserUncheckedUpdateWithoutCreatedDomainTransfersInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCreativeBriefsInput = {
@@ -3454,6 +3511,7 @@ export type UserCreateWithoutCreativeBriefsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCreativeBriefsInput = {
@@ -3507,6 +3565,7 @@ export type UserUncheckedCreateWithoutCreativeBriefsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCreativeBriefsInput = {
@@ -3565,6 +3624,7 @@ export type UserCreateWithoutApprovedCreativeBriefsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutApprovedCreativeBriefsInput = {
@@ -3618,6 +3678,7 @@ export type UserUncheckedCreateWithoutApprovedCreativeBriefsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutApprovedCreativeBriefsInput = {
@@ -3687,6 +3748,7 @@ export type UserUpdateWithoutCreativeBriefsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreativeBriefsInput = {
@@ -3740,6 +3802,7 @@ export type UserUncheckedUpdateWithoutCreativeBriefsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutApprovedCreativeBriefsInput = {
@@ -3804,6 +3867,7 @@ export type UserUpdateWithoutApprovedCreativeBriefsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutApprovedCreativeBriefsInput = {
@@ -3852,6 +3916,239 @@ export type UserUncheckedUpdateWithoutApprovedCreativeBriefsInput = {
   ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
   ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
   creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutEmailBuilderDesignInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationCreateNestedManyWithoutUserInput
+  domains?: Prisma.DomainCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferCreateNestedManyWithoutCreatedByInput
+  activityLogs?: Prisma.UserActivityLogCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationCreateNestedManyWithoutUserInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationCreateNestedManyWithoutUserInput
+  createdTickets?: Prisma.TicketCreateNestedManyWithoutCreatedByInput
+  assignedTickets?: Prisma.TicketCreateNestedManyWithoutAssignedToInput
+  ticketMessages?: Prisma.TicketMessageCreateNestedManyWithoutSenderInput
+  ticketAttachments?: Prisma.TicketAttachmentCreateNestedManyWithoutUploadedByInput
+  creativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutUserInput
+  approvedCreativeBriefs?: Prisma.CreativeBriefCreateNestedManyWithoutApproverInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestCreateNestedManyWithoutSubmittedByInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
+  emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutEmailBuilderDesignInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  lastAccessedTeamId?: string | null
+  lastLoginAt?: Date | string | null
+  notificationSoundEnabled?: boolean | null
+  browserNotificationsEnabled?: boolean | null
+  notificationSoundVolume?: number | null
+  browserNotificationPermission?: string | null
+  notificationPreferencesUpdatedAt?: Date | string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  teamMemberships?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedCreateNestedManyWithoutUserInput
+  domains?: Prisma.DomainUncheckedCreateNestedManyWithoutUserInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedCreateNestedManyWithoutRenewedByUserInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedCreateNestedManyWithoutCreatedByInput
+  activityLogs?: Prisma.UserActivityLogUncheckedCreateNestedManyWithoutUserInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedCreateNestedManyWithoutUserInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedCreateNestedManyWithoutUserInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedCreateNestedManyWithoutUserInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedCreateNestedManyWithoutUserInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedCreateNestedManyWithoutUserInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedCreateNestedManyWithoutUserInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedCreateNestedManyWithoutUserInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedCreateNestedManyWithoutUserInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedCreateNestedManyWithoutUserInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedCreateNestedManyWithoutUserInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedCreateNestedManyWithoutUserInput
+  createdTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutCreatedByInput
+  assignedTickets?: Prisma.TicketUncheckedCreateNestedManyWithoutAssignedToInput
+  ticketMessages?: Prisma.TicketMessageUncheckedCreateNestedManyWithoutSenderInput
+  ticketAttachments?: Prisma.TicketAttachmentUncheckedCreateNestedManyWithoutUploadedByInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutUserInput
+  approvedCreativeBriefs?: Prisma.CreativeBriefUncheckedCreateNestedManyWithoutApproverInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedCreateNestedManyWithoutSubmittedByInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
+  emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
+  emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutEmailBuilderDesignInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutEmailBuilderDesignInput, Prisma.UserUncheckedCreateWithoutEmailBuilderDesignInput>
+}
+
+export type UserUpsertWithoutEmailBuilderDesignInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutEmailBuilderDesignInput, Prisma.UserUncheckedUpdateWithoutEmailBuilderDesignInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutEmailBuilderDesignInput, Prisma.UserUncheckedCreateWithoutEmailBuilderDesignInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutEmailBuilderDesignInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutEmailBuilderDesignInput, Prisma.UserUncheckedUpdateWithoutEmailBuilderDesignInput>
+}
+
+export type UserUpdateWithoutEmailBuilderDesignInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUpdateManyWithoutUserNestedInput
+  domains?: Prisma.DomainUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUpdateManyWithoutCreatedByNestedInput
+  activityLogs?: Prisma.UserActivityLogUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUpdateManyWithoutUserNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUpdateManyWithoutUserNestedInput
+  createdTickets?: Prisma.TicketUpdateManyWithoutCreatedByNestedInput
+  assignedTickets?: Prisma.TicketUpdateManyWithoutAssignedToNestedInput
+  ticketMessages?: Prisma.TicketMessageUpdateManyWithoutSenderNestedInput
+  ticketAttachments?: Prisma.TicketAttachmentUpdateManyWithoutUploadedByNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutUserNestedInput
+  approvedCreativeBriefs?: Prisma.CreativeBriefUpdateManyWithoutApproverNestedInput
+  webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUpdateManyWithoutSubmittedByNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
+  emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
+  emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutEmailBuilderDesignInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  lastAccessedTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notificationSoundEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  browserNotificationsEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  notificationSoundVolume?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  browserNotificationPermission?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notificationPreferencesUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  teamMemberships?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  customerIntegrations?: Prisma.CustomerIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  domains?: Prisma.DomainUncheckedUpdateManyWithoutUserNestedInput
+  domainRenewals?: Prisma.DomainRenewalUncheckedUpdateManyWithoutRenewedByUserNestedInput
+  createdDomainTransfers?: Prisma.DomainTransferUncheckedUpdateManyWithoutCreatedByNestedInput
+  activityLogs?: Prisma.UserActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaIntegrations?: Prisma.SocialMediaIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  socialMediaPageTokens?: Prisma.SocialMediaPageTokenUncheckedUpdateManyWithoutUserNestedInput
+  metaContentCalendarPosts?: Prisma.MetaContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  LinkedInContentCalendar?: Prisma.LinkedInContentCalendarUncheckedUpdateManyWithoutUserNestedInput
+  googleAdsIntegrations?: Prisma.GoogleAdsIntegrationUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAccountActivityLogs?: Prisma.MetaAdsAccountActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsCampaignActivityLogs?: Prisma.MetaAdsCampaignActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdSetActivityLogs?: Prisma.MetaAdsAdSetActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  metaAdsAdActivityLogs?: Prisma.MetaAdsAdActivityLogUncheckedUpdateManyWithoutUserNestedInput
+  imageGenProjects?: Prisma.ImageGenProjectUncheckedUpdateManyWithoutUserNestedInput
+  imageGenTemplates?: Prisma.ImageGenTemplateUncheckedUpdateManyWithoutUserNestedInput
+  ImageGenUpload?: Prisma.ImageGenUploadUncheckedUpdateManyWithoutUserNestedInput
+  imageGenAiGenerations?: Prisma.ImageGenAiGenerationUncheckedUpdateManyWithoutUserNestedInput
+  imageGeneratorGenerations?: Prisma.ImageGeneratorGenerationUncheckedUpdateManyWithoutUserNestedInput
+  backgroundRemoverGenerations?: Prisma.BackgroundRemoverGenerationUncheckedUpdateManyWithoutUserNestedInput
+  createdTickets?: Prisma.TicketUncheckedUpdateManyWithoutCreatedByNestedInput
+  assignedTickets?: Prisma.TicketUncheckedUpdateManyWithoutAssignedToNestedInput
+  ticketMessages?: Prisma.TicketMessageUncheckedUpdateManyWithoutSenderNestedInput
+  ticketAttachments?: Prisma.TicketAttachmentUncheckedUpdateManyWithoutUploadedByNestedInput
+  creativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutUserNestedInput
+  approvedCreativeBriefs?: Prisma.CreativeBriefUncheckedUpdateManyWithoutApproverNestedInput
   webDesignQuoteRequests?: Prisma.WebDesignQuoteRequestUncheckedUpdateManyWithoutSubmittedByNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
@@ -3910,6 +4207,7 @@ export type UserCreateWithoutEmailDomainsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailDomainsInput = {
@@ -3963,6 +4261,7 @@ export type UserUncheckedCreateWithoutEmailDomainsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailDomainsInput = {
@@ -4032,6 +4331,7 @@ export type UserUpdateWithoutEmailDomainsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailDomainsInput = {
@@ -4085,6 +4385,7 @@ export type UserUncheckedUpdateWithoutEmailDomainsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEmailCampaignsInput = {
@@ -4138,6 +4439,7 @@ export type UserCreateWithoutEmailCampaignsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailCampaignsInput = {
@@ -4191,6 +4493,7 @@ export type UserUncheckedCreateWithoutEmailCampaignsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailCampaignsInput = {
@@ -4260,6 +4563,7 @@ export type UserUpdateWithoutEmailCampaignsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailCampaignsInput = {
@@ -4313,6 +4617,7 @@ export type UserUncheckedUpdateWithoutEmailCampaignsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutGoogleAdsIntegrationsInput = {
@@ -4366,6 +4671,7 @@ export type UserCreateWithoutGoogleAdsIntegrationsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutGoogleAdsIntegrationsInput = {
@@ -4419,6 +4725,7 @@ export type UserUncheckedCreateWithoutGoogleAdsIntegrationsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutGoogleAdsIntegrationsInput = {
@@ -4488,6 +4795,7 @@ export type UserUpdateWithoutGoogleAdsIntegrationsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutGoogleAdsIntegrationsInput = {
@@ -4541,6 +4849,7 @@ export type UserUncheckedUpdateWithoutGoogleAdsIntegrationsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGeneratorGenerationsInput = {
@@ -4594,6 +4903,7 @@ export type UserCreateWithoutImageGeneratorGenerationsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGeneratorGenerationsInput = {
@@ -4647,6 +4957,7 @@ export type UserUncheckedCreateWithoutImageGeneratorGenerationsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGeneratorGenerationsInput = {
@@ -4716,6 +5027,7 @@ export type UserUpdateWithoutImageGeneratorGenerationsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
@@ -4769,6 +5081,7 @@ export type UserUncheckedUpdateWithoutImageGeneratorGenerationsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutBackgroundRemoverGenerationsInput = {
@@ -4822,6 +5135,7 @@ export type UserCreateWithoutBackgroundRemoverGenerationsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
@@ -4875,6 +5189,7 @@ export type UserUncheckedCreateWithoutBackgroundRemoverGenerationsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutBackgroundRemoverGenerationsInput = {
@@ -4944,6 +5259,7 @@ export type UserUpdateWithoutBackgroundRemoverGenerationsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
@@ -4997,6 +5313,7 @@ export type UserUncheckedUpdateWithoutBackgroundRemoverGenerationsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenProjectsInput = {
@@ -5050,6 +5367,7 @@ export type UserCreateWithoutImageGenProjectsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenProjectsInput = {
@@ -5103,6 +5421,7 @@ export type UserUncheckedCreateWithoutImageGenProjectsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenProjectsInput = {
@@ -5172,6 +5491,7 @@ export type UserUpdateWithoutImageGenProjectsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenProjectsInput = {
@@ -5225,6 +5545,7 @@ export type UserUncheckedUpdateWithoutImageGenProjectsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenTemplatesInput = {
@@ -5278,6 +5599,7 @@ export type UserCreateWithoutImageGenTemplatesInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenTemplatesInput = {
@@ -5331,6 +5653,7 @@ export type UserUncheckedCreateWithoutImageGenTemplatesInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenTemplatesInput = {
@@ -5400,6 +5723,7 @@ export type UserUpdateWithoutImageGenTemplatesInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenTemplatesInput = {
@@ -5453,6 +5777,7 @@ export type UserUncheckedUpdateWithoutImageGenTemplatesInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenUploadInput = {
@@ -5506,6 +5831,7 @@ export type UserCreateWithoutImageGenUploadInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenUploadInput = {
@@ -5559,6 +5885,7 @@ export type UserUncheckedCreateWithoutImageGenUploadInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenUploadInput = {
@@ -5628,6 +5955,7 @@ export type UserUpdateWithoutImageGenUploadInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenUploadInput = {
@@ -5681,6 +6009,7 @@ export type UserUncheckedUpdateWithoutImageGenUploadInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutImageGenAiGenerationsInput = {
@@ -5734,6 +6063,7 @@ export type UserCreateWithoutImageGenAiGenerationsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutImageGenAiGenerationsInput = {
@@ -5787,6 +6117,7 @@ export type UserUncheckedCreateWithoutImageGenAiGenerationsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutImageGenAiGenerationsInput = {
@@ -5856,6 +6187,7 @@ export type UserUpdateWithoutImageGenAiGenerationsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutImageGenAiGenerationsInput = {
@@ -5909,6 +6241,7 @@ export type UserUncheckedUpdateWithoutImageGenAiGenerationsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsAccountActivityLogsInput = {
@@ -5962,6 +6295,7 @@ export type UserCreateWithoutMetaAdsAccountActivityLogsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsAccountActivityLogsInput = {
@@ -6015,6 +6349,7 @@ export type UserUncheckedCreateWithoutMetaAdsAccountActivityLogsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsAccountActivityLogsInput = {
@@ -6084,6 +6419,7 @@ export type UserUpdateWithoutMetaAdsAccountActivityLogsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsAccountActivityLogsInput = {
@@ -6137,6 +6473,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAccountActivityLogsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsCampaignActivityLogsInput = {
@@ -6190,6 +6527,7 @@ export type UserCreateWithoutMetaAdsCampaignActivityLogsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsCampaignActivityLogsInput = {
@@ -6243,6 +6581,7 @@ export type UserUncheckedCreateWithoutMetaAdsCampaignActivityLogsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsCampaignActivityLogsInput = {
@@ -6312,6 +6651,7 @@ export type UserUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsCampaignActivityLogsInput = {
@@ -6365,6 +6705,7 @@ export type UserUncheckedUpdateWithoutMetaAdsCampaignActivityLogsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsAdSetActivityLogsInput = {
@@ -6418,6 +6759,7 @@ export type UserCreateWithoutMetaAdsAdSetActivityLogsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsAdSetActivityLogsInput = {
@@ -6471,6 +6813,7 @@ export type UserUncheckedCreateWithoutMetaAdsAdSetActivityLogsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsAdSetActivityLogsInput = {
@@ -6540,6 +6883,7 @@ export type UserUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsAdSetActivityLogsInput = {
@@ -6593,6 +6937,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAdSetActivityLogsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaAdsAdActivityLogsInput = {
@@ -6646,6 +6991,7 @@ export type UserCreateWithoutMetaAdsAdActivityLogsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaAdsAdActivityLogsInput = {
@@ -6699,6 +7045,7 @@ export type UserUncheckedCreateWithoutMetaAdsAdActivityLogsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaAdsAdActivityLogsInput = {
@@ -6768,6 +7115,7 @@ export type UserUpdateWithoutMetaAdsAdActivityLogsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaAdsAdActivityLogsInput = {
@@ -6821,6 +7169,7 @@ export type UserUncheckedUpdateWithoutMetaAdsAdActivityLogsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutNotificationsInput = {
@@ -6874,6 +7223,7 @@ export type UserCreateWithoutNotificationsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -6927,6 +7277,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -6996,6 +7347,7 @@ export type UserUpdateWithoutNotificationsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -7049,6 +7401,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSeoReportsInput = {
@@ -7102,6 +7455,7 @@ export type UserCreateWithoutSeoReportsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSeoReportsInput = {
@@ -7155,6 +7509,7 @@ export type UserUncheckedCreateWithoutSeoReportsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSeoReportsInput = {
@@ -7224,6 +7579,7 @@ export type UserUpdateWithoutSeoReportsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSeoReportsInput = {
@@ -7277,6 +7633,7 @@ export type UserUncheckedUpdateWithoutSeoReportsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSocialMediaIntegrationsInput = {
@@ -7330,6 +7687,7 @@ export type UserCreateWithoutSocialMediaIntegrationsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSocialMediaIntegrationsInput = {
@@ -7383,6 +7741,7 @@ export type UserUncheckedCreateWithoutSocialMediaIntegrationsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSocialMediaIntegrationsInput = {
@@ -7452,6 +7811,7 @@ export type UserUpdateWithoutSocialMediaIntegrationsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSocialMediaIntegrationsInput = {
@@ -7505,6 +7865,7 @@ export type UserUncheckedUpdateWithoutSocialMediaIntegrationsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSocialMediaPageTokensInput = {
@@ -7558,6 +7919,7 @@ export type UserCreateWithoutSocialMediaPageTokensInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSocialMediaPageTokensInput = {
@@ -7611,6 +7973,7 @@ export type UserUncheckedCreateWithoutSocialMediaPageTokensInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSocialMediaPageTokensInput = {
@@ -7680,6 +8043,7 @@ export type UserUpdateWithoutSocialMediaPageTokensInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSocialMediaPageTokensInput = {
@@ -7733,6 +8097,7 @@ export type UserUncheckedUpdateWithoutSocialMediaPageTokensInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMetaContentCalendarPostsInput = {
@@ -7786,6 +8151,7 @@ export type UserCreateWithoutMetaContentCalendarPostsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMetaContentCalendarPostsInput = {
@@ -7839,6 +8205,7 @@ export type UserUncheckedCreateWithoutMetaContentCalendarPostsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMetaContentCalendarPostsInput = {
@@ -7908,6 +8275,7 @@ export type UserUpdateWithoutMetaContentCalendarPostsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMetaContentCalendarPostsInput = {
@@ -7961,6 +8329,7 @@ export type UserUncheckedUpdateWithoutMetaContentCalendarPostsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutLinkedInContentCalendarInput = {
@@ -8014,6 +8383,7 @@ export type UserCreateWithoutLinkedInContentCalendarInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutLinkedInContentCalendarInput = {
@@ -8067,6 +8437,7 @@ export type UserUncheckedCreateWithoutLinkedInContentCalendarInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutLinkedInContentCalendarInput = {
@@ -8136,6 +8507,7 @@ export type UserUpdateWithoutLinkedInContentCalendarInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutLinkedInContentCalendarInput = {
@@ -8189,6 +8561,7 @@ export type UserUncheckedUpdateWithoutLinkedInContentCalendarInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCreatedTicketsInput = {
@@ -8242,6 +8615,7 @@ export type UserCreateWithoutCreatedTicketsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCreatedTicketsInput = {
@@ -8295,6 +8669,7 @@ export type UserUncheckedCreateWithoutCreatedTicketsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCreatedTicketsInput = {
@@ -8353,6 +8728,7 @@ export type UserCreateWithoutAssignedTicketsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAssignedTicketsInput = {
@@ -8406,6 +8782,7 @@ export type UserUncheckedCreateWithoutAssignedTicketsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAssignedTicketsInput = {
@@ -8475,6 +8852,7 @@ export type UserUpdateWithoutCreatedTicketsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedTicketsInput = {
@@ -8528,6 +8906,7 @@ export type UserUncheckedUpdateWithoutCreatedTicketsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutAssignedTicketsInput = {
@@ -8592,6 +8971,7 @@ export type UserUpdateWithoutAssignedTicketsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssignedTicketsInput = {
@@ -8645,6 +9025,7 @@ export type UserUncheckedUpdateWithoutAssignedTicketsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTicketMessagesInput = {
@@ -8698,6 +9079,7 @@ export type UserCreateWithoutTicketMessagesInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTicketMessagesInput = {
@@ -8751,6 +9133,7 @@ export type UserUncheckedCreateWithoutTicketMessagesInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTicketMessagesInput = {
@@ -8820,6 +9203,7 @@ export type UserUpdateWithoutTicketMessagesInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTicketMessagesInput = {
@@ -8873,6 +9257,7 @@ export type UserUncheckedUpdateWithoutTicketMessagesInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTicketAttachmentsInput = {
@@ -8926,6 +9311,7 @@ export type UserCreateWithoutTicketAttachmentsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTicketAttachmentsInput = {
@@ -8979,6 +9365,7 @@ export type UserUncheckedCreateWithoutTicketAttachmentsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTicketAttachmentsInput = {
@@ -9048,6 +9435,7 @@ export type UserUpdateWithoutTicketAttachmentsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTicketAttachmentsInput = {
@@ -9101,6 +9489,7 @@ export type UserUncheckedUpdateWithoutTicketAttachmentsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutWebDesignQuoteRequestsInput = {
@@ -9154,6 +9543,7 @@ export type UserCreateWithoutWebDesignQuoteRequestsInput = {
   seoReports?: Prisma.SeoReportCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutWebDesignQuoteRequestsInput = {
@@ -9207,6 +9597,7 @@ export type UserUncheckedCreateWithoutWebDesignQuoteRequestsInput = {
   seoReports?: Prisma.SeoReportUncheckedCreateNestedManyWithoutUserInput
   emailDomains?: Prisma.EmailDomainUncheckedCreateNestedManyWithoutUserInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedCreateNestedManyWithoutUserInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutWebDesignQuoteRequestsInput = {
@@ -9276,6 +9667,7 @@ export type UserUpdateWithoutWebDesignQuoteRequestsInput = {
   seoReports?: Prisma.SeoReportUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutWebDesignQuoteRequestsInput = {
@@ -9329,6 +9721,7 @@ export type UserUncheckedUpdateWithoutWebDesignQuoteRequestsInput = {
   seoReports?: Prisma.SeoReportUncheckedUpdateManyWithoutUserNestedInput
   emailDomains?: Prisma.EmailDomainUncheckedUpdateManyWithoutUserNestedInput
   emailCampaigns?: Prisma.EmailCampaignUncheckedUpdateManyWithoutUserNestedInput
+  EmailBuilderDesign?: Prisma.EmailBuilderDesignUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -9371,6 +9764,7 @@ export type UserCountOutputType = {
   seoReports: number
   emailDomains: number
   emailCampaigns: number
+  EmailBuilderDesign: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -9408,6 +9802,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   seoReports?: boolean | UserCountOutputTypeCountSeoReportsArgs
   emailDomains?: boolean | UserCountOutputTypeCountEmailDomainsArgs
   emailCampaigns?: boolean | UserCountOutputTypeCountEmailCampaignsArgs
+  EmailBuilderDesign?: boolean | UserCountOutputTypeCountEmailBuilderDesignArgs
 }
 
 /**
@@ -9658,6 +10053,13 @@ export type UserCountOutputTypeCountEmailCampaignsArgs<ExtArgs extends runtime.T
   where?: Prisma.EmailCampaignWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountEmailBuilderDesignArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.EmailBuilderDesignWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -9711,6 +10113,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   seoReports?: boolean | Prisma.User$seoReportsArgs<ExtArgs>
   emailDomains?: boolean | Prisma.User$emailDomainsArgs<ExtArgs>
   emailCampaigns?: boolean | Prisma.User$emailCampaignsArgs<ExtArgs>
+  EmailBuilderDesign?: boolean | Prisma.User$EmailBuilderDesignArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -9808,6 +10211,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   seoReports?: boolean | Prisma.User$seoReportsArgs<ExtArgs>
   emailDomains?: boolean | Prisma.User$emailDomainsArgs<ExtArgs>
   emailCampaigns?: boolean | Prisma.User$emailCampaignsArgs<ExtArgs>
+  EmailBuilderDesign?: boolean | Prisma.User$EmailBuilderDesignArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -9851,6 +10255,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     seoReports: Prisma.$SeoReportPayload<ExtArgs>[]
     emailDomains: Prisma.$EmailDomainPayload<ExtArgs>[]
     emailCampaigns: Prisma.$EmailCampaignPayload<ExtArgs>[]
+    EmailBuilderDesign: Prisma.$EmailBuilderDesignPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -10298,6 +10703,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   seoReports<T extends Prisma.User$seoReportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$seoReportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SeoReportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   emailDomains<T extends Prisma.User$emailDomainsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$emailDomainsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailDomainPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   emailCampaigns<T extends Prisma.User$emailCampaignsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$emailCampaignsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailCampaignPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  EmailBuilderDesign<T extends Prisma.User$EmailBuilderDesignArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$EmailBuilderDesignArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailBuilderDesignPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -11563,6 +11969,30 @@ export type User$emailCampaignsArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.EmailCampaignScalarFieldEnum | Prisma.EmailCampaignScalarFieldEnum[]
+}
+
+/**
+ * User.EmailBuilderDesign
+ */
+export type User$EmailBuilderDesignArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the EmailBuilderDesign
+   */
+  select?: Prisma.EmailBuilderDesignSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the EmailBuilderDesign
+   */
+  omit?: Prisma.EmailBuilderDesignOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EmailBuilderDesignInclude<ExtArgs> | null
+  where?: Prisma.EmailBuilderDesignWhereInput
+  orderBy?: Prisma.EmailBuilderDesignOrderByWithRelationInput | Prisma.EmailBuilderDesignOrderByWithRelationInput[]
+  cursor?: Prisma.EmailBuilderDesignWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.EmailBuilderDesignScalarFieldEnum | Prisma.EmailBuilderDesignScalarFieldEnum[]
 }
 
 /**

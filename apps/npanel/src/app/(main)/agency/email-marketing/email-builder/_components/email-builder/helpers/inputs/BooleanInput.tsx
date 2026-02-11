@@ -11,6 +11,10 @@ type Props = {
 export default function BooleanInput({ label, defaultValue, onChange }: Props) {
     const [value, setValue] = useState(defaultValue);
 
+    React.useEffect(() => {
+        setValue(defaultValue);
+    }, [defaultValue]);
+
     return (
         <div className="flex items-center justify-between space-x-2">
             <Label htmlFor={`switch-${label}`} className="cursor-pointer flex-1">

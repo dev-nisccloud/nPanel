@@ -13,16 +13,8 @@ type DividerSidebarPanelProps = {
 };
 
 export default function DividerSidebarPanel({ data, setData }: DividerSidebarPanelProps) {
-    const [, setErrors] = useState<ZodError | null>(null);
-
-    const updateData = (d: unknown) => {
-        const res = DividerPropsSchema.safeParse(d);
-        if (res.success) {
-            setData(res.data);
-            setErrors(null);
-        } else {
-            setErrors(res.error);
-        }
+    const updateData = (d: any) => {
+        setData(d);
     };
 
     return (

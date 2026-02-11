@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
     Monitor,
     Smartphone,
@@ -10,9 +10,10 @@ import {
     Upload,
     AlertCircle
 } from 'lucide-react';
-import { Reader } from '@usewaypoint/email-builder';
+import EditorBlock, { StandardReader } from './core';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
+import debounce from 'lodash.debounce';
 
 import {
     Tabs,
@@ -20,6 +21,12 @@ import {
     TabsList,
     TabsTrigger
 } from "@/components/ui/tabs";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
     Tooltip,
@@ -48,8 +55,8 @@ import {
     useInspectorDrawerOpen,
     resetDocument
 } from './store';
-import EditorBlock from './core';
 import { renderToHtml } from './utils';
+import { useUpdateEmailBuilderDesign } from '../../_api/use-update-email-builder-design';
 
 // --- Helpers ---
 
@@ -144,20 +151,79 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
 // --- Main Component ---
 
-export function TemplatePanel() {
+interface TemplatePanelProps {
+    initialData?: {
+        id: string;
+        json: string;
+    };
+}
+
+export function TemplatePanel({ initialData }: TemplatePanelProps) {
     const document = useDocument();
     const selectedMainTab = useSelectedMainTab();
     const selectedScreenSize = useSelectedScreenSize();
     const inspectorDrawerOpen = useInspectorDrawerOpen();
     const [importDialogOpen, setImportDialogOpen] = useState(false);
+    const { mutate: updateDesign } = useUpdateEmailBuilderDesign();
+    const isFirstRender = useRef(true);
 
     const isMobile = selectedScreenSize === 'mobile';
+
+    // Initialize document from DB only once
+    const isInitialized = useRef(false);
+
+    useEffect(() => {
+        if (!isInitialized.current && initialData?.json) {
+            try {
+                const parsed = JSON.parse(initialData.json);
+                resetDocument(parsed);
+                isInitialized.current = true;
+            } catch (e) {
+                console.error("Failed to parse initial JSON", e);
+            }
+        }
+    }, [initialData?.json]);
+
+    // Auto-save logic
+    const debouncedSave = useMemo(
+        () =>
+            debounce((doc: any, id: string) => {
+                updateDesign({
+                    id,
+                    json: JSON.stringify(doc),
+                    thumbnailUrl: undefined // TODO: Generate thumbnail if needed
+                });
+            }, 1000),
+        [updateDesign]
+    );
+
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
+        if (initialData?.id && document) {
+            debouncedSave(document, initialData.id);
+        }
+    }, [document, initialData?.id, debouncedSave]);
 
     const downloadJson = () => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(document, null, 2));
         const downloadAnchorNode = window.document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
         downloadAnchorNode.setAttribute("download", "template.json");
+        window.document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    };
+
+    const downloadHtml = () => {
+        const html = renderToHtml(document);
+        const dataStr = "data:text/html;charset=utf-8," + encodeURIComponent(html);
+        const downloadAnchorNode = window.document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "template.html");
         window.document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
@@ -174,7 +240,7 @@ export function TemplatePanel() {
             case 'preview':
                 return (
                     <div className={`transition-all duration-300 mx-auto ${isMobile ? 'w-[375px] my-8 shadow-2xl h-[812px] overflow-auto border rounded-[3rem] border-[12px] border-gray-800 bg-white' : 'w-full'}`}>
-                        <Reader document={document} rootBlockId="root" />
+                        <StandardReader document={document} rootBlockId="root" />
                     </div>
                 );
             case 'html':
@@ -202,16 +268,31 @@ export function TemplatePanel() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 mr-4 px-3 py-1 border-r">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={downloadJson}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Download JSON</TooltipContent>
-                            </Tooltip>
+                    <TooltipProvider>
+                        <div className="flex items-center gap-1.5 mr-4 px-3 py-1 border-r">
+                            <DropdownMenu>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Download</TooltipContent>
+                                </Tooltip>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={downloadJson} className="gap-2">
+                                        <FileJson className="h-4 w-4 text-muted-foreground" />
+                                        <span>Download JSON</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={downloadHtml} className="gap-2">
+                                        <Code className="h-4 w-4 text-muted-foreground" />
+                                        <span>Download HTML</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setImportDialogOpen(true)}>
@@ -220,10 +301,8 @@ export function TemplatePanel() {
                                 </TooltipTrigger>
                                 <TooltipContent>Import JSON</TooltipContent>
                             </Tooltip>
-                        </TooltipProvider>
-                    </div>
+                        </div>
 
-                    <TooltipProvider>
                         <div className="flex items-center bg-muted rounded-lg p-1">
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -253,7 +332,6 @@ export function TemplatePanel() {
                             </Tooltip>
                         </div>
                     </TooltipProvider>
-
                 </div>
             </div>
 
@@ -280,6 +358,6 @@ export function TemplatePanel() {
           background: #d1d5db;
         }
       `}</style>
-        </div>
+        </div >
     );
 }

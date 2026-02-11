@@ -1,38 +1,90 @@
 "use client";
 
-import * as React from "react";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { TemplatePanel } from "./_components/email-builder/template-panel";
-import { InspectorDrawer } from "./_components/email-builder/inspector";
+import { useCreateEmailBuilderDesign } from "./_api/use-create-email-builder-design";
+import { ProjectsSection } from "./_components/projects-section";
+import { Spinner } from "@/components/npanel-ui/spinner";
 
-export default function EmailBuilderPage() {
+const DEFAULT_JSON = JSON.stringify({
+  root: {
+    type: "EmailLayout",
+    data: {
+      backdropColor: "#F5F5F5",
+      canvasColor: "#FFFFFF",
+      textColor: "#262626",
+      fontFamily: "MODERN_SANS",
+      childrenIds: []
+    }
+  }
+});
+
+export default function EmailBuilderLandingPage() {
+  const router = useRouter();
+  const createMutation = useCreateEmailBuilderDesign();
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreate = () => {
+    setIsCreating(true);
+    createMutation.mutate(
+      {
+        name: "Untitled Email",
+        json: DEFAULT_JSON,
+      },
+      {
+        onSuccess: (data) => {
+          router.push(`/agency/email-marketing/email-builder/editor/${data.data.id}`);
+        },
+        onError: () => {
+          setIsCreating(false);
+        }
+      }
+    );
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-theme(spacing.12)-theme(spacing.12))] -m-4 md:-m-6">
-      {/* Header */}
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b bg-white px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/agency/email-marketing" title="Back to Email Marketing">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight">
-              Email Builder
+    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <div className="w-full max-w-7xl mx-auto">
+        {/* Banner */}
+        <div className="text-white aspect-[5/1] min-h-[248px] flex gap-x-6 p-6 items-center rounded-xl bg-gradient-to-r from-[#2e62cb] via-[#0073ff] to-[#3faff5]">
+          <div className="rounded-full size-28 items-center justify-center bg-white/50 hidden md:flex shrink-0">
+            <div className="rounded-full size-20 flex items-center justify-center bg-white">
+              <Sparkles className="h-10 w-10 text-[#0073ff] fill-[#0073ff]" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-y-2">
+            <h1 className="text-xl md:text-3xl font-semibold">
+              Design Beautiful Emails
             </h1>
-            <p className="text-xs text-muted-foreground">
-              Custom drag-and-drop editor to design emails
+            <p className="text-xs md:text-sm mb-4 max-w-lg">
+              Create responsive, professional email templates with our drag-and-drop builder.
+              No coding required.
             </p>
+            <Button
+              onClick={handleCreate}
+              disabled={isCreating}
+              variant="secondary"
+              className="w-[160px]"
+            >
+              {isCreating ? (
+                <>
+                  Creating...
+                  <Spinner size={16} className="ml-2" />
+                </>
+              ) : (
+                <>
+                  Create Email
+                  <ArrowRight className="size-4 ml-2" />
+                </>
+              )}
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Builder Core */}
-      <div className="flex flex-1 overflow-hidden">
-        <TemplatePanel />
-        <InspectorDrawer />
+        {/* Existing Projects List */}
+        <ProjectsSection />
       </div>
     </div>
   );

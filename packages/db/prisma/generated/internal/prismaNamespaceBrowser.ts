@@ -98,6 +98,8 @@ export const ModelName = {
   CreativeBrief: 'CreativeBrief',
   CreativeBriefReferenceImage: 'CreativeBriefReferenceImage',
   CreativeBriefActivityLog: 'CreativeBriefActivityLog',
+  EmailBuilderDesign: 'EmailBuilderDesign',
+  EmailBuilderDesignActivityLog: 'EmailBuilderDesignActivityLog',
   EmailDomain: 'EmailDomain',
   EmailCampaign: 'EmailCampaign',
   EmailCampaignSendJob: 'EmailCampaignSendJob',
@@ -1103,6 +1105,37 @@ export const CreativeBriefActivityLogScalarFieldEnum = {
 export type CreativeBriefActivityLogScalarFieldEnum = (typeof CreativeBriefActivityLogScalarFieldEnum)[keyof typeof CreativeBriefActivityLogScalarFieldEnum]
 
 
+export const EmailBuilderDesignScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  userId: 'userId',
+  teamId: 'teamId',
+  json: 'json',
+  thumbnailUrl: 'thumbnailUrl',
+  isPublic: 'isPublic',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EmailBuilderDesignScalarFieldEnum = (typeof EmailBuilderDesignScalarFieldEnum)[keyof typeof EmailBuilderDesignScalarFieldEnum]
+
+
+export const EmailBuilderDesignActivityLogScalarFieldEnum = {
+  id: 'id',
+  emailBuilderDesignId: 'emailBuilderDesignId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type EmailBuilderDesignActivityLogScalarFieldEnum = (typeof EmailBuilderDesignActivityLogScalarFieldEnum)[keyof typeof EmailBuilderDesignActivityLogScalarFieldEnum]
+
+
 export const EmailDomainScalarFieldEnum = {
   id: 'id',
   domainName: 'domainName',
@@ -1690,9 +1723,6 @@ export const TeamETimsSettingsScalarFieldEnum = {
   cmcKey: 'cmcKey',
   isInitialized: 'isInitialized',
   isSandbox: 'isSandbox',
-  apigeeAppId: 'apigeeAppId',
-  authConsumerKey: 'authConsumerKey',
-  authConsumerSecret: 'authConsumerSecret',
   lastSyncAt: 'lastSyncAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

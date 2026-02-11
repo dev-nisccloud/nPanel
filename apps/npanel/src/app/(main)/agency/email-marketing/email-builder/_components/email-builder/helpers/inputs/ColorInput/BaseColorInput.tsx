@@ -27,6 +27,10 @@ export default function BaseColorInput({ label, defaultValue, onChange, nullable
     const [anchorEl, setAnchorEl] = useState(false);
     const [value, setValue] = useState(defaultValue);
 
+    React.useEffect(() => {
+        setValue(defaultValue);
+    }, [defaultValue]);
+
     const renderResetButton = () => {
         if (!nullable) {
             return null;

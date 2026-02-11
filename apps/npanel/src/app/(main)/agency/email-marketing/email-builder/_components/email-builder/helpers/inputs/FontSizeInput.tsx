@@ -12,6 +12,10 @@ type Props = {
 export default function FontSizeInput({ label, defaultValue, onChange }: Props) {
     const [value, setValue] = useState(defaultValue);
 
+    React.useEffect(() => {
+        setValue(defaultValue);
+    }, [defaultValue]);
+
     const handleChange = (value: number) => {
         setValue(value);
         onChange(value);

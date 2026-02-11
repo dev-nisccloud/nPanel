@@ -15,16 +15,8 @@ type AvatarSidebarPanelProps = {
 };
 
 export default function AvatarSidebarPanel({ data, setData }: AvatarSidebarPanelProps) {
-    const [, setErrors] = useState<ZodError | null>(null);
-
-    const updateData = (d: unknown) => {
-        const res = AvatarPropsSchema.safeParse(d);
-        if (res.success) {
-            setData(res.data);
-            setErrors(null);
-        } else {
-            setErrors(res.error);
-        }
+    const updateData = (d: any) => {
+        setData(d);
     };
 
     const size = data.props?.size ?? AvatarPropsDefaults.size;

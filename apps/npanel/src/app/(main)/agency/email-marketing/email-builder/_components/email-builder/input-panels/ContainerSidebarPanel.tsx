@@ -10,16 +10,8 @@ type ContainerSidebarPanelProps = {
 };
 
 export default function ContainerSidebarPanel({ data, setData }: ContainerSidebarPanelProps) {
-    const [, setErrors] = useState<ZodError | null>(null);
-
-    const updateData = (d: unknown) => {
-        const res = ContainerPropsSchema.safeParse(d);
-        if (res.success) {
-            setData(res.data);
-            setErrors(null);
-        } else {
-            setErrors(res.error);
-        }
+    const updateData = (d: any) => {
+        setData(d);
     };
 
     return (

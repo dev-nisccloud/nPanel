@@ -1,8 +1,9 @@
 import React from 'react';
 import { Container as BaseContainer } from '@usewaypoint/block-container';
 import { ColumnsContainer as BaseColumnsContainer } from '@usewaypoint/block-columns-container';
-import { useCurrentBlockId } from './core'; // This will be imported below
-import { setDocument, setSelectedBlockId, useDocument } from './store';
+import { useContext } from 'react';
+import { useCurrentBlockId, RenderContext, useEditorDocument } from './context';
+import { setDocument, setSelectedBlockId } from './store';
 import { AddBlockMenu } from './components';
 import EditorBlock from './core';
 
@@ -19,6 +20,7 @@ function generateId() {
 }
 
 export function EditorChildrenIds({ childrenIds, onChange }: { childrenIds: string[] | null | undefined; onChange: (val: EditorChildrenChange) => void }) {
+    const { useRawValue } = useContext(RenderContext);
     const appendBlock = (block: any) => {
         const blockId = generateId();
         onChange({
@@ -40,6 +42,7 @@ export function EditorChildrenIds({ childrenIds, onChange }: { childrenIds: stri
     };
 
     if (!childrenIds || childrenIds.length === 0) {
+        if (useRawValue) return null;
         return <AddBlockMenu placeholder onSelect={appendBlock} />;
     }
 
@@ -47,11 +50,11 @@ export function EditorChildrenIds({ childrenIds, onChange }: { childrenIds: stri
         <>
             {childrenIds.map((childId, i) => (
                 <React.Fragment key={childId}>
-                    <AddBlockMenu onSelect={(block) => insertBlock(block, i)} />
+                    {!useRawValue && <AddBlockMenu onSelect={(block) => insertBlock(block, i)} />}
                     <EditorBlock id={childId} />
                 </React.Fragment>
             ))}
-            <AddBlockMenu onSelect={appendBlock} />
+            {!useRawValue && <AddBlockMenu onSelect={appendBlock} />}
         </>
     );
 }
@@ -60,7 +63,7 @@ export function EditorChildrenIds({ childrenIds, onChange }: { childrenIds: stri
 
 export function ContainerEditor({ style, props }: any) {
     const childrenIds = props?.childrenIds ?? [];
-    const document = useDocument();
+    const document = useEditorDocument();
     const currentBlockId = useCurrentBlockId();
 
     return (
@@ -89,7 +92,7 @@ export function ContainerEditor({ style, props }: any) {
 
 export function ColumnsContainerEditor({ style, props }: any) {
     const currentBlockId = useCurrentBlockId();
-    const document = useDocument();
+    const document = useEditorDocument();
 
     const { columns, ...restProps } = props ?? {};
     const columnsValue = columns ?? [{ childrenIds: [] }, { childrenIds: [] }, { childrenIds: [] }];
@@ -128,25 +131,12 @@ export function ColumnsContainerEditor({ style, props }: any) {
 
 // --- EmailLayoutEditor ---
 
-function getFontFamily(fontFamily: string) {
-    const f = fontFamily || 'MODERN_SANS';
-    switch (f) {
-        case 'MODERN_SANS': return '"Helvetica Neue", Arial, sans-serif';
-        case 'BOOK_SANS': return 'Optima, Candara, sans-serif';
-        case 'ORGANIC_SANS': return 'Seravek, Ubuntu, sans-serif';
-        case 'GEOMETRIC_SANS': return 'Avenir, Montserrat, sans-serif';
-        case 'HEAVY_SANS': return 'Bahnschrift, sans-serif';
-        case 'ROUNDED_SANS': return 'Quicksand, Comfortaa, sans-serif';
-        case 'MODERN_SERIF': return 'Charter, Cambria, serif';
-        case 'BOOK_SERIF': return '"Iowan Old Style", Palatino, serif';
-        case 'MONOSPACE': return 'monospace';
-        default: return 'sans-serif';
-    }
-}
+import { getFontFamily } from './helpers/fontFamily';
 
-export function EmailLayoutEditor(props: any) {
-    const { backdropColor, canvasColor, textColor, fontFamily, childrenIds, borderRadius, borderColor } = props || {};
-    const document = useDocument();
+export function EmailLayoutEditor(data: any) {
+    const { backdropColor, canvasColor, textColor, fontFamily, childrenIds, borderRadius, borderColor } = data?.props || data || {};
+    const { useRawValue } = useContext(RenderContext);
+    const document = useEditorDocument();
     const currentBlockId = useCurrentBlockId();
 
     return (

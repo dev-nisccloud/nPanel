@@ -15,16 +15,8 @@ type ImageSidebarPanelProps = {
 };
 
 export default function ImageSidebarPanel({ data, setData }: ImageSidebarPanelProps) {
-    const [, setErrors] = useState<ZodError | null>(null);
-
-    const updateData = (d: unknown) => {
-        const res = ImagePropsSchema.safeParse(d);
-        if (res.success) {
-            setData(res.data);
-            setErrors(null);
-        } else {
-            setErrors(res.error);
-        }
+    const updateData = (d: any) => {
+        setData(d);
     };
 
     return (

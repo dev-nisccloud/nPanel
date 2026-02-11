@@ -13,16 +13,8 @@ type HeadingSidebarPanelProps = {
 };
 
 export default function HeadingSidebarPanel({ data, setData }: HeadingSidebarPanelProps) {
-    const [, setErrors] = useState<ZodError | null>(null);
-
-    const updateData = (d: unknown) => {
-        const res = HeadingPropsSchema.safeParse(d);
-        if (res.success) {
-            setData(res.data);
-            setErrors(null);
-        } else {
-            setErrors(res.error);
-        }
+    const updateData = (d: any) => {
+        setData(d);
     };
 
     return (

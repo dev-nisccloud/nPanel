@@ -438,6 +438,8 @@ export const ModelName = {
   CreativeBrief: 'CreativeBrief',
   CreativeBriefReferenceImage: 'CreativeBriefReferenceImage',
   CreativeBriefActivityLog: 'CreativeBriefActivityLog',
+  EmailBuilderDesign: 'EmailBuilderDesign',
+  EmailBuilderDesignActivityLog: 'EmailBuilderDesignActivityLog',
   EmailDomain: 'EmailDomain',
   EmailCampaign: 'EmailCampaign',
   EmailCampaignSendJob: 'EmailCampaignSendJob',
@@ -525,7 +527,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailDomain" | "emailCampaign" | "emailCampaignSendJob" | "campaignRecipient" | "emailEvent" | "emailEventActivityLog" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "teamETimsSettings" | "teamETimsItem" | "teamETimsBranch" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog" | "webDesignQuoteRequest"
+    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailBuilderDesign" | "emailBuilderDesignActivityLog" | "emailDomain" | "emailCampaign" | "emailCampaignSendJob" | "campaignRecipient" | "emailEvent" | "emailEventActivityLog" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "teamETimsSettings" | "teamETimsItem" | "teamETimsBranch" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog" | "webDesignQuoteRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4226,6 +4228,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CreativeBriefActivityLogCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CreativeBriefActivityLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    EmailBuilderDesign: {
+      payload: Prisma.$EmailBuilderDesignPayload<ExtArgs>
+      fields: Prisma.EmailBuilderDesignFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EmailBuilderDesignFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EmailBuilderDesignFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload>
+        }
+        findFirst: {
+          args: Prisma.EmailBuilderDesignFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EmailBuilderDesignFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload>
+        }
+        findMany: {
+          args: Prisma.EmailBuilderDesignFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload>[]
+        }
+        create: {
+          args: Prisma.EmailBuilderDesignCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload>
+        }
+        createMany: {
+          args: Prisma.EmailBuilderDesignCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EmailBuilderDesignCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload>[]
+        }
+        delete: {
+          args: Prisma.EmailBuilderDesignDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload>
+        }
+        update: {
+          args: Prisma.EmailBuilderDesignUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload>
+        }
+        deleteMany: {
+          args: Prisma.EmailBuilderDesignDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EmailBuilderDesignUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EmailBuilderDesignUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload>[]
+        }
+        upsert: {
+          args: Prisma.EmailBuilderDesignUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignPayload>
+        }
+        aggregate: {
+          args: Prisma.EmailBuilderDesignAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEmailBuilderDesign>
+        }
+        groupBy: {
+          args: Prisma.EmailBuilderDesignGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailBuilderDesignGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EmailBuilderDesignCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailBuilderDesignCountAggregateOutputType> | number
+        }
+      }
+    }
+    EmailBuilderDesignActivityLog: {
+      payload: Prisma.$EmailBuilderDesignActivityLogPayload<ExtArgs>
+      fields: Prisma.EmailBuilderDesignActivityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EmailBuilderDesignActivityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EmailBuilderDesignActivityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.EmailBuilderDesignActivityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EmailBuilderDesignActivityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload>
+        }
+        findMany: {
+          args: Prisma.EmailBuilderDesignActivityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload>[]
+        }
+        create: {
+          args: Prisma.EmailBuilderDesignActivityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload>
+        }
+        createMany: {
+          args: Prisma.EmailBuilderDesignActivityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EmailBuilderDesignActivityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.EmailBuilderDesignActivityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload>
+        }
+        update: {
+          args: Prisma.EmailBuilderDesignActivityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.EmailBuilderDesignActivityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EmailBuilderDesignActivityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EmailBuilderDesignActivityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.EmailBuilderDesignActivityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailBuilderDesignActivityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.EmailBuilderDesignActivityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEmailBuilderDesignActivityLog>
+        }
+        groupBy: {
+          args: Prisma.EmailBuilderDesignActivityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailBuilderDesignActivityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EmailBuilderDesignActivityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailBuilderDesignActivityLogCountAggregateOutputType> | number
         }
       }
     }
@@ -10511,6 +10661,37 @@ export const CreativeBriefActivityLogScalarFieldEnum = {
 export type CreativeBriefActivityLogScalarFieldEnum = (typeof CreativeBriefActivityLogScalarFieldEnum)[keyof typeof CreativeBriefActivityLogScalarFieldEnum]
 
 
+export const EmailBuilderDesignScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  userId: 'userId',
+  teamId: 'teamId',
+  json: 'json',
+  thumbnailUrl: 'thumbnailUrl',
+  isPublic: 'isPublic',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EmailBuilderDesignScalarFieldEnum = (typeof EmailBuilderDesignScalarFieldEnum)[keyof typeof EmailBuilderDesignScalarFieldEnum]
+
+
+export const EmailBuilderDesignActivityLogScalarFieldEnum = {
+  id: 'id',
+  emailBuilderDesignId: 'emailBuilderDesignId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type EmailBuilderDesignActivityLogScalarFieldEnum = (typeof EmailBuilderDesignActivityLogScalarFieldEnum)[keyof typeof EmailBuilderDesignActivityLogScalarFieldEnum]
+
+
 export const EmailDomainScalarFieldEnum = {
   id: 'id',
   domainName: 'domainName',
@@ -11098,9 +11279,6 @@ export const TeamETimsSettingsScalarFieldEnum = {
   cmcKey: 'cmcKey',
   isInitialized: 'isInitialized',
   isSandbox: 'isSandbox',
-  apigeeAppId: 'apigeeAppId',
-  authConsumerKey: 'authConsumerKey',
-  authConsumerSecret: 'authConsumerSecret',
   lastSyncAt: 'lastSyncAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -12860,6 +13038,8 @@ export type GlobalOmitConfig = {
   creativeBrief?: Prisma.CreativeBriefOmit
   creativeBriefReferenceImage?: Prisma.CreativeBriefReferenceImageOmit
   creativeBriefActivityLog?: Prisma.CreativeBriefActivityLogOmit
+  emailBuilderDesign?: Prisma.EmailBuilderDesignOmit
+  emailBuilderDesignActivityLog?: Prisma.EmailBuilderDesignActivityLogOmit
   emailDomain?: Prisma.EmailDomainOmit
   emailCampaign?: Prisma.EmailCampaignOmit
   emailCampaignSendJob?: Prisma.EmailCampaignSendJobOmit

@@ -16,6 +16,10 @@ type Props = {
 export default function TextAlignInput({ label, defaultValue, onChange }: Props) {
     const [value, setValue] = useState(defaultValue ?? 'left');
 
+    React.useEffect(() => {
+        setValue(defaultValue ?? 'left');
+    }, [defaultValue]);
+
     return (
         <RadioGroupInput
             label={label}

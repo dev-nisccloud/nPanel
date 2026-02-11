@@ -483,6 +483,7 @@ model User {
   // Email Marketing Relations
   emailDomains                 EmailDomain[]
   emailCampaigns               EmailCampaign[]
+  EmailBuilderDesign           EmailBuilderDesign[]
 
   @@unique([email])
   @@index([role])
@@ -581,6 +582,7 @@ model Team {
   // Email Marketing Relations
   emailDomains                 EmailDomain[]
   emailCampaigns               EmailCampaign[]
+  EmailBuilderDesign           EmailBuilderDesign[]
 
   @@index([slug])
   @@index([createdById])

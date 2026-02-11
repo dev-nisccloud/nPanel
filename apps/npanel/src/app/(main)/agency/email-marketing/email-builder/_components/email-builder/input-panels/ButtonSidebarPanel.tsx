@@ -14,16 +14,8 @@ type ButtonSidebarPanelProps = {
 };
 
 export default function ButtonSidebarPanel({ data, setData }: ButtonSidebarPanelProps) {
-    const [, setErrors] = useState<ZodError | null>(null);
-
-    const updateData = (d: unknown) => {
-        const res = ButtonPropsSchema.safeParse(d);
-        if (res.success) {
-            setData(res.data);
-            setErrors(null);
-        } else {
-            setErrors(res.error);
-        }
+    const updateData = (d: any) => {
+        setData(d);
     };
 
     const text = data.props?.text ?? ButtonPropsDefaults.text;

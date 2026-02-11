@@ -12,6 +12,10 @@ type Props = {
 export default function RadioGroupInput({ label, children, defaultValue, onChange }: Props) {
     const [value, setValue] = useState(defaultValue);
 
+    React.useEffect(() => {
+        setValue(defaultValue);
+    }, [defaultValue]);
+
     return (
         <div className="space-y-2">
             <Label>{label}</Label>

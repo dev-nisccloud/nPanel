@@ -10,6 +10,7 @@ import { APP_CONFIG } from "@/config/app-config";
 import { getPreference } from "@/server/server-actions";
 import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
 import { THEME_MODE_VALUES, THEME_PRESET_VALUES, type ThemePreset, type ThemeMode } from "@/types/preferences/theme";
+import { GOOGLE_FONTS_URL } from "./(main)/agency/email-marketing/email-builder/_components/email-builder/helpers/fontFamily";
 
 import "./globals.css";
 
@@ -33,6 +34,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       data-theme-preset={themePreset}
       suppressHydrationWarning
     >
+      <head>
+        {/* <link rel="stylesheet" href={GOOGLE_FONTS_URL} /> */}
+      </head>
       <body className={`${inter.className} min-h-screen antialiased`}>
         <NuqsAdapter>
           <QueryProvider>

@@ -11,6 +11,10 @@ type Props = {
 export default function TextDimensionInput({ label, defaultValue, onChange }: Props) {
     const [value, setValue] = useState(defaultValue?.toString() || '');
 
+    React.useEffect(() => {
+        setValue(defaultValue?.toString() || '');
+    }, [defaultValue]);
+
     return (
         <div className="space-y-2 flex-1">
             <Label>{label}</Label>

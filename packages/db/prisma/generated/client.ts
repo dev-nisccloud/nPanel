@@ -294,6 +294,16 @@ export type CreativeBriefReferenceImage = Prisma.CreativeBriefReferenceImageMode
  */
 export type CreativeBriefActivityLog = Prisma.CreativeBriefActivityLogModel
 /**
+ * Model EmailBuilderDesign
+ * 
+ */
+export type EmailBuilderDesign = Prisma.EmailBuilderDesignModel
+/**
+ * Model EmailBuilderDesignActivityLog
+ * 
+ */
+export type EmailBuilderDesignActivityLog = Prisma.EmailBuilderDesignActivityLogModel
+/**
  * Model EmailDomain
  * 
  */

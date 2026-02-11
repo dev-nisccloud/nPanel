@@ -17,6 +17,10 @@ type NullableProps = {
 export function NullableFontFamily({ label, onChange, defaultValue }: NullableProps) {
     const [value, setValue] = useState(defaultValue ?? 'inherit');
 
+    React.useEffect(() => {
+        setValue(defaultValue ?? 'inherit');
+    }, [defaultValue]);
+
     return (
         <div className="space-y-2">
             <Label>{label}</Label>
