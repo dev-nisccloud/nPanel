@@ -1,4 +1,17 @@
-// Basic Service Worker for background notifications
+// Service Worker for nPanel - Notifications + PWA Caching
+const CACHE_NAME = 'npanel-v1';
+const OFFLINE_URL = '/offline';
+
+// Assets to cache immediately on install
+const PRECACHE_ASSETS = [
+    '/',
+    '/offline',
+    '/nisclogowhite.png',
+    '/favicon/favicon.ico',
+    '/favicon/apple-touch-icon.png',
+    '/favicon/site.webmanifest',
+];
+
 let lastTotalUnreadCount = 0;
 let pollingInterval = null;
 
@@ -31,7 +44,7 @@ async function checkNewMessages() {
                 // Show notification from SW (works even if tab is minimized)
                 self.registration.showNotification(`New Message from ${ticketWithNew.customerName || "Customer"}`, {
                     body: ticketWithNew.lastMessage || "Click to view message",
-                    icon: "/favicon.ico",
+                    icon: "/favicon/favicon.ico",
                     tag: ticketWithNew.id,
                     renotify: true,
                     data: { ticketId: ticketWithNew.id }
@@ -68,11 +81,31 @@ self.addEventListener('notificationclick', function (event) {
 });
 
 self.addEventListener('install', (event) => {
+    event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(PRECACHE_ASSETS).catch((err) => {
+                console.error('Precache failed:', err);
+            });
+        })
+    );
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(clients.claim());
+    event.waitUntil(
+        Promise.all([
+            // Clean up old caches
+            caches.keys().then((cacheNames) => {
+                return Promise.all(
+                    cacheNames
+                        .filter((cacheName) => cacheName !== CACHE_NAME)
+                        .map((cacheName) => caches.delete(cacheName))
+                );
+            }),
+            // Take control of all clients
+            clients.claim()
+        ])
+    );
 
     // Start polling when activated
     if (!pollingInterval) {
@@ -81,4 +114,47 @@ self.addEventListener('activate', (event) => {
         // Poll every 15 seconds in the background
         pollingInterval = setInterval(checkNewMessages, 15000);
     }
+});
+
+// Fetch event - PWA caching strategy
+self.addEventListener('fetch', (event) => {
+    // Only handle GET requests
+    if (event.request.method !== 'GET') {
+        return;
+    }
+
+    event.respondWith(
+        caches.match(event.request).then((cachedResponse) => {
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+
+            return fetch(event.request)
+                .then((response) => {
+                    // Don't cache non-successful responses
+                    if (!response || response.status !== 200 || response.type !== 'basic') {
+                        return response;
+                    }
+
+                    // Clone the response
+                    const responseToCache = response.clone();
+
+                    // Cache successful responses (except API calls)
+                    if (!event.request.url.includes('/api/')) {
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
+
+                    return response;
+                })
+                .catch(() => {
+                    // If fetch fails (offline), serve offline page for navigation requests
+                    if (event.request.mode === 'navigate') {
+                        return caches.match(OFFLINE_URL);
+                    }
+                    return new Response('Offline', { status: 503 });
+                });
+        })
+    );
 });

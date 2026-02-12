@@ -19,6 +19,41 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: APP_CONFIG.meta.title,
   description: APP_CONFIG.meta.description,
+  applicationName: APP_CONFIG.name,
+
+  // Favicons
+  icons: {
+    icon: '/favicon/favicon.ico',
+    apple: '/favicon/apple-touch-icon.png',
+  },
+
+  // PWA Manifest
+  manifest: '/favicon/site.webmanifest',
+
+  // Theme colors for browser UI
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
+
+  // Apple-specific meta tags
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Nisc Cloud - nPanel',
+  },
+
+  // Additional PWA meta
+  formatDetection: {
+    telephone: false,
+  },
+
+  // Viewport for mobile optimization
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
