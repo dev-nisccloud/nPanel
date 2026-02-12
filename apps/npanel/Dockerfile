@@ -52,7 +52,7 @@ ENV DOCKER_BUILD=true
 # Skip env validation during build to prevent failures due to missing runtime secrets
 ENV SKIP_ENV_VALIDATION=1
 # Increase memory limit and limit concurrency to prevent OOM errors
-RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm turbo run build --filter=npanel... --concurrency=1
+RUN NODE_OPTIONS="--max-old-space-size=6144" pnpm turbo run build --filter=npanel... --concurrency=1
 
 FROM base AS runner
 WORKDIR /app
