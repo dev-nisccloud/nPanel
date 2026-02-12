@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "src/index.ts",
   "private": true,
+  "type": "module",
   "sideEffects": false,
   "scripts": {
     "clean": "rm -rf .turbo node_modules",
@@ -11,12 +12,14 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./countries": "./src/countries.ts",
-    "./countries-intl": "./src/countries-intl.ts",
-    "./currencies": "./src/currencies.ts",
-    "./country-flags": "./src/country-flags.ts",
-    "./timezones": "./src/timezones.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./src/*.ts"
+    }
   },
   "devDependencies": {
     "typescript": "^5.9.2"
