@@ -4,7 +4,7 @@ import { google } from 'googleapis';
  * Get the Google Search Console and GA4 auth client
  * Supports both a single JSON/Base64 string or individual environment variables
  */
-export function getGoogleAuthClient(): google.auth.GoogleAuth | null {
+export function getGoogleAuthClient(): InstanceType<typeof google.auth.GoogleAuth> | null {
     let credentials;
 
     // Option 1: Try the monolithic JSON string (or Base64)
