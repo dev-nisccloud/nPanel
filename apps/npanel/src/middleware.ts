@@ -33,17 +33,9 @@ export async function middleware(req: NextRequest) {
   }
 
   // If user hits auth pages while already authenticated, determine their role and redirect appropriately
+  // Allow auth routes to proceed even if cookie exists
+  // The client-side pages (login/register) will handle redirection if the user is already authenticated
   if (pathname.startsWith("/auth")) {
-    // console.log("[Middleware] Handling /auth route:", pathname);
-    const isLoggedIn = await isSessionValid(req);
-    // console.log("[Middleware] Session valid for /auth:", isLoggedIn);
-    if (isLoggedIn && pathname !== "/") {
-      // User is logged in, but we can't determine role in middleware (Edge Runtime limitation)
-      // So redirect to root and let the server component handle role-based redirect
-      // console.log("[Middleware] User logged in on /auth, redirecting to / (server will handle role-based redirect)");
-      return NextResponse.redirect(new URL("/", req.url), 302);
-    }
-    // console.log("[Middleware] Allowing /auth route through");
     return NextResponse.next();
   }
 

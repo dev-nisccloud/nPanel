@@ -28,7 +28,7 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -54,7 +54,7 @@ export function LoginForm() {
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     try {
       setIsSubmitting(true);
-      
+
       // Wrap the auth call in its own try-catch to ensure errors are caught
       let result;
       try {
@@ -66,9 +66,9 @@ export function LoginForm() {
       } catch (authError: unknown) {
         // Handle auth client errors
         console.error("Auth client error:", authError);
-        
+
         let errorMessage = "Please check your credentials and try again.";
-        
+
         if (authError && typeof authError === "object") {
           const err = authError as Record<string, unknown>;
           if (err.message && typeof err.message === "string") {
@@ -80,14 +80,14 @@ export function LoginForm() {
             }
           }
         }
-        
+
         toast.error("Login failed", {
           description: errorMessage,
         });
         setIsSubmitting(false);
         return;
       }
-      
+
       if (result?.data) {
         // Set success state to prevent form from reappearing
         setIsSuccess(true);
@@ -111,13 +111,13 @@ export function LoginForm() {
       }
     } catch (error: unknown) {
       console.error("Unexpected login error:", error);
-      
+
       let errorMessage = "An unexpected error occurred. Please try again.";
-      
+
       if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
         errorMessage = error.message;
       }
-      
+
       toast.error("Login failed", {
         description: errorMessage,
       });
@@ -134,18 +134,22 @@ export function LoginForm() {
   }
 
   // Show success/loading state after successful login to prevent form from reappearing
-  if (isSuccess || isSubmitting) {
+  // Show success/loading state after successful login to prevent form from reappearing
+  // Also show loading if we are checking session and believe user might be logged in
+  if (isSuccess || isSubmitting || (session && !isPending)) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 p-8">
         <Spinner variant="ellipsis" className="text-primary" />
-        <p className="text-sm text-muted-foreground">Signing you in...</p>
+        <p className="text-sm text-muted-foreground">
+          {isSuccess || isSubmitting ? "Signing you in..." : "Redirecting to dashboard..."}
+        </p>
       </div>
     );
   }
 
   return (
     <Form {...form}>
-      <form 
+      <form
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -157,7 +161,7 @@ export function LoginForm() {
               const errorMessages = Object.values(errors)
                 .map((error) => error?.message)
                 .filter(Boolean);
-              
+
               if (errorMessages.length > 0) {
                 toast.error("Validation Error", {
                   description: errorMessages[0] as string,
@@ -170,7 +174,7 @@ export function LoginForm() {
               description: error?.message || "An unexpected error occurred",
             });
           });
-        }} 
+        }}
         className="space-y-4"
       >
         <FormField
@@ -221,8 +225,8 @@ export function LoginForm() {
           )}
         />
         <div className="text-right">
-          <Link 
-            href="/auth/forgot-password" 
+          <Link
+            href="/auth/forgot-password"
             className="text-sm text-primary hover:underline"
           >
             Forgot your password?
