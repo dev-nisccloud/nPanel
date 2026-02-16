@@ -86,7 +86,7 @@
     ],
     "functions": [
         {
-            "id": "plesk.subscriptions.list",
+            "id": "plesk.subscriptions.getAll",
             "category": "Plesk Integration",
             "subcategory": "Subscriptions Management",
             "type": "query",
@@ -803,7 +803,7 @@
             }
         },
         {
-            "id": "plesk.wordpress.list",
+            "id": "plesk.wordpress.getAll",
             "category": "Plesk Integration",
             "subcategory": "WordPress Management",
             "type": "query",
@@ -843,7 +843,7 @@
             }
         },
         {
-            "id": "plesk.domainDns.list",
+            "id": "plesk.domainDns.getBySiteId",
             "category": "Plesk Integration",
             "subcategory": "Domain & DNS Management",
             "type": "query",
@@ -852,13 +852,13 @@
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "domainId": {
+                    "siteId": {
                         "type": "number",
-                        "description": "Plesk domain ID"
+                        "description": "The ID of the site (webspace) to get DNS records for"
                     }
                 },
                 "required": [
-                    "domainId"
+                    "siteId"
                 ]
             },
             "outputSchema": {
@@ -886,7 +886,7 @@
             }
         },
         {
-            "id": "plesk.emails.list",
+            "id": "plesk.emails.getBySiteId",
             "category": "Plesk Integration",
             "subcategory": "Email Management",
             "type": "query",
@@ -895,12 +895,13 @@
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "domainId": {
-                        "type": "number"
+                    "siteId": {
+                        "type": "number",
+                        "description": "The ID of the site (webspace) to get email accounts for"
                     }
                 },
                 "required": [
-                    "domainId"
+                    "siteId"
                 ]
             },
             "outputSchema": {

@@ -127,8 +127,19 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const [loadingAiChatId, setLoadingAiChatId] = React.useState<string | null>(null);
   const [deletingAiChatId, setDeletingAiChatId] = React.useState<string | null>(null);
   const [optimisticAiMessages, setOptimisticAiMessages] = React.useState<ChatMessage[]>([]);
+  const [thinkingMessageIndex, setThinkingMessageIndex] = React.useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const aiMessagesEndRef = React.useRef<HTMLDivElement>(null);
+  const humanMessagesEndRef = React.useRef<HTMLDivElement>(null);
   const actionOptions = getActionOptions();
+
+  // Scroll to bottom helper
+  const scrollToBottom = React.useCallback((type: 'ai' | 'human' = 'ai') => {
+    const ref = type === 'ai' ? aiMessagesEndRef : humanMessagesEndRef;
+    if (ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, []);
 
   // Get current user
   const { data: session } = authClient.useSession();
@@ -145,7 +156,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
 
   // AI Data fetching hooks
   const { history: aiHistory, isLoading: isLoadingAiHistory, isRefetching: isRefetchingAiHistory, refetch: refetchAiHistory } = useAiHistory();
-  const { messages: aiMessagesData, isLoading: isLoadingAiMessages } = useAiChat(selectedAiChatId === "new" ? null : selectedAiChatId);
+  const { messages: aiMessagesData, isLoading: isLoadingAiMessages, isError: isErrorAiMessages, error: aiMessagesError } = useAiChat(selectedAiChatId === "new" ? null : selectedAiChatId);
   const { startChat: startAiChat, sendMessage: sendAiMessage, escalateChat: directEscalateChat, deleteChat: deleteAiChat } = useAiMutations();
 
   // Callback for when a new message is received while chat is open
@@ -202,7 +213,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
 
     if (aiMessagesData && aiMessagesData.length > 0) {
       baseMessages = aiMessagesData
-        .filter((msg) => msg.role === "user" || msg.role === "assistant")
+        .filter((msg) => msg.role === "user" || (msg.role === "assistant" && msg.content))
         .map((msg) => ({
           id: msg.id,
           type: (msg.role === "user" ? "user" : "assistant") as "user" | "assistant",
@@ -233,6 +244,44 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
       setOptimisticAiMessages([]);
     }
   }, [aiMessagesData]);
+
+  // Auto-scroll AI chat
+  React.useEffect(() => {
+    if (currentView === "zeepo") {
+      scrollToBottom('ai');
+      // Use a small timeout to ensure content is fully rendered
+      const timer = setTimeout(() => scrollToBottom('ai'), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [transformedAiMessages, optimisticAiMessages, isSending, currentView, scrollToBottom]);
+
+  // Auto-scroll Human chat
+  React.useEffect(() => {
+    if (currentView === "chat") {
+      scrollToBottom('human');
+      const timer = setTimeout(() => scrollToBottom('human'), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [chatMessages, isSending, currentView, scrollToBottom]);
+
+  // Reset view when popover closes
+  // Cycle thinking messages
+  React.useEffect(() => {
+    if (!isSending) {
+      setThinkingMessageIndex(0);
+      return;
+    }
+    const messages = [
+      "Zeepo is thinking...",
+      "Searching for answers...",
+      "Analyzing your request...",
+      "Generating response...",
+    ];
+    const timer = setInterval(() => {
+      setThinkingMessageIndex((prev) => (prev + 1) % messages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isSending]);
 
   // Reset view when popover closes
   React.useEffect(() => {
@@ -705,7 +754,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
               </div>
 
               {/* Chat List */}
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1 min-h-0">
                 <NotificationSettingsBanner />
 
                 {isLoadingTickets ? (
@@ -881,7 +930,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
               </div>
 
               {/* AI Chat History List */}
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1 min-h-0">
                 {isLoadingAiHistory ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="text-center">
@@ -1014,8 +1063,8 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
               </div>
 
               {/* Chat Messages Area */}
-              <ScrollArea className="flex-1 overflow-y-auto">
-                <div className="p-4 flex flex-col gap-4">
+              <ScrollArea className="flex-1 min-h-0" viewportClassName="p-4">
+                <div className="flex flex-col gap-4">
                   {isNewTicket ? (
                     // For new tickets, show greeting immediately without any loading/error states
                     <div className="space-y-4">
@@ -1169,6 +1218,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                       )}
                     </div>
                   )}
+                  <div ref={humanMessagesEndRef} />
                 </div>
               </ScrollArea>
 
@@ -1299,7 +1349,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
               </div>
 
               {/* Zeepo Chat Messages Area */}
-              <ScrollArea className="flex-1 px-4 py-4">
+              <ScrollArea className="flex-1 min-h-0" viewportClassName="p-4">
                 {isLoadingAiMessages && transformedAiMessages.length === 0 && optimisticAiMessages.length === 0 ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map((i) => (
@@ -1324,6 +1374,31 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                         </div>
                       </div>
                     ))}
+                  </div>
+                ) : isErrorAiMessages ? (
+                  <div className="flex flex-col items-center justify-center h-full py-12 text-center animate-in fade-in duration-500">
+                    <div className="mb-4">
+                      <svg
+                        className="mx-auto h-12 w-12 text-destructive"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="mb-2 text-lg font-semibold">Failed to load messages</h3>
+                    <p className="mb-4 text-sm text-muted-foreground">
+                      {aiMessagesError?.message || "An error occurred while fetching messages."}
+                    </p>
+                    <Button onClick={() => refetchAiHistory()} variant="outline" size="sm">
+                      Try Again
+                    </Button>
                   </div>
                 ) : transformedAiMessages.length === 0 && optimisticAiMessages.length === 0 ? (
                   // Welcome View (No Chat ID or New Chat)
@@ -1373,13 +1448,22 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                         <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 animate-pulse">
                           <Icons.AISupport className="h-4 w-4 text-primary" />
                         </div>
-                        <div className="bg-primary/10 rounded-2xl px-4 py-2.5">
-                          <Spinner size={16} />
+                        <div className="bg-primary/5 rounded-xl px-4 py-2 border border-primary/10 overflow-hidden relative">
+                          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+                          <p className="text-xs font-medium text-muted-foreground animate-shimmer bg-clip-text text-transparent">
+                            {[
+                              "Zeepo is thinking...",
+                              "Searching for answers...",
+                              "Analyzing your request...",
+                              "Generating response...",
+                            ][thinkingMessageIndex]}
+                          </p>
                         </div>
                       </div>
                     )}
                   </div>
                 )}
+                <div ref={aiMessagesEndRef} />
               </ScrollArea>
 
               {/* Zeepo Message Input - No attachment */}

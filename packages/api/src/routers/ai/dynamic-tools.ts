@@ -24,6 +24,42 @@ async function executeTrpcProcedure(
 }
 
 /**
+ * Recurse through schema to remove non-standard keys and fix types for OpenAI compatibility
+ */
+function sanitizeSchema(schema: any): any {
+    if (!schema || typeof schema !== 'object') return schema;
+
+    const sanitized: any = { ...schema };
+
+    // OpenAI doesn't allow 'enum' as a type, it must be 'string' with the 'enum' keyword
+    if (sanitized.type === 'enum') {
+        sanitized.type = 'string';
+    }
+
+    // Remove non-standard keywords that cause OpenAI validation errors
+    const nonStandardKeywords = ['optional', 'access', 'subcategory', 'category', 'status'];
+    for (const key of nonStandardKeywords) {
+        delete sanitized[key];
+    }
+
+    // Process properties recursively
+    if (sanitized.properties && typeof sanitized.properties === 'object') {
+        const cleanedProps: any = {};
+        for (const [key, value] of Object.entries(sanitized.properties)) {
+            cleanedProps[key] = sanitizeSchema(value);
+        }
+        sanitized.properties = cleanedProps;
+    }
+
+    // Process items recursively
+    if (sanitized.items) {
+        sanitized.items = sanitizeSchema(sanitized.items);
+    }
+
+    return sanitized;
+}
+
+/**
  * Generate AI tool structure from catalog entry
  */
 export function generateToolFromCatalogEntry(
@@ -32,7 +68,7 @@ export function generateToolFromCatalogEntry(
 ): any {
     return {
         description: entry.description,
-        parameters: entry.inputSchema,
+        parameters: sanitizeSchema(entry.inputSchema),
         execute: async (input: any) => {
             try {
                 console.log(`[AI Tool] Executing ${entry.id} with input:`, input);
