@@ -1,7 +1,7 @@
+
 import { z } from "zod";
 import { tool } from "ai";
 import prisma from "@nPanel/db";
-// import { sidebarItems, agencysidebarItems } from "../../../../../apps/npanel/src/navigation/sidebar/sidebar-items"; // Cannot import from apps to packages
 
 // Mock navigation items for now to avoid circular dependency/monorepo import issues
 const sidebarItems = [
@@ -18,10 +18,10 @@ const agencysidebarItems = [
  */
 export const getSystemNavigationTool = () => tool({
     description: "Get the current system navigation structure (pages, sub-pages, and URLs).",
-    inputSchema: z.object({
+    parameters: z.object({
         role: z.enum(["AGENCY", "CUSTOMER"]).describe("The role of the user (AGENCY or CUSTOMER)"),
     }),
-    execute: async ({ role }) => {
+    execute: async ({ role }: { role: "AGENCY" | "CUSTOMER" }) => {
         const items = role === "AGENCY" ? agencysidebarItems : sidebarItems;
 
         // Simplify for AI consumption (exclude icons, etc.)
@@ -34,15 +34,15 @@ export const getSystemNavigationTool = () => tool({
             }))
         }));
     },
-});
+} as any);
 
 /**
  * Tool to get the current user's profile and team context.
  */
 export const getUserContextTool = (userId: string) => tool({
     description: "Get basic information about the current user, their role, and their teams.",
-    inputSchema: z.object({}), // userContext doesn't need input params, just context
-    execute: async () => {
+    parameters: z.object({}), // userContext doesn't need input params, just context
+    execute: async (_input: {}) => {
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: {
@@ -66,17 +66,17 @@ export const getUserContextTool = (userId: string) => tool({
 
         return user;
     },
-});
+} as any);
 
 /**
  * Tool to search for user-specific data (subscriptions, hosting, etc.)
  */
 export const getActiveServicesTool = (userId: string) => tool({
     description: "Get active services (hosting, domains, wordpress) for the user or their teams.",
-    inputSchema: z.object({
+    parameters: z.object({
         teamId: z.string().optional().describe("Optional team ID to filter services by team"),
     }),
-    execute: async ({ teamId }) => {
+    execute: async ({ teamId }: { teamId?: string }) => {
         // Permission check: ensure user is part of the requested team
         if (teamId) {
             const membership = await prisma.teamMember.findUnique({
@@ -94,8 +94,6 @@ export const getActiveServicesTool = (userId: string) => tool({
         // Logic simplifed for context
         const where = teamId ? { teamId } : { team: { members: { some: { userId } } } };
 
-        // We can just return empty arrays if DB access fails or is complex to mock in this fix
-        // But let's try to keep the original logic roughly if possible
         try {
             const [hosting, domains, wpInstances] = await Promise.all([
                 prisma.hostingSubscription.findMany({ where, select: { id: true, pleskName: true, status: true, expiryDate: true } }),
@@ -126,20 +124,20 @@ export const getActiveServicesTool = (userId: string) => tool({
             return { hosting: [], domains: [], wordpress: [] };
         }
     },
-});
+} as any);
 
 /**
  * Tool to escalate the conversation to a human agent.
  */
 export const escalateToHumanTool = (userId: string) => tool({
     description: "Escalate the conversation to a human support agent. Use this if the AI cannot solve the issue.",
-    inputSchema: z.object({
+    parameters: z.object({
         subject: z.string().describe("Brief subject for the ticket"),
         summary: z.string().describe("Summary of the AI conversation and the user's issue"),
         priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
         teamId: z.string().optional(),
     }),
-    execute: async ({ subject, summary, priority, teamId }) => {
+    execute: async ({ subject, summary, priority, teamId }: { subject: string, summary: string, priority: "LOW" | "NORMAL" | "HIGH" | "URGENT", teamId?: string }) => {
         // Note: We'd typically use the ticketsRouter logic here or call a helper
         // For now, we'll implement the basic DB create
         const ticketNumber = `TKT-AI-${Date.now()}`;
@@ -165,4 +163,4 @@ export const escalateToHumanTool = (userId: string) => tool({
             message: "A human support agent has been notified and will get back to you shortly."
         };
     },
-});
+} as any);

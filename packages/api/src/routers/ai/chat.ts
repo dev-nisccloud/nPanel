@@ -16,6 +16,9 @@ import {
     getActiveServicesTool,
     escalateToHumanTool
 } from "./tools";
+import { getCachedCatalog } from "./catalog-parser";
+import { generateToolsFromCatalog, filterCatalogByAccess, createToolsSummary } from "./dynamic-tools";
+import { appRouter } from "../index";
 import { z } from "zod";
 
 const getOpenai = () => {
@@ -129,10 +132,78 @@ Core Identity:
 - If users ask for contact or location details, provide the Nairobi address above.
 - Always be helpful, professional, and concise.
 
+When to Use Functions vs General Knowledge:
+1. Use GENERAL KNOWLEDGE for:
+   - Explaining concepts, features, or how things work
+   - Answering "what is", "how do I", "can I" questions
+   - Providing guidance or best practices
+   - General platform information
+
+2. Use FUNCTIONS for:
+   - Fetching user-specific data (teams, subscriptions, tickets, etc.)
+   - Checking current status or details
+   - Performing actions or mutations
+   - Getting real-time information
+
+Function Calling Guidelines:
+1. ALWAYS use exact function names from your available tools - never make up function names
+2. Verify parameter types and required fields before calling
+3. If a function doesn't exist, clearly inform the user instead of hallucinating
+4. When uncertain about permissions, use getUserContext first
+5. Read function descriptions carefully to understand what each does
+
+3. FORMATTING (MARKDOWN):
+   - Use **bold** for key terms, names, and titles
+   - Use \`code blocks\` for technical identifiers (IDs, handles, hashes)
+   - Use bullet points or numbered lists for lists of items
+   - Use **Tables** for multi-field data or comparisons
+   - Use \`![image](url)\` for displaying images if provided by a tool
+
+4. FORMAT EXAMPLES:
+   - Domains: "You have **3 domains**:
+     - \`example.com\` (Expiring soon)
+     - \`test.net\`
+     - \`demo.org\`"
+   - Teams: "You're part of **2 teams**: **Marketing Team**, **Development Team**"
+   - Tickets: "| Ticket # | Subject | Priority |
+     | :--- | :--- | :--- |
+     | \`#TKT-001\` | Login Issue | **High** |
+     | \`#TKT-002\` | DNS Setup | Normal |"
+
+Available Function Categories:
+- Plesk Integration (hosting, domains, WordPress, email, databases)
+- OpenProvider (domain registration, DNS)
+- eTIMS (Kenya KRA tax integration)
+- Advertising (Google Ads, Meta Ads, LinkedIn Ads)
+- Marketing (email campaigns, SEO)
+- Creative (image generation, assets)
+- Business (teams, clients, tickets, invoicing)
+
+Examples of Proper Usage:
+
+Example 1 - General Knowledge (NO function needed):
+User: "What is a domain name?"
+Response: "A domain name is the address people use to find your website..."
+
+Example 2 - User Data (USE function):
+User: "What domains do I have?"
+Action: Call teamsGetUserTeams or domainsGetByTeam
+Response: "You have 3 domains: example.com, test.net, demo.org"
+
+Example 3 - Concise Formatting:
+User: "Show me my teams"
+Action: Call teamsGetUserTeams
+Response: "You're part of 2 teams: Marketing Team, Development Team" (NOT full JSON objects)
+
+Example 4 - Partial Information:
+User: "Do I have any high priority tickets?"
+Action: Call ticketsGetAll with priority filter
+Response: "Yes, you have 2 high priority tickets: #TKT-001 (Login Issue), #TKT-003 (Payment Bug)"
+
 Objectives:
-1. Assist users with cloud services, marketing tools, and account settings.
-2. Utilize provided tools to fetch system navigation, user context, and active services.
-3. If you cannot resolve a query, offer to escalate to a human support agent.`,
+1. Assist users efficiently - use functions only when needed
+2. Provide concise, relevant responses - extract only what user asked for
+3. If you cannot resolve a query, escalate to human support using escalateToHuman`,
                                     createdAt: new Date(),
                                 },
                                 ...(input.initialMessage ? [{
@@ -150,17 +221,31 @@ Objectives:
                 });
 
                 if (input.initialMessage) {
-                    // 2. Call OpenAI with tools
+                    // 2. Load catalog and generate dynamic tools
+                    const indexedCatalog = getCachedCatalog();
+                    const userRole = ctx.session.user.role;
+                    const allowedFunctions = filterCatalogByAccess(
+                        indexedCatalog.catalog.functions,
+                        userRole
+                    );
+
+                    // Create tRPC caller for executing procedures
+                    const caller = appRouter.createCaller(ctx);
+                    const dynamicTools = generateToolsFromCatalog(allowedFunctions, caller);
+
+                    // 3. Call OpenAI with tools
                     const messages = mapToAiMessages(chat.messages);
                     const openai = getOpenai();
                     const result = await generateText({
                         model: openai("gpt-4o-mini"),
                         messages,
                         tools: {
+                            // Core utility tools
                             getSystemNavigation: getSystemNavigationTool(),
                             getUserContext: getUserContextTool(userId),
-                            getActiveServices: getActiveServicesTool(userId),
                             escalateToHuman: escalateToHumanTool(userId),
+                            // Dynamic catalog-based tools
+                            ...dynamicTools,
                         },
                     });
 
@@ -249,16 +334,30 @@ Objectives:
             const history = await getChatHistory(input.chatId);
             const messages = mapToAiMessages(history);
 
-            // 4. Call OpenAI with tools
+            // 4. Load catalog and generate dynamic tools
+            const indexedCatalog = getCachedCatalog();
+            const userRole = ctx.session.user.role;
+            const allowedFunctions = filterCatalogByAccess(
+                indexedCatalog.catalog.functions,
+                userRole
+            );
+
+            // Create tRPC caller for executing procedures
+            const caller = appRouter.createCaller(ctx);
+            const dynamicTools = generateToolsFromCatalog(allowedFunctions, caller);
+
+            // 5. Call OpenAI with tools
             const openai = getOpenai();
             const result = await generateText({
                 model: openai("gpt-4o-mini"),
                 messages,
                 tools: {
+                    // Core utility tools
                     getSystemNavigation: getSystemNavigationTool(),
                     getUserContext: getUserContextTool(userId),
-                    getActiveServices: getActiveServicesTool(userId),
                     escalateToHuman: escalateToHumanTool(userId),
+                    // Dynamic catalog-based tools
+                    ...dynamicTools,
                 },
             });
 

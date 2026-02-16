@@ -38,6 +38,7 @@ import { NotificationSettingsBanner } from "@/components/notification-settings-b
 import { useNewMessageDetector } from "@/hooks/use-new-message-detector";
 import { useGlobalNotificationDetector } from "@/hooks/use-global-notification-detector";
 import { useAiHistory, useAiChat, useAiMutations } from "@/hooks/use-ai";
+import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
 
 interface FloatingActionButtonProps {
   className?: string;
@@ -1363,7 +1364,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                               : "bg-primary/10 text-foreground"
                           )}
                         >
-                          <p className="text-sm leading-relaxed whitespace-pre-line">{msg.message}</p>
+                          <AiMarkdownRenderer content={msg.message} />
                         </div>
                       </div>
                     ))}

@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Icons } from "@/components/icons";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AiMarkdownRenderer } from "./ai/ai-markdown-renderer";
 import { useTicketsList, useTicketMessages } from "./tickets/use-tickets";
 import { useTicketMutations } from "./tickets/use-ticket-mutations";
 import { authClient } from "@/lib/auth-client";
@@ -1289,7 +1290,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                               : "bg-primary/10 text-foreground"
                           )}
                         >
-                          <p className="text-sm leading-relaxed whitespace-pre-line">{msg.message}</p>
+                          <AiMarkdownRenderer content={msg.message} />
                         </div>
                       </div>
                     ))}

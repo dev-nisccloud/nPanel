@@ -138,4 +138,7 @@ if (typeof process !== "undefined") {
 export * from "./connection-pool";
 export * from "./monitor";
 
+// Export all generated types and enums
+export * from "../prisma/generated/client";
+
 export default prisma;
