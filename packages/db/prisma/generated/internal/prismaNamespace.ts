@@ -388,6 +388,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
+  AiChat: 'AiChat',
+  AiChatMessage: 'AiChatMessage',
   CustomerIntegration: 'CustomerIntegration',
   WordPressInstance: 'WordPressInstance',
   Order: 'Order',
@@ -448,6 +450,8 @@ export const ModelName = {
   EmailEventActivityLog: 'EmailEventActivityLog',
   EmailDomainActivityLog: 'EmailDomainActivityLog',
   EmailCampaignActivityLog: 'EmailCampaignActivityLog',
+  ETimsConfiguration: 'ETimsConfiguration',
+  ETimsItem: 'ETimsItem',
   GoogleAdsIntegration: 'GoogleAdsIntegration',
   GoogleAdsAccount: 'GoogleAdsAccount',
   GoogleAdsIntegrationActivityLog: 'GoogleAdsIntegrationActivityLog',
@@ -473,9 +477,6 @@ export const ModelName = {
   InvoiceTransactionActivityLog: 'InvoiceTransactionActivityLog',
   CreditNoteActivityLog: 'CreditNoteActivityLog',
   InvoiceCounter: 'InvoiceCounter',
-  TeamETimsSettings: 'TeamETimsSettings',
-  TeamETimsItem: 'TeamETimsItem',
-  TeamETimsBranch: 'TeamETimsBranch',
   MetaAdsAccount: 'MetaAdsAccount',
   MetaAdsCampaign: 'MetaAdsCampaign',
   MetaAdsAdSet: 'MetaAdsAdSet',
@@ -527,10 +528,158 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailBuilderDesign" | "emailBuilderDesignActivityLog" | "emailDomain" | "emailCampaign" | "emailCampaignSendJob" | "campaignRecipient" | "emailEvent" | "emailEventActivityLog" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "teamETimsSettings" | "teamETimsItem" | "teamETimsBranch" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog" | "webDesignQuoteRequest"
+    modelProps: "aiChat" | "aiChatMessage" | "customerIntegration" | "wordPressInstance" | "order" | "orderItem" | "orderItemActivityLog" | "promo" | "user" | "session" | "account" | "team" | "teamMember" | "teamInvite" | "teamBillingSettings" | "teamBillingSettingsActivityLog" | "verification" | "userProfile" | "userActivityLog" | "hostingPlan" | "niscServicePlan" | "niscServicePlanActivityLog" | "hostingSubscription" | "hostingRenewal" | "hostingPlanActivityLog" | "hostingSubscriptionActivityLog" | "hostingRenewalActivityLog" | "promoActivityLog" | "orderActivityLog" | "customerIntegrationActivityLog" | "wordPressInstanceActivityLog" | "nameserver" | "nameserverGroup" | "tldSettings" | "tldSettingsActivityLog" | "nameserverActivityLog" | "nameserverGroupActivityLog" | "domain" | "domainRenewal" | "domainTransfer" | "domainActivityLog" | "domainRenewalActivityLog" | "domainTransferActivityLog" | "creativeAsset" | "creativeAssetVersion" | "creativeAssetPermission" | "creativeAssetComment" | "creativeAssetActivityLog" | "creativeAssetVersionActivityLog" | "creativeBrief" | "creativeBriefReferenceImage" | "creativeBriefActivityLog" | "emailBuilderDesign" | "emailBuilderDesignActivityLog" | "emailDomain" | "emailCampaign" | "emailCampaignSendJob" | "campaignRecipient" | "emailEvent" | "emailEventActivityLog" | "emailDomainActivityLog" | "emailCampaignActivityLog" | "eTimsConfiguration" | "eTimsItem" | "googleAdsIntegration" | "googleAdsAccount" | "googleAdsIntegrationActivityLog" | "googleAdsAccountActivityLog" | "imageGeneratorGeneration" | "imageGeneratorVariation" | "imageGeneratorGenerationActivityLog" | "backgroundRemoverGeneration" | "backgroundRemoverGenerationActivityLog" | "imageGenProject" | "imageGenTemplate" | "imageGenProjectActivityLog" | "imageGenTemplateActivityLog" | "imageGenUpload" | "imageGenUploadActivityLog" | "imageGenAiGeneration" | "imageGenAiGenerationActivityLog" | "invoice" | "invoiceLineItem" | "invoiceTransaction" | "creditNote" | "invoiceActivityLog" | "invoiceTransactionActivityLog" | "creditNoteActivityLog" | "invoiceCounter" | "metaAdsAccount" | "metaAdsCampaign" | "metaAdsAdSet" | "metaAdsAd" | "metaAdsInsight" | "metaAdsAccountActivityLog" | "metaAdsCampaignActivityLog" | "metaAdsAdSetActivityLog" | "metaAdsAdActivityLog" | "notification" | "notificationActivityLog" | "paymentTransaction" | "paymentTransactionActivityLog" | "seoReport" | "seoReportActivityLog" | "serviceSubscription" | "serviceSubscriptionRenewal" | "serviceSubscriptionActivityLog" | "serviceSubscriptionRenewalActivityLog" | "socialMediaIntegration" | "socialMediaPageToken" | "socialMediaIntegrationActivityLog" | "socialMediaPageTokenActivityLog" | "metaContentCalendar" | "metaContentCalendarMedia" | "metaContentCalendarActivityLog" | "linkedInContentCalendar" | "linkedInContentCalendarMedia" | "linkedInContentCalendarActivityLog" | "ticket" | "ticketMessage" | "ticketAttachment" | "ticketTag" | "ticketTagRelation" | "ticketActivityLog" | "webDesignQuoteRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
+    AiChat: {
+      payload: Prisma.$AiChatPayload<ExtArgs>
+      fields: Prisma.AiChatFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiChatFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiChatFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload>
+        }
+        findFirst: {
+          args: Prisma.AiChatFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiChatFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload>
+        }
+        findMany: {
+          args: Prisma.AiChatFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload>[]
+        }
+        create: {
+          args: Prisma.AiChatCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload>
+        }
+        createMany: {
+          args: Prisma.AiChatCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiChatCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload>[]
+        }
+        delete: {
+          args: Prisma.AiChatDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload>
+        }
+        update: {
+          args: Prisma.AiChatUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiChatDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiChatUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiChatUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiChatUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatPayload>
+        }
+        aggregate: {
+          args: Prisma.AiChatAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiChat>
+        }
+        groupBy: {
+          args: Prisma.AiChatGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiChatGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiChatCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiChatCountAggregateOutputType> | number
+        }
+      }
+    }
+    AiChatMessage: {
+      payload: Prisma.$AiChatMessagePayload<ExtArgs>
+      fields: Prisma.AiChatMessageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiChatMessageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiChatMessageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+        }
+        findFirst: {
+          args: Prisma.AiChatMessageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiChatMessageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+        }
+        findMany: {
+          args: Prisma.AiChatMessageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>[]
+        }
+        create: {
+          args: Prisma.AiChatMessageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+        }
+        createMany: {
+          args: Prisma.AiChatMessageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiChatMessageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>[]
+        }
+        delete: {
+          args: Prisma.AiChatMessageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+        }
+        update: {
+          args: Prisma.AiChatMessageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+        }
+        deleteMany: {
+          args: Prisma.AiChatMessageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiChatMessageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiChatMessageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>[]
+        }
+        upsert: {
+          args: Prisma.AiChatMessageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+        }
+        aggregate: {
+          args: Prisma.AiChatMessageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiChatMessage>
+        }
+        groupBy: {
+          args: Prisma.AiChatMessageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiChatMessageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiChatMessageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiChatMessageCountAggregateOutputType> | number
+        }
+      }
+    }
     CustomerIntegration: {
       payload: Prisma.$CustomerIntegrationPayload<ExtArgs>
       fields: Prisma.CustomerIntegrationFieldRefs
@@ -4971,6 +5120,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ETimsConfiguration: {
+      payload: Prisma.$ETimsConfigurationPayload<ExtArgs>
+      fields: Prisma.ETimsConfigurationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ETimsConfigurationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ETimsConfigurationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload>
+        }
+        findFirst: {
+          args: Prisma.ETimsConfigurationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ETimsConfigurationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload>
+        }
+        findMany: {
+          args: Prisma.ETimsConfigurationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload>[]
+        }
+        create: {
+          args: Prisma.ETimsConfigurationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload>
+        }
+        createMany: {
+          args: Prisma.ETimsConfigurationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ETimsConfigurationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload>[]
+        }
+        delete: {
+          args: Prisma.ETimsConfigurationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload>
+        }
+        update: {
+          args: Prisma.ETimsConfigurationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload>
+        }
+        deleteMany: {
+          args: Prisma.ETimsConfigurationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ETimsConfigurationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ETimsConfigurationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload>[]
+        }
+        upsert: {
+          args: Prisma.ETimsConfigurationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsConfigurationPayload>
+        }
+        aggregate: {
+          args: Prisma.ETimsConfigurationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateETimsConfiguration>
+        }
+        groupBy: {
+          args: Prisma.ETimsConfigurationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ETimsConfigurationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ETimsConfigurationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ETimsConfigurationCountAggregateOutputType> | number
+        }
+      }
+    }
+    ETimsItem: {
+      payload: Prisma.$ETimsItemPayload<ExtArgs>
+      fields: Prisma.ETimsItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ETimsItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ETimsItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload>
+        }
+        findFirst: {
+          args: Prisma.ETimsItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ETimsItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload>
+        }
+        findMany: {
+          args: Prisma.ETimsItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload>[]
+        }
+        create: {
+          args: Prisma.ETimsItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload>
+        }
+        createMany: {
+          args: Prisma.ETimsItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ETimsItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload>[]
+        }
+        delete: {
+          args: Prisma.ETimsItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload>
+        }
+        update: {
+          args: Prisma.ETimsItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.ETimsItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ETimsItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ETimsItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.ETimsItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ETimsItemPayload>
+        }
+        aggregate: {
+          args: Prisma.ETimsItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateETimsItem>
+        }
+        groupBy: {
+          args: Prisma.ETimsItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ETimsItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ETimsItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ETimsItemCountAggregateOutputType> | number
+        }
+      }
+    }
     GoogleAdsIntegration: {
       payload: Prisma.$GoogleAdsIntegrationPayload<ExtArgs>
       fields: Prisma.GoogleAdsIntegrationFieldRefs
@@ -6818,228 +7115,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.InvoiceCounterCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.InvoiceCounterCountAggregateOutputType> | number
-        }
-      }
-    }
-    TeamETimsSettings: {
-      payload: Prisma.$TeamETimsSettingsPayload<ExtArgs>
-      fields: Prisma.TeamETimsSettingsFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.TeamETimsSettingsFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.TeamETimsSettingsFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
-        }
-        findFirst: {
-          args: Prisma.TeamETimsSettingsFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.TeamETimsSettingsFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
-        }
-        findMany: {
-          args: Prisma.TeamETimsSettingsFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>[]
-        }
-        create: {
-          args: Prisma.TeamETimsSettingsCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
-        }
-        createMany: {
-          args: Prisma.TeamETimsSettingsCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.TeamETimsSettingsCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>[]
-        }
-        delete: {
-          args: Prisma.TeamETimsSettingsDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
-        }
-        update: {
-          args: Prisma.TeamETimsSettingsUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
-        }
-        deleteMany: {
-          args: Prisma.TeamETimsSettingsDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.TeamETimsSettingsUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.TeamETimsSettingsUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>[]
-        }
-        upsert: {
-          args: Prisma.TeamETimsSettingsUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsSettingsPayload>
-        }
-        aggregate: {
-          args: Prisma.TeamETimsSettingsAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateTeamETimsSettings>
-        }
-        groupBy: {
-          args: Prisma.TeamETimsSettingsGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TeamETimsSettingsGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.TeamETimsSettingsCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TeamETimsSettingsCountAggregateOutputType> | number
-        }
-      }
-    }
-    TeamETimsItem: {
-      payload: Prisma.$TeamETimsItemPayload<ExtArgs>
-      fields: Prisma.TeamETimsItemFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.TeamETimsItemFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.TeamETimsItemFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
-        }
-        findFirst: {
-          args: Prisma.TeamETimsItemFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.TeamETimsItemFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
-        }
-        findMany: {
-          args: Prisma.TeamETimsItemFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>[]
-        }
-        create: {
-          args: Prisma.TeamETimsItemCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
-        }
-        createMany: {
-          args: Prisma.TeamETimsItemCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.TeamETimsItemCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>[]
-        }
-        delete: {
-          args: Prisma.TeamETimsItemDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
-        }
-        update: {
-          args: Prisma.TeamETimsItemUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
-        }
-        deleteMany: {
-          args: Prisma.TeamETimsItemDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.TeamETimsItemUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.TeamETimsItemUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>[]
-        }
-        upsert: {
-          args: Prisma.TeamETimsItemUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsItemPayload>
-        }
-        aggregate: {
-          args: Prisma.TeamETimsItemAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateTeamETimsItem>
-        }
-        groupBy: {
-          args: Prisma.TeamETimsItemGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TeamETimsItemGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.TeamETimsItemCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TeamETimsItemCountAggregateOutputType> | number
-        }
-      }
-    }
-    TeamETimsBranch: {
-      payload: Prisma.$TeamETimsBranchPayload<ExtArgs>
-      fields: Prisma.TeamETimsBranchFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.TeamETimsBranchFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.TeamETimsBranchFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
-        }
-        findFirst: {
-          args: Prisma.TeamETimsBranchFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.TeamETimsBranchFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
-        }
-        findMany: {
-          args: Prisma.TeamETimsBranchFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>[]
-        }
-        create: {
-          args: Prisma.TeamETimsBranchCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
-        }
-        createMany: {
-          args: Prisma.TeamETimsBranchCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.TeamETimsBranchCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>[]
-        }
-        delete: {
-          args: Prisma.TeamETimsBranchDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
-        }
-        update: {
-          args: Prisma.TeamETimsBranchUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
-        }
-        deleteMany: {
-          args: Prisma.TeamETimsBranchDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.TeamETimsBranchUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.TeamETimsBranchUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>[]
-        }
-        upsert: {
-          args: Prisma.TeamETimsBranchUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeamETimsBranchPayload>
-        }
-        aggregate: {
-          args: Prisma.TeamETimsBranchAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateTeamETimsBranch>
-        }
-        groupBy: {
-          args: Prisma.TeamETimsBranchGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TeamETimsBranchGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.TeamETimsBranchCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TeamETimsBranchCountAggregateOutputType> | number
         }
       }
     }
@@ -9746,6 +9821,34 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const AiChatScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  title: 'title',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  closedAt: 'closedAt'
+} as const
+
+export type AiChatScalarFieldEnum = (typeof AiChatScalarFieldEnum)[keyof typeof AiChatScalarFieldEnum]
+
+
+export const AiChatMessageScalarFieldEnum = {
+  id: 'id',
+  chatId: 'chatId',
+  role: 'role',
+  content: 'content',
+  toolCalls: 'toolCalls',
+  toolCallId: 'toolCallId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type AiChatMessageScalarFieldEnum = (typeof AiChatMessageScalarFieldEnum)[keyof typeof AiChatMessageScalarFieldEnum]
+
+
 export const CustomerIntegrationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -10819,6 +10922,44 @@ export const EmailCampaignActivityLogScalarFieldEnum = {
 export type EmailCampaignActivityLogScalarFieldEnum = (typeof EmailCampaignActivityLogScalarFieldEnum)[keyof typeof EmailCampaignActivityLogScalarFieldEnum]
 
 
+export const ETimsConfigurationScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  kraPin: 'kraPin',
+  branchId: 'branchId',
+  branchName: 'branchName',
+  deviceSerialNumber: 'deviceSerialNumber',
+  cmcKey: 'cmcKey',
+  isSandbox: 'isSandbox',
+  isInitialized: 'isInitialized',
+  lastSyncAt: 'lastSyncAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ETimsConfigurationScalarFieldEnum = (typeof ETimsConfigurationScalarFieldEnum)[keyof typeof ETimsConfigurationScalarFieldEnum]
+
+
+export const ETimsItemScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  localItemId: 'localItemId',
+  itemCd: 'itemCd',
+  itemClsCd: 'itemClsCd',
+  itemNm: 'itemNm',
+  taxTyCd: 'taxTyCd',
+  pkgUnitCd: 'pkgUnitCd',
+  originCountryCd: 'originCountryCd',
+  packagingUnit: 'packagingUnit',
+  quantityUnit: 'quantityUnit',
+  unitPrice: 'unitPrice',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ETimsItemScalarFieldEnum = (typeof ETimsItemScalarFieldEnum)[keyof typeof ETimsItemScalarFieldEnum]
+
+
 export const GoogleAdsIntegrationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -11268,60 +11409,6 @@ export const InvoiceCounterScalarFieldEnum = {
 } as const
 
 export type InvoiceCounterScalarFieldEnum = (typeof InvoiceCounterScalarFieldEnum)[keyof typeof InvoiceCounterScalarFieldEnum]
-
-
-export const TeamETimsSettingsScalarFieldEnum = {
-  id: 'id',
-  teamId: 'teamId',
-  kraPin: 'kraPin',
-  branchId: 'branchId',
-  deviceSerialNumber: 'deviceSerialNumber',
-  cmcKey: 'cmcKey',
-  isInitialized: 'isInitialized',
-  isSandbox: 'isSandbox',
-  lastSyncAt: 'lastSyncAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type TeamETimsSettingsScalarFieldEnum = (typeof TeamETimsSettingsScalarFieldEnum)[keyof typeof TeamETimsSettingsScalarFieldEnum]
-
-
-export const TeamETimsItemScalarFieldEnum = {
-  id: 'id',
-  teamId: 'teamId',
-  itemCd: 'itemCd',
-  itemClsCd: 'itemClsCd',
-  itemNm: 'itemNm',
-  itemClsNm: 'itemClsNm',
-  taxTyCd: 'taxTyCd',
-  pkgUnitCd: 'pkgUnitCd',
-  qtyUnitCd: 'qtyUnitCd',
-  prc: 'prc',
-  isService: 'isService',
-  metadata: 'metadata',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type TeamETimsItemScalarFieldEnum = (typeof TeamETimsItemScalarFieldEnum)[keyof typeof TeamETimsItemScalarFieldEnum]
-
-
-export const TeamETimsBranchScalarFieldEnum = {
-  id: 'id',
-  teamId: 'teamId',
-  bhfId: 'bhfId',
-  bhfNm: 'bhfNm',
-  bhfSttsCd: 'bhfSttsCd',
-  addr: 'addr',
-  mgrNm: 'mgrNm',
-  mgrTelNo: 'mgrTelNo',
-  metadata: 'metadata',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type TeamETimsBranchScalarFieldEnum = (typeof TeamETimsBranchScalarFieldEnum)[keyof typeof TeamETimsBranchScalarFieldEnum]
 
 
 export const MetaAdsAccountScalarFieldEnum = {
@@ -12018,6 +12105,14 @@ export const QueryMode = {
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
 export const JsonNullValueFilter = {
   DbNull: DbNull,
   JsonNull: JsonNull,
@@ -12025,14 +12120,6 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
-
-
-export const NullsOrder = {
-  first: 'first',
-  last: 'last'
-} as const
-
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 
@@ -12056,23 +12143,16 @@ export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMod
 
 
 /**
- * Reference to a field of type 'CustomerPlatform'
+ * Reference to a field of type 'AiChatStatus'
  */
-export type EnumCustomerPlatformFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerPlatform'>
+export type EnumAiChatStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiChatStatus'>
     
 
 
 /**
- * Reference to a field of type 'CustomerPlatform[]'
+ * Reference to a field of type 'AiChatStatus[]'
  */
-export type ListEnumCustomerPlatformFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerPlatform[]'>
-    
-
-
-/**
- * Reference to a field of type 'Boolean'
- */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+export type ListEnumAiChatStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiChatStatus[]'>
     
 
 
@@ -12101,6 +12181,27 @@ export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'J
  * Reference to a field of type 'QueryMode'
  */
 export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'CustomerPlatform'
+ */
+export type EnumCustomerPlatformFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerPlatform'>
+    
+
+
+/**
+ * Reference to a field of type 'CustomerPlatform[]'
+ */
+export type ListEnumCustomerPlatformFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerPlatform[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -12988,6 +13089,8 @@ export interface PrismaClientOptions {
   omit?: GlobalOmitConfig
 }
 export type GlobalOmitConfig = {
+  aiChat?: Prisma.AiChatOmit
+  aiChatMessage?: Prisma.AiChatMessageOmit
   customerIntegration?: Prisma.CustomerIntegrationOmit
   wordPressInstance?: Prisma.WordPressInstanceOmit
   order?: Prisma.OrderOmit
@@ -13048,6 +13151,8 @@ export type GlobalOmitConfig = {
   emailEventActivityLog?: Prisma.EmailEventActivityLogOmit
   emailDomainActivityLog?: Prisma.EmailDomainActivityLogOmit
   emailCampaignActivityLog?: Prisma.EmailCampaignActivityLogOmit
+  eTimsConfiguration?: Prisma.ETimsConfigurationOmit
+  eTimsItem?: Prisma.ETimsItemOmit
   googleAdsIntegration?: Prisma.GoogleAdsIntegrationOmit
   googleAdsAccount?: Prisma.GoogleAdsAccountOmit
   googleAdsIntegrationActivityLog?: Prisma.GoogleAdsIntegrationActivityLogOmit
@@ -13073,9 +13178,6 @@ export type GlobalOmitConfig = {
   invoiceTransactionActivityLog?: Prisma.InvoiceTransactionActivityLogOmit
   creditNoteActivityLog?: Prisma.CreditNoteActivityLogOmit
   invoiceCounter?: Prisma.InvoiceCounterOmit
-  teamETimsSettings?: Prisma.TeamETimsSettingsOmit
-  teamETimsItem?: Prisma.TeamETimsItemOmit
-  teamETimsBranch?: Prisma.TeamETimsBranchOmit
   metaAdsAccount?: Prisma.MetaAdsAccountOmit
   metaAdsCampaign?: Prisma.MetaAdsCampaignOmit
   metaAdsAdSet?: Prisma.MetaAdsAdSetOmit

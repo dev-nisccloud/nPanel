@@ -484,6 +484,7 @@ model User {
   emailDomains                 EmailDomain[]
   emailCampaigns               EmailCampaign[]
   EmailBuilderDesign           EmailBuilderDesign[]
+  aiChats                      AiChat[]
 
   @@unique([email])
   @@index([role])
@@ -551,9 +552,8 @@ model Team {
   invoices                     Invoice[]
   creditNotes                  CreditNote[]
   billingSettings              TeamBillingSettings?
-  etimsSettings                TeamETimsSettings?
-  etimsItems                   TeamETimsItem[]
-  etimsBranches                TeamETimsBranch[]
+  etimsConfiguration           ETimsConfiguration?
+  etimsItems                   ETimsItem[]
   // Social Media Marketing Relations (page ownership)
   socialMediaPageTokens        SocialMediaPageToken[]
   // Google Ads Relations (account ownership)
@@ -583,6 +583,7 @@ model Team {
   emailDomains                 EmailDomain[]
   emailCampaigns               EmailCampaign[]
   EmailBuilderDesign           EmailBuilderDesign[]
+  aiChats                      AiChat[]
 
   @@index([slug])
   @@index([createdById])

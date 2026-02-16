@@ -17,6 +17,16 @@ export { Prisma }
 export * as $Enums from './enums'
 export * from './enums';
 /**
+ * Model AiChat
+ * 
+ */
+export type AiChat = Prisma.AiChatModel
+/**
+ * Model AiChatMessage
+ * 
+ */
+export type AiChatMessage = Prisma.AiChatMessageModel
+/**
  * Model CustomerIntegration
  * 
  */
@@ -317,6 +327,16 @@ export type EmailDomainActivityLog = Prisma.EmailDomainActivityLogModel
  */
 export type EmailCampaignActivityLog = Prisma.EmailCampaignActivityLogModel
 /**
+ * Model ETimsConfiguration
+ * 
+ */
+export type ETimsConfiguration = Prisma.ETimsConfigurationModel
+/**
+ * Model ETimsItem
+ * 
+ */
+export type ETimsItem = Prisma.ETimsItemModel
+/**
  * Model GoogleAdsIntegration
  * 
  */
@@ -441,21 +461,6 @@ export type CreditNoteActivityLog = Prisma.CreditNoteActivityLogModel
  * 
  */
 export type InvoiceCounter = Prisma.InvoiceCounterModel
-/**
- * Model TeamETimsSettings
- * 
- */
-export type TeamETimsSettings = Prisma.TeamETimsSettingsModel
-/**
- * Model TeamETimsItem
- * 
- */
-export type TeamETimsItem = Prisma.TeamETimsItemModel
-/**
- * Model TeamETimsBranch
- * 
- */
-export type TeamETimsBranch = Prisma.TeamETimsBranchModel
 /**
  * Model MetaAdsAccount
  * 

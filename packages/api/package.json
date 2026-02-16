@@ -23,12 +23,13 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.53",
     "@aws-sdk/client-ses": "^3.917.0",
     "@aws-sdk/client-sns": "^3.917.0",
     "@nPanel/auth": "workspace:*",
     "@nPanel/db": "workspace:*",
-    "@nPanel/location": "workspace:*",
     "@nPanel/invoice": "workspace:*",
+    "@nPanel/location": "workspace:*",
     "@number-flow/react": "^0.5.10",
     "@radix-ui/react-icons": "^1.3.2",
     "@react-email/render": "^1.3.2",
@@ -38,6 +39,7 @@
     "@upstash/qstash": "^2.8.4",
     "@upstash/redis": "^1.35.6",
     "adm-zip": "^0.5.16",
+    "ai": "^5.0.76",
     "archiver": "^7.0.1",
     "aws-sdk": "^2.1692.0",
     "basic-ftp": "^5.0.5",

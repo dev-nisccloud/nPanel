@@ -48,6 +48,8 @@ export const AnyNull = runtime.objectEnumValues.instances.AnyNull
 
 
 export const ModelName = {
+  AiChat: 'AiChat',
+  AiChatMessage: 'AiChatMessage',
   CustomerIntegration: 'CustomerIntegration',
   WordPressInstance: 'WordPressInstance',
   Order: 'Order',
@@ -108,6 +110,8 @@ export const ModelName = {
   EmailEventActivityLog: 'EmailEventActivityLog',
   EmailDomainActivityLog: 'EmailDomainActivityLog',
   EmailCampaignActivityLog: 'EmailCampaignActivityLog',
+  ETimsConfiguration: 'ETimsConfiguration',
+  ETimsItem: 'ETimsItem',
   GoogleAdsIntegration: 'GoogleAdsIntegration',
   GoogleAdsAccount: 'GoogleAdsAccount',
   GoogleAdsIntegrationActivityLog: 'GoogleAdsIntegrationActivityLog',
@@ -133,9 +137,6 @@ export const ModelName = {
   InvoiceTransactionActivityLog: 'InvoiceTransactionActivityLog',
   CreditNoteActivityLog: 'CreditNoteActivityLog',
   InvoiceCounter: 'InvoiceCounter',
-  TeamETimsSettings: 'TeamETimsSettings',
-  TeamETimsItem: 'TeamETimsItem',
-  TeamETimsBranch: 'TeamETimsBranch',
   MetaAdsAccount: 'MetaAdsAccount',
   MetaAdsCampaign: 'MetaAdsCampaign',
   MetaAdsAdSet: 'MetaAdsAdSet',
@@ -188,6 +189,34 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 } as const)
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
+
+
+export const AiChatScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  teamId: 'teamId',
+  title: 'title',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  closedAt: 'closedAt'
+} as const
+
+export type AiChatScalarFieldEnum = (typeof AiChatScalarFieldEnum)[keyof typeof AiChatScalarFieldEnum]
+
+
+export const AiChatMessageScalarFieldEnum = {
+  id: 'id',
+  chatId: 'chatId',
+  role: 'role',
+  content: 'content',
+  toolCalls: 'toolCalls',
+  toolCallId: 'toolCallId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type AiChatMessageScalarFieldEnum = (typeof AiChatMessageScalarFieldEnum)[keyof typeof AiChatMessageScalarFieldEnum]
 
 
 export const CustomerIntegrationScalarFieldEnum = {
@@ -1263,6 +1292,44 @@ export const EmailCampaignActivityLogScalarFieldEnum = {
 export type EmailCampaignActivityLogScalarFieldEnum = (typeof EmailCampaignActivityLogScalarFieldEnum)[keyof typeof EmailCampaignActivityLogScalarFieldEnum]
 
 
+export const ETimsConfigurationScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  kraPin: 'kraPin',
+  branchId: 'branchId',
+  branchName: 'branchName',
+  deviceSerialNumber: 'deviceSerialNumber',
+  cmcKey: 'cmcKey',
+  isSandbox: 'isSandbox',
+  isInitialized: 'isInitialized',
+  lastSyncAt: 'lastSyncAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ETimsConfigurationScalarFieldEnum = (typeof ETimsConfigurationScalarFieldEnum)[keyof typeof ETimsConfigurationScalarFieldEnum]
+
+
+export const ETimsItemScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  localItemId: 'localItemId',
+  itemCd: 'itemCd',
+  itemClsCd: 'itemClsCd',
+  itemNm: 'itemNm',
+  taxTyCd: 'taxTyCd',
+  pkgUnitCd: 'pkgUnitCd',
+  originCountryCd: 'originCountryCd',
+  packagingUnit: 'packagingUnit',
+  quantityUnit: 'quantityUnit',
+  unitPrice: 'unitPrice',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ETimsItemScalarFieldEnum = (typeof ETimsItemScalarFieldEnum)[keyof typeof ETimsItemScalarFieldEnum]
+
+
 export const GoogleAdsIntegrationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1712,60 +1779,6 @@ export const InvoiceCounterScalarFieldEnum = {
 } as const
 
 export type InvoiceCounterScalarFieldEnum = (typeof InvoiceCounterScalarFieldEnum)[keyof typeof InvoiceCounterScalarFieldEnum]
-
-
-export const TeamETimsSettingsScalarFieldEnum = {
-  id: 'id',
-  teamId: 'teamId',
-  kraPin: 'kraPin',
-  branchId: 'branchId',
-  deviceSerialNumber: 'deviceSerialNumber',
-  cmcKey: 'cmcKey',
-  isInitialized: 'isInitialized',
-  isSandbox: 'isSandbox',
-  lastSyncAt: 'lastSyncAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type TeamETimsSettingsScalarFieldEnum = (typeof TeamETimsSettingsScalarFieldEnum)[keyof typeof TeamETimsSettingsScalarFieldEnum]
-
-
-export const TeamETimsItemScalarFieldEnum = {
-  id: 'id',
-  teamId: 'teamId',
-  itemCd: 'itemCd',
-  itemClsCd: 'itemClsCd',
-  itemNm: 'itemNm',
-  itemClsNm: 'itemClsNm',
-  taxTyCd: 'taxTyCd',
-  pkgUnitCd: 'pkgUnitCd',
-  qtyUnitCd: 'qtyUnitCd',
-  prc: 'prc',
-  isService: 'isService',
-  metadata: 'metadata',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type TeamETimsItemScalarFieldEnum = (typeof TeamETimsItemScalarFieldEnum)[keyof typeof TeamETimsItemScalarFieldEnum]
-
-
-export const TeamETimsBranchScalarFieldEnum = {
-  id: 'id',
-  teamId: 'teamId',
-  bhfId: 'bhfId',
-  bhfNm: 'bhfNm',
-  bhfSttsCd: 'bhfSttsCd',
-  addr: 'addr',
-  mgrNm: 'mgrNm',
-  mgrTelNo: 'mgrTelNo',
-  metadata: 'metadata',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type TeamETimsBranchScalarFieldEnum = (typeof TeamETimsBranchScalarFieldEnum)[keyof typeof TeamETimsBranchScalarFieldEnum]
 
 
 export const MetaAdsAccountScalarFieldEnum = {
@@ -2462,6 +2475,14 @@ export const QueryMode = {
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
 export const JsonNullValueFilter = {
   DbNull: DbNull,
   JsonNull: JsonNull,
@@ -2469,12 +2490,4 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
-
-
-export const NullsOrder = {
-  first: 'first',
-  last: 'last'
-} as const
-
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 

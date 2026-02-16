@@ -30,12 +30,6 @@ export const metadata: Metadata = {
   // PWA Manifest
   manifest: '/favicon/site.webmanifest',
 
-  // Theme colors for browser UI
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
-  ],
-
   // Apple-specific meta tags
   appleWebApp: {
     capable: true,
@@ -47,13 +41,17 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+};
 
-  // Viewport for mobile optimization
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
+// Viewport configuration (Next.js 15+ requires separate export)
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

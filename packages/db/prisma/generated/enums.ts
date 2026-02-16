@@ -8,6 +8,15 @@
 * 🟢 You can import this file directly.
 */
 
+export const AiChatStatus = {
+  ACTIVE: 'ACTIVE',
+  ESCALATED: 'ESCALATED',
+  CLOSED: 'CLOSED'
+} as const
+
+export type AiChatStatus = (typeof AiChatStatus)[keyof typeof AiChatStatus]
+
+
 export const UserRole = {
   CUSTOMER: 'CUSTOMER',
   AGENCY_ADMIN: 'AGENCY_ADMIN',

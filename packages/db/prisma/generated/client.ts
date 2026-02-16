@@ -28,8 +28,8 @@ export * from "./enums"
  * @example
  * ```
  * const prisma = new PrismaClient()
- * // Fetch zero or more CustomerIntegrations
- * const customerIntegrations = await prisma.customerIntegration.findMany()
+ * // Fetch zero or more AiChats
+ * const aiChats = await prisma.aiChat.findMany()
  * ```
  * 
  * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
@@ -43,6 +43,16 @@ export { Prisma }
 path.join(__dirname, "query_engine-windows.dll.node")
 path.join(process.cwd(), "prisma/generated/query_engine-windows.dll.node")
 
+/**
+ * Model AiChat
+ * 
+ */
+export type AiChat = Prisma.AiChatModel
+/**
+ * Model AiChatMessage
+ * 
+ */
+export type AiChatMessage = Prisma.AiChatMessageModel
 /**
  * Model CustomerIntegration
  * 
@@ -344,6 +354,16 @@ export type EmailDomainActivityLog = Prisma.EmailDomainActivityLogModel
  */
 export type EmailCampaignActivityLog = Prisma.EmailCampaignActivityLogModel
 /**
+ * Model ETimsConfiguration
+ * 
+ */
+export type ETimsConfiguration = Prisma.ETimsConfigurationModel
+/**
+ * Model ETimsItem
+ * 
+ */
+export type ETimsItem = Prisma.ETimsItemModel
+/**
  * Model GoogleAdsIntegration
  * 
  */
@@ -468,21 +488,6 @@ export type CreditNoteActivityLog = Prisma.CreditNoteActivityLogModel
  * 
  */
 export type InvoiceCounter = Prisma.InvoiceCounterModel
-/**
- * Model TeamETimsSettings
- * 
- */
-export type TeamETimsSettings = Prisma.TeamETimsSettingsModel
-/**
- * Model TeamETimsItem
- * 
- */
-export type TeamETimsItem = Prisma.TeamETimsItemModel
-/**
- * Model TeamETimsBranch
- * 
- */
-export type TeamETimsBranch = Prisma.TeamETimsBranchModel
 /**
  * Model MetaAdsAccount
  * 

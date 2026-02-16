@@ -1,0 +1,75 @@
+// eTIMS Integration Schema
+// Handles KRA eTIMS configuration, device initialization, and item mappings.
+// Prioritizes API fetching for transactions/stock, storing only essential persistence data.
+
+model ETimsConfiguration {
+  id     String  @id @map("_id")
+  teamId String? @unique
+
+  // Taxpayer Details
+  kraPin     String // The User's PIN
+  branchId   String  @default("00")
+  branchName String? // Friendly name (e.g. "Headquarters")
+
+  // Device Details
+  deviceSerialNumber String // The physical/virtual device serial
+  cmcKey             String? // Communication key from device initialization
+
+  // Environment
+  isSandbox     Boolean @default(true)
+  isInitialized Boolean @default(false)
+
+  // Sync Status
+  lastSyncAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@map("etims_configuration")
+}
+
+model ETimsItem {
+  id     String  @id @map("_id")
+  teamId String?
+
+  // Mapping
+  localItemId String? // Optional reference to internal Product/Service ID if applicable
+
+  // KRA Item Details (Persisted for seamless invoicing)
+  itemCd    String // KRA Item Code
+  itemClsCd String // KRA Classification Code (HS Code)
+  itemNm    String // KRA Item Name
+  taxTyCd   String @default("A") // Tax Type
+  pkgUnitCd String @default("OU")
+
+  // Metadata
+  originCountryCd String?
+  packagingUnit   String?
+  quantityUnit    String?
+  unitPrice       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  // Actually, for MongoDB, unique on nullable is fine, it treats nulls as unique values or ignores them depending on index options. 
+  // But safest is to perhaps check if we need this unique constraint here. 
+  // If teamId is null, it means global item? Or legacy item?
+  // Let's assume unique constraint might key collision if multiple nulls.
+  // We can remove unique on teamId+itemCd if teamId is nullable, or just keep it if we expect at most one global config.
+  // But user said "teamId needs to be optional". A global config usually means one config for the whole agency.
+  // So validation: duplicate global config is bad.
+  // Duplicate global item definition is also bad.
+  // unique([teamId, itemCd]) where teamId is null => unique([null, itemCd]). 
+  // This means max 1 global item for a given code. This is correct.
+
+  @@unique([teamId, itemCd]) // Note: Prisma might complain about unique constraint on nullable field, but MongoDB handles sparse indexes.
+  @@index([teamId])
+  @@map("etims_item")
+}

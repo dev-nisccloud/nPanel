@@ -78,6 +78,8 @@ import { emailMarketingRouter } from "./email-marketing";
 import { webDesignQuotesRouter } from "./web-design-quotes";
 import { userRouter } from "./user";
 import { emailBuilderRouter } from "./email-builder";
+import { aiRouter } from "./ai";
+import { etimsRouter } from "./etims";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -218,5 +220,9 @@ export const appRouter = router({
 	user: userRouter,
 	// Email Builder (Design Management)
 	emailBuilder: emailBuilderRouter,
+	// Live AI Assistant
+	ai: aiRouter,
+	// eTIMS Integration
+	etims: etimsRouter,
 });
 export type AppRouter = typeof appRouter;

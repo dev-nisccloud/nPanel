@@ -1,13 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { X, MessageCircle, ChevronRight, RotateCw, Phone, Bot, ArrowLeft, Paperclip, Send, ChevronDown, Loader2 } from "lucide-react";
+import { X, MessageCircle, ChevronRight, RotateCw, Phone, Bot, ArrowLeft, Paperclip, Send, ChevronDown, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -25,6 +31,7 @@ import { NotificationSettingsBanner } from "@/components/notification-settings-b
 import { useNewMessageDetector } from "@/hooks/use-new-message-detector";
 import { useGlobalNotificationDetector } from "@/hooks/use-global-notification-detector";
 import { MessageAttachment } from "./tickets/message-attachment";
+import { useAiHistory, useAiChat, useAiMutations } from "@/hooks/use-ai";
 
 interface FloatingActionButtonProps {
   className?: string;
@@ -53,6 +60,8 @@ type ChatMessage =
     timestamp: Date;
     attachments?: ChatMessageAttachment[];
   };
+
+
 
 // WhatsApp Icon Component
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -87,40 +96,7 @@ const getActionOptions = () => [
     icon: Icons.AISupport,
     color: "text-blue-600",
     bgColor: "bg-blue-50 dark:bg-blue-950/20",
-    onClick: () => {
-      // Handle Zeepo AI chat - use env variable
-      const zeepoUrl = process.env.NEXT_PUBLIC_ZEEPO_URL;
-      if (zeepoUrl) {
-        window.open(zeepoUrl, "_blank");
-      } else {
-        console.log("Chat with Zeepo");
-      }
-    },
   },
-  // {
-  //   id: "whatsapp",
-  //   title: "Continue on WhatsApp",
-  //   icon: WhatsAppIcon,
-  //   color: "text-green-600",
-  //   bgColor: "bg-green-50 dark:bg-green-950/20",
-  //   onClick: () => {
-  //     // Handle WhatsApp - use env variable
-  //     const whatsappUrl = process.env.NEXT_PUBLIC_WHATSAPP_URL || "https://wa.me/254748777666";
-  //     window.open(whatsappUrl, "_blank");
-  //   },
-  // },
-  // {
-  //   id: "sms",
-  //   title: "Text us via SMS",
-  //   icon: MessageCircle,
-  //   color: "text-blue-600",
-  //   bgColor: "bg-blue-50 dark:bg-blue-950/20",
-  //   onClick: () => {
-  //     // Handle SMS - use env variable
-  //     const smsUrl = process.env.NEXT_PUBLIC_SMS_URL || "sms:+254748777666";
-  //     window.open(smsUrl, "_blank");
-  //   },
-  // },
   {
     id: "call",
     title: "Call us",
@@ -153,13 +129,17 @@ const initialZeepoMessage: ChatMessage = {
 
 export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [currentView, setCurrentView] = React.useState<"main" | "ticket-list" | "chat" | "zeepo">("main");
+  const [currentView, setCurrentView] = React.useState<"main" | "ticket-list" | "chat" | "zeepo" | "zeepo-history">("main");
   const [messageInput, setMessageInput] = React.useState("");
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
   const [selectedTicketId, setSelectedTicketId] = React.useState<string | null>(null);
+  const [selectedAiChatId, setSelectedAiChatId] = React.useState<string | null>(null);
   const [isNewTicket, setIsNewTicket] = React.useState(false);
   const [isSending, setIsSending] = React.useState(false);
   const [loadingChatId, setLoadingChatId] = React.useState<string | null>(null);
+  const [loadingAiChatId, setLoadingAiChatId] = React.useState<string | null>(null);
+  const [deletingAiChatId, setDeletingAiChatId] = React.useState<string | null>(null);
+  const [optimisticAiMessages, setOptimisticAiMessages] = React.useState<ChatMessage[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const actionOptions = getActionOptions();
 
@@ -188,6 +168,13 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     shouldFetchMessages ? selectedTicketId : null
   );
   const { createTicket, createMessage, markMessageRead, markAllTicketMessagesAsRead } = useTicketMutations({ currentUserId });
+
+  // AI Data fetching hooks
+  const { history: aiHistory, isLoading: isLoadingAiHistory, isRefetching: isRefetchingAiHistory, refetch: refetchAiHistory } = useAiHistory({
+    teamId: teamData?.id,
+  });
+  const { messages: aiMessagesData, isLoading: isLoadingAiMessages } = useAiChat(selectedAiChatId === "new" ? null : selectedAiChatId);
+  const { startChat: startAiChat, sendMessage: sendAiMessage, escalateChat: directEscalateChat, deleteChat: deleteAiChat } = useAiMutations();
 
   // Callback for when a new message is received while chat is open
   const handleNewMessage = React.useCallback((message: any) => {
@@ -234,7 +221,43 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     return [initialGreetingMessage];
   }, [messages, isNewTicket, currentUserId]);
 
-  const zeepoMessages = React.useState<ChatMessage[]>([initialZeepoMessage])[0];
+  // Transform AI messages
+  const transformedAiMessages: ChatMessage[] = React.useMemo(() => {
+    let baseMessages: ChatMessage[] = [];
+
+    if (aiMessagesData && aiMessagesData.length > 0) {
+      baseMessages = aiMessagesData
+        .filter((msg) => msg.role !== "system")
+        .map((msg) => ({
+          id: msg.id,
+          type: (msg.role === "user" ? "user" : "assistant") as "user" | "assistant",
+          message: msg.content || "",
+          timestamp: new Date(msg.createdAt),
+        })) as ChatMessage[];
+    } else if (selectedAiChatId === "new") {
+      baseMessages = [initialZeepoMessage];
+    } else {
+      // Transition state: we have an ID but data hasn't arrived/finished loading
+      baseMessages = [initialZeepoMessage];
+    }
+
+    // Merge with optimistic messages
+    // We only keep optimistic messages that aren't already in the real data (comparing content)
+    const filteredOptimistic = optimisticAiMessages.filter(
+      om => !baseMessages.find(bm =>
+        bm.message === om.message && bm.type === om.type
+      )
+    );
+
+    return [...baseMessages, ...filteredOptimistic];
+  }, [aiMessagesData, selectedAiChatId, optimisticAiMessages]);
+
+  // Clear optimistic messages when actual data starts coming in for the current chat
+  React.useEffect(() => {
+    if (aiMessagesData && aiMessagesData.length > 0) {
+      setOptimisticAiMessages([]);
+    }
+  }, [aiMessagesData]);
 
   // Reset view when popover closes
   React.useEffect(() => {
@@ -243,6 +266,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
       setMessageInput("");
       setSelectedFiles([]);
       setSelectedTicketId(null);
+      setSelectedAiChatId(null);
       setIsNewTicket(false);
     }
   }, [isOpen]);
@@ -267,10 +291,53 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   };
 
   const handleZeepoChat = () => {
+    setCurrentView("zeepo-history");
+  };
+
+  const handleStartNewZeepoChat = () => {
+    setSelectedAiChatId("new");
     setCurrentView("zeepo");
   };
 
-  const formatTime = (date: Date) => {
+  const handleSelectPastZeepoChat = (chatId: string) => {
+    if (deletingAiChatId === chatId) return;
+    setSelectedAiChatId(chatId);
+    setCurrentView("zeepo");
+  };
+
+  const handleDeleteAiChat = async (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    if (deletingAiChatId) return;
+
+    try {
+      setDeletingAiChatId(chatId);
+      await deleteAiChat.mutateAsync({ id: chatId });
+    } catch (error) {
+      console.error("Failed to delete AI chat:", error);
+    } finally {
+      setDeletingAiChatId(null);
+    }
+  };
+
+  const handleEscalateToHuman = async () => {
+    if (!selectedAiChatId) return;
+    try {
+      setIsSending(true);
+      await directEscalateChat.mutateAsync({
+        chatId: selectedAiChatId,
+        reason: "User requested human agent via button.",
+      });
+      setCurrentView("ticket-list");
+      refetchTickets();
+    } catch (error) {
+      console.error("Escalation failed:", error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const formatTime = (dateInput: Date | string) => {
+    const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -335,12 +402,42 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   };
 
   const handleSendMessage = async () => {
+    if (isSending || (!messageInput.trim() && selectedFiles.length === 0)) return;
+
     if (currentView === "zeepo") {
-      // Zeepo chat - no files (handled separately, not implemented yet)
-      if (!messageInput.trim()) return;
-      // TODO: Implement Zeepo AI integration
-      console.log("Zeepo message:", messageInput);
-      setMessageInput("");
+      if (!messageInput.trim() || !selectedAiChatId) return;
+
+      setIsSending(true);
+      try {
+        const input = messageInput;
+        setMessageInput(""); // Optimistically clear input
+
+        // Add user message optimistically
+        const userMessage: ChatMessage = {
+          id: `temp-${Date.now()}`,
+          type: "user",
+          message: input,
+          timestamp: new Date(),
+        };
+        setOptimisticAiMessages(prev => [...prev, userMessage]);
+
+        if (selectedAiChatId === "new") {
+          const newChat = await startAiChat.mutateAsync({
+            initialMessage: input,
+          });
+          setSelectedAiChatId(newChat.id);
+        } else {
+          await sendAiMessage.mutateAsync({
+            chatId: selectedAiChatId,
+            content: input,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to send AI message:", error);
+        toast.error("Failed to send message to Zeepo.");
+      } finally {
+        setIsSending(false);
+      }
       return;
     }
 
@@ -463,7 +560,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         sideOffset={16}
         className={cn(
           "w-[360px] p-0 rounded-2xl overflow-hidden border-0 shadow-xl bg-background/98 backdrop-blur-md",
-          (currentView === "ticket-list" || currentView === "chat" || currentView === "zeepo") && "h-[600px] flex flex-col"
+          (currentView === "ticket-list" || currentView === "chat" || currentView === "zeepo" || currentView === "zeepo-history") && "h-[600px] flex flex-col"
         )}
       >
         {/* Background gradient effect - must have - prominent blue glow - clipped to rounded corners */}
@@ -520,7 +617,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                         } else if (option.id === "zeepo") {
                           handleZeepoChat();
                         } else {
-                          option.onClick();
+                          option.onClick?.();
                           setIsOpen(false);
                         }
                       }}
@@ -695,6 +792,128 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                           </div>
                         </div>
                       </button>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </>
+          ) : currentView === "zeepo-history" ? (
+            <>
+              {/* Zeepo History Header */}
+              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-accent"
+                    onClick={() => setCurrentView("main")}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <h2 className="text-lg font-semibold text-foreground">AI Chat History</h2>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-8 w-8 rounded-full hover:bg-accent",
+                      (isLoadingAiHistory || isRefetchingAiHistory) && "animate-spin"
+                    )}
+                    onClick={() => refetchAiHistory()}
+                    disabled={isLoadingAiHistory || isRefetchingAiHistory}
+                  >
+                    <RotateCw className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-accent"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Start New AI Chat Button */}
+              <div className="px-4 pt-4 pb-3 border-b">
+                <Button
+                  onClick={handleStartNewZeepoChat}
+                  disabled={isSending || isLoadingAiHistory}
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {isSending ? (
+                    <Spinner size={16} className="mr-2 border-primary-foreground" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
+                  {isSending ? "Starting Chat..." : "Start New AI Chat"}
+                </Button>
+              </div>
+
+              {/* AI Chat History List */}
+              <ScrollArea className="flex-1">
+                {isLoadingAiHistory ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <Spinner size={32} className="mx-auto mb-4" />
+                      <p className="text-sm text-muted-foreground">Loading chats...</p>
+                    </div>
+                  </div>
+                ) : aiHistory.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                    <p className="text-sm text-muted-foreground">No recent AI chats.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {aiHistory.map((chat) => (
+                      <div
+                        key={chat.id}
+                        onClick={() => handleSelectPastZeepoChat(chat.id)}
+                        className={cn(
+                          "w-full px-4 py-3 hover:bg-muted/50 transition-colors text-left cursor-pointer relative group",
+                          deletingAiChatId === chat.id && "opacity-50 pointer-events-none"
+                        )}
+                      >
+                        <div className="flex flex-col gap-1 pr-8">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm text-foreground">
+                              {chat.title || "AI Chat"}
+                            </span>
+                            <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
+                              {formatTime(chat.timestamp)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {chat.lastMessage}
+                          </p>
+                        </div>
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                  onClick={(e) => handleDeleteAiChat(e, chat.id)}
+                                  disabled={!!deletingAiChatId}
+                                >
+                                  {deletingAiChatId === chat.id ? (
+                                    <Spinner size={14} />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete chat history</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -969,7 +1188,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => setCurrentView("main")}
+                    onClick={() => setCurrentView("zeepo-history")}
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
@@ -983,45 +1202,109 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                     />
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-accent"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    onClick={handleEscalateToHuman}
+                    disabled={isSending}
+                  >
+                    Speak to human
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-accent"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               {/* Zeepo Chat Messages Area */}
               <ScrollArea className="flex-1 px-4 py-4">
-                <div className="space-y-4">
-                  {zeepoMessages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        "flex items-end gap-2",
-                        msg.type === "user" ? "justify-end" : "justify-start"
-                      )}
-                    >
-                      {msg.type === "assistant" && (
-                        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mb-1">
-                          <Icons.AISupport className="h-4 w-4 text-primary" />
-                        </div>
-                      )}
+                {isLoadingAiMessages && transformedAiMessages.length <= 1 && optimisticAiMessages.length === 0 ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
                       <div
+                        key={i}
                         className={cn(
-                          "max-w-[80%] rounded-2xl px-4 py-2.5",
-                          msg.type === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-primary/10 text-foreground"
+                          "flex items-end gap-2",
+                          i % 2 === 0 ? "justify-end" : "justify-start"
                         )}
                       >
-                        <p className="text-sm leading-relaxed whitespace-pre-line">{msg.message}</p>
+                        {i % 2 !== 0 && (
+                          <div className="h-6 w-6 rounded-full bg-muted animate-pulse flex-shrink-0 mb-1" />
+                        )}
+                        <div
+                          className={cn(
+                            "rounded-2xl px-4 py-2.5 space-y-2 animate-pulse",
+                            i % 2 === 0 ? "bg-primary/20 max-w-[80%] w-32" : "bg-muted max-w-[70%] w-48"
+                          )}
+                        >
+                          <div className="h-3 bg-muted-foreground/20 rounded w-full" />
+                          {i === 2 && <div className="h-3 bg-muted-foreground/20 rounded w-3/4" />}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : transformedAiMessages.length === 0 && optimisticAiMessages.length === 0 ? (
+                  // Welcome View (No Chat ID or New Chat)
+                  <div className="flex flex-col items-center justify-center h-full py-12 text-center animate-in fade-in duration-500">
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
+                      <div className="relative bg-background p-4 rounded-2xl shadow-lg border border-border/50">
+                        <Icons.AISupport className="h-12 w-12 text-primary" />
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
+                      Hi! I'm Zeepo
+                    </h3>
+                    <p className="text-muted-foreground max-w-[260px] leading-relaxed mb-8">
+                      Your AI support assistant. I can help you with services, account questions, and more!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {transformedAiMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={cn(
+                          "flex items-end gap-2",
+                          msg.type === "user" ? "justify-end" : "justify-start"
+                        )}
+                      >
+                        {msg.type === "assistant" && (
+                          <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mb-1">
+                            <Icons.AISupport className="h-4 w-4 text-primary" />
+                          </div>
+                        )}
+                        <div
+                          className={cn(
+                            "max-w-[80%] rounded-2xl px-4 py-2.5",
+                            msg.type === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-primary/10 text-foreground"
+                          )}
+                        >
+                          <p className="text-sm leading-relaxed whitespace-pre-line">{msg.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {isSending && (
+                      <div className="flex justify-start gap-2">
+                        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 animate-pulse">
+                          <Icons.AISupport className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="bg-primary/10 rounded-2xl px-4 py-2.5">
+                          <Spinner size={16} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </ScrollArea>
 
               {/* Zeepo Message Input - No attachment */}
@@ -1047,10 +1330,16 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                     type="button"
                     className="h-9 w-9 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={handleSendMessage}
-                    disabled={!messageInput.trim() || createMessage.isPending}
+                    disabled={
+                      !messageInput.trim() ||
+                      isSending ||
+                      createMessage.isPending ||
+                      startAiChat.isPending ||
+                      sendAiMessage.isPending
+                    }
                   >
-                    {createMessage.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    {isSending || createMessage.isPending || startAiChat.isPending || sendAiMessage.isPending ? (
+                      <Spinner size={16} />
                     ) : (
                       <Send className="h-4 w-4" />
                     )}
