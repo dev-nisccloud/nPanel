@@ -108,17 +108,21 @@ function VisitorsChart() {
     }
   }, [isMobile]);
 
-  const filteredData = visitorsData.filter((item) => {
-    const date = new Date(item.date);
-    const referenceDate = new Date("2024-04-30");
-    let daysToSubtract = 30;
-    if (timeRange === "7d") {
-      daysToSubtract = 7;
-    }
-    const startDate = new Date(referenceDate);
-    startDate.setDate(startDate.getDate() - daysToSubtract);
-    return date >= startDate;
-  });
+  const filteredData = React.useMemo(() => {
+    return visitorsData.filter((item) => {
+      const date = new Date(item.date);
+      const referenceDate = new Date("2024-04-30");
+      let daysToSubtract = 30;
+      if (timeRange === "7d") {
+        daysToSubtract = 7;
+      }
+      const startDate = new Date(referenceDate);
+      startDate.setDate(startDate.getDate() - daysToSubtract);
+      return date >= startDate;
+    });
+  }, [timeRange]);
+
+  if (!filteredData) return null;
 
   return (
     <Card>
@@ -157,7 +161,7 @@ function VisitorsChart() {
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer config={visitorsChartConfig} className="aspect-auto h-[250px] w-full">
-          <AreaChart data={filteredData}>
+          <AreaChart data={filteredData || []}>
             <defs>
               <linearGradient id="fillVisitors" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="var(--color-visitors)" stopOpacity={1.0} />
@@ -212,17 +216,21 @@ function EmailMarketingChart() {
     }
   }, [isMobile]);
 
-  const filteredData = emailMarketingData.filter((item) => {
-    const date = new Date(item.date);
-    const referenceDate = new Date("2024-04-30");
-    let daysToSubtract = 30;
-    if (timeRange === "7d") {
-      daysToSubtract = 7;
-    }
-    const startDate = new Date(referenceDate);
-    startDate.setDate(startDate.getDate() - daysToSubtract);
-    return date >= startDate;
-  });
+  const filteredData = React.useMemo(() => {
+    return emailMarketingData.filter((item) => {
+      const date = new Date(item.date);
+      const referenceDate = new Date("2024-04-30");
+      let daysToSubtract = 30;
+      if (timeRange === "7d") {
+        daysToSubtract = 7;
+      }
+      const startDate = new Date(referenceDate);
+      startDate.setDate(startDate.getDate() - daysToSubtract);
+      return date >= startDate;
+    });
+  }, [timeRange]);
+
+  if (!filteredData) return null;
 
   return (
     <Card>
@@ -261,7 +269,7 @@ function EmailMarketingChart() {
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer config={emailChartConfig} className="aspect-auto h-[250px] w-full">
-          <AreaChart data={filteredData}>
+          <AreaChart data={filteredData || []}>
             <defs>
               <linearGradient id="fillSent" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="var(--color-sent)" stopOpacity={1.0} />

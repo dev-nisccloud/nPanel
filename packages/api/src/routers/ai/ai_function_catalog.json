@@ -801,6 +801,169 @@
                     }
                 }
             }
+        },
+        {
+            "id": "plesk.wordpress.list",
+            "category": "Plesk Integration",
+            "subcategory": "WordPress Management",
+            "type": "query",
+            "access": "public",
+            "description": "List all WordPress installations in Plesk",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "subscriptionId": {
+                        "type": "number",
+                        "description": "Optional - filter by subscription ID"
+                    }
+                }
+            },
+            "outputSchema": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "string"
+                        },
+                        "url": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        },
+                        "status": {
+                            "type": "string"
+                        },
+                        "subscription_id": {
+                            "type": "number"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "id": "plesk.domainDns.list",
+            "category": "Plesk Integration",
+            "subcategory": "Domain & DNS Management",
+            "type": "query",
+            "access": "public",
+            "description": "List DNS records for a domain in Plesk",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "domainId": {
+                        "type": "number",
+                        "description": "Plesk domain ID"
+                    }
+                },
+                "required": [
+                    "domainId"
+                ]
+            },
+            "outputSchema": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "number"
+                        },
+                        "type": {
+                            "type": "string"
+                        },
+                        "host": {
+                            "type": "string"
+                        },
+                        "value": {
+                            "type": "string"
+                        },
+                        "ttl": {
+                            "type": "number"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "id": "plesk.emails.list",
+            "category": "Plesk Integration",
+            "subcategory": "Email Management",
+            "type": "query",
+            "access": "public",
+            "description": "List email accounts for a domain in Plesk",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "domainId": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "domainId"
+                ]
+            },
+            "outputSchema": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "number"
+                        },
+                        "email": {
+                            "type": "string"
+                        },
+                        "mailbox_size": {
+                            "type": "number"
+                        },
+                        "quota": {
+                            "type": "number"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "id": "openprovider.domains.list",
+            "category": "OpenProvider Integration",
+            "subcategory": "Domain Operations",
+            "type": "query",
+            "access": "public",
+            "description": "List registered domains in OpenProvider",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "number",
+                        "default": 100
+                    },
+                    "offset": {
+                        "type": "number",
+                        "default": 0
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "ACT",
+                            "REQ",
+                            "DEL",
+                            "FAIL"
+                        ]
+                    }
+                }
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array"
+                    },
+                    "total": {
+                        "type": "number"
+                    }
+                }
+            }
         }
     ]
 }

@@ -28,13 +28,13 @@
     "prettier": "^3.6.2",
     "react-icons": "^5.5.0",
     "tippy.js": "^6.3.7",
-    "zod": "^4.1.11"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "^22.13.11",
     "tsdown": "^0.15.5",
     "turbo": "^2.5.4"
-  }, 
+  },
   "overrides": {
     "canvas": "npm:@napi-rs/canvas@0.1.69"
   },

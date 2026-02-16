@@ -67,7 +67,7 @@ const EDITOR_DICTIONARY = buildBlockConfigurationDictionary({
         ),
     },
     Container: {
-        schema: z.any(), // Simplified
+        schema: z.object({}).passthrough(), // Simplified
         Component: (props) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
                 <ContainerEditor {...useResolveBlockStyle(props)} />
@@ -75,7 +75,7 @@ const EDITOR_DICTIONARY = buildBlockConfigurationDictionary({
         ),
     },
     ColumnsContainer: {
-        schema: z.any(), // Simplified
+        schema: z.object({}).passthrough(), // Simplified
         Component: (props) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
                 <ColumnsContainerEditor {...useResolveBlockStyle(props)} />
@@ -124,7 +124,7 @@ const EDITOR_DICTIONARY = buildBlockConfigurationDictionary({
         ),
     },
     EmailLayout: {
-        schema: z.any(), // Simplified
+        schema: z.object({}).passthrough(), // Simplified
         Component: (p) => <EmailLayoutEditor {...p} />,
     },
     Spacer: {
@@ -155,11 +155,11 @@ const READ_ONLY_DICTIONARY = buildBlockConfigurationDictionary({
         Component: (props) => <Button {...useResolveBlockStyle(props)} />,
     },
     Container: {
-        schema: z.any(),
+        schema: z.object({}).passthrough(),
         Component: (props) => <ContainerEditor {...useResolveBlockStyle(props)} />,
     },
     ColumnsContainer: {
-        schema: z.any(),
+        schema: z.object({}).passthrough(),
         Component: (props) => <ColumnsContainerEditor {...useResolveBlockStyle(props)} />,
     },
     Heading: {
@@ -188,7 +188,7 @@ const READ_ONLY_DICTIONARY = buildBlockConfigurationDictionary({
         Component: (props) => <Text {...useResolveBlockStyle(props)} />,
     },
     EmailLayout: {
-        schema: z.any(),
+        schema: z.object({}).passthrough(),
         Component: (p) => <EmailLayoutEditor {...p} />,
     },
     Spacer: {

@@ -30,7 +30,7 @@ const hostingSubTypeSchema = z.enum([
 const billingCycleSchema = z.enum(["YEARLY", "MONTHLY", "BIENNIALLY", "CUSTOM"]);
 
 // Service Plan Input Schema
-const createServicePlanInputSchema = z.object({
+const baseServicePlanSchema = z.object({
 	name: z.string().min(1, "Plan name is required").max(255),
 	description: z.string().optional(),
 	planType: servicePlanTypeSchema,
@@ -49,7 +49,9 @@ const createServicePlanInputSchema = z.object({
 	pleskServicePlanId: z.string().optional(),
 	pleskFilterId: z.string().optional(),
 	pleskIpAddress: z.string().optional(),
-}).refine(
+});
+
+const createServicePlanInputSchema = baseServicePlanSchema.refine(
 	(data) => {
 		// If planType is HOSTING, hostingSubType should be provided
 		if (data.planType === "HOSTING" && !data.hostingSubType) {
@@ -63,7 +65,7 @@ const createServicePlanInputSchema = z.object({
 	},
 );
 
-const updateServicePlanInputSchema = createServicePlanInputSchema.partial().extend({
+const updateServicePlanInputSchema = baseServicePlanSchema.partial().extend({
 	id: z.string(),
 });
 
@@ -120,15 +122,15 @@ export const hostingPlansRouter = router({
 			}
 
 			const where: any = {};
-			
+
 			if (input?.planType !== undefined) {
 				where.planType = input.planType;
 			}
-			
+
 			if (input?.hostingSubType !== undefined) {
 				where.hostingSubType = input.hostingSubType;
 			}
-			
+
 			if (input?.isActive !== undefined) {
 				where.isActive = input.isActive;
 			}
@@ -358,279 +360,279 @@ export const hostingPlansRouter = router({
 				});
 			}
 
-		// Helper function to compare arrays (order-independent)
-		const arraysEqual = (a: string[], b: string[]): boolean => {
-			if (a.length !== b.length) return false;
-			const sortedA = [...a].sort();
-			const sortedB = [...b].sort();
-			return sortedA.every((val, index) => val === sortedB[index]);
-		};
+			// Helper function to compare arrays (order-independent)
+			const arraysEqual = (a: string[], b: string[]): boolean => {
+				if (a.length !== b.length) return false;
+				const sortedA = [...a].sort();
+				const sortedB = [...b].sort();
+				return sortedA.every((val, index) => val === sortedB[index]);
+			};
 
-		// Helper function to check if a value actually changed
-		const hasChanged = <T>(newValue: T | undefined, oldValue: T | null): boolean => {
-			if (newValue === undefined) return false; // Field not provided
-			// Handle null/undefined comparison
-			if (newValue === null && oldValue === null) return false;
-			if (newValue === null || oldValue === null) return true;
-			// For arrays, use deep comparison
-			if (Array.isArray(newValue) && Array.isArray(oldValue)) {
-				return !arraysEqual(newValue, oldValue);
-			}
-			// For strings, handle empty string vs null
-			if (typeof newValue === "string" && newValue === "" && oldValue === null) return false;
-			if (typeof oldValue === "string" && oldValue === "" && newValue === null) return false;
-			return newValue !== oldValue;
-		};
+			// Helper function to check if a value actually changed
+			const hasChanged = <T>(newValue: T | undefined, oldValue: T | null): boolean => {
+				if (newValue === undefined) return false; // Field not provided
+				// Handle null/undefined comparison
+				if (newValue === null && oldValue === null) return false;
+				if (newValue === null || oldValue === null) return true;
+				// For arrays, use deep comparison
+				if (Array.isArray(newValue) && Array.isArray(oldValue)) {
+					return !arraysEqual(newValue, oldValue);
+				}
+				// For strings, handle empty string vs null
+				if (typeof newValue === "string" && newValue === "" && oldValue === null) return false;
+				if (typeof oldValue === "string" && oldValue === "" && newValue === null) return false;
+				return newValue !== oldValue;
+			};
 
-		// Validate plan type changes
-		const newPlanType = input.planType !== undefined ? input.planType : existingPlan.planType;
-		if (newPlanType === "HOSTING" && input.hostingSubType === undefined && !existingPlan.hostingSubType) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "hostingSubType is required for HOSTING plans",
-			});
-		}
-
-		// Validate Plesk fields are only for HOSTING plans
-		if (newPlanType !== "HOSTING") {
-			if (input.pleskServicePlanId !== undefined || input.pleskFilterId !== undefined || input.pleskIpAddress !== undefined) {
+			// Validate plan type changes
+			const newPlanType = input.planType !== undefined ? input.planType : existingPlan.planType;
+			if (newPlanType === "HOSTING" && input.hostingSubType === undefined && !existingPlan.hostingSubType) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Plesk fields can only be set for HOSTING plans",
+					message: "hostingSubType is required for HOSTING plans",
 				});
 			}
-		}
 
-		const updateData: any = {
-			updatedAt: new Date(),
-		};
-		const changedFields: string[] = [];
-
-		// Only update fields that were provided AND actually changed
-		if (hasChanged(input.name, existingPlan.name)) {
-			updateData.name = input.name;
-			changedFields.push("name");
-		}
-
-		if (hasChanged(input.description, existingPlan.description)) {
-			updateData.description = input.description || null;
-			changedFields.push("description");
-		}
-
-		if (hasChanged(input.planType, existingPlan.planType)) {
-			updateData.planType = input.planType;
-			changedFields.push("planType");
-		}
-
-		if (input.hostingSubType !== undefined) {
-			const newHostingSubType = input.hostingSubType || null;
-			if (newHostingSubType !== existingPlan.hostingSubType) {
-				updateData.hostingSubType = newHostingSubType;
-				changedFields.push("hostingSubType");
-			}
-		}
-
-		// Handle features array - support adding/removing items
-		if (input.features !== undefined) {
-			if (!arraysEqual(input.features, existingPlan.features)) {
-				updateData.features = input.features;
-				changedFields.push("features");
-			}
-		}
-
-		// Handle highlights array - support adding/removing items
-		if (input.highlights !== undefined) {
-			if (!arraysEqual(input.highlights, existingPlan.highlights)) {
-				updateData.highlights = input.highlights;
-				changedFields.push("highlights");
-			}
-		}
-
-		if (hasChanged(input.isPopular, existingPlan.isPopular)) {
-			updateData.isPopular = input.isPopular;
-			changedFields.push("isPopular");
-		}
-
-		if (hasChanged(input.isRecommended, existingPlan.isRecommended)) {
-			updateData.isRecommended = input.isRecommended;
-			changedFields.push("isRecommended");
-		}
-
-		if (input.niscPrice !== undefined) {
-			const newPrice = input.niscPrice || null;
-			if (newPrice !== existingPlan.niscPrice) {
-				updateData.niscPrice = newPrice;
-				changedFields.push("niscPrice");
-			}
-		}
-
-		if (hasChanged(input.niscCurrency, existingPlan.niscCurrency)) {
-			updateData.niscCurrency = input.niscCurrency;
-			changedFields.push("niscCurrency");
-		}
-
-		if (hasChanged(input.billingCycle, existingPlan.billingCycle)) {
-			updateData.billingCycle = input.billingCycle;
-			changedFields.push("billingCycle");
-		}
-
-		if (input.setupFee !== undefined) {
-			const newSetupFee = input.setupFee || null;
-			if (newSetupFee !== existingPlan.setupFee) {
-				updateData.setupFee = newSetupFee;
-				changedFields.push("setupFee");
-			}
-		}
-
-		if (hasChanged(input.isActive, existingPlan.isActive)) {
-			updateData.isActive = input.isActive;
-			changedFields.push("isActive");
-		}
-
-		if (hasChanged(input.isDefault, existingPlan.isDefault)) {
-			updateData.isDefault = input.isDefault;
-			changedFields.push("isDefault");
-		}
-		
-		// Only update Plesk fields if plan type is HOSTING
-		if (newPlanType === "HOSTING") {
-			if (input.pleskServicePlanId !== undefined) {
-				const newPleskServicePlanId = input.pleskServicePlanId || null;
-				if (newPleskServicePlanId !== existingPlan.pleskServicePlanId) {
-					updateData.pleskServicePlanId = newPleskServicePlanId;
-					changedFields.push("pleskServicePlanId");
+			// Validate Plesk fields are only for HOSTING plans
+			if (newPlanType !== "HOSTING") {
+				if (input.pleskServicePlanId !== undefined || input.pleskFilterId !== undefined || input.pleskIpAddress !== undefined) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Plesk fields can only be set for HOSTING plans",
+					});
 				}
 			}
-			if (input.pleskFilterId !== undefined) {
-				const newPleskFilterId = input.pleskFilterId || null;
-				if (newPleskFilterId !== existingPlan.pleskFilterId) {
-					updateData.pleskFilterId = newPleskFilterId;
-					changedFields.push("pleskFilterId");
-				}
-			}
-			if (input.pleskIpAddress !== undefined) {
-				const newPleskIpAddress = input.pleskIpAddress || null;
-				if (newPleskIpAddress !== existingPlan.pleskIpAddress) {
-					updateData.pleskIpAddress = newPleskIpAddress;
-					changedFields.push("pleskIpAddress");
-				}
-			}
-		} else {
-			// Clear Plesk fields if changing away from HOSTING
-			if (input.planType !== undefined && input.planType !== "HOSTING") {
-				if (existingPlan.pleskServicePlanId !== null) {
-					updateData.pleskServicePlanId = null;
-					changedFields.push("pleskServicePlanId");
-				}
-				if (existingPlan.pleskFilterId !== null) {
-					updateData.pleskFilterId = null;
-					changedFields.push("pleskFilterId");
-				}
-				if (existingPlan.pleskIpAddress !== null) {
-					updateData.pleskIpAddress = null;
-					changedFields.push("pleskIpAddress");
-				}
-			}
-		}
 
-		// If no fields actually changed, return existing plan without updating
-		if (changedFields.length === 0) {
-			return {
-				id: existingPlan.id,
-				name: existingPlan.name,
-				description: existingPlan.description,
-				planType: existingPlan.planType as any,
-				hostingSubType: existingPlan.hostingSubType as any,
-				features: existingPlan.features,
-				highlights: existingPlan.highlights,
-				isPopular: existingPlan.isPopular,
-				isRecommended: existingPlan.isRecommended,
-				niscPrice: existingPlan.niscPrice,
-				niscCurrency: existingPlan.niscCurrency || "KES",
-				billingCycle: existingPlan.billingCycle as any,
-				setupFee: existingPlan.setupFee,
-				isActive: existingPlan.isActive,
-				isDefault: existingPlan.isDefault,
-				pleskServicePlanId: existingPlan.pleskServicePlanId,
-				pleskFilterId: existingPlan.pleskFilterId,
-				pleskIpAddress: existingPlan.pleskIpAddress,
-				createdAt: existingPlan.createdAt,
-				updatedAt: existingPlan.updatedAt,
+			const updateData: any = {
+				updatedAt: new Date(),
 			};
-		}
+			const changedFields: string[] = [];
 
-		const updatedPlan = await prisma.niscServicePlan.update({
-			where: { id: input.id },
-			data: updateData,
-		});
+			// Only update fields that were provided AND actually changed
+			if (hasChanged(input.name, existingPlan.name)) {
+				updateData.name = input.name;
+				changedFields.push("name");
+			}
 
-		// Build previous and new values for changed fields only
-		const previousValues: Record<string, any> = {};
-		const newValues: Record<string, any> = {};
+			if (hasChanged(input.description, existingPlan.description)) {
+				updateData.description = input.description || null;
+				changedFields.push("description");
+			}
 
-		changedFields.forEach((field) => {
-			previousValues[field] = (existingPlan as any)[field];
-			newValues[field] = (updatedPlan as any)[field];
-		});
+			if (hasChanged(input.planType, existingPlan.planType)) {
+				updateData.planType = input.planType;
+				changedFields.push("planType");
+			}
 
-		// Log activity - track what fields were actually changed
-		await prisma.niscServicePlanActivityLog.create({
-			data: {
-				id: crypto.randomUUID(),
-				niscServicePlanId: updatedPlan.id,
-				userId: userId,
-				action: "UPDATE",
-				description: `Updated service plan: ${updatedPlan.name} (${changedFields.length} field${changedFields.length > 1 ? "s" : ""} changed)`,
-				metadata: {
-					planId: updatedPlan.id,
-					planName: updatedPlan.name,
-					planType: updatedPlan.planType,
-					changedFields: changedFields,
-					previousValues: previousValues,
-					newValues: newValues,
-					// Include full plan state for reference
-					currentState: {
-						name: updatedPlan.name,
+			if (input.hostingSubType !== undefined) {
+				const newHostingSubType = input.hostingSubType || null;
+				if (newHostingSubType !== existingPlan.hostingSubType) {
+					updateData.hostingSubType = newHostingSubType;
+					changedFields.push("hostingSubType");
+				}
+			}
+
+			// Handle features array - support adding/removing items
+			if (input.features !== undefined) {
+				if (!arraysEqual(input.features, existingPlan.features)) {
+					updateData.features = input.features;
+					changedFields.push("features");
+				}
+			}
+
+			// Handle highlights array - support adding/removing items
+			if (input.highlights !== undefined) {
+				if (!arraysEqual(input.highlights, existingPlan.highlights)) {
+					updateData.highlights = input.highlights;
+					changedFields.push("highlights");
+				}
+			}
+
+			if (hasChanged(input.isPopular, existingPlan.isPopular)) {
+				updateData.isPopular = input.isPopular;
+				changedFields.push("isPopular");
+			}
+
+			if (hasChanged(input.isRecommended, existingPlan.isRecommended)) {
+				updateData.isRecommended = input.isRecommended;
+				changedFields.push("isRecommended");
+			}
+
+			if (input.niscPrice !== undefined) {
+				const newPrice = input.niscPrice || null;
+				if (newPrice !== existingPlan.niscPrice) {
+					updateData.niscPrice = newPrice;
+					changedFields.push("niscPrice");
+				}
+			}
+
+			if (hasChanged(input.niscCurrency, existingPlan.niscCurrency)) {
+				updateData.niscCurrency = input.niscCurrency;
+				changedFields.push("niscCurrency");
+			}
+
+			if (hasChanged(input.billingCycle, existingPlan.billingCycle)) {
+				updateData.billingCycle = input.billingCycle;
+				changedFields.push("billingCycle");
+			}
+
+			if (input.setupFee !== undefined) {
+				const newSetupFee = input.setupFee || null;
+				if (newSetupFee !== existingPlan.setupFee) {
+					updateData.setupFee = newSetupFee;
+					changedFields.push("setupFee");
+				}
+			}
+
+			if (hasChanged(input.isActive, existingPlan.isActive)) {
+				updateData.isActive = input.isActive;
+				changedFields.push("isActive");
+			}
+
+			if (hasChanged(input.isDefault, existingPlan.isDefault)) {
+				updateData.isDefault = input.isDefault;
+				changedFields.push("isDefault");
+			}
+
+			// Only update Plesk fields if plan type is HOSTING
+			if (newPlanType === "HOSTING") {
+				if (input.pleskServicePlanId !== undefined) {
+					const newPleskServicePlanId = input.pleskServicePlanId || null;
+					if (newPleskServicePlanId !== existingPlan.pleskServicePlanId) {
+						updateData.pleskServicePlanId = newPleskServicePlanId;
+						changedFields.push("pleskServicePlanId");
+					}
+				}
+				if (input.pleskFilterId !== undefined) {
+					const newPleskFilterId = input.pleskFilterId || null;
+					if (newPleskFilterId !== existingPlan.pleskFilterId) {
+						updateData.pleskFilterId = newPleskFilterId;
+						changedFields.push("pleskFilterId");
+					}
+				}
+				if (input.pleskIpAddress !== undefined) {
+					const newPleskIpAddress = input.pleskIpAddress || null;
+					if (newPleskIpAddress !== existingPlan.pleskIpAddress) {
+						updateData.pleskIpAddress = newPleskIpAddress;
+						changedFields.push("pleskIpAddress");
+					}
+				}
+			} else {
+				// Clear Plesk fields if changing away from HOSTING
+				if (input.planType !== undefined && input.planType !== "HOSTING") {
+					if (existingPlan.pleskServicePlanId !== null) {
+						updateData.pleskServicePlanId = null;
+						changedFields.push("pleskServicePlanId");
+					}
+					if (existingPlan.pleskFilterId !== null) {
+						updateData.pleskFilterId = null;
+						changedFields.push("pleskFilterId");
+					}
+					if (existingPlan.pleskIpAddress !== null) {
+						updateData.pleskIpAddress = null;
+						changedFields.push("pleskIpAddress");
+					}
+				}
+			}
+
+			// If no fields actually changed, return existing plan without updating
+			if (changedFields.length === 0) {
+				return {
+					id: existingPlan.id,
+					name: existingPlan.name,
+					description: existingPlan.description,
+					planType: existingPlan.planType as any,
+					hostingSubType: existingPlan.hostingSubType as any,
+					features: existingPlan.features,
+					highlights: existingPlan.highlights,
+					isPopular: existingPlan.isPopular,
+					isRecommended: existingPlan.isRecommended,
+					niscPrice: existingPlan.niscPrice,
+					niscCurrency: existingPlan.niscCurrency || "KES",
+					billingCycle: existingPlan.billingCycle as any,
+					setupFee: existingPlan.setupFee,
+					isActive: existingPlan.isActive,
+					isDefault: existingPlan.isDefault,
+					pleskServicePlanId: existingPlan.pleskServicePlanId,
+					pleskFilterId: existingPlan.pleskFilterId,
+					pleskIpAddress: existingPlan.pleskIpAddress,
+					createdAt: existingPlan.createdAt,
+					updatedAt: existingPlan.updatedAt,
+				};
+			}
+
+			const updatedPlan = await prisma.niscServicePlan.update({
+				where: { id: input.id },
+				data: updateData,
+			});
+
+			// Build previous and new values for changed fields only
+			const previousValues: Record<string, any> = {};
+			const newValues: Record<string, any> = {};
+
+			changedFields.forEach((field) => {
+				previousValues[field] = (existingPlan as any)[field];
+				newValues[field] = (updatedPlan as any)[field];
+			});
+
+			// Log activity - track what fields were actually changed
+			await prisma.niscServicePlanActivityLog.create({
+				data: {
+					id: crypto.randomUUID(),
+					niscServicePlanId: updatedPlan.id,
+					userId: userId,
+					action: "UPDATE",
+					description: `Updated service plan: ${updatedPlan.name} (${changedFields.length} field${changedFields.length > 1 ? "s" : ""} changed)`,
+					metadata: {
+						planId: updatedPlan.id,
+						planName: updatedPlan.name,
 						planType: updatedPlan.planType,
-						hostingSubType: updatedPlan.hostingSubType,
-						isActive: updatedPlan.isActive,
-						isDefault: updatedPlan.isDefault,
-						isPopular: updatedPlan.isPopular,
-						isRecommended: updatedPlan.isRecommended,
-						niscPrice: updatedPlan.niscPrice,
-						niscCurrency: updatedPlan.niscCurrency,
-						billingCycle: updatedPlan.billingCycle,
-						featuresCount: updatedPlan.features.length,
-						highlightsCount: updatedPlan.highlights.length,
+						changedFields: changedFields,
+						previousValues: previousValues,
+						newValues: newValues,
+						// Include full plan state for reference
+						currentState: {
+							name: updatedPlan.name,
+							planType: updatedPlan.planType,
+							hostingSubType: updatedPlan.hostingSubType,
+							isActive: updatedPlan.isActive,
+							isDefault: updatedPlan.isDefault,
+							isPopular: updatedPlan.isPopular,
+							isRecommended: updatedPlan.isRecommended,
+							niscPrice: updatedPlan.niscPrice,
+							niscCurrency: updatedPlan.niscCurrency,
+							billingCycle: updatedPlan.billingCycle,
+							featuresCount: updatedPlan.features.length,
+							highlightsCount: updatedPlan.highlights.length,
+						},
 					},
+					createdAt: new Date(),
 				},
-				createdAt: new Date(),
-			},
-		});
+			});
 
-		return {
-			id: updatedPlan.id,
-			name: updatedPlan.name,
-			description: updatedPlan.description,
-			planType: updatedPlan.planType as any,
-			hostingSubType: updatedPlan.hostingSubType as any,
-			features: updatedPlan.features,
-			highlights: updatedPlan.highlights,
-			isPopular: updatedPlan.isPopular,
-			isRecommended: updatedPlan.isRecommended,
-			niscPrice: updatedPlan.niscPrice,
-			niscCurrency: updatedPlan.niscCurrency || "KES",
-			billingCycle: updatedPlan.billingCycle as any,
-			setupFee: updatedPlan.setupFee,
-			isActive: updatedPlan.isActive,
-			isDefault: updatedPlan.isDefault,
-			pleskServicePlanId: updatedPlan.pleskServicePlanId,
-			pleskFilterId: updatedPlan.pleskFilterId,
-			pleskIpAddress: updatedPlan.pleskIpAddress,
-			createdAt: updatedPlan.createdAt,
-			updatedAt: updatedPlan.updatedAt,
-		};
-	}),
+			return {
+				id: updatedPlan.id,
+				name: updatedPlan.name,
+				description: updatedPlan.description,
+				planType: updatedPlan.planType as any,
+				hostingSubType: updatedPlan.hostingSubType as any,
+				features: updatedPlan.features,
+				highlights: updatedPlan.highlights,
+				isPopular: updatedPlan.isPopular,
+				isRecommended: updatedPlan.isRecommended,
+				niscPrice: updatedPlan.niscPrice,
+				niscCurrency: updatedPlan.niscCurrency || "KES",
+				billingCycle: updatedPlan.billingCycle as any,
+				setupFee: updatedPlan.setupFee,
+				isActive: updatedPlan.isActive,
+				isDefault: updatedPlan.isDefault,
+				pleskServicePlanId: updatedPlan.pleskServicePlanId,
+				pleskFilterId: updatedPlan.pleskFilterId,
+				pleskIpAddress: updatedPlan.pleskIpAddress,
+				createdAt: updatedPlan.createdAt,
+				updatedAt: updatedPlan.updatedAt,
+			};
+		}),
 
 	// Delete a service plan
 	delete: protectedProcedure

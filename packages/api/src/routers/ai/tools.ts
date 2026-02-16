@@ -1,6 +1,3 @@
-
-import { z } from "zod";
-import { tool } from "ai";
 import prisma from "@nPanel/db";
 
 // Mock navigation items for now to avoid circular dependency/monorepo import issues
@@ -14,34 +11,43 @@ const agencysidebarItems = [
 
 /**
  * Tool to get the system navigation structure.
- * This helps the AI guide users to the correct pages.
  */
-export const getSystemNavigationTool = () => tool({
+export const getSystemNavigationTool = () => ({
     description: "Get the current system navigation structure (pages, sub-pages, and URLs).",
-    parameters: z.object({
-        role: z.enum(["AGENCY", "CUSTOMER"]).describe("The role of the user (AGENCY or CUSTOMER)"),
-    }),
+    parameters: {
+        type: "object",
+        properties: {
+            role: {
+                type: "string",
+                enum: ["AGENCY", "CUSTOMER"],
+                description: "The role of the user (AGENCY or CUSTOMER)"
+            },
+        },
+        required: ["role"],
+    },
     execute: async ({ role }: { role: "AGENCY" | "CUSTOMER" }) => {
         const items = role === "AGENCY" ? agencysidebarItems : sidebarItems;
-
-        // Simplify for AI consumption (exclude icons, etc.)
         return items.map(group => ({
             group: group.label,
             items: group.items.map(item => ({
                 title: item.title,
                 url: item.url,
-                subItems: [] as any[] // Simplified for mock
+                subItems: [] as any[]
             }))
         }));
     },
-} as any);
+});
 
 /**
  * Tool to get the current user's profile and team context.
  */
-export const getUserContextTool = (userId: string) => tool({
+export const getUserContextTool = (userId: string) => ({
     description: "Get basic information about the current user, their role, and their teams.",
-    parameters: z.object({}), // userContext doesn't need input params, just context
+    parameters: {
+        type: "object",
+        properties: {},
+        required: []
+    },
     execute: async (_input: {}) => {
         const user = await prisma.user.findUnique({
             where: { id: userId },
@@ -63,27 +69,27 @@ export const getUserContextTool = (userId: string) => tool({
                 }
             }
         });
-
         return user;
     },
-} as any);
+});
 
 /**
- * Tool to search for user-specific data (subscriptions, hosting, etc.)
+ * Tool to search for user-specific data
  */
-export const getActiveServicesTool = (userId: string) => tool({
+export const getActiveServicesTool = (userId: string) => ({
     description: "Get active services (hosting, domains, wordpress) for the user or their teams.",
-    parameters: z.object({
-        teamId: z.string().optional().describe("Optional team ID to filter services by team"),
-    }),
+    parameters: {
+        type: "object",
+        properties: {
+            teamId: { type: "string", description: "Optional team ID to filter services by team" }
+        }
+    },
     execute: async ({ teamId }: { teamId?: string }) => {
-        // Permission check: ensure user is part of the requested team
         if (teamId) {
             const membership = await prisma.teamMember.findUnique({
                 where: { teamId_userId: { teamId, userId } }
             });
             if (!membership) {
-                // If not member, check if agency user
                 const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
                 if (!user?.role?.includes("AGENCY")) {
                     return { error: "Permission denied for this team." };
@@ -91,7 +97,6 @@ export const getActiveServicesTool = (userId: string) => tool({
             }
         }
 
-        // Logic simplifed for context
         const where = teamId ? { teamId } : { team: { members: { some: { userId } } } };
 
         try {
@@ -124,24 +129,29 @@ export const getActiveServicesTool = (userId: string) => tool({
             return { hosting: [], domains: [], wordpress: [] };
         }
     },
-} as any);
+});
 
 /**
  * Tool to escalate the conversation to a human agent.
  */
-export const escalateToHumanTool = (userId: string) => tool({
+export const escalateToHumanTool = (userId: string) => ({
     description: "Escalate the conversation to a human support agent. Use this if the AI cannot solve the issue.",
-    parameters: z.object({
-        subject: z.string().describe("Brief subject for the ticket"),
-        summary: z.string().describe("Summary of the AI conversation and the user's issue"),
-        priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
-        teamId: z.string().optional(),
-    }),
+    parameters: {
+        type: "object",
+        properties: {
+            subject: { type: "string", description: "Brief subject for the ticket" },
+            summary: { type: "string", description: "Summary of the AI conversation and the user's issue" },
+            priority: {
+                type: "string",
+                enum: ["LOW", "NORMAL", "HIGH", "URGENT"],
+                default: "NORMAL"
+            },
+            teamId: { type: "string" }
+        },
+        required: ["subject", "summary"]
+    },
     execute: async ({ subject, summary, priority, teamId }: { subject: string, summary: string, priority: "LOW" | "NORMAL" | "HIGH" | "URGENT", teamId?: string }) => {
-        // Note: We'd typically use the ticketsRouter logic here or call a helper
-        // For now, we'll implement the basic DB create
         const ticketNumber = `TKT-AI-${Date.now()}`;
-
         const ticket = await prisma.ticket.create({
             data: {
                 id: `tkt_${Date.now()}`,
@@ -155,7 +165,6 @@ export const escalateToHumanTool = (userId: string) => tool({
                 teamId: teamId ?? null,
             } as any
         });
-
         return {
             success: true,
             ticketId: ticket.id,
@@ -163,4 +172,4 @@ export const escalateToHumanTool = (userId: string) => tool({
             message: "A human support agent has been notified and will get back to you shortly."
         };
     },
-} as any);
+});

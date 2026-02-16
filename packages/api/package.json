@@ -49,6 +49,7 @@
     "google-ads-api": "^20.0.0",
     "googleapis": "^171.4.0",
     "next": "catalog:",
+    "openai": "^6.22.0",
     "qrcode": "^1.5.4",
     "react": "catalog:",
     "react-email-starter": "workspace:*",

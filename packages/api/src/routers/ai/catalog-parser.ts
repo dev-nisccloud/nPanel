@@ -1,5 +1,4 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import catalogData from './ai_function_catalog.json';
 import type {
     FunctionCatalog,
     FunctionCatalogEntry,
@@ -15,21 +14,7 @@ import type {
  * Load and parse the function catalog from JSON file
  */
 export function loadFunctionCatalog(): FunctionCatalog {
-    try {
-        const catalogPath = join(__dirname, 'ai_function_catalog.json');
-        const catalogContent = readFileSync(catalogPath, 'utf-8');
-        const catalog = JSON.parse(catalogContent) as FunctionCatalog;
-
-        return catalog;
-    } catch (error) {
-        console.error('[AI Catalog] Failed to load function catalog:', error);
-        // Return empty catalog as fallback
-        return {
-            version: '1.0.0',
-            lastUpdated: new Date().toISOString(),
-            functions: [],
-        };
-    }
+    return (catalogData as unknown) as FunctionCatalog;
 }
 
 /**

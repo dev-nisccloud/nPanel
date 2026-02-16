@@ -2,8 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import prisma from "@nPanel/db";
 import { randomUUID } from "node:crypto";
-import { generateText } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
+import OpenAI from "openai";
 import {
     startAiChatSchema,
     deleteAiChatSchema,
@@ -21,30 +20,6 @@ import { generateToolsFromCatalog, filterCatalogByAccess, createToolsSummary } f
 import { appRouter } from "../index";
 import { z } from "zod";
 
-const getOpenai = () => {
-    const rawKey = process.env.OPENAI_API_KEY || "";
-    const key = rawKey.trim();
-
-    if (!key) {
-        console.error("[AI ERROR] OPENAI_API_KEY is missing or empty.");
-        throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "OPENAI_API_KEY is not defined in environment variables",
-        });
-    }
-
-    console.log(`[AI DEBUG] getOpenai called:
-        Raw defined: ${!!rawKey}
-        Processed Length: ${key.length}
-        Prefix: ${key.substring(0, 12)}
-        Suffix: ${key.substring(Math.max(0, key.length - 4))}
-    `);
-
-    return createOpenAI({
-        apiKey: key,
-    });
-};
-
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -54,6 +29,121 @@ async function getChatHistory(chatId: string) {
         where: { chatId },
         orderBy: { createdAt: "asc" },
     });
+}
+
+/**
+ * Executes a tool call and returns the result
+ */
+async function executeTool(toolName: string, args: any, toolExecutors: Record<string, any>): Promise<any> {
+    const executor = toolExecutors[toolName];
+    if (!executor || typeof executor.execute !== 'function') {
+        return { error: `Tool ${toolName} not found or not executable.` };
+    }
+    try {
+        console.log(`[AI Chat] Executing tool: ${toolName}`, args);
+        const result = await executor.execute(args);
+        return result;
+    } catch (error) {
+        console.error(`[AI Chat] Error executing tool ${toolName}:`, error);
+        return { error: error instanceof Error ? error.message : "Unknown tool execution error" };
+    }
+}
+
+/**
+ * Main AI Chat Loop - handles message processing and recursive tool calls
+ */
+async function runAiChatLoop(params: {
+    chatId: string;
+    messages: any[];
+    openai: OpenAI;
+    toolExecutors: Record<string, any>;
+    toolsDefinition: any[];
+    maxIterations?: number;
+}): Promise<string> {
+    const { chatId, messages, openai, toolExecutors, toolsDefinition, maxIterations = 5 } = params;
+    let iteration = 0;
+    let lastContent = "";
+
+    while (iteration < maxIterations) {
+        iteration++;
+        console.log(`[AI Chat] Loop iteration ${iteration}`);
+
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: messages as any,
+            tools: toolsDefinition.length > 0 ? (toolsDefinition as any) : undefined,
+        });
+
+        const assistantMessage = response.choices[0].message;
+
+        // Save assistant message to DB
+        await prisma.aiChatMessage.create({
+            data: {
+                id: randomUUID(),
+                chatId: chatId,
+                role: "assistant",
+                content: assistantMessage.content || "",
+                toolCalls: assistantMessage.tool_calls as any,
+                metadata: {
+                    usage: response.usage,
+                    finishReason: response.choices[0].finish_reason,
+                    iteration
+                } as any,
+                createdAt: new Date(),
+            }
+        });
+
+        // Add to local context for potential next iteration
+        messages.push({
+            role: "assistant",
+            content: assistantMessage.content || "",
+            tool_calls: assistantMessage.tool_calls,
+        });
+
+        lastContent = assistantMessage.content || "";
+
+        // If no tool calls, we're done
+        if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
+            break;
+        }
+
+        // Process tool calls
+        for (const toolCall of assistantMessage.tool_calls) {
+            if (toolCall.type !== 'function') continue;
+
+            const args = JSON.parse(toolCall.function.arguments);
+            const result = await executeTool(toolCall.function.name, args, toolExecutors);
+
+            const toolResultString = typeof result === 'string' ? result : JSON.stringify(result);
+
+            // Save tool result to DB
+            await prisma.aiChatMessage.create({
+                data: {
+                    id: randomUUID(),
+                    chatId: chatId,
+                    role: "tool",
+                    content: toolResultString,
+                    toolCallId: toolCall.id,
+                    createdAt: new Date(),
+                }
+            });
+
+            // Add to local context
+            messages.push({
+                role: "tool",
+                tool_call_id: toolCall.id,
+                content: toolResultString,
+            });
+        }
+
+        // Continue the loop to let AI process tool results
+    }
+
+    if (iteration >= maxIterations) {
+        console.warn(`[AI Chat] Reached max iterations (${maxIterations}) for chat ${chatId}`);
+    }
+
+    return lastContent;
 }
 
 // ============================================================================
@@ -77,8 +167,8 @@ function mapToAiMessages(messages: any[]) {
     return messages.map(m => ({
         role: m.role as "system" | "user" | "assistant" | "tool",
         content: m.content || "",
-        toolCalls: m.toolCalls as any,
-        toolCallId: m.toolCallId || undefined,
+        tool_calls: m.toolCalls as any,
+        tool_call_id: m.toolCallId || undefined,
     }));
 }
 
@@ -107,10 +197,47 @@ export const aiChatRouter = router({
         .output(aiChatSchema)
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.session.user.id;
+            const userRole = ctx.session.user.role;
             const chatId = randomUUID();
 
-            let chat;
+            // 1. Prepare Tools and Prompt
+            const indexedCatalog = getCachedCatalog();
+            const allowedFunctions = filterCatalogByAccess(
+                indexedCatalog.catalog.functions,
+                userRole
+            );
+            const toolsSummary = createToolsSummary(
+                allowedFunctions,
+                indexedCatalog.catalog.categories
+            );
 
+            // 2. Create Chat and context
+            const systemPrompt = `You are Zeepo, the official Nisc Cloud AI Assistant.
+Nisc Cloud is based in Nairobi, Kenya (Applewood Adams, Ngong Road, Suite 805).
+
+Core Identity:
+- Always identify as Zeepo, the Nisc Cloud Assistant.
+- Always be helpful, professional, and concise.
+
+When to Use Functions vs General Knowledge:
+1. Use GENERAL KNOWLEDGE for concept explanations.
+2. Use FUNCTIONS for user-specific data, checking status, or performing actions.
+
+${toolsSummary}
+
+Function Calling & Fallback Guidelines:
+1. ALWAYS use exact function names - never make up names.
+2. Verify parameters before calling.
+3. If a function doesn't exist in the "Live Tools" section BUT the category is mentioned in the "Documentation-Only" section, inform the user that the feature is documented but not yet fully integrated for automated AI execution in this session.
+4. DO NOT hallucinate tool calls for missing functions.
+5. When uncertain about permissions, use getUserContext first.
+
+Objectives:
+1. Assist users efficiently - use functions only when needed.
+2. Provide concise, relevant responses.
+3. If unresolved, escalate to human support using escalateToHuman.`;
+
+            let chat;
             try {
                 chat = await prisma.aiChat.create({
                     data: {
@@ -124,86 +251,7 @@ export const aiChatRouter = router({
                                 {
                                     id: randomUUID(),
                                     role: "system",
-                                    content: `You are Zeepo, the official Nisc Cloud AI Assistant.
-Nisc Cloud is based in Nairobi, Kenya (Applewood Adams, Ngong Road, Suite 805).
-
-Core Identity:
-- Always identify as Zeepo, the Nisc Cloud Assistant.
-- If users ask for contact or location details, provide the Nairobi address above.
-- Always be helpful, professional, and concise.
-
-When to Use Functions vs General Knowledge:
-1. Use GENERAL KNOWLEDGE for:
-   - Explaining concepts, features, or how things work
-   - Answering "what is", "how do I", "can I" questions
-   - Providing guidance or best practices
-   - General platform information
-
-2. Use FUNCTIONS for:
-   - Fetching user-specific data (teams, subscriptions, tickets, etc.)
-   - Checking current status or details
-   - Performing actions or mutations
-   - Getting real-time information
-
-Function Calling Guidelines:
-1. ALWAYS use exact function names from your available tools - never make up function names
-2. Verify parameter types and required fields before calling
-3. If a function doesn't exist, clearly inform the user instead of hallucinating
-4. When uncertain about permissions, use getUserContext first
-5. Read function descriptions carefully to understand what each does
-
-3. FORMATTING (MARKDOWN):
-   - Use **bold** for key terms, names, and titles
-   - Use \`code blocks\` for technical identifiers (IDs, handles, hashes)
-   - Use bullet points or numbered lists for lists of items
-   - Use **Tables** for multi-field data or comparisons
-   - Use \`![image](url)\` for displaying images if provided by a tool
-
-4. FORMAT EXAMPLES:
-   - Domains: "You have **3 domains**:
-     - \`example.com\` (Expiring soon)
-     - \`test.net\`
-     - \`demo.org\`"
-   - Teams: "You're part of **2 teams**: **Marketing Team**, **Development Team**"
-   - Tickets: "| Ticket # | Subject | Priority |
-     | :--- | :--- | :--- |
-     | \`#TKT-001\` | Login Issue | **High** |
-     | \`#TKT-002\` | DNS Setup | Normal |"
-
-Available Function Categories:
-- Plesk Integration (hosting, domains, WordPress, email, databases)
-- OpenProvider (domain registration, DNS)
-- eTIMS (Kenya KRA tax integration)
-- Advertising (Google Ads, Meta Ads, LinkedIn Ads)
-- Marketing (email campaigns, SEO)
-- Creative (image generation, assets)
-- Business (teams, clients, tickets, invoicing)
-
-Examples of Proper Usage:
-
-Example 1 - General Knowledge (NO function needed):
-User: "What is a domain name?"
-Response: "A domain name is the address people use to find your website..."
-
-Example 2 - User Data (USE function):
-User: "What domains do I have?"
-Action: Call teamsGetUserTeams or domainsGetByTeam
-Response: "You have 3 domains: example.com, test.net, demo.org"
-
-Example 3 - Concise Formatting:
-User: "Show me my teams"
-Action: Call teamsGetUserTeams
-Response: "You're part of 2 teams: Marketing Team, Development Team" (NOT full JSON objects)
-
-Example 4 - Partial Information:
-User: "Do I have any high priority tickets?"
-Action: Call ticketsGetAll with priority filter
-Response: "Yes, you have 2 high priority tickets: #TKT-001 (Login Issue), #TKT-003 (Payment Bug)"
-
-Objectives:
-1. Assist users efficiently - use functions only when needed
-2. Provide concise, relevant responses - extract only what user asked for
-3. If you cannot resolve a query, escalate to human support using escalateToHuman`,
+                                    content: systemPrompt,
                                     createdAt: new Date(),
                                 },
                                 ...(input.initialMessage ? [{
@@ -216,61 +264,89 @@ Objectives:
                         }
                     },
                     include: {
-                        messages: true
+                        messages: { orderBy: { createdAt: "asc" } }
                     }
                 });
 
                 if (input.initialMessage) {
-                    // 2. Load catalog and generate dynamic tools
-                    const indexedCatalog = getCachedCatalog();
-                    const userRole = ctx.session.user.role;
-                    const allowedFunctions = filterCatalogByAccess(
-                        indexedCatalog.catalog.functions,
-                        userRole
-                    );
-
-                    // Create tRPC caller for executing procedures
                     const caller = appRouter.createCaller(ctx);
                     const dynamicTools = generateToolsFromCatalog(allowedFunctions, caller);
 
-                    // 3. Call OpenAI with tools
-                    const messages = mapToAiMessages(chat.messages);
-                    const openai = getOpenai();
-                    const result = await generateText({
-                        model: openai("gpt-4o-mini"),
-                        messages,
-                        tools: {
-                            // Core utility tools
-                            getSystemNavigation: getSystemNavigationTool(),
-                            getUserContext: getUserContextTool(userId),
-                            escalateToHuman: escalateToHumanTool(userId),
-                            // Dynamic catalog-based tools
-                            ...dynamicTools,
+                    const coreExecutors = {
+                        getSystemNavigation: getSystemNavigationTool(),
+                        getUserContext: getUserContextTool(userId),
+                        getActiveServices: getActiveServicesTool(userId),
+                        escalateToHuman: escalateToHumanTool(userId),
+                    };
+
+                    const toolExecutors = { ...coreExecutors, ...dynamicTools };
+
+                    // OpenAI Tools Definitions
+                    const toolsDefinition: any[] = [
+                        {
+                            type: "function",
+                            function: {
+                                name: "getSystemNavigation",
+                                description: "Get the current system navigation structure.",
+                                parameters: coreExecutors.getSystemNavigation.parameters,
+                            }
                         },
-                    });
-
-                    // 3. Save assistant's response
-                    await prisma.aiChatMessage.create({
-                        data: {
-                            id: randomUUID(),
-                            chatId: chatId,
-                            role: "assistant",
-                            content: result.text,
-                            metadata: {
-                                usage: result.usage,
-                                finishReason: result.finishReason,
-                            } as any,
-                            createdAt: new Date(),
+                        {
+                            type: "function",
+                            function: {
+                                name: "getUserContext",
+                                description: "Get basic information about the current user.",
+                                parameters: coreExecutors.getUserContext.parameters,
+                            }
+                        },
+                        {
+                            type: "function",
+                            function: {
+                                name: "getActiveServices",
+                                description: "Get active services for the user or their teams.",
+                                parameters: coreExecutors.getActiveServices.parameters,
+                            }
+                        },
+                        {
+                            type: "function",
+                            function: {
+                                name: "escalateToHuman",
+                                description: "Escalate to a human support agent.",
+                                parameters: coreExecutors.escalateToHuman.parameters,
+                            }
                         }
+                    ];
+
+                    for (const [toolName, toolObj] of Object.entries(dynamicTools)) {
+                        toolsDefinition.push({
+                            type: "function",
+                            function: {
+                                name: toolName,
+                                description: (toolObj as any).description,
+                                parameters: (toolObj as any).parameters,
+                            }
+                        });
+                    }
+
+                    const rawKey = process.env.OPENAI_API_KEY || "";
+                    const openai = new OpenAI({ apiKey: rawKey });
+                    const chatMessages = mapToAiMessages(chat.messages);
+
+                    await runAiChatLoop({
+                        chatId,
+                        messages: chatMessages,
+                        openai,
+                        toolExecutors,
+                        toolsDefinition,
                     });
 
-                    // 4. Update chat's updatedAt
+                    // Update chat's updatedAt
                     await prisma.aiChat.update({
                         where: { id: chatId },
                         data: { updatedAt: new Date() }
                     });
 
-                    // 5. Fetch updated chat to return with all messages
+                    // Fetch updated chat
                     const updatedChat = await prisma.aiChat.findUnique({
                         where: { id: chatId },
                         include: { messages: { orderBy: { createdAt: "asc" } } }
@@ -282,16 +358,11 @@ Objectives:
 
             } catch (error) {
                 console.error("[AI CHAT START ERROR]", error);
-
-                // If chat was created but something failed (e.g. OpenAI), delete the chat to avoid "ghost" chats with only user message
                 if (chat) {
                     try {
                         await prisma.aiChat.delete({ where: { id: chatId } });
-                    } catch (deleteError) {
-                        console.error("[AI CHAT CLEANUP ERROR] Failed to delete failed chat", deleteError);
-                    }
+                    } catch (e) { }
                 }
-
                 throw error;
             }
         }),
@@ -305,8 +376,8 @@ Objectives:
         .output(aiChatMessageSchema)
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.session.user.id;
+            const userRole = ctx.session.user.role;
 
-            // 1. Verify chat ownership
             const chat = await prisma.aiChat.findUnique({
                 where: { id: input.chatId },
                 select: { userId: true, teamId: true }
@@ -315,11 +386,11 @@ Objectives:
             if (!chat || chat.userId !== userId) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "You do not have access to this chat.",
+                    message: "Access denied.",
                 });
             }
 
-            // 2. Save user message
+            // Save user message
             await prisma.aiChatMessage.create({
                 data: {
                     id: randomUUID(),
@@ -330,59 +401,97 @@ Objectives:
                 }
             });
 
-            // 3. Fetch full history for context
             const history = await getChatHistory(input.chatId);
             const messages = mapToAiMessages(history);
 
-            // 4. Load catalog and generate dynamic tools
             const indexedCatalog = getCachedCatalog();
-            const userRole = ctx.session.user.role;
-            const allowedFunctions = filterCatalogByAccess(
-                indexedCatalog.catalog.functions,
-                userRole
-            );
-
-            // Create tRPC caller for executing procedures
+            const allowedFunctions = filterCatalogByAccess(indexedCatalog.catalog.functions, userRole);
             const caller = appRouter.createCaller(ctx);
             const dynamicTools = generateToolsFromCatalog(allowedFunctions, caller);
 
-            // 5. Call OpenAI with tools
-            const openai = getOpenai();
-            const result = await generateText({
-                model: openai("gpt-4o-mini"),
-                messages,
-                tools: {
-                    // Core utility tools
-                    getSystemNavigation: getSystemNavigationTool(),
-                    getUserContext: getUserContextTool(userId),
-                    escalateToHuman: escalateToHumanTool(userId),
-                    // Dynamic catalog-based tools
-                    ...dynamicTools,
+            const coreExecutors = {
+                getSystemNavigation: getSystemNavigationTool(),
+                getUserContext: getUserContextTool(userId),
+                getActiveServices: getActiveServicesTool(userId),
+                escalateToHuman: escalateToHumanTool(userId),
+            };
+
+            const toolExecutors = { ...coreExecutors, ...dynamicTools };
+
+            const toolsDefinition: any[] = [
+                {
+                    type: "function",
+                    function: {
+                        name: "getSystemNavigation",
+                        description: "Get the current system navigation structure.",
+                        parameters: coreExecutors.getSystemNavigation.parameters,
+                    }
                 },
-            });
-
-            // 6. Save assistant's response
-            const assistantMessage = await prisma.aiChatMessage.create({
-                data: {
-                    id: randomUUID(),
-                    chatId: input.chatId,
-                    role: "assistant",
-                    content: result.text,
-                    metadata: {
-                        usage: result.usage,
-                        finishReason: result.finishReason,
-                    } as any,
-                    createdAt: new Date(),
+                {
+                    type: "function",
+                    function: {
+                        name: "getUserContext",
+                        description: "Get basic information about the current user.",
+                        parameters: coreExecutors.getUserContext.parameters,
+                    }
+                },
+                {
+                    type: "function",
+                    function: {
+                        name: "getActiveServices",
+                        description: "Get active services for the user or their teams.",
+                        parameters: coreExecutors.getActiveServices.parameters,
+                    }
+                },
+                {
+                    type: "function",
+                    function: {
+                        name: "escalateToHuman",
+                        description: "Escalate to a human support agent.",
+                        parameters: coreExecutors.escalateToHuman.parameters,
+                    }
                 }
+            ];
+
+            for (const [toolName, toolObj] of Object.entries(dynamicTools)) {
+                toolsDefinition.push({
+                    type: "function",
+                    function: {
+                        name: toolName,
+                        description: (toolObj as any).description,
+                        parameters: (toolObj as any).parameters,
+                    }
+                });
+            }
+
+            const rawKey = process.env.OPENAI_API_KEY || "";
+            const openai = new OpenAI({ apiKey: rawKey });
+
+            await runAiChatLoop({
+                chatId: input.chatId,
+                messages,
+                openai,
+                toolExecutors,
+                toolsDefinition
             });
 
-            // 7. Update chat's updatedAt for sorting in history
+            // Update chat's updatedAt
             await prisma.aiChat.update({
                 where: { id: input.chatId },
                 data: { updatedAt: new Date() }
             });
 
-            return transformAiChatMessage(assistantMessage);
+            // Return the last assistant message
+            const finalHistory = await getChatHistory(input.chatId);
+            const lastAssistantMessage = [...finalHistory].reverse().find(m => m.role === "assistant");
+
+            return transformAiChatMessage(lastAssistantMessage || {
+                id: randomUUID(),
+                chatId: input.chatId,
+                role: "assistant",
+                content: "I'm sorry, I encountered an issue generating a response.",
+                createdAt: new Date()
+            });
         }),
 
     // Directly escalate to human
@@ -399,20 +508,15 @@ Objectives:
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.session.user.id;
 
-            // 1. Verify chat ownership
             const chat = await prisma.aiChat.findUnique({
                 where: { id: input.chatId },
                 select: { userId: true, teamId: true }
             });
 
             if (!chat || chat.userId !== userId) {
-                throw new TRPCError({
-                    code: "FORBIDDEN",
-                    message: "You do not have access to this chat.",
-                });
+                throw new TRPCError({ code: "FORBIDDEN", message: "Access denied." });
             }
 
-            // 2. Execute escalation
             const toolInstance = escalateToHumanTool(userId);
             const result = await (toolInstance as any).execute({
                 subject: "Escalation from AI Chat",
@@ -421,7 +525,6 @@ Objectives:
                 teamId: chat.teamId,
             });
 
-            // 3. Close the AI chat status
             await prisma.aiChat.update({
                 where: { id: input.chatId },
                 data: {
@@ -443,29 +546,17 @@ Objectives:
         .output(z.object({ success: z.boolean() }))
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.session.user.id;
-
-            // 1. Verify ownership
             const chat = await prisma.aiChat.findUnique({
                 where: { id: input.id },
                 select: { userId: true }
             });
 
             if (!chat || chat.userId !== userId) {
-                throw new TRPCError({
-                    code: "FORBIDDEN",
-                    message: "You do not have permission to delete this chat history",
-                });
+                throw new TRPCError({ code: "FORBIDDEN", message: "Access denied." });
             }
 
-            // 2. Delete messages first (Prisma relational delete if configured, but let's be safe)
-            await prisma.aiChatMessage.deleteMany({
-                where: { chatId: input.id }
-            });
-
-            // 3. Delete the chat
-            await prisma.aiChat.delete({
-                where: { id: input.id }
-            });
+            await prisma.aiChatMessage.deleteMany({ where: { chatId: input.id } });
+            await prisma.aiChat.delete({ where: { id: input.id } });
 
             return { success: true };
         }),
