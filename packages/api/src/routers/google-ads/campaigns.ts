@@ -212,37 +212,37 @@ export const googleAdsCampaignsRouter = router({
 				>();
 
 				// Process results and aggregate metrics
-				for (const row of results) {
+				for (const row of results as any[]) {
 					const campaignId = String(row.campaign?.id || '');
 					if (!campaignId) continue;
 
 					if (!campaignsMap.has(campaignId)) {
 						// Convert status to string (Google Ads API may return enum numbers)
 						const statusValue = row.campaign?.status;
-						const statusStr = statusValue !== undefined && statusValue !== null 
-							? String(statusValue) 
+						const statusStr = statusValue !== undefined && statusValue !== null
+							? String(statusValue)
 							: 'UNKNOWN';
-						
+
 						campaignsMap.set(campaignId, {
 							id: campaignId,
 							name: row.campaign?.name || `Campaign ${campaignId}`,
 							status: statusStr,
-							advertising_channel_type: row.campaign?.advertising_channel_type 
-								? String(row.campaign.advertising_channel_type) 
+							advertising_channel_type: row.campaign?.advertising_channel_type
+								? String(row.campaign.advertising_channel_type)
 								: undefined,
-							advertising_channel_sub_type: row.campaign?.advertising_channel_sub_type 
-								? String(row.campaign.advertising_channel_sub_type) 
+							advertising_channel_sub_type: row.campaign?.advertising_channel_sub_type
+								? String(row.campaign.advertising_channel_sub_type)
 								: undefined,
 							start_date: row.campaign?.start_date ?? undefined,
 							end_date: row.campaign?.end_date ?? undefined,
-							bidding_strategy_type: row.campaign?.bidding_strategy_type 
-								? String(row.campaign.bidding_strategy_type) 
+							bidding_strategy_type: row.campaign?.bidding_strategy_type
+								? String(row.campaign.bidding_strategy_type)
 								: undefined,
 							budget_amount_micros: row.campaign_budget?.amount_micros
 								? String(row.campaign_budget.amount_micros)
 								: undefined,
-							budget_period: row.campaign_budget?.period 
-								? String(row.campaign_budget.period) 
+							budget_period: row.campaign_budget?.period
+								? String(row.campaign_budget.period)
 								: undefined,
 							metrics: {
 								impressions: 0,
@@ -318,7 +318,7 @@ export const googleAdsCampaignsRouter = router({
 					const ctr = campaign.metrics.impressions > 0
 						? (campaign.metrics.clicks / campaign.metrics.impressions) * 100
 						: 0;
-					
+
 					// Calculate conversion rate from aggregated totals
 					const conversionRate = campaign.metrics.clicks > 0 && campaign.metrics.conversions !== undefined
 						? (campaign.metrics.conversions / campaign.metrics.clicks) * 100
@@ -439,22 +439,22 @@ export const googleAdsCampaignsRouter = router({
 
 				const results = await customer.query(query);
 
-				if (!results || results.length === 0) {
+				if (!results || (results as any[]).length === 0) {
 					throw new TRPCError({
 						code: 'NOT_FOUND',
 						message: `Campaign ${input.campaignId} not found`,
 					});
 				}
 
-				const campaignData = results[0];
+				const campaignData = (results as any[])[0];
 				const budgetAmount = campaignData.campaign_budget?.amount_micros
 					? Number(campaignData.campaign_budget.amount_micros) / 1000000
 					: null;
 
 				// Convert status to string (Google Ads API may return enum numbers)
 				const statusValue = campaignData.campaign?.status;
-				const statusStr = statusValue !== undefined && statusValue !== null 
-					? String(statusValue) 
+				const statusStr = statusValue !== undefined && statusValue !== null
+					? String(statusValue)
 					: 'UNKNOWN';
 
 				return {
@@ -463,20 +463,20 @@ export const googleAdsCampaignsRouter = router({
 						id: String(campaignData.campaign?.id || ''),
 						name: campaignData.campaign?.name || '',
 						status: statusStr,
-						advertising_channel_type: campaignData.campaign?.advertising_channel_type 
-							? String(campaignData.campaign.advertising_channel_type) 
+						advertising_channel_type: campaignData.campaign?.advertising_channel_type
+							? String(campaignData.campaign.advertising_channel_type)
 							: undefined,
-						advertising_channel_sub_type: campaignData.campaign?.advertising_channel_sub_type 
-							? String(campaignData.campaign.advertising_channel_sub_type) 
+						advertising_channel_sub_type: campaignData.campaign?.advertising_channel_sub_type
+							? String(campaignData.campaign.advertising_channel_sub_type)
 							: undefined,
 						start_date: campaignData.campaign?.start_date ?? undefined,
 						end_date: campaignData.campaign?.end_date ?? undefined,
-						bidding_strategy_type: campaignData.campaign?.bidding_strategy_type 
-							? String(campaignData.campaign.bidding_strategy_type) 
+						bidding_strategy_type: campaignData.campaign?.bidding_strategy_type
+							? String(campaignData.campaign.bidding_strategy_type)
 							: undefined,
 						budget_amount: budgetAmount,
-						budget_period: campaignData.campaign_budget?.period 
-							? String(campaignData.campaign_budget.period) 
+						budget_period: campaignData.campaign_budget?.period
+							? String(campaignData.campaign_budget.period)
 							: undefined,
 					},
 				};

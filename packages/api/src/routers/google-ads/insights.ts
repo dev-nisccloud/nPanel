@@ -142,14 +142,14 @@ export const googleAdsInsightsRouter = router({
 
                 return {
                     success: true,
-                    data: results.map(row => ({
-                        date: row.segments?.date,
-                        impressions: row.metrics?.impressions,
-                        clicks: row.metrics?.clicks,
+                    data: (results as any[]).map(row => ({
+                        date: row.segments?.date as string | undefined,
+                        impressions: row.metrics?.impressions ? String(row.metrics.impressions) : "0",
+                        clicks: row.metrics?.clicks ? String(row.metrics.clicks) : "0",
                         spend: (Number(row.metrics?.cost_micros || 0) / 1000000).toFixed(2),
-                        conversions: row.metrics?.conversions,
-                        conversions_value: row.metrics?.conversions_value,
-                        interaction_rate: row.metrics?.interaction_rate,
+                        conversions: row.metrics?.conversions ? String(row.metrics.conversions) : "0",
+                        conversions_value: row.metrics?.conversions_value ? String(row.metrics.conversions_value) : "0",
+                        interaction_rate: row.metrics?.interaction_rate ? String(row.metrics.interaction_rate) : "0",
                         cpc: (Number(row.metrics?.average_cpc || 0) / 1000000).toFixed(2),
                         ctr: (Number(row.metrics?.ctr || 0) * 100).toFixed(2),
                     })),
@@ -412,7 +412,7 @@ export const googleAdsInsightsRouter = router({
                     const results = await customer.query(query);
                     return {
                         success: true,
-                        data: results.map(mappingFn),
+                        data: (results as any[]).map(row => mappingFn(row) as Record<string, any>),
                     };
                 } catch (queryError: any) {
                     // Diagnostic logging to catch the real GAQL error
@@ -506,10 +506,10 @@ export const googleAdsInsightsRouter = router({
 
                 return {
                     success: true,
-                    data: results.map(row => ({
-                        keyword: row.ad_group_criterion?.keyword?.text,
-                        matchType: KEYWORD_MATCH_TYPE_MAPPING[String(row.ad_group_criterion?.keyword?.match_type)] || row.ad_group_criterion?.keyword?.match_type,
-                        status: CRITERION_STATUS_MAPPING[String(row.ad_group_criterion?.status)] || row.ad_group_criterion?.status,
+                    data: (results as any[]).map(row => ({
+                        keyword: row.ad_group_criterion?.keyword?.text as string | undefined,
+                        matchType: KEYWORD_MATCH_TYPE_MAPPING[String(row.ad_group_criterion?.keyword?.match_type)] || String(row.ad_group_criterion?.keyword?.match_type),
+                        status: CRITERION_STATUS_MAPPING[String(row.ad_group_criterion?.status)] || String(row.ad_group_criterion?.status),
                         impressions: Number(row.metrics?.impressions || 0),
                         clicks: Number(row.metrics?.clicks || 0),
                         spend: (Number(row.metrics?.cost_micros || 0) / 1000000).toFixed(2),
@@ -585,7 +585,7 @@ export const googleAdsInsightsRouter = router({
 
                 return {
                     success: true,
-                    data: results.map(row => {
+                    data: (results as any[]).map(row => {
                         const networkId = String(row.segments?.ad_network_type || 'UNKNOWN');
                         return {
                             network: AD_NETWORK_TYPE_MAPPING[networkId] || networkId.replace('SEARCH_', '').replace(/_/g, ' '),
@@ -663,13 +663,13 @@ export const googleAdsInsightsRouter = router({
 
                 return {
                     success: true,
-                    data: results.map(row => {
+                    data: (results as any[]).map(row => {
                         const d = String(row.segments?.day_of_week);
                         const dayLabel = DAY_OF_WEEK_MAPPING[d] || d;
 
                         return {
                             dayOfWeek: dayLabel,
-                            hour: row.segments?.hour,
+                            hour: row.segments?.hour ? Number(row.segments.hour) : undefined,
                             impressions: Number(row.metrics?.impressions || 0),
                             clicks: Number(row.metrics?.clicks || 0),
                             spend: (Number(row.metrics?.cost_micros || 0) / 1000000).toFixed(2),

@@ -186,7 +186,7 @@ export const googleAdsAccountsRouter = router({
 
 						const results = await customerInstance.query(query);
 						if (results && results.length > 0) {
-							const customerData = results[0].customer;
+							const customerData = (results[0] as any).customer;
 							if (customerData) {
 								accountName = customerData.descriptive_name || null;
 								currencyCode = customerData.currency_code || null;
@@ -337,14 +337,14 @@ export const googleAdsAccountsRouter = router({
 
 				const results = await customer.query(query);
 
-				if (!results || results.length === 0) {
+				if (!results || (results as any[]).length === 0) {
 					throw new TRPCError({
 						code: 'NOT_FOUND',
 						message: `Google Ads account ${input.customerId} not found or not accessible`,
 					});
 				}
 
-				const accountData = results[0];
+				const accountData = results[0] as any;
 				if (!accountData.customer) {
 					throw new Error('Customer data not found in account response');
 				}
