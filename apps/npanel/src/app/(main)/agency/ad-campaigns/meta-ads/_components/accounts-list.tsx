@@ -9,6 +9,20 @@ import { toast } from "sonner";
 import { Facebook, Building2, Globe, Calendar, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { MetaAdsAccount } from "./schemas";
+import { cn } from "@/lib/utils";
+
+const getStatusStyles = (status?: string) => {
+	if (!status) return { variant: "secondary" as const, className: "" };
+	const upperStatus = status.toUpperCase();
+	if (upperStatus === "ACTIVE") {
+		return {
+			variant: "outline" as const,
+			className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 font-sans rounded-full",
+		};
+	}
+	if (upperStatus === "DISABLED" || upperStatus === "CLOSED") return { variant: "destructive" as const, className: "" };
+	return { variant: "secondary" as const, className: "" };
+};
 
 export function AccountsList() {
 	const router = useRouter();
@@ -82,7 +96,7 @@ export function AccountsList() {
 			</CardHeader>
 			<CardContent>
 				<div className="space-y-2">
-					{accounts.map((account: MetaAdsAccount) => (
+					{(accounts as any[]).map((account: any) => (
 						<button
 							key={account.accountId}
 							onClick={() => handleAccountClick(account.accountId)}
@@ -115,13 +129,8 @@ export function AccountsList() {
 								</div>
 								{account.status && (
 									<Badge
-										variant={
-											account.status === "ACTIVE"
-												? "default"
-												: account.status === "DISABLED" || account.status === "CLOSED"
-													? "destructive"
-													: "secondary"
-										}
+										variant={getStatusStyles(account.status).variant}
+										className={cn("text-[10px] px-2 py-0.5 font-bold uppercase", getStatusStyles(account.status).className)}
 									>
 										{account.status}
 									</Badge>

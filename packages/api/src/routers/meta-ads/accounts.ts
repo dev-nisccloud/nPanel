@@ -81,49 +81,114 @@ export const metaAdsAccountsRouter = router({
 	 * List all accessible Meta ad accounts
 	 * Uses Meta Marketing API to fetch accessible ad accounts
 	 */
-	listAdAccounts: protectedProcedure.query(async ({ ctx }) => {
-		try {
-			const userId = ctx.session?.user?.id;
-			if (!userId) {
-				throw new TRPCError({
-					code: 'UNAUTHORIZED',
-					message: 'User session not found',
-				});
-			}
-
-			const { accessToken, integrationId } = await getUserIntegration();
-
-			// Create Meta Ads client
-			const client = new MetaAdsClient({ accessToken });
-
-			// Get accessible ad accounts
-			const response = await client.getAdAccounts();
-
-			// Store/update accounts in database
-			const now = new Date();
-			const accountResults = [];
-
-			for (const account of response.data) {
-				// Meta API returns account_id which may or may not have 'act_' prefix
-				// Normalize it to always include the prefix for consistency
-				let accountId = account.account_id;
-				if (!accountId.startsWith('act_')) {
-					accountId = `act_${accountId}`;
+	listAdAccounts: protectedProcedure
+		.input(z.object({ forceRefresh: z.boolean().optional() }).optional())
+		.query(async ({ input, ctx }) => {
+			try {
+				const userId = ctx.session?.user?.id;
+				if (!userId) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'User session not found',
+					});
 				}
-				const accountStatus = mapAccountStatus(account.account_status);
 
-				const existingAccount = await prisma.metaAdsAccount.findFirst({
-					where: {
-						integrationId,
-						accountId,
-					},
+				const { accessToken, integrationId } = await getUserIntegration();
+
+				// 1. Check local database first
+				const existingDbAccounts = await prisma.metaAdsAccount.findMany({
+					where: { integrationId },
 				});
 
-				if (existingAccount) {
-					// Update existing account
-					await prisma.metaAdsAccount.update({
-						where: { id: existingAccount.id },
-						data: {
+				// Freshness threshold: 30 minutes
+				const FRESHNESS_THRESHOLD = 30 * 60 * 1000;
+				const isDataFresh = existingDbAccounts.length > 0 && existingDbAccounts.some(acc =>
+					(new Date().getTime() - new Date(acc.updatedAt).getTime()) < FRESHNESS_THRESHOLD
+				);
+
+				// Return from DB if not forcing refresh and data is fresh enough
+				if (existingDbAccounts.length > 0 && !input?.forceRefresh && isDataFresh) {
+					return {
+						success: true,
+						data: existingDbAccounts.map(acc => ({
+							id: acc.id,
+							accountId: acc.accountId,
+							accountName: acc.accountName,
+							currency: acc.currency,
+							timezone: acc.timezone,
+							status: acc.status,
+							spendLimit: acc.spendLimit,
+							amountSpent: acc.amountSpent,
+							balance: acc.balance,
+							updatedAt: acc.updatedAt,
+						})),
+						meta: {
+							retrieved_at: existingDbAccounts[0].updatedAt.toISOString(),
+							total_accounts: existingDbAccounts.length,
+							source: 'database',
+						},
+					};
+				}
+
+				// 2. Fetch from Meta API if needed
+				const client = new MetaAdsClient({ accessToken });
+				const response = await client.getAdAccounts();
+
+				const now = new Date();
+				const accountResults = [];
+
+				// Normalize Map keys to ensure prefix consistency for lookup
+				const dbAccountMap = new Map();
+				existingDbAccounts.forEach(acc => {
+					let normalizedId = acc.accountId;
+					if (!normalizedId.startsWith('act_')) {
+						normalizedId = `act_${normalizedId}`;
+					}
+					dbAccountMap.set(normalizedId, acc);
+				});
+
+				const newAccounts = [];
+				const accountsToUpdate = [];
+
+				for (const account of response.data) {
+					let accountId = account.account_id;
+					if (!accountId.startsWith('act_')) {
+						accountId = `act_${accountId}`;
+					}
+					const accountStatus = mapAccountStatus(account.account_status);
+
+					const existingAccount = dbAccountMap.get(accountId);
+
+					if (existingAccount) {
+						// Only update if something changed (simple check)
+						const hasChanged =
+							existingAccount.accountName !== account.name ||
+							existingAccount.status !== accountStatus ||
+							existingAccount.amountSpent !== account.amount_spent ||
+							existingAccount.balance !== account.balance;
+
+						if (hasChanged || !existingAccount.accountId.startsWith('act_')) {
+							accountsToUpdate.push(
+								prisma.metaAdsAccount.update({
+									where: { id: existingAccount.id },
+									data: {
+										accountId: accountId, // Ensure it gets the 'act_' prefix if missing
+										accountName: account.name || existingAccount.accountName,
+										currency: account.currency || existingAccount.currency,
+										timezone: account.timezone_name || existingAccount.timezone,
+										status: accountStatus,
+										spendLimit: account.spend_cap || existingAccount.spendLimit,
+										amountSpent: account.amount_spent || existingAccount.amountSpent,
+										balance: account.balance || existingAccount.balance,
+										updatedAt: now,
+									},
+								})
+							);
+						}
+
+						accountResults.push({
+							id: existingAccount.id,
+							accountId: accountId,
 							accountName: account.name || existingAccount.accountName,
 							currency: account.currency || existingAccount.currency,
 							timezone: account.timezone_name || existingAccount.timezone,
@@ -131,25 +196,13 @@ export const metaAdsAccountsRouter = router({
 							spendLimit: account.spend_cap || existingAccount.spendLimit,
 							amountSpent: account.amount_spent || existingAccount.amountSpent,
 							balance: account.balance || existingAccount.balance,
-							updatedAt: now,
-						},
-					});
-					accountResults.push({
-						id: existingAccount.id,
-						accountId: existingAccount.accountId,
-						accountName: account.name || existingAccount.accountName,
-						currency: account.currency || existingAccount.currency,
-						timezone: account.timezone_name || existingAccount.timezone,
-						status: accountStatus,
-						spendLimit: account.spend_cap || existingAccount.spendLimit,
-						amountSpent: account.amount_spent || existingAccount.amountSpent,
-						balance: account.balance || existingAccount.balance,
-					});
-				} else {
-					// Create new account
-					const newAccount = await prisma.metaAdsAccount.create({
-						data: {
-							id: `meta_ads_account_${integrationId}_${accountId}_${Date.now()}`,
+							updatedAt: now.toISOString(),
+						});
+					} else {
+						// New account discovered - stable ID based on integration and account
+						const id = `meta_ads_account_${integrationId}_${accountId}`;
+						newAccounts.push({
+							id,
 							integrationId,
 							accountId,
 							accountName: account.name || null,
@@ -161,67 +214,57 @@ export const metaAdsAccountsRouter = router({
 							balance: account.balance || null,
 							createdAt: now,
 							updatedAt: now,
-						},
-					});
+						});
 
-					// Log activity
-					await prisma.metaAdsAccountActivityLog.create({
-						data: {
-							id: randomUUID(),
-							accountId: newAccount.id,
-							userId,
-							action: 'CREATE',
-							description: `Meta ad account ${accountId} discovered and added`,
-							metadata: {
-								accountId,
-								accountName: account.name,
-								currency: account.currency,
-							},
-							createdAt: now,
-						},
-					});
-
-					accountResults.push({
-						id: newAccount.id,
-						accountId: newAccount.accountId,
-						accountName: newAccount.accountName,
-						currency: newAccount.currency,
-						timezone: newAccount.timezone,
-						status: newAccount.status,
-						spendLimit: newAccount.spendLimit,
-						amountSpent: newAccount.amountSpent,
-						balance: newAccount.balance,
-					});
+						accountResults.push({
+							id,
+							accountId,
+							accountName: account.name || null,
+							currency: account.currency || null,
+							timezone: account.timezone_name || null,
+							status: accountStatus,
+							spendLimit: account.spend_cap || null,
+							amountSpent: account.amount_spent || null,
+							balance: account.balance || null,
+							updatedAt: now.toISOString(),
+						});
+					}
 				}
+
+				// Perform DB operations in parallel
+				await Promise.all([
+					accountsToUpdate.length > 0 ? Promise.all(accountsToUpdate) : Promise.resolve(),
+					newAccounts.length > 0 ? prisma.metaAdsAccount.createMany({ data: newAccounts }) : Promise.resolve(),
+				]);
+
+				return {
+					success: true,
+					data: accountResults,
+					meta: {
+						retrieved_at: now.toISOString(),
+						total_accounts: accountResults.length,
+						source: 'api',
+					},
+				};
+			} catch (error) {
+				console.error('Meta Ads API list ad accounts error:', error);
+
+				// Handle OAuth token errors - delete credentials and require re-authentication
+				const oauthError = await handleMetaAdsOAuthError(error);
+				if (oauthError) {
+					throw oauthError;
+				}
+
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: error instanceof Error ? error.message : 'Failed to list ad accounts',
+				});
 			}
-
-			return {
-				success: true,
-				data: accountResults,
-				meta: {
-					retrieved_at: new Date().toISOString(),
-					total_accounts: accountResults.length,
-				},
-			};
-		} catch (error) {
-			console.error('Meta Ads API list ad accounts error:', error);
-
-			// Handle OAuth token errors - delete credentials and require re-authentication
-			const oauthError = await handleMetaAdsOAuthError(error);
-			if (oauthError) {
-				throw oauthError;
-			}
-
-			if (error instanceof TRPCError) {
-				throw error;
-			}
-
-			throw new TRPCError({
-				code: 'INTERNAL_SERVER_ERROR',
-				message: error instanceof Error ? error.message : 'Failed to list ad accounts',
-			});
-		}
-	}),
+		}),
 
 	/**
 	 * Get ad account details
@@ -256,12 +299,12 @@ export const metaAdsAccountsRouter = router({
 				// Get account details directly from Meta API
 				const accountDetails = await client.getAdAccountDetails(normalizedAccountId);
 
-				// Return account details exactly as returned from Meta API
+				// Return account details mapped for frontend consistency
 				return {
 					success: true,
 					data: {
-						// Include all fields from Meta API response exactly as returned
 						...accountDetails,
+						status: mapAccountStatus(accountDetails.account_status),
 					},
 				};
 			} catch (error) {
