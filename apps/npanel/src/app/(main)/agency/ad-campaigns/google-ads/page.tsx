@@ -19,9 +19,13 @@ import {
 	TrendingUp,
 	Calendar as CalendarIcon,
 	Building2,
+	Eye,
+	MousePointer2,
+	ChevronDown
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { ConnectGoogleAds } from "./_components/connect-google-ads";
-import { CampaignDetailsDialog } from "./[customerId]/_components/campaign-details-dialog";
 import type { StoredCredentials } from "./_components/schemas";
 import type { GoogleAdsAccount } from "./_components/schemas";
 
@@ -40,6 +44,9 @@ function formatCustomerIdForApi(customerId: string): string {
 
 export default function GoogleAdsPage() {
 	const [selectedCustomerId, setSelectedCustomerId] = React.useState<string>("");
+	const [isSyncing, setIsSyncing] = React.useState(false);
+	const utils = trpc.useUtils();
+	const router = useRouter();
 
 	// Date range state
 	const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
@@ -47,9 +54,6 @@ export default function GoogleAdsPage() {
 		to: new Date(),
 	});
 	const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
-
-	// Campaign dialog state
-	const [selectedCampaign, setSelectedCampaign] = React.useState<any | null>(null);
 
 	// Check credentials
 	const {
@@ -71,7 +75,7 @@ export default function GoogleAdsPage() {
 		isLoading: isLoadingAccounts,
 		error: accountsError,
 		refetch: refetchAccounts,
-	} = trpc.googleAds.accounts.listAccessibleAccounts.useQuery(undefined, {
+	} = trpc.googleAds.accounts.listAccessibleAccounts.useQuery({ forceRefresh: false }, {
 		enabled: isConnected,
 		refetchOnWindowFocus: false,
 		retry: 1,
@@ -120,6 +124,7 @@ export default function GoogleAdsPage() {
 		data: campaignsData,
 		isLoading: isLoadingCampaigns,
 		error: campaignsError,
+		isFetching: isFetchingCampaigns,
 		refetch: refetchCampaigns,
 	} = trpc.googleAds.campaigns.listCampaigns.useQuery(
 		{
@@ -236,21 +241,46 @@ export default function GoogleAdsPage() {
 	};
 
 	const formatGoogleDate = (yyyyMMdd: string | undefined): string => {
-		if (!yyyyMMdd) return "-";
-		const normalized = yyyyMMdd.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3");
-		return format(new Date(normalized), "MMM dd, yyyy");
+		if (!yyyyMMdd) return "No date";
+		try {
+			const normalized = yyyyMMdd.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3");
+			return format(new Date(normalized), "MMM dd, yyyy");
+		} catch {
+			return yyyyMMdd;
+		}
 	};
 
 	const handleRefetchAccounts = React.useCallback(() => {
 		refetchCredentials();
 		refetchAccounts();
-	}, [refetchCredentials, refetchAccounts]);
+		if (selectedCustomerId) {
+			refetchAccount();
+			refetchCampaigns();
+		}
+	}, [refetchCredentials, refetchAccounts, selectedCustomerId, refetchAccount, refetchCampaigns]);
 
-	if (isLoadingCredentials) {
+	const handleSync = async () => {
+		setIsSyncing(true);
+		const promise = utils.googleAds.accounts.listAccessibleAccounts.fetch({ forceRefresh: true });
+
+		toast.promise(promise, {
+			loading: 'Syncing your Google Ads accounts...',
+			success: (data) => {
+				setIsSyncing(false);
+				return `Successfully synced ${data?.data?.length || 0} accounts`;
+			},
+			error: (err) => {
+				setIsSyncing(false);
+				return `Sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			},
+		});
+	};
+
+	if (isLoadingCredentials && !isConnected) {
 		return (
-			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6 text-foreground">
 				<div className="w-full max-w-7xl mx-auto">
-					<div className="flex items-center justify-center py-12">
+					<div className="flex items-center justify-center py-24">
 						<Spinner size={32} />
 					</div>
 				</div>
@@ -259,452 +289,332 @@ export default function GoogleAdsPage() {
 	}
 
 	return (
-		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6 text-foreground font-sans">
 			<div className="w-full max-w-7xl mx-auto">
 				{/* Header */}
 				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-semibold tracking-tight">Google Ads</h1>
-					<p className="text-muted-foreground">
-						Manage your Google Ads campaigns, keywords, and performance from one place.
+					<h1 className="text-xl font-bold tracking-tight">Google Ads</h1>
+					<p className="text-xs text-muted-foreground">
+						Comprehensive performance metrics from your Google Ads accounts.
 					</p>
 				</div>
 
 				{!isConnected ? (
-					<div className="mt-6 flex flex-col items-center justify-center py-12">
+					<div className="mt-8 flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-muted rounded-xl">
 						<ConnectGoogleAds onConnected={handleRefetchAccounts} />
 						{credentialsError && (
-							<div className="mt-4 text-sm text-muted-foreground">
-								{credentialsError.message}
+							<div className="mt-4 text-sm text-muted-foreground max-w-sm">
+								{credentialsError.message || "Please connect your Google Ads account to continue."}
 							</div>
 						)}
 					</div>
 				) : (
 					<>
-						{/* Account Dropdown */}
-						<div className="mt-6">
-							{isLoadingAccounts ? (
-								<Card>
-									<CardHeader>
-										<CardTitle>Google Ads Accounts</CardTitle>
-										<CardDescription>Loading your accessible Google Ads accounts...</CardDescription>
-									</CardHeader>
-									<CardContent>
-										<div className="flex items-center justify-center py-8">
-											<Spinner size={32} />
-										</div>
-									</CardContent>
-								</Card>
-							) : accounts.length === 0 ? (
-								<Card>
-									<CardHeader>
-										<CardTitle>Google Ads Accounts</CardTitle>
-										<CardDescription>No accessible Google Ads accounts found.</CardDescription>
-									</CardHeader>
-									<CardContent>
-										<div className="flex flex-col items-center justify-center py-8 text-center">
-											<Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-											<p className="text-sm text-muted-foreground">
-												No Google Ads accounts are accessible with your current integration.
-											</p>
-											<p className="text-xs text-muted-foreground mt-2">
-												Make sure you have access to at least one Google Ads account.
-											</p>
-										</div>
-									</CardContent>
-								</Card>
-							) : (
-								<Card>
-									<CardHeader>
-										<div className="flex items-center justify-between">
-											<div>
-												<CardTitle>Select Ad Account</CardTitle>
-												<CardDescription>
-													{accounts.length} {accounts.length === 1 ? "account" : "accounts"} accessible
-												</CardDescription>
-											</div>
-											<Button
-												variant="outline"
-												size="icon"
-												onClick={handleRefetchAccounts}
-												title="Refresh accounts"
-											>
-												<RefreshCw className="h-4 w-4" />
-											</Button>
-										</div>
-									</CardHeader>
-									<CardContent>
-										<Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-											<SelectTrigger className="w-full h-12 text-base">
-												<SelectValue placeholder="Select an ad account">
-													{selectedCustomerId &&
-														accounts.find(
-															(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
-														) && (
+						{/* Account Switcher & Date Picker (Unified Row) */}
+						<div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-b border-muted pb-6">
+							<div className="w-full md:max-w-md flex items-center gap-2">
+								<Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+									<SelectTrigger className="w-full h-10 shadow-sm border-muted/60">
+										<SelectValue placeholder="Select an ad account">
+											{(() => {
+												const currentAccount = accounts.find((acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId);
+												if (selectedCustomerId && currentAccount) {
+													const statusStyles = getStatusVariant(currentAccount.status);
+													return (
+														<div className="flex items-center justify-between w-full">
 															<div className="flex items-center gap-2">
-																<Building2 className="h-5 w-5 text-muted-foreground" />
-																<span className="font-medium">
-																	{(accounts.find(
-																		(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
-																	) as GoogleAdsAccount)?.accountName ??
-																		`Account ${formatCustomerIdDisplay(selectedCustomerId)}`}
-																</span>
-																{(accounts.find(
-																	(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
-																) as GoogleAdsAccount)?.status && (
-																		<Badge
-																			variant={getStatusVariant(
-																				(accounts.find(
-																					(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
-																				) as GoogleAdsAccount)?.status
-																			).variant}
-																			className={getStatusVariant(
-																				(accounts.find(
-																					(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
-																				) as GoogleAdsAccount)?.status
-																			).className}
-																		>
-																			{(accounts.find(
-																				(acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId
-																			) as GoogleAdsAccount)?.status}
-																		</Badge>
-																	)}
-															</div>
-														)}
-												</SelectValue>
-											</SelectTrigger>
-											<SelectContent>
-												{accounts.map((accountItem: GoogleAdsAccount) => (
-													<SelectItem key={accountItem.customerId} value={accountItem.customerId}>
-														<div className="flex items-center justify-between w-full gap-4">
-															<div className="flex items-center gap-2 flex-1 min-w-0">
-																<Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-																<span className="font-medium truncate">
-																	{accountItem.accountName ?? `Account ${accountItem.customerId}`}
+																<Building2 className="h-4 w-4 text-muted-foreground" />
+																<span className="truncate block max-w-[120px] md:max-w-[180px] lg:max-w-[240px] font-medium">
+																	{currentAccount.accountName || `Account ${formatCustomerIdDisplay(selectedCustomerId)}`}
 																</span>
 															</div>
-															{accountItem.status && (
+															{currentAccount.status && (
 																<Badge
-																	variant={getStatusVariant(accountItem.status).variant}
-																	className={getStatusVariant(accountItem.status).className}
+																	variant={statusStyles.variant}
+																	className={cn("text-[8px] px-1 py-0 font-bold uppercase shrink-0 ml-2", statusStyles.className)}
 																>
-																	{accountItem.status}
+																	{currentAccount.status}
 																</Badge>
 															)}
 														</div>
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</CardContent>
-								</Card>
-							)}
+													);
+												}
+												return null;
+											})()}
+										</SelectValue>
+									</SelectTrigger>
+									<SelectContent>
+										{accounts.map((accountItem: GoogleAdsAccount) => {
+											const statusStyles = getStatusVariant(accountItem.status);
+											return (
+												<SelectItem key={accountItem.customerId} value={accountItem.customerId}>
+													<div className="flex items-center justify-between w-full min-w-[200px]">
+														<div className="flex items-center gap-2">
+															<Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+															<span className="font-medium">{accountItem.accountName ?? `Account ${accountItem.customerId}`}</span>
+														</div>
+														{accountItem.status && (
+															<Badge
+																variant={statusStyles.variant}
+																className={cn("text-[8px] px-1 py-0 font-bold uppercase ml-2", statusStyles.className)}
+															>
+																{accountItem.status}
+															</Badge>
+														)}
+													</div>
+												</SelectItem>
+											);
+										})}
+									</SelectContent>
+								</Select>
+								<Button
+									variant="outline"
+									size="icon"
+									className="h-10 w-10 shrink-0 border-muted/60 shadow-sm"
+									onClick={handleSync}
+									disabled={isSyncing}
+									title="Sync accounts"
+								>
+									<RefreshCw className={cn("h-4 w-4 text-muted-foreground", isSyncing && "animate-spin")} />
+								</Button>
+							</div>
+
+							<div className="flex items-center gap-2 w-full md:w-auto">
+								<Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+									<PopoverTrigger asChild>
+										<Button variant="outline" size="sm" className="h-10 w-full md:w-auto justify-start shadow-sm border-muted/60 font-medium whitespace-nowrap">
+											<CalendarIcon className="mr-2 h-4 w-4" />
+											{dateRange?.from && dateRange?.to ? (
+												format(dateRange.from, "MMM dd") === format(dateRange.to, "MMM dd") ? (
+													format(dateRange.from, "MMM dd, yyyy")
+												) : (
+													<>{format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd, yyyy")}</>
+												)
+											) : (
+												"Pick a date range"
+											)}
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="w-auto p-0" align="end">
+										<Calendar
+											initialFocus
+											mode="range"
+											defaultMonth={dateRange?.from}
+											selected={dateRange}
+											onSelect={setDateRange}
+											numberOfMonths={2}
+											disabled={(date) => date > new Date()}
+										/>
+									</PopoverContent>
+								</Popover>
+								<Button
+									variant="outline"
+									size="icon"
+									className="h-10 w-10 shadow-sm border-muted/60"
+									onClick={handleRefetchAccounts}
+									disabled={isLoadingAccount || isFetchingCampaigns || isLoadingAccounts}
+								>
+									<RefreshCw className={cn("h-4 w-4", (isLoadingAccount || isFetchingCampaigns || isLoadingAccounts) && "animate-spin")} />
+								</Button>
+							</div>
 						</div>
 
-						{/* Account content when selected */}
-						{selectedCustomerId && (
-							<>
-								{isLoadingAccount ? (
-									<div className="mt-6 flex items-center justify-center py-12">
-										<Spinner size={32} />
-									</div>
-								) : account ? (
-									<>
-										{/* Performance Overview */}
-										<div className="mt-6">
-											<Card>
-												<CardHeader>
-													<CardTitle>Performance Overview</CardTitle>
-													<CardDescription>
-														Aggregated metrics from {metrics.campaignsWithInsights} of{" "}
-														{metrics.totalCampaigns} campaigns
-														{dateRange?.from && dateRange?.to && (
-															<span className="ml-2">
-																({format(dateRange.from, "MMM dd")} -{" "}
-																{format(dateRange.to, "MMM dd, yyyy")})
-															</span>
-														)}
-													</CardDescription>
-												</CardHeader>
-												<CardContent>
-													<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-														<div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900">
-															<div className="text-xs text-purple-700 dark:text-purple-300 font-medium mb-1">
-																Total Impressions
-															</div>
-															<div className="text-lg font-semibold text-purple-900 dark:text-purple-100">
-																{formatNumber(metrics.totalImpressions)}
-															</div>
-														</div>
-														<div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
-															<div className="text-xs text-green-700 dark:text-green-300 font-medium mb-1">
-																Total Clicks
-															</div>
-															<div className="text-lg font-semibold text-green-900 dark:text-green-100">
-																{formatNumber(metrics.totalClicks)}
-															</div>
-														</div>
-														<div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
-															<div className="text-xs text-emerald-700 dark:text-emerald-300 font-medium mb-1">
-																Total Amount Spent
-															</div>
-															<div className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
-																{formatCurrency(metrics.totalSpend)}
-															</div>
-														</div>
-														<div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900">
-															<div className="text-xs text-orange-700 dark:text-orange-300 font-medium mb-1">
-																Avg CPC
-															</div>
-															<div className="text-lg font-semibold text-orange-900 dark:text-orange-100">
-																{formatCurrency(metrics.avgCPC)}
-															</div>
-														</div>
-														<div className="p-4 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900">
-															<div className="text-xs text-indigo-700 dark:text-indigo-300 font-medium mb-1">
-																Avg CTR
-															</div>
-															<div className="text-lg font-semibold text-indigo-900 dark:text-indigo-100">
-																{metrics.avgCTR.toFixed(2)}%
-															</div>
-														</div>
-													</div>
-												</CardContent>
-											</Card>
-										</div>
+						{isLoadingAccount || isLoadingCampaigns || isLoadingAccounts ? (
+							<div className="flex items-center justify-center py-24">
+								<Spinner size={32} />
+							</div>
+						) : campaigns.length > 0 ? (
+							<div className="mt-8 space-y-12">
+								{/* Overview Scorecards (Standardized) */}
+								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+									<MetricCard
+										title="Total Impressions"
+										value={formatNumber(metrics.totalImpressions)}
+										icon={<Target className="h-4 w-4" />}
+										color="purple"
+									/>
+									<MetricCard
+										title="Total Clicks"
+										value={formatNumber(metrics.totalClicks)}
+										icon={<MousePointer2 className="h-4 w-4" />}
+										color="green"
+									/>
+									<MetricCard
+										title="Amount Spent"
+										value={formatCurrency(metrics.totalSpend)}
+										icon={<TrendingUp className="h-4 w-4" />}
+										color="emerald"
+									/>
+									<MetricCard
+										title="Avg CPC"
+										value={formatCurrency(metrics.avgCPC)}
+										icon={<BarChart3 className="h-4 w-4" />}
+										color="orange"
+									/>
+									<MetricCard
+										title="Avg CTR"
+										value={`${metrics.avgCTR.toFixed(2)}%`}
+										icon={<TrendingUp className="h-4 w-4" />}
+										color="indigo"
+									/>
+									<MetricCard
+										title="Conversions"
+										value={formatNumber(metrics.totalConversions)}
+										icon={<Target className="h-4 w-4" />}
+										color="blue"
+									/>
+								</div>
 
-										{/* Campaigns Section */}
-										<div className="mt-6">
-											<Card>
-												<CardHeader>
-													<div className="flex items-center justify-between">
-														<div>
-															<CardTitle>Campaigns</CardTitle>
-															<CardDescription>
-																{campaigns.length} {campaigns.length === 1 ? "campaign" : "campaigns"} found
-															</CardDescription>
+								{/* Campaigns Section */}
+								<div className="space-y-6">
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-2">
+											<Target className="h-4 w-4 text-primary" />
+											<h2 className="text-sm font-bold tracking-tight uppercase opacity-60">Active Campaigns</h2>
+										</div>
+										<Badge variant="outline" className="text-[10px] font-bold opacity-60">
+											{campaigns.length} total
+										</Badge>
+									</div>
+
+									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+										{campaigns.map((campaign: any) => (
+											<Card
+												key={campaign.id}
+												className="group hover:border-primary/40 transition-all cursor-pointer shadow-none border-muted/60 overflow-hidden flex flex-col"
+												onClick={() => {
+													router.push(`/agency/ad-campaigns/google-ads/campaigns/${campaign.id}?customerId=${selectedCustomerId}`);
+												}}
+											>
+												<CardHeader className="py-4 px-6 border-b border-muted/60 bg-muted/5 group-hover:bg-primary/[0.02] transition-colors">
+													<div className="flex items-start justify-between gap-3">
+														<div className="flex flex-col gap-1 min-w-0">
+															<div className="font-bold text-sm tracking-tight truncate group-hover:text-primary transition-colors">
+																{campaign.name ?? `Campaign ${campaign.id}`}
+															</div>
+															<div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
+																<span className="flex items-center gap-1">
+																	<TrendingUp className="h-3 w-3" />
+																	{campaign.advertising_channel_type || "SEARCH"}
+																</span>
+															</div>
 														</div>
-														<div className="flex items-center gap-2">
-															<Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-																<PopoverTrigger asChild>
-																	<Button variant="outline" size="sm">
-																		<CalendarIcon className="mr-2 h-4 w-4" />
-																		{dateRange?.from && dateRange?.to ? (
-																			format(dateRange.from, "MMM dd") === format(dateRange.to, "MMM dd") ? (
-																				format(dateRange.from, "MMM dd, yyyy")
-																			) : (
-																				<>
-																					{format(dateRange.from, "MMM dd")} -{" "}
-																					{format(dateRange.to, "MMM dd, yyyy")}
-																				</>
-																			)
-																		) : (
-																			"Pick a date range"
-																		)}
-																	</Button>
-																</PopoverTrigger>
-																<PopoverContent className="w-auto p-0" align="end">
-																	<Calendar
-																		initialFocus
-																		mode="range"
-																		defaultMonth={dateRange?.from}
-																		selected={dateRange}
-																		onSelect={setDateRange}
-																		numberOfMonths={2}
-																		disabled={(date) =>
-																			date > new Date() || date < new Date("1900-01-01")
-																		}
-																	/>
-																</PopoverContent>
-															</Popover>
-															<Button
-																variant="outline"
-																size="icon"
-																onClick={() => {
-																	refetchCampaigns();
-																	refetchAccount();
-																}}
-																title="Refresh campaigns"
-															>
-																<RefreshCw className="h-4 w-4" />
-															</Button>
-														</div>
+														<Badge
+															variant={getCampaignStatusVariant(campaign.status).variant}
+															className={cn("text-[8px] px-1.5 py-0 font-bold uppercase", getCampaignStatusVariant(campaign.status).className)}
+														>
+															{campaign.status}
+														</Badge>
 													</div>
 												</CardHeader>
-												<CardContent>
-													{isLoadingCampaigns ? (
-														<div className="flex items-center justify-center py-12">
-															<Spinner size={32} />
-														</div>
-													) : campaigns.length === 0 ? (
-														<div className="flex flex-col items-center justify-center py-12 text-center">
-															<Target className="h-12 w-12 text-muted-foreground mb-4" />
-															<p className="text-sm text-muted-foreground">
-																No campaigns found for this Google Ads account.
-															</p>
+												<CardContent className="p-6 flex-1 flex flex-col justify-between gap-6">
+													{campaign.insights ? (
+														<div className="grid grid-cols-2 gap-3">
+															<div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 space-y-1">
+																<p className="text-[9px] font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider">Impressions</p>
+																<p className="text-sm font-bold text-blue-900 dark:text-blue-100">{formatNumber(campaign.insights.impressions || 0)}</p>
+															</div>
+															<div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 space-y-1">
+																<p className="text-[9px] font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wider">Clicks</p>
+																<p className="text-sm font-bold text-purple-900 dark:text-purple-100">{formatNumber(campaign.insights.clicks || 0)}</p>
+															</div>
+															<div className="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 space-y-1">
+																<p className="text-[9px] font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">CTR</p>
+																<p className="text-sm font-bold text-indigo-900 dark:text-indigo-100">
+																	{(() => {
+																		const ctr = campaign.insights.ctr;
+																		if (!ctr || ctr === '0') return '0%';
+																		const ctrNum = typeof ctr === 'string' ? parseFloat(ctr) : ctr;
+																		return `${ctrNum.toFixed(2)}%`;
+																	})()}
+																</p>
+															</div>
+															<div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 space-y-1">
+																<p className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Spent</p>
+																<p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">{formatCurrency(campaign.insights.cost || 0)}</p>
+															</div>
 														</div>
 													) : (
-														<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-															{campaigns.map((campaign: any) => (
-																<Card
-																	key={campaign.id}
-																	className="hover:bg-accent/50 transition-colors cursor-pointer"
-																	onClick={() => setSelectedCampaign(campaign)}
-																>
-																	<CardContent className="p-4">
-																		<div className="flex flex-col gap-3">
-																			{campaign.status && (
-																				<div>
-																					<Badge
-																						variant={getCampaignStatusVariant(campaign.status).variant}
-																						className={getCampaignStatusVariant(campaign.status).className}
-																					>
-																						{campaign.status}
-																					</Badge>
-																				</div>
-																			)}
-																			<div className="font-medium line-clamp-2 min-h-[2.5rem]">
-																				{campaign.name ?? `Campaign ${campaign.id}`}
-																			</div>
-																			<div className="text-xs text-muted-foreground">
-																				ID: {campaign.id}
-																			</div>
-																			{campaign.advertising_channel_type && (
-																				<div className="flex items-center gap-1.5 text-xs">
-																					<TrendingUp className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-																					<span className="text-muted-foreground">
-																						{campaign.advertising_channel_type}
-																					</span>
-																				</div>
-																			)}
-																			<div className="flex items-center gap-1.5 text-xs">
-																				<CalendarIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-																				<span className="text-muted-foreground">
-																					Start: {formatGoogleDate(campaign.start_date)}
-																				</span>
-																			</div>
-																			<div className="flex items-center gap-1.5 text-xs">
-																				<CalendarIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-																				<span className="text-muted-foreground">
-																					End: {formatGoogleDate(campaign.end_date)}
-																				</span>
-																			</div>
-																			<div className="mt-4 pt-4 border-t">
-																				{campaign.insights ? (
-																					<div className="grid grid-cols-2 gap-2">
-																						<div className="p-2 rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900">
-																							<div className="text-[10px] text-purple-700 dark:text-purple-300 font-medium mb-0.5">
-																								Impressions
-																							</div>
-																							<div className="text-xs font-semibold text-purple-900 dark:text-purple-100">
-																								{formatNumber(campaign.insights.impressions ?? 0)}
-																							</div>
-																						</div>
-																						<div className="p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
-																							<div className="text-[10px] text-green-700 dark:text-green-300 font-medium mb-0.5">
-																								Clicks
-																							</div>
-																							<div className="text-xs font-semibold text-green-900 dark:text-green-100">
-																								{formatNumber(campaign.insights.clicks ?? 0)}
-																							</div>
-																						</div>
-																						<div className="p-2 rounded-md bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900">
-																							<div className="text-[10px] text-orange-700 dark:text-orange-300 font-medium mb-0.5">
-																								CPC
-																							</div>
-																							<div className="text-xs font-semibold text-orange-900 dark:text-orange-100">
-																								{formatCurrency(campaign.insights.cpc ?? 0)}
-																							</div>
-																						</div>
-																						<div className="p-2 rounded-md bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900">
-																							<div className="text-[10px] text-indigo-700 dark:text-indigo-300 font-medium mb-0.5">
-																								CTR
-																							</div>
-																							<div className="text-xs font-semibold text-indigo-900 dark:text-indigo-100">
-																								{(() => {
-																									const ctr = campaign.insights.ctr;
-																									if (!ctr || ctr === "0") return "0%";
-																									const n = typeof ctr === "string" ? parseFloat(ctr) : ctr;
-																									return `${Number(n).toFixed(2)}%`;
-																								})()}
-																							</div>
-																						</div>
-																						<div className="p-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
-																							<div className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium mb-0.5">
-																								Amount Spent
-																							</div>
-																							<div className="text-xs font-semibold text-emerald-900 dark:text-emerald-100">
-																								{formatCurrency(campaign.insights.cost ?? 0)}
-																							</div>
-																						</div>
-																						{campaign.insights.conversions != null && (
-																							<div className="p-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
-																								<div className="text-[10px] text-blue-700 dark:text-blue-300 font-medium mb-0.5">
-																									Conversions
-																								</div>
-																								<div className="text-xs font-semibold text-blue-900 dark:text-blue-100">
-																									{formatNumber(campaign.insights.conversions)}
-																								</div>
-																							</div>
-																						)}
-																					</div>
-																				) : (
-																					<div className="flex flex-col items-center justify-center py-6 text-center">
-																						<BarChart3 className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
-																						<p className="text-xs text-muted-foreground">
-																							No performance data available
-																						</p>
-																						<p className="text-[10px] text-muted-foreground mt-1">
-																							Metrics may not be available for this campaign or date range
-																						</p>
-																					</div>
-																				)}
-																			</div>
-																		</div>
-																	</CardContent>
-																</Card>
-															))}
+														<div className="flex-1 flex flex-col items-center justify-center py-8 text-center bg-muted/5 rounded-lg border border-dashed border-muted">
+															<p className="text-xs text-muted-foreground font-medium">No performance data for this period</p>
 														</div>
 													)}
+
+													<div className="pt-4 border-t border-muted/40 flex items-center justify-between">
+														<div className="flex flex-col gap-1">
+															<div className="flex items-center gap-1.5 text-[9px] font-medium text-muted-foreground">
+																<CalendarIcon className="h-3 w-3" />
+																<span>
+																	{formatGoogleDate(campaign.start_date)}
+																	{" — "}
+																	{campaign.end_date ? formatGoogleDate(campaign.end_date) : "Ongoing"}
+																</span>
+															</div>
+														</div>
+														<div className="flex items-center gap-1 text-[9px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+															View Details <ChevronDown className="h-3 w-3 -rotate-90" />
+														</div>
+													</div>
 												</CardContent>
 											</Card>
-										</div>
-
-										{selectedCampaign && (
-											<CampaignDetailsDialog
-												campaign={selectedCampaign}
-												open={!!selectedCampaign}
-												onOpenChange={(open) => {
-													if (!open) setSelectedCampaign(null);
-												}}
-												customerId={formattedCustomerId || formatCustomerIdForApi(selectedCustomerId)}
-												timeRange={timeRange}
-												currency={currency}
-											/>
-										)}
-									</>
-								) : accountError ? (
-									<div className="mt-6">
-										<Card>
-											<CardHeader>
-												<CardTitle>Account Not Found</CardTitle>
-												<CardDescription>
-													The selected Google Ads account could not be found.
-												</CardDescription>
-											</CardHeader>
-											<CardContent>
-												<Button onClick={handleRefetchAccounts} variant="outline">
-													<RefreshCw className="mr-2 h-4 w-4" />
-													Refresh Accounts
-												</Button>
-											</CardContent>
-										</Card>
+										))}
 									</div>
-								) : null}
-							</>
+								</div>
+							</div>
+						) : (
+							<div className="flex flex-col items-center justify-center py-32 text-center">
+								<div className="p-5 rounded-full bg-muted/30 mb-5">
+									<Target className="h-10 w-10 text-muted-foreground/40" />
+								</div>
+								<h3 className="text-lg font-bold tracking-tight">No campaign data available</h3>
+								<p className="text-sm text-muted-foreground mt-2 max-w-sm">
+									We couldn't find any campaigns for "{formattedCustomerId || selectedCustomerId}" during this period.
+								</p>
+							</div>
 						)}
 					</>
 				)}
 			</div>
 		</div>
+	);
+}
+
+/**
+ * Standardized Metric Card (Replicated from Meta Ads & SEO Reports)
+ */
+function MetricCard({
+	title,
+	value,
+	icon,
+	color,
+}: {
+	title: string;
+	value: string;
+	icon: React.ReactNode;
+	color: "blue" | "green" | "purple" | "orange" | "indigo" | "emerald";
+}) {
+	const colorClasses = {
+		blue: "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
+		green: "bg-green-50 text-green-600 border-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20",
+		purple: "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20",
+		orange: "bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20",
+		indigo: "bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20",
+		emerald: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
+	};
+
+	return (
+		<Card className="overflow-hidden border-muted/60 shadow-none hover:border-muted-foreground/10 transition-colors">
+			<CardContent className="p-4 flex flex-col justify-between h-full space-y-3">
+				<div className="flex items-center justify-between">
+					<div className={cn("p-1.5 rounded-md border", colorClasses[color])}>
+						{icon}
+					</div>
+				</div>
+				<div>
+					<p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{title}</p>
+					<h3 className="text-xl font-bold tracking-tight">{value}</h3>
+				</div>
+			</CardContent>
+		</Card>
 	);
 }

@@ -91,53 +91,89 @@ export const googleAdsAccountsRouter = router({
 	 * List all accessible Google Ads accounts (customers)
 	 * Uses Google Ads API to fetch accessible customer accounts
 	 */
-	listAccessibleAccounts: protectedProcedure.query(async ({ ctx }) => {
-		try {
-			const userId = ctx.session?.user?.id;
-			if (!userId) {
-				throw new TRPCError({
-					code: 'UNAUTHORIZED',
-					message: 'User session not found',
+	listAccessibleAccounts: protectedProcedure
+		.input(z.object({ forceRefresh: z.boolean().optional() }).optional())
+		.query(async ({ input, ctx }) => {
+			try {
+				const userId = ctx.session?.user?.id;
+				if (!userId) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'User session not found',
+					});
+				}
+
+				const integration = await getUserIntegration(userId);
+
+				// 1. Read-first: Try to get from database first
+				const existingDbAccounts = await prisma.googleAdsAccount.findMany({
+					where: { integrationId: integration.id },
+					orderBy: { updatedAt: 'desc' }, // Logic fix: checking freshest record
 				});
-			}
 
-			const integration = await getUserIntegration(userId);
+				// Freshness threshold: 30 minutes
+				const FRESHNESS_THRESHOLD = 30 * 60 * 1000;
+				const now = new Date();
+				const isDataFresh = existingDbAccounts.length > 0 &&
+					(now.getTime() - new Date(existingDbAccounts[0].updatedAt).getTime()) < FRESHNESS_THRESHOLD;
 
-			// Create Google Ads client
-			const client = createGoogleAdsClient({
-				developerToken: getGoogleAdsDeveloperToken(),
-				clientId: getGoogleAdsClientId(),
-				clientSecret: getGoogleAdsClientSecret(),
-				refreshToken: integration.refreshToken,
-			});
+				// If not forcing refresh and data is fresh, return from DB immediately
+				if (existingDbAccounts.length > 0 && !input?.forceRefresh && isDataFresh) {
+					return {
+						success: true,
+						data: existingDbAccounts.map(acc => ({
+							customerId: acc.customerId,
+							accountName: acc.accountName,
+							currencyCode: acc.currencyCode,
+							timeZone: acc.timeZone,
+							status: acc.status,
+							resourceName: `customers/${acc.customerId}`,
+						})),
+						meta: {
+							retrieved_at: existingDbAccounts[0].updatedAt.toISOString(),
+							total_accounts: existingDbAccounts.length,
+							source: 'database',
+						},
+					};
+				}
 
-			// Get accessible customers using the library's method
-			const accessibleCustomers = await getAccessibleCustomers(client, integration.refreshToken);
+				// 2. Fetch from Google Ads API if needed
+				const client = createGoogleAdsClient({
+					developerToken: getGoogleAdsDeveloperToken(),
+					clientId: getGoogleAdsClientId(),
+					clientSecret: getGoogleAdsClientSecret(),
+					refreshToken: integration.refreshToken,
+				});
 
-			// Fetch account details for each customer and store/update in database
-			const now = new Date();
-			const accountResults = [];
+				// Get accessible customers using the library's method
+				const accessibleCustomers = await getAccessibleCustomers(client, integration.refreshToken);
 
-			for (const customer of accessibleCustomers) {
-				// Remove dashes from customer ID for storage (format: XXX-XXX-XXXX -> XXXXXXXXXX)
-				const customerIdWithoutDashes = customer.customerId.replace(/-/g, '');
+				const accountResults = [];
+				const dbAccountMap = new Map(existingDbAccounts.map(acc => [acc.customerId, acc]));
 
-				// Fetch account details from Google Ads API
-				let accountName: string | null = null;
-				let currencyCode: string | null = null;
-				let timeZone: string | null = null;
-				let accountStatus: 'ACTIVE' | 'PAUSED' | 'REMOVED' = 'ACTIVE';
+				const newAccounts = [];
+				const accountsToUpdate = [];
 
-				try {
-					// Get customer instance for this specific customer
-					const customerInstance = getCustomerInstance(
-						client,
-						customerIdWithoutDashes,
-						integration.refreshToken
-					);
+				for (const customer of accessibleCustomers) {
+					const customerIdWithoutDashes = customer.customerId.replace(/-/g, '');
 
-					// Query customer details using GAQL
-					const query = `
+					// Standardize customer ID for comparison
+					const existingAccount = dbAccountMap.get(customerIdWithoutDashes);
+
+					// Fetch account details from Google Ads API
+					let accountName: string | null = null;
+					let currencyCode: string | null = null;
+					let timeZone: string | null = null;
+					let accountStatus: 'ACTIVE' | 'PAUSED' | 'REMOVED' = 'ACTIVE';
+
+					try {
+						const customerInstance = getCustomerInstance(
+							client,
+							customerIdWithoutDashes,
+							integration.refreshToken
+						);
+
+						const query = `
 						SELECT
 							customer.id,
 							customer.descriptive_name,
@@ -148,64 +184,62 @@ export const googleAdsAccountsRouter = router({
 						WHERE customer.id = ${customerIdWithoutDashes}
 					`;
 
-				const results = await customerInstance.query(query);
-				if (results && results.length > 0) {
-					const customerData = results[0].customer;
-					if (customerData) {
-						accountName = customerData.descriptive_name || null;
-						currencyCode = customerData.currency_code || null;
-						timeZone = customerData.time_zone || null;
-						
-						// Map Google Ads status to our enum
-						const status = customerData.status || 'ACTIVE';
-						// Note: Google Ads API doesn't use 'PAUSED' or 'REMOVED' status values
-						// These checks are kept for backward compatibility but won't match
-						if (status === 'SUSPENDED') {
-							accountStatus = 'PAUSED';
-						} else if (status === 'CANCELED') {
-							accountStatus = 'REMOVED';
+						const results = await customerInstance.query(query);
+						if (results && results.length > 0) {
+							const customerData = results[0].customer;
+							if (customerData) {
+								accountName = customerData.descriptive_name || null;
+								currencyCode = customerData.currency_code || null;
+								timeZone = customerData.time_zone || null;
+
+								const status = customerData.status || 'ACTIVE';
+								if (status === 'SUSPENDED') {
+									accountStatus = 'PAUSED';
+								} else if (status === 'CANCELED') {
+									accountStatus = 'REMOVED';
+								}
+							}
 						}
+					} catch (error) {
+						console.warn(`Failed to fetch details for customer ${customer.customerId}:`, error);
 					}
-				}
-				} catch (error) {
-					console.warn(`Failed to fetch details for customer ${customer.customerId}:`, error);
-					// Continue with basic info if details fetch fails
-				}
 
-				// Use findFirst since Prisma might not recognize the composite unique constraint yet
-				// The schema has @@unique([integrationId, customerId]) but needs regeneration
-				const existingAccount = await prisma.googleAdsAccount.findFirst({
-					where: {
-						integrationId: integration.id,
-						customerId: customerIdWithoutDashes,
-					},
-				});
+					if (existingAccount) {
+						// Check if update is needed
+						const hasChanged =
+							existingAccount.accountName !== accountName ||
+							existingAccount.currencyCode !== currencyCode ||
+							existingAccount.timeZone !== timeZone ||
+							existingAccount.status !== accountStatus;
 
-				if (existingAccount) {
-					// Update existing account
-					await prisma.googleAdsAccount.update({
-						where: { id: existingAccount.id },
-						data: {
+						if (hasChanged || input?.forceRefresh) {
+							accountsToUpdate.push(
+								prisma.googleAdsAccount.update({
+									where: { id: existingAccount.id },
+									data: {
+										accountName: accountName || existingAccount.accountName,
+										currencyCode: currencyCode || existingAccount.currencyCode,
+										timeZone: timeZone || existingAccount.timeZone,
+										status: accountStatus,
+										updatedAt: now,
+									},
+								})
+							);
+						}
+
+						accountResults.push({
+							customerId: customer.customerId,
+							resourceName: customer.resourceName,
 							accountName: accountName || existingAccount.accountName,
 							currencyCode: currencyCode || existingAccount.currencyCode,
 							timeZone: timeZone || existingAccount.timeZone,
 							status: accountStatus,
-							updatedAt: now,
-						},
-					});
-					accountResults.push({
-						customerId: customer.customerId,
-						resourceName: customer.resourceName,
-						accountName: accountName || existingAccount.accountName,
-						currencyCode: currencyCode || existingAccount.currencyCode,
-						timeZone: timeZone || existingAccount.timeZone,
-						status: accountStatus,
-					});
-				} else {
-					// Create new account
-					const newAccount = await prisma.googleAdsAccount.create({
-						data: {
-							id: `google_ads_account_${integration.id}_${customerIdWithoutDashes}_${Date.now()}`,
+						});
+					} else {
+						// Create new account entry
+						const id = `google_ads_account_${integration.id}_${customerIdWithoutDashes}`;
+						newAccounts.push({
+							id,
 							integrationId: integration.id,
 							customerId: customerIdWithoutDashes,
 							accountName,
@@ -214,61 +248,48 @@ export const googleAdsAccountsRouter = router({
 							status: accountStatus,
 							createdAt: now,
 							updatedAt: now,
-						},
-					});
+						});
 
-					// Log activity
-					await prisma.googleAdsAccountActivityLog.create({
-						data: {
-							id: randomUUID(),
-							accountId: newAccount.id,
-							userId,
-							action: 'CREATE',
-							description: `Google Ads account ${customer.customerId} discovered and added`,
-							metadata: {
-								customerId: customer.customerId,
-								accountName,
-								currencyCode,
-								timeZone,
-								status: accountStatus,
-							},
-							createdAt: now,
-						},
-					});
-
-					accountResults.push({
-						customerId: customer.customerId,
-						resourceName: customer.resourceName,
-						accountName,
-						currencyCode,
-						timeZone,
-						status: accountStatus,
-					});
+						accountResults.push({
+							customerId: customer.customerId,
+							resourceName: customer.resourceName,
+							accountName,
+							currencyCode,
+							timeZone,
+							status: accountStatus,
+						});
+					}
 				}
+
+				// Perform DB operations in parallel
+				await Promise.all([
+					...accountsToUpdate,
+					newAccounts.length > 0 ? prisma.googleAdsAccount.createMany({ data: newAccounts }) : Promise.resolve(),
+				]);
+
+				return {
+					success: true,
+					data: accountResults,
+					meta: {
+						retrieved_at: now.toISOString(),
+						total_accounts: accountResults.length,
+						source: 'api',
+					},
+				};
+			} catch (error) {
+				console.error('Google Ads API list accessible accounts error:', error);
+
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+
+				const errorInfo = GoogleAdsErrorHandler.handleError(error);
+				throw new TRPCError({
+					code: errorInfo.type === 'refresh-token' || errorInfo.type === 'permission' ? 'UNAUTHORIZED' : 'INTERNAL_SERVER_ERROR',
+					message: errorInfo.message,
+				});
 			}
-
-			return {
-				success: true,
-				data: accountResults,
-				meta: {
-					retrieved_at: new Date().toISOString(),
-					total_accounts: accountResults.length,
-				},
-			};
-		} catch (error) {
-			console.error('Google Ads API list accessible accounts error:', error);
-
-			if (error instanceof TRPCError) {
-				throw error;
-			}
-
-			const errorInfo = GoogleAdsErrorHandler.handleError(error);
-			throw new TRPCError({
-				code: errorInfo.type === 'refresh-token' || errorInfo.type === 'permission' ? 'UNAUTHORIZED' : 'INTERNAL_SERVER_ERROR',
-				message: errorInfo.message,
-			});
-		}
-	}),
+		}),
 
 	/**
 	 * Get account details for a specific Google Ads customer
@@ -323,24 +344,24 @@ export const googleAdsAccountsRouter = router({
 					});
 				}
 
-			const accountData = results[0];
-			if (!accountData.customer) {
-				throw new Error('Customer data not found in account response');
-			}
-			const accountName = accountData.customer.descriptive_name || null;
-			const currencyCode = accountData.customer.currency_code || null;
-			const timeZone = accountData.customer.time_zone || null;
-			const status = accountData.customer.status || 'ACTIVE';
+				const accountData = results[0];
+				if (!accountData.customer) {
+					throw new Error('Customer data not found in account response');
+				}
+				const accountName = accountData.customer.descriptive_name || null;
+				const currencyCode = accountData.customer.currency_code || null;
+				const timeZone = accountData.customer.time_zone || null;
+				const status = accountData.customer.status || 'ACTIVE';
 
-			// Map Google Ads status to our enum
-			let accountStatus: 'ACTIVE' | 'PAUSED' | 'REMOVED' = 'ACTIVE';
-			// Note: Google Ads API doesn't use 'PAUSED' or 'REMOVED' status values
-			// These checks are kept for backward compatibility but won't match
-			if (status === 'SUSPENDED') {
-				accountStatus = 'PAUSED';
-			} else if (status === 'CANCELED') {
-				accountStatus = 'REMOVED';
-			}
+				// Map Google Ads status to our enum
+				let accountStatus: 'ACTIVE' | 'PAUSED' | 'REMOVED' = 'ACTIVE';
+				// Note: Google Ads API doesn't use 'PAUSED' or 'REMOVED' status values
+				// These checks are kept for backward compatibility but won't match
+				if (status === 'SUSPENDED') {
+					accountStatus = 'PAUSED';
+				} else if (status === 'CANCELED') {
+					accountStatus = 'REMOVED';
+				}
 
 				// Store/update account in database
 				// Use findFirst since Prisma might not recognize the composite unique constraint yet
