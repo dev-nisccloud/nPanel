@@ -42,8 +42,8 @@ export function ProfileHeader() {
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm py-6">
+      <CardContent>
         <div className="flex items-center gap-4">
           <Avatar className="h-20 w-20">
             {userInfo.image ? (
@@ -57,7 +57,14 @@ export function ProfileHeader() {
             <h2 className="text-2xl font-semibold">{userInfo.name}</h2>
             <p className="text-muted-foreground">{userInfo.email}</p>
             <div className="mt-2 flex items-center gap-2">
-              <Badge variant={userInfo.status === "ACTIVE" ? "default" : "destructive"}>
+              <Badge
+                variant={userInfo.status === "ACTIVE" ? "outline" : "destructive"}
+                className={
+                  userInfo.status === "ACTIVE"
+                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+                    : ""
+                }
+              >
                 {userInfo.status}
               </Badge>
               {userInfo.emailVerified && (
@@ -70,6 +77,6 @@ export function ProfileHeader() {
           </div>
         </div>
       </CardContent>
-    </Card>
+    </div>
   );
 }

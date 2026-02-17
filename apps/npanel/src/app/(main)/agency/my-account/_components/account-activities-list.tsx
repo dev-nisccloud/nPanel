@@ -68,19 +68,19 @@ export function AccountActivitiesList() {
 
   const getDeviceInfo = (userAgent: string | null) => {
     if (!userAgent) return "Unknown Device";
-    
+
     if (userAgent.includes("Windows")) return "Windows PC";
     if (userAgent.includes("Mac")) return "macOS";
     if (userAgent.includes("Linux")) return "Linux";
     if (userAgent.includes("iPhone")) return "iPhone";
     if (userAgent.includes("iPad")) return "iPad";
     if (userAgent.includes("Android")) return "Android";
-    
+
     return "Unknown Device";
   };
 
   return (
-    <Card>
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm flex flex-col gap-6 py-6">
       <CardHeader>
         <CardTitle>Account Activities</CardTitle>
         <CardDescription>
@@ -139,6 +139,6 @@ export function AccountActivitiesList() {
           </div>
         )}
       </CardContent>
-    </Card>
+    </div>
   );
 }

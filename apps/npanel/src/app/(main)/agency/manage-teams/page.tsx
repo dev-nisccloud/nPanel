@@ -19,13 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { TeamViewDialog } from "./_components/team-view-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TeamViewSheet } from "./_components/team-view-sheet";
 import { EditTeamDialog } from "./_components/edit-team-dialog";
 import { CreateTeamDialog } from "./_components/create-team-dialog";
 import {
@@ -311,7 +306,7 @@ export default function ManageTeamsPage() {
       </div>
 
       {selectedTeamId && (
-        <TeamViewDialog
+        <TeamViewSheet
           open={!!selectedTeamId}
           onOpenChange={(open) => {
             if (!open) setSelectedTeamId(null);

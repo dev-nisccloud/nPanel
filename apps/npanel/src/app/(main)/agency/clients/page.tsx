@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ClientsTable, ClientsTableSkeleton } from "./_components/clients-table";
 import { CreateClientSheet } from "./_components/create-client-sheet";
-import { ClientViewDialog } from "./_components/client-view-dialog";
+import { ClientViewSheet } from "./_components/client-view-sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -265,13 +265,12 @@ export default function ClientsPage() {
       />
 
       {selectedClientId && (
-        <ClientViewDialog
+        <ClientViewSheet
           open={!!selectedClientId}
           onOpenChange={(open) => {
             if (!open) setSelectedClientId(null);
           }}
           clientId={selectedClientId}
-          onStatusChange={(id, status, action) => handleStatusChange(id, status, action)}
         />
       )}
 

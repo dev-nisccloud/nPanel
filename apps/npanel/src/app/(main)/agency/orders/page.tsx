@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
 import { AddOrderSheet } from "./_components/add-order-sheet";
-import { OrderViewDialog } from "./_components/order-view-dialog";
+import { OrderViewSheet } from "./_components/order-view-sheet";
 
 const ORDER_TYPE_NAMES: Record<string, string> = {
 	DOMAIN_REGISTRATION: "Domain Registration",
@@ -337,7 +337,7 @@ export default function OrdersPage() {
 				</div>
 			</div>
 
-			<OrderViewDialog
+			<OrderViewSheet
 				open={!!selectedOrderId}
 				onOpenChange={(open) => !open && setSelectedOrderId(null)}
 				orderId={selectedOrderId}

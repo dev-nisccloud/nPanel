@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { CreateUserSheet } from "./_components/create-user-sheet";
-import { UserViewDialog } from "./_components/user-view-dialog";
+import { UserViewSheet } from "./_components/user-view-sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -325,13 +325,12 @@ export default function ManageUsersPage() {
       />
 
       {selectedUserId && (
-        <UserViewDialog
+        <UserViewSheet
           open={!!selectedUserId}
           onOpenChange={(open) => {
             if (!open) setSelectedUserId(null);
           }}
           userId={selectedUserId}
-          onStatusChange={(id, status, action) => handleStatusChange(id, status, action)}
         />
       )}
 
