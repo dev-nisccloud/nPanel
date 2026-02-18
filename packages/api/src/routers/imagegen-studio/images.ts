@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import { createApi } from "unsplash-js";
@@ -16,11 +17,15 @@ export const imageGenImagesRouter = router({
   // Get images from Unsplash with pagination and optional search
   list: protectedProcedure
     .input(getImagesSchema)
+    .output(z.object({
+      data: z.array(z.any()),
+      hasMore: z.boolean(),
+    }))
     .query(async ({ ctx, input }) => {
-    const userId = ctx.session?.user?.id;
-    if (!userId) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
 
       const { page, perPage, query } = input;
 
@@ -48,18 +53,18 @@ export const imageGenImagesRouter = router({
           totalPages = searchResult.response.total_pages;
         } else {
           // Use random images when no query
-      const images = await unsplash.photos.getRandom({
-        collectionIds: DEFAULT_COLLECTION_IDS,
+          const images = await unsplash.photos.getRandom({
+            collectionIds: DEFAULT_COLLECTION_IDS,
             count: perPage,
-      });
+          });
 
-      if (images.errors) {
-        console.error("Unsplash API Error:", images.errors);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch images from Unsplash",
-        });
-      }
+          if (images.errors) {
+            console.error("Unsplash API Error:", images.errors);
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to fetch images from Unsplash",
+            });
+          }
 
           let randomResponse = images.response;
           if (!Array.isArray(randomResponse)) {
@@ -68,21 +73,21 @@ export const imageGenImagesRouter = router({
           response = randomResponse;
           // For random images, assume more available if we got the requested amount
           totalPages = response.length === perPage ? page + 1 : page;
-      }
+        }
 
         return {
           data: response,
           hasMore: query ? page < totalPages : response.length === perPage,
         };
-    } catch (error) {
-      console.error("Unsplash Fetch Error:", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch images",
-        cause: error,
-      });
-    }
-  }),
+      } catch (error) {
+        console.error("Unsplash Fetch Error:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch images",
+          cause: error,
+        });
+      }
+    }),
 });
 
 

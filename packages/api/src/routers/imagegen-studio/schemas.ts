@@ -139,7 +139,7 @@ export const imageGenAiGenerationSchema = z.object({
 export const imageGenProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
-  json: z.string().optional(),
+  json: z.string(),
   width: z.number().int(),
   height: z.number().int(),
   thumbnailUrl: z.string().nullable(),
@@ -152,7 +152,7 @@ export const imageGenProjectSchema = z.object({
 export const imageGenTemplateSchema = z.object({
   id: z.string(),
   name: z.string(),
-  json: z.string().optional(),
+  json: z.string(),
   width: z.number().int(),
   height: z.number().int(),
   thumbnailUrl: z.string().nullable(),

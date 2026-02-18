@@ -133,7 +133,7 @@ jobs:
         run: pnpm -C packages/db exec prisma generate
 
       - name: Build all packages
-        run: NODE_OPTIONS="--max-old-space-size=6144" pnpm run build
+        run: NODE_OPTIONS="--max-old-space-size=8192" pnpm run build
 
   # Run database migrations for staging
   migrate-staging:
