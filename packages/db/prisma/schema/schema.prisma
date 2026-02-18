@@ -1,8 +1,9 @@
 generator client {
-  provider      = "prisma-client"
-  output        = "../generated"
-  moduleFormat  = "esm"
-  binaryTargets = env("PRISMA_BINARY_TARGETS")
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
+  output          = "../generated"
+  moduleFormat    = "esm"
+  binaryTargets   = env("PRISMA_BINARY_TARGETS")
 }
 
 datasource db {

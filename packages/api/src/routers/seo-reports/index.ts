@@ -4,15 +4,13 @@ import { z } from "zod";
 import prisma from "@nPanel/db";
 import { protectedProcedure, router, type Context } from "../../trpc";
 import { GoogleSearchConsoleClient } from "../../lib/google-search-console-client";
-import { GoogleAnalyticsClient } from "../../lib/google-analytics-client";
-import { countries } from "../../../../../packages/location/src/countries-intl";
+import { countries } from "@nPanel/location";
 import {
   seoReportCreateInputSchema,
   seoReportDetailSchema,
   seoReportListFiltersSchema,
   seoReportListResponseSchema,
   seoReportSummarySchema,
-  seoReportUpdateInputSchema,
   seoAutomatedReportInputSchema,
   seoAutomatedReportResponseSchema,
 } from "./schemas";
@@ -103,9 +101,19 @@ function getPreviousPeriod(from: string, to: string) {
   const prevStartDate = new Date(prevEndDate);
   prevStartDate.setDate(prevStartDate.getDate() - diffDays + 1);
 
+  const fromVal = prevStartDate.toISOString().split('T')[0];
+  const toVal = prevEndDate.toISOString().split('T')[0];
+
+  if (!fromVal || !toVal) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to calculate previous period dates",
+    });
+  }
+
   return {
-    from: prevStartDate.toISOString().split('T')[0],
-    to: prevEndDate.toISOString().split('T')[0],
+    from: fromVal,
+    to: toVal,
   };
 }
 
@@ -217,10 +225,10 @@ export const seoReportsRouter = router({
 
         // Top Countries
         const topCountries = currentCountries.map((c: any) => {
-          const code = c.keys[0]?.toUpperCase();
+          const code = (c.keys[0] as string | undefined)?.toUpperCase();
           const countryMatch = countries.find((co: any) => co.alpha3 === code || co.alpha2 === code);
           return {
-            country: countryMatch ? countryMatch.name : (c.keys[0] || "Unknown"),
+            country: countryMatch ? countryMatch.name : (c.keys[0] || "Unknown") as string,
             clicks: c.clicks || 0,
             impressions: c.impressions || 0,
             ctr: (c.ctr || 0) * 100,
@@ -296,9 +304,15 @@ export const seoReportsRouter = router({
         };
       } catch (error) {
         console.error('Failed to fetch automated SEO report:', error);
+
+        // Help debug Google Auth issues in production
+        if (error instanceof Error && (error.message.includes('auth') || error.message.includes('credential') || error.message.includes('Service Account'))) {
+          console.error('CRITICAL: Google Auth failed. Check GOOGLE_SA_* environment variables.');
+        }
+
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to fetch automated SEO report',
+          message: error instanceof Error ? `Automated SEO Report Error: ${error.message}` : 'Failed to fetch automated SEO report',
         });
       }
     }),
@@ -314,9 +328,15 @@ export const seoReportsRouter = router({
         }));
       } catch (error) {
         console.error('Failed to list manageable sites:', error);
+
+        // Help debug Google Auth issues in production
+        if (error instanceof Error && (error.message.includes('auth') || error.message.includes('credential') || error.message.includes('Service Account'))) {
+          console.error('CRITICAL: Google Auth failed. Check GOOGLE_SA_* environment variables.');
+        }
+
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to list manageable sites',
+          message: error instanceof Error ? `List Sites Error: ${error.message}` : 'Failed to list manageable sites',
         });
       }
     }),

@@ -22,7 +22,7 @@ model SeoReport {
   status          SeoReportStatus @default(DRAFT)
   recommendations String?
 
-  // Core metrics (all numeric as String)
+  // Core metrics (Reverted to String? for migration compatibility; aggregations should use Reporting snapshots)
   sessions        String?
   totalWebTraffic String?
   totalViews      String?

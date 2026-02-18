@@ -364,6 +364,15 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Settings", url: "/agency/kra-etims/settings", },
         ],
       },
+      {
+        title: "Reports",
+        url: "/agency/reports/sales",
+        icon: (props: any) => React.createElement(Icons.Reports, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Sales Reports", url: "/agency/reports/sales", },
+          { title: "Creative Reports", url: "/agency/reports/creative", },
+        ],
+      },
       // {
       //   title: "Invoicing",
       //   url: "/agency/invoicing",

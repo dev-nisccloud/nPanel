@@ -80,6 +80,7 @@ import { userRouter } from "./user";
 import { emailBuilderRouter } from "./email-builder";
 import { aiRouter } from "./ai";
 import { etimsRouter } from "./etims";
+import { reportsRouter } from "./reports";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -224,5 +225,7 @@ export const appRouter = router({
 	ai: aiRouter,
 	// eTIMS Integration
 	etims: etimsRouter,
+	// Reports & Analytics
+	reports: reportsRouter,
 });
 export type AppRouter = typeof appRouter;
