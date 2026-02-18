@@ -10,9 +10,56 @@ import {
 	campaignEventSummarySchema,
 	topClickedLinksInputSchema,
 	topClickedLinksResponseSchema,
+	emailGlobalEventsInputSchema,
+	emailGlobalEventsResponseSchema,
 } from "./schemas";
 
 export const emailMarketingEmailEventsRouter = router({
+	getGlobalEvents: protectedProcedure
+		.input(emailGlobalEventsInputSchema)
+		.query(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "User session not found",
+				});
+			}
+
+			// Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN
+			const userRole = session.user.role;
+			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You do not have permission to view global email events",
+				});
+			}
+
+			const where: {
+				eventCreatedAt?: {
+					gte?: Date;
+					lte?: Date;
+				};
+			} = {};
+
+			if (input.from || input.to) {
+				where.eventCreatedAt = {};
+				if (input.from) where.eventCreatedAt.gte = input.from;
+				if (input.to) where.eventCreatedAt.lte = input.to;
+			}
+
+			const events = await prisma.emailEvent.findMany({
+				where,
+				select: {
+					type: true,
+					eventCreatedAt: true,
+				},
+				orderBy: { eventCreatedAt: "asc" },
+			});
+
+			return emailGlobalEventsResponseSchema.parse(events);
+		}),
+
 	getById: protectedProcedure
 		.input(z.object({ id: z.string().min(1) }))
 		.query(async ({ ctx, input }) => {

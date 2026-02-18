@@ -21,7 +21,7 @@ function InvoicesTableSkeleton() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Invoice Number</TableHead>
+            <TableHead className="pl-6">Invoice Number</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Amount</TableHead>
@@ -31,7 +31,7 @@ function InvoicesTableSkeleton() {
         <TableBody>
           {Array.from({ length: 5 }).map((_, i) => (
             <TableRow key={i}>
-              <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+              <TableCell className="pl-6"><Skeleton className="h-4 w-32" /></TableCell>
               <TableCell><Skeleton className="h-4 w-40" /></TableCell>
               <TableCell><Skeleton className="h-4 w-20" /></TableCell>
               <TableCell><Skeleton className="h-4 w-24" /></TableCell>
@@ -117,7 +117,7 @@ export function InvoicesTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Invoice Number</TableHead>
+            <TableHead className="pl-6">Invoice Number</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Amount</TableHead>
@@ -134,7 +134,7 @@ export function InvoicesTable() {
           ) : (
             invoices.map((invoice) => (
               <TableRow key={invoice.id}>
-                <TableCell>
+                <TableCell className="pl-6">
                   <Link
                     href={`/agency/invoices/${invoice.id}`}
                     className="font-medium text-primary hover:underline"

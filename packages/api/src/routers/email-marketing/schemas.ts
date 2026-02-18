@@ -349,3 +349,20 @@ export const campaignEventSummarySchema = z.object({
 	totalRecipients: z.number().int().nonnegative(),
 });
 export type CampaignEventSummary = z.infer<typeof campaignEventSummarySchema>;
+// Global email events (for agency dashboard)
+export const emailGlobalEventsInputSchema = z.object({
+	from: optDate(),
+	to: optDate(),
+});
+export type EmailGlobalEventsInput = z.infer<typeof emailGlobalEventsInputSchema>;
+
+export const emailGlobalEventSchema = z.object({
+	type: emailEventTypeSchema,
+	eventCreatedAt: z.date(),
+});
+export type EmailGlobalEvent = z.infer<typeof emailGlobalEventSchema>;
+
+export const emailGlobalEventsResponseSchema = z.array(emailGlobalEventSchema);
+export type EmailGlobalEventsResponse = z.infer<
+	typeof emailGlobalEventsResponseSchema
+>;
