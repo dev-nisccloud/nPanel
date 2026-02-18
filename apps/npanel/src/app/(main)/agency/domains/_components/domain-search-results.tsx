@@ -3,65 +3,53 @@
 import * as React from "react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
-import { CategoryTabs } from "./category-tabs";
-import { DomainResultCard } from "./domain-result-card";
-import { PromotionalCards } from "./promotional-cards";
+import { getTldExtensionsByCategory } from "@nPanel/utils";
+import { categoryNameToSectionId } from "./domain-section-titles";
+import { KenyanTldCards } from "./kenyan-tld-cards";
+import { DomainSearchSection } from "./domain-search-section";
+import { useCurrency } from "./currency-context";
+import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import type { DomainSearchResult } from "./domain-search";
 
 interface DomainSearchResultsProps {
-  results: DomainSearchResult[];
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-  isLoading: boolean;
+  searchQuery: string;
   error: string | null;
   isDomainInCart: (domain: string) => boolean;
   onAddToCart: (result: DomainSearchResult) => void;
   onRemoveFromCart: (domain: string) => void;
-  searchQuery?: string;
-  // PERFORMANCE: Pass promotional results from main query (cached by searchQueryName)
-  promotionalResults?: {
-    ai: any;
-    com: any;
-    info: any;
-    online: any;
-    queryTldResult?: any;
-    queryTldParsed?: { name: string; extension: string };
-  };
-  // Separate loading state for promotional cards (only true if no cached data)
-  isPromotionalLoading?: boolean;
+  /** Called when any part (Kenyan or sections) starts/stops loading; use for search button spinner. */
+  onLoadingChange?: (loading: boolean) => void;
 }
 
-function SearchResultsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-      {Array.from({ length: 8 }).map((_, index) => (
-        <div key={index} className="flex flex-col p-3 bg-card border border-border rounded-lg">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <Skeleton className="h-4 flex-1" />
-            <Skeleton className="h-5 w-16" />
-          </div>
-          <Skeleton className="h-6 w-24 mb-2" />
-          <Skeleton className="h-7 w-full mt-auto" />
-        </div>
-      ))}
-    </div>
-  );
-}
+const CATEGORIES = getTldExtensionsByCategory();
+const SECTION_IDS = CATEGORIES.map((c) => categoryNameToSectionId(c.name));
 
 export function DomainSearchResults({
-  results,
-  activeTab,
-  onTabChange,
-  isLoading,
+  searchQuery,
   error,
   isDomainInCart,
   onAddToCart,
   onRemoveFromCart,
-  searchQuery = "",
-  promotionalResults,
-  isPromotionalLoading,
+  onLoadingChange,
 }: DomainSearchResultsProps) {
+  const currencyContext = useCurrency();
+  const pricingHook = useDomainPricing(currencyContext);
+
+  // Global loading: aggregate Kenyan + all sections so the search button can show spinner when any are loading
+  const [loadingSources, setLoadingSources] = React.useState<Set<string>>(new Set());
+  const reportLoading = React.useCallback((sourceId: string, loading: boolean) => {
+    setLoadingSources((prev) => {
+      const next = new Set(prev);
+      if (loading) next.add(sourceId);
+      else next.delete(sourceId);
+      return next;
+    });
+  }, []);
+
+  React.useEffect(() => {
+    onLoadingChange?.(loadingSources.size > 0);
+  }, [loadingSources, onLoadingChange]);
+
   if (error) {
     return (
       <Alert variant="destructive">
@@ -73,46 +61,32 @@ export function DomainSearchResults({
 
   return (
     <div className="space-y-6">
-      {/* Promotional Cards - Show first, use separate loading state that doesn't change on tab switch */}
+      {/* Kenyan TLD cards first */}
       {searchQuery && searchQuery.trim().length > 0 && (
-        <PromotionalCards
+        <KenyanTldCards
           searchQuery={searchQuery.trim()}
           onAddToCart={onAddToCart}
           onRemoveFromCart={onRemoveFromCart}
           isDomainInCart={isDomainInCart}
-          isLoading={isPromotionalLoading ?? isLoading}
-          promotionalResults={promotionalResults}
+          onLoadingChange={(loading) => reportLoading("kenyan", loading)}
         />
       )}
 
-      {/* Category Tabs */}
-      <CategoryTabs value={activeTab} onValueChange={onTabChange} />
-
-      {/* Search Results */}
-      <div>
-        {isLoading ? (
-          <SearchResultsSkeleton />
-        ) : results.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {results.map((result, index) => (
-              <DomainResultCard
-                key={`${result.domain}-${index}`}
-                result={result}
-                isDomainInCart={isDomainInCart}
-                onAddToCart={onAddToCart}
-                onRemoveFromCart={onRemoveFromCart}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-muted-foreground text-lg mb-2">No domains found</div>
-            <div className="text-muted-foreground/70 text-sm">
-              Try searching with a different domain name or check another category.
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Category sections - fetch when scrolled into view, cached per section */}
+      {searchQuery &&
+        searchQuery.trim().length > 0 &&
+        SECTION_IDS.map((sectionId) => (
+          <DomainSearchSection
+            key={sectionId}
+            sectionId={sectionId}
+            searchQuery={searchQuery.trim()}
+            pricingHook={pricingHook}
+            isDomainInCart={isDomainInCart}
+            onAddToCart={onAddToCart}
+            onRemoveFromCart={onRemoveFromCart}
+            onLoadingChange={(loading) => reportLoading(sectionId, loading)}
+          />
+        ))}
     </div>
   );
 }

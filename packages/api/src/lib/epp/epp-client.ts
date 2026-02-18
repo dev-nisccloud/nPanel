@@ -65,7 +65,7 @@ function readExactly(socket: tls.TLSSocket, n: number): Promise<Buffer> {
  * Read one EPP frame from the socket: 4-byte big-endian length then XML payload.
  * Length includes the 4-byte header (RFC 5734).
  */
-async function readOneFrame(socket: tls.TLSSocket): Promise<Buffer> {
+export async function readFrame(socket: tls.TLSSocket): Promise<Buffer> {
 	const header = await readExactly(socket, 4);
 	const totalLength = header.readUInt32BE(0);
 	if (totalLength < 4 || totalLength > 0x00_ff_ff_ff) {
@@ -74,6 +74,44 @@ async function readOneFrame(socket: tls.TLSSocket): Promise<Buffer> {
 	const payloadLength = totalLength - 4;
 	const payload = await readExactly(socket, payloadLength);
 	return payload;
+}
+
+/**
+ * Send one EPP frame: 4-byte big-endian length (total frame size) then UTF-8 XML.
+ * Length includes the 4-byte header (RFC 5734).
+ */
+export function sendFrame(socket: tls.TLSSocket, xml: string): void {
+	const payload = Buffer.from(xml, "utf8");
+	const totalLength = 4 + payload.length;
+	const header = Buffer.alloc(4);
+	header.writeUInt32BE(totalLength, 0);
+	socket.write(header);
+	socket.write(payload);
+}
+
+/**
+ * Create a TLS connection to the EPP server. Caller must call socket.destroy() when done.
+ * Do not set encoding on the socket (required for readFrame to receive Buffers).
+ */
+export function createConnection(config: EppClientConfig): Promise<tls.TLSSocket> {
+	const { host, port, timeoutMs = DEFAULT_TIMEOUT_MS, tlsServername } = config;
+	const servername = tlsServername?.trim() || host;
+
+	return new Promise((resolve, reject) => {
+		const socket = tls.connect(
+			{ host, port, servername, rejectUnauthorized: true },
+			() => {
+				socket.removeListener("error", onError);
+				resolve(socket);
+			}
+		);
+		const onError = (err: Error) => reject(err);
+		socket.once("error", onError);
+		socket.setTimeout(timeoutMs);
+		socket.on("timeout", () => {
+			socket.destroy(new Error("EPP connection timeout"));
+		});
+	});
 }
 
 /**
@@ -106,7 +144,7 @@ export async function connectAndReceiveGreeting(
 	});
 
 	try {
-		const payload = await readOneFrame(socket);
+		const payload = await readFrame(socket);
 		const xml = payload.toString("utf8");
 		return { xml };
 	} finally {

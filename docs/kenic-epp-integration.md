@@ -16,8 +16,28 @@ This document describes how nPanel will integrate with KENIC (Kenya Network Info
 
 - Implement an EPP client that connects to KENIC’s EPP server.
 - Implement domain operations: check availability, create (register), transfer, renew, update (contacts, nameservers, lock), and optionally DNSSEC.
-- Route .ke (and any other KENIC TLDs) to the KENIC/EPP backend while leaving other TLDs on OpenProvider.
+- Route KENIC TLDs to the KENIC/EPP backend while leaving other TLDs on OpenProvider. Supported KENIC TLDs: **.ke, .co.ke, .or.ke, .ne.ke, .me.ke, .mobi.ke, .info.ke, .sc.ke, .ac.ke** (see §1.3). **.go.ke is not offered** (government TLD; including it in EPP domain check causes 2400).
 - Store KENIC credentials and endpoint configuration securely (environment variables); no credentials in this document or in code.
+
+### 1.3 Supported KENIC TLDs
+
+All TLDs provided by KENIC are supported. The canonical list is in code (`packages/api/src/lib/epp/kenic-tlds.ts`):
+
+| TLD | Example |
+|-----|---------|
+| .ke | example.ke |
+| .co.ke | example.co.ke |
+| .or.ke | example.or.ke |
+| .ne.ke | example.ne.ke |
+| .me.ke | example.me.ke |
+| .mobi.ke | example.mobi.ke |
+| .info.ke | example.info.ke |
+| .sc.ke | example.sc.ke |
+| .ac.ke | example.ac.ke |
+
+**.go.ke is not supported:** including a .go.ke domain in an EPP domain:check causes the server to return result code 2400 (Command failed). It is excluded from the supported list.
+
+Domain check accepts only domains under these TLDs; use `kenic.tlds.list` to retrieve the list programmatically.
 
 ---
 
@@ -177,6 +197,8 @@ The following was captured from a live connection to `registry.kenic.or.ke:700` 
 - **Domain operations:** Standard EPP domain, contact, and host commands are supported; no custom object namespaces were observed.
 - **Pricing:** The fee extension and `https://finance.coccaregistry.org` can be used later to retrieve or display .ke pricing if the registry supports it in EPP responses.
 
+**Logo and branding (not in EPP):** EPP does not provide TLD logos, registry branding, or marketing assets. For things like a .ke logo or partner badge, use app-level config (e.g. a static URL or bundled asset per TLD) or the registry’s public website/portal. The KENIC portal (https://registry.kenic.or.ke) may offer brand guidelines or assets; integrate those in the UI layer, not via EPP.
+
 ---
 
 ## 3. Architecture
@@ -191,7 +213,7 @@ Routing rule:
 - If the TLD is in a configured list of “KENIC TLDs” (e.g. `['ke']`), use the KENIC EPP backend.
 - Otherwise, use OpenProvider (existing behaviour).
 
-The list of KENIC TLDs should be configurable (e.g. env `KENIC_TLDS=ke` or a small config in code that can be updated when KENIC adds TLDs).
+The list is maintained in `packages/api/src/lib/epp/kenic-tlds.ts`; domain check validates that all requested domains are under a KENIC TLD. Update that file if KENIC adds TLDs.
 
 ### 3.2 High-Level Flow
 
@@ -376,6 +398,11 @@ Replace `3001` with the port your nPanel app uses. The response includes `result
    - **Cause:** `Number()` accepts only one argument; the radix is for `parseInt()`, not `Number()`.
    - **Fix:** Use `Number(process.env.KENIC_EPP_PORT ?? "700")` (and similarly for timeout). `Number()` parses in base 10 by default.
 
+4. **EPP result 2400 ("Command failed") on domain check — root cause**
+   - **Symptom:** Domain check returns result code `2400` with message "Command failed".
+   - **Cause (verified):** Including the **government TLD .go.ke** in the domain check request causes the server to return 2400. The same request without any .go.ke domain (e.g. 9 domains: .ke, .co.ke, .or.ke, .ne.ke, .me.ke, .mobi.ke, .info.ke, .sc.ke, .ac.ke) with `withFee: true` succeeds.
+   - **Fix:** .go.ke is **excluded from our supported TLD list** (§1.3). We do not offer or validate .go.ke; domain check only accepts the other nine TLDs. Batching limits were relaxed (one limit of 10 domains per check for both with and without fee).
+
 ### 6.5 Next steps (not yet implemented)
 
 - Login procedure: connect → receive greeting → send `<login>` with objURI/extURI from §2.9 and credentials from env → parse response (result code 1000 = success).
@@ -463,7 +490,7 @@ Before going live, ensure:
 - [ ] `KENIC_EPP_HOST` (e.g. `registry.kenic.or.ke`) and `KENIC_EPP_PORT` (e.g. `700`) set in the environment.
 - [ ] If the server presents a certificate for a different hostname (e.g. shared registry), set `KENIC_EPP_TLS_SERVERNAME` to that hostname (e.g. `epp.coccaregistry.org`) so TLS verification succeeds.
 - [ ] `KENIC_EPP_USERNAME` and `KENIC_EPP_PASSWORD` set from secure storage (e.g. Secret Manager), never in code or docs.
-- [ ] KENIC TLD list configured (e.g. `KENIC_TLDS=ke` or in config).
+- [ ] KENIC TLD list is in code (`packages/api/src/lib/epp/kenic-tlds.ts`); update it if KENIC adds TLDs.
 - [ ] Registrar routing in the app uses this list to dispatch .ke to KENIC.
 - [ ] Domain schema includes registrar and externalId; existing OpenProvider domains still work.
 - [ ] Health check for KENIC runs in your monitoring (e.g. cron or readiness probe).

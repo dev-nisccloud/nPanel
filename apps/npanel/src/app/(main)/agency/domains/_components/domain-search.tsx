@@ -37,6 +37,7 @@ export function DomainSearch() {
 
 function DomainSearchContent() {
   // const [mainTab, setMainTab] = React.useState("find"); // Temporarily disabled
+  const [isSearching, setIsSearching] = React.useState(false);
 
   // Use custom hooks
   const domainSearch = useDomainSearch();
@@ -69,17 +70,22 @@ function DomainSearchContent() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && domainSearch.domainName.trim()) {
                     domainSearch.triggerSearch();
+                    setIsSearching(true);
                   }
                 }}
                 className="flex-1 h-12 text-base"
               />
+              {/* Global loading: button reflects when any section (Kenyan or category) is still loading */}
               <Button
                 size="lg"
-                onClick={domainSearch.triggerSearch}
-                disabled={!domainSearch.domainName.trim() || domainSearch.isLoading}
+                onClick={() => {
+                  domainSearch.triggerSearch();
+                  if (domainSearch.domainName.trim()) setIsSearching(true);
+                }}
+                disabled={!domainSearch.domainName.trim() || isSearching}
                 className="h-12 px-8"
               >
-                {domainSearch.isLoading ? (
+                {isSearching ? (
                   <>
                     <Spinner variant="ellipsis" className="h-4 w-4 mr-2" />
                     Searching...
@@ -99,20 +105,15 @@ function DomainSearchContent() {
         </CardContent>
       </Card>
 
-      {/* Search Results */}
-      {(domainSearch.searchResults.length > 0 || domainSearch.isLoading) && (
+      {/* Search Results - sections load on scroll */}
+      {domainSearch.searchQueryName && (
         <DomainSearchResults
-          results={domainSearch.searchResults}
-          activeTab={domainSearch.activeTab}
-          onTabChange={domainSearch.setActiveTab}
-          isLoading={domainSearch.isLoading}
+          searchQuery={domainSearch.searchQueryName}
           error={domainSearch.error}
           isDomainInCart={domainSearch.isDomainInCart}
           onAddToCart={domainSearch.handleAddToCart}
           onRemoveFromCart={domainSearch.handleRemoveFromCart}
-          searchQuery={domainSearch.searchQueryName}
-          promotionalResults={domainSearch.promotionalResults}
-          isPromotionalLoading={domainSearch.isPromotionalLoading ?? domainSearch.isLoading}
+          onLoadingChange={setIsSearching}
         />
       )}
     </div>
