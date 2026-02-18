@@ -32,7 +32,7 @@ export const salesReportsRouter = router({
             // If empty, try to aggregate daily snapshots
             if (results.length === 0) {
                 await aggregateSales("DAILY");
-                return prisma.salesReportSnapshot.findMany({
+                const newResults = await prisma.salesReportSnapshot.findMany({
                     where: {
                         period: "DAILY",
                         date: {
@@ -43,9 +43,26 @@ export const salesReportsRouter = router({
                     orderBy: { date: "desc" },
                     take: input.limit,
                 });
+                return newResults.map(r => ({
+                    ...r,
+                    totalRevenue: Number(r.totalRevenue),
+                    totalInvoiced: Number(r.totalInvoiced),
+                    totalPaid: Number(r.totalPaid),
+                    taxableAmount: Number(r.taxableAmount),
+                    taxAmount: Number(r.taxAmount),
+                    pendingAmount: Number(r.pendingAmount),
+                }));
             }
 
-            return results;
+            return results.map(r => ({
+                ...r,
+                totalRevenue: Number(r.totalRevenue),
+                totalInvoiced: Number(r.totalInvoiced),
+                totalPaid: Number(r.totalPaid),
+                taxableAmount: Number(r.taxableAmount),
+                taxAmount: Number(r.taxAmount),
+                pendingAmount: Number(r.pendingAmount),
+            }));
         }),
 
     getRevenueByService: protectedProcedure
@@ -73,7 +90,7 @@ export const salesReportsRouter = router({
 
             if (results.length === 0) {
                 await aggregateSales("DAILY");
-                return prisma.revenueByServiceSnapshot.findMany({
+                const newResults = await prisma.revenueByServiceSnapshot.findMany({
                     where: {
                         period: "DAILY",
                         date: {
@@ -84,9 +101,16 @@ export const salesReportsRouter = router({
                     orderBy: { date: "desc" },
                     take: input.limit,
                 });
+                return newResults.map(r => ({
+                    ...r,
+                    amount: Number(r.amount),
+                }));
             }
 
-            return results;
+            return results.map(r => ({
+                ...r,
+                amount: Number(r.amount),
+            }));
         }),
 
     sync: protectedProcedure
