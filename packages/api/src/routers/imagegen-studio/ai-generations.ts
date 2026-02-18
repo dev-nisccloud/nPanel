@@ -60,17 +60,17 @@ export const imageGenAiGenerationsRouter = router({
 
       const where = teamId
         ? {
-            teamId,
-            team: {
-              members: {
-                some: { userId },
-              },
+          teamId,
+          team: {
+            members: {
+              some: { userId },
             },
-          }
+          },
+        }
         : {
-            userId,
-            teamId: null,
-          };
+          userId,
+          teamId: null,
+        };
 
       const generations = await prisma.imageGenAiGeneration.findMany({
         where,
@@ -103,6 +103,7 @@ export const imageGenAiGenerationsRouter = router({
   // Delete an AI generation
   delete: protectedProcedure
     .input(deleteAiGenerationSchema)
+    .output(z.object({ data: z.object({ id: z.string() }) }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {

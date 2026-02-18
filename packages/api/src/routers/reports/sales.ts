@@ -3,6 +3,7 @@ import { protectedProcedure, router } from "../../trpc";
 import prisma from "@nPanel/db";
 import { aggregateSales } from "./utils";
 import { subDays } from "date-fns";
+import { revenueByServiceSnapshotSchema, salesReportSnapshotSchema } from "./schemas";
 
 export const salesReportsRouter = router({
     getRevenueTrends: protectedProcedure
@@ -11,6 +12,7 @@ export const salesReportsRouter = router({
             to: z.coerce.date().optional(),
             limit: z.number().optional().default(30),
         }))
+        .output(z.array(salesReportSnapshotSchema))
         .query(async ({ input }) => {
             const startDate = input.from || subDays(new Date(), 30);
             const endDate = input.to || new Date();
@@ -52,6 +54,7 @@ export const salesReportsRouter = router({
             to: z.coerce.date().optional(),
             limit: z.number().optional().default(10),
         }))
+        .output(z.array(revenueByServiceSnapshotSchema))
         .query(async ({ input }) => {
             const startDate = input.from || subDays(new Date(), 30);
             const endDate = input.to || new Date();
@@ -90,6 +93,7 @@ export const salesReportsRouter = router({
         .input(z.object({
             period: z.enum(["DAILY", "MONTHLY"]).optional().default("DAILY"),
         }))
+        .output(z.object({ success: z.boolean() }))
         .mutation(async ({ input }) => {
             await aggregateSales(input.period);
             return { success: true };

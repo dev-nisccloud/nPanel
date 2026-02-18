@@ -2,18 +2,21 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import prisma from "@nPanel/db";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   createTemplateSchema,
   updateTemplateSchema,
   getTemplateSchema,
   getTemplatesSchema,
   deleteTemplateSchema,
+  imageGenTemplateSchema,
 } from "./schemas";
 
 export const imageGenTemplatesRouter = router({
   // Create a new template
   create: protectedProcedure
     .input(createTemplateSchema)
+    .output(z.object({ data: imageGenTemplateSchema }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -34,12 +37,13 @@ export const imageGenTemplatesRouter = router({
         },
       });
 
-      return { data: template };
+      return { data: template as any };
     }),
 
   // Get a single template by ID
   get: protectedProcedure
     .input(getTemplateSchema)
+    .output(z.object({ data: imageGenTemplateSchema }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -57,12 +61,13 @@ export const imageGenTemplatesRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
       }
 
-      return { data: template };
+      return { data: template as any };
     }),
 
   // List public templates with pagination
   list: protectedProcedure
     .input(getTemplatesSchema)
+    .output(z.object({ data: z.array(imageGenTemplateSchema) }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -87,15 +92,18 @@ export const imageGenTemplatesRouter = router({
           json: true, // Keep json for templates as it's needed when creating a project from template
           createdAt: true,
           updatedAt: true,
+          isPublic: true,
+          userId: true,
         },
       });
 
-      return { data: templates };
+      return { data: templates as any[] };
     }),
 
   // Update a template (only owner can update)
   update: protectedProcedure
     .input(updateTemplateSchema)
+    .output(z.object({ data: imageGenTemplateSchema }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -127,12 +135,13 @@ export const imageGenTemplatesRouter = router({
         },
       });
 
-      return { data: template };
+      return { data: template as any };
     }),
 
   // Delete a template (only owner can delete)
   delete: protectedProcedure
     .input(deleteTemplateSchema)
+    .output(z.object({ data: z.object({ id: z.string() }) }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {

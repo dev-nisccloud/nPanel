@@ -42,6 +42,7 @@ import { wpFeaturesRouter } from "./plesk/wp-features";
 import { ftpRouter } from "./plesk/ftp";
 import { pleskHealthCheckRouter } from "./plesk/health-check";
 import { openProviderRouter } from "./openprovider";
+import { kenicRouter } from "./kenic";
 import { nameserverGroupsRouter } from "./nameserver-groups";
 import { tldSettingsRouter } from "./tld-settings";
 import { domainsRouter as niscDomainsRouter } from "./domains";
@@ -148,6 +149,8 @@ export const appRouter = router({
 	}),
 	// OpenProvider integration routes
 	openProvider: openProviderRouter,
+	// KENIC EPP integration (.ke and other local TLDs)
+	kenic: kenicRouter,
 	// Nameserver Groups management
 	nameserverGroups: nameserverGroupsRouter,
 	// TLD Settings management

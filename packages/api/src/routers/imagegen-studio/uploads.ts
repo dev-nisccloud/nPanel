@@ -32,6 +32,7 @@ export const imageGenUploadsRouter = router({
   // Create a new upload
   create: protectedProcedure
     .input(createUploadSchema)
+    .output(z.object({ data: imageGenUploadSchema }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -79,7 +80,7 @@ export const imageGenUploadsRouter = router({
         },
       });
 
-      return { data: upload };
+      return { data: transformUpload(upload) };
     }),
 
   // List uploads with pagination
@@ -96,17 +97,17 @@ export const imageGenUploadsRouter = router({
 
       const where = teamId
         ? {
-            teamId,
-            team: {
-              members: {
-                some: { userId },
-              },
+          teamId,
+          team: {
+            members: {
+              some: { userId },
             },
-          }
+          },
+        }
         : {
-            userId,
-            teamId: null,
-          };
+          userId,
+          teamId: null,
+        };
 
       const uploads = await prisma.imageGenUpload.findMany({
         where,
@@ -135,6 +136,7 @@ export const imageGenUploadsRouter = router({
   // Delete an upload
   delete: protectedProcedure
     .input(deleteUploadSchema)
+    .output(z.object({ data: z.object({ id: z.string() }) }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {

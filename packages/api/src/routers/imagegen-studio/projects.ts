@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import prisma from "@nPanel/db";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   createProjectSchema,
   updateProjectSchema,
@@ -9,12 +10,14 @@ import {
   getProjectsSchema,
   deleteProjectSchema,
   duplicateProjectSchema,
+  imageGenProjectSchema,
 } from "./schemas";
 
 export const imageGenProjectsRouter = router({
   // Create a new project
   create: protectedProcedure
     .input(createProjectSchema)
+    .output(z.object({ data: imageGenProjectSchema }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -35,12 +38,13 @@ export const imageGenProjectsRouter = router({
         },
       });
 
-      return { data: project };
+      return { data: project as any };
     }),
 
   // Get a single project by ID
   get: protectedProcedure
     .input(getProjectSchema)
+    .output(z.object({ data: imageGenProjectSchema }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -67,12 +71,16 @@ export const imageGenProjectsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
       }
 
-      return { data: project };
+      return { data: project as any };
     }),
 
   // List projects with pagination
   list: protectedProcedure
     .input(getProjectsSchema)
+    .output(z.object({
+      data: z.array(imageGenProjectSchema.omit({ json: true })),
+      nextPage: z.number().int().nullable(),
+    }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -83,17 +91,17 @@ export const imageGenProjectsRouter = router({
 
       const where = teamId
         ? {
-            teamId,
-            team: {
-              members: {
-                some: { userId },
-              },
+          teamId,
+          team: {
+            members: {
+              some: { userId },
             },
-          }
+          },
+        }
         : {
-            userId,
-            teamId: null,
-          };
+          userId,
+          teamId: null,
+        };
 
       const projects = await prisma.imageGenProject.findMany({
         where,
@@ -115,7 +123,7 @@ export const imageGenProjectsRouter = router({
       });
 
       return {
-        data: projects,
+        data: projects as any[],
         nextPage: projects.length === limit ? page + 1 : null,
       };
     }),
@@ -123,6 +131,7 @@ export const imageGenProjectsRouter = router({
   // Update a project
   update: protectedProcedure
     .input(updateProjectSchema)
+    .output(z.object({ data: imageGenProjectSchema }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -160,12 +169,13 @@ export const imageGenProjectsRouter = router({
         },
       });
 
-      return { data: project };
+      return { data: project as any };
     }),
 
   // Delete a project
   delete: protectedProcedure
     .input(deleteProjectSchema)
+    .output(z.object({ data: z.object({ id: z.string() }) }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -203,6 +213,7 @@ export const imageGenProjectsRouter = router({
   // Duplicate a project
   duplicate: protectedProcedure
     .input(duplicateProjectSchema)
+    .output(z.object({ data: imageGenProjectSchema }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -245,7 +256,7 @@ export const imageGenProjectsRouter = router({
         },
       });
 
-      return { data: duplicatedProject };
+      return { data: duplicatedProject as any };
     }),
 });
 

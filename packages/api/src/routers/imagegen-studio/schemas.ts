@@ -136,6 +136,32 @@ export const imageGenAiGenerationSchema = z.object({
   updatedAt: z.date(),
 });
 
+export const imageGenProjectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  json: z.string().optional(),
+  width: z.number().int(),
+  height: z.number().int(),
+  thumbnailUrl: z.string().nullable(),
+  userId: z.string(),
+  teamId: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const imageGenTemplateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  json: z.string().optional(),
+  width: z.number().int(),
+  height: z.number().int(),
+  thumbnailUrl: z.string().nullable(),
+  isPublic: z.boolean(),
+  userId: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
 export const getAiGenerationsResponseSchema = z.object({
   data: z.array(imageGenAiGenerationSchema),
   nextPage: z.number().int().nullable(),
