@@ -1457,10 +1457,8 @@ export const invoicingRouter = router({
 	submitInvoice: protectedProcedure
 		.input(submitInvoiceSchema)
 		.output(invoiceDetailSchema)
-		.mutation(async ({ ctx, input }) => {
+		.		mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			const { sendEmail } = await import("../../lib/email");
-			const { renderInvoiceDeliveryEmail } = await import("../../lib/email-templates");
 
 			if (input.teamId) {
 				await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
@@ -1533,14 +1531,13 @@ export const invoicingRouter = router({
 					token,
 					createdBy: user.id,
 					updatedBy: user.id,
-					status: "SENT", // Mark as sent since we're emailing it
+					status: "DRAFT", // Saved only; send from invoice details when verified
 				});
 
 				await tx.invoice.create({
 					data: {
 						...invoiceData,
 						id: invoiceId,
-						sentAt: new Date(),
 						createdAt: new Date(),
 						updatedAt: new Date(),
 					} as any, // Type assertion for JsonValue compatibility
@@ -1575,111 +1572,16 @@ export const invoicingRouter = router({
 					invoiceId,
 					userId: user.id,
 					action: "CREATE",
-					description: "Created and sent invoice",
+					description: "Created invoice",
 					metadata: {
 						invoiceNumber,
-						sentTo: input.billingEmail,
+						billingEmail: input.billingEmail,
 					},
 				});
 
-				// Fetch the saved invoice for email
+				// Fetch the saved invoice to return
 				savedInvoice = await fetchInvoiceDetail(tx, invoiceId);
 			});
-
-			// eTIMS Integration
-
-
-			// Generate PDF filename from invoice number (use saved invoice's invoice number)
-			// Sanitize filename to remove invalid characters
-			const savedInvoiceNumber = savedInvoice.invoiceNumber;
-			const sanitizeFilename = (name: string): string => {
-				return name.replace(/[^a-zA-Z0-9._-]/g, "_");
-			};
-			const pdfFilename = savedInvoiceNumber
-				? `${sanitizeFilename(savedInvoiceNumber)}.pdf`
-				: "Invoice.pdf";
-
-			// Prepare services list for email
-			const services = savedInvoice.lineItems.map((item: any) => ({
-				name: item.name || "Service",
-				description: item.description || undefined,
-				quantity: item.quantity || undefined,
-				price: item.price ? `${savedInvoice.currency} ${item.price}` : undefined,
-			}));
-
-			// Format dates for email
-			const formatDate = (date: Date | null | undefined): string => {
-				if (!date) return "N/A";
-				return new Date(date).toLocaleDateString("en-US", {
-					year: "numeric",
-					month: "long",
-					day: "numeric",
-				});
-			};
-
-			// Render email template
-			const emailHtml = await renderInvoiceDeliveryEmail({
-				customerName: savedInvoice.customerName || "Valued Customer",
-				invoiceNumber: savedInvoice.invoiceNumber || "N/A",
-				issueDate: formatDate(savedInvoice.issueDate),
-				dueDate: formatDate(savedInvoice.dueDate),
-				totalAmount: savedInvoice.amount || "0.00",
-				currency: savedInvoice.currency || "KES",
-				services,
-				supportEmail: "billing@nisccloud.com",
-				supportPhone: "+254 748 777 666",
-			});
-
-			// Prepare PDF attachment if provided
-			const attachments = input.pdfBase64 ? [{
-				filename: pdfFilename,
-				content: Buffer.from(input.pdfBase64, "base64"),
-				contentType: "application/pdf",
-			}] : undefined;
-
-			// Send email
-			try {
-				await sendEmail({
-					to: input.billingEmail,
-					subject: `Invoice ${savedInvoice.invoiceNumber || "Invoice"} from Nisc Cloud Limited`,
-					html: emailHtml,
-					attachments,
-				});
-
-				// Batch: Update sentAt timestamp and log activity in a transaction
-				// This reduces connection usage from 2 sequential queries to 1 transaction
-				await prisma.$transaction(async (tx) => {
-					// Update sentAt timestamp if email was sent successfully
-					await tx.invoice.update({
-						where: { id: invoiceId },
-						data: { sentAt: new Date() },
-					});
-
-					// Log activity
-					await logInvoiceActivity(tx, {
-						invoiceId,
-						userId: user.id,
-						action: "EMAIL_SENT",
-						description: "Invoice email sent successfully",
-						metadata: {
-							sentTo: input.billingEmail,
-						},
-					});
-				});
-			} catch (emailError) {
-				// Log email error but don't fail the invoice creation
-				console.error("Failed to send invoice email:", emailError);
-				await logInvoiceActivity(prisma, {
-					invoiceId,
-					userId: user.id,
-					action: "EMAIL_ERROR",
-					description: "Failed to send invoice email",
-					metadata: {
-						error: emailError instanceof Error ? emailError.message : "Unknown error",
-					},
-				});
-				// Still return the invoice even if email fails
-			}
 
 			return mapInvoiceDetail(savedInvoice);
 		}),

@@ -7,11 +7,13 @@ export async function aggregateSales(period: "DAILY" | "MONTHLY" = "DAILY") {
     const invoices = await prisma.invoice.findMany({
         include: {
             lineItems: true,
+            team: true,
         },
     });
 
     const salesGroups: Record<string, any> = {};
     const serviceGroups: Record<string, any> = {};
+    const teamGroups: Record<string, { date: Date; period: string; teamId: string; teamName: string; currency: string; amount: number }> = {};
 
     invoices.forEach((inv) => {
         const invDate = period === "DAILY" ? startOfDay(inv.createdAt) : startOfMonth(inv.createdAt);
@@ -50,6 +52,22 @@ export async function aggregateSales(period: "DAILY" | "MONTHLY" = "DAILY") {
             salesGroups[sKey].totalPaid += paidEffectively;
             salesGroups[sKey].pendingAmount += (amount - paidEffectively);
         }
+
+        // Aggregate by team (company)
+        const teamId = inv.teamId ?? "__NO_TEAM__";
+        const teamName = inv.team?.name ?? "No company";
+        const tKey = `${invDate.toISOString()}-${teamId}-${inv.currency}`;
+        if (!teamGroups[tKey]) {
+            teamGroups[tKey] = {
+                date: invDate,
+                period,
+                teamId,
+                teamName,
+                currency: inv.currency,
+                amount: 0,
+            };
+        }
+        teamGroups[tKey].amount += parseFloat(inv.amount || "0");
 
         // Aggregate by service from line items
         inv.lineItems.forEach((item) => {
@@ -132,6 +150,30 @@ export async function aggregateSales(period: "DAILY" | "MONTHLY" = "DAILY") {
                 date: data.date,
                 period: data.period,
                 serviceType: data.serviceType,
+                currency: data.currency,
+                amount: data.amount,
+            },
+        });
+    }
+
+    // Upsert Revenue by Team (Company) Snapshots
+    for (const key in teamGroups) {
+        const data = teamGroups[key];
+        await prisma.revenueByTeamSnapshot.upsert({
+            where: {
+                date_period_teamId_currency: {
+                    date: data.date,
+                    period: data.period,
+                    teamId: data.teamId,
+                    currency: data.currency,
+                },
+            },
+            update: { amount: data.amount, teamName: data.teamName },
+            create: {
+                date: data.date,
+                period: data.period,
+                teamId: data.teamId,
+                teamName: data.teamName,
                 currency: data.currency,
                 amount: data.amount,
             },

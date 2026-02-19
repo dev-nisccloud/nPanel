@@ -64,6 +64,15 @@ export default function SalesReportsPage() {
         { staleTime: 1000 * 60 * 5 }
     );
 
+    const revenueByCompany = trpc.reports.sales.getRevenueByCompany.useQuery(
+        {
+            from: dateRange?.from,
+            to: dateRange?.to,
+            limit: 10
+        },
+        { staleTime: 1000 * 60 * 5 }
+    );
+
     const sync = trpc.reports.sales.sync.useMutation({
         onSuccess: () => {
             utils.reports.sales.invalidate();
@@ -97,7 +106,7 @@ export default function SalesReportsPage() {
         }).format(val);
     };
 
-    const isLoading = revenueTrends.isLoading || revenueByService.isLoading;
+    const isLoading = revenueTrends.isLoading || revenueByService.isLoading || revenueByCompany.isLoading;
 
     if (isLoading) {
         return <ReportsSkeleton />;
@@ -263,6 +272,40 @@ export default function SalesReportsPage() {
                                 ) : (
                                     <div className="h-[200px] flex items-center justify-center border-2 border-dashed rounded-lg bg-muted/5">
                                         <p className="text-xs text-muted-foreground italic">No service data available</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card className="lg:col-span-3 border-muted/60 shadow-none overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                            <CardHeader className="pb-2 bg-muted/5">
+                                <div className="flex items-center gap-2">
+                                    <Building2 className="h-4 w-4 text-primary" />
+                                    <CardTitle className="text-sm font-bold tracking-tight uppercase opacity-60">Revenue by Company</CardTitle>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-6 pt-6">
+                                {revenueByCompany.data && revenueByCompany.data.length > 0 ? (
+                                    revenueByCompany.data.map((c, i) => (
+                                        <div key={c.teamId ?? i} className="space-y-2 group">
+                                            <div className="flex justify-between items-end">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">{c.teamName}</span>
+                                                    <span className="text-[10px] text-muted-foreground font-medium">{((Number(c.amount) / Math.max(1, Number(currentMetrics.totalInvoiced))) * 100).toFixed(1)}% of total</span>
+                                                </div>
+                                                <span className="text-xs font-mono font-bold">{formatCurrency(c.amount)}</span>
+                                            </div>
+                                            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-primary/60 rounded-full transition-all duration-500"
+                                                    style={{ width: `${(Number(c.amount) / Math.max(1, ...revenueByCompany.data!.map(x => Number(x.amount)))) * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="h-[200px] flex items-center justify-center border-2 border-dashed rounded-lg bg-muted/5">
+                                        <p className="text-xs text-muted-foreground italic">No company data available</p>
                                     </div>
                                 )}
                             </CardContent>

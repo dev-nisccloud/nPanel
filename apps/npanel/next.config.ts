@@ -44,18 +44,20 @@ const nextConfig: NextConfig = {
   // Output standalone for Docker builds to optimize container size
   output: process.env.DOCKER_BUILD === 'true' ? 'standalone' : undefined,
   // Reduce memory usage during build
-  experimental: {
-    // Optimize memory usage
-    optimizePackageImports: [
-      "@radix-ui/react-dialog",
-      "@radix-ui/react-dropdown-menu",
-      "@radix-ui/react-popover",
-      "@radix-ui/react-select",
-      "lucide-react",
-      "date-fns",
-      "recharts",
-    ],
-  },
+  // NOTE: Disabled optimizePackageImports for now because it can trigger
+  // Next.js 15.x clientReferenceManifest build bugs in some setups.
+  // Re‑enable once upstream bug is resolved.
+  // experimental: {
+  //   optimizePackageImports: [
+  //     "@radix-ui/react-dialog",
+  //     "@radix-ui/react-dropdown-menu",
+  //     "@radix-ui/react-popover",
+  //     "@radix-ui/react-select",
+  //     "lucide-react",
+  //     "date-fns",
+  //     "recharts",
+  //   ],
+  // },
   serverExternalPackages: ["@prisma/client", "@nPanel/db", "canvas", "pdfjs-dist", "@react-pdf/renderer", "google-ads-api"],
   webpack: (config, { isServer, dev }) => {
     // Exclude canvas from client-side bundles

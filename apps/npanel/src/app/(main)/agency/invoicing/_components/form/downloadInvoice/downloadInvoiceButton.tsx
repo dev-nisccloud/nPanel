@@ -111,8 +111,8 @@ export const DownloadInvoiceButton = () => {
   const submitInvoiceMutation = trpc.invoicing.submitInvoice.useMutation({
     onSuccess: (data) => {
       setStatus("submitted");
-      toast.success("Invoice submitted and sent successfully!", {
-        description: `Invoice ${data.invoiceNumber} has been sent to ${companyDetails.email}`,
+      toast.success("Invoice saved successfully", {
+        description: "You can review and send it to the customer from the invoice details page when ready.",
       });
     },
     onError: (error) => {
@@ -298,7 +298,7 @@ export const DownloadInvoiceButton = () => {
       <div>
         <h1 className="text-5xl font-semibold pb-6">Your invoice is ready</h1>
         <p className="text-neutral-500 text-xl pb-7">
-          Review the details carefully before submitting. The invoice will be saved to the database and automatically sent to the billing email address.
+          Review the details carefully before submitting. The invoice will be saved to the database. You can send it to the customer from the invoice details page when you&apos;re ready.
         </p>
         <Button
           disabled={status === "submitting"}

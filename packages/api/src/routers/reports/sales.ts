@@ -3,7 +3,45 @@ import { protectedProcedure, router } from "../../trpc";
 import prisma from "@nPanel/db";
 import { aggregateSales } from "./utils";
 import { subDays } from "date-fns";
-import { revenueByServiceSnapshotSchema, salesReportSnapshotSchema } from "./schemas";
+import { revenueByServiceSnapshotSchema, revenueByTeamSnapshotSchema, salesReportSnapshotSchema } from "./schemas";
+
+/** Aggregate daily team snapshots into one row per team (total amount), sorted by amount desc, top N. */
+function aggregateRevenueByTeam(
+    rows: { teamId: string; teamName: string; amount: unknown; date: Date; period: string; currency: string }[],
+    limit: number
+) {
+    const byTeam = new Map<string, { teamId: string; teamName: string; amount: number; date: Date; period: string; currency: string }>();
+    for (const r of rows) {
+        const amount = Number(r.amount);
+        const existing = byTeam.get(r.teamId);
+        if (existing) {
+            existing.amount += amount;
+        } else {
+            byTeam.set(r.teamId, {
+                teamId: r.teamId,
+                teamName: r.teamName,
+                amount,
+                date: r.date,
+                period: r.period,
+                currency: r.currency,
+            });
+        }
+    }
+    return Array.from(byTeam.values())
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, limit)
+        .map(({ teamId, teamName, amount, date, period, currency }) => ({
+            id: `${teamId}-${date.toISOString()}`,
+            teamId,
+            teamName,
+            amount,
+            date,
+            period,
+            currency,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        }));
+}
 
 export const salesReportsRouter = router({
     getRevenueTrends: protectedProcedure
@@ -111,6 +149,46 @@ export const salesReportsRouter = router({
                 ...r,
                 amount: Number(r.amount),
             }));
+        }),
+
+    getRevenueByCompany: protectedProcedure
+        .input(z.object({
+            from: z.coerce.date().optional(),
+            to: z.coerce.date().optional(),
+            limit: z.number().optional().default(10),
+        }))
+        .output(z.array(revenueByTeamSnapshotSchema))
+        .query(async ({ input }) => {
+            const startDate = input.from || subDays(new Date(), 30);
+            const endDate = input.to || new Date();
+
+            const results = await prisma.revenueByTeamSnapshot.findMany({
+                where: {
+                    period: "DAILY",
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                },
+                orderBy: { date: "desc" },
+            });
+
+            if (results.length === 0) {
+                await aggregateSales("DAILY");
+                const newResults = await prisma.revenueByTeamSnapshot.findMany({
+                    where: {
+                        period: "DAILY",
+                        date: {
+                            gte: startDate,
+                            lte: endDate,
+                        },
+                    },
+                    orderBy: { date: "desc" },
+                });
+                return aggregateRevenueByTeam(newResults, input.limit);
+            }
+
+            return aggregateRevenueByTeam(results, input.limit);
         }),
 
     sync: protectedProcedure

@@ -28,6 +28,18 @@ export const revenueByServiceSnapshotSchema = z.object({
     updatedAt: z.date(),
 });
 
+export const revenueByTeamSnapshotSchema = z.object({
+    id: z.string(),
+    period: z.string(),
+    date: z.date(),
+    teamId: z.string(),
+    teamName: z.string(),
+    amount: z.coerce.number(),
+    currency: z.string(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+});
+
 export const creativeProductionSnapshotSchema = z.object({
     id: z.string(),
     period: z.string(),

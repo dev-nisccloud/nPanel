@@ -36,6 +36,23 @@ model RevenueByServiceSnapshot {
   @@index([date, period, serviceType])
 }
 
+// Revenue grouped by team (company) for sales reports
+model RevenueByTeamSnapshot {
+  id       String   @id @default(cuid())
+  date     DateTime
+  period   String // "DAILY", "MONTHLY"
+  teamId   String // Team id or "__NO_TEAM__" for invoices without team
+  teamName String // Display name (team name or "No company")
+  amount   Decimal  @default(0) @db.Decimal(20, 2)
+  currency String   @default("KES")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, period, teamId, currency])
+  @@index([date, period])
+}
+
 model CreativeProductionSnapshot {
   id              String   @id @default(cuid())
   date            DateTime
