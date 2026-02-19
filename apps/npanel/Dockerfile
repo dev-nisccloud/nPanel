@@ -51,8 +51,8 @@ ENV NODE_ENV=production
 ENV DOCKER_BUILD=true
 # Skip env validation during build to prevent failures due to missing runtime secrets
 ENV SKIP_ENV_VALIDATION=1
-# Increase memory limit and limit concurrency to prevent OOM errors
-RUN NODE_OPTIONS="--max-old-space-size=6144" pnpm turbo run build --filter=npanel... --concurrency=1
+# Increase memory limit and limit concurrency to prevent OOM errors (API build is memory-heavy)
+RUN NODE_OPTIONS="--max-old-space-size=8192" pnpm turbo run build --filter=npanel... --concurrency=1
 
 FROM base AS runner
 WORKDIR /app
@@ -71,7 +71,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/npanel/.next/static ./apps/n
 
 ENV HOSTNAME="0.0.0.0"
 ENV NODE_ENV=production
-# Fallback secret to prevent startup crash if not provided by GCP dashboard yet
+# Fallback so app doesn't crash when no secret is provided at runtime (Docker warns about ENV secrets—override in production via GCP Secret Manager or -e)
 ENV BETTER_AUTH_SECRET="6314f0d045ce9041126b81021bc5123bd51f718ec650ed8aa06f3ffe5ac45558"
 
 # In monorepo standalone mode, the entrypoint is nested in the apps folder
