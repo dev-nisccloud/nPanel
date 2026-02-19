@@ -3,10 +3,15 @@
 import * as React from "react";
 import Image from "next/image";
 
-/** TLDs that have a hosted logo image (same as Kenyan cards). */
+/** TLDs that have a hosted logo image (same as Kenyan cards + top-level suggested). */
 const TLD_LOGO_IMAGES: Record<string, string> = {
 	".ke": "/ke_tld.png",
 	".co.ke": "/co_ke_tld.png",
+	".com": "/dot_com_logo.webp",
+	".org": "/dot_org_logo.webp",
+	".net": "/dot_net_logo.webp",
+	".io": "/dot_io_logo.webp",
+	".info": "/dot_info_logo.png", // fallback: no dedicated .info image
 };
 
 /** Logo size: slightly larger than before (was h-12 w-12). */

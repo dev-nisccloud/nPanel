@@ -1,17 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { ShoppingCart, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIntersectionObserver } from "usehooks-ts";
-import { TldLogo } from "./tld-logo";
 import { getSectionTitle } from "./domain-section-titles";
 import { useSectionDomainCheck } from "./use-section-domain-check";
-import { BuyNowDialog } from "./buy-now-dialog";
+import { DomainResultRow, DomainResultList } from "./domain-result-row";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import type { DomainPricingHook } from "@/hooks/use-domain-search";
+
+const SECTION_ID_ALL = "all";
 
 const formatPrice = (price?: number, currency?: string) => {
 	if (price == null || price === undefined) return "N/A";
@@ -36,125 +35,64 @@ function formatMarginInfo(calculated: NonNullable<DomainSearchResult["price"]>["
 	return `+${format(fixed, calculated.currency)}`;
 }
 
-/** Extract TLD only (e.g. "com", "co.ke"). Returns empty if domain has no dot (avoids showing search query in logo). */
-function extractTld(domain: string): string {
-	const parts = domain.split(".");
-	if (parts.length >= 2) {
-		const last = parts.pop() ?? "";
-		const second = parts.pop();
-		if (second && (last === "ke" || last.length <= 2)) return `${second}.${last}`;
-		return last;
-	}
-	return "";
-}
-
-function SectionDomainCard({
-	result,
-	isDomainInCart,
-	onAddToCart,
-	onRemoveFromCart,
-}: {
-	result: DomainSearchResult;
-	isDomainInCart: (domain: string) => boolean;
-	onAddToCart: (r: DomainSearchResult) => void;
-	onRemoveFromCart: (domain: string) => void;
-}) {
-	const [buyNowOpen, setBuyNowOpen] = React.useState(false);
-	const isInCart = isDomainInCart(result.domain);
-	const calculated = result.price?.calculated;
-	const displayPrice = calculated ? ((calculated as any).convertedPrice ?? calculated.finalPrice) : result.price?.reseller?.price;
-	const displayCurrency = calculated ? ((calculated as any).displayCurrency ?? calculated.currency) : result.price?.reseller?.currency;
+function sectionResultToRowProps(
+	result: DomainSearchResult,
+	isDomainInCart: (domain: string) => boolean,
+	onAddToCart: (r: DomainSearchResult) => void,
+	onRemoveFromCart: (domain: string) => void
+) {
+	const calculated = result.price?.calculated as {
+		convertedPrice?: number;
+		convertedOriginalPrice?: number;
+		displayCurrency?: string;
+		finalPrice?: number;
+		originalPrice?: number;
+		currency?: string;
+	} | undefined;
+	const displayPrice = calculated?.convertedPrice ?? calculated?.finalPrice ?? result.price?.reseller?.price ?? 0;
+	const displayCurrency = calculated?.displayCurrency ?? calculated?.currency ?? result.price?.reseller?.currency ?? "USD";
+	// Show original in display (converted) currency when available
+	const originalPrice = calculated?.convertedOriginalPrice ?? calculated?.originalPrice ?? result.price?.reseller?.price;
+	const originalCurrency = displayCurrency;
 	const marginLabel = formatMarginInfo(result.price?.calculated, formatPrice);
-	const tld = extractTld(result.domain);
-	const isAvailable = result.status === "free";
-
-	return (
-		<>
-			<div className="bg-card border border-border rounded-lg p-3 hover:shadow-md transition-shadow flex flex-col">
-				<div className="flex items-center justify-between gap-2 mb-2">
-					<TldLogo tld={tld} variant="openprovider" />
-					<Badge
-						className={
-							isAvailable
-								? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs"
-								: "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs"
-						}
-					>
-						{isAvailable ? "Available" : "Taken"}
-					</Badge>
-				</div>
-				<div className="font-bold text-sm text-primary mb-1 truncate" title={result.domain}>
-					{result.domain}
-				</div>
-				{isAvailable && result.price && (
-					<div className="space-y-0.5 mb-2">
-						<div className="text-sm font-bold text-foreground">
-							{formatPrice(displayPrice, displayCurrency)}
-						</div>
-						{marginLabel != null && (
-							<div className="text-[10px] text-muted-foreground text-green-600 dark:text-green-400">
-								{marginLabel}
-							</div>
-						)}
-					</div>
-				)}
-				{result.reason != null && result.reason !== "" && (
-					<div className="text-[11px] text-muted-foreground mb-3 line-clamp-2">
-						{result.reason}
-					</div>
-				)}
-				<div className="mt-auto flex items-center justify-center gap-2">
-					{isAvailable ? (
-						<>
-							<Button
-								size="sm"
-								variant="default"
-								onClick={(e) => { e?.preventDefault(); setBuyNowOpen(true); }}
-								className="text-xs h-8 px-3"
-							>
-								Buy Now
-							</Button>
-							<Button
-								size="sm"
-								variant={isInCart ? "destructive" : "outline"}
-								onClick={(e) => {
-									e?.preventDefault();
-									if (isInCart) onRemoveFromCart(result.domain);
-									else onAddToCart(result);
-								}}
-								className="h-8 w-8 p-0"
-								title={isInCart ? "Remove from cart" : "Add to cart"}
-							>
-								{isInCart ? <XCircle className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
-							</Button>
-						</>
-					) : (
-						<Button size="sm" variant="outline" disabled className="text-xs h-8 px-3">
-							Not available
-						</Button>
-					)}
-				</div>
-			</div>
-			{isAvailable && (
-				<BuyNowDialog open={buyNowOpen} onOpenChange={setBuyNowOpen} domain={result} />
-			)}
-		</>
-	);
+	return {
+		domain: result.domain,
+		isAvailable: result.status === "free",
+		originalPrice,
+		originalCurrency,
+		marginLabel: marginLabel ?? undefined,
+		displayPrice,
+		displayCurrency,
+		reason: result.reason ?? undefined,
+		displayResult: result,
+		isDomainInCart,
+		onAddToCart,
+		onRemoveFromCart,
+	};
 }
 
 function SectionSkeleton() {
 	return (
-		<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-			{Array.from({ length: 8 }).map((_, i) => (
-				<div key={i} className="bg-card border border-border rounded-lg p-3">
-					<div className="flex justify-between items-center mb-2">
-						<Skeleton className="h-14 w-14 rounded-lg" />
-						<Skeleton className="h-5 w-16" />
+		<div className="space-y-0">
+			{Array.from({ length: 6 }).map((_, i) => (
+				<React.Fragment key={i}>
+					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4">
+						<div className="min-w-0 flex-1 space-y-2">
+							<div className="flex items-center gap-2">
+								<Skeleton className="h-4 w-36" />
+								<Skeleton className="h-5 w-16 rounded-full" />
+							</div>
+							<Skeleton className="h-3 w-24" />
+							<Skeleton className="h-3 w-20" />
+						</div>
+						<div className="flex items-center gap-3 shrink-0">
+							<Skeleton className="h-4 w-20" />
+							<Skeleton className="h-8 w-20" />
+							<Skeleton className="h-8 w-8" />
+						</div>
 					</div>
-					<Skeleton className="h-4 w-full mb-2" />
-					<Skeleton className="h-4 w-20 mb-2" />
-					<Skeleton className="h-8 w-full mt-2" />
-				</div>
+					{i < 5 && <div className="border-b border-border" />}
+				</React.Fragment>
 			))}
 		</div>
 	);
@@ -167,6 +105,10 @@ export interface DomainSearchSectionProps {
 	isDomainInCart: (domain: string) => boolean;
 	onAddToCart: (result: DomainSearchResult) => void;
 	onRemoveFromCart: (domain: string) => void;
+	/** When true, query runs immediately (pill/tab mode). When false/undefined, query runs when section is in view. */
+	isSelected?: boolean;
+	/** When true (e.g. tab visited before), keep query enabled so cache is used on return; avoids refetch when switching back. */
+	enableQuery?: boolean;
 	/** Report loading state for aggregation (e.g. search button spinner). */
 	onLoadingChange?: (loading: boolean) => void;
 }
@@ -178,30 +120,38 @@ export function DomainSearchSection({
 	isDomainInCart,
 	onAddToCart,
 	onRemoveFromCart,
+	isSelected,
+	enableQuery,
 	onLoadingChange,
 }: DomainSearchSectionProps) {
 	const { isIntersecting, ref } = useIntersectionObserver({ threshold: 0.1 });
+	const inView = isSelected !== undefined ? (enableQuery ?? isSelected) : isIntersecting;
 	const { results, isLoading, isError, refetch } = useSectionDomainCheck(
 		searchQuery,
 		sectionId,
-		isIntersecting,
+		inView,
 		pricingHook
 	);
 
-	React.useEffect(() => {
-		onLoadingChange?.(isLoading);
-	}, [isLoading, onLoadingChange]);
+	const onLoadingChangeRef = React.useRef(onLoadingChange);
+	onLoadingChangeRef.current = onLoadingChange;
+	// Report loading only for selected tab; when deselected report false so parent drops this section from loading set
+	React.useLayoutEffect(() => {
+		onLoadingChangeRef.current?.(isSelected ? isLoading : false);
+	}, [isSelected, isLoading]);
 
-	const title = getSectionTitle(sectionId);
+	const title = sectionId === SECTION_ID_ALL ? "All TLDs" : getSectionTitle(sectionId);
 
 	if (!searchQuery.trim()) return null;
 
 	// Per-section loading: only this section shows skeleton when this section’s query is loading
 	return (
-		<section ref={ref} className="mb-8">
-			<h3 className="text-base font-semibold tracking-tight text-card-foreground mb-4">
-				{title}
-			</h3>
+		<section ref={isSelected !== undefined ? undefined : ref} className="mb-8">
+			{!isSelected && (
+				<h3 className="text-base font-semibold tracking-tight text-card-foreground mb-4">
+					{title}
+				</h3>
+			)}
 			{isLoading && <SectionSkeleton />}
 			{isError && (
 				<div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
@@ -215,17 +165,14 @@ export function DomainSearchSection({
 				<p className="text-sm text-muted-foreground">No domains in this category.</p>
 			)}
 			{!isLoading && !isError && results.length > 0 && (
-				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+				<DomainResultList>
 					{results.map((result, index) => (
-						<SectionDomainCard
+						<DomainResultRow
 							key={`${result.domain}-${index}`}
-							result={result}
-							isDomainInCart={isDomainInCart}
-							onAddToCart={onAddToCart}
-							onRemoveFromCart={onRemoveFromCart}
+							{...sectionResultToRowProps(result, isDomainInCart, onAddToCart, onRemoveFromCart)}
 						/>
 					))}
-				</div>
+				</DomainResultList>
 			)}
 		</section>
 	);

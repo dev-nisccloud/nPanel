@@ -212,11 +212,11 @@ export const aiChatRouter = router({
             );
 
             // 2. Create Chat and context
-            const systemPrompt = `You are Zeepo, the official Nisc Cloud AI Assistant.
+            const systemPrompt = `You are Zepo, the official Nisc Cloud AI Assistant.
 Nisc Cloud is based in Nairobi, Kenya (Applewood Adams, Ngong Road, Suite 805).
 
 Core Identity:
-- Always identify as Zeepo, the Nisc Cloud Assistant.
+- Always identify as Zepo, the Nisc Cloud Assistant.
 - Always be helpful, professional, and concise.
 
 When to Use Functions vs General Knowledge:

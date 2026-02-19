@@ -98,7 +98,7 @@ const getActionOptions = () => [
     },
   },
   {
-    id: "zeepo",
+    id: "zepo",
     title: "Live AI support",
     icon: Icons.AISupport,
     color: "text-blue-600",
@@ -116,7 +116,7 @@ const initialGreetingMessage: ChatMessage = {
 
 export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [currentView, setCurrentView] = React.useState<"main" | "chat-list" | "chat" | "zeepo" | "zeepo-history">("main");
+  const [currentView, setCurrentView] = React.useState<"main" | "chat-list" | "chat" | "zepo" | "zepo-history">("main");
   const [messageInput, setMessageInput] = React.useState("");
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
   const [selectedChatId, setSelectedChatId] = React.useState<string | null>(null);
@@ -247,7 +247,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
 
   // Auto-scroll AI chat
   React.useEffect(() => {
-    if (currentView === "zeepo") {
+    if (currentView === "zepo") {
       scrollToBottom('ai');
       // Use a small timeout to ensure content is fully rendered
       const timer = setTimeout(() => scrollToBottom('ai'), 100);
@@ -272,7 +272,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
       return;
     }
     const messages = [
-      "Zeepo is thinking...",
+      "Zepo is thinking...",
       "Searching for answers...",
       "Analyzing your request...",
       "Generating response...",
@@ -314,19 +314,19 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     setCurrentView("chat");
   };
 
-  const handleZeepoChat = () => {
-    setCurrentView("zeepo-history");
+  const handleZepoChat = () => {
+    setCurrentView("zepo-history");
   };
 
-  const handleStartNewZeepoChat = () => {
+  const handleStartNewZepoChat = () => {
     setSelectedAiChatId("new");
-    setCurrentView("zeepo");
+    setCurrentView("zepo");
   };
 
-  const handleSelectPastZeepoChat = (chatId: string) => {
+  const handleSelectPastZepoChat = (chatId: string) => {
     if (deletingAiChatId === chatId) return;
     setSelectedAiChatId(chatId);
-    setCurrentView("zeepo");
+    setCurrentView("zepo");
   };
 
   const handleDeleteAiChat = async (e: React.MouseEvent, chatId: string) => {
@@ -466,7 +466,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const handleSendMessage = async () => {
     if (isSending || (!messageInput.trim() && selectedFiles.length === 0)) return;
 
-    if (currentView === "zeepo") {
+    if (currentView === "zepo") {
       if (!messageInput.trim() || !selectedAiChatId) return;
 
       setIsSending(true);
@@ -497,7 +497,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         }
       } catch (error) {
         console.error("Failed to send AI message:", error);
-        toast.error("Failed to send message to Zeepo.");
+        toast.error("Failed to send message to Zepo.");
       } finally {
         setIsSending(false);
       }
@@ -615,17 +615,13 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         sideOffset={16}
         className={cn(
           "w-[360px] p-0 rounded-2xl overflow-hidden border-0 shadow-xl bg-background/98 backdrop-blur-md",
-          (currentView === "chat-list" || currentView === "chat" || currentView === "zeepo" || currentView === "zeepo-history") && "h-[600px] flex flex-col"
+          (currentView === "chat-list" || currentView === "chat" || currentView === "zepo" || currentView === "zepo-history") && "h-[600px] flex flex-col"
         )}
       >
-        {/* Background gradient effect - must have - prominent blue glow - clipped to rounded corners */}
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-200/60 via-blue-100/40 to-transparent pointer-events-none rounded-2xl" />
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-40 pointer-events-none rounded-t-2xl"
-          style={{
-            background: "radial-gradient(circle at center, rgba(59, 130, 246, 0.4) 0%, rgba(147, 197, 253, 0.2) 40%, transparent 70%)"
-          }}
-        />
+        {/* Subtle neutral tint only when in chat/zepo views - avoid generic gradient look */}
+        {(currentView === "chat-list" || currentView === "chat" || currentView === "zepo" || currentView === "zepo-history") && (
+          <div className="absolute inset-0 bg-muted/20 pointer-events-none rounded-2xl" />
+        )}
 
         <div className="relative flex flex-col z-10 h-full">
           {currentView === "main" ? (
@@ -669,8 +665,8 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                       onClick={() => {
                         if (option.id === "live-chat") {
                           handleViewSupportTickets();
-                        } else if (option.id === "zeepo") {
-                          handleZeepoChat();
+                        } else if (option.id === "zepo") {
+                          handleZepoChat();
                         } else {
                           option.onClick?.();
                           setIsOpen(false);
@@ -690,7 +686,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                         )}>
                           {option.id === "whatsapp" ? (
                             <WhatsAppIcon className={cn("h-5 w-5", option.color)} />
-                          ) : option.id === "live-chat" || option.id === "zeepo" ? (
+                          ) : option.id === "live-chat" || option.id === "zepo" ? (
                             <IconComponent className={cn("h-5 w-5", option.color)} />
                           ) : (
                             <IconComponent className={cn("h-5 w-5", option.color)} />
@@ -874,9 +870,9 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                 )}
               </ScrollArea>
             </>
-          ) : currentView === "zeepo-history" ? (
+          ) : currentView === "zepo-history" ? (
             <>
-              {/* Zeepo History Header */}
+              {/* Zepo History Header */}
               <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
                 <div className="flex items-center gap-3">
                   <Button
@@ -916,7 +912,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
               {/* Start New AI Chat Button */}
               <div className="px-4 pt-4 pb-3 border-b">
                 <Button
-                  onClick={handleStartNewZeepoChat}
+                  onClick={handleStartNewZepoChat}
                   disabled={isSending || isLoadingAiHistory}
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 >
@@ -925,7 +921,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                   ) : (
                     <Sparkles className="mr-2 h-4 w-4" />
                   )}
-                  {isSending ? "Starting Chat..." : "Start New AI Chat"}
+                  {isSending ? "Starting Chat..." : "Start New Zepo Chat"}
                 </Button>
               </div>
 
@@ -935,28 +931,31 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                   <div className="flex items-center justify-center py-12">
                     <div className="text-center">
                       <Spinner size={32} className="mx-auto mb-4" />
-                      <p className="text-sm text-muted-foreground">Loading chats...</p>
+                      <p className="text-sm text-muted-foreground">Loading Zepo chats...</p>
                     </div>
                   </div>
                 ) : aiHistory.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                    <p className="text-sm text-muted-foreground">No recent AI chats.</p>
+                    <p className="text-sm text-muted-foreground">No recent Zepo chats.</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-border">
                     {aiHistory.map((chat) => (
                       <div
                         key={chat.id}
-                        onClick={() => handleSelectPastZeepoChat(chat.id)}
+                        onClick={() => handleSelectPastZepoChat(chat.id)}
                         className={cn(
-                          "w-full px-4 py-3 hover:bg-muted/50 transition-colors text-left cursor-pointer relative group",
+                          "w-full px-4 py-3 hover:bg-muted/50 transition-colors text-left cursor-pointer relative group flex items-start gap-3",
                           deletingAiChatId === chat.id && "opacity-50 pointer-events-none"
                         )}
                       >
-                        <div className="flex flex-col gap-1 pr-8">
+                        <div className="h-9 w-9 rounded-full overflow-hidden flex-shrink-0 bg-muted">
+                          <Image src="/zepo.png" alt="Zepo" width={36} height={36} className="h-9 w-9 object-cover" />
+                        </div>
+                        <div className="flex flex-col gap-1 pr-8 min-w-0 flex-1">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-sm text-foreground">
-                              {chat.title || "AI Chat"}
+                              {chat.title || "Zepo Chat"}
                             </span>
                             <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
                               {formatTime(chat.timestamp)}
@@ -1306,14 +1305,14 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
             </>
           ) : (
             <>
-              {/* Zeepo Chat Header */}
+              {/* Zepo Chat Header */}
               <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
                 <div className="flex items-center gap-3">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => setCurrentView("zeepo-history")}
+                    onClick={() => setCurrentView("zepo-history")}
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
@@ -1348,7 +1347,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                 </div>
               </div>
 
-              {/* Zeepo Chat Messages Area */}
+              {/* Zepo Chat Messages Area */}
               <ScrollArea className="flex-1 min-h-0" viewportClassName="p-4">
                 {isLoadingAiMessages && transformedAiMessages.length === 0 && optimisticAiMessages.length === 0 ? (
                   <div className="space-y-4">
@@ -1403,14 +1402,17 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                 ) : transformedAiMessages.length === 0 && optimisticAiMessages.length === 0 ? (
                   // Welcome View (No Chat ID or New Chat)
                   <div className="flex flex-col items-center justify-center h-full py-12 text-center animate-in fade-in duration-500">
-                    <div className="relative mb-6">
-                      <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
-                      <div className="relative bg-background p-4 rounded-2xl shadow-lg border border-border/50">
-                        <Icons.AISupport className="h-12 w-12 text-primary" />
-                      </div>
+                    <div className="mb-3 flex justify-center">
+                      <Image
+                        src="/zepo.png"
+                        alt="Zepo"
+                        width={160}
+                        height={160}
+                        className="h-40 w-40 object-contain"
+                      />
                     </div>
-                    <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
-                      Hi! I'm Zeepo
+                    <h3 className="text-2xl font-bold text-primary mb-2">
+                      Hi! I'm Zepo
                     </h3>
                     <p className="text-muted-foreground max-w-[260px] leading-relaxed mb-8">
                       Your AI support assistant. I can help you with services, account questions, and more!
@@ -1427,8 +1429,8 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                         )}
                       >
                         {msg.type === "assistant" && (
-                          <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mb-1">
-                            <Icons.AISupport className="h-4 w-4 text-primary" />
+                          <div className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0 mb-1 bg-muted">
+                            <Image src="/zepo.png" alt="Zepo" width={24} height={24} className="h-6 w-6 object-cover" />
                           </div>
                         )}
                         <div
@@ -1445,14 +1447,14 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                     ))}
                     {isSending && (
                       <div className="flex justify-start gap-2">
-                        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 animate-pulse">
-                          <Icons.AISupport className="h-4 w-4 text-primary" />
+                        <div className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0 animate-pulse bg-muted">
+                          <Image src="/zepo.png" alt="Zepo" width={24} height={24} className="h-6 w-6 object-cover" />
                         </div>
                         <div className="bg-primary/5 rounded-xl px-4 py-2 border border-primary/10 overflow-hidden relative">
                           <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
                           <p className="text-xs font-medium text-muted-foreground animate-shimmer bg-clip-text text-transparent">
                             {[
-                              "Zeepo is thinking...",
+                              "Zepo is thinking...",
                               "Searching for answers...",
                               "Analyzing your request...",
                               "Generating response...",
@@ -1466,7 +1468,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                 <div ref={aiMessagesEndRef} />
               </ScrollArea>
 
-              {/* Zeepo Message Input - No attachment */}
+              {/* Zepo Message Input - No attachment */}
               <div className="border-t px-4 py-3 bg-background">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 relative">

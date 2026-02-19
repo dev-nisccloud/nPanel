@@ -1,15 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { ShoppingCart, XCircle } from "lucide-react";
-import { TldLogo } from "./tld-logo";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
 import { useCurrency } from "./currency-context";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
-import { BuyNowDialog } from "./buy-now-dialog";
+import { DomainResultRow, DomainResultList } from "./domain-result-row";
 import {
 	buildKenicDomainsFromQuery,
 	normalizeToKenicCards,
@@ -70,152 +66,39 @@ const formatMarginInfo = (calc: PricedFees["createCalc"], formatPrice: (n: numbe
 	return `+${formatPrice(fixed, calc.currency)}`;
 };
 
-function KenyanTldCard({
-	item,
-	priced,
-	isDomainInCart,
-	onAddToCart,
-	onRemoveFromCart,
-}: {
-	item: KenicCardItem;
-	priced: PricedFees;
-	isDomainInCart: (domain: string) => boolean;
-	onAddToCart: (result: DomainSearchResult) => void;
-	onRemoveFromCart: (domain: string) => void;
-}) {
-	const [buyNowOpen, setBuyNowOpen] = React.useState(false);
-	const isInCart = isDomainInCart(item.domain);
-	const displayResult = toDomainSearchResult(item, priced);
-
-	const handleCart = (e?: React.MouseEvent) => {
-		e?.preventDefault();
-		e?.stopPropagation();
-		if (isInCart) onRemoveFromCart(item.domain);
-		else if (item.available) onAddToCart(displayResult);
-	};
-
-	const marginLabel = formatMarginInfo(priced.createCalc, formatPrice);
-	const currency = item.currency || "KES";
-
-	return (
-		<>
-			<div className="bg-card border border-border rounded-lg p-3 hover:shadow-md transition-shadow flex flex-col">
-				{/* Row 1: Logo (left) + Availability (right) */}
-				<div className="flex items-center justify-between gap-2 mb-2">
-					<TldLogo tld={item.tld} variant="kenyan" />
-					<Badge
-						className={
-							item.available
-								? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs"
-								: "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs"
-						}
-					>
-						{item.available ? "Available" : "Taken"}
-					</Badge>
-				</div>
-
-				{/* Row 2: Domain name - bold primary */}
-				<div className="font-bold text-sm text-primary mb-1 truncate" title={item.domain}>
-					{item.domain}
-				</div>
-
-				{/* Registration (dominant): just price, bigger, bold black; then Renewal / Transfer with labels; margin line when present */}
-				{item.available && (
-					<div className="space-y-0.5 mb-2">
-						{/* Registration: price only, slightly larger, bold, black */}
-						<div className="text-sm font-bold text-foreground">
-							{formatPrice(priced.createFinal, currency)}
+const KENYAN_LIST_SKELETON = (
+	<div className="space-y-0 mb-6">
+		{Array.from({ length: 6 }).map((_, i) => (
+			<React.Fragment key={i}>
+				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4">
+					<div className="min-w-0 flex-1 space-y-2">
+						<div className="flex items-center gap-2">
+							<Skeleton className="h-4 w-32" />
+							<Skeleton className="h-5 w-16 rounded-full" />
 						</div>
-						{marginLabel != null && (
-							<div className="text-[10px] text-muted-foreground text-green-600 dark:text-green-400">
-								{marginLabel}
-							</div>
-						)}
-						<div className="text-xs text-muted-foreground space-y-0.5 pt-0.5">
-							{item.renewPrice != null && (
-								<div>Renewal: {formatPrice(priced.renewFinal, currency)}</div>
-							)}
-							{item.transferPrice != null && (
-								<div>Transfer: {formatPrice(priced.transferFinal, currency)}</div>
-							)}
-						</div>
+						<Skeleton className="h-3 w-24" />
+						<Skeleton className="h-3 w-20" />
 					</div>
-				)}
-
-				{/* Reason from API when present (available or not) — only show if non-null */}
-				{item.reason != null && item.reason !== "" && (
-					<div className="text-[11px] text-muted-foreground mb-3 line-clamp-2">
-						{item.reason}
+					<div className="flex items-center gap-3 shrink-0">
+						<Skeleton className="h-4 w-20" />
+						<Skeleton className="h-8 w-20" />
+						<Skeleton className="h-8 w-8" />
 					</div>
-				)}
-
-				{/* Cart + Buy Now */}
-				<div className="mt-auto flex items-center justify-center gap-2">
-					{item.available ? (
-						<>
-							<Button
-								size="sm"
-								variant="default"
-								onClick={(e) => {
-									e?.preventDefault();
-									setBuyNowOpen(true);
-								}}
-								className="text-xs h-8 px-3"
-							>
-								Buy Now
-							</Button>
-							<Button
-								size="sm"
-								variant={isInCart ? "destructive" : "outline"}
-								onClick={handleCart}
-								className="h-8 w-8 p-0"
-								title={isInCart ? "Remove from cart" : "Add to cart"}
-							>
-								{isInCart ? (
-									<XCircle className="h-4 w-4" />
-								) : (
-									<ShoppingCart className="h-4 w-4" />
-								)}
-							</Button>
-						</>
-					) : (
-						<Button size="sm" variant="outline" disabled className="text-xs h-8 px-3">
-							Not available
-						</Button>
-					)}
 				</div>
-			</div>
-
-			{item.available && (
-				<BuyNowDialog
-					open={buyNowOpen}
-					onOpenChange={setBuyNowOpen}
-					domain={displayResult}
-				/>
-			)}
-		</>
-	);
-}
-
-const KENYAN_CARDS_SKELETON = (
-	<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6">
-		{Array.from({ length: 9 }).map((_, i) => (
-			<div key={i} className="bg-card border border-border rounded-lg p-3">
-				<div className="flex justify-between items-center mb-2">
-					<Skeleton className="h-12 w-12 rounded-lg" />
-					<Skeleton className="h-5 w-16" />
-				</div>
-				<Skeleton className="h-4 w-full mb-2" />
-				<Skeleton className="h-3 w-20 mb-1" />
-				<Skeleton className="h-3 w-24 mb-2" />
-				<Skeleton className="h-8 w-full mt-2" />
-			</div>
+				{i < 5 && <div className="border-b border-border" />}
+			</React.Fragment>
 		))}
 	</div>
 );
 
 export interface KenyanTldCardsProps {
 	searchQuery: string;
+	/** When false, Kenyan TLDs do not start loading until suggestions (exact + top-level cards) have loaded. */
+	suggestionsReady?: boolean;
+	/** When false (e.g. tab not selected), do not fetch; used in tabbed layout so data loads only when tab is active. */
+	isSelected?: boolean;
+	/** When true, omit the section heading (tab label is used instead). */
+	embeddedInTabs?: boolean;
 	onAddToCart: (result: DomainSearchResult) => void;
 	onRemoveFromCart: (domain: string) => void;
 	isDomainInCart: (domain: string) => boolean;
@@ -225,6 +108,9 @@ export interface KenyanTldCardsProps {
 
 export function KenyanTldCards({
 	searchQuery,
+	suggestionsReady = true,
+	isSelected = true,
+	embeddedInTabs = false,
 	onAddToCart,
 	onRemoveFromCart,
 	isDomainInCart,
@@ -247,11 +133,35 @@ export function KenyanTldCards({
 
 	const [cards, setCards] = React.useState<KenicCardItem[] | null>(null);
 
+	const isMountedRef = React.useRef(true);
+	const lastFetchedSanitizedRef = React.useRef<string | null>(null);
+
 	React.useEffect(() => {
-		if (!sanitized || domains.length === 0) {
+		isMountedRef.current = true;
+		return () => {
+			isMountedRef.current = false;
+		};
+	}, []);
+
+	// Clear cached cards when search term changes – before paint so we don't flash stale data
+	React.useLayoutEffect(() => {
+		if (!sanitized) return;
+		if (lastFetchedSanitizedRef.current !== null && lastFetchedSanitizedRef.current !== sanitized) {
+			lastFetchedSanitizedRef.current = null;
 			setCards(null);
+		}
+	}, [sanitized]);
+
+	// Only start KENIC request when this tab is selected and suggestions have loaded. Do not re-fetch when returning to tab if we already have data for this search.
+	React.useEffect(() => {
+		if (!isSelected || !suggestionsReady || !sanitized || domains.length === 0) {
 			return;
 		}
+		const alreadyHaveDataForThisSearch = cards != null && lastFetchedSanitizedRef.current === sanitized;
+		if (alreadyHaveDataForThisSearch) {
+			return;
+		}
+		lastFetchedSanitizedRef.current = sanitized;
 		setCards(null);
 		checkMutation.mutate(
 			{
@@ -262,6 +172,7 @@ export function KenyanTldCards({
 			},
 			{
 				onSuccess: (data) => {
+					if (!isMountedRef.current) return;
 					const normalized = "normalized" in data ? data.normalized : undefined;
 					if (normalized && Array.isArray(normalized)) {
 						setCards(normalizeToKenicCards(sanitized, normalized));
@@ -269,10 +180,15 @@ export function KenyanTldCards({
 						setCards(null);
 					}
 				},
-				onError: () => setCards(null),
+				onError: () => {
+					if (isMountedRef.current) {
+						setCards(null);
+						lastFetchedSanitizedRef.current = null;
+					}
+				},
 			}
 		);
-	}, [sanitized, domains]);
+	}, [isSelected, suggestionsReady, sanitized, domains]);
 
 	/** Apply TLD margin to each card's create/renew/transfer. */
 	const pricedMap = React.useMemo(() => {
@@ -298,31 +214,48 @@ export function KenyanTldCards({
 		return map;
 	}, [cards, getPricingInfo]);
 
-	React.useEffect(() => {
-		onLoadingChange?.(checkMutation.isPending);
-	}, [checkMutation.isPending, onLoadingChange]);
+	const onLoadingChangeRef = React.useRef(onLoadingChange);
+	onLoadingChangeRef.current = onLoadingChange;
+	React.useLayoutEffect(() => {
+		onLoadingChangeRef.current?.(isSelected ? checkMutation.isPending : false);
+	}, [isSelected, checkMutation.isPending]);
 
 	if (!sanitized) return null;
 
-	// Kenyan-only loading: skeleton only for this block; other sections are independent
+	// When tab is not selected, render nothing (panel is hidden; data stays mounted for when user returns)
+	if (!isSelected) return <div className="min-h-[200px]" aria-hidden />;
+
+	// Show skeleton until suggestions have loaded, then while KENIC is loading
+	const waitForSuggestions = !suggestionsReady && sanitized.length > 0;
 	const isLoading = checkMutation.isPending;
 	const error = checkMutation.isError;
 
-	if (isLoading && cards == null) return KENYAN_CARDS_SKELETON;
+	if (waitForSuggestions || (isLoading && cards == null)) return (
+		<section className="mb-6">
+			{!embeddedInTabs && (
+				<h3 className="text-base font-semibold tracking-tight text-card-foreground mb-4">
+					Give your brand a Kenyan vibe
+				</h3>
+			)}
+			{KENYAN_LIST_SKELETON}
+		</section>
+	);
 
 	const list = cards ?? [];
 
 	return (
 		<section className="mb-6">
-			<h3 className="text-base font-semibold tracking-tight text-card-foreground mb-4">
-				Give your brand a Kenyan vibe
-			</h3>
+			{!embeddedInTabs && (
+				<h3 className="text-base font-semibold tracking-tight text-card-foreground mb-4">
+					Give your brand a Kenyan vibe
+				</h3>
+			)}
 			{error && (
 				<p className="text-sm text-destructive mb-2">
 					Could not load Kenyan TLD availability. Try again later.
 				</p>
 			)}
-			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+			<DomainResultList>
 				{list.map((item) => {
 					const priced = pricedMap.get(item.domain) ?? {
 						createFinal: item.createPrice ?? 0,
@@ -330,18 +263,28 @@ export function KenyanTldCards({
 						transferFinal: item.transferPrice ?? 0,
 						createCalc: { marginAmount: 0, marginType: null, marginValue: null, currency: item.currency ?? "KES" },
 					};
+					const displayResult = toDomainSearchResult(item, priced);
+					const currency = item.currency ?? "KES";
+					const marginLabel = formatMarginInfo(priced.createCalc, formatPrice);
 					return (
-						<KenyanTldCard
+						<DomainResultRow
 							key={item.domain}
-							item={item}
-							priced={priced}
+							domain={item.domain}
+							isAvailable={item.available}
+							originalPrice={item.createPrice}
+							originalCurrency={currency}
+							marginLabel={marginLabel ?? undefined}
+							displayPrice={priced.createFinal}
+							displayCurrency={currency}
+							reason={item.reason ?? undefined}
+							displayResult={displayResult}
 							isDomainInCart={isDomainInCart}
 							onAddToCart={onAddToCart}
 							onRemoveFromCart={onRemoveFromCart}
 						/>
 					);
 				})}
-			</div>
+			</DomainResultList>
 		</section>
 	);
 }

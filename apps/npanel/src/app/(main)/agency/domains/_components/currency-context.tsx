@@ -25,9 +25,18 @@ interface CurrencyContextType {
 const CurrencyContext = React.createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  // Default currency changed to KES for agency side
+  // Agency: domain prices are always shown in KES (conversion applied when source is USD/EUR etc.)
   const [selectedCurrency, setSelectedCurrency] = React.useState<SupportedCurrency>('KES');
   const [isConverting, setIsConverting] = React.useState(false);
+
+  // Guard setState so we never update after unmount (e.g. when user switches to Settings tab while conversion is in progress)
+  const isMountedRef = React.useRef(true);
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Load from localStorage on mount
   // Commented out to always use KES as default for agency side
@@ -54,13 +63,13 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     }
   );
 
-  // Currency conversion mutation - stable reference using useRef for callbacks
+  // Currency conversion mutation - stable reference using useRef for callbacks; guard callbacks to avoid setState on unmounted component
   const convertPricesMutation = trpc.currency.convertPrices.useMutation({
     onMutate: () => {
-      setIsConverting(true);
+      if (isMountedRef.current) setIsConverting(true);
     },
     onSettled: () => {
-      setIsConverting(false);
+      if (isMountedRef.current) setIsConverting(false);
     },
   });
 

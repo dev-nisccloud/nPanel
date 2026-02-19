@@ -6,9 +6,11 @@ import { Search } from "lucide-react";
 // import { Icons } from "@/components/icons"; // Temporarily disabled
 import { z } from "zod";
 
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Temporarily disabled
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
@@ -62,15 +64,23 @@ function DomainSearchContent() {
               </p>
             </div>
 
+            {domainSearch.error && (
+              <Alert variant="destructive" className="max-w-2xl mx-auto">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{domainSearch.error}</AlertDescription>
+              </Alert>
+            )}
             <div className="flex gap-3 max-w-2xl mx-auto">
               <Input
                 placeholder="Enter domain name (e.g., mybusiness)"
                 value={domainSearch.domainName}
-                onChange={(e) => domainSearch.setDomainName(e.target.value)}
+                onChange={(e) => {
+                  domainSearch.setDomainName(e.target.value);
+                  if (domainSearch.error) domainSearch.setError(null);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && domainSearch.domainName.trim()) {
-                    domainSearch.triggerSearch();
-                    setIsSearching(true);
+                    if (domainSearch.triggerSearch()) setIsSearching(true);
                   }
                 }}
                 className="flex-1 h-12 text-base"
@@ -79,8 +89,7 @@ function DomainSearchContent() {
               <Button
                 size="lg"
                 onClick={() => {
-                  domainSearch.triggerSearch();
-                  if (domainSearch.domainName.trim()) setIsSearching(true);
+                  if (domainSearch.triggerSearch()) setIsSearching(true);
                 }}
                 disabled={!domainSearch.domainName.trim() || isSearching}
                 className="h-12 px-8"
@@ -109,6 +118,7 @@ function DomainSearchContent() {
       {domainSearch.searchQueryName && (
         <DomainSearchResults
           searchQuery={domainSearch.searchQueryName}
+          rawSearchQuery={domainSearch.rawSearchQueryForResults}
           error={domainSearch.error}
           isDomainInCart={domainSearch.isDomainInCart}
           onAddToCart={domainSearch.handleAddToCart}

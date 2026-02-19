@@ -34,7 +34,7 @@ export default function DomainsPage() {
           </TabsList>
         </div>
 
-        <TabsContent value="domain-search" className="mt-6">
+        <TabsContent value="domain-search" className="mt-6 data-[state=inactive]:hidden" forceMount>
           <DomainSearch />
         </TabsContent>
 
@@ -48,7 +48,7 @@ export default function DomainsPage() {
           </div>
         </TabsContent> */}
 
-        <TabsContent value="settings" className="mt-6">
+        <TabsContent value="settings" className="mt-6 data-[state=inactive]:hidden" forceMount>
           <TldSettings />
         </TabsContent>
       </Tabs>

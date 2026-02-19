@@ -370,6 +370,70 @@ export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<strin
 }
 
 /**
+ * Same as ensureCustomerHasTeam but returns redirect path instead of calling redirect().
+ * Used by API route so we can return JSON { redirect } for client-side navigation.
+ */
+export async function getCustomerTeamRedirectPath(user: UserWithStatus): Promise<string> {
+  const userId = user.id;
+  const lastAccessedTeamId = user.lastAccessedTeamId;
+
+  if (lastAccessedTeamId) {
+    const teamStillExists = await prisma.teamMember.findFirst({
+      where: { userId, teamId: lastAccessedTeamId },
+      include: { team: { select: { isActive: true, slug: true } } },
+    });
+    if (teamStillExists?.team.isActive) return `/${teamStillExists.team.slug}/dashboard`;
+  }
+
+  const userTeams = await prisma.teamMember.findMany({
+    where: { userId },
+    include: { team: { select: { id: true, name: true, slug: true, isActive: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  const activeTeams = userTeams.filter((m) => m.team.isActive);
+  if (activeTeams.length === 0) return "/create-team";
+
+  const firstTeam = activeTeams[0];
+  const teamId = firstTeam.team.id;
+  const teamSlug = firstTeam.team.slug;
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: userId }, data: { lastAccessedTeamId: teamId } });
+    await tx.userActivityLog.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId,
+        action: "TEAM_ACCESSED",
+        description: `User accessed team: ${firstTeam.team.name}`,
+        metadata: { teamId, teamName: firstTeam.team.name, teamSlug, autoSet: !lastAccessedTeamId },
+        createdAt: new Date(),
+      },
+    });
+  });
+  return `/${teamSlug}/dashboard`;
+}
+
+/**
+ * Returns the redirect URL for the root path "/" without throwing.
+ * Used by GET /api/auth/redirect-target so the root page can show a loader and redirect client-side.
+ */
+export async function getRootRedirectTarget(): Promise<string> {
+  const user = await getCurrentUser();
+  if (!user) return "/auth/login";
+
+  const u = user as UserWithStatus;
+  const status = u.status;
+  if (!status || status !== "ACTIVE") {
+    await signOutUser();
+    return `/account-status?status=${status || "INACTIVE"}`;
+  }
+
+  const role = u.role;
+  if (role === "CUSTOMER") return getCustomerTeamRedirectPath(u);
+  if (role?.includes("AGENCY")) return "/agency/dashboard";
+  return getCustomerTeamRedirectPath(u);
+}
+
+/**
  * Redirect authenticated users away from auth pages
  * Validates account status and signs out inactive users before redirecting
  * For CUSTOMER users, ensures they have a team before redirecting to dashboard

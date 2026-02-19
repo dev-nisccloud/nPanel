@@ -24,6 +24,7 @@ interface CalculatedPrice {
   marginValue: string | null;
   // Currency conversion fields
   convertedPrice?: number;
+  convertedOriginalPrice?: number; // original price in displayCurrency (for "Original:" line)
   exchangeRate?: number;
   displayCurrency?: string;
 }
@@ -55,13 +56,10 @@ interface CurrencyContext {
 }
 
 export function useDomainPricing(currencyContext: CurrencyContext) {
-  const [defaultTldSetting, setDefaultTldSetting] = React.useState<TldSetting | null>(null);
-  const [isLoadingTldSettings, setIsLoadingTldSettings] = React.useState(true);
-
   const { selectedCurrency, isConversionAvailable, convertPricesBatch } = currencyContext;
 
   // P0-2: Fetch only default TLD setting (optimized endpoint - reduces payload by ~95%)
-  const { data: tldSettingsData } = trpc.tldSettings.getDefault.useQuery(
+  const { data: tldSettingsData, isLoading: isLoadingTldSettings } = trpc.tldSettings.getDefault.useQuery(
     undefined,
     {
       staleTime: 10 * 60 * 1000, // 10 minutes - data stays fresh
@@ -71,13 +69,8 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
     }
   );
 
-  // Set default TLD setting directly from optimized query
-  React.useEffect(() => {
-    if (tldSettingsData?.success) {
-      setDefaultTldSetting(tldSettingsData.data || null);
-    }
-    setIsLoadingTldSettings(false);
-  }, [tldSettingsData]);
+  // Derive from query (avoids one effect + one state update when data loads)
+  const defaultTldSetting = tldSettingsData?.success ? (tldSettingsData.data ?? null) : null;
 
   // Calculate price for a single domain
   const calculatePrice = React.useCallback((domain: string, originalPrice: number, currency: string): CalculatedPrice => {
@@ -245,39 +238,34 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
       };
     }));
 
-    // Collect all prices that need conversion for batch processing
-    const pricesToConvert: Array<{ amount: number; currency: string; index: number }> = [];
+    // Collect final + original prices that need conversion (single batch for one API round-trip)
+    const finalsToConvert: Array<{ amount: number; currency: string; index: number }> = [];
+    const originalsToConvert: Array<{ amount: number; currency: string; index: number }> = [];
     processedDomains.forEach((processed, index) => {
       if (processed.needsConversion && processed.calculated) {
         const currency = processed.result.price?.reseller?.currency || 'USD';
-        pricesToConvert.push({
-          amount: processed.calculated.finalPrice,
-          currency: currency,
-          index: index,
-        });
+        finalsToConvert.push({ amount: processed.calculated.finalPrice, currency, index });
+        originalsToConvert.push({ amount: processed.calculated.originalPrice, currency, index });
       }
     });
 
-    // Batch convert all prices that need conversion in a single API call
-    if (pricesToConvert.length > 0) {
+    if (finalsToConvert.length > 0) {
       try {
-        const pricesForConversion = pricesToConvert.map(p => ({
-          amount: p.amount,
-          currency: p.currency,
-        }));
+        const allPricesForConversion = [
+          ...finalsToConvert.map(p => ({ amount: p.amount, currency: p.currency })),
+          ...originalsToConvert.map(p => ({ amount: p.amount, currency: p.currency })),
+        ];
+        const allConverted = await convertPricesBatch(allPricesForConversion, selectedCurrency);
+        const n = finalsToConvert.length;
 
-        const convertedPrices = await convertPricesBatch(pricesForConversion, selectedCurrency);
-
-        // Map converted prices back to their domains
-        pricesToConvert.forEach((priceData, priceIndex) => {
-          const converted = convertedPrices[priceIndex];
+        finalsToConvert.forEach((priceData, priceIndex) => {
+          const converted = allConverted[priceIndex];
           if (converted && processedDomains[priceData.index].calculated) {
             const calculated = processedDomains[priceData.index].calculated!;
             calculated.convertedPrice = converted.convertedAmount;
             calculated.exchangeRate = converted.rate;
             calculated.displayCurrency = selectedCurrency;
 
-            // Cache the conversion separately
             const processed = processedDomains[priceData.index];
             currentCache[processed.convertedCacheKey] = {
               ...calculated,
@@ -287,9 +275,15 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
             };
           }
         });
+
+        originalsToConvert.forEach((priceData, priceIndex) => {
+          const converted = allConverted[n + priceIndex];
+          if (converted && processedDomains[priceData.index].calculated) {
+            processedDomains[priceData.index].calculated!.convertedOriginalPrice = converted.convertedAmount;
+          }
+        });
       } catch (error) {
         console.error('Failed to convert prices batch:', error);
-        // Continue without conversion if it fails
       }
     }
 
