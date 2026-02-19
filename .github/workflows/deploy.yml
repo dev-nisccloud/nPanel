@@ -107,6 +107,8 @@ jobs:
     needs: quality-checks
     env:
       PRISMA_BINARY_TARGETS: ${{ secrets.PRISMA_BINARY_TARGETS }}
+      # Required for Next.js build (Better Auth + static generation of "/")
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'build-time-placeholder-do-not-use-in-production' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
