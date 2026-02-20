@@ -239,7 +239,7 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "Ad Campaigns",
+        title: "Media Buying",
         url: "/agency/ad-campaigns",
         icon: (props: any) => React.createElement(Icons.Campaigns, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [

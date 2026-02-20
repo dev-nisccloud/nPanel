@@ -124,10 +124,10 @@ export function DomainSearchResults({
 
   return (
     <div className="space-y-6">
-      {/* Top-level: exact match (no title) + suggested cards (.co.ke, .ke, bundle, .com, .org, .net, .io) – load first */}
+      {/* Top-level: exact match (no title) + suggested cards (.co.ke, .ke, bundle, .com) – load first */}
       {rawSearchQuery.trim().length > 0 && (
         <section className="mb-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <ExactMatchSection
               rawSearchQuery={rawSearchQuery.trim()}
               isDomainInCart={isDomainInCart}
@@ -155,9 +155,9 @@ export function DomainSearchResults({
           <h3 className="text-base font-semibold tracking-tight text-card-foreground mb-3">
             More options
           </h3>
-          <div className="bg-card rounded-lg border border-border p-2.5">
-            <ScrollArea className="w-full -mx-1 px-1">
-              <div className="flex gap-2 flex-nowrap w-max pb-1">
+          <div className="bg-transparent rounded-lg py-3 px-1">
+            <ScrollArea className="w-full">
+              <div className="flex gap-2 flex-nowrap w-max pb-4 pr-2">
                 {CATEGORY_PILLS.map(({ sectionId, label }) => {
                   const isActive = selectedCategoryId === sectionId;
                   const tooltip = getSectionTooltip(sectionId);

@@ -37,8 +37,8 @@ function formatMarginLabel(
 	return `+${format(fixed, currency)}`;
 }
 
-/** Suggested single-TLD cards order: .co.ke, .ke, then .com, .org, .net, .io */
-const SUGGESTED_OPEN_TLDS = ["com", "org", "net", "io"] as const;
+/** Suggested single-TLD cards order: .co.ke, .ke, then .com */
+const SUGGESTED_OPEN_TLDS = ["com"] as const;
 
 /** Two short “why choose” points per TLD (and bundle) for suggested cards. Descriptions can wrap to two lines. */
 const TLD_WHY_CHOOSE: Record<string, [string, string]> = {
@@ -54,24 +54,12 @@ const TLD_WHY_CHOOSE: Record<string, [string, string]> = {
 		"The world’s most recognized TLD, builds trust and credibility everywhere.",
 		"Best for global reach and lasting memorability.",
 	],
-	org: [
-		"Signals purpose and trust, ideal for nonprofits and communities.",
-		"Helps supporters and donors take you seriously.",
-	],
-	net: [
-		"Classic tech and network vibe, great for web and infrastructure.",
-		"Reliable choice for professionals and tech-focused brands.",
-	],
-	io: [
-		"Loved by developers and startups for a modern, tech-forward image.",
-		"Short, catchy, and perfect for apps and SaaS.",
-	],
 	info: [
 		"Clear and informative, ideal for resources, guides and knowledge hubs.",
 		"Affordable and trusted for content and reference sites.",
 	],
 	bundle: [
-		"Lock in .co.ke, .com, .org, .net & .info together and save.",
+		"Lock in .co.ke, .ke, .com & .net together and save.",
 		"One purchase, multiple identities—best value for your brand.",
 	],
 };
@@ -118,11 +106,11 @@ export function TopLevelSuggestedCards({
 	const [kenicCoKe, setKenicCoKe] = React.useState<KenicCardItem | null>(null);
 	const [kenicKe, setKenicKe] = React.useState<KenicCardItem | null>(null);
 
-	// OpenProvider: com, org, net, info, io
+	// OpenProvider: com, net (bundle + suggested .com card); io kept for byDomain consistency if needed
 	const openProviderQuery = trpc.openProvider.domains.checkAvailability.useQuery(
 		{
 			name: nameForOpenProvider(name),
-			extensions: ["com", "org", "net", "info", "io"],
+			extensions: ["com", "net", "io"],
 			with_price: true,
 			with_whois: false,
 		},
@@ -222,23 +210,24 @@ export function TopLevelSuggestedCards({
 		onLoadingChangeRef.current?.(loading);
 	}, [loading]);
 
-	// Build bundle: .co.ke (KENIC), .com, .org, .net, .info (OpenProvider). At least 3 available. Totals always in KES.
+	// Build bundle: .co.ke, .ke (KENIC), .com, .net (OpenProvider). At least 3 available. Totals always in KES.
 	const bundleInfo = React.useMemo(() => {
 		const items: { tld: string; domain: string; available: boolean; basePrice: number; currency: string }[] = [];
 		if (kenicCoKe?.available && kenicCoKe.createPrice != null) {
 			items.push({ tld: "co.ke", domain: kenicCoKe.domain, available: true, basePrice: kenicCoKe.createPrice, currency: kenicCoKe.currency ?? "KES" });
 		}
+		if (kenicKe?.available && kenicKe.createPrice != null) {
+			items.push({ tld: "ke", domain: kenicKe.domain, available: true, basePrice: kenicKe.createPrice, currency: kenicKe.currency ?? "KES" });
+		}
 		for (const r of openProviderPriced) {
 			if (r.status !== "free" || !r.price?.reseller?.price) continue;
 			const tld = r.domain.includes(".") ? r.domain.split(".").slice(-1)[0] ?? "" : "";
 			if (tld === "com") items.push({ tld: "com", domain: r.domain, available: true, basePrice: r.price.reseller.price, currency: r.price.reseller.currency ?? "USD" });
-			if (tld === "org") items.push({ tld: "org", domain: r.domain, available: true, basePrice: r.price.reseller.price, currency: r.price.reseller.currency ?? "USD" });
 			if (tld === "net") items.push({ tld: "net", domain: r.domain, available: true, basePrice: r.price.reseller.price, currency: r.price.reseller.currency ?? "USD" });
-			if (tld === "info") items.push({ tld: "info", domain: r.domain, available: true, basePrice: r.price.reseller.price, currency: r.price.reseller.currency ?? "USD" });
 		}
 		if (items.length < 3) return null;
 		return { items };
-	}, [kenicCoKe, openProviderPriced]);
+	}, [kenicCoKe, kenicKe, openProviderPriced]);
 
 	// Convert bundle base prices to KES, then sum and add 15% markup. Start before paint.
 	const [bundleTotalKes, setBundleTotalKes] = React.useState<number | null>(null);
@@ -273,9 +262,6 @@ export function TopLevelSuggestedCards({
 	const showCoKe = exactMatchTld !== "co.ke" && kenicCoKe?.available === true;
 	const showKe = exactMatchTld !== "ke" && kenicKe?.available === true;
 	const showCom = exactMatchTld !== "com" && byDomain.get(`${name}.com`)?.status === "free";
-	const showOrg = exactMatchTld !== "org" && byDomain.get(`${name}.org`)?.status === "free";
-	const showNet = exactMatchTld !== "net" && byDomain.get(`${name}.net`)?.status === "free";
-	const showIo = exactMatchTld !== "io" && byDomain.get(`${name}.io`)?.status === "free";
 
 	const isLoading = loading;
 	const suggestedSectionReady = !kenicMutation.isPending && !openProviderQuery.isLoading && openProviderSettled;
@@ -283,7 +269,7 @@ export function TopLevelSuggestedCards({
 		return (
 			<>
 				{[1, 2, 3, 4].map((i) => (
-					<div key={i} className="bg-card border border-border rounded-lg p-3">
+					<div key={i} className="bg-card border border-border rounded-lg p-4 md:p-5 min-h-[200px]">
 						<div className="flex justify-between items-center mb-2">
 							<Skeleton className="h-14 w-14 rounded-lg" />
 							<Skeleton className="h-5 w-16" />
@@ -306,9 +292,6 @@ export function TopLevelSuggestedCards({
 			bundleInfo={bundleInfo}
 			bundleTotalKes={bundleTotalKes}
 			showCom={showCom}
-			showOrg={showOrg}
-			showNet={showNet}
-			showIo={showIo}
 			name={name}
 			byDomain={byDomain}
 			getPricingInfo={getPricingInfo}
@@ -328,9 +311,6 @@ function TopLevelCardsInner({
 	bundleInfo,
 	bundleTotalKes,
 	showCom,
-	showOrg,
-	showNet,
-	showIo,
 	name,
 	byDomain,
 	getPricingInfo,
@@ -346,9 +326,6 @@ function TopLevelCardsInner({
 	bundleInfo: { items: { tld: string; domain: string; basePrice: number; currency: string }[] } | null;
 	bundleTotalKes: number | null;
 	showCom: boolean;
-	showOrg: boolean;
-	showNet: boolean;
-	showIo: boolean;
 	name: string;
 	byDomain: Map<string, DomainSearchResult>;
 	getPricingInfo: (domain: string, original: number, currency: string) => { finalPrice: number; marginAmount: number; marginType: string | null; marginValue: string | null; currency: string };
@@ -428,28 +405,29 @@ function TopLevelCardsInner({
 	}
 
 	// Bundle card (total always in KES)
-	if (bundleInfo) {
-		cards.push(
-			<BundleCard
-				key="bundle"
-				searchName={name}
-				bundleInfo={bundleInfo}
-				bundleTotalKes={bundleTotalKes}
-				formatPrice={formatPrice}
-				isDomainInCart={isDomainInCart}
-				onAddToCart={onAddToCart}
-				byDomain={byDomain}
-				kenicCoKe={kenicCoKe}
-				getPricingInfo={getPricingInfo}
-			/>
-		);
-	}
+		if (bundleInfo) {
+			cards.push(
+				<BundleCard
+					key="bundle"
+					searchName={name}
+					bundleInfo={bundleInfo}
+					bundleTotalKes={bundleTotalKes}
+					formatPrice={formatPrice}
+					isDomainInCart={isDomainInCart}
+					onAddToCart={onAddToCart}
+					byDomain={byDomain}
+					kenicCoKe={kenicCoKe}
+					kenicKe={kenicKe}
+					getPricingInfo={getPricingInfo}
+				/>
+			);
+		}
 
-	// .com, .org, .net, .io from OpenProvider – original in converted (KES), display price after markup + conversion, show markup %
+	// .com from OpenProvider – original in converted (KES), display price after markup + conversion, show markup %
 	for (const tld of SUGGESTED_OPEN_TLDS) {
 		const domain = `${name}.${tld}`;
 		const r = byDomain.get(domain);
-		const show = (tld === "com" && showCom) || (tld === "org" && showOrg) || (tld === "net" && showNet) || (tld === "io" && showIo);
+		const show = tld === "com" && showCom;
 		if (!show || !r || r.status !== "free") continue;
 		const calc = r.price?.calculated as {
 			convertedPrice?: number;
@@ -530,29 +508,29 @@ function SingleTldCard({
 	const isInCart = isDomainInCart(domain);
 	return (
 		<>
-			<div className="bg-card border border-border rounded-lg p-3 hover:shadow-md transition-shadow flex flex-col relative">
+			<div className="bg-card border border-border rounded-lg p-4 md:p-5 hover:shadow-md transition-shadow flex flex-col relative min-h-[200px]">
 				<div className="flex items-center justify-between gap-2 mb-2">
 					<TldLogo tld={tld} variant={variant} />
 				<Badge className={available ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs" : "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs"}>
 					{available ? "Available" : "Taken"}
 				</Badge>
 				</div>
-				<div className="font-bold text-sm text-primary mb-1 truncate" title={domain}>{domain}</div>
+				<div className="font-bold text-base text-primary mb-1 truncate" title={domain}>{domain}</div>
 				{available && (
 					<div className="space-y-0.5 mb-2">
 						{originalPrice != null && (
-							<div className="text-[10px] text-muted-foreground">Original: {formatPriceProp(originalPrice, currency)}</div>
+							<div className="text-xs text-muted-foreground">Original: {formatPriceProp(originalPrice, currency)}</div>
 						)}
 						{marginLabel != null && marginLabel !== "" && (
-							<div className="text-[10px] text-green-600 dark:text-green-400">{marginLabel}</div>
+							<div className="text-xs text-green-600 dark:text-green-400">{marginLabel}</div>
 						)}
-						<div className="text-sm font-bold text-foreground">{formatPriceProp(displayPrice, currency)}</div>
+						<div className="text-base font-bold text-foreground">{formatPriceProp(displayPrice, currency)}</div>
 					</div>
 				)}
 				{available && TLD_WHY_CHOOSE[tld] ? (
 					<div>
 						<div className="border-t border-border my-2" />
-						<ul className="space-y-1.5 mb-3 text-[11px] text-muted-foreground">
+						<ul className="space-y-1.5 mb-3 text-xs text-muted-foreground">
 							{TLD_WHY_CHOOSE[tld].map((line, i) => (
 								<li key={i} className="flex gap-1.5 items-start">
 									<Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
@@ -582,8 +560,8 @@ function SingleTldCard({
 
 const DISPLAY_CURRENCY = "KES";
 
-/** Order for bundle TLD display: .co.ke first, then .com, .org, .net, .info */
-const BUNDLE_TLD_ORDER = ["co.ke", "com", "org", "net", "info"];
+/** Order for bundle TLD display: .co.ke, .ke, .com, .net */
+const BUNDLE_TLD_ORDER = ["co.ke", "ke", "com", "net"];
 
 function BundleCard({
 	searchName,
@@ -594,6 +572,7 @@ function BundleCard({
 	onAddToCart,
 	byDomain,
 	kenicCoKe,
+	kenicKe,
 	getPricingInfo,
 }: {
 	searchName: string;
@@ -604,6 +583,7 @@ function BundleCard({
 	onAddToCart: (r: DomainSearchResult) => void;
 	byDomain: Map<string, DomainSearchResult>;
 	kenicCoKe: KenicCardItem | null;
+	kenicKe: KenicCardItem | null;
 	getPricingInfo: (domain: string, original: number, currency: string) => { finalPrice: number; marginAmount: number; marginType: string | null; marginValue: string | null; currency: string };
 }) {
 	const bundleLabelParts = React.useMemo(() => {
@@ -625,6 +605,18 @@ function BundleCard({
 						calculated: { originalPrice: kenicCoKe.createPrice ?? 0, marginAmount: createCalc.marginAmount, finalPrice: createCalc.finalPrice, currency: createCalc.currency, marginType: createCalc.marginType, marginValue: createCalc.marginValue },
 					},
 				});
+			} else if (item.tld === "ke" && kenicKe) {
+				const currency = kenicKe.currency ?? "KES";
+				const createCalc = getPricingInfo(kenicKe.domain, kenicKe.createPrice ?? 0, currency);
+				onAddToCart({
+					domain: kenicKe.domain,
+					status: "free",
+					price: {
+						product: { price: createCalc.finalPrice, currency },
+						reseller: { price: createCalc.finalPrice, currency },
+						calculated: { originalPrice: kenicKe.createPrice ?? 0, marginAmount: createCalc.marginAmount, finalPrice: createCalc.finalPrice, currency: createCalc.currency, marginType: createCalc.marginType, marginValue: createCalc.marginValue },
+					},
+				});
 			} else {
 				const r = byDomain.get(item.domain);
 				if (r) onAddToCart(r);
@@ -633,14 +625,14 @@ function BundleCard({
 	};
 	const anyInCart = bundleInfo.items.some((i) => isDomainInCart(i.domain));
 	return (
-		<div key="bundle" className="bg-card border border-border rounded-lg p-3 hover:shadow-md transition-shadow flex flex-col relative">
+		<div key="bundle" className="bg-card border border-border rounded-lg p-4 md:p-5 hover:shadow-md transition-shadow flex flex-col relative min-h-[200px]">
 			<Badge className="absolute top-2 right-2 text-[10px] bg-primary text-primary-foreground">Bundle & save</Badge>
 			<div className="flex items-center justify-between gap-2 mb-2">
 				<div className="flex items-center justify-center rounded-lg bg-muted p-2 size-10">
 					<Image src="/nisciconoriginal.png" alt="Bundle" width={24} height={24} className="object-contain" />
 				</div>
 			</div>
-			<div className="font-bold text-sm mb-1 min-h-[2.5rem] line-clamp-2 break-words" title={bundleLabelParts.length ? `${searchName}.${bundleLabelParts[0]}${bundleLabelParts.slice(1).map((t) => ` + .${t}`).join("")}` : ""}>
+			<div className="font-bold text-base mb-1 min-h-[2.5rem] line-clamp-2 break-words" title={bundleLabelParts.length ? `${searchName}.${bundleLabelParts[0]}${bundleLabelParts.slice(1).map((t) => ` + .${t}`).join("")}` : ""}>
 				{bundleLabelParts.length > 0 ? (
 					<>
 						<span className="text-foreground">{searchName}</span>
@@ -654,13 +646,13 @@ function BundleCard({
 					</>
 				) : null}
 			</div>
-			<div className="text-sm font-bold text-foreground mb-2">
-				{bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "…"} total
+			<div className="text-base font-bold text-foreground mb-2 line-clamp-2 break-words">
+				{bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "…"}
 			</div>
 			{TLD_WHY_CHOOSE.bundle ? (
 				<div>
 					<div className="border-t border-border my-2" />
-					<ul className="space-y-1.5 mb-3 text-[11px] text-muted-foreground">
+					<ul className="space-y-1.5 mb-3 text-xs text-muted-foreground">
 						{TLD_WHY_CHOOSE.bundle.map((line, i) => (
 							<li key={i} className="flex gap-1.5 items-start">
 								<Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />

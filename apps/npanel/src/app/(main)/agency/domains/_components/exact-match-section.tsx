@@ -14,6 +14,7 @@ import { trpc } from "@/utils/trpc";
 import { useCurrency } from "./currency-context";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
+import { Check } from "lucide-react";
 
 const formatPrice = (price?: number, currency?: string) => {
 	if (price == null || price === undefined) return "N/A";
@@ -26,6 +27,12 @@ const formatPrice = (price?: number, currency?: string) => {
 	const symbol = symbols[currency ?? "USD"] ?? currency ?? "$";
 	return `${symbol} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price)}`;
 };
+
+/** Marketing copy for the exact match card: two short bullets (same layout as .com / bundle cards). */
+const EXACT_MATCH_WHY_CHOOSE: [string, string] = [
+	"This is your exact domain search, secure it before someone else does.",
+	"One address, one identity. Lock in your brand with this extension you n.",
+];
 
 interface PricedFees {
 	createFinal: number;
@@ -186,7 +193,7 @@ export function ExactMatchSection({
 
 	if (isLoading && !kenicCard && !openProviderResult) {
 		return (
-			<div className="bg-card border border-border rounded-lg p-3">
+			<div className="bg-card border border-border rounded-lg p-4 md:p-5 min-h-[200px]">
 				<div className="flex justify-between items-center mb-2">
 					<Skeleton className="h-14 w-14 rounded-lg" />
 					<Skeleton className="h-5 w-16" />
@@ -218,7 +225,7 @@ export function ExactMatchSection({
 
 		return (
 			<>
-				<div className="bg-card border border-border rounded-lg p-3 hover:shadow-md transition-shadow flex flex-col relative">
+				<div className="bg-card border border-border rounded-lg p-4 md:p-5 hover:shadow-md transition-shadow flex flex-col relative min-h-[200px]">
 					<div className="flex items-center justify-between gap-2 mb-2">
 						<TldLogo tld={kenicCard.tld} variant="kenyan" />
 						<Badge
@@ -231,24 +238,36 @@ export function ExactMatchSection({
 							{kenicCard.available ? "Available" : "Taken"}
 						</Badge>
 					</div>
-					<div className="font-bold text-sm text-primary mb-1 truncate" title={kenicCard.domain}>
+					<div className="font-bold text-base text-primary mb-1 truncate" title={kenicCard.domain}>
 						{kenicCard.domain}
 					</div>
 					{kenicCard.available && (
 						<div className="space-y-0.5 mb-2">
-							<div className="text-[10px] text-muted-foreground">
-								Original: {formatPrice(kenicCard.createPrice, currency)}
-							</div>
-							<div className="text-sm font-bold text-foreground">{formatPrice(createFinal, currency)}</div>
-							{marginLabel != null && (
-								<div className="text-[10px] text-muted-foreground text-green-600 dark:text-green-400">
-									{marginLabel}
-								</div>
+							{kenicCard.createPrice != null && (
+								<div className="text-xs text-muted-foreground">Original: {formatPrice(kenicCard.createPrice, currency)}</div>
 							)}
+							{marginLabel != null && marginLabel !== "" && (
+								<div className="text-xs text-green-600 dark:text-green-400">{marginLabel}</div>
+							)}
+							<div className="text-base font-bold text-foreground">{formatPrice(createFinal, currency)}</div>
 						</div>
 					)}
-					{kenicCard.reason != null && kenicCard.reason !== "" && (
-						<div className="text-[11px] text-muted-foreground mb-3 line-clamp-2">{kenicCard.reason}</div>
+					{kenicCard.available ? (
+						<div>
+							<div className="border-t border-border my-2" />
+							<ul className="space-y-1.5 mb-3 text-xs text-muted-foreground">
+								{EXACT_MATCH_WHY_CHOOSE.map((line, i) => (
+									<li key={i} className="flex gap-1.5 items-start">
+										<Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
+										<span className="line-clamp-2">{line}</span>
+									</li>
+								))}
+							</ul>
+						</div>
+					) : (
+						kenicCard.reason != null && kenicCard.reason !== "" && (
+							<div className="text-xs text-muted-foreground mb-3 line-clamp-2">{kenicCard.reason}</div>
+						)
 					)}
 					<div className="mt-auto flex items-center justify-center gap-2">
 						{kenicCard.available ? (
@@ -286,21 +305,38 @@ export function ExactMatchSection({
 
 	if (!isKenicPath && openProviderResult) {
 		const r = openProviderResult;
-		const calculated = r.price?.calculated;
-		const reseller = r.price?.reseller;
-		const originalPrice = reseller?.price;
-		const originalCurrency = reseller?.currency;
+		const calculated = r.price?.calculated as {
+			originalPrice?: number;
+			convertedOriginalPrice?: number;
+			marginAmount?: number;
+			finalPrice: number;
+			currency: string;
+			marginType?: string | null;
+			marginValue?: string | null;
+			convertedPrice?: number;
+			displayCurrency?: string;
+		} | undefined;
 		const displayPrice = calculated
-			? ((calculated as { convertedPrice?: number; finalPrice: number }).convertedPrice ?? calculated.finalPrice)
-			: originalPrice;
-		const displayCurrency = calculated
-			? ((calculated as { displayCurrency?: string }).displayCurrency ?? calculated.currency)
-			: originalCurrency;
+			? (calculated.convertedPrice ?? calculated.finalPrice)
+			: r.price?.reseller?.price;
+		const displayCurrency = calculated?.displayCurrency ?? calculated?.currency ?? r.price?.reseller?.currency ?? "USD";
+		// Original: show in display currency (converted) when available, so the card matches .com / other cards
+		const originalPrice = calculated?.convertedOriginalPrice ?? calculated?.originalPrice ?? r.price?.reseller?.price;
+		const originalCurrency = calculated?.convertedOriginalPrice != null ? displayCurrency : (calculated?.currency ?? r.price?.reseller?.currency ?? "USD");
+		// Margin in display currency for the label
+		const marginAmountOriginal = calculated?.marginAmount ?? 0;
+		const marginInDisplayCurrency =
+			calculated?.convertedPrice != null &&
+			calculated?.finalPrice != null &&
+			calculated.finalPrice > 0 &&
+			marginAmountOriginal > 0
+				? marginAmountOriginal * (calculated.convertedPrice / calculated.finalPrice)
+				: marginAmountOriginal;
 		const marginLabel =
-			calculated?.marginType && calculated.marginAmount > 0
+			calculated?.marginType && (marginAmountOriginal > 0 || (calculated.marginValue != null && calculated.marginValue !== ""))
 				? calculated.marginType === "PERCENTAGE"
-					? `+${calculated.marginValue}% (+${formatPrice(calculated.marginAmount, calculated.currency)})`
-					: `+${formatPrice(parseFloat(String(calculated.marginValue ?? 0)), calculated.currency)}`
+					? `+${calculated.marginValue}% (+${formatPrice(marginInDisplayCurrency, displayCurrency)})`
+					: `+${formatPrice(marginInDisplayCurrency, displayCurrency)}`
 				: null;
 		const isAvailable = r.status === "free";
 		const isInCart = isDomainInCart(r.domain);
@@ -308,7 +344,7 @@ export function ExactMatchSection({
 
 		return (
 			<>
-				<div className="bg-card border border-border rounded-lg p-3 hover:shadow-md transition-shadow flex flex-col relative">
+				<div className="bg-card border border-border rounded-lg p-4 md:p-5 hover:shadow-md transition-shadow flex flex-col relative min-h-[200px]">
 					<div className="flex items-center justify-between gap-2 mb-2">
 						<TldLogo tld={tld} variant="openprovider" />
 						<Badge
@@ -321,24 +357,36 @@ export function ExactMatchSection({
 							{isAvailable ? "Available" : "Taken"}
 						</Badge>
 					</div>
-					<div className="font-bold text-sm text-primary mb-1 truncate" title={r.domain}>
+					<div className="font-bold text-base text-primary mb-1 truncate" title={r.domain}>
 						{r.domain}
 					</div>
 					{isAvailable && r.price && (
 						<div className="space-y-0.5 mb-2">
-							<div className="text-[10px] text-muted-foreground">
-								Original: {formatPrice(originalPrice, originalCurrency)}
-							</div>
-							<div className="text-sm font-bold text-foreground">{formatPrice(displayPrice, displayCurrency)}</div>
-							{marginLabel != null && (
-								<div className="text-[10px] text-muted-foreground text-green-600 dark:text-green-400">
-									{marginLabel}
-								</div>
+							{originalPrice != null && (
+								<div className="text-xs text-muted-foreground">Original: {formatPrice(originalPrice, originalCurrency)}</div>
 							)}
+							{marginLabel != null && marginLabel !== "" && (
+								<div className="text-xs text-green-600 dark:text-green-400">{marginLabel}</div>
+							)}
+							<div className="text-base font-bold text-foreground">{formatPrice(displayPrice, displayCurrency)}</div>
 						</div>
 					)}
-					{r.reason != null && r.reason !== "" && (
-						<div className="text-[11px] text-muted-foreground mb-3 line-clamp-2">{r.reason}</div>
+					{isAvailable ? (
+						<div>
+							<div className="border-t border-border my-2" />
+							<ul className="space-y-1.5 mb-3 text-xs text-muted-foreground">
+								{EXACT_MATCH_WHY_CHOOSE.map((line, i) => (
+									<li key={i} className="flex gap-1.5 items-start">
+										<Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
+										<span className="line-clamp-2">{line}</span>
+									</li>
+								))}
+							</ul>
+						</div>
+					) : (
+						r.reason != null && r.reason !== "" && (
+							<div className="text-xs text-muted-foreground mb-3 line-clamp-2">{r.reason}</div>
+						)
 					)}
 					<div className="mt-auto flex items-center justify-center gap-2">
 						{isAvailable ? (

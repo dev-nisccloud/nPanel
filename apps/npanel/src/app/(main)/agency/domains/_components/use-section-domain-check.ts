@@ -102,6 +102,14 @@ export function useSectionDomainCheck(
 	const calculatePricesBatchRef = React.useRef(pricingHook?.calculatePricesBatch);
 	calculatePricesBatchRef.current = pricingHook?.calculatePricesBatch;
 
+	const isMountedRef = React.useRef(true);
+	React.useEffect(() => {
+		isMountedRef.current = true;
+		return () => {
+			isMountedRef.current = false;
+		};
+	}, []);
+
 	// Start pricing batch as soon as query data arrives (before paint)
 	React.useLayoutEffect(() => {
 		if (!query.data?.success || !query.data.data?.results) {
@@ -135,13 +143,13 @@ export function useSectionDomainCheck(
 		}
 		batch(rawResults)
 			.then((processed) => {
-				if (!cancelled) setProcessedResults(processed);
+				if (!cancelled && isMountedRef.current) setProcessedResults(processed);
 			})
 			.catch(() => {
-				if (!cancelled) setProcessedResults(rawResults);
+				if (!cancelled && isMountedRef.current) setProcessedResults(rawResults);
 			})
 			.finally(() => {
-				if (!cancelled) setIsProcessing(false);
+				if (!cancelled && isMountedRef.current) setIsProcessing(false);
 			});
 		return () => {
 			cancelled = true;
