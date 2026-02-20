@@ -273,11 +273,11 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "Visual Creatives",
+        title: "Creatives & Design",
         url: "/agency/creative-assets",
         icon: (props: any) => React.createElement(Icons.CreativeAssets, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Visual Creatives", url: "/agency/creative-assets", },
+          { title: "Creatives & Design", url: "/agency/creative-assets", },
           { title: "Creative Briefs", url: "/agency/creative-briefs", },
         ],
       },
@@ -314,10 +314,15 @@ export const agencysidebarItems: NavGroup[] = [
     label: "Management",
     items: [
       {
-        title: "Service Plans",
-        url: "/agency/service-plans",
+        title: "Nisc Services",
+        url: "/agency/nisc-services",
         icon: (props: any) => React.createElement(Icons.Plans, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
+      // {
+      //   title: "Service Plans",
+      //   url: "/agency/service-plans",
+      //   icon: (props: any) => React.createElement(Icons.Plans, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
       {
         title: "Clients",
         url: "/agency/clients",

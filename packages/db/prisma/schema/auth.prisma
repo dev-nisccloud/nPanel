@@ -263,6 +263,7 @@ model Order {
   activityLogs               OrderActivityLog[]
   serviceSubscriptions       ServiceSubscription[] // Service subscriptions created by this order
   ServiceSubscriptionRenewal ServiceSubscriptionRenewal[]
+  NiscClientSubscription     NiscClientSubscription[]
 
   @@index([orderNumber])
   @@index([teamId])
@@ -584,6 +585,8 @@ model Team {
   emailCampaigns               EmailCampaign[]
   EmailBuilderDesign           EmailBuilderDesign[]
   aiChats                      AiChat[]
+  NiscClientSubscription       NiscClientSubscription[]
+  NiscCommissionEntry          NiscCommissionEntry[]
 
   @@index([slug])
   @@index([createdById])

@@ -1,0 +1,900 @@
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { protectedProcedure, router } from "../trpc";
+import prisma, { Prisma } from "@nPanel/db";
+
+// ============================================================================
+// ZOD SCHEMAS — independent from the database schema layer
+// ============================================================================
+
+// --- Enum schemas ------------------------------------------------------------
+
+const subscriptionStatusSchema = z.enum([
+    "ACTIVE",
+    "PENDING",
+    "SUSPENDED",
+    "CANCELLED",
+    "EXPIRED",
+    "PROCESSING",
+    "FAILED",
+]);
+
+const pricingModelSchema = z.enum(["FIXED", "COMMISSION"]);
+
+const billingCycleSchema = z.enum([
+    "YEARLY",
+    "MONTHLY",
+    "BIENNIALLY",
+    "CUSTOM",
+]);
+
+const hostingTypeSchema = z.enum([
+    "WEB_HOSTING",
+    "EMAIL_HOSTING",
+    "RESELLER_HOSTING",
+    "VPS_HOSTING",
+    "DEDICATED_HOSTING",
+]);
+
+const renewalTypeSchema = z.enum(["FIXED_BILLING", "DOMAIN", "HOSTING"]);
+
+const commissionEntryStatusSchema = z.enum([
+    "DRAFT",
+    "INVOICED",
+    "PAID",
+    "WAIVED",
+]);
+
+// --- serviceRefs schema ------------------------------------------------------
+// A free-form map of string → string | string[] for cross-table references.
+// Examples: { socialMediaPageTokenId: "x" } | { creativeBriefIds: ["a","b"] }
+const serviceRefsSchema = z
+    .record(z.union([z.string(), z.array(z.string())]))
+    .optional();
+
+// --- Create subscription schema ----------------------------------------------
+
+const createSubscriptionInputSchema = z
+    .object({
+        // Ownership
+        userId: z.string().optional(),
+        teamId: z.string().optional(),
+
+        // Product / plan
+        productId: z.string(),
+        productPlanId: z.string().optional(),
+        orderId: z.string().optional(),
+        subscribedBy: z.string().optional(),
+        recordedBy: z.string().optional(),
+
+        // Lifecycle
+        status: subscriptionStatusSchema.default("PENDING"),
+        subscriptionDate: z.coerce.date().optional(),
+        billingCycle: billingCycleSchema.optional(),
+        nextRenewalDate: z.coerce.date().optional(),
+        expiryDate: z.coerce.date().optional(),
+        autoRenew: z.boolean().default(false),
+
+        // Pricing snapshot
+        pricingModel: pricingModelSchema,
+        agreedPrice: z.string().optional(),
+        agreedCurrency: z.string().default("KES"),
+        agreedCommissionRate: z.number().positive().optional(),
+        agreedCommissionBase: z.string().optional(),
+
+        // Hosting / Plesk typed fields
+        primaryDomain: z.string().optional(),
+        pleskFilterId: z.string().optional(),
+        pleskOwnerId: z.string().optional(),
+        pleskFtpLogin: z.string().optional(),
+        pleskFtpPassword: z.string().optional(),
+        hostingType: hostingTypeSchema.optional(),
+
+        // Domain / OpenProvider typed fields
+        openProviderId: z.number().int().optional(),
+        domainAuthCode: z.string().optional(),
+        nameserverGroupId: z.string().optional(),
+
+        // WordPress
+        wpInstallationId: z.number().int().optional(),
+
+        // Flexible cross-table references (JSONB)
+        serviceRefs: serviceRefsSchema,
+
+        // Backward compat
+        hostingSubscriptionId: z.string().optional(),
+
+        notes: z.string().optional(),
+        metadata: z.record(z.unknown()).optional(),
+    })
+    .superRefine((data, ctx) => {
+        if (data.pricingModel === "FIXED" && !data.billingCycle) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "billingCycle is required for FIXED pricing subscriptions",
+                path: ["billingCycle"],
+            });
+        }
+        if (data.pricingModel === "COMMISSION" && data.agreedCommissionRate === undefined) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "agreedCommissionRate is required for COMMISSION pricing subscriptions",
+                path: ["agreedCommissionRate"],
+            });
+        }
+        if (data.pricingModel === "COMMISSION" && !data.agreedCommissionBase) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "agreedCommissionBase is required for COMMISSION pricing subscriptions",
+                path: ["agreedCommissionBase"],
+            });
+        }
+    });
+
+const updateSubscriptionInputSchema = z.object({
+    id: z.string(),
+    status: subscriptionStatusSchema.optional(),
+    subscriptionDate: z.coerce.date().optional(),
+    billingCycle: billingCycleSchema.optional(),
+    nextRenewalDate: z.coerce.date().optional(),
+    expiryDate: z.coerce.date().optional(),
+    autoRenew: z.boolean().optional(),
+    agreedPrice: z.string().optional(),
+    agreedCurrency: z.string().optional(),
+    agreedCommissionRate: z.number().positive().optional(),
+    agreedCommissionBase: z.string().optional(),
+    primaryDomain: z.string().optional(),
+    pleskFilterId: z.string().optional(),
+    pleskOwnerId: z.string().optional(),
+    pleskFtpLogin: z.string().optional(),
+    pleskFtpPassword: z.string().optional(),
+    hostingType: hostingTypeSchema.optional(),
+    openProviderId: z.number().int().optional(),
+    domainAuthCode: z.string().optional(),
+    nameserverGroupId: z.string().optional(),
+    wpInstallationId: z.number().int().optional(),
+    serviceRefs: serviceRefsSchema,
+    notes: z.string().optional(),
+    metadata: z.record(z.unknown()).optional(),
+});
+
+const cancelSubscriptionInputSchema = z.object({
+    id: z.string(),
+    reason: z.string().optional(),
+});
+
+// --- List schema -------------------------------------------------------------
+
+const getSubscriptionsInputSchema = z.object({
+    userId: z.string().optional(),
+    teamId: z.string().optional(),
+    productId: z.string().optional(),
+    productPlanId: z.string().optional(),
+    pricingModel: pricingModelSchema.optional(),
+    status: subscriptionStatusSchema.optional(),
+    // Date range filter on subscriptionDate
+    fromDate: z.coerce.date().optional(),
+    toDate: z.coerce.date().optional(),
+    limit: z.number().int().min(1).max(200).default(50),
+    offset: z.number().int().min(0).default(0),
+});
+
+const getSubscriptionByIdInputSchema = z.object({
+    id: z.string(),
+    includeRenewals: z.boolean().default(false),
+    includeCommissions: z.boolean().default(false),
+});
+
+// --- Renewal schema ----------------------------------------------------------
+
+const renewSubscriptionInputSchema = z.object({
+    subscriptionId: z.string(),
+    renewalType: renewalTypeSchema,
+    renewedBy: z.string().optional(),
+    renewalDate: z.coerce.date(),
+    newExpiryDate: z.coerce.date().optional(),
+    newNextRenewalDate: z.coerce.date().optional(),
+    billingCycle: billingCycleSchema.optional(),
+    status: subscriptionStatusSchema.default("ACTIVE"),
+    renewalPrice: z.string().optional(),
+    renewalCurrency: z.string().default("KES"),
+    externalRenewalId: z.string().optional(),
+    orderId: z.string().optional(),
+    invoiceId: z.string().optional(),
+    notes: z.string().optional(),
+});
+
+// --- Commission entry schemas ------------------------------------------------
+
+const recordCommissionInputSchema = z.object({
+    subscriptionId: z.string(),
+    period: z
+        .string()
+        .regex(/^\d{4}-\d{2}$/, "period must be in YYYY-MM format"),
+    baseAmount: z.number().positive(),
+    baseAmountDescription: z.string().optional(),
+    currency: z.string().default("KES"),
+    notes: z.string().optional(),
+});
+
+const getCommissionEntriesInputSchema = z.object({
+    subscriptionId: z.string().optional(),
+    teamId: z.string().optional(),
+    status: commissionEntryStatusSchema.optional(),
+    periodFrom: z
+        .string()
+        .regex(/^\d{4}-\d{2}$/)
+        .optional(),
+    periodTo: z
+        .string()
+        .regex(/^\d{4}-\d{2}$/)
+        .optional(),
+});
+
+const updateCommissionEntryInputSchema = z.object({
+    id: z.string(),
+    status: commissionEntryStatusSchema,
+    invoiceId: z.string().optional(),
+    notes: z.string().optional(),
+});
+
+// --- Output schemas ----------------------------------------------------------
+
+const subscriptionOutputSchema = z.object({
+    id: z.string(),
+    userId: z.string().nullable(),
+    teamId: z.string().nullable(),
+    productId: z.string(),
+    productPlanId: z.string().nullable(),
+    orderId: z.string().nullable(),
+    subscribedBy: z.string().nullable(),
+    recordedBy: z.string().nullable(),
+    status: subscriptionStatusSchema,
+    subscriptionDate: z.date().nullable(),
+    billingCycle: billingCycleSchema.nullable(),
+    nextRenewalDate: z.date().nullable(),
+    expiryDate: z.date().nullable(),
+    autoRenew: z.boolean(),
+    pricingModel: pricingModelSchema,
+    agreedPrice: z.string().nullable(),
+    agreedCurrency: z.string().nullable(),
+    agreedCommissionRate: z.unknown().nullable(),
+    agreedCommissionBase: z.string().nullable(),
+    primaryDomain: z.string().nullable(),
+    pleskFilterId: z.string().nullable(),
+    pleskOwnerId: z.string().nullable(),
+    pleskFtpLogin: z.string().nullable(),
+    hostingType: hostingTypeSchema.nullable(),
+    openProviderId: z.number().nullable(),
+    domainAuthCode: z.string().nullable(),
+    nameserverGroupId: z.string().nullable(),
+    wpInstallationId: z.number().nullable(),
+    serviceRefs: z.unknown().nullable(),
+    hostingSubscriptionId: z.string().nullable(),
+    notes: z.string().nullable(),
+    metadata: z.unknown().nullable(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+});
+
+const commissionEntryOutputSchema = z.object({
+    id: z.string(),
+    subscriptionId: z.string(),
+    productPlanId: z.string(),
+    teamId: z.string().nullable(),
+    period: z.string(),
+    baseAmount: z.unknown(),
+    baseAmountDescription: z.string().nullable(),
+    commissionRate: z.unknown(),
+    commissionAmount: z.unknown(),
+    currency: z.string(),
+    status: commissionEntryStatusSchema,
+    invoiceId: z.string().nullable(),
+    notes: z.string().nullable(),
+    createdBy: z.string(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+});
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function mapSubscription(sub: any): z.infer<typeof subscriptionOutputSchema> {
+    return {
+        id: sub.id,
+        userId: sub.userId ?? null,
+        teamId: sub.teamId ?? null,
+        productId: sub.productId,
+        productPlanId: sub.productPlanId ?? null,
+        orderId: sub.orderId ?? null,
+        subscribedBy: sub.subscribedBy ?? null,
+        recordedBy: sub.recordedBy ?? null,
+        status: sub.status,
+        subscriptionDate: sub.subscriptionDate ?? null,
+        billingCycle: sub.billingCycle ?? null,
+        nextRenewalDate: sub.nextRenewalDate ?? null,
+        expiryDate: sub.expiryDate ?? null,
+        autoRenew: sub.autoRenew,
+        pricingModel: sub.pricingModel,
+        agreedPrice: sub.agreedPrice ?? null,
+        agreedCurrency: sub.agreedCurrency ?? "KES",
+        agreedCommissionRate: sub.agreedCommissionRate ?? null,
+        agreedCommissionBase: sub.agreedCommissionBase ?? null,
+        primaryDomain: sub.primaryDomain ?? null,
+        pleskFilterId: sub.pleskFilterId ?? null,
+        pleskOwnerId: sub.pleskOwnerId ?? null,
+        pleskFtpLogin: sub.pleskFtpLogin ?? null,
+        hostingType: sub.hostingType ?? null,
+        openProviderId: sub.openProviderId ?? null,
+        domainAuthCode: sub.domainAuthCode ?? null,
+        nameserverGroupId: sub.nameserverGroupId ?? null,
+        wpInstallationId: sub.wpInstallationId ?? null,
+        serviceRefs: sub.serviceRefs ?? null,
+        hostingSubscriptionId: sub.hostingSubscriptionId ?? null,
+        notes: sub.notes ?? null,
+        metadata: sub.metadata ?? null,
+        createdAt: sub.createdAt,
+        updatedAt: sub.updatedAt,
+    };
+}
+
+function mapCommissionEntry(entry: any): z.infer<typeof commissionEntryOutputSchema> {
+    return {
+        id: entry.id,
+        subscriptionId: entry.subscriptionId,
+        productPlanId: entry.productPlanId,
+        teamId: entry.teamId ?? null,
+        period: entry.period,
+        baseAmount: entry.baseAmount,
+        baseAmountDescription: entry.baseAmountDescription ?? null,
+        commissionRate: entry.commissionRate,
+        commissionAmount: entry.commissionAmount,
+        currency: entry.currency,
+        status: entry.status,
+        invoiceId: entry.invoiceId ?? null,
+        notes: entry.notes ?? null,
+        createdBy: entry.createdBy,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+    };
+}
+
+// ============================================================================
+// ROUTER
+// ============================================================================
+
+export const clientSubscriptionsRouter = router({
+    // ── Subscriptions ─────────────────────────────────────────────────────────
+
+    /** List subscriptions with optional filters */
+    getAll: protectedProcedure
+        .input(getSubscriptionsInputSchema.optional())
+        .output(z.array(subscriptionOutputSchema))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const where: Record<string, unknown> = {};
+            if (input?.userId !== undefined) where.userId = input.userId;
+            if (input?.teamId !== undefined) where.teamId = input.teamId;
+            if (input?.productId !== undefined) where.productId = input.productId;
+            if (input?.productPlanId !== undefined) where.productPlanId = input.productPlanId;
+            if (input?.pricingModel !== undefined) where.pricingModel = input.pricingModel;
+            if (input?.status !== undefined) where.status = input.status;
+
+            if (input?.fromDate || input?.toDate) {
+                where.subscriptionDate = {
+                    ...(input.fromDate && { gte: input.fromDate }),
+                    ...(input.toDate && { lte: input.toDate }),
+                };
+            }
+
+            const subs = await prisma.niscClientSubscription.findMany({
+                where,
+                orderBy: { createdAt: "desc" },
+                take: input?.limit ?? 50,
+                skip: input?.offset ?? 0,
+            });
+
+            return subs.map(mapSubscription);
+        }),
+
+    /** Get a single subscription by ID */
+    getById: protectedProcedure
+        .input(getSubscriptionByIdInputSchema)
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const sub = await prisma.niscClientSubscription.findUnique({
+                where: { id: input.id },
+                include: {
+                    product: true,
+                    productPlan: true,
+                    ...(input.includeRenewals && {
+                        renewals: { orderBy: { renewalDate: "desc" } },
+                    }),
+                    ...(input.includeCommissions && {
+                        commissionEntries: { orderBy: { period: "desc" } },
+                    }),
+                },
+            });
+
+            if (!sub) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Subscription not found",
+                });
+            }
+
+            return {
+                ...mapSubscription(sub),
+                product: sub.product,
+                productPlan: sub.productPlan ?? null,
+                ...((sub as any).renewals && { renewals: (sub as any).renewals }),
+                ...((sub as any).commissionEntries && {
+                    commissionEntries: (sub as any).commissionEntries.map(mapCommissionEntry),
+                }),
+            };
+        }),
+
+    /** Create a new subscription */
+    create: protectedProcedure
+        .input(createSubscriptionInputSchema)
+        .output(subscriptionOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to create subscriptions",
+                });
+            }
+
+            // Verify product exists
+            const product = await prisma.niscProduct.findUnique({
+                where: { id: input.productId },
+                include: { plans: { where: { id: input.productPlanId ?? "" } } },
+            });
+            if (!product) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
+            }
+
+            // If a plan is specified, verify it belongs to the product
+            if (input.productPlanId) {
+                const plan = await prisma.niscProductPlan.findFirst({
+                    where: { id: input.productPlanId, productId: input.productId },
+                });
+                if (!plan) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "Plan not found or does not belong to the specified product",
+                    });
+                }
+            }
+
+            const sub = await prisma.niscClientSubscription.create({
+                data: {
+                    userId: input.userId ?? null,
+                    teamId: input.teamId ?? null,
+                    productId: input.productId,
+                    productPlanId: input.productPlanId ?? null,
+                    orderId: input.orderId ?? null,
+                    subscribedBy: input.subscribedBy ?? null,
+                    recordedBy: input.recordedBy ?? session.user.id,
+                    status: input.status as any,
+                    subscriptionDate: input.subscriptionDate ?? null,
+                    billingCycle: input.billingCycle ? (input.billingCycle as any) : null,
+                    nextRenewalDate: input.nextRenewalDate ?? null,
+                    expiryDate: input.expiryDate ?? null,
+                    autoRenew: input.autoRenew,
+                    pricingModel: input.pricingModel as any,
+                    agreedPrice: input.agreedPrice ?? null,
+                    agreedCurrency: input.agreedCurrency,
+                    agreedCommissionRate: input.agreedCommissionRate ?? null,
+                    agreedCommissionBase: input.agreedCommissionBase ?? null,
+                    primaryDomain: input.primaryDomain ?? null,
+                    pleskFilterId: input.pleskFilterId ?? null,
+                    pleskOwnerId: input.pleskOwnerId ?? null,
+                    pleskFtpLogin: input.pleskFtpLogin ?? null,
+                    pleskFtpPassword: input.pleskFtpPassword ?? null,
+                    hostingType: input.hostingType ? (input.hostingType as any) : null,
+                    openProviderId: input.openProviderId ?? null,
+                    domainAuthCode: input.domainAuthCode ?? null,
+                    nameserverGroupId: input.nameserverGroupId ?? null,
+                    wpInstallationId: input.wpInstallationId ?? null,
+                    serviceRefs:
+                        input.serviceRefs != null
+                            ? (input.serviceRefs as Prisma.InputJsonValue)
+                            : Prisma.JsonNull,
+                    hostingSubscriptionId: input.hostingSubscriptionId ?? null,
+                    notes: input.notes ?? null,
+                    metadata:
+                        input.metadata != null
+                            ? (input.metadata as Prisma.InputJsonValue)
+                            : Prisma.JsonNull,
+                },
+            });
+
+            // Activity log
+            await prisma.niscClientSubscriptionActivityLog.create({
+                data: {
+                    subscriptionId: sub.id,
+                    userId: session.user.id,
+                    action: "CREATE",
+                    description: `Created ${sub.pricingModel} subscription for product ${input.productId}`,
+                    metadata: {
+                        productId: input.productId,
+                        productPlanId: input.productPlanId ?? null,
+                        pricingModel: input.pricingModel,
+                        status: input.status,
+                    },
+                },
+            });
+
+            return mapSubscription(sub);
+        }),
+
+    /** Update a subscription */
+    update: protectedProcedure
+        .input(updateSubscriptionInputSchema)
+        .output(subscriptionOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to update subscriptions",
+                });
+            }
+
+            const existing = await prisma.niscClientSubscription.findUnique({
+                where: { id: input.id },
+            });
+            if (!existing) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+
+            const { id, ...rest } = input;
+            const updated = await prisma.niscClientSubscription.update({
+                where: { id },
+                data: {
+                    ...(rest.status !== undefined && { status: rest.status as any }),
+                    ...(rest.subscriptionDate !== undefined && { subscriptionDate: rest.subscriptionDate }),
+                    ...(rest.billingCycle !== undefined && { billingCycle: rest.billingCycle as any }),
+                    ...(rest.nextRenewalDate !== undefined && { nextRenewalDate: rest.nextRenewalDate }),
+                    ...(rest.expiryDate !== undefined && { expiryDate: rest.expiryDate }),
+                    ...(rest.autoRenew !== undefined && { autoRenew: rest.autoRenew }),
+                    ...(rest.agreedPrice !== undefined && { agreedPrice: rest.agreedPrice ?? null }),
+                    ...(rest.agreedCurrency !== undefined && { agreedCurrency: rest.agreedCurrency }),
+                    ...(rest.agreedCommissionRate !== undefined && {
+                        agreedCommissionRate: rest.agreedCommissionRate ?? null,
+                    }),
+                    ...(rest.agreedCommissionBase !== undefined && {
+                        agreedCommissionBase: rest.agreedCommissionBase ?? null,
+                    }),
+                    ...(rest.primaryDomain !== undefined && { primaryDomain: rest.primaryDomain ?? null }),
+                    ...(rest.pleskFilterId !== undefined && { pleskFilterId: rest.pleskFilterId ?? null }),
+                    ...(rest.pleskOwnerId !== undefined && { pleskOwnerId: rest.pleskOwnerId ?? null }),
+                    ...(rest.pleskFtpLogin !== undefined && { pleskFtpLogin: rest.pleskFtpLogin ?? null }),
+                    ...(rest.pleskFtpPassword !== undefined && {
+                        pleskFtpPassword: rest.pleskFtpPassword ?? null,
+                    }),
+                    ...(rest.hostingType !== undefined && {
+                        hostingType: rest.hostingType ? (rest.hostingType as any) : null,
+                    }),
+                    ...(rest.openProviderId !== undefined && { openProviderId: rest.openProviderId ?? null }),
+                    ...(rest.domainAuthCode !== undefined && { domainAuthCode: rest.domainAuthCode ?? null }),
+                    ...(rest.nameserverGroupId !== undefined && {
+                        nameserverGroupId: rest.nameserverGroupId ?? null,
+                    }),
+                    ...(rest.wpInstallationId !== undefined && {
+                        wpInstallationId: rest.wpInstallationId ?? null,
+                    }),
+                    ...(rest.serviceRefs !== undefined && {
+                        serviceRefs:
+                            rest.serviceRefs != null
+                                ? (rest.serviceRefs as Prisma.InputJsonValue)
+                                : Prisma.JsonNull,
+                    }),
+                    ...(rest.notes !== undefined && { notes: rest.notes ?? null }),
+                    ...(rest.metadata !== undefined && {
+                        metadata:
+                            rest.metadata != null
+                                ? (rest.metadata as Prisma.InputJsonValue)
+                                : Prisma.JsonNull,
+                    }),
+                },
+            });
+
+            // Activity log
+            await prisma.niscClientSubscriptionActivityLog.create({
+                data: {
+                    subscriptionId: id,
+                    userId: session.user.id,
+                    action: "UPDATE",
+                    description: `Updated subscription`,
+                    metadata: { previousStatus: existing.status, newStatus: rest.status ?? existing.status },
+                },
+            });
+
+            return mapSubscription(updated);
+        }),
+
+    /** Cancel a subscription */
+    cancel: protectedProcedure
+        .input(cancelSubscriptionInputSchema)
+        .output(subscriptionOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to cancel subscriptions",
+                });
+            }
+
+            const existing = await prisma.niscClientSubscription.findUnique({
+                where: { id: input.id },
+            });
+            if (!existing) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+            if (existing.status === "CANCELLED") {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Subscription is already cancelled",
+                });
+            }
+
+            const updated = await prisma.niscClientSubscription.update({
+                where: { id: input.id },
+                data: { status: "CANCELLED" },
+            });
+
+            await prisma.niscClientSubscriptionActivityLog.create({
+                data: {
+                    subscriptionId: input.id,
+                    userId: session.user.id,
+                    action: "CANCEL",
+                    description: input.reason
+                        ? `Cancelled subscription: ${input.reason}`
+                        : "Cancelled subscription",
+                    metadata: { previousStatus: existing.status, reason: input.reason ?? null },
+                },
+            });
+
+            return mapSubscription(updated);
+        }),
+
+    /** Record a renewal for a subscription */
+    renew: protectedProcedure
+        .input(renewSubscriptionInputSchema)
+        .output(
+            z.object({
+                renewalId: z.string(),
+                subscription: subscriptionOutputSchema,
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to renew subscriptions",
+                });
+            }
+
+            const existing = await prisma.niscClientSubscription.findUnique({
+                where: { id: input.subscriptionId },
+            });
+            if (!existing) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+
+            // Create the renewal record + update subscription dates in a transaction
+            const [renewal, updatedSub] = await prisma.$transaction([
+                prisma.niscClientSubscriptionRenewal.create({
+                    data: {
+                        subscriptionId: input.subscriptionId,
+                        renewalType: input.renewalType as any,
+                        renewedBy: input.renewedBy ?? session.user.id,
+                        renewalDate: input.renewalDate,
+                        newExpiryDate: input.newExpiryDate ?? null,
+                        newNextRenewalDate: input.newNextRenewalDate ?? null,
+                        billingCycle: input.billingCycle ? (input.billingCycle as any) : null,
+                        status: input.status as any,
+                        renewalPrice: input.renewalPrice ?? null,
+                        renewalCurrency: input.renewalCurrency,
+                        externalRenewalId: input.externalRenewalId ?? null,
+                        orderId: input.orderId ?? null,
+                        invoiceId: input.invoiceId ?? null,
+                        notes: input.notes ?? null,
+                    },
+                }),
+                prisma.niscClientSubscription.update({
+                    where: { id: input.subscriptionId },
+                    data: {
+                        ...(input.newNextRenewalDate && { nextRenewalDate: input.newNextRenewalDate }),
+                        ...(input.newExpiryDate && { expiryDate: input.newExpiryDate }),
+                        status: "ACTIVE",
+                    },
+                }),
+            ]);
+
+            await prisma.niscClientSubscriptionActivityLog.create({
+                data: {
+                    subscriptionId: input.subscriptionId,
+                    userId: session.user.id,
+                    action: "RENEW",
+                    description: `Renewed subscription (${input.renewalType})`,
+                    metadata: {
+                        renewalId: renewal.id,
+                        renewalType: input.renewalType,
+                        renewalDate: input.renewalDate,
+                        newExpiryDate: input.newExpiryDate ?? null,
+                    },
+                },
+            });
+
+            return {
+                renewalId: renewal.id,
+                subscription: mapSubscription(updatedSub),
+            };
+        }),
+
+    // ── Commission Entries ────────────────────────────────────────────────────
+
+    /** Record a new commission entry for a COMMISSION subscription */
+    recordCommission: protectedProcedure
+        .input(recordCommissionInputSchema)
+        .output(commissionEntryOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to record commission entries",
+                });
+            }
+
+            const sub = await prisma.niscClientSubscription.findUnique({
+                where: { id: input.subscriptionId },
+            });
+            if (!sub) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+            if (sub.pricingModel !== "COMMISSION") {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Commission entries can only be recorded for COMMISSION pricing subscriptions",
+                });
+            }
+            if (!sub.productPlanId) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Subscription must have a product plan to record commission entries",
+                });
+            }
+            if (!sub.agreedCommissionRate) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Subscription does not have an agreed commission rate",
+                });
+            }
+
+            // Compute commission: baseAmount × rate / 100
+            const rate = Number(sub.agreedCommissionRate);
+            const commissionAmount = (input.baseAmount * rate) / 100;
+
+            const entry = await prisma.niscCommissionEntry.create({
+                data: {
+                    subscriptionId: input.subscriptionId,
+                    productPlanId: sub.productPlanId,
+                    teamId: sub.teamId ?? null,
+                    period: input.period,
+                    baseAmount: input.baseAmount,
+                    baseAmountDescription: input.baseAmountDescription ?? null,
+                    commissionRate: rate,
+                    commissionAmount,
+                    currency: input.currency,
+                    status: "DRAFT",
+                    notes: input.notes ?? null,
+                    createdBy: session.user.id,
+                },
+            });
+
+            return mapCommissionEntry(entry);
+        }),
+
+    /** List commission entries with optional filters */
+    getCommissionEntries: protectedProcedure
+        .input(getCommissionEntriesInputSchema.optional())
+        .output(z.array(commissionEntryOutputSchema))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view commission entries",
+                });
+            }
+
+            const where: Record<string, unknown> = {};
+            if (input?.subscriptionId !== undefined) where.subscriptionId = input.subscriptionId;
+            if (input?.teamId !== undefined) where.teamId = input.teamId;
+            if (input?.status !== undefined) where.status = input.status;
+
+            if (input?.periodFrom || input?.periodTo) {
+                where.period = {
+                    ...(input.periodFrom && { gte: input.periodFrom }),
+                    ...(input.periodTo && { lte: input.periodTo }),
+                };
+            }
+
+            const entries = await prisma.niscCommissionEntry.findMany({
+                where,
+                orderBy: { period: "desc" },
+            });
+
+            return entries.map(mapCommissionEntry);
+        }),
+
+    /** Update a commission entry status (DRAFT → INVOICED → PAID / WAIVED) */
+    updateCommissionEntry: protectedProcedure
+        .input(updateCommissionEntryInputSchema)
+        .output(commissionEntryOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to update commission entries",
+                });
+            }
+
+            const existing = await prisma.niscCommissionEntry.findUnique({
+                where: { id: input.id },
+            });
+            if (!existing) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Commission entry not found" });
+            }
+
+            // Validate status transition
+            const validTransitions: Record<string, string[]> = {
+                DRAFT: ["INVOICED", "WAIVED"],
+                INVOICED: ["PAID", "WAIVED"],
+                PAID: [],
+                WAIVED: [],
+            };
+            const allowed = validTransitions[existing.status] ?? [];
+            if (!allowed.includes(input.status)) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: `Cannot transition commission entry from ${existing.status} to ${input.status}`,
+                });
+            }
+
+            const updated = await prisma.niscCommissionEntry.update({
+                where: { id: input.id },
+                data: {
+                    status: input.status as any,
+                    ...(input.invoiceId !== undefined && { invoiceId: input.invoiceId ?? null }),
+                    ...(input.notes !== undefined && { notes: input.notes ?? null }),
+                },
+            });
+
+            return mapCommissionEntry(updated);
+        }),
+});

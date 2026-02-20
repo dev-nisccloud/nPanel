@@ -1,0 +1,381 @@
+// ============================================================================
+// Products & Client Subscriptions Schema
+// New models that work alongside the existing live service_subscription,
+// nisc_service_plan, and hosting_subscription tables (which are untouched).
+// ============================================================================
+
+// --- Enums -------------------------------------------------------------------
+
+enum NiscProductCategory {
+  CLOUD // Domains, Hosting, WordPress
+  MARKETING // SEO, Social Media, Media Buying, Email Marketing, Creatives
+  CONSULTING // Strategy, consulting, custom deliverables
+  CUSTOM // Client-defined on-request services
+}
+
+enum NiscPricingModel {
+  FIXED // Set price per billing cycle
+  COMMISSION // % of a variable base amount (e.g. ad spend)
+}
+
+enum NiscClientSubscriptionStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+  PROCESSING
+  FAILED
+}
+
+enum NiscCommissionEntryStatus {
+  DRAFT // Recorded but not yet invoiced
+  INVOICED // Included in an invoice
+  PAID // Invoice paid
+  WAIVED // Commission waived (written off)
+}
+
+enum NiscRenewalType {
+  FIXED_BILLING // Standard recurring billing renewal
+  DOMAIN // Domain renewal (OpenProvider)
+  HOSTING // Hosting renewal (Plesk)
+}
+
+// --- NiscProduct -------------------------------------------------------------
+// Product/service catalogue entry. Defines the master feature list shared
+// across all its plans. A product belongs to a category and has a serviceType
+// (free-text) so new service types can be added without schema migrations.
+
+model NiscProduct {
+  id          String              @id @default(cuid())
+  name        String // e.g. "Web Hosting", "Media Buying", "SEO"
+  description String?
+  category    NiscProductCategory
+  serviceType String // "web_hosting" | "domain_registration" | "media_buying" | "seo" | etc.
+  isActive    Boolean             @default(true)
+  sortOrder   Int                 @default(0)
+
+  // Master feature list for this product.
+  // Shape: [{ key: String, label: String, description?: String }]
+  // Plans reference these keys in their planFeatures array.
+  features Json[] @default([])
+
+  // Marketing badge labels at the product level
+  highlights String[] @default([])
+
+  metadata Json?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  plans         NiscProductPlan[]
+  subscriptions NiscClientSubscription[]
+
+  @@index([category])
+  @@index([serviceType])
+  @@index([isActive])
+  @@map("nisc_product")
+}
+
+// --- NiscProductPlan ---------------------------------------------------------
+// A pricing tier within a product. Supports two pricing models:
+//   FIXED      — set price per billing cycle
+//   COMMISSION — percentage of a variable base amount (e.g. ad spend)
+//
+// Feature availability is declared per plan via planFeatures.
+// Any feature key NOT present in planFeatures defaults to available=false
+// (enforced at the application layer during plan creation).
+
+model NiscProductPlan {
+  id           String           @id @default(cuid())
+  productId    String
+  name         String // e.g. "Starter", "Pro", "Enterprise"
+  description  String?
+  pricingModel NiscPricingModel
+
+  // FIXED pricing fields (null when pricingModel = COMMISSION)
+  billingCycle BillingCycle? // reuses existing BillingCycle enum
+  price        String? // selling price
+  currency     String?       @default("KES")
+  setupFee     String? // one-time setup fee
+
+  // COMMISSION pricing fields (null when pricingModel = FIXED)
+  commissionRate            Decimal? @db.Decimal(10, 4) // e.g. 11.0000 = 11%
+  commissionBase            String? // key: "ad_spend" | "gross_revenue" | "project_cost" | etc.
+  commissionBaseDescription String? // human label: "Total monthly ad spend"
+
+  // Per-plan feature availability.
+  // Shape: [{ key: String, available: Boolean, valueOverride?: String }]
+  //   key           — matches a key in NiscProduct.features[]
+  //   available     — true/false for this plan
+  //   valueOverride — optional display override, e.g. "50GB" instead of "Storage"
+  // Application ensures every product feature key appears here (defaulting to false).
+  planFeatures Json[] @default([])
+
+  // Plan-specific marketing badges (supplement product-level highlights)
+  highlights    String[] @default([])
+  isPopular     Boolean  @default(false)
+  isRecommended Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  isDefault     Boolean  @default(false)
+  sortOrder     Int      @default(0)
+
+  // Plesk / Hosting integration (CLOUD hosting plans only)
+  pleskServicePlanId String?
+  pleskFilterId      String?
+  pleskIpAddress     String?
+  hostingType        HostingType? // reuses existing HostingType enum
+
+  metadata Json?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  product           NiscProduct              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  subscriptions     NiscClientSubscription[]
+  commissionEntries NiscCommissionEntry[]
+
+  @@index([productId])
+  @@index([pricingModel])
+  @@index([isActive])
+  @@index([isDefault])
+  @@map("nisc_product_plan")
+}
+
+// --- NiscClientSubscription --------------------------------------------------
+// Universal subscription record. One table handles ALL service types:
+// domains, hosting, media buying, SEO, email marketing, social media, etc.
+//
+// Key design decisions:
+// • userId and teamId are both optional — a subscription can belong to an
+//   individual, a team, or both.
+// • Common service fields have typed columns (indexed, queryable).
+// • serviceRefs is a JSONB bag for cross-table reference IDs to other models
+//   (SocialMediaPageToken, GoogleAdsAccount, MetaAdsAccount, etc.) without FKs.
+// • pricingModel + agreed* fields snapshot the pricing at subscription time.
+
+model NiscClientSubscription {
+  id String @id @default(cuid())
+
+  // Ownership — both optional
+  userId String? // individual client contact
+  teamId String? // company / team
+
+  productId     String
+  productPlanId String? // null for custom / one-off engagements
+  orderId       String? // Order that created this subscription (if any)
+  subscribedBy  String? // User ID of agency staff who enrolled the client
+  recordedBy    String? // User ID of admin who manually created this record
+
+  // Lifecycle
+  status           NiscClientSubscriptionStatus @default(PENDING)
+  subscriptionDate DateTime?
+  billingCycle     BillingCycle? // null for pure COMMISSION subscriptions
+  nextRenewalDate  DateTime?
+  expiryDate       DateTime?
+  autoRenew        Boolean                      @default(false)
+
+  // Pricing snapshot (captured at time of subscription)
+  pricingModel         NiscPricingModel
+  agreedPrice          String? // FIXED: the price agreed with the client
+  agreedCurrency       String?          @default("KES")
+  agreedCommissionRate Decimal?         @db.Decimal(10, 4) // COMMISSION: e.g. 11.0000
+  agreedCommissionBase String? // COMMISSION: e.g. "ad_spend"
+
+  // ── Typed service-specific fields (most common lookups) ──────────────────
+  // These are proper columns so they can be indexed and queried efficiently.
+
+  // Hosting / Plesk
+  primaryDomain    String? // primary domain name
+  pleskFilterId    String? // Plesk subscription filter ID
+  pleskOwnerId     String?
+  pleskFtpLogin    String?
+  pleskFtpPassword String? // stored encrypted at application layer
+  hostingType      HostingType? // WEB_HOSTING | EMAIL_HOSTING | etc.
+
+  // Domain (OpenProvider)
+  openProviderId    Int? // OpenProvider domain ID
+  domainAuthCode    String? // for domain transfers
+  nameserverGroupId String? // reference to NameserverGroup (no FK constraint)
+
+  // WordPress
+  wpInstallationId Int? // WP Toolkit installation ID
+
+  // ── serviceRefs: flexible JSONB cross-table reference bag ─────────────────
+  // Stores IDs pointing to related records in other tables.
+  // No FK constraints — application resolves references as needed.
+  //
+  // Examples:
+  //   { "socialMediaPageTokenId": "xxx" }
+  //   { "socialMediaIntegrationId": "xxx" }
+  //   { "metaAdsAccountId": "xxx" }
+  //   { "googleAdsAccountId": "xxx" }
+  //   { "emailDomainId": "xxx" }
+  //   { "metaAdsAccountId": "aaa", "googleAdsAccountId": "bbb" }  (multi-platform)
+  //   { "creativeBriefIds": ["a", "b"] }
+  serviceRefs Json?
+
+  // Backward compat: link to old HostingSubscription when migrating
+  hostingSubscriptionId String? @unique
+
+  notes    String?
+  metadata Json?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  product     NiscProduct      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productPlan NiscProductPlan? @relation(fields: [productPlanId], references: [id], onDelete: SetNull)
+  team        Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  order       Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  renewals          NiscClientSubscriptionRenewal[]
+  commissionEntries NiscCommissionEntry[]
+  activityLogs      NiscClientSubscriptionActivityLog[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([productId])
+  @@index([productPlanId])
+  @@index([status])
+  @@index([pricingModel])
+  @@index([pleskFilterId])
+  @@index([openProviderId])
+  @@index([primaryDomain])
+  @@index([nextRenewalDate])
+  @@index([expiryDate])
+  @@index([subscriptionDate])
+  @@map("nisc_client_subscription")
+}
+
+// --- NiscClientSubscriptionRenewal -------------------------------------------
+// Unified renewal history for all service types.
+// renewalType distinguishes domain, hosting, and standard billing renewals.
+
+model NiscClientSubscriptionRenewal {
+  id             String          @id @default(cuid())
+  subscriptionId String
+  renewalType    NiscRenewalType
+
+  renewedBy          String? // User ID
+  renewalDate        DateTime // when renewal was processed
+  newExpiryDate      DateTime? // new expiry date after renewal
+  newNextRenewalDate DateTime? // next renewal date going forward
+  billingCycle       BillingCycle?
+
+  status NiscClientSubscriptionStatus @default(ACTIVE)
+
+  // Pricing for this renewal period
+  renewalPrice    String?
+  renewalCurrency String? @default("KES")
+
+  // Platform-specific renewal reference
+  externalRenewalId String? // OpenProvider renewal ID, Plesk job ID, etc.
+
+  orderId   String?
+  invoiceId String?
+  notes     String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  subscription NiscClientSubscription                     @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  activityLogs NiscClientSubscriptionRenewalActivityLog[]
+
+  @@index([subscriptionId])
+  @@index([renewalType])
+  @@index([renewalDate])
+  @@index([newExpiryDate])
+  @@index([status])
+  @@map("nisc_client_subscription_renewal")
+}
+
+// --- NiscCommissionEntry -----------------------------------------------------
+// Records one commission calculation event per billing period per subscription.
+// Only applicable when pricingModel = COMMISSION.
+
+model NiscCommissionEntry {
+  id             String  @id @default(cuid())
+  subscriptionId String
+  productPlanId  String
+  teamId         String?
+
+  period                String // "YYYY-MM" e.g. "2026-01"
+  baseAmount            Decimal @db.Decimal(20, 4) // variable amount (e.g. ad spend)
+  baseAmountDescription String? // "Meta + Google Ads spend, Jan 2026"
+  commissionRate        Decimal @db.Decimal(10, 4) // snapshot of rate at entry time
+  commissionAmount      Decimal @db.Decimal(20, 4) // = baseAmount × commissionRate / 100
+  currency              String  @default("KES")
+
+  status    NiscCommissionEntryStatus @default(DRAFT)
+  invoiceId String? // set when status → INVOICED
+  notes     String?
+  createdBy String // User ID of agency staff who recorded this
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  subscription NiscClientSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  productPlan  NiscProductPlan        @relation(fields: [productPlanId], references: [id], onDelete: Restrict)
+  team         Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@unique([subscriptionId, period])
+  @@index([subscriptionId])
+  @@index([productPlanId])
+  @@index([teamId])
+  @@index([status])
+  @@index([period])
+  @@map("nisc_commission_entry")
+}
+
+// --- Activity Logs -----------------------------------------------------------
+
+model NiscClientSubscriptionActivityLog {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  userId         String
+  action         String // "CREATE" | "UPDATE" | "CANCEL" | "SUSPEND" | "ACTIVATE" | "RENEW"
+  description    String?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  subscription NiscClientSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("nisc_client_subscription_activity_log")
+}
+
+model NiscClientSubscriptionRenewalActivityLog {
+  id          String   @id @default(cuid())
+  renewalId   String
+  userId      String
+  action      String // "RENEW" | "CANCEL" | "UPDATE" | "REFUND"
+  description String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  renewal NiscClientSubscriptionRenewal @relation(fields: [renewalId], references: [id], onDelete: Cascade)
+
+  @@index([renewalId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("nisc_client_subscription_renewal_activity_log")
+}

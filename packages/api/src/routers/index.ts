@@ -82,6 +82,8 @@ import { emailBuilderRouter } from "./email-builder";
 import { aiRouter } from "./ai";
 import { etimsRouter } from "./etims";
 import { reportsRouter } from "./reports";
+import { productsRouter } from "./products";
+import { clientSubscriptionsRouter } from "./client-subscriptions";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -230,5 +232,9 @@ export const appRouter = router({
 	etims: etimsRouter,
 	// Reports & Analytics
 	reports: reportsRouter,
+	// Product Catalogue Management
+	products: productsRouter,
+	// Client Subscriptions Management (universal)
+	clientSubscriptions: clientSubscriptionsRouter,
 });
 export type AppRouter = typeof appRouter;
