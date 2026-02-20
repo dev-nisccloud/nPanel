@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/utils/trpc";
 import { format, subDays } from "date-fns";
 import { type DateRange } from "react-day-picker";
@@ -30,6 +31,7 @@ import {
     Zap,
     CheckCircle2,
     AlertCircle,
+    Info,
 } from "lucide-react";
 import type { SeoSite } from "./schemas";
 import {
@@ -328,6 +330,16 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                         </div>
                                         <CardDescription className="text-[10px]">Daily clicks vs impressions for the selected period</CardDescription>
                                     </div>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Performance trend info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Daily clicks and impressions from Google Search. You’ll see how often your site appeared in search results and how many users clicked through.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0">
                                     <PerformanceTrendChart data={report.timeSeries} />
@@ -336,12 +348,24 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
 
                             {/* Device Breakdown */}
                             <Card className="shadow-none border-muted/60 overflow-hidden">
-                                <CardHeader className="py-4 px-6 border-b border-muted/60">
-                                    <div className="flex items-center gap-2">
-                                        <Smartphone className="h-4 w-4 text-primary" />
-                                        <CardTitle className="text-sm font-bold tracking-tight">Device Traffic</CardTitle>
+                                <CardHeader className="py-4 px-6 border-b border-muted/60 flex flex-row items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <Smartphone className="h-4 w-4 text-primary" />
+                                            <CardTitle className="text-sm font-bold tracking-tight">Device Traffic</CardTitle>
+                                        </div>
+                                        <CardDescription className="text-[10px]">Distribution of traffic by device type</CardDescription>
                                     </div>
-                                    <CardDescription className="text-[10px]">Distribution of traffic by device type</CardDescription>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Device traffic info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Traffic split by device: desktop, mobile, and tablet. Use this to see which devices drive the most visits.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <DeviceBreakdown devices={topDevices} />
@@ -359,7 +383,19 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             <Search className="h-4 w-4 text-primary" />
                                             <CardTitle className="text-sm font-bold tracking-tight">Top Search Queries</CardTitle>
                                         </div>
-                                        <Badge variant="outline" className="text-[10px] uppercase font-bold opacity-60">High Traffic</Badge>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="text-[10px] uppercase font-bold opacity-60">High Traffic</Badge>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Top search queries info">
+                                                        <Info className="h-4 w-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                                    <p>The search terms people used to find your site. Shows which keywords bring traffic and their average position.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </div>
                                     </CardHeader>
                                     <CardContent className="p-0">
                                         <ScrollArea className="h-[320px] xl:h-[380px] w-full rounded-b-lg">
@@ -399,7 +435,19 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             <FileText className="h-4 w-4 text-primary" />
                                             <CardTitle className="text-sm font-bold tracking-tight">Top Landing Pages</CardTitle>
                                         </div>
-                                        <Badge variant="outline" className="text-[10px] opacity-60">Clicks</Badge>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="text-[10px] opacity-60">Clicks</Badge>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Top landing pages info">
+                                                        <Info className="h-4 w-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                                    <p>Pages that got the most clicks from search. These are your top-performing URLs in Search Console.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </div>
                                     </CardHeader>
                                     <CardContent className="p-0 font-medium">
                                         <ScrollArea className="h-[320px] xl:h-[380px] w-full rounded-b-lg">
@@ -430,13 +478,25 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                         {/* Low Hanging Fruit + CTR Booster: same format as Trending Up/Down */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <Card className="shadow-none border-muted/60 overflow-hidden bg-primary/[0.01]">
-                                <CardHeader className="py-4 px-6 border-b border-muted/60 bg-primary/[0.02]">
-                                    <div className="flex items-center gap-2">
-                                        <Sparkles className="h-4 w-4 text-primary" />
-                                        <CardTitle className="text-sm font-bold tracking-tight">"Low Hanging Fruit"</CardTitle>
-                                        <Badge variant="outline" className="text-[9px] border-none bg-blue-50 text-blue-600">Page 2</Badge>
+                                <CardHeader className="py-4 px-6 border-b border-muted/60 bg-primary/[0.02] flex flex-row items-start justify-between gap-2">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <Sparkles className="h-4 w-4 text-primary" />
+                                            <CardTitle className="text-sm font-bold tracking-tight">"Low Hanging Fruit"</CardTitle>
+                                            <Badge variant="outline" className="text-[9px] border-none bg-blue-50 text-blue-600">Page 2</Badge>
+                                        </div>
+                                        <CardDescription className="text-[9px]">Push these positions (11-20) to Page 1 for quick wins.</CardDescription>
                                     </div>
-                                    <CardDescription className="text-[9px]">Push these positions (11-20) to Page 1 for quick wins.</CardDescription>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Low hanging fruit info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Keywords on page 2 (positions 11–20). Small improvements can move them to page 1 and increase traffic.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <Table>
@@ -459,12 +519,24 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                             </Card>
 
                             <Card className="shadow-none border-muted/60 overflow-hidden bg-amber-500/[0.01]">
-                                <CardHeader className="py-4 px-6 border-b border-muted/60 bg-amber-500/[0.02]">
-                                    <div className="flex items-center gap-2">
-                                        <Zap className="h-4 w-4 text-amber-500" />
-                                        <CardTitle className="text-sm font-bold tracking-tight">CTR Boosting Targets</CardTitle>
+                                <CardHeader className="py-4 px-6 border-b border-muted/60 bg-amber-500/[0.02] flex flex-row items-start justify-between gap-2">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <Zap className="h-4 w-4 text-amber-500" />
+                                            <CardTitle className="text-sm font-bold tracking-tight">CTR Boosting Targets</CardTitle>
+                                        </div>
+                                        <CardDescription className="text-[9px]">Keywords with high impressions but low CTR.</CardDescription>
                                     </div>
-                                    <CardDescription className="text-[9px]">Keywords with high impressions but low CTR.</CardDescription>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="CTR boosting targets info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Keywords with many impressions but low click-through rate. Improving titles and descriptions can boost clicks.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <Table>
@@ -491,12 +563,24 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Trending Up Pages */}
                             <Card className="shadow-none border-muted/60 overflow-hidden bg-emerald-500/[0.01]">
-                                <CardHeader className="py-4 px-6 border-b border-muted/60 bg-emerald-500/[0.02]">
-                                    <div className="flex items-center gap-2">
-                                        <TrendingUp className="h-4 w-4 text-emerald-500" />
-                                        <CardTitle className="text-sm font-bold tracking-tight">Trending Up</CardTitle>
+                                <CardHeader className="py-4 px-6 border-b border-muted/60 bg-emerald-500/[0.02] flex flex-row items-start justify-between gap-2">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                            <CardTitle className="text-sm font-bold tracking-tight">Trending Up</CardTitle>
+                                        </div>
+                                        <CardDescription className="text-[9px]">Pages gaining the most clicks vs previous period.</CardDescription>
                                     </div>
-                                    <CardDescription className="text-[9px]">Pages gaining the most clicks vs previous period.</CardDescription>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Trending up info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Pages that gained the most clicks compared to the previous period. Your content that’s rising in performance.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <Table>
@@ -523,12 +607,24 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
 
                             {/* Trending Down Pages */}
                             <Card className="shadow-none border-muted/60 overflow-hidden bg-rose-500/[0.01]">
-                                <CardHeader className="py-4 px-6 border-b border-muted/60 bg-rose-500/[0.02]">
-                                    <div className="flex items-center gap-2">
-                                        <TrendingDown className="h-4 w-4 text-rose-500" />
-                                        <CardTitle className="text-sm font-bold tracking-tight">Trending Down</CardTitle>
+                                <CardHeader className="py-4 px-6 border-b border-muted/60 bg-rose-500/[0.02] flex flex-row items-start justify-between gap-2">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <TrendingDown className="h-4 w-4 text-rose-500" />
+                                            <CardTitle className="text-sm font-bold tracking-tight">Trending Down</CardTitle>
+                                        </div>
+                                        <CardDescription className="text-[9px]">Pages losing the most clicks vs previous period.</CardDescription>
                                     </div>
-                                    <CardDescription className="text-[9px]">Pages losing the most clicks vs previous period.</CardDescription>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Trending down info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Pages that lost the most clicks compared to the previous period. Content that may need updates or optimization.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <Table>
@@ -560,7 +656,16 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                             <Card className="shadow-none border-muted/60 overflow-hidden">
                                 <CardHeader className="py-3 px-6 border-b border-muted/60 flex flex-row items-center justify-between">
                                     <CardTitle className="text-xs font-bold tracking-tight uppercase opacity-60">Top Countries</CardTitle>
-                                    <Globe className="h-3.5 w-3.5 text-muted-foreground/30" />
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Top countries info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Where your search traffic comes from by country. Helps with localization and regional strategy.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <ScrollArea className="h-[200px] scrollbar-default">
@@ -583,7 +688,16 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                             <Card className="shadow-none border-muted/60 overflow-hidden border-dashed">
                                 <CardHeader className="py-3 px-6 border-b border-muted/60 flex flex-row items-center justify-between">
                                     <CardTitle className="text-xs font-bold tracking-tight uppercase opacity-60">Search Appearance</CardTitle>
-                                    <Sparkles className="h-3.5 w-3.5 text-muted-foreground/30" />
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Search appearance info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>How your results appear in Google (e.g. web, images). Shows the mix of result types getting traffic.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <Table>
@@ -603,7 +717,16 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                             <Card className="shadow-none border-muted/60 overflow-hidden">
                                 <CardHeader className="py-3 px-6 border-b border-muted/60 flex flex-row items-center justify-between">
                                     <CardTitle className="text-xs font-bold tracking-tight uppercase opacity-60">Sitemap Health</CardTitle>
-                                    <FileText className="h-3.5 w-3.5 text-muted-foreground/30" />
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Sitemap health info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Status of your sitemaps. Errors or warnings can affect how Google crawls and indexes your site.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-4 space-y-3">
                                     {sitemaps.slice(0, 3).map((s: any, i: number) => (

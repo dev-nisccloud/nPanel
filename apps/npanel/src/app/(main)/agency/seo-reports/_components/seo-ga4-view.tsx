@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/utils/trpc";
 import { format, subDays } from "date-fns";
 import { type DateRange } from "react-day-picker";
@@ -28,6 +29,7 @@ import {
     Calendar as CalendarIcon,
     Zap,
     BarChart3,
+    Info,
 } from "lucide-react";
 import {
     Table,
@@ -327,6 +329,16 @@ export function SeoGa4View() {
                                         </div>
                                         <CardDescription className="text-[10px]">Daily sessions and users</CardDescription>
                                     </div>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Traffic trend info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Daily organic sessions and users from Google. Shows how many people visited and how that changes over time.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0">
                                     <Ga4PerformanceChart data={report.timeSeries} />
@@ -335,12 +347,24 @@ export function SeoGa4View() {
 
                             {/* Device Breakdown */}
                             <Card className="shadow-none border-muted/60 overflow-hidden">
-                                <CardHeader className="py-4 px-6 border-b border-muted/60">
-                                    <div className="flex items-center gap-2">
-                                        <Laptop className="h-4 w-4 text-primary" />
-                                        <CardTitle className="text-sm font-bold tracking-tight">Device Traffic</CardTitle>
+                                <CardHeader className="py-4 px-6 border-b border-muted/60 flex flex-row items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <Laptop className="h-4 w-4 text-primary" />
+                                            <CardTitle className="text-sm font-bold tracking-tight">Device Traffic</CardTitle>
+                                        </div>
+                                        <CardDescription className="text-[10px]">Organic traffic by device type</CardDescription>
                                     </div>
-                                    <CardDescription className="text-[10px]">Organic traffic by device type</CardDescription>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Device traffic info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Organic traffic split by device: desktop, mobile, and tablet. Use this to see which devices drive the most sessions.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <DeviceBreakdown devices={report.topDevices} />
@@ -350,11 +374,23 @@ export function SeoGa4View() {
                             {/* Top Countries */}
                             <Card className="shadow-none border-muted/60 overflow-hidden">
                                 <CardHeader className="py-3 px-6 border-b border-muted/60 flex flex-row items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Globe className="h-4 w-4 text-primary" />
-                                        <CardTitle className="text-sm font-bold tracking-tight">Top Countries</CardTitle>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <Globe className="h-4 w-4 text-primary" />
+                                            <CardTitle className="text-sm font-bold tracking-tight">Top Countries</CardTitle>
+                                        </div>
+                                        <CardDescription className="text-[10px] opacity-60">By organic search</CardDescription>
                                     </div>
-                                    <CardDescription className="text-[10px] opacity-60">By organic search</CardDescription>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Top countries info">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                            <p>Countries sending the most organic traffic. Geographic breakdown of your GA4 audience.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <ScrollArea className="h-[280px] scrollbar-default">
@@ -383,7 +419,19 @@ export function SeoGa4View() {
                                         <ArrowUpRight className="h-4 w-4 text-emerald-600" />
                                         <CardTitle className="text-sm font-bold tracking-tight">Highly Engaged Pages</CardTitle>
                                     </div>
-                                    <Badge variant="outline" className="text-[9px] bg-emerald-100 text-emerald-700 border-emerald-200 uppercase tracking-tighter">High Impact</Badge>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-[9px] bg-emerald-100 text-emerald-700 border-emerald-200 uppercase tracking-tighter">High Impact</Badge>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Highly engaged pages info">
+                                                    <Info className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                                <p>Pages with above-average engagement or conversions. Surfaces content that keeps users engaged.</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
                                 </CardHeader>
                                 <CardContent className="p-4">
                                     <ul className="space-y-3">
@@ -410,7 +458,19 @@ export function SeoGa4View() {
                                         <AlertCircle className="h-4 w-4 text-rose-600" />
                                         <CardTitle className="text-sm font-bold tracking-tight">Bounce Rate Alerts</CardTitle>
                                     </div>
-                                    <Badge variant="outline" className="text-[9px] bg-rose-100 text-rose-700 border-rose-200 uppercase tracking-tighter">Needs Focus</Badge>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-[9px] bg-rose-100 text-rose-700 border-rose-200 uppercase tracking-tighter">Needs Focus</Badge>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Bounce rate alerts info">
+                                                    <Info className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                                <p>Pages with high bounce rates from organic search. Good candidates to improve relevance or load speed.</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
                                 </CardHeader>
                                 <CardContent className="p-4">
                                     <ul className="space-y-3">
@@ -438,6 +498,16 @@ export function SeoGa4View() {
                                     <FileText className="h-4 w-4 text-primary" />
                                     <CardTitle className="text-sm font-bold tracking-tight">Top Performance Pages</CardTitle>
                                 </div>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Top performance pages info">
+                                            <Info className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="left" className="max-w-[240px] text-balance">
+                                        <p>Pages with the most sessions, engagement, and conversions from organic search. Your best-performing content in GA4.</p>
+                                    </TooltipContent>
+                                </Tooltip>
                             </CardHeader>
                             <CardContent className="p-0 font-medium">
                                 <Table>
