@@ -10,9 +10,11 @@ import { APP_CONFIG } from "@/config/app-config";
 import { getPreference } from "@/server/server-actions";
 import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
 import { THEME_MODE_VALUES, THEME_PRESET_VALUES, type ThemePreset, type ThemeMode } from "@/types/preferences/theme";
-import { GOOGLE_FONTS_URL } from "./(main)/agency/email-marketing/email-builder/_components/email-builder/helpers/fontFamily";
 
 import "./globals.css";
+
+const DEFAULT_THEME_MODE: ThemeMode = "light";
+const DEFAULT_THEME_PRESET: ThemePreset = "twitter";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -55,10 +57,23 @@ export const viewport = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const [themeMode, themePreset] = await Promise.all([
-    getPreference<ThemeMode>("theme_mode", THEME_MODE_VALUES, "light"),
-    getPreference<ThemePreset>("theme_preset", THEME_PRESET_VALUES, "twitter"),
-  ]);
+  let themeMode: ThemeMode = DEFAULT_THEME_MODE;
+  let themePreset: ThemePreset = DEFAULT_THEME_PRESET;
+  try {
+    const [mode, preset] = await Promise.all([
+      getPreference<ThemeMode>("theme_mode", THEME_MODE_VALUES, DEFAULT_THEME_MODE),
+      getPreference<ThemePreset>("theme_preset", THEME_PRESET_VALUES, DEFAULT_THEME_PRESET),
+    ]);
+    themeMode = mode;
+    themePreset = preset;
+  } catch (err) {
+    // Avoid 500 on root when cookies/headers fail (e.g. edge, first load, production proxy)
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[RootLayout] getPreference failed, using defaults");
+    } else {
+      console.warn("[RootLayout] getPreference failed, using defaults:", err);
+    }
+  }
 
   return (
     <html
@@ -67,9 +82,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       data-theme-preset={themePreset}
       suppressHydrationWarning
     >
-      <head>
-        {/* <link rel="stylesheet" href={GOOGLE_FONTS_URL} /> */}
-      </head>
+      <head />
       <body className={`${inter.className} min-h-screen antialiased`}>
         <NuqsAdapter>
           <QueryProvider>

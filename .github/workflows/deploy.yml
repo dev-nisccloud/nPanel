@@ -223,6 +223,8 @@ jobs:
             NODE_ENV=production
             DATABASE_URL=${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
             HOSTNAME=0.0.0.0
+            BETTER_AUTH_URL=${{ secrets.STAGING_URL }}
+            NEXT_PUBLIC_APP_URL=${{ secrets.STAGING_URL }}
 
       - name: Health check
         run: |
