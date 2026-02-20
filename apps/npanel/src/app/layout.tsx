@@ -56,6 +56,9 @@ export const viewport = {
   ],
 };
 
+// Skip static prerender of "/" to avoid Next.js 15 clientReferenceManifest bug during "Generating static pages"
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   let themeMode: ThemeMode = DEFAULT_THEME_MODE;
   let themePreset: ThemePreset = DEFAULT_THEME_PRESET;

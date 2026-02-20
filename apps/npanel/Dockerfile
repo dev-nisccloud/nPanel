@@ -43,9 +43,11 @@ RUN PRISMA_BINARY_TARGETS='["native", "linux-musl-openssl-3.0.x", "debian-openss
     DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" \
     pnpm turbo run db:generate --filter=npanel...
 
-# Build the project
+# Build the project (same BETTER_AUTH_SECRET fallback as runner stage so build does not warn)
 ARG NEXT_PUBLIC_APP_URL
+ARG BETTER_AUTH_SECRET=6314f0d045ce9041126b81021bc5123bd51f718ec650ed8aa06f3ffe5ac45558
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 ENV NEXT_PUBLIC_PLESK_HOST="orion.nisccloud.com"
 ENV NODE_ENV=production
 ENV DOCKER_BUILD=true
