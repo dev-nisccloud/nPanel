@@ -118,6 +118,7 @@ function ChartTooltipContent({
   color,
   nameKey,
   labelKey,
+  config: configProp,
 }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
   React.ComponentProps<"div"> & {
     hideLabel?: boolean
@@ -125,8 +126,14 @@ function ChartTooltipContent({
     indicator?: "line" | "dot" | "dashed"
     nameKey?: string
     labelKey?: string
+    /** Pass when tooltip is rendered in a portal (e.g. Recharts) so useChart context is available */
+    config?: ChartConfig
   }) {
-  const { config } = useChart()
+  const context = React.useContext(ChartContext)
+  const config = configProp ?? context?.config
+  if (!config) {
+    throw new Error("useChart must be used within a <ChartContainer /> or pass config prop to ChartTooltipContent")
+  }
 
   const tooltipLabel = React.useMemo(() => {
     if (hideLabel || !payload?.length) {

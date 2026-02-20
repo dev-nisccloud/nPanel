@@ -13,10 +13,33 @@ export type SeoReportStatus = z.infer<typeof seoReportStatusSchema>;
 
 export const seoAutomatedReportInputSchema = z.object({
   siteId: z.string().min(1, "Site ID is required"),
-  propertyId: z.string().optional(),
+  ga4PropertyId: z.string().optional(),
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid start date format (YYYY-MM-DD)"),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end date format (YYYY-MM-DD)"),
 });
+
+/** GA4-only report input (no GSC site linking). */
+export const seoGa4ReportInputSchema = z.object({
+  ga4PropertyId: z.string().min(1, "GA4 property ID is required"),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid start date format (YYYY-MM-DD)"),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end date format (YYYY-MM-DD)"),
+});
+
+/** GA4 property for independent listing (no domain matching). */
+export const seoGa4PropertySchema = z.object({
+  propertyId: z.string(),
+  displayName: z.string(),
+  defaultUrl: z.string().nullable(),
+});
+export type SeoGa4Property = z.infer<typeof seoGa4PropertySchema>;
+
+export const seoManageableSiteSchema = z.object({
+  siteUrl: z.string(),
+  permissionLevel: z.string().nullable().optional(),
+  ga4PropertyId: z.string().nullable().optional(),
+  ga4DisplayName: z.string().nullable().optional(),
+});
+export type SeoManageableSite = z.infer<typeof seoManageableSiteSchema>;
 
 export const seoTimeSeriesDataSchema = z.object({
   date: z.string(),
@@ -24,6 +47,10 @@ export const seoTimeSeriesDataSchema = z.object({
   impressions: z.number().default(0),
   sessions: z.number().default(0),
   conversions: z.number().default(0),
+  engagementRate: z.number().optional(),
+  totalUsers: z.number().optional(),
+  bounceRate: z.number().optional(),
+  averageSessionDuration: z.number().optional(),
 });
 
 export const seoTopKeywordSchema = z.object({
@@ -48,7 +75,12 @@ export const seoTopPageSchema = z.object({
   impressions: z.number().default(0),
   ctr: z.number().default(0),
   position: z.number().default(0),
-  clicksChange: z.number().optional(), // Absolute change in clicks vs previous period
+  clicksChange: z.number().optional(),
+  sessions: z.number().optional(),
+  engagementRate: z.number().optional(),
+  conversions: z.number().optional(),
+  bounceRate: z.number().optional(),
+  averageSessionDuration: z.number().optional(),
 });
 
 export const seoDeviceBreakdownSchema = z.object({
@@ -94,6 +126,18 @@ export const seoAutomatedReportResponseSchema = z.object({
     averageCtrPrev: z.number(),
     averagePosition: z.number(),
     averagePositionPrev: z.number(),
+    totalSessions: z.number().optional(),
+    totalSessionsPrev: z.number().optional(),
+    totalUsers: z.number().optional(),
+    totalUsersPrev: z.number().optional(),
+    averageEngagementRate: z.number().optional(),
+    averageEngagementRatePrev: z.number().optional(),
+    totalConversions: z.number().optional(),
+    totalConversionsPrev: z.number().optional(),
+    averageBounceRate: z.number().optional(),
+    averageBounceRatePrev: z.number().optional(),
+    averageSessionDuration: z.number().optional(),
+    averageSessionDurationPrev: z.number().optional(),
   }),
   timeSeries: z.array(seoTimeSeriesDataSchema),
   topKeywords: z.array(seoTopKeywordSchema),

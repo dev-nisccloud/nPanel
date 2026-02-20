@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "@nPanel/db";
 import { protectedProcedure, router, type Context } from "../../trpc";
 import { GoogleSearchConsoleClient } from "../../lib/google-search-console-client";
+import { GoogleAnalyticsClient } from "../../lib/google-analytics-client";
 import { countries } from "@nPanel/location";
 import {
   seoReportCreateInputSchema,
@@ -13,6 +14,9 @@ import {
   seoReportSummarySchema,
   seoAutomatedReportInputSchema,
   seoAutomatedReportResponseSchema,
+  seoGa4ReportInputSchema,
+  seoGa4PropertySchema,
+  seoManageableSiteSchema,
 } from "./schemas";
 import type { SeoReportDetail } from "./schemas";
 
@@ -117,6 +121,12 @@ function getPreviousPeriod(from: string, to: string) {
   };
 }
 
+// Utility to normalize URLs for matching (strip protocol, trailing slash, www)
+function normalizeUrl(url: string | null): string {
+  if (!url) return '';
+  return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '').toLowerCase();
+}
+
 export const seoReportsRouter = router({
   getAutomatedReport: protectedProcedure
     .input(seoAutomatedReportInputSchema)
@@ -124,7 +134,30 @@ export const seoReportsRouter = router({
     .query(async ({ input }) => {
       try {
         const gsc = new GoogleSearchConsoleClient();
+        const ga4 = new GoogleAnalyticsClient();
         const prevPeriod = getPreviousPeriod(input.from, input.to);
+
+        // Fetch GSC Data
+        const gscPromise = Promise.all([
+          gsc.getSearchAnalytics(input.siteId, input.from, input.to),
+          gsc.getSearchAnalytics(input.siteId, prevPeriod.from, prevPeriod.to),
+          gsc.getTopKeywords(input.siteId, input.from, input.to, 50),
+          gsc.getTopPages(input.siteId, input.from, input.to, 100),
+          gsc.getTopPages(input.siteId, prevPeriod.from, prevPeriod.to, 100),
+          gsc.getTopCountries(input.siteId, input.from, input.to, 20),
+          gsc.getTopDevices(input.siteId, input.from, input.to),
+          gsc.getSearchAppearance(input.siteId, input.from, input.to),
+          gsc.getSitemaps(input.siteId),
+        ]);
+
+        // Fetch GA4 Data (if property ID provided) - Allow failure
+        const ga4Promise = input.ga4PropertyId ? Promise.allSettled([
+          ga4.getOrganicPerformance(input.ga4PropertyId, input.from, input.to),
+          ga4.getOrganicPerformance(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
+          ga4.getTopLandingPages(input.ga4PropertyId, input.from, input.to, 100),
+        ]) : Promise.resolve(null);
+
+        const [gscResults, ga4Results] = await Promise.all([gscPromise, ga4Promise]);
 
         const [
           currentStats,
@@ -136,20 +169,21 @@ export const seoReportsRouter = router({
           currentDevices,
           currentAppearance,
           sitemaps
-        ] = await Promise.all([
-          gsc.getSearchAnalytics(input.siteId, input.from, input.to),
-          gsc.getSearchAnalytics(input.siteId, prevPeriod.from, prevPeriod.to),
-          gsc.getTopKeywords(input.siteId, input.from, input.to, 50), // Fetch more for opportunity analysis
-          gsc.getTopPages(input.siteId, input.from, input.to, 100),
-          gsc.getTopPages(input.siteId, prevPeriod.from, prevPeriod.to, 100),
-          gsc.getTopCountries(input.siteId, input.from, input.to, 20),
-          gsc.getTopDevices(input.siteId, input.from, input.to),
-          gsc.getSearchAppearance(input.siteId, input.from, input.to),
-          gsc.getSitemaps(input.siteId),
-        ]);
+        ] = gscResults;
 
-        // Summary Statistics
-        const calculateSummary = (data: any[]) => {
+        // Process GA4 Results if successful
+        let ga4Current: any[] = [];
+        let ga4Prev: any[] = [];
+        let ga4Pages: any[] = [];
+
+        if (ga4Results) {
+          if (ga4Results[0].status === 'fulfilled') ga4Current = (ga4Results[0] as any).value?.rows || [];
+          if (ga4Results[1].status === 'fulfilled') ga4Prev = (ga4Results[1] as any).value?.rows || [];
+          if (ga4Results[2].status === 'fulfilled') ga4Pages = (ga4Results[2] as any).value?.rows || [];
+        }
+
+        // Summary Statistics (GSC)
+        const calculateGscSummary = (data: any[]) => {
           let clicks = 0;
           let impressions = 0;
           let sumCtr = 0;
@@ -168,17 +202,94 @@ export const seoReportsRouter = router({
           };
         };
 
-        const currentSummary = calculateSummary(currentStats);
-        const prevSummary = calculateSummary(prevStats);
+        const currentGscSummary = calculateGscSummary(currentStats);
+        const prevGscSummary = calculateGscSummary(prevStats);
 
-        // Time Series (Current Period)
-        const timeSeries = currentStats.map((row: any) => ({
-          date: row.keys[0],
-          clicks: row.clicks || 0,
-          impressions: row.impressions || 0,
-          sessions: 0,
-          conversions: 0,
-        })).sort((a: any, b: any) => a.date.localeCompare(b.date));
+        // Summary Statistics (GA4)
+        const calculateGa4Summary = (data: any[]) => {
+          let sessions = 0;
+          let users = 0;
+          let conversions = 0;
+          let sumEngagement = 0;
+          let sumBounce = 0;
+          let sumDuration = 0;
+          const count = data.length;
+
+          data.forEach(row => {
+            const metrics = row.metricValues || [];
+            sessions += parseInt(metrics[0]?.value || '0');
+            users += parseInt(metrics[1]?.value || '0');
+            conversions += parseInt(metrics[2]?.value || '0');
+            sumBounce += parseFloat(metrics[3]?.value || '0');
+            sumEngagement += parseFloat(metrics[4]?.value || '0');
+            sumDuration += parseFloat(metrics[5]?.value || '0');
+          });
+
+          return {
+            sessions,
+            users,
+            conversions,
+            engagementRate: count > 0 ? (sumEngagement / count) * 100 : 0,
+            bounceRate: count > 0 ? (sumBounce / count) * 100 : 0,
+            averageSessionDuration: count > 0 ? sumDuration / count : 0,
+          };
+        };
+
+        const currentGa4Summary = calculateGa4Summary(ga4Current);
+        const prevGa4Summary = calculateGa4Summary(ga4Prev);
+
+
+        // Time Series (Merged GSC + GA4)
+        const timeSeriesMap = new Map<string, any>();
+
+        // Init with GSC
+        currentStats.forEach((row: any) => {
+          const date = row.keys[0];
+          timeSeriesMap.set(date, {
+            date,
+            clicks: row.clicks || 0,
+            impressions: row.impressions || 0,
+            sessions: 0,
+            conversions: 0,
+            engagementRate: 0,
+            bounceRate: 0,
+            averageSessionDuration: 0,
+            totalUsers: 0
+          });
+        });
+
+        // Merge GA4
+        ga4Current.forEach((row: any) => {
+          const date = row.dimensionValues?.[0]?.value;
+          if (date) {
+            // GA4 date format is YYYYMMDD, need to convert to YYYY-MM-DD to match GSC
+            const formattedDate = `${date.substring(0, 4)}-${date.substring(4, 6)}-${date.substring(6, 8)}`;
+
+            const existing = timeSeriesMap.get(formattedDate) || {
+              date: formattedDate,
+              clicks: 0,
+              impressions: 0,
+              sessions: 0,
+              conversions: 0,
+              engagementRate: 0,
+              bounceRate: 0,
+              averageSessionDuration: 0,
+              totalUsers: 0
+            };
+
+            const metrics = row.metricValues || [];
+            existing.sessions = parseInt(metrics[0]?.value || '0');
+            existing.totalUsers = parseInt(metrics[1]?.value || '0');
+            existing.conversions = parseInt(metrics[2]?.value || '0');
+            existing.bounceRate = parseFloat(metrics[3]?.value || '0');
+            existing.engagementRate = parseFloat(metrics[4]?.value || '0');
+            existing.averageSessionDuration = parseFloat(metrics[5]?.value || '0');
+
+            timeSeriesMap.set(formattedDate, existing);
+          }
+        });
+
+        const timeSeries = Array.from(timeSeriesMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
         // Top Keywords
         const allKeywords = currentKeywords.map((k: any) => ({
@@ -254,12 +365,44 @@ export const seoReportsRouter = router({
           };
         });
 
-        // Pages and Trends
+        // Pages and Trends (Merged)
         const prevPagesMap = new Map(prevPages.map((p: any) => [p.keys[0], p.clicks || 0]));
+
+        // Map GA4 Pages for easy lookup by path
+        const ga4PagesMap = new Map<string, any>();
+        ga4Pages.forEach((row: any) => {
+          const pagePath = row.dimensionValues?.[0]?.value; // e.g. /blog/post-1
+          if (pagePath) ga4PagesMap.set(pagePath, row.metricValues);
+        });
+
         const pagesWithChange = currentPages.map((p: any) => {
-          const url = p.keys[0];
+          const url = p.keys[0]; // e.g. https://example.com/blog/post-1
           const currClicks = p.clicks || 0;
           const prevClicks = prevPagesMap.get(url) || 0;
+
+          // Try to match with GA4
+          let sessions = 0;
+          let conversions = 0;
+          let engagementRate = 0;
+          let bounceRate = 0;
+          let averageSessionDuration = 0;
+
+          try {
+            const urlObj = new URL(url);
+            const path = urlObj.pathname;
+            const ga4Metrics = ga4PagesMap.get(path);
+            if (ga4Metrics) {
+              sessions = parseInt(ga4Metrics[0]?.value || '0');
+              // totalUsers = metrics[1]
+              conversions = parseInt(ga4Metrics[2]?.value || '0');
+              engagementRate = parseFloat(ga4Metrics[3]?.value || '0');
+              bounceRate = parseFloat(ga4Metrics[4]?.value || '0');
+              averageSessionDuration = parseFloat(ga4Metrics[5]?.value || '0');
+            }
+          } catch (e) {
+            // invalid url, skip
+          }
+
           return {
             url,
             clicks: currClicks,
@@ -267,6 +410,11 @@ export const seoReportsRouter = router({
             ctr: (p.ctr || 0) * 100,
             position: p.position || 0,
             clicksChange: currClicks - prevClicks,
+            sessions,
+            conversions,
+            engagementRate: engagementRate * 100,
+            bounceRate: bounceRate * 100,
+            averageSessionDuration
           };
         });
 
@@ -280,14 +428,27 @@ export const seoReportsRouter = router({
 
         return {
           summary: {
-            totalImpressions: currentSummary.impressions,
-            totalImpressionsPrev: prevSummary.impressions,
-            totalClicks: currentSummary.clicks,
-            totalClicksPrev: prevSummary.clicks,
-            averageCtr: currentSummary.ctr,
-            averageCtrPrev: prevSummary.ctr,
-            averagePosition: currentSummary.pos,
-            averagePositionPrev: prevSummary.pos,
+            totalImpressions: currentGscSummary.impressions,
+            totalImpressionsPrev: prevGscSummary.impressions,
+            totalClicks: currentGscSummary.clicks,
+            totalClicksPrev: prevGscSummary.clicks,
+            averageCtr: currentGscSummary.ctr,
+            averageCtrPrev: prevGscSummary.ctr,
+            averagePosition: currentGscSummary.pos,
+            averagePositionPrev: prevGscSummary.pos,
+            // GA4
+            totalSessions: currentGa4Summary.sessions,
+            totalSessionsPrev: prevGa4Summary.sessions,
+            totalUsers: currentGa4Summary.users,
+            totalUsersPrev: prevGa4Summary.users,
+            averageEngagementRate: currentGa4Summary.engagementRate,
+            averageEngagementRatePrev: prevGa4Summary.engagementRate,
+            totalConversions: currentGa4Summary.conversions,
+            totalConversionsPrev: prevGa4Summary.conversions,
+            averageBounceRate: currentGa4Summary.bounceRate,
+            averageBounceRatePrev: prevGa4Summary.bounceRate,
+            averageSessionDuration: currentGa4Summary.averageSessionDuration,
+            averageSessionDurationPrev: prevGa4Summary.averageSessionDuration,
           },
           timeSeries,
           topKeywords,
@@ -318,18 +479,56 @@ export const seoReportsRouter = router({
     }),
 
   listManageableSites: protectedProcedure
+    .output(z.array(seoManageableSiteSchema))
     .query(async () => {
       try {
         const gsc = new GoogleSearchConsoleClient();
-        const sites = await gsc.listSites();
-        return sites.map(s => ({
-          siteUrl: s.siteUrl || "",
-          permissionLevel: s.permissionLevel
-        }));
+        const ga4 = new GoogleAnalyticsClient();
+
+        // Fetch sites and properties in parallel
+        const [gscSites, ga4Properties] = await Promise.all([
+          gsc.listSites(),
+          ga4.listAccessibleProperties()
+        ]);
+
+        // Match GA4 properties to GSC sites via URL
+        return gscSites.map(s => {
+          const normalizedSiteUrl = normalizeUrl(s.siteUrl || "");
+
+          // Find a matching GA4 property where the default stream URL matches the GSC site URL
+          const matchedGa4 = ga4Properties.find(p => {
+            if (!p.defaultUrl) return false;
+            return normalizeUrl(p.defaultUrl) === normalizedSiteUrl;
+          });
+
+          return {
+            siteUrl: s.siteUrl || "",
+            permissionLevel: s.permissionLevel || null,
+            ga4PropertyId: matchedGa4?.propertyId || null,
+            ga4DisplayName: matchedGa4?.displayName || null
+          };
+        });
+
       } catch (error) {
         console.error('Failed to list manageable sites:', error);
 
-        // Help debug Google Auth issues in production
+        // Even if GA4 fails, try to return GSC sites
+        try {
+          // Fallback to just GSC if complete failure
+          if (error instanceof Error && error.message.includes('GA4')) {
+            const gsc = new GoogleSearchConsoleClient();
+            const sites = await gsc.listSites();
+            return sites.map(s => ({
+              siteUrl: s.siteUrl || "",
+              permissionLevel: s.permissionLevel || null,
+              ga4PropertyId: null,
+              ga4DisplayName: null
+            }));
+          }
+        } catch (e) {
+          // ignore
+        }
+
         if (error instanceof Error && (error.message.includes('auth') || error.message.includes('credential') || error.message.includes('Service Account'))) {
           console.error('CRITICAL: Google Auth failed. Check GOOGLE_SA_* environment variables.');
         }
@@ -337,6 +536,214 @@ export const seoReportsRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: error instanceof Error ? `List Sites Error: ${error.message}` : 'Failed to list manageable sites',
+        });
+      }
+    }),
+
+  /** List GA4 properties independently (no GSC domain matching). User selects which property to view. */
+  listGa4Properties: protectedProcedure
+    .output(z.array(seoGa4PropertySchema))
+    .query(async () => {
+      try {
+        const ga4 = new GoogleAnalyticsClient();
+        const properties = await ga4.listAccessibleProperties();
+        return properties.map((p) => ({
+          propertyId: p.propertyId,
+          displayName: p.displayName,
+          defaultUrl: p.defaultUrl ?? null,
+        }));
+      } catch (error) {
+        console.error("Failed to list GA4 properties:", error);
+        if (
+          error instanceof Error &&
+          (error.message.includes("auth") ||
+            error.message.includes("credential") ||
+            error.message.includes("Service Account"))
+        ) {
+          console.error("CRITICAL: Google Auth failed. Check GOOGLE_SA_* environment variables.");
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            error instanceof Error ? `List GA4 Properties Error: ${error.message}` : "Failed to list GA4 properties",
+        });
+      }
+    }),
+
+  /** GA4-only report: no GSC linking. Use when user selects a GA4 property directly. */
+  getGa4Report: protectedProcedure
+    .input(seoGa4ReportInputSchema)
+    .output(seoAutomatedReportResponseSchema)
+    .query(async ({ input }) => {
+      try {
+        const ga4 = new GoogleAnalyticsClient();
+        const prevPeriod = getPreviousPeriod(input.from, input.to);
+
+        const [ga4Current, ga4Prev, ga4Pages, ga4Countries, ga4Devices] = await Promise.all([
+          ga4.getOrganicPerformance(input.ga4PropertyId, input.from, input.to),
+          ga4.getOrganicPerformance(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
+          ga4.getTopLandingPages(input.ga4PropertyId, input.from, input.to, 100),
+          ga4.getTopCountries(input.ga4PropertyId, input.from, input.to, 20),
+          ga4.getTopDevices(input.ga4PropertyId, input.from, input.to),
+        ]);
+
+        const ga4CurrentRows = ga4Current?.rows ?? [];
+        const ga4PrevRows = ga4Prev?.rows ?? [];
+
+        const calculateGa4Summary = (data: any[]) => {
+          let sessions = 0;
+          let users = 0;
+          let conversions = 0;
+          let sumEngagement = 0;
+          let sumBounce = 0;
+          let sumDuration = 0;
+          const count = data.length;
+          for (const row of data) {
+            const metrics = row.metricValues ?? [];
+            sessions += Number.parseInt(metrics[0]?.value ?? "0", 10);
+            users += Number.parseInt(metrics[1]?.value ?? "0", 10);
+            conversions += Number.parseInt(metrics[2]?.value ?? "0", 10);
+            sumBounce += Number.parseFloat(metrics[3]?.value ?? "0");
+            sumEngagement += Number.parseFloat(metrics[4]?.value ?? "0");
+            sumDuration += Number.parseFloat(metrics[5]?.value ?? "0");
+          }
+          return {
+            sessions,
+            users,
+            conversions,
+            engagementRate: count > 0 ? (sumEngagement / count) * 100 : 0,
+            bounceRate: count > 0 ? (sumBounce / count) * 100 : 0,
+            averageSessionDuration: count > 0 ? sumDuration / count : 0,
+          };
+        };
+
+        const currentGa4Summary = calculateGa4Summary(ga4CurrentRows);
+        const prevGa4Summary = calculateGa4Summary(ga4PrevRows);
+
+        const timeSeries = ga4CurrentRows.map((row: any) => {
+          const dateVal = row.dimensionValues?.[0]?.value;
+          const formattedDate = dateVal
+            ? `${dateVal.slice(0, 4)}-${dateVal.slice(4, 6)}-${dateVal.slice(6, 8)}`
+            : "";
+          const metrics = row.metricValues ?? [];
+          return {
+            date: formattedDate,
+            clicks: 0,
+            impressions: 0,
+            sessions: Number.parseInt(metrics[0]?.value ?? "0", 10),
+            totalUsers: Number.parseInt(metrics[1]?.value ?? "0", 10),
+            conversions: Number.parseInt(metrics[2]?.value ?? "0", 10),
+            bounceRate: Number.parseFloat(metrics[3]?.value ?? "0"),
+            engagementRate: Number.parseFloat(metrics[4]?.value ?? "0"),
+            averageSessionDuration: Number.parseFloat(metrics[5]?.value ?? "0"),
+          };
+        });
+
+        const topPagesFromGa4 = (ga4Pages?.rows ?? []).map((row: any) => {
+          const path = row.dimensionValues?.[0]?.value ?? "";
+          const metrics = row.metricValues ?? [];
+          const sessions = Number.parseInt(metrics[0]?.value ?? "0", 10);
+          const totalUsers = Number.parseInt(metrics[1]?.value ?? "0", 10);
+          const conversions = Number.parseInt(metrics[2]?.value ?? "0", 10);
+          const engagementRate = Number.parseFloat(metrics[3]?.value ?? "0");
+          const bounceRate = Number.parseFloat(metrics[4]?.value ?? "0");
+          const averageSessionDuration = Number.parseFloat(metrics[5]?.value ?? "0");
+
+          return {
+            url: path || "/",
+            clicks: 0,
+            impressions: 0,
+            ctr: 0,
+            position: 0,
+            clicksChange: 0,
+            sessions,
+            totalUsers,
+            conversions,
+            engagementRate: engagementRate * 100,
+            bounceRate: bounceRate * 100,
+            averageSessionDuration,
+          };
+        });
+
+        const sortedTop = [...topPagesFromGa4].sort((a, b) => (b.sessions ?? 0) - (a.sessions ?? 0));
+
+        const topCountries = (ga4Countries?.rows ?? []).map((row: any) => {
+          const code = (row.dimensionValues?.[0]?.value as string | undefined)?.toUpperCase();
+          const countryMatch = countries.find((co: any) => co.alpha3 === code || co.alpha2 === code);
+          const metrics = row.metricValues ?? [];
+
+          return {
+            country: countryMatch ? countryMatch.name : (row.dimensionValues?.[0]?.value || "Unknown") as string,
+            clicks: parseInt(metrics[0]?.value || '0'), // Mapping sessions to clicks for consistency in schema
+            impressions: parseInt(metrics[1]?.value || '0'), // Mapping users to impressions
+            ctr: 0,
+            position: 0,
+          };
+        });
+
+        const topDevices = (ga4Devices?.rows ?? []).map((row: any) => {
+          const device = row.dimensionValues?.[0]?.value ?? "Unknown";
+          const metrics = row.metricValues ?? [];
+
+          return {
+            device,
+            clicks: parseInt(metrics[0]?.value || '0'),
+            impressions: parseInt(metrics[1]?.value || '0'),
+            ctr: 0,
+            position: 0,
+          };
+        });
+
+        return {
+          summary: {
+            totalImpressions: 0,
+            totalImpressionsPrev: 0,
+            totalClicks: 0,
+            totalClicksPrev: 0,
+            averageCtr: 0,
+            averageCtrPrev: 0,
+            averagePosition: 0,
+            averagePositionPrev: 0,
+            totalSessions: currentGa4Summary.sessions,
+            totalSessionsPrev: prevGa4Summary.sessions,
+            totalUsers: currentGa4Summary.users,
+            totalUsersPrev: prevGa4Summary.users,
+            averageEngagementRate: currentGa4Summary.engagementRate,
+            averageEngagementRatePrev: prevGa4Summary.engagementRate,
+            totalConversions: currentGa4Summary.conversions,
+            totalConversionsPrev: prevGa4Summary.conversions,
+            averageBounceRate: currentGa4Summary.bounceRate,
+            averageBounceRatePrev: prevGa4Summary.bounceRate,
+            averageSessionDuration: currentGa4Summary.averageSessionDuration,
+            averageSessionDurationPrev: prevGa4Summary.averageSessionDuration,
+          },
+          timeSeries: timeSeries.sort((a, b) => a.date.localeCompare(b.date)),
+          topKeywords: [],
+          topPages: {
+            top: sortedTop.slice(0, 10),
+            trendingUp: [],
+            trendingDown: [],
+          },
+          topCountries,
+          topDevices,
+          searchAppearance: [],
+          opportunities: { pageTwo: [], highPotential: [] },
+          sitemaps: [],
+        };
+      } catch (error) {
+        console.error("Failed to fetch GA4 report:", error);
+        if (
+          error instanceof Error &&
+          (error.message.includes("auth") ||
+            error.message.includes("credential") ||
+            error.message.includes("Service Account"))
+        ) {
+          console.error("CRITICAL: Google Auth failed. Check GOOGLE_SA_* environment variables.");
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            error instanceof Error ? `GA4 Report Error: ${error.message}` : "Failed to fetch GA4 report",
         });
       }
     }),
