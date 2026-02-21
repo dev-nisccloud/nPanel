@@ -21,6 +21,7 @@ function handler(req: NextRequest) {
 			});
 			return {
 				session,
+				createCaller: (ctx) => appRouter.createCaller(ctx),
 			};
 		},
 	});

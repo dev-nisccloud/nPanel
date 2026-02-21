@@ -17,7 +17,6 @@ import {
 } from "./tools";
 import { getCachedCatalog } from "./catalog-parser";
 import { generateToolsFromCatalog, filterCatalogByAccess, createToolsSummary } from "./dynamic-tools";
-import { appRouter } from "../index";
 import { z } from "zod";
 
 // ============================================================================
@@ -269,7 +268,14 @@ Objectives:
                 });
 
                 if (input.initialMessage) {
-                    const caller = appRouter.createCaller(ctx);
+                    const createCaller = ctx.createCaller;
+                    if (!createCaller) {
+                        throw new TRPCError({
+                            code: "INTERNAL_SERVER_ERROR",
+                            message: "createCaller not available",
+                        });
+                    }
+                    const caller = createCaller(ctx);
                     const dynamicTools = generateToolsFromCatalog(allowedFunctions, caller);
 
                     const coreExecutors = {
@@ -406,7 +412,14 @@ Objectives:
 
             const indexedCatalog = getCachedCatalog();
             const allowedFunctions = filterCatalogByAccess(indexedCatalog.catalog.functions, userRole);
-            const caller = appRouter.createCaller(ctx);
+            const createCaller = ctx.createCaller;
+            if (!createCaller) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "createCaller not available",
+                });
+            }
+            const caller = createCaller(ctx);
             const dynamicTools = generateToolsFromCatalog(allowedFunctions, caller);
 
             const coreExecutors = {

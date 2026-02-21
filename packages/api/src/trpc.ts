@@ -11,6 +11,8 @@ export type Session = {
 
 export type Context = {
 	session: Session;
+	/** Used by AI chat to get a tRPC caller. Injected by the app to avoid circular imports. */
+	createCaller?: (ctx: Context) => unknown;
 };
 
 const t = initTRPC.context<Context>().create();
