@@ -10,10 +10,58 @@ import {
 	type DomainCreateParams,
 } from "../../lib/epp/epp-xml";
 import { getKenicEppConfig } from "../../lib/epp/kenic-config";
-import { getEppResult, getResData } from "../../lib/epp/epp-response";
 import { validateKenicDomains } from "../../lib/epp/kenic-tlds";
 
 const parser = new XMLParser({ ignoreAttributes: false });
+
+/** Extract EPP result code, message, and optional extValue from parsed response (epp.response.result). */
+function getEppResult(parsed: Record<string, unknown>): {
+	code: string;
+	msg: string;
+	extValue?: { value?: string; reason?: string };
+} {
+	const response = (parsed?.epp as Record<string, unknown>)?.response as Record<string, unknown> | undefined;
+	const res = Array.isArray(response?.result) ? response?.result[0] : response?.result;
+	if (!res || typeof res !== "object") {
+		return { code: "0", msg: "Unknown response structure" };
+	}
+	const r = res as Record<string, unknown>;
+	const code = String((r["@_code"] as string) ?? "0");
+	const msgNode = r.msg;
+	const msg =
+		typeof msgNode === "string"
+			? msgNode
+			: Array.isArray(msgNode)
+				? String(msgNode[0] ?? "")
+				: typeof msgNode === "object" && msgNode !== null && "#text" in msgNode
+					? String((msgNode as { "#text": string })["#text"])
+					: "";
+	let extValue: { value?: string; reason?: string } | undefined;
+	const extNode = r.extValue;
+	if (extNode && typeof extNode === "object" && !Array.isArray(extNode)) {
+		const ext = extNode as Record<string, unknown>;
+		const toStr = (v: unknown): string | undefined =>
+			v === undefined || v === null
+				? undefined
+				: typeof v === "string"
+					? v
+					: typeof v === "object" && v !== null && "#text" in v
+						? String((v as { "#text": string })["#text"])
+						: String(v);
+		const value = toStr(ext.value);
+		const reason = toStr(ext.reason);
+		if (value !== undefined || reason !== undefined) {
+			extValue = { value, reason };
+		}
+	}
+	return { code, msg, extValue };
+}
+
+/** Get response resData (epp.response.resData). */
+function getResData(parsed: Record<string, unknown>): Record<string, unknown> | undefined {
+	const response = (parsed?.epp as Record<string, unknown>)?.response as Record<string, unknown> | undefined;
+	return response?.resData as Record<string, unknown> | undefined;
+}
 
 const domainCreateInputSchema = z.object({
 	name: z.string().min(1),
