@@ -264,6 +264,8 @@ export interface OpenProviderDomainTransferRequest {
   tech_handle: string;
   billing_handle?: string;
   autorenew?: 'on' | 'off' | 'default';
+  /** Period in years to add on transfer (optional). */
+  period?: number;
   name_servers?: Array<{
     name: string;
     ip?: string;

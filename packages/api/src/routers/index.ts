@@ -84,6 +84,7 @@ import { etimsRouter } from "./etims";
 import { reportsRouter } from "./reports";
 import { productsRouter } from "./products";
 import { clientSubscriptionsRouter } from "./client-subscriptions";
+import { niscServiceOrdersRouter } from "./nisc-service-orders";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -236,5 +237,7 @@ export const appRouter = router({
 	products: productsRouter,
 	// Client Subscriptions Management (universal)
 	clientSubscriptions: clientSubscriptionsRouter,
+	// NISC Service Orders (async processing via QStash)
+	niscServiceOrders: niscServiceOrdersRouter,
 });
 export type AppRouter = typeof appRouter;

@@ -30,3 +30,17 @@ export interface CampaignSendJobResult {
 	scheduledFor?: number;
 }
 
+/**
+ * QStash job payload for NISC order processing (immediate)
+ */
+export interface NiscOrderJobPayload {
+	niscOrderId: string;
+}
+
+/**
+ * QStash job result for NISC order processing
+ */
+export interface NiscOrderJobResult {
+	messageId: string;
+}
+

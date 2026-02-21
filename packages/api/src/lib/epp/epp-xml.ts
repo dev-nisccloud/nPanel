@@ -165,3 +165,197 @@ function buildDomainCheckXmlInternal(
   </command>
 </epp>`;
 }
+
+// ---------------------------------------------------------------------------
+// Contact create (RFC 3733). Used for KENIC "customer" (registrant/admin/tech).
+// ---------------------------------------------------------------------------
+
+export interface ContactCreatePostalInfo {
+	name: string;
+	org?: string;
+	street: string | string[];
+	city: string;
+	sp?: string;
+	pc: string;
+	cc: string;
+}
+
+export interface ContactCreateParams {
+	/** Contact id (server may allow server-assigned if omitted; KENIC typically requires it). */
+	id: string;
+	/** At least one of int (international) or loc (local). */
+	postalInfo: ContactCreatePostalInfo | [ContactCreatePostalInfo, ContactCreatePostalInfo];
+	/** E.164 format, e.g. +254.123456789 */
+	voice: string;
+	fax?: string;
+	email: string;
+	authInfo?: string;
+	/** Which fields to disclose in WHOIS; flag 0 = hide, 1 = show. */
+	disclose?: { flag: 0 | 1; elements?: ("name" | "org" | "addr" | "voice" | "fax" | "email")[] };
+}
+
+function formatStreet(street: string | string[]): string {
+	const arr = Array.isArray(street) ? street : [street];
+	return arr.map((s) => `<contact:street>${escapeXml(s)}</contact:street>`).join("\n        ");
+}
+
+function formatPostalInfo(p: ContactCreatePostalInfo, type: "int" | "loc"): string {
+	const street = formatStreet(p.street);
+	return `<contact:postalInfo type="${type}">
+      <contact:name>${escapeXml(p.name)}</contact:name>${p.org ? `\n      <contact:org>${escapeXml(p.org)}</contact:org>` : ""}
+      <contact:addr>
+        ${street}
+        <contact:city>${escapeXml(p.city)}</contact:city>${p.sp ? `\n        <contact:sp>${escapeXml(p.sp)}</contact:sp>` : ""}
+        <contact:pc>${escapeXml(p.pc)}</contact:pc>
+        <contact:cc>${escapeXml(p.cc)}</contact:cc>
+      </contact:addr>
+    </contact:postalInfo>`;
+}
+
+/**
+ * Build EPP contact:create command (RFC 3733).
+ */
+export function buildContactCreateXml(params: ContactCreateParams): string {
+	const postal = Array.isArray(params.postalInfo)
+		? params.postalInfo.map((p, i) => formatPostalInfo(p, i === 0 ? "int" : "loc")).join("\n    ")
+		: formatPostalInfo(params.postalInfo, "int");
+	const fax = params.fax ? `\n    <contact:fax>${escapeXml(params.fax)}</contact:fax>` : "";
+	const auth =
+		params.authInfo != null
+			? `\n    <contact:authInfo>\n      <contact:pw>${escapeXml(params.authInfo)}</contact:pw>\n    </contact:authInfo>`
+			: "";
+	const disclose =
+		params.disclose != null
+			? `\n    <contact:disclose flag="${params.disclose.flag}">${(params.disclose.elements ?? []).map((e) => `<contact:${e}/>`).join("")}\n    </contact:disclose>`
+			: "";
+
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
+  <command>
+    <create>
+      <contact:create>
+    <contact:id>${escapeXml(params.id)}</contact:id>
+    ${postal}
+    <contact:voice>${escapeXml(params.voice)}</contact:voice>${fax}
+    <contact:email>${escapeXml(params.email)}</contact:email>${auth}${disclose}
+      </contact:create>
+    </create>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+
+// ---------------------------------------------------------------------------
+// Domain create (RFC 5731). Registrant and contact ids must exist (create contacts first).
+// ---------------------------------------------------------------------------
+
+export interface DomainCreateParams {
+	/** Full domain name (e.g. example.co.ke). */
+	name: string;
+	/** Registration period in years. Default 1. */
+	period?: number;
+	/** Nameservers: hostObj = host names, or hostAttr = name + ips. */
+	ns?: { type: "hostObj"; hosts: string[] } | { type: "hostAttr"; hosts: Array<{ name: string; addrs?: string[] }> };
+	/** Registrant contact id (required). */
+	registrant: string;
+	/** Admin contact id(s). */
+	adminContacts?: string[];
+	/** Tech contact id(s). */
+	techContacts?: string[];
+	/** Domain authInfo (password) for transfer lock. */
+	authInfo?: string;
+}
+
+/**
+ * Build EPP domain:create command (RFC 5731).
+ */
+export function buildDomainCreateXml(params: DomainCreateParams): string {
+	const period = params.period ?? 1;
+	const periodEl = `<domain:period unit="y">${period}</domain:period>`;
+
+	let nsEl = "";
+	if (params.ns) {
+		if (params.ns.type === "hostObj") {
+			nsEl = params.ns.hosts.map((h) => `<domain:hostObj>${escapeXml(h)}</domain:hostObj>`).join("\n        ");
+		} else {
+			nsEl = params.ns.hosts
+				.map((h) => {
+					const addrs =
+						h.addrs?.length ?
+							h.addrs.map((a) => `<domain:hostAddr>${escapeXml(a)}</domain:hostAddr>`).join("\n          ")
+						: "";
+					return `<domain:hostAttr>\n          <domain:hostName>${escapeXml(h.name)}</domain:hostName>${addrs ? "\n          " + addrs : ""}\n        </domain:hostAttr>`;
+				})
+				.join("\n        ");
+		}
+		nsEl = `\n    <domain:ns>\n        ${nsEl}\n    </domain:ns>`;
+	}
+
+	const adminEl =
+		params.adminContacts?.length ?
+			params.adminContacts.map((c) => `\n    <domain:contact type="admin">${escapeXml(c)}</domain:contact>`).join("")
+		: "";
+	const techEl =
+		params.techContacts?.length ?
+			params.techContacts.map((c) => `\n    <domain:contact type="tech">${escapeXml(c)}</domain:contact>`).join("")
+		: "";
+	const authEl =
+		params.authInfo != null
+			? `\n    <domain:authInfo>\n      <domain:pw>${escapeXml(params.authInfo)}</domain:pw>\n    </domain:authInfo>`
+			: "";
+
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+  <command>
+    <create>
+      <domain:create>
+    <domain:name>${escapeXml(params.name)}</domain:name>
+    ${periodEl}${nsEl}
+    <domain:registrant>${escapeXml(params.registrant)}</domain:registrant>${adminEl}${techEl}${authEl}
+      </domain:create>
+    </create>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+
+// ---------------------------------------------------------------------------
+// Domain transfer (RFC 5731). op="request" = gaining registrar requests transfer.
+// ---------------------------------------------------------------------------
+
+export interface DomainTransferParams {
+	/** Full domain name (e.g. example.co.ke). */
+	name: string;
+	/** Auth code from losing registrar (required for transfer). */
+	authCode: string;
+	/** Optional roid from domain info at losing registrar. */
+	roid?: string;
+	/** Period to add on transfer (years). Optional; often 1. */
+	period?: number;
+}
+
+/**
+ * Build EPP domain:transfer command with op="request" (RFC 5731).
+ */
+export function buildDomainTransferXml(params: DomainTransferParams): string {
+	const periodEl =
+		params.period != null && params.period > 0
+			? `\n    <domain:period unit="y">${params.period}</domain:period>`
+			: "";
+	const roidAttr = params.roid ? ` roid="${escapeXml(params.roid)}"` : "";
+
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+  <command>
+    <transfer op="request">
+      <domain:transfer>
+    <domain:name>${escapeXml(params.name)}</domain:name>${periodEl}
+    <domain:authInfo>
+      <domain:pw${roidAttr}>${escapeXml(params.authCode)}</domain:pw>
+    </domain:authInfo>
+      </domain:transfer>
+    </transfer>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}

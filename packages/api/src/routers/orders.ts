@@ -3,8 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import prisma from "@nPanel/db";
 import * as crypto from "crypto";
-import { sendPleskXmlRequest } from "../lib/plesk/xml-client";
-import { XMLParser } from "fast-xml-parser";
+import { ensurePleskIntegration, provisionToPlesk } from "../lib/plesk-integration";
 
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
@@ -83,7 +82,7 @@ const orderItemOutputSchema = z.object({
 const orderOutputSchema = z.object({
 	id: z.string(),
 	orderNumber: z.string(),
-	teamId: z.string(),
+	teamId: z.string().nullable(),
 	createdBy: z.string().nullable(),
 	type: orderTypeSchema,
 	status: orderStatusSchema,
@@ -107,18 +106,18 @@ const orderOutputSchema = z.object({
 	metadata: z.any().nullable(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
-	// Relations
+	// Relations (Prisma returns null when relation is absent)
 	team: z.object({
 		id: z.string(),
 		name: z.string(),
 		slug: z.string(),
-	}).optional(),
+	}).optional().nullable(),
 	hostingSubscription: z.object({
 		id: z.string(),
 		pleskName: z.string().nullable(),
 		status: z.string(),
 		primaryDomain: z.string().nullable(),
-	}).optional(),
+	}).optional().nullable(),
 	orderItems: z.array(orderItemOutputSchema).optional(), // Multiple order items
 });
 
@@ -283,452 +282,8 @@ function generateOrderNumber(): string {
 	return `ORD-${year}-${timestamp}-${random}`;
 }
 
-// Ensure team owner has Plesk integration
-async function ensurePleskIntegration(teamOwnerId: string, createdBy: string): Promise<string> {
-	// Check if integration exists
-	let integration = await prisma.customerIntegration.findUnique({
-		where: {
-			userId_platform: {
-				userId: teamOwnerId,
-				platform: "PLESK",
-			},
-		},
-		include: {
-			user: {
-				include: {
-					profile: true,
-				},
-			},
-		},
-	});
-
-	// If integration exists and is created, return the platform customer ID
-	if (integration && integration.isCreated && integration.platformCustomerId) {
-		return integration.platformCustomerId;
-	}
-
-	// Check if profile is complete
-	const user = await prisma.user.findUnique({
-		where: { id: teamOwnerId },
-		include: { profile: true },
-	});
-
-	if (!user) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Team owner not found",
-		});
-	}
-
-	if (!user.profile) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Team owner profile is incomplete. Please ask the customer to complete their profile information.",
-		});
-	}
-
-	const profile = user.profile;
-	const requiredFields = [
-		profile.firstName,
-		profile.lastName,
-		profile.address,
-		profile.city,
-		profile.country,
-		profile.postalCode,
-		profile.phone,
-	];
-
-	if (requiredFields.some((field) => !field || field.trim() === "")) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Team owner profile is incomplete. Required fields: first name, last name, address, city, country, postal code, phone. Please ask the customer to complete their profile information.",
-		});
-	}
-
-	// Profile is complete, create integration in background
-	try {
-		// Escape XML special characters
-		const escapeXml = (str: string): string => {
-			return str
-				.replace(/&/g, "&amp;")
-				.replace(/</g, "&lt;")
-				.replace(/>/g, "&gt;")
-				.replace(/"/g, "&quot;")
-				.replace(/'/g, "&apos;");
-		};
-
-		// Generate random login and password
-		const generateRandomLogin = () => {
-			const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-			let result = "";
-			for (let i = 0; i < 6; i++) {
-				result += letters.charAt(Math.floor(Math.random() * letters.length));
-			}
-			return result;
-		};
-
-		const login = generateRandomLogin();
-		const password = Math.random().toString(36).slice(-12) + "A1!";
-
-		const personName = user.name || `${profile.firstName} ${profile.lastName}`;
-
-		// Create Plesk customer XML (using proper structure from customers-create.ts)
-		const pleskXml = `<?xml version="1.0" encoding="UTF-8"?>
-<packet>
-  <customer>
-    <add>
-      <gen_info>
-        <pname>${escapeXml(personName)}</pname>
-        <login>${escapeXml(login)}</login>
-        <passwd>${escapeXml(password)}</passwd>
-        <email>${escapeXml(user.email)}</email>
-        ${profile.address ? `<address>${escapeXml(profile.address)}</address>` : ""}
-        ${profile.city ? `<city>${escapeXml(profile.city)}</city>` : ""}
-        ${profile.state ? `<state>${escapeXml(profile.state)}</state>` : ""}
-        ${profile.postalCode ? `<pcode>${escapeXml(String(profile.postalCode))}</pcode>` : ""}
-        ${profile.country ? `<country>${escapeXml(profile.country === "Kenya" ? "KE" : profile.country)}</country>` : ""}
-        <locale>en-US</locale>
-        <owner-id>1</owner-id>
-      </gen_info>
-    </add>
-  </customer>
-</packet>`;
-
-		const { xml, isAuthError, isHostUnreachable } = await sendPleskXmlRequest(pleskXml);
-
-		if (isHostUnreachable) {
-			throw new TRPCError({
-				code: "SERVICE_UNAVAILABLE",
-				message: "Plesk host is unreachable",
-			});
-		}
-		if (isAuthError) {
-			throw new TRPCError({
-				code: "UNAUTHORIZED",
-				message: "Invalid Plesk credentials",
-			});
-		}
-
-		if (!xml || xml.trim() === "") {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Empty response from Plesk server",
-			});
-		}
-
-		const parser = new XMLParser({ ignoreAttributes: false });
-		const parsed = parser.parse(xml) as any;
-
-		// Check for Plesk errors
-		if (parsed?.packet?.system?.status === "error") {
-			const errorCode = parsed.packet.system.errcode;
-			const errorText = parsed.packet.system.errtext;
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `Plesk API Error ${errorCode}: ${errorText}`,
-			});
-		}
-
-		if (parsed?.packet?.customer?.add?.result?.status === "error") {
-			const errorText = parsed.packet.customer.add.result.errtext;
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `Customer creation failed: ${errorText}`,
-			});
-		}
-
-		// Extract customer ID from response
-		const customerId = parsed?.packet?.customer?.add?.result?.id?.["#text"] ||
-			parsed?.packet?.customer?.add?.result?.id;
-
-		if (!customerId) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Failed to create Plesk customer: customer ID not found in response",
-			});
-		}
-
-		// Create or update integration
-		const now = new Date();
-		if (integration) {
-			integration = await prisma.customerIntegration.update({
-				where: { id: integration.id },
-				data: {
-					platformCustomerId: customerId.toString(),
-					isCreated: true,
-					isActive: true,
-					lastSyncedAt: now,
-					updatedAt: now,
-					platformData: parsed,
-				},
-				include: {
-					user: {
-						include: {
-							profile: true,
-						},
-					},
-				},
-			});
-		} else {
-			integration = await prisma.customerIntegration.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: teamOwnerId,
-					platform: "PLESK",
-					platformCustomerId: customerId.toString(),
-					isCreated: true,
-					isActive: true,
-					createdBy: createdBy,
-					createdAt: now,
-					lastSyncedAt: now,
-					updatedAt: now,
-					platformData: parsed,
-				},
-				include: {
-					user: {
-						include: {
-							profile: true,
-						},
-					},
-				},
-			});
-		}
-
-		// Log activity
-		await prisma.customerIntegrationActivityLog.create({
-			data: {
-				id: crypto.randomUUID(),
-				userId: teamOwnerId,
-				customerIntegrationId: integration.id,
-				action: "CREATED",
-				description: "Plesk customer integration created automatically during order creation",
-				metadata: {
-					customerId: customerId.toString(),
-					triggeredBy: "order_creation",
-					createdBy: createdBy,
-				},
-				createdAt: now,
-			},
-		});
-
-		return customerId.toString();
-	} catch (error) {
-		if (error instanceof TRPCError) {
-			throw error;
-		}
-		console.error("Failed to create Plesk integration:", error);
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: `Failed to create Plesk integration: ${error instanceof Error ? error.message : "Unknown error"}`,
-		});
-	}
-}
-
-// Provision subscription to Plesk
-async function provisionToPlesk(input: {
-	domainName: string;
-	pleskOwnerId: string;
-	pleskServicePlanId: string; // Use pleskServicePlanId as the plan identifier
-	ipAddress?: string;
-	description?: string;
-	adminDescription?: string;
-}): Promise<{
-	pleskServiceId: string;
-	pleskFtpLogin: string;
-	pleskFtpPassword: string;
-	pleskStatus: number;
-	pleskGuid: string | null;
-	pleskResponseData: any;
-}> {
-	const generateRandomLogin = () => {
-		const letters = "abcdefghijklmnopqrstuvwxyz0123456789";
-		let result = "ftp";
-		for (let i = 0; i < 6; i++) {
-			result += letters.charAt(Math.floor(Math.random() * letters.length));
-		}
-		return result;
-	};
-
-	const generateRandomPassword = () => {
-		return Math.random().toString(36).slice(-12) + "A1!";
-	};
-
-	const ftpLogin = generateRandomLogin();
-	const ftpPassword = generateRandomPassword();
-
-	// Escape XML special characters
-	const escapeXml = (str: string): string => {
-		return str
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;")
-			.replace(/'/g, "&apos;");
-	};
-
-	// Parse plan ID - it should be a number for <plan-id>, or a string for <plan-name>
-	// According to Plesk API: <plan-id> expects integer, <plan-name> expects string
-	// We'll try to parse as integer first, otherwise use as plan-name
-	const planIdNumber = parseInt(input.pleskServicePlanId, 10);
-	const isNumericPlanId = !isNaN(planIdNumber) && planIdNumber.toString() === input.pleskServicePlanId;
-	
-	const planSection = isNumericPlanId 
-		? `<plan-id>${planIdNumber}</plan-id>`
-		: `<plan-name>${escapeXml(input.pleskServicePlanId)}</plan-name>`;
-
-	const xmlRequest = `<?xml version="1.0" encoding="UTF-8"?>
-<packet>
-  <webspace>
-    <add>
-      <gen_setup>
-        <name>${escapeXml(input.domainName)}</name>
-        <owner-id>${input.pleskOwnerId}</owner-id>
-        ${input.ipAddress ? `<ip_address>${escapeXml(input.ipAddress)}</ip_address>` : ""}
-        <htype>vrt_hst</htype>
-        ${input.description ? `<description>${escapeXml(input.description)}</description>` : ""}
-        ${input.adminDescription ? `<admin-description>${escapeXml(input.adminDescription)}</admin-description>` : ""}
-      </gen_setup>
-      <hosting>
-        <vrt_hst>
-          <property><name>ftp_login</name><value>${escapeXml(ftpLogin)}</value></property>
-          <property><name>ftp_password</name><value>${escapeXml(ftpPassword)}</value></property>
-        </vrt_hst>
-      </hosting>
-      ${planSection}
-    </add>
-  </webspace>
-</packet>`;
-
-	const { xml, isAuthError, isHostUnreachable } = await sendPleskXmlRequest(xmlRequest);
-
-	if (isHostUnreachable) {
-		throw new TRPCError({
-			code: "SERVICE_UNAVAILABLE",
-			message: "Plesk host is unreachable",
-		});
-	}
-	if (isAuthError) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "Invalid Plesk credentials",
-		});
-	}
-
-	if (!xml || xml.trim() === "") {
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: "Empty response from Plesk server",
-		});
-	}
-
-	// Parse XML response (matching legacy pattern)
-	const parser = new XMLParser({ ignoreAttributes: false });
-	let parsed: any;
-
-	try {
-		parsed = parser.parse(xml);
-	} catch (parseError) {
-		console.error("Failed to parse Plesk response:", parseError);
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: "Failed to parse Plesk response",
-		});
-	}
-
-	// Log parsed response for debugging
-	console.log("Plesk webspace creation parsed response:", JSON.stringify(parsed, null, 2));
-
-	// Check if the Plesk operation was successful (matching legacy pattern)
-	const result = parsed?.packet?.webspace?.add?.result;
-	if (!result) {
-		console.error("No result in Plesk response:", JSON.stringify(parsed, null, 2));
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: "Invalid response structure from Plesk - missing result",
-		});
-	}
-
-	// Check for errors in result (matching legacy pattern - check result.status first)
-	if (result.status === "error") {
-		const errorCode = result.errcode || "unknown";
-		const errorText = result.errtext || "Unknown error from Plesk";
-		
-		// Handle specific error codes
-		// Error 1007: Domain already exists
-		// Error 1013: Service plan not found
-		if (errorCode === 1007 || errorCode === 1013) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `Plesk API Error ${errorCode}: ${errorText}. ${errorCode === 1007 ? "The domain may already exist in Plesk." : "The service plan does not exist in Plesk. Please verify the plan ID/name is correct."}`,
-			});
-		}
-		
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Plesk error ${errorCode}: ${errorText}`,
-		});
-	}
-
-	// Try multiple ways to extract the service ID
-	// The ID can be in different formats depending on Plesk version
-	let pleskServiceId: string | number | null = null;
-	
-	// Try different possible structures
-	if (result.id) {
-		if (typeof result.id === "object" && result.id["#text"]) {
-			pleskServiceId = result.id["#text"];
-		} else if (typeof result.id === "string" || typeof result.id === "number") {
-			pleskServiceId = result.id;
-		}
-	}
-	
-	// Also check for filter-id (some Plesk versions use this)
-	if (!pleskServiceId && result["filter-id"]) {
-		if (typeof result["filter-id"] === "object" && result["filter-id"]["#text"]) {
-			pleskServiceId = result["filter-id"]["#text"];
-		} else if (typeof result["filter-id"] === "string" || typeof result["filter-id"] === "number") {
-			pleskServiceId = result["filter-id"];
-		}
-	}
-
-	if (!pleskServiceId) {
-		console.error("Service ID not found in result:", JSON.stringify(result, null, 2));
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: `Failed to create Plesk subscription: service ID not found in response. Response structure: ${JSON.stringify(result)}`,
-		});
-	}
-
-	// Extract additional data from Plesk response if available
-	const pleskStatusText = result?.status?.["#text"] || result?.status;
-	const pleskGuid = result?.guid?.["#text"] || result?.guid;
-	
-	// Parse status: "ok" = 0 (active), "error" = other codes, or numeric status
-	let pleskStatus: number = 0; // Default to 0 (active)
-	if (pleskStatusText) {
-		if (typeof pleskStatusText === "string") {
-			// "ok" means active (0)
-			if (pleskStatusText.toLowerCase() === "ok") {
-				pleskStatus = 0;
-			} else {
-				// Try to parse as number
-				const parsed = parseInt(pleskStatusText, 10);
-				pleskStatus = isNaN(parsed) ? 0 : parsed;
-			}
-		} else if (typeof pleskStatusText === "number") {
-			pleskStatus = pleskStatusText;
-		}
-	}
-
-	return {
-		pleskServiceId: pleskServiceId.toString(),
-		pleskFtpLogin: ftpLogin,
-		pleskFtpPassword: ftpPassword,
-		pleskStatus,
-		pleskGuid: pleskGuid?.toString() || null,
-		pleskResponseData: parsed, // Full response for reference
-	};
-}
+// ensurePleskIntegration and provisionToPlesk are imported from ../lib/plesk-integration.
+// When calling from tRPC, wrap in try/catch and throw TRPCError with appropriate code.
 
 // ============================================================================
 // tRPC ROUTER
@@ -1362,7 +917,15 @@ export const ordersRouter = router({
 						message: "You must be logged in",
 					});
 				}
-				pleskOwnerId = await ensurePleskIntegration(team.createdById, session.user.id);
+				try {
+					pleskOwnerId = await ensurePleskIntegration(team.createdById, session.user.id);
+				} catch (err) {
+					const msg = err instanceof Error ? err.message : String(err);
+					throw new TRPCError({
+						code: msg.includes("not found") ? "NOT_FOUND" : "BAD_REQUEST",
+						message: msg,
+					});
+				}
 
 				// Batch: Log Plesk integration ready and provisioning started in a transaction
 				// This reduces connection usage from 2 sequential queries to 1 transaction
@@ -1403,14 +966,23 @@ export const ordersRouter = router({
 				});
 
 				// Provision to Plesk - MUST succeed before creating any database records
-				const pleskResult = await provisionToPlesk({
-					domainName: input.domainName,
-					pleskOwnerId,
-					pleskServicePlanId: hostingPlan.pleskServicePlanId!,
-					ipAddress: hostingPlan.pleskIpAddress || undefined,
-					description: input.description || undefined,
-					adminDescription: input.adminDescription || undefined,
-				});
+				let pleskResult: Awaited<ReturnType<typeof provisionToPlesk>>;
+				try {
+					pleskResult = await provisionToPlesk({
+						domainName: input.domainName,
+						pleskOwnerId,
+						pleskServicePlanId: hostingPlan.pleskServicePlanId!,
+						ipAddress: hostingPlan.pleskIpAddress || undefined,
+						description: input.description || undefined,
+						adminDescription: input.adminDescription || undefined,
+					});
+				} catch (err) {
+					const msg = err instanceof Error ? err.message : String(err);
+					throw new TRPCError({
+						code: msg.includes("unreachable") ? "SERVICE_UNAVAILABLE" : "BAD_REQUEST",
+						message: msg,
+					});
+				}
 
 				// Save all auto-generated data from Plesk
 				pleskServiceId = pleskResult.pleskServiceId;
@@ -1947,7 +1519,15 @@ export const ordersRouter = router({
 				}
 
 				// Ensure Plesk integration exists
-				pleskOwnerId = await ensurePleskIntegration(team.createdById, session.user.id);
+				try {
+					pleskOwnerId = await ensurePleskIntegration(team.createdById, session.user.id);
+				} catch (err) {
+					const msg = err instanceof Error ? err.message : String(err);
+					throw new TRPCError({
+						code: msg.includes("not found") ? "NOT_FOUND" : "BAD_REQUEST",
+						message: msg,
+					});
+				}
 			}
 
 			// 6. Create order and order items in transaction
@@ -2026,14 +1606,24 @@ export const ordersRouter = router({
 
 							try {
 								// Provision to Plesk - MUST succeed before creating HostingSubscription
-								const pleskResult = await provisionToPlesk({
-									domainName: itemInput.domainName!,
-									pleskOwnerId: pleskOwnerId!,
-									pleskServicePlanId: plan.pleskServicePlanId!,
-									ipAddress: plan.pleskIpAddress || undefined,
-									description: itemInput.description || undefined,
-									adminDescription: itemInput.adminDescription || undefined,
-								});
+								const pleskResult = await (async () => {
+									try {
+										return await provisionToPlesk({
+											domainName: itemInput.domainName!,
+											pleskOwnerId: pleskOwnerId!,
+											pleskServicePlanId: plan.pleskServicePlanId!,
+											ipAddress: plan.pleskIpAddress || undefined,
+											description: itemInput.description || undefined,
+											adminDescription: itemInput.adminDescription || undefined,
+										});
+									} catch (err) {
+										const msg = err instanceof Error ? err.message : String(err);
+										throw new TRPCError({
+											code: msg.includes("unreachable") ? "SERVICE_UNAVAILABLE" : "BAD_REQUEST",
+											message: msg,
+										});
+									}
+								})();
 
 								// ONLY create HostingSubscription if provisioning succeeded
 								// Find or create corresponding HostingPlan for backward compatibility

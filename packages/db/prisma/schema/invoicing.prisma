@@ -88,6 +88,7 @@ model Invoice {
   lineItems    InvoiceLineItem[]
   transactions InvoiceTransaction[]
   orders       Order[]
+  niscOrders   NiscOrder[]
   creditNote   CreditNote?          @relation("InvoiceCreditNote")
   activityLogs InvoiceActivityLog[]
 

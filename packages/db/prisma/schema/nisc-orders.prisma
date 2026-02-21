@@ -1,0 +1,100 @@
+// ============================================================================
+// NISC Service Orders Schema
+// Orders that use NiscProduct + NiscProductPlan and create NiscClientSubscription.
+// Processed asynchronously via QStash worker.
+// ============================================================================
+
+enum NiscOrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum NiscOrderItemStatus {
+  PENDING
+  PROCESSING
+  PROVISIONED
+  FAILED
+  SKIPPED
+}
+
+// --- NiscOrder -----------------------------------------------------------------
+
+model NiscOrder {
+  id          String          @id @default(cuid())
+  orderNumber String          @unique
+  userId      String?
+  teamId      String?
+  createdBy   String?
+  status      NiscOrderStatus @default(PENDING)
+
+  subtotal String
+  total    String
+  currency String  @default("KES")
+  notes    String?
+  metadata Json?
+
+  niscProductPromoId String?
+  invoiceId          String?
+  invoiceNumber      String?
+  processedAt        DateTime?
+  completedAt        DateTime?
+  failureReason      String?
+  qstashMessageId    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user             User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  team             Team?                    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  orderItems       NiscOrderItem[]
+  niscProductPromo NiscProductPromo?        @relation(fields: [niscProductPromoId], references: [id], onDelete: SetNull)
+  invoice          Invoice?                 @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  subscriptions    NiscClientSubscription[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([qstashMessageId])
+  @@map("nisc_order")
+}
+
+// --- NiscOrderItem -------------------------------------------------------------
+
+model NiscOrderItem {
+  id            String @id @default(cuid())
+  niscOrderId   String
+  productId     String
+  productPlanId String
+
+  billingCycle BillingCycle?
+  itemPrice    String
+  itemSubtotal String
+  itemCurrency String        @default("KES")
+
+  status                   NiscOrderItemStatus @default(PENDING)
+  provisioningError        String?
+  niscClientSubscriptionId String?
+  primaryDomain            String?
+  domainSubscriptionId     String?
+  metadata                 Json? // e.g. { transferAuthCode?: string } for domain_transfer
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  niscOrder              NiscOrder               @relation(fields: [niscOrderId], references: [id], onDelete: Cascade)
+  product                NiscProduct             @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productPlan            NiscProductPlan         @relation(fields: [productPlanId], references: [id], onDelete: Restrict)
+  niscClientSubscription NiscClientSubscription? @relation("OrderItemSubscription", fields: [niscClientSubscriptionId], references: [id], onDelete: SetNull)
+  domainSubscription     NiscClientSubscription? @relation("OrderItemDomainSubscription", fields: [domainSubscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([niscOrderId])
+  @@index([productId])
+  @@index([productPlanId])
+  @@index([status])
+  @@index([niscClientSubscriptionId])
+  @@map("nisc_order_item")
+}
