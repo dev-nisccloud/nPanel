@@ -36,6 +36,8 @@ import Link from "next/link";
 
 const HOSTING_SERVICE_TYPES = ["web_hosting", "email_hosting"];
 const DOMAIN_SERVICE_TYPE = "domain_registration";
+/** Sentinel value for "None" in Select; empty string is reserved by Radix for clearing selection. */
+const NONE_VALUE = "__none__";
 
 interface CreateOrderSheetProps {
 	open: boolean;
@@ -122,25 +124,25 @@ export function CreateOrderSheet({
 				</SheetHeader>
 
 				<Form {...form}>
-					<form onSubmit={onSubmit} className="flex flex-col gap-6 pt-4">
+					<form onSubmit={onSubmit} className="flex flex-col gap-6 pt-4 w-full">
 						<FormField
 							control={form.control}
 							name="teamId"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="w-full">
 									<FormLabel>Team (optional)</FormLabel>
 									<Select
-										onValueChange={field.onChange}
-										value={field.value ?? ""}
+										onValueChange={(v) => field.onChange(v === NONE_VALUE ? undefined : v)}
+										value={field.value ?? NONE_VALUE}
 										disabled={loadingTeams}
 									>
 										<FormControl>
-											<SelectTrigger>
+											<SelectTrigger className="w-full">
 												<SelectValue placeholder="Select team" />
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
-											<SelectItem value="">None</SelectItem>
+											<SelectItem value={NONE_VALUE}>None</SelectItem>
 											{teams.map((t) => (
 												<SelectItem key={t.id} value={t.id}>
 													{t.name}
@@ -156,20 +158,20 @@ export function CreateOrderSheet({
 							control={form.control}
 							name="userId"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="w-full">
 									<FormLabel>User (optional)</FormLabel>
 									<Select
-										onValueChange={field.onChange}
-										value={field.value ?? ""}
+										onValueChange={(v) => field.onChange(v === NONE_VALUE ? undefined : v)}
+										value={field.value ?? NONE_VALUE}
 										disabled={loadingUsers}
 									>
 										<FormControl>
-											<SelectTrigger>
+											<SelectTrigger className="w-full">
 												<SelectValue placeholder="Select user" />
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
-											<SelectItem value="">None</SelectItem>
+											<SelectItem value={NONE_VALUE}>None</SelectItem>
 											{users.map((u) => (
 												<SelectItem key={u.id} value={u.id}>
 													{u.name} ({u.email})
@@ -185,7 +187,7 @@ export function CreateOrderSheet({
 							At least one of Team or User must be selected.
 						</p>
 
-						<div>
+						<div className="w-full">
 							<div className="flex items-center justify-between mb-2">
 								<FormLabel>Items</FormLabel>
 								<Button
@@ -206,6 +208,7 @@ export function CreateOrderSheet({
 									domainSubs={domainSubs}
 									onRemove={() => remove(index)}
 									control={form.control}
+									setValue={form.setValue}
 									canRemove={fields.length > 1}
 									productId={form.watch(`items.${index}.productId`) ?? ""}
 								/>
@@ -216,10 +219,10 @@ export function CreateOrderSheet({
 							control={form.control}
 							name="notes"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="w-full">
 									<FormLabel>Notes (optional)</FormLabel>
 									<FormControl>
-										<Input {...field} value={field.value ?? ""} placeholder="Notes" />
+										<Input className="w-full" {...field} value={field.value ?? ""} placeholder="Notes" />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -251,6 +254,7 @@ function OrderItemRow({
 	domainSubs,
 	onRemove,
 	control,
+	setValue,
 	canRemove,
 	productId,
 }: {
@@ -258,7 +262,8 @@ function OrderItemRow({
 	products: Array<{ id: string; name: string; serviceType: string }>;
 	domainSubs: Array<{ id: string; name: string | null; primaryDomain: string | null }>;
 	onRemove: () => void;
-	control: any;
+	control: React.ComponentProps<typeof FormField>["control"];
+	setValue: (name: string, value: string) => void;
 	canRemove: boolean;
 	productId: string;
 }) {
@@ -272,7 +277,7 @@ function OrderItemRow({
 	const isDomain = product?.serviceType === DOMAIN_SERVICE_TYPE;
 
 	return (
-		<div className="rounded border p-3 space-y-3 mb-3">
+		<div className="rounded border p-3 space-y-3 mb-3 w-full">
 			<div className="flex items-center justify-between">
 				<span className="text-sm font-medium">Item {index + 1}</span>
 				{canRemove && (
@@ -285,17 +290,17 @@ function OrderItemRow({
 				control={control}
 				name={`items.${index}.productId`}
 				render={({ field }) => (
-					<FormItem>
+					<FormItem className="w-full">
 						<FormLabel className="text-xs">Product</FormLabel>
 						<Select
 							onValueChange={(v) => {
 								field.onChange(v);
-								control.setValue(`items.${index}.productPlanId`, "");
+								setValue(`items.${index}.productPlanId`, "");
 							}}
 							value={field.value}
 						>
 							<FormControl>
-								<SelectTrigger>
+								<SelectTrigger className="w-full">
 									<SelectValue placeholder="Select product" />
 								</SelectTrigger>
 							</FormControl>
@@ -315,7 +320,7 @@ function OrderItemRow({
 				control={control}
 				name={`items.${index}.productPlanId`}
 				render={({ field }) => (
-					<FormItem>
+					<FormItem className="w-full">
 						<FormLabel className="text-xs">Plan</FormLabel>
 						<Select
 							onValueChange={field.onChange}
@@ -323,7 +328,7 @@ function OrderItemRow({
 							disabled={!productId || plans.length === 0}
 						>
 							<FormControl>
-								<SelectTrigger>
+								<SelectTrigger className="w-full">
 									<SelectValue placeholder="Select plan" />
 								</SelectTrigger>
 							</FormControl>
@@ -344,14 +349,14 @@ function OrderItemRow({
 					control={control}
 					name={`items.${index}.billingCycle`}
 					render={({ field }) => (
-						<FormItem>
+						<FormItem className="w-full">
 							<FormLabel className="text-xs">Billing cycle</FormLabel>
 							<Select
 								onValueChange={field.onChange}
 								value={field.value ?? ""}
 							>
 								<FormControl>
-									<SelectTrigger>
+									<SelectTrigger className="w-full">
 										<SelectValue placeholder="Select cycle" />
 									</SelectTrigger>
 								</FormControl>
@@ -371,14 +376,14 @@ function OrderItemRow({
 					control={control}
 					name={`items.${index}.domainSubscriptionId`}
 					render={({ field }) => (
-						<FormItem>
+						<FormItem className="w-full">
 							<FormLabel className="text-xs">Domain (required for hosting)</FormLabel>
 							<Select
 								onValueChange={field.onChange}
 								value={field.value ?? ""}
 							>
 								<FormControl>
-									<SelectTrigger>
+									<SelectTrigger className="w-full">
 										<SelectValue placeholder="Select domain" />
 									</SelectTrigger>
 								</FormControl>
@@ -412,10 +417,11 @@ function OrderItemRow({
 					control={control}
 					name={`items.${index}.primaryDomain`}
 					render={({ field }) => (
-						<FormItem>
+						<FormItem className="w-full">
 							<FormLabel className="text-xs">Domain name</FormLabel>
 							<FormControl>
 								<Input
+									className="w-full"
 									{...field}
 									value={field.value ?? ""}
 									placeholder="example.com"

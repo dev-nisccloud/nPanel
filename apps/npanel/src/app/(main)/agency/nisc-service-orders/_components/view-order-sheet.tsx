@@ -63,30 +63,30 @@ export function ViewOrderSheet({
 						<Skeleton className="h-20 w-full" />
 					</div>
 				) : !order ? (
-					<p className="text-muted-foreground text-sm">Order not found.</p>
+					<p className="text-muted-foreground text-sm w-full">Order not found.</p>
 				) : (
-					<div className="space-y-6 pt-4">
-						<div>
+					<div className="space-y-6 pt-4 w-full">
+						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground">Order number</p>
 							<p className="font-mono">{order.orderNumber}</p>
 						</div>
-						<div>
+						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground">User / Team</p>
 							<p>{order.user?.name ?? order.team?.name ?? "—"}</p>
 						</div>
-						<div>
+						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground">Status</p>
 							<Badge variant="outline">{order.status}</Badge>
 						</div>
 						{order.failureReason && (
-							<div>
+							<div className="w-full">
 								<p className="text-sm font-medium text-muted-foreground">Failure reason</p>
 								<p className="text-sm text-destructive">{order.failureReason}</p>
 							</div>
 						)}
-						<div>
+						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground mb-2">Items</p>
-							<ul className="space-y-2">
+							<ul className="space-y-2 w-full">
 								{order.orderItems.map((item) => (
 									<li
 										key={item.id}
@@ -107,7 +107,7 @@ export function ViewOrderSheet({
 								))}
 							</ul>
 						</div>
-						<div>
+						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground">Total</p>
 							<p className="font-medium">
 								{order.total} {order.currency}
