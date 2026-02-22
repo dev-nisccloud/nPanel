@@ -1,6 +1,5 @@
 import { request } from 'undici';
-// import { LinkedInApiError, LinkedInApiConfig } from './linkedin-client';
-import { type LinkedInApiConfig, type LinkedInApiError } from "./linkedin-client";
+import { LinkedInApiError, type LinkedInApiConfig } from "./linkedin-client";
 import { LinkedInErrorHandler } from './linkedin-error-handler';
 
 /**

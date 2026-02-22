@@ -1,7 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import {
+	useForm,
+	useFieldArray,
+	type Control,
+	type UseFormSetValue,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -262,8 +267,8 @@ function OrderItemRow({
 	products: Array<{ id: string; name: string; serviceType: string }>;
 	domainSubs: Array<{ id: string; name: string | null; primaryDomain: string | null }>;
 	onRemove: () => void;
-	control: React.ComponentProps<typeof FormField>["control"];
-	setValue: (name: string, value: string) => void;
+	control: Control<CreateOrderFormData>;
+	setValue: UseFormSetValue<CreateOrderFormData>;
 	canRemove: boolean;
 	productId: string;
 }) {
