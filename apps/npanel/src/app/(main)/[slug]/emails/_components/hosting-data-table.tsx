@@ -188,7 +188,7 @@ export function HostingDataTable() {
           </div>
           <h3 className="mb-2 text-lg font-semibold">No email hosting subscriptions found</h3>
           <p className="mb-4 text-sm text-muted-foreground">
-            Your team has email hosting subscriptions, but no matching Plesk subscriptions were found.
+            Your company has email hosting subscriptions, but no matching Plesk subscriptions were found.
             <br />
             <span className="text-xs">This may happen if the subscription hasn't been provisioned yet or the Plesk filter ID doesn't match.</span>
           </p>

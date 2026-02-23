@@ -1,64 +1,65 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Upload, Users, ArrowRight } from "lucide-react";
+import { Building2, Users, ArrowRight, ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/utils/trpc";
 
-// Type for the create team mutation input
 type CreateTeamInput = {
   name: string;
   baseCurrency: string;
   inviteEmails?: string[];
 };
 
+const STEPS = [
+  { key: 1, label: "Company details", icon: Building2 },
+  { key: 2, label: "Invite members", icon: Users },
+] as const;
+
 export function CreateTeamForm() {
-  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     teamName: "",
-    teamLogo: null as File | null,
     currency: "KES",
-    inviteMembers: ""
+    inviteMembers: "",
   });
 
-  // tRPC mutation for creating team
   const createTeamMutation = trpc.teams.create.useMutation({
     onSuccess: (data) => {
-      toast.success("Team created successfully!");
-      // Redirect to the newly created team's dashboard using its slug
+      toast.success("Company created successfully!");
       const teamSlug = data.team.slug;
-      router.push(`/${teamSlug}/dashboard` as never);
+      // Full page navigation so server re-runs and sees the new team (avoids staying on create-team)
+      window.location.assign(`/${teamSlug}/dashboard`);
     },
     onError: (error: { message?: string }) => {
-      toast.error(error.message || "Failed to create team");
+      toast.error(error.message || "Failed to create company");
     },
   });
 
   const handleNext = () => {
     if (currentStep === 1) {
-      // Validate team name
       if (!formData.teamName.trim()) {
-        toast.error("Team name is required");
+        toast.error("Company name is required");
         return;
       }
-      
-      // Validate team name length
       if (formData.teamName.trim().length < 2) {
-        toast.error("Team name must be at least 2 characters");
+        toast.error("Company name must be at least 2 characters");
         return;
       }
-      
       if (formData.teamName.trim().length > 100) {
-        toast.error("Team name must be less than 100 characters");
+        toast.error("Company name must be less than 100 characters");
         return;
       }
     }
@@ -66,171 +67,189 @@ export function CreateTeamForm() {
   };
 
   const handleSubmit = () => {
-    // Parse invite emails from textarea
     const inviteEmailsRaw = formData.inviteMembers.trim();
     let inviteEmails: string[] = [];
-    
+
     if (inviteEmailsRaw) {
-      // Split by comma, newline, or semicolon
       inviteEmails = inviteEmailsRaw
         .split(/[,;\n]/)
-        .map(email => email.trim())
-        .filter(email => email.length > 0);
-      
-      // Validate email format
+        .map((email) => email.trim())
+        .filter((email) => email.length > 0);
+
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const invalidEmails = inviteEmails.filter(email => !emailRegex.test(email));
-      
+      const invalidEmails = inviteEmails.filter((email) => !emailRegex.test(email));
+
       if (invalidEmails.length > 0) {
         toast.error(`Invalid email addresses: ${invalidEmails.join(", ")}`);
         return;
       }
     }
 
-    // Submit to backend
     const teamData: CreateTeamInput = {
       name: formData.teamName.trim(),
       baseCurrency: formData.currency,
-      inviteEmails: inviteEmails,
+      inviteEmails: inviteEmails.length > 0 ? inviteEmails : undefined,
     };
-    
+
     createTeamMutation.mutate(teamData);
   };
 
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setFormData(prev => ({ ...prev, teamLogo: file }));
-    }
-  };
-
   return (
-    <Card className="shadow-2xl border-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <CardContent className="p-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight mb-2">Create New Team</h1>
-          <p className="text-muted-foreground text-sm">
-            Set up your team and invite members to get started
-          </p>
-        </div>
+    <div className="w-full max-w-full sm:max-w-lg mx-auto">
+      {/* Step indicator */}
+      <div className="flex items-center justify-center gap-2 mb-8">
+        {STEPS.map((step, index) => {
+          const StepIcon = step.icon;
+          const isActive = currentStep === step.key;
+          const isPast = currentStep > step.key;
+          return (
+            <div key={step.key} className="flex items-center">
+              <div
+                className={`
+                  flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all duration-200
+                  ${isActive ? "border-primary bg-primary text-primary-foreground shadow-md" : ""}
+                  ${isPast ? "border-primary bg-primary/10 text-primary" : ""}
+                  ${!isActive && !isPast ? "border-muted-foreground/30 bg-muted/50 text-muted-foreground" : ""}
+                `}
+              >
+                <StepIcon className="h-4 w-4" />
+              </div>
+              {index < STEPS.length - 1 && (
+                <div
+                  className={`w-8 h-0.5 mx-0.5 rounded-full transition-colors ${
+                    isPast ? "bg-primary/40" : "bg-muted"
+                  }`}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-        {/* Step 1: Team Details */}
-        {currentStep === 1 && (
-          <div className="space-y-6">
-            {/* Team Logo Upload */}
-            <div className="flex flex-col items-center space-y-3">
-              <Label className="text-sm font-medium">Select your team logo</Label>
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/25 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors group">
-                  {formData.teamLogo ? (
-                    <img 
-                      src={URL.createObjectURL(formData.teamLogo)} 
-                      alt="Team logo" 
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <Upload className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
-                  )}
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      {/* Card */}
+      <div className="rounded-2xl border border-border/80 bg-card shadow-xl shadow-black/5 overflow-hidden">
+        <div className="px-8 pt-8 pb-6">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              {currentStep === 1 ? "Create your company" : "Invite your team"}
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1.5 max-w-[280px] mx-auto">
+              {currentStep === 1
+                ? "Give your company a name and choose a default currency for billing."
+                : "Add colleagues by email. You can skip this and invite them later."}
+            </p>
+          </div>
+
+          {/* Step 1: Company Details */}
+          {currentStep === 1 && (
+            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-300">
+              <div className="space-y-2 w-full">
+                <Label htmlFor="teamName" className="text-sm font-medium">
+                  Company name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="teamName"
+                  placeholder="e.g. Acme Inc."
+                  value={formData.teamName}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, teamName: e.target.value }))
+                  }
+                  className="h-11 w-full rounded-lg border-border/80 focus-visible:ring-2"
+                  autoFocus
                 />
               </div>
-            </div>
 
-            {/* Team Name */}
-            <div className="space-y-2">
-              <Label htmlFor="teamName" className="text-sm font-medium">
-                Team Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="teamName"
-                placeholder="Enter your team name"
-                value={formData.teamName}
-                onChange={(e) => setFormData(prev => ({ ...prev, teamName: e.target.value }))}
-                className="h-11"
-              />
+              <div className="space-y-2 w-full">
+                <Label htmlFor="currency" className="text-sm font-medium">
+                  Default currency
+                </Label>
+                <Select
+                  value={formData.currency}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, currency: value }))
+                  }
+                >
+                  <SelectTrigger className="h-11 w-full rounded-lg border-border/80">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="KES">Kenyan Shillings (KES)</SelectItem>
+                    <SelectItem value="USD">US Dollar (USD)</SelectItem>
+                    <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+          )}
 
-            {/* Currency Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="currency" className="text-sm font-medium">Default Currency</Label>
-              <Select 
-                value={formData.currency} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
+          {/* Step 2: Invite Members */}
+          {currentStep === 2 && (
+            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-300">
+              <div className="space-y-2 w-full">
+                <Label htmlFor="inviteMembers" className="text-sm font-medium">
+                  Email addresses
+                </Label>
+                <Textarea
+                  id="inviteMembers"
+                  placeholder="colleague@company.com, another@company.com"
+                  value={formData.inviteMembers}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, inviteMembers: e.target.value }))
+                  }
+                  className="min-h-[120px] w-full resize-none rounded-lg border-border/80 focus-visible:ring-2"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Separate with commas or new lines. Optional — you can invite later from
+                  company settings.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div className="px-8 pb-8 pt-2 flex gap-3">
+          {currentStep === 2 ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCurrentStep(1)}
+                className="flex-1 h-11 rounded-lg"
+                disabled={createTeamMutation.isPending}
               >
-                <SelectTrigger className="h-11 w-full">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="KES">Kenyan Shillings (KES)</SelectItem>
-                  <SelectItem value="USD">US Dollar (USD)</SelectItem>
-                  <SelectItem value="EUR">Euro (EUR)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Next Button */}
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                className="flex-1 h-11 rounded-lg gap-2"
+                disabled={createTeamMutation.isPending}
+              >
+                {createTeamMutation.isPending ? "Creating…" : "Create company"}
+                {!createTeamMutation.isPending && (
+                  <ArrowRight className="h-4 w-4" />
+                )}
+              </Button>
+            </>
+          ) : (
             <Button
+              type="button"
               onClick={handleNext}
-              className="w-full h-11 flex items-center gap-2"
+              className="w-full h-11 rounded-lg gap-2"
             >
               Continue
               <ArrowRight className="h-4 w-4" />
             </Button>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
 
-        {/* Step 2: Invite Members */}
-        {currentStep === 2 && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Invite Team Members</h2>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="inviteMembers" className="text-sm font-medium">
-                Email Addresses
-              </Label>
-              <Textarea
-                id="inviteMembers"
-                placeholder="Enter email addresses separated by commas or new lines&#10;example@company.com, john@company.com"
-                value={formData.inviteMembers}
-                onChange={(e) => setFormData(prev => ({ ...prev, inviteMembers: e.target.value }))}
-                className="min-h-[120px] resize-none"
-              />
-              <p className="text-xs text-muted-foreground">
-                Separate multiple email addresses with commas or new lines
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentStep(1)}
-                className="flex-1 h-11"
-                disabled={createTeamMutation.isPending}
-              >
-                Back
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                className="flex-1 h-11 flex items-center gap-2"
-                disabled={createTeamMutation.isPending}
-              >
-                {createTeamMutation.isPending ? "Creating..." : "Create Team"}
-                {!createTeamMutation.isPending && <ArrowRight className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      <p className="text-center text-xs text-muted-foreground mt-6">
+        Step {currentStep} of {STEPS.length}
+      </p>
+    </div>
   );
 }

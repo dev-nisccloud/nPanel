@@ -121,7 +121,7 @@ export function SectionCards() {
 						<span className="text-muted-foreground">·</span>
 						Expired <span className="text-red-600 dark:text-red-400">{domainsExpired}</span>
 					</div>
-					<div className="text-muted-foreground">Total domains for this team</div>
+					<div className="text-muted-foreground">Total domains for this company</div>
 				</CardFooter>
 			</Card>
 
@@ -139,7 +139,7 @@ export function SectionCards() {
 						<span className="text-muted-foreground">·</span>
 						Unpaid <span className="text-red-600 dark:text-red-400">{invoicesUnpaid}</span>
 					</div>
-					<div className="text-muted-foreground">Total invoices for this team</div>
+					<div className="text-muted-foreground">Total invoices for this company</div>
 				</CardFooter>
 			</Card>
 
@@ -157,7 +157,7 @@ export function SectionCards() {
 						<span className="text-muted-foreground">·</span>
 						Failed <span className="text-red-600 dark:text-red-400">{ordersFailed}</span>
 					</div>
-					<div className="text-muted-foreground">Order status for this team</div>
+					<div className="text-muted-foreground">Order status for this company</div>
 				</CardFooter>
 			</Card>
 
@@ -175,7 +175,7 @@ export function SectionCards() {
 						<span className="text-muted-foreground">·</span>
 						Pending/Expired <span className="text-red-600 dark:text-red-400">{subsOther}</span>
 					</div>
-					<div className="text-muted-foreground">Service subscriptions for this team</div>
+					<div className="text-muted-foreground">Service subscriptions for this company</div>
 				</CardFooter>
 			</Card>
 		</div>

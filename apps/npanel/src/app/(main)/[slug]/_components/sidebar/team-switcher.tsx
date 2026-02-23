@@ -94,7 +94,7 @@ export function TeamSwitcher() {
               <AvatarImage src={activeTeam.logoUrl} alt={activeTeam.name} />
             ) : null}
             <AvatarFallback className="rounded-lg text-xs font-semibold">
-              {getInitials(activeTeam?.name || "Team")}
+              {getInitials(activeTeam?.name || "Company")}
             </AvatarFallback>
           </Avatar>
           <div className="hidden sm:flex sm:flex-col sm:items-start sm:gap-0.5">
@@ -107,7 +107,7 @@ export function TeamSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Teams</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Companies</DropdownMenuLabel>
         {teams.map((team) => (
           <DropdownMenuItem
             key={team.id}
@@ -140,7 +140,7 @@ export function TeamSwitcher() {
               <Plus className="h-4 w-4" />
             </AvatarFallback>
           </Avatar>
-          <span className="text-sm font-medium">Create Team</span>
+          <span className="text-sm font-medium">Create Company</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

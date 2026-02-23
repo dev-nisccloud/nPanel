@@ -156,7 +156,7 @@ export function DashboardInvoicesTable() {
                   <FileText className="h-10 w-10 text-muted-foreground mb-2" />
                   <span className="text-sm font-medium text-muted-foreground">No invoices found</span>
                   <span className="text-xs text-muted-foreground mt-1">
-                    Invoices issued to your team will appear here.
+                    Invoices issued to your company will appear here.
                   </span>
                 </div>
               </TableCell>

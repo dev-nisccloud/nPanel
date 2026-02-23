@@ -144,7 +144,7 @@ export function DashboardSubscriptionsTable() {
                   <Package className="h-10 w-10 text-muted-foreground mb-2" />
                   <span className="text-sm font-medium text-muted-foreground">No subscriptions found</span>
                   <span className="text-xs text-muted-foreground mt-1">
-                    Subscriptions for your team will appear here.
+                    Subscriptions for your company will appear here.
                   </span>
                 </div>
               </TableCell>

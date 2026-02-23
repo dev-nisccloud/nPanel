@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
@@ -9,6 +9,7 @@ import { GlobalBuyNowDialogWrapper } from "@/components/global-buy-now-dialog-wr
 import { QueryProvider } from "@/providers/query-provider";
 import { APP_CONFIG } from "@/config/app-config";
 import { getPreference } from "@/server/server-actions";
+import RootLoading from "./loading";
 import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
 import { THEME_MODE_VALUES, THEME_PRESET_VALUES, type ThemePreset, type ThemeMode } from "@/types/preferences/theme";
 
@@ -60,44 +61,70 @@ export const viewport = {
 // Skip static prerender of "/" to avoid Next.js 15 clientReferenceManifest bug during "Generating static pages"
 export const dynamic = "force-dynamic";
 
-export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  let themeMode: ThemeMode = DEFAULT_THEME_MODE;
-  let themePreset: ThemePreset = DEFAULT_THEME_PRESET;
-  try {
-    const [mode, preset] = await Promise.all([
-      getPreference<ThemeMode>("theme_mode", THEME_MODE_VALUES, DEFAULT_THEME_MODE),
-      getPreference<ThemePreset>("theme_preset", THEME_PRESET_VALUES, DEFAULT_THEME_PRESET),
-    ]);
-    themeMode = mode;
-    themePreset = preset;
-  } catch (err) {
-    // Avoid 500 on root when cookies/headers fail (e.g. edge, first load, production proxy)
-    if (process.env.NODE_ENV === "production") {
-      console.warn("[RootLayout] getPreference failed, using defaults");
-    } else {
-      console.warn("[RootLayout] getPreference failed, using defaults:", err);
-    }
-  }
-
+/** Minimal HTML that redirects to login - used when root layout throws so we never 500 */
+function SafeRedirectToLogin() {
   return (
-    <html
-      lang="en"
-      className={themeMode === "dark" ? "dark" : ""}
-      data-theme-preset={themePreset}
-      suppressHydrationWarning
-    >
-      <head />
-      <body className={`${inter.className} min-h-screen antialiased`}>
-        <NuqsAdapter>
-          <QueryProvider>
-            <PreferencesStoreProvider themeMode={themeMode} themePreset={themePreset}>
-              {children}
-              <GlobalBuyNowDialogWrapper />
-              <Toaster />
-            </PreferencesStoreProvider>
-          </QueryProvider>
-        </NuqsAdapter>
+    <html lang="en">
+      <head>
+        <meta httpEquiv="refresh" content={`0;url=/auth/login`} />
+        <script dangerouslySetInnerHTML={{ __html: `window.location.replace("/auth/login");` }} />
+      </head>
+      <body>
+        <p>Redirecting to login…</p>
       </body>
     </html>
   );
+}
+
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  try {
+    let themeMode: ThemeMode = DEFAULT_THEME_MODE;
+    let themePreset: ThemePreset = DEFAULT_THEME_PRESET;
+    try {
+      const [mode, preset] = await Promise.all([
+        getPreference<ThemeMode>("theme_mode", THEME_MODE_VALUES, DEFAULT_THEME_MODE),
+        getPreference<ThemePreset>("theme_preset", THEME_PRESET_VALUES, DEFAULT_THEME_PRESET),
+      ]);
+      themeMode = mode;
+      themePreset = preset;
+    } catch (err) {
+      if (process.env.NODE_ENV === "production") {
+        console.warn("[RootLayout] getPreference failed, using defaults");
+      } else {
+        console.warn("[RootLayout] getPreference failed, using defaults:", err);
+      }
+    }
+
+    return (
+      <html
+        lang="en"
+        className={themeMode === "dark" ? "dark" : ""}
+        data-theme-preset={themePreset}
+        suppressHydrationWarning
+      >
+        <head />
+        <body className={`${inter.className} min-h-screen antialiased`}>
+          <NuqsAdapter>
+            <QueryProvider>
+              <PreferencesStoreProvider themeMode={themeMode} themePreset={themePreset}>
+                <Suspense fallback={<RootLoading />}>
+                  {children}
+                </Suspense>
+                <GlobalBuyNowDialogWrapper />
+                <Toaster />
+              </PreferencesStoreProvider>
+            </QueryProvider>
+          </NuqsAdapter>
+        </body>
+      </html>
+    );
+  } catch (err) {
+    // Log full error so Cloud Run logs show the real cause; never 500 for GET /
+    console.error(
+      "[RootLayout] unexpected error:",
+      err instanceof Error ? err.message : String(err),
+      err instanceof Error ? err.stack : ""
+    );
+    return <SafeRedirectToLogin />;
+  }
 }

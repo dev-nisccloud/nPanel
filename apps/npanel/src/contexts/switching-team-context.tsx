@@ -49,8 +49,8 @@ export function SwitchingTeamProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Overlay shown when switching teams. Matches NavigationLoader style
- * so the user sees a full-screen “Switching team...” state and cannot interact.
+ * Overlay shown when switching companies. Matches NavigationLoader style
+ * so the user sees a full-screen “Switching company...” state and cannot interact.
  * Must be rendered inside SwitchingTeamProvider.
  */
 export function SwitchingTeamOverlay() {
@@ -65,7 +65,7 @@ export function SwitchingTeamOverlay() {
       aria-busy="true"
     >
       <div className="flex flex-col items-center justify-center">
-        <p className="text-xl font-bold text-muted-foreground">Switching team...</p>
+        <p className="text-xl font-bold text-muted-foreground">Switching company...</p>
       </div>
     </div>
   );

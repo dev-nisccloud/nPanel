@@ -128,7 +128,7 @@ export default function SubscriptionsIndex() {
 				<div className="flex flex-col gap-2">
 					<h1 className="text-2xl font-semibold tracking-tight">Subscriptions</h1>
 					<p className="text-muted-foreground">
-						View and manage your team's active service subscriptions.
+						View and manage your company's active service subscriptions.
 					</p>
 				</div>
 
@@ -162,7 +162,7 @@ export default function SubscriptionsIndex() {
 					{!subscriptions || subscriptions.length === 0 ? (
 						<EmptyState
 							title="You do not have any subscriptions yet"
-							description="Subscriptions for your team will appear here once they are created."
+							description="Subscriptions for your company will appear here once they are created."
 						/>
 					) : filteredSubscriptions.length === 0 ? (
 						<EmptyState

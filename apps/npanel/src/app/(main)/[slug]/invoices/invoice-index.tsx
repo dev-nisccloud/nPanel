@@ -132,7 +132,7 @@ export default function InvoiceIndex() {
 				<div className="flex flex-col gap-2">
 					<h1 className="text-2xl font-semibold tracking-tight">Invoices</h1>
 					<p className="text-muted-foreground">
-						View and manage invoices issued to your team.
+						View and manage invoices issued to your company.
 					</p>
 				</div>
 
@@ -166,7 +166,7 @@ export default function InvoiceIndex() {
 					{invoices.length === 0 ? (
 						<EmptyState
 							title="You do not have any invoices yet"
-							description="Invoices issued to your team will appear here once they are created."
+							description="Invoices issued to your company will appear here once they are created."
 						/>
 					) : filteredInvoices.length === 0 ? (
 						<EmptyState

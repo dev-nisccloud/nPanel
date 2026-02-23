@@ -16,7 +16,7 @@ const OFFERS = [
   {
     id: "domain",
     title: "Get a domain",
-    description: "Register a domain for your team and manage it from one place.",
+    description: "Register a domain for your company and manage it from one place.",
     href: (slug: string) => `/${slug}/domains`,
     label: "Get started",
     icon: Globe,

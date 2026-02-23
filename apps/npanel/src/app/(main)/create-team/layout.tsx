@@ -1,17 +1,21 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { requireAuth } from "@/lib/auth-server";
+import { requireAuth, getCurrentUser, getCustomerTeamRedirectPath } from "@/lib/auth-server";
+import { redirect } from "next/navigation";
 
-export default async function CreateTeamLayout({ children }: Readonly<{ children: ReactNode }>) {
-  // Server-side auth check - allows both CUSTOMER and AGENCY users
-  // This is the page where customers without teams are redirected
-  await requireAuth();
+export default async function CreateTeamLayout({
+  children,
+}: Readonly<{ children: ReactNode }>) {
+  const user = await requireAuth();
+  const role = (user as { role?: string }).role;
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {children}
-      </div>
-    </div>
-  );
+  // If customer already has a team, send them to their dashboard (stops redirect loop)
+  if (role === "CUSTOMER") {
+    const target = await getCustomerTeamRedirectPath(user as { id: string; lastAccessedTeamId?: string | null });
+    if (target !== "/create-team") {
+      redirect(target);
+    }
+  }
+
+  return <div className="min-h-screen bg-background">{children}</div>;
 }

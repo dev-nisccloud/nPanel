@@ -17,7 +17,7 @@ export default async function DashboardPage() {
             Welcome to nPanel, {displayName}!
           </h1>
           <p className="text-muted-foreground">
-            Overview of your team&apos;s key metrics and activities
+            Overview of your company&apos;s key metrics and activities
           </p>
         </div>
 
