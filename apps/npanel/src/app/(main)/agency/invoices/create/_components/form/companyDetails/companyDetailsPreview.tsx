@@ -4,7 +4,7 @@
 import React from "react";
 import type { CompanyDetails } from "@/app/(main)/agency/invoices/create/types";
 
-export const CompanyDetailsPreview: React.FC<CompanyDetails> = ({
+export const CompanyDetailsPreview: React.FC<CompanyDetails & { label?: string }> = ({
   email,
   companyName,
   companyAddress,
@@ -13,10 +13,11 @@ export const CompanyDetailsPreview: React.FC<CompanyDetails> = ({
   companyCountry,
   companyTaxId,
   companyZip,
+  label = "Bill To",
 }) => (
   <div>
     <p className="text-[11px] text-neutral-400 font-semibold uppercase pb-3.5">
-      Bill To
+      {label}
     </p>
     {companyName ? (
       <p className="text-2xl font-medium">{companyName}</p>

@@ -15,16 +15,23 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TransferForm } from "./transfer-form";
 
+export type TransferProvider = "kenic" | "openprovider";
+
 interface TransferReadyCardProps {
   domain: string;
   extension: string;
   price: number;
   currency: string;
+  provider: TransferProvider;
   onPurchase: () => void;
   purchaseSheetOpen: boolean;
   onPurchaseSheetOpenChange: (open: boolean) => void;
   initialDomain: string;
   initialExtension: string;
+  /** CTA button label; default "Purchase". Use "Continue" for KENIC pending_check. */
+  ctaLabel?: string;
+  /** Badge label; default "Ready for transfer". Use "We'll check availability" for KENIC pending_check. */
+  statusLabel?: string;
 }
 
 // Same formatPrice as domain search/registration (Intl.NumberFormat + currency symbols)
@@ -55,10 +62,13 @@ export function TransferReadyCard({
   extension,
   price,
   currency,
+  provider,
   purchaseSheetOpen,
   onPurchaseSheetOpenChange,
   initialDomain,
   initialExtension,
+  ctaLabel = "Purchase",
+  statusLabel = "Ready for transfer",
 }: TransferReadyCardProps) {
   const renewalYear = new Date().getFullYear() + 1;
   const renewalDate = `${renewalYear}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`;
@@ -69,9 +79,11 @@ export function TransferReadyCard({
         <CardContent className="p-0">
           <div className="flex flex-wrap items-center justify-between gap-4 p-4">
             <div className="flex flex-col gap-1">
-              <span className="inline-flex w-fit rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
-                Ready for transfer
-              </span>
+              {statusLabel ? (
+                <span className="inline-flex w-fit rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
+                  {statusLabel}
+                </span>
+              ) : null}
               <span className="text-lg font-bold text-foreground">{domain}</span>
             </div>
             <div className="flex items-center gap-3">
@@ -83,7 +95,7 @@ export function TransferReadyCard({
                 onClick={() => onPurchaseSheetOpenChange(true)}
                 className="font-semibold"
               >
-                Purchase
+                {ctaLabel}
               </Button>
             </div>
           </div>
@@ -135,6 +147,7 @@ export function TransferReadyCard({
                   initialExtension={initialExtension.startsWith(".") ? initialExtension.slice(1) : initialExtension}
                   price={price}
                   currency={currency}
+                  provider={provider}
                   onSuccess={() => onPurchaseSheetOpenChange(false)}
                 />
               </div>

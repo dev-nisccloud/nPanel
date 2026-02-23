@@ -311,6 +311,7 @@ model User {
   EmailBuilderDesign           EmailBuilderDesign[]
   aiChats                      AiChat[]
   niscOrders                   NiscOrder[]
+  quotations                   Quotation[]
 
   @@unique([email])
   @@index([role])

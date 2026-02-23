@@ -1,19 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeftRight, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeftRight, X, AlertCircle, Lock, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/utils/cn";
-import { parseQueryWithTld } from "@/lib/domain-query-parse";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { useCurrency } from "@/app/(main)/agency/domains/_components/currency-context";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import { TransferReadyCard } from "./transfer-ready-card";
+import { toast } from "sonner";
 
 type ValidationStatus = "idle" | "loading" | "valid" | "error";
+
+type TransferProvider = "kenic" | "openprovider" | null;
+
+/** Matches API transferStatus: available = register CTA, locked = unlock message, ready = purchase, pending_check = KENIC Continue (no Ready badge). */
+type TransferStatus = "available" | "locked" | "ready" | "pending_check" | "reserved" | "unavailable";
 
 // Same formatPrice as domain search/registration (Intl.NumberFormat + currency symbols)
 function formatPrice(price?: number, currency?: string): string {
@@ -43,20 +49,32 @@ export function TransferDomainSection() {
   const [status, setStatus] = React.useState<ValidationStatus>("idle");
   const [message, setMessage] = React.useState("");
   const [transferPrice, setTransferPrice] = React.useState<{
-    price: number;
-    currency: string;
+    price: number | null;
+    currency: string | null;
+    createPrice?: number | null;
+    createCurrency?: string | null;
   } | null>(null);
   const [parsedDomain, setParsedDomain] = React.useState<{
     name: string;
     extension: string;
     full: string;
   } | null>(null);
+  const [provider, setProvider] = React.useState<TransferProvider>(null);
+  const [transferStatus, setTransferStatus] = React.useState<TransferStatus | null>(null);
   const [pricedResult, setPricedResult] = React.useState<DomainSearchResult | null>(null);
+  const [createPricedResult, setCreatePricedResult] = React.useState<DomainSearchResult | null>(null);
   const [purchaseSheetOpen, setPurchaseSheetOpen] = React.useState(false);
 
-  const utils = trpc.useUtils();
   const currencyContext = useCurrency();
   const pricingHook = useDomainPricing(currencyContext);
+
+  const checkTransferMutation = trpc.domainTransfer.checkTransfer.useMutation({
+    onError: (err) => {
+      toast.error("Transfer check failed", {
+        description: err.message ?? "Could not check if the domain can be transferred.",
+      });
+    },
+  });
 
   const validateAndFetchPrice = React.useCallback(async () => {
     const trimmed = domainInput.trim();
@@ -65,71 +83,74 @@ export function TransferDomainSection() {
       setMessage("Enter a domain name to transfer (e.g. example.com)");
       setTransferPrice(null);
       setParsedDomain(null);
+      setProvider(null);
+      setTransferStatus(null);
       setPricedResult(null);
       return;
     }
 
-    const parsed = parseQueryWithTld(trimmed);
-    if (!parsed) {
-      setStatus("error");
-      setMessage("Invalid domain format. Enter a full domain with a valid TLD (e.g. example.com or example.co.ke)");
-      setTransferPrice(null);
-      setParsedDomain(null);
-      setPricedResult(null);
-      return;
-    }
-
-    const fullDomain = `${parsed.name}.${parsed.extension}`;
-    const extNoDot = parsed.extension.startsWith(".") ? parsed.extension.slice(1) : parsed.extension;
     setStatus("loading");
     setMessage("");
     setTransferPrice(null);
-    setParsedDomain({ name: parsed.name, extension: parsed.extension, full: fullDomain });
+    setParsedDomain(null);
+    setProvider(null);
+    setTransferStatus(null);
     setPricedResult(null);
+    setCreatePricedResult(null);
 
     try {
-      const tldData = await utils.openProvider.tlds.getTldByExtension.fetch({ extension: extNoDot });
-      if (!tldData?.success || !tldData?.data) {
-        setStatus("error");
-        setMessage("This TLD is not available for transfer. Please try another domain.");
-        setParsedDomain(null);
-        setPricedResult(null);
+      const result = await checkTransferMutation.mutateAsync({ domain: trimmed });
+      const statusFromApi = result.transferStatus as TransferStatus | undefined;
+
+      setProvider(result.provider);
+      setTransferStatus(statusFromApi ?? (result.transferrable ? "ready" : "unavailable"));
+
+      if (result.transferrable) {
+        if (result.name == null || result.extension == null || result.domain == null) {
+          setStatus("error");
+          setMessage("Invalid response. Please try again.");
+          setTransferPrice(null);
+          setParsedDomain(null);
+          return;
+        }
+        setParsedDomain({
+          name: result.name,
+          extension: result.extension,
+          full: result.domain,
+        });
+        setTransferPrice({
+          price: result.price ?? null,
+          currency: result.currency ?? null,
+          createPrice: (result as { createPrice?: number | null }).createPrice ?? null,
+          createCurrency: (result as { createCurrency?: string | null }).createCurrency ?? null,
+        });
+        setStatus("valid");
+        setMessage("");
         return;
       }
 
-      const tld = tldData.data as { prices?: { transfer_price?: { product?: { price?: number; currency?: string }; reseller?: { price?: number; currency?: string } } } };
-      const transferPriceInfo = tld?.prices?.transfer_price;
-      if (!transferPriceInfo) {
-        setStatus("error");
-        setMessage("Transfer price not available for this TLD. Please try another domain.");
-        setParsedDomain(null);
-        setPricedResult(null);
-        return;
-      }
-
-      const priceSource = transferPriceInfo.reseller ?? transferPriceInfo.product;
-      if (!priceSource?.price) {
-        setStatus("error");
-        setMessage("Transfer price not available for this TLD. Please try another domain.");
-        setParsedDomain(null);
-        setPricedResult(null);
-        return;
-      }
-
-      setTransferPrice({
-        price: priceSource.price,
-        currency: priceSource.currency ?? "USD",
-      });
-      setStatus("valid");
-      setMessage("");
-    } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setMessage(result.error ?? "This domain cannot be transferred.");
       setTransferPrice(null);
       setParsedDomain(null);
-      setPricedResult(null);
+
+      if (statusFromApi !== "available" && statusFromApi !== "locked") {
+        toast.error("Domain not transferrable", {
+          description: result.error ?? "This domain cannot be transferred.",
+        });
+      }
+    } catch {
+      setStatus("error");
+      setMessage(
+        checkTransferMutation.error?.message ??
+          "Something went wrong. Please try again."
+      );
+      setTransferPrice(null);
+      setParsedDomain(null);
+      setProvider(null);
+      setTransferStatus("unavailable");
     }
-  }, [domainInput, utils]);
+  }, [domainInput, checkTransferMutation]);
 
   const handleClear = () => {
     setDomainInput("");
@@ -137,21 +158,24 @@ export function TransferDomainSection() {
     setMessage("");
     setTransferPrice(null);
     setParsedDomain(null);
-    setPricedResult(null);
+    setProvider(null);
+      setTransferStatus(null);
+      setPricedResult(null);
+      setCreatePricedResult(null);
   };
 
-  // Apply TLD settings markup and currency conversion (same as domain search)
+  // Apply TLD settings margin and currency conversion (same as domain search for OpenProvider/KENIC)
   React.useEffect(() => {
     if (
       status !== "valid" ||
-      !transferPrice ||
       !parsedDomain ||
+      transferPrice?.price == null ||
       pricingHook.isLoadingTldSettings
     ) {
-      // Clear priced result when not in a valid/pricable state
-      if (pricedResult !== null && (!transferPrice || !parsedDomain || status !== "valid")) {
+      if (pricedResult !== null && (status !== "valid" || transferPrice?.price == null)) {
         setPricedResult(null);
       }
+      if (createPricedResult !== null) setCreatePricedResult(null);
       return;
     }
 
@@ -161,22 +185,46 @@ export function TransferDomainSection() {
       price: {
         product: {
           price: transferPrice.price,
-          currency: transferPrice.currency,
+          currency: transferPrice.currency ?? "USD",
         },
         reseller: {
           price: transferPrice.price,
-          currency: transferPrice.currency,
+          currency: transferPrice.currency ?? "USD",
         },
       },
       reason: `Transfer: ${parsedDomain.full}`,
     };
 
+    const hasCreatePrice =
+      transferPrice.createPrice != null && (transferPrice.createCurrency ?? "").length > 0;
+    const createRawResult: DomainSearchResult | undefined = hasCreatePrice
+      ? {
+          domain: parsedDomain.full,
+          status: "free",
+          price: {
+            product: {
+              price: transferPrice.createPrice!,
+              currency: transferPrice.createCurrency ?? "USD",
+            },
+            reseller: {
+              price: transferPrice.createPrice!,
+              currency: transferPrice.createCurrency ?? "USD",
+            },
+          },
+          reason: `Create: ${parsedDomain.full}`,
+        }
+      : undefined;
+
+    const batch = hasCreatePrice ? [rawResult, createRawResult!] : [rawResult];
     pricingHook
-      .calculatePricesBatch([rawResult])
-      .then(([priced]) => setPricedResult(priced))
+      .calculatePricesBatch(batch)
+      .then((priced) => {
+        setPricedResult(priced[0] ?? null);
+        setCreatePricedResult(hasCreatePrice ? (priced[1] ?? null) : null);
+      })
       .catch(() => {
-        // On failure, fall back to raw price (pricedResult stays null)
         setPricedResult(null);
+        setCreatePricedResult(null);
       });
   }, [
     status,
@@ -195,15 +243,39 @@ export function TransferDomainSection() {
       }
     | undefined;
 
+  const calculatedCreate = createPricedResult?.price?.calculated as
+    | {
+        convertedPrice?: number;
+        finalPrice: number;
+        displayCurrency?: string;
+        currency: string;
+      }
+    | undefined;
+
+  const hasNumericPrice =
+    transferPrice != null &&
+    transferPrice.price != null;
+
+  // Only use calculated prices (margin + conversion) — never show raw API currency before conversion is ready
   const displayPrice =
     calculated != null
       ? (calculated.convertedPrice ?? calculated.finalPrice)
-      : transferPrice?.price;
+      : null;
 
   const displayCurrency =
     calculated != null
       ? (calculated.displayCurrency ?? calculated.currency)
-      : transferPrice?.currency ?? "USD";
+      : null;
+
+  const createDisplayPrice =
+    calculatedCreate != null
+      ? (calculatedCreate.convertedPrice ?? calculatedCreate.finalPrice)
+      : null;
+
+  const createDisplayCurrency =
+    calculatedCreate != null
+      ? (calculatedCreate.displayCurrency ?? calculatedCreate.currency)
+      : null;
 
   const inputBorderClass =
     status === "error"
@@ -211,6 +283,29 @@ export function TransferDomainSection() {
       : status === "valid"
         ? "border-primary focus-visible:ring-primary"
         : "";
+
+  const hasCreatePriceForPending =
+    transferStatus === "pending_check" &&
+    transferPrice?.createPrice != null &&
+    (transferPrice?.createCurrency ?? "").length > 0;
+
+  const pricingReady =
+    !hasNumericPrice ||
+    (pricedResult != null && (!hasCreatePriceForPending || createPricedResult != null));
+
+  const showReadyCard =
+    status === "valid" &&
+    parsedDomain != null &&
+    provider != null &&
+    pricingReady &&
+    (hasNumericPrice ? displayPrice != null : true);
+
+  const showPricingLoading =
+    status === "valid" &&
+    parsedDomain != null &&
+    hasNumericPrice &&
+    !pricingReady &&
+    !pricingHook.isLoadingTldSettings;
 
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm">
@@ -228,7 +323,7 @@ export function TransferDomainSection() {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Input
-              placeholder="example.com"
+              placeholder="example.com or example.co.ke"
               value={domainInput}
               onChange={(e) => {
                 setDomainInput(e.target.value);
@@ -237,9 +332,13 @@ export function TransferDomainSection() {
                   setMessage("");
                   setTransferPrice(null);
                   setParsedDomain(null);
+                  setProvider(null);
+                  setTransferStatus(null);
                 }
               }}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), validateAndFetchPrice())}
+              onKeyDown={(e) =>
+                e.key === "Enter" && (e.preventDefault(), validateAndFetchPrice())
+              }
               className={cn("h-11 pr-9", inputBorderClass)}
               disabled={status === "loading"}
             />
@@ -263,7 +362,7 @@ export function TransferDomainSection() {
             {status === "loading" ? (
               <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
             ) : (
-              "Transfer"
+              "Check transfer"
             )}
           </Button>
         </div>
@@ -280,26 +379,110 @@ export function TransferDomainSection() {
             {message}
           </p>
         )}
-        {status === "valid" && transferPrice && parsedDomain && !message && displayPrice != null && (
+
+        {/* Available for registration — CTA to register page */}
+        {status === "error" && transferStatus === "available" && (
+          <div className="mt-4 flex flex-col gap-4 rounded-lg border border-primary/30 bg-primary/5 p-4 text-left">
+            <div className="flex gap-3">
+              <Globe className="h-5 w-5 shrink-0 text-primary" />
+              <div>
+                <h3 className="font-medium text-foreground">This domain is available for registration</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {message} Go to domain registration to register it.
+                </p>
+              </div>
+            </div>
+            <Button asChild className="w-fit">
+              <Link href={`/agency/domains${domainInput.trim() ? `?search=${encodeURIComponent(domainInput.trim())}` : ""}`}>
+                Register domain
+              </Link>
+            </Button>
+          </div>
+        )}
+
+        {/* Locked — explain and ask user to unlock */}
+        {status === "error" && transferStatus === "locked" && (
+          <div className="mt-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
+            <Lock className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-500" />
+            <div>
+              <h3 className="font-medium text-foreground">Domain is locked</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                After unlocking at your current registrar, return here and check the domain again to continue with the transfer.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Other errors (reserved, unavailable, invalid) — why transfer failed */}
+        {status === "error" && message && transferStatus !== "available" && transferStatus !== "locked" && (
+          <div
+            className="mt-4 flex gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-left"
+            role="alert"
+          >
+            <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
+            <div>
+              <h3 className="font-medium text-destructive">Why the transfer failed</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+            </div>
+          </div>
+        )}
+
+        {showPricingLoading && (
+          <div className="mt-2 flex items-center justify-center rounded-md bg-muted/80 px-3 py-2">
+            <Spinner variant="ellipsis" size="sm" />
+          </div>
+        )}
+
+        {showReadyCard && status === "valid" && parsedDomain && provider && transferStatus !== "pending_check" && (
           <p className="mt-2 rounded-md bg-muted/80 px-3 py-2 text-sm text-muted-foreground">
-            Transfer your .{parsedDomain.extension} for {formatPrice(displayPrice, displayCurrency)}. The
-            price includes domain renewal for a year.
+            {hasNumericPrice && displayPrice != null && displayCurrency != null ? (
+              <>
+                Transfer your .{parsedDomain.extension} for {formatPrice(displayPrice, displayCurrency)}.
+                The price includes domain renewal for a year.
+              </>
+            ) : (
+              <>Contact support for .{parsedDomain.extension} transfer pricing.</>
+            )}
+          </p>
+        )}
+
+        {showReadyCard && status === "valid" && parsedDomain && provider && transferStatus === "pending_check" && (
+          <p className="mt-2 rounded-md bg-muted/80 px-3 py-2 text-sm text-muted-foreground">
+            We will check the availability of your domain and get back to you in a few minutes.
+            {hasNumericPrice && displayPrice != null && displayCurrency != null && (
+              <>
+                {" "}
+                If this domain is available for <strong>transfer</strong>, it will cost you{" "}
+                {formatPrice(displayPrice, displayCurrency)}.
+              </>
+            )}
+            {createDisplayPrice != null && createDisplayCurrency != null && (
+              <>
+                {" "}
+                If available for <strong>registration</strong>, it will cost you{" "}
+                {formatPrice(createDisplayPrice, createDisplayCurrency)}.
+              </>
+            )}
           </p>
         )}
       </div>
 
-      {status === "valid" && transferPrice && parsedDomain && displayPrice != null && (
+      {showReadyCard && parsedDomain && provider && (
         <div className="mt-6">
           <TransferReadyCard
             domain={parsedDomain.full}
             extension={parsedDomain.extension}
-            price={displayPrice}
-            currency={displayCurrency}
+            price={displayPrice ?? 0}
+            currency={displayCurrency ?? transferPrice?.currency ?? "USD"}
+            provider={provider}
             onPurchase={() => setPurchaseSheetOpen(true)}
             purchaseSheetOpen={purchaseSheetOpen}
             onPurchaseSheetOpenChange={setPurchaseSheetOpen}
             initialDomain={parsedDomain.name}
             initialExtension={parsedDomain.extension}
+            ctaLabel={transferStatus === "pending_check" ? "Continue" : "Purchase"}
+            statusLabel={transferStatus === "pending_check" ? "" : undefined}
           />
         </div>
       )}

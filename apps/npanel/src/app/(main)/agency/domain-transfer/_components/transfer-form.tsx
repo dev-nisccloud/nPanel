@@ -19,6 +19,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "sonner";
 import { SheetClose } from "@/components/npanel-ui/sheet";
 import { trpc } from "@/utils/trpc";
+import type { TransferProvider } from "./transfer-ready-card";
 
 const transferFormSchema = z.object({
   authCode: z.string().min(1, "Authorization code is required"),
@@ -57,6 +58,7 @@ interface TransferFormProps {
   initialExtension: string;
   price: number;
   currency: string;
+  provider: TransferProvider;
   onSuccess?: () => void;
   isSubmitting?: boolean;
 }
@@ -67,6 +69,7 @@ export function TransferForm({
   initialExtension,
   price,
   currency,
+  provider,
   onSuccess,
 }: TransferFormProps) {
   const form = useForm<TransferFormValues>({
@@ -76,14 +79,25 @@ export function TransferForm({
     },
   });
 
-  const transferMutation = trpc.openProvider.domains.transfer.useMutation({
-    onSuccess: () => {
-      toast.success("Domain transfer initiated successfully", {
-        description: `Transfer request for ${fullDomain} has been submitted.`,
+  const onTransferSuccess = () => {
+    toast.success("Domain transfer initiated successfully", {
+      description: `Transfer request for ${fullDomain} has been submitted.`,
+    });
+    form.reset();
+    onSuccess?.();
+  };
+
+  const openProviderTransfer = trpc.openProvider.domains.transfer.useMutation({
+    onSuccess: onTransferSuccess,
+    onError: (error) => {
+      toast.error("Failed to initiate transfer", {
+        description: error.message || "An unexpected error occurred",
       });
-      form.reset();
-      onSuccess?.();
     },
+  });
+
+  const kenicTransfer = trpc.kenic.domainTransfer.request.useMutation({
+    onSuccess: onTransferSuccess,
     onError: (error) => {
       toast.error("Failed to initiate transfer", {
         description: error.message || "An unexpected error occurred",
@@ -93,27 +107,34 @@ export function TransferForm({
 
   const onSubmit = async (data: TransferFormValues) => {
     try {
-      const extension = initialExtension.startsWith(".")
-        ? initialExtension.slice(1)
-        : initialExtension;
-
-      await transferMutation.mutateAsync({
-        domain: {
-          name: initialDomain,
-          extension,
-        },
-        auth_code: data.authCode,
-        owner_handle: "default",
-        admin_handle: "default",
-        tech_handle: "default",
-        autorenew: "default",
-      });
+      if (provider === "kenic") {
+        await kenicTransfer.mutateAsync({
+          name: fullDomain,
+          authCode: data.authCode,
+          period: 1,
+        });
+      } else {
+        const extension = initialExtension.startsWith(".")
+          ? initialExtension.slice(1)
+          : initialExtension;
+        await openProviderTransfer.mutateAsync({
+          domain: {
+            name: initialDomain,
+            extension,
+          },
+          auth_code: data.authCode,
+          owner_handle: "default",
+          admin_handle: "default",
+          tech_handle: "default",
+          autorenew: "default",
+        });
+      }
     } catch {
       // Error handled by mutation onError
     }
   };
 
-  const isSubmitting = transferMutation.isPending;
+  const isSubmitting = openProviderTransfer.isPending || kenicTransfer.isPending;
 
   return (
     <Form {...form}>

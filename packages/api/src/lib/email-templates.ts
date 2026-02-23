@@ -7,6 +7,7 @@ import {
 	AccountCreatedEmail,
 	AgencyUserCreatedEmail,
 	InvoiceDeliveryEmail,
+	QuotationDeliveryEmail,
 	OrderConfirmationEmail,
 	PaymentReceiptEmail,
 	CampaignCreatedEmail,
@@ -151,6 +152,42 @@ export async function renderInvoiceDeliveryEmail({
     invoiceNumber,
     issueDate,
     dueDate,
+    totalAmount,
+    currency,
+    services,
+    supportEmail,
+    supportPhone,
+  }));
+}
+
+export async function renderQuotationDeliveryEmail({
+  customerName,
+  quotationNumber,
+  issueDate,
+  totalAmount,
+  currency,
+  services,
+  supportEmail,
+  supportPhone,
+}: {
+  customerName?: string;
+  quotationNumber?: string;
+  issueDate?: string;
+  totalAmount?: string;
+  currency?: string;
+  services?: Array<{
+    name: string;
+    description?: string;
+    quantity?: number;
+    price?: string;
+  }>;
+  supportEmail?: string;
+  supportPhone?: string;
+}) {
+  return render(QuotationDeliveryEmail({
+    customerName,
+    quotationNumber,
+    issueDate,
     totalAmount,
     currency,
     services,

@@ -1,0 +1,103 @@
+// Quotations Schema
+// Quotations are like invoices but with manual company details, no due date, no payment method, no QR.
+// Title is "Quotation" and includes taxable percentage.
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+model Quotation {
+  id              String          @id @map("_id")
+  quotationNumber String? // Human-readable number (e.g., QUOT-0001)
+  customerName    String? // For list/search (also in customerDetails)
+  customerEmail   String?
+  token           String          @unique // Public token for sharing and PDFs
+  status          QuotationStatus @default(DRAFT)
+  amount          String? // Total amount
+  subtotal        String? // Subtotal before tax/discount
+  tax             String? // Combined tax amount
+  taxPercentage   Float? // Taxable percentage applied
+  vat             String? // VAT amount if applicable
+  discount        String? // Discount applied
+  currency        String          @default("KES")
+  issueDate       DateTime?
+  note            String?
+  internalNote    String?
+  fromDetails     Json? // Structured agency/seller details (manual entry)
+  customerDetails Json? // Structured customer details (manual entry)
+  noteDetails     Json? // Additional notes (editor content)
+  template        Json? // Serialized template configuration
+  topBlock        Json? // Rich content block above line items
+  bottomBlock     Json? // Rich content block below totals
+  metadata        Json?
+  createdBy       String // User who created the quotation
+  updatedBy       String?
+  createdAt       DateTime
+  updatedAt       DateTime
+
+  // Relations
+  createdByUser User                   @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  lineItems     QuotationLineItem[]
+  activityLogs  QuotationActivityLog[]
+
+  @@index([quotationNumber])
+  @@index([status])
+  @@index([createdBy])
+  @@index([issueDate])
+  @@map("quotation")
+}
+
+model QuotationLineItem {
+  id          String   @id @map("_id")
+  quotationId String
+  position    Int      @default(0)
+  name        String?
+  description String?
+  quantity    Float?
+  unit        String?
+  price       String?
+  discount    String?
+  total       String?
+  metadata    Json?
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@index([position])
+  @@map("quotation_line_item")
+}
+
+model QuotationActivityLog {
+  id          String   @id @map("_id")
+  quotationId String
+  userId      String
+  action      String // e.g., CREATE, SEND, UPDATE, CANCEL, ACCEPT, DECLINE
+  description String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("quotation_activity_log")
+}
+
+model QuotationCounter {
+  id         String   @id @default("quotation-counter")
+  lastNumber Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@map("quotation_counter")
+}

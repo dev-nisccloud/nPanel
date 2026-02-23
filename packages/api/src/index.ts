@@ -25,3 +25,13 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 
 // Export the app router and its type
 export { appRouter, type AppRouter } from "./routers/index";
+
+// Quotation types for UI
+export type {
+	QuotationSummary,
+	QuotationDetail,
+	QuotationStatusType,
+	QuotationCreateInput,
+	QuotationUpdateInput,
+	QuotationLineItemInput,
+} from "./routers/quotations/schemas";

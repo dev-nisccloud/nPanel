@@ -43,6 +43,7 @@ import { ftpRouter } from "./plesk/ftp";
 import { pleskHealthCheckRouter } from "./plesk/health-check";
 import { openProviderRouter } from "./openprovider";
 import { kenicRouter } from "./kenic";
+import { domainTransferRouter } from "./domain-transfer";
 import { nameserverGroupsRouter } from "./nameserver-groups";
 import { tldSettingsRouter } from "./tld-settings";
 import { domainsRouter as niscDomainsRouter } from "./domains";
@@ -60,6 +61,7 @@ import { clientsRouter } from "./clients";
 import { manageUsersRouter } from "./manage-users";
 import { ordersRouter } from "./orders";
 import { invoicingRouter } from "./invoicing";
+import { quotationsRouter } from "./quotations";
 import { teamBillingRouter } from "./team-billing";
 import { metaRouter } from "./social-media-marketing/meta";
 import { linkedinRouter } from "./social-media-marketing/linkedin";
@@ -154,6 +156,8 @@ export const appRouter = router({
 	openProvider: openProviderRouter,
 	// KENIC EPP integration (.ke and other local TLDs)
 	kenic: kenicRouter,
+	// Domain transfer check (routes to KENIC or OpenProvider)
+	domainTransfer: domainTransferRouter,
 	// Nameserver Groups management
 	nameserverGroups: nameserverGroupsRouter,
 	// TLD Settings management
@@ -188,6 +192,8 @@ export const appRouter = router({
 	orders: ordersRouter,
 	// Invoicing Management
 	invoicing: invoicingRouter,
+	// Quotations Management
+	quotations: quotationsRouter,
 	// Team Billing Settings
 	teamBilling: teamBillingRouter,
 	// Service Subscriptions Management
