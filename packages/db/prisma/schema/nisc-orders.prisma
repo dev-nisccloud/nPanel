@@ -54,6 +54,7 @@ model NiscOrder {
   niscProductPromo NiscProductPromo?        @relation(fields: [niscProductPromoId], references: [id], onDelete: SetNull)
   invoice          Invoice?                 @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   subscriptions    NiscClientSubscription[]
+  processingLogs   NiscOrderProcessingLog[]
 
   @@index([userId])
   @@index([teamId])
@@ -62,6 +63,22 @@ model NiscOrder {
   @@index([qstashMessageId])
   @@index([paymentTransactionId])
   @@map("nisc_order")
+}
+
+// --- NiscOrderProcessingLog (debug/trace in DB + order view) ------------------
+
+model NiscOrderProcessingLog {
+  id          String   @id @default(cuid())
+  niscOrderId String
+  step        String // e.g. processor_start, processor_item_branch, worker_processor_done
+  payload     Json // full structured payload (orderId, itemId, branch, error, etc.)
+  createdAt   DateTime @default(now())
+
+  niscOrder NiscOrder @relation(fields: [niscOrderId], references: [id], onDelete: Cascade)
+
+  @@index([niscOrderId])
+  @@index([niscOrderId, createdAt])
+  @@map("nisc_order_processing_log")
 }
 
 // --- NiscOrderItem -------------------------------------------------------------
@@ -79,6 +96,7 @@ model NiscOrderItem {
 
   status                   NiscOrderItemStatus @default(PENDING)
   provisioningError        String?
+  provisioningErrorDetails Json? // Exact provider response (OpenProvider/Kenic/Plesk) for debugging
   niscClientSubscriptionId String?
   primaryDomain            String?
   domainSubscriptionId     String?

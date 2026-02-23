@@ -336,15 +336,15 @@ export const agencysidebarItems: NavGroup[] = [
           // { title: "Manage Affiliates", url: "/agency/manage-affiliates", },
         ],
       },
-      {
-        title: "Orders",
-        url: "/agency/orders",
-        icon: (props: any) => React.createElement(Icons.Cart, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Orders", url: "/agency/orders", },
-          // { title: "Create Order", url: "/agency/orders", },
-        ],
-      },
+      // {
+      //   title: "Orders",
+      //   url: "/agency/orders",
+      //   icon: (props: any) => React.createElement(Icons.Cart, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     { title: "Orders", url: "/agency/orders", },
+      //     // { title: "Create Order", url: "/agency/orders", },
+      //   ],
+      // },
       {
         title: "Billing",
         url: "/agency/billing",

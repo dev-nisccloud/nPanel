@@ -1,5 +1,6 @@
 import { getQStashClient } from "./client";
 import type { NiscOrderJobPayload, NiscOrderJobResult } from "./types";
+import { niscLog } from "../nisc-order-logger";
 
 const NISC_ORDER_WORKER_PATH = "/api/workers/process-nisc-order";
 
@@ -53,9 +54,11 @@ export async function enqueueNiscOrderProcessing(
 	const client = getQStashClient();
 	const payload: NiscOrderJobPayload = { niscOrderId };
 
+	await niscLog("enqueue_start", { niscOrderId, workerUrl: url });
 	const result = await client.publishJSON({
 		url,
 		body: payload,
 	});
+	await niscLog("enqueue_success", { niscOrderId, qstashMessageId: result.messageId });
 	return { messageId: result.messageId };
 }

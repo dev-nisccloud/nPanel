@@ -40,13 +40,18 @@ import type {
 } from '../types/openprovider';
 
 export class OpenProviderApiError extends Error {
+  /** Full API response body when error is from OpenProvider API (status >= 400 or code !== 0). */
+  public readonly rawResponse?: unknown;
+
   constructor(
     public code: number,
     public description: string,
-    public originalError?: Error
+    public originalError?: Error,
+    rawResponse?: unknown
   ) {
     super(`OpenProvider API Error ${code}: ${description}`);
     this.name = 'OpenProviderApiError';
+    this.rawResponse = rawResponse;
   }
 }
 
@@ -213,7 +218,8 @@ export class OpenProviderClient {
         throw new OpenProviderApiError(
           code,
           description,
-          new Error(`HTTP ${response.statusCode}`)
+          new Error(`HTTP ${response.statusCode}`),
+          responseData
         );
       }
 

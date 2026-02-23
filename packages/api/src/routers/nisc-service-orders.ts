@@ -190,6 +190,9 @@ export const niscServiceOrdersRouter = router({
 					user: true,
 					team: true,
 					niscProductPromo: true,
+					processingLogs: {
+						orderBy: { createdAt: "asc" },
+					},
 				},
 			});
 
@@ -256,11 +259,16 @@ export const niscServiceOrdersRouter = router({
 					const domainSub = await prisma.niscClientSubscription.findFirst({
 						where: {
 							id: domainSubId,
-							product: { serviceType: "domain_registration" },
-							...(input.userId && { userId: input.userId }),
-							...(input.teamId && { teamId: input.teamId }),
+							product: {
+								OR: [
+									{ serviceType: { contains: "domain", mode: "insensitive" } },
+									{ name: { contains: "domain", mode: "insensitive" } },
+								],
+							},
+							...(input.userId != null && { userId: input.userId }),
+							...(input.teamId != null && { teamId: input.teamId }),
 						},
-						include: { product: true },
+						select: { id: true, primaryDomain: true, name: true },
 					});
 					if (!domainSub) {
 						throw new TRPCError({
@@ -377,6 +385,22 @@ export const niscServiceOrdersRouter = router({
 					item.metadata && typeof item.metadata === "object"
 						? (item.metadata as { transferAuthCode?: string; nameServers?: Array<{ name: string; ip?: string }> })
 						: null;
+				let primaryDomain = item.primaryDomain ?? null;
+				if (item.domainSubscriptionId && !primaryDomain) {
+					const sub = await prisma.niscClientSubscription.findFirst({
+						where: {
+							id: item.domainSubscriptionId,
+							product: {
+								OR: [
+									{ serviceType: { contains: "domain", mode: "insensitive" } },
+									{ name: { contains: "domain", mode: "insensitive" } },
+								],
+							},
+						},
+						select: { primaryDomain: true, name: true },
+					});
+					primaryDomain = sub?.primaryDomain ?? sub?.name ?? null;
+				}
 				await prisma.niscOrderItem.create({
 					data: {
 						niscOrderId: order.id,
@@ -386,7 +410,7 @@ export const niscServiceOrdersRouter = router({
 						itemPrice: priceStr,
 						itemSubtotal: priceStr,
 						itemCurrency: currency,
-						primaryDomain: item.primaryDomain ?? null,
+						primaryDomain,
 						domainSubscriptionId: item.domainSubscriptionId ?? null,
 						metadata: metadata ?? undefined,
 					},

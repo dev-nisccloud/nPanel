@@ -207,9 +207,11 @@ export function GlobalBuyNowDialog() {
     },
   });
 
-  // Polling: DB-only status every 5s, max 12 attempts (1 min) - same pattern as solidarity-online-drivers-sacco
-  const POLL_INTERVAL_MS = 5000;
-  const POLL_MAX_ATTEMPTS = 12;
+  // Poll queryStkPush: DB first, then M-Pesa API so we get result even if webhook is slow. 3s interval, 2 min max.
+  const POLL_INTERVAL_MS = 3000;
+  const POLL_MAX_ATTEMPTS = 40;
+
+  const PROCESSING_CODES = new Set([1037, 4999]);
 
   // @ts-expect-error - tRPC useMutation type instantiation is excessively deep with createFromPayment input
   const createOrderFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation({
@@ -229,62 +231,106 @@ export function GlobalBuyNowDialog() {
       setShouldStopPolling(false);
       terminalStateDetectedRef.current = false;
 
-      const poll = async (): Promise<boolean> => {
-        try {
-          const result = await utils.paymentGateway.mpesa.getPaymentStatusByCheckoutId.fetch({
-            checkoutRequestId: cid,
-          });
-          if (result.status === "SUCCESS") {
-            terminalStateDetectedRef.current = true;
-            immediateStepRef.current = "success";
-            immediatePaymentErrorRef.current = null;
-            setShouldStopPolling(true);
-            setPaymentError(null);
-            setCurrentStep("success");
-            toast.success("Payment completed successfully!");
-            return true;
-          }
-          if (result.status === "FAILED" || result.status === "CANCELLED") {
-            terminalStateDetectedRef.current = true;
-            const code = result.resultCode ? parseInt(String(result.resultCode), 10) : 1;
-            const msg = getUserFriendlyError(code, result.resultDesc ?? undefined);
-            immediateStepRef.current = "error";
-            immediatePaymentErrorRef.current = msg;
-            setShouldStopPolling(true);
-            setPaymentError(msg);
-            setCurrentStep("error");
-            toast.error(msg);
-            return true;
-          }
-          return false;
-        } catch {
-          return false;
+      const stopPolling = (intervalId: ReturnType<typeof setInterval> | null) => {
+        if (intervalId !== null) {
+          clearInterval(intervalId);
         }
+        pollingIntervalRef.current = null;
+        setIsPolling(false);
       };
 
-      let attempts = 0;
-      const id = setInterval(async () => {
-        attempts += 1;
-        const finished = await poll();
-        if (finished || attempts >= POLL_MAX_ATTEMPTS) {
+      const poll = async (): Promise<boolean> => {
+        // Already resolved in a previous tick – stop without another request
+        if (terminalStateDetectedRef.current) {
+          return true;
+        }
+        try {
+          const res = await utils.paymentGateway.mpesa.queryStkPush.fetch({ checkoutRequestId: cid });
+          // Backend returns { success, data: { resultCode, resultDesc } }; accept both shapes
+          const data = res && "data" in res ? (res as { data?: { resultCode?: string | number; resultDesc?: string } }).data : null;
+          const resultCode = data?.resultCode ?? (res as { resultCode?: string | number })?.resultCode;
+          const resultDesc = data?.resultDesc ?? (res as { resultDesc?: string })?.resultDesc;
+          if (resultCode === undefined || resultCode === null) return false;
+          const code = typeof resultCode === "string" ? parseInt(resultCode, 10) : resultCode;
+          if (Number.isNaN(code)) return false;
+          if (PROCESSING_CODES.has(code)) return false;
+
+          // Terminal: success or failure – clear interval immediately so no further polls run
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
           }
           setIsPolling(false);
-          if (!finished && attempts >= POLL_MAX_ATTEMPTS) {
-            const msg = "Payment is taking longer than expected. Please check your M-Pesa or try again.";
-            terminalStateDetectedRef.current = true;
+          terminalStateDetectedRef.current = true;
+          setShouldStopPolling(true);
+          if (code === 0) {
+            immediateStepRef.current = "success";
+            immediatePaymentErrorRef.current = null;
+            setPaymentError(null);
+            setCurrentStep("success");
+            toast.success("Payment completed successfully!");
+          } else {
+            const msg = getUserFriendlyError(code, resultDesc);
             immediateStepRef.current = "error";
             immediatePaymentErrorRef.current = msg;
-            setShouldStopPolling(true);
             setPaymentError(msg);
             setCurrentStep("error");
             toast.error(msg);
           }
+          return true;
+        } catch (err) {
+          // Terminal errors: stop polling and show error instead of looping until timeout
+          const message = err instanceof Error ? err.message : String(err);
+          const isAuthError =
+            message.includes("UNAUTHORIZED") ||
+            message.includes("Authentication") ||
+            message.includes("session") ||
+            message.includes("Session expired");
+          if (isAuthError) {
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+            setIsPolling(false);
+            terminalStateDetectedRef.current = true;
+            setShouldStopPolling(true);
+            const authMsg = "Your session may have expired. Please sign in again and retry.";
+            immediateStepRef.current = "error";
+            immediatePaymentErrorRef.current = authMsg;
+            setPaymentError(authMsg);
+            setCurrentStep("error");
+            toast.error(authMsg);
+            return true;
+          }
+          return false;
         }
-      }, POLL_INTERVAL_MS);
-      pollingIntervalRef.current = id;
+      };
+
+      // First poll immediately
+      poll().then((finished) => {
+        if (finished) {
+          stopPolling(null);
+          return;
+        }
+        let attempts = 1;
+        const id = setInterval(async () => {
+          attempts += 1;
+          const finishedAgain = await poll();
+          if (finishedAgain || attempts >= POLL_MAX_ATTEMPTS) {
+            stopPolling(id);
+            if (!finishedAgain && attempts >= POLL_MAX_ATTEMPTS) {
+              const msg = "Payment is taking longer than expected. Please check your M-Pesa or try again.";
+              terminalStateDetectedRef.current = true;
+              immediateStepRef.current = "error";
+              immediatePaymentErrorRef.current = msg;
+              setPaymentError(msg);
+              setCurrentStep("error");
+              toast.error(msg);
+            }
+          }
+        }, POLL_INTERVAL_MS);
+        pollingIntervalRef.current = id;
+      });
     },
     [utils, getUserFriendlyError]
   );

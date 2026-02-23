@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, ChevronRight } from "lucide-react";
 import {
 	Sheet,
 	SheetContent,
@@ -12,6 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { trpc } from "@/utils/trpc";
 
@@ -99,9 +104,23 @@ export function ViewOrderSheet({
 											{item.itemSubtotal} {item.itemCurrency} · {item.status}
 										</span>
 										{item.provisioningError && (
-											<span className="text-destructive text-xs mt-1">
+											<span className="text-destructive text-xs mt-1 block">
 												{item.provisioningError}
 											</span>
+										)}
+										{item.provisioningErrorDetails && (
+											<details className="mt-2">
+												<summary className="text-muted-foreground text-xs cursor-pointer hover:text-foreground">
+													Provider error details (raw response)
+												</summary>
+												<pre className="mt-1 p-2 rounded bg-muted/50 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px]">
+													{JSON.stringify(
+														item.provisioningErrorDetails as object,
+														null,
+														2
+													)}
+												</pre>
+											</details>
 										)}
 									</li>
 								))}
@@ -113,6 +132,44 @@ export function ViewOrderSheet({
 								{order.total} {order.currency}
 							</p>
 						</div>
+						{order.processingLogs && order.processingLogs.length > 0 && (
+							<div className="w-full">
+								<Collapsible defaultOpen={false} className="group">
+									<CollapsibleTrigger asChild>
+										<Button
+											type="button"
+											variant="ghost"
+											className="flex items-center gap-2 p-0 h-auto font-medium text-muted-foreground hover:text-foreground"
+										>
+											<ChevronRight className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-90" />
+											Processing log ({order.processingLogs.length} entries)
+										</Button>
+									</CollapsibleTrigger>
+									<CollapsibleContent>
+										<ul className="mt-2 space-y-2 border rounded-md divide-y bg-muted/30 max-h-64 overflow-y-auto">
+											{order.processingLogs.map((log) => (
+												<li key={log.id} className="p-2 text-xs">
+													<div className="flex items-center gap-2 flex-wrap">
+														<span className="font-mono font-medium text-foreground">
+															{log.step}
+														</span>
+														<span className="text-muted-foreground">
+															{new Date(log.createdAt).toISOString()}
+														</span>
+													</div>
+													<pre className="mt-1 p-2 rounded bg-muted/50 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px]">
+														{JSON.stringify(log.payload, null, 2)}
+													</pre>
+												</li>
+											))}
+										</ul>
+										<p className="text-muted-foreground text-xs mt-1">
+											Use this to trace provisioning steps and debug failures.
+										</p>
+									</CollapsibleContent>
+								</Collapsible>
+							</div>
+						)}
 						{canRetry && (
 							<Button
 								variant="outline"

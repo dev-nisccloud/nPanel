@@ -5,8 +5,35 @@
 import * as crypto from "crypto";
 import prisma from "@nPanel/db";
 import { Prisma } from "@nPanel/db";
-import { createOpenProviderClient } from "./openprovider-client";
+import {
+	createOpenProviderClient,
+	OpenProviderApiError,
+} from "./openprovider-client";
+import { niscLog } from "./nisc-order-logger";
 import type { OpenProviderCustomerRequest } from "../types/openprovider";
+
+function logOpenProviderResponse(params: {
+	orderId: string;
+	orderItemId: string;
+	call: string;
+	rawResponse: unknown;
+}): void {
+	void niscLog("processor_api_raw_response", {
+		niscOrderId: params.orderId,
+		orderItemId: params.orderItemId,
+		provider: "openprovider",
+		call: params.call,
+		rawResponse: params.rawResponse,
+	});
+}
+
+/** OpenProvider returns 20000 when the email is already verified; we treat that as success and proceed to register. */
+function isAlreadyVerifiedError(e: unknown): boolean {
+	return (
+		e instanceof OpenProviderApiError &&
+		(e.code === 20000 || e.description.toLowerCase().includes("verified already"))
+	);
+}
 
 const PROFILE_REQUIRED = [
 	"firstName",
@@ -63,10 +90,16 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 	});
 
 	const client = createOpenProviderClient();
-	await client.authenticate({
+	const authResponse = await client.authenticate({
 		username: process.env.OPENPROVIDER_USERNAME!,
 		password: process.env.OPENPROVIDER_PASSWORD!,
 		ip: process.env.OPENPROVIDER_IP,
+	});
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "auth",
+		rawResponse: authResponse,
 	});
 
 	if (!integration) {
@@ -76,8 +109,19 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 			user.email ?? "",
 		);
 		const response = await client.createCustomer(openProviderData);
+		logOpenProviderResponse({
+			orderId: params.orderId,
+			orderItemId: params.orderItemId,
+			call: "createCustomer",
+			rawResponse: response,
+		});
 		if (response.code !== 0) {
-			throw new Error(response.desc || "Failed to create OpenProvider customer");
+			throw new OpenProviderApiError(
+				response.code,
+				response.desc || "Failed to create OpenProvider customer",
+				undefined,
+				response,
+			);
 		}
 		const handle = response.data?.handle;
 		if (!handle) throw new Error("OpenProvider did not return customer handle");
@@ -100,36 +144,60 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 			include: { user: true },
 		});
 
-		await client.startEmailVerification({
-			email: user.email ?? "",
-			handle,
-			language: "en",
-		});
-
-		const { renderOpenProviderVerifyEmail } = await import("./email-templates");
-		const { sendEmail } = await import("./email");
-		const html = await renderOpenProviderVerifyEmail({
-			recipientName: profile.firstName ? `${profile.firstName} ${profile.lastName}`.trim() : "Customer",
-			domainName: params.domainName,
-		});
-		await sendEmail({
-			to: user.email!,
-			subject: "Verify your email to complete domain purchase",
-			html,
-		});
-
-		const sub = await createDomainSubscription(
-			{
-				...params,
-				productPlanId: params.productPlanId ?? null,
-				description: params.description ?? null,
-			},
-			integration.id,
-			params.domainName,
-			null,
-			"PENDING",
-		);
-		return { subscriptionId: sub.id, pendingVerification: true };
+		let alreadyVerified = false;
+		try {
+			const startVerifyResp = await client.startEmailVerification({
+				email: user.email ?? "",
+				handle,
+				language: "en",
+			});
+			logOpenProviderResponse({
+				orderId: params.orderId,
+				orderItemId: params.orderItemId,
+				call: "startEmailVerification",
+				rawResponse: startVerifyResp,
+			});
+		} catch (e) {
+			if (e instanceof OpenProviderApiError && e.rawResponse != null) {
+				logOpenProviderResponse({
+					orderId: params.orderId,
+					orderItemId: params.orderItemId,
+					call: "startEmailVerification",
+					rawResponse: e.rawResponse,
+				});
+			}
+			if (isAlreadyVerifiedError(e)) {
+				alreadyVerified = true;
+			} else {
+				throw e;
+			}
+		}
+		if (!alreadyVerified) {
+			const { renderOpenProviderVerifyEmail } = await import("./email-templates");
+			const { sendEmail } = await import("./email");
+			const html = await renderOpenProviderVerifyEmail({
+				recipientName: profile.firstName ? `${profile.firstName} ${profile.lastName}`.trim() : "Customer",
+				domainName: params.domainName,
+			});
+			await sendEmail({
+				to: user.email!,
+				subject: "Verify your email to complete domain purchase",
+				html,
+			});
+			const sub = await createDomainSubscription(
+				{
+					...params,
+					productPlanId: params.productPlanId ?? null,
+					description: params.description ?? null,
+				},
+				integration.id,
+				params.domainName,
+				null,
+				"PENDING",
+			);
+			return { subscriptionId: sub.id, pendingVerification: true };
+		}
+		// alreadyVerified: fall through to domain registration below
 	}
 
 	// Check verification status
@@ -137,37 +205,74 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 		handle: integration.platformCustomerId!,
 		email: integration.user.email ?? undefined,
 	});
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "checkEmailVerificationStatus",
+		rawResponse: statusResponse,
+	});
 	if (statusResponse.code !== 0) {
-		throw new Error(statusResponse.desc || "Failed to check email verification status");
+		throw new OpenProviderApiError(
+			statusResponse.code,
+			statusResponse.desc || "Failed to check email verification status",
+			undefined,
+			statusResponse,
+		);
 	}
 	const results = (statusResponse.data?.results as Array<{ status?: string }>) || [];
 	const isVerified = results.some((r) => r.status === "verified");
 
 	if (!isVerified) {
-		await client.startEmailVerification({
-			email: integration.user.email ?? "",
-			handle: integration.platformCustomerId!,
-			language: "en",
-		});
-		const { renderOpenProviderVerifyEmail } = await import("./email-templates");
-		const { sendEmail } = await import("./email");
-		const html = await renderOpenProviderVerifyEmail({
-			recipientName: (integration.user as { name?: string }).name ?? "Customer",
-			domainName: params.domainName,
-		});
-		await sendEmail({
-			to: integration.user.email!,
-			subject: "Verify your email to complete domain purchase",
-			html,
-		});
-		const sub = await createDomainSubscription(
-			params,
-			integration.id,
-			params.domainName,
-			null,
-			"PENDING",
-		);
-		return { subscriptionId: sub.id, pendingVerification: true };
+		let alreadyVerified = false;
+		try {
+			const startVerifyResp = await client.startEmailVerification({
+				email: integration.user.email ?? "",
+				handle: integration.platformCustomerId!,
+				language: "en",
+			});
+			logOpenProviderResponse({
+				orderId: params.orderId,
+				orderItemId: params.orderItemId,
+				call: "startEmailVerification",
+				rawResponse: startVerifyResp,
+			});
+		} catch (e) {
+			if (e instanceof OpenProviderApiError && e.rawResponse != null) {
+				logOpenProviderResponse({
+					orderId: params.orderId,
+					orderItemId: params.orderItemId,
+					call: "startEmailVerification",
+					rawResponse: e.rawResponse,
+				});
+			}
+			if (isAlreadyVerifiedError(e)) {
+				alreadyVerified = true;
+			} else {
+				throw e;
+			}
+		}
+		if (!alreadyVerified) {
+			const { renderOpenProviderVerifyEmail } = await import("./email-templates");
+			const { sendEmail } = await import("./email");
+			const html = await renderOpenProviderVerifyEmail({
+				recipientName: (integration.user as { name?: string }).name ?? "Customer",
+				domainName: params.domainName,
+			});
+			await sendEmail({
+				to: integration.user.email!,
+				subject: "Verify your email to complete domain purchase",
+				html,
+			});
+			const sub = await createDomainSubscription(
+				params,
+				integration.id,
+				params.domainName,
+				null,
+				"PENDING",
+			);
+			return { subscriptionId: sub.id, pendingVerification: true };
+		}
+		// alreadyVerified: fall through to domain registration below
 	}
 
 	// Verified: register domain
@@ -179,17 +284,35 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 	const extension = params.domainName.slice(lastDot); // e.g. ".com"
 	const period = billingCycleToYears(params.billingCycle);
 
-	const regResponse = await client.registerDomain({
+	const registerRequest = {
 		name,
 		extension,
 		period,
 		owner_handle: integration.platformCustomerId!,
 		admin_handle: integration.platformCustomerId!,
 		tech_handle: integration.platformCustomerId!,
+	};
+	void niscLog("processor_register_domain_request", {
+		niscOrderId: params.orderId,
+		orderItemId: params.orderItemId,
+		provider: "openprovider",
+		call: "registerDomain",
+		request: registerRequest,
 	});
-
+	const regResponse = await client.registerDomain(registerRequest);
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "registerDomain",
+		rawResponse: regResponse,
+	});
 	if (regResponse.code !== 0) {
-		throw new Error(regResponse.desc || "Domain registration failed");
+		throw new OpenProviderApiError(
+			regResponse.code,
+			regResponse.desc || "Domain registration failed",
+			undefined,
+			regResponse,
+		);
 	}
 	const domainId = regResponse.data?.id;
 	const sub = await createDomainSubscription(
@@ -255,10 +378,16 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 	});
 
 	const client = createOpenProviderClient();
-	await client.authenticate({
+	const authResponse = await client.authenticate({
 		username: process.env.OPENPROVIDER_USERNAME!,
 		password: process.env.OPENPROVIDER_PASSWORD!,
 		ip: process.env.OPENPROVIDER_IP,
+	});
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "auth",
+		rawResponse: authResponse,
 	});
 
 	if (!integration) {
@@ -267,8 +396,19 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 			user.email ?? "",
 		);
 		const response = await client.createCustomer(openProviderData);
+		logOpenProviderResponse({
+			orderId: params.orderId,
+			orderItemId: params.orderItemId,
+			call: "createCustomer",
+			rawResponse: response,
+		});
 		if (response.code !== 0) {
-			throw new Error(response.desc || "Failed to create OpenProvider customer");
+			throw new OpenProviderApiError(
+				response.code,
+				response.desc || "Failed to create OpenProvider customer",
+				undefined,
+				response,
+			);
 		}
 		const handle = response.data?.handle;
 		if (!handle) throw new Error("OpenProvider did not return customer handle");
@@ -291,67 +431,128 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 			include: { user: true },
 		});
 
-		await client.startEmailVerification({
-			email: user.email ?? "",
-			handle,
-			language: "en",
-		});
-		const { renderOpenProviderVerifyEmail } = await import("./email-templates");
-		const { sendEmail } = await import("./email");
-		const html = await renderOpenProviderVerifyEmail({
-			recipientName: profile.firstName ? `${profile.firstName} ${profile.lastName}`.trim() : "Customer",
-			domainName: params.domainName,
-		});
-		await sendEmail({
-			to: user.email!,
-			subject: "Verify your email to complete domain transfer",
-			html,
-		});
-		const sub = await createDomainSubscription(
-			params,
-			integration.id,
-			params.domainName,
-			null,
-			"PENDING",
-		);
-		return { subscriptionId: sub.id, pendingVerification: true };
+		let alreadyVerified = false;
+		try {
+			const startVerifyResp = await client.startEmailVerification({
+				email: user.email ?? "",
+				handle,
+				language: "en",
+			});
+			logOpenProviderResponse({
+				orderId: params.orderId,
+				orderItemId: params.orderItemId,
+				call: "startEmailVerification",
+				rawResponse: startVerifyResp,
+			});
+		} catch (e) {
+			if (e instanceof OpenProviderApiError && e.rawResponse != null) {
+				logOpenProviderResponse({
+					orderId: params.orderId,
+					orderItemId: params.orderItemId,
+					call: "startEmailVerification",
+					rawResponse: e.rawResponse,
+				});
+			}
+			if (isAlreadyVerifiedError(e)) {
+				alreadyVerified = true;
+			} else {
+				throw e;
+			}
+		}
+		if (!alreadyVerified) {
+			const { renderOpenProviderVerifyEmail } = await import("./email-templates");
+			const { sendEmail } = await import("./email");
+			const html = await renderOpenProviderVerifyEmail({
+				recipientName: profile.firstName ? `${profile.firstName} ${profile.lastName}`.trim() : "Customer",
+				domainName: params.domainName,
+			});
+			await sendEmail({
+				to: user.email!,
+				subject: "Verify your email to complete domain transfer",
+				html,
+			});
+			const sub = await createDomainSubscription(
+				params,
+				integration.id,
+				params.domainName,
+				null,
+				"PENDING",
+			);
+			return { subscriptionId: sub.id, pendingVerification: true };
+		}
 	}
 
 	const statusResponse = await client.checkEmailVerificationStatus({
 		handle: integration.platformCustomerId!,
 		email: integration.user.email ?? undefined,
 	});
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "checkEmailVerificationStatus",
+		rawResponse: statusResponse,
+	});
 	if (statusResponse.code !== 0) {
-		throw new Error(statusResponse.desc || "Failed to check email verification status");
+		throw new OpenProviderApiError(
+			statusResponse.code,
+			statusResponse.desc || "Failed to check email verification status",
+			undefined,
+			statusResponse,
+		);
 	}
 	const results = (statusResponse.data?.results as Array<{ status?: string }>) || [];
 	const isVerified = results.some((r) => r.status === "verified");
 
 	if (!isVerified) {
-		await client.startEmailVerification({
-			email: integration.user.email ?? "",
-			handle: integration.platformCustomerId!,
-			language: "en",
-		});
-		const { renderOpenProviderVerifyEmail } = await import("./email-templates");
-		const { sendEmail } = await import("./email");
-		const html = await renderOpenProviderVerifyEmail({
-			recipientName: (integration.user as { name?: string }).name ?? "Customer",
-			domainName: params.domainName,
-		});
-		await sendEmail({
-			to: integration.user.email!,
-			subject: "Verify your email to complete domain transfer",
-			html,
-		});
-		const sub = await createDomainSubscription(
-			params,
-			integration.id,
-			params.domainName,
-			null,
-			"PENDING",
-		);
-		return { subscriptionId: sub.id, pendingVerification: true };
+		let alreadyVerifiedTransfer = false;
+		try {
+			const startVerifyResp = await client.startEmailVerification({
+				email: integration.user.email ?? "",
+				handle: integration.platformCustomerId!,
+				language: "en",
+			});
+			logOpenProviderResponse({
+				orderId: params.orderId,
+				orderItemId: params.orderItemId,
+				call: "startEmailVerification",
+				rawResponse: startVerifyResp,
+			});
+		} catch (e) {
+			if (e instanceof OpenProviderApiError && e.rawResponse != null) {
+				logOpenProviderResponse({
+					orderId: params.orderId,
+					orderItemId: params.orderItemId,
+					call: "startEmailVerification",
+					rawResponse: e.rawResponse,
+				});
+			}
+			if (isAlreadyVerifiedError(e)) {
+				alreadyVerifiedTransfer = true;
+			} else {
+				throw e;
+			}
+		}
+		if (!alreadyVerifiedTransfer) {
+			const { renderOpenProviderVerifyEmail } = await import("./email-templates");
+			const { sendEmail } = await import("./email");
+			const html = await renderOpenProviderVerifyEmail({
+				recipientName: (integration.user as { name?: string }).name ?? "Customer",
+				domainName: params.domainName,
+			});
+			await sendEmail({
+				to: integration.user.email!,
+				subject: "Verify your email to complete domain transfer",
+				html,
+			});
+			const sub = await createDomainSubscription(
+				params,
+				integration.id,
+				params.domainName,
+				null,
+				"PENDING",
+			);
+			return { subscriptionId: sub.id, pendingVerification: true };
+		}
 	}
 
 	const lastDot = params.domainName.lastIndexOf(".");
@@ -362,7 +563,7 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 	const extension = params.domainName.slice(lastDot);
 	const period = params.period ?? billingCycleToYears(params.billingCycle);
 
-	const transferResponse = await client.transferDomain({
+	const transferRequest = {
 		domain: { name, extension },
 		auth_code: params.authCode,
 		owner_handle: integration.platformCustomerId!,
@@ -370,10 +571,28 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 		tech_handle: integration.platformCustomerId!,
 		period,
 		name_servers: params.nameServers?.length ? params.nameServers : undefined,
+	};
+	void niscLog("processor_transfer_domain_request", {
+		niscOrderId: params.orderId,
+		orderItemId: params.orderItemId,
+		provider: "openprovider",
+		call: "transferDomain",
+		request: { ...transferRequest, auth_code: transferRequest.auth_code ? "[REDACTED]" : undefined },
 	});
-
+	const transferResponse = await client.transferDomain(transferRequest);
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "transferDomain",
+		rawResponse: transferResponse,
+	});
 	if (transferResponse.code !== 0) {
-		throw new Error(transferResponse.desc || "Domain transfer failed");
+		throw new OpenProviderApiError(
+			transferResponse.code,
+			transferResponse.desc || "Domain transfer failed",
+			undefined,
+			transferResponse,
+		);
 	}
 	const domainId = transferResponse.data?.id ?? null;
 	const sub = await createDomainSubscription(

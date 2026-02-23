@@ -26,12 +26,13 @@ export function IntegrationsDisplay({ userId }: IntegrationsDisplayProps) {
   );
   const utils = trpc.useUtils();
 
-  const getPlatformBadge = (platform: "PLESK" | "OPENPROVIDER") => {
+  const getPlatformBadge = (platform: "PLESK" | "OPENPROVIDER" | "KENIC") => {
     const variants: Record<string, "default" | "secondary" | "outline"> = {
       PLESK: "default",
       OPENPROVIDER: "secondary",
+      KENIC: "outline",
     };
-    return <Badge variant={variants[platform] || "outline"}>{platform}</Badge>;
+    return <Badge variant={variants[platform] ?? "outline"}>{platform}</Badge>;
   };
 
   const getStatusIcon = (isActive: boolean, isCreated: boolean) => {
@@ -138,7 +139,7 @@ export function IntegrationsDisplay({ userId }: IntegrationsDisplayProps) {
             <div className="flex items-center gap-3">
               {getPlatformBadge(integration.platform)}
               <CardTitle className="text-base">
-                {integration.platform === "PLESK" ? "Plesk" : "OpenProvider"} Integration
+                {integration.platform === "PLESK" ? "Plesk" : integration.platform === "OPENPROVIDER" ? "OpenProvider" : "Kenic"} Integration
               </CardTitle>
             </div>
             <div className="flex items-center gap-2">

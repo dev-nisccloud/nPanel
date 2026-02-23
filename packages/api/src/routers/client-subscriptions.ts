@@ -1159,7 +1159,12 @@ export const clientSubscriptionsRouter = router({
             }
 
             const where: Prisma.NiscClientSubscriptionWhereInput = {
-                product: { serviceType: "domain_registration" },
+                product: {
+                    OR: [
+                        { serviceType: { contains: "domain", mode: "insensitive" } },
+                        { name: { contains: "domain", mode: "insensitive" } },
+                    ],
+                },
             };
             if (input.userId != null) where.userId = input.userId;
             if (input.teamId != null) where.teamId = input.teamId;

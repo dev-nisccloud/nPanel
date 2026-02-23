@@ -3,11 +3,12 @@ import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import prisma from "@nPanel/db";
 import { getQStashSigningKeys } from "@nPanel/api/lib/qstash/client";
 import { processNiscOrder } from "@nPanel/api/lib/nisc-order-processor";
+import { niscLog } from "@nPanel/api/lib/nisc-order-logger";
 import {
 	renderNiscOrderConfirmationEmail,
 	renderNiscOrderFailedEmail,
 } from "@nPanel/api/lib/email-templates";
-import { sendEmail } from "@nPanel/api/lib/email";
+import { sendEmail, sendEmailBatch } from "@nPanel/api/lib/email";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -20,13 +21,17 @@ interface NiscOrderPayload {
  * QStash worker: process a NISC order (provision items, create subscriptions, send emails).
  */
 export async function POST(request: NextRequest) {
+	await niscLog("worker_request_received", { step: "start" });
+
 	try {
 		const signingKeys = getQStashSigningKeys();
 		await verifySignatureAppRouter(request as any, {
 			currentSigningKey: signingKeys.current ?? undefined,
 			nextSigningKey: signingKeys.next ?? undefined,
 		});
+		await niscLog("worker_signature_verified", { step: "signature_ok" });
 	} catch {
+		await niscLog("worker_signature_failed", { step: "signature_invalid" });
 		return NextResponse.json(
 			{ error: "Invalid QStash signature" },
 			{ status: 401 },
@@ -37,6 +42,7 @@ export async function POST(request: NextRequest) {
 	try {
 		body = await request.json();
 	} catch {
+		await niscLog("worker_invalid_body", { step: "json_parse_failed" });
 		return NextResponse.json(
 			{ error: "Invalid JSON body" },
 			{ status: 400 },
@@ -45,11 +51,13 @@ export async function POST(request: NextRequest) {
 
 	const { niscOrderId } = body as NiscOrderPayload;
 	if (!niscOrderId) {
+		await niscLog("worker_missing_payload", { step: "missing_niscOrderId" });
 		return NextResponse.json(
 			{ error: "Missing niscOrderId" },
 			{ status: 400 },
 		);
 	}
+	await niscLog("worker_payload_parsed", { niscOrderId, step: "payload_ok" });
 
 	const order = await prisma.niscOrder.findUnique({
 		where: { id: niscOrderId },
@@ -66,13 +74,21 @@ export async function POST(request: NextRequest) {
 	});
 
 	if (!order) {
+		await niscLog("worker_order_not_found", { niscOrderId });
 		return NextResponse.json(
 			{ error: "Order not found" },
 			{ status: 404 },
 		);
 	}
+	await niscLog("worker_order_loaded", {
+		niscOrderId,
+		orderNumber: order.orderNumber,
+		status: order.status,
+		itemCount: order.orderItems.length,
+	});
 
 	if (order.status !== "PENDING") {
+		await niscLog("worker_order_skip_not_pending", { niscOrderId, status: order.status });
 		return NextResponse.json(
 			{ message: "Order already processed", status: order.status },
 			{ status: 200 },
@@ -80,7 +96,14 @@ export async function POST(request: NextRequest) {
 	}
 
 	try {
+		await niscLog("worker_processor_start", { niscOrderId });
 		const result = await processNiscOrder(niscOrderId);
+		await niscLog("worker_processor_done", {
+			niscOrderId,
+			ok: result.ok,
+			status: result.status,
+			failureReason: result.failureReason ?? null,
+		});
 
 		const orderAfter = await prisma.niscOrder.findUnique({
 			where: { id: niscOrderId },
@@ -98,30 +121,37 @@ export async function POST(request: NextRequest) {
 		const orderLink = `${baseUrl}/agency/nisc-service-orders?order=${niscOrderId}`;
 		const retryLink = `${baseUrl}/agency/nisc-service-orders`;
 
-		let recipientEmail: string | null =
-			order.user?.email ??
+		// Customer name for email body (order placed by); only the "order received" email goes to customer (sent at creation).
+		const customerName =
+			order.user?.name ??
 			(order.team?.createdById
 				? (
 						await prisma.user.findUnique({
 							where: { id: order.team.createdById },
-							select: { email: true },
+							select: { name: true },
 						})
-					)?.email ?? null
-				: null);
-
-		const customerName =
-			order.user?.name ??
-			(recipientEmail
-				? (await prisma.user.findFirst({
-						where: { email: recipientEmail },
-						select: { name: true },
-					}))?.name ?? null
+					)?.name ?? null
 				: null) ??
 			"Customer";
 
-		if (recipientEmail && orderAfter) {
+		// Status emails (confirmation / failed / partial) go to super admins only, not to the customer.
+		const superAdmins = await prisma.user.findMany({
+			where: { role: "AGENCY_SUPER_ADMIN", status: "ACTIVE" },
+			select: { email: true },
+		});
+		const superAdminEmails = superAdmins
+			.map((u) => u.email)
+			.filter((e): e is string => typeof e === "string" && e.trim().length > 0);
+
+		if (superAdminEmails.length > 0 && orderAfter) {
 			try {
 				if (result.ok && result.status === "COMPLETED") {
+					await niscLog("worker_email_sending", {
+						niscOrderId,
+						emailType: "confirmation",
+						recipients: "super_admins",
+						count: superAdminEmails.length,
+					});
 					const html = await renderNiscOrderConfirmationEmail({
 						customerName: customerName ?? undefined,
 						orderNumber: orderAfter.orderNumber,
@@ -134,12 +164,27 @@ export async function POST(request: NextRequest) {
 						})),
 						orderLink,
 					});
-					await sendEmail({
-						to: recipientEmail,
-						subject: `Order confirmed: ${orderAfter.orderNumber}`,
-						html,
+					await sendEmailBatch(
+						superAdminEmails.map((to) => ({
+							to,
+							subject: `[NISC Admin] Order confirmed: ${orderAfter!.orderNumber}`,
+							html,
+						})),
+					);
+					await niscLog("worker_email_sent", {
+						niscOrderId,
+						emailType: "confirmation",
+						recipients: "super_admins",
+						count: superAdminEmails.length,
 					});
 				} else if (!result.ok || result.status === "PARTIAL") {
+					await niscLog("worker_email_sending", {
+						niscOrderId,
+						emailType: "failed_partial",
+						recipients: "super_admins",
+						count: superAdminEmails.length,
+						failureReason: result.failureReason ?? null,
+					});
 					const failedItems = orderAfter.orderItems
 						.filter((i) => i.status === "FAILED")
 						.map((i) => ({
@@ -153,17 +198,37 @@ export async function POST(request: NextRequest) {
 						failureReason: result.failureReason,
 						retryLink,
 					});
-					await sendEmail({
-						to: recipientEmail,
-						subject: `Order could not be completed: ${orderAfter.orderNumber}`,
-						html,
+					await sendEmailBatch(
+						superAdminEmails.map((to) => ({
+							to,
+							subject: `[NISC Admin] Order could not be completed: ${orderAfter!.orderNumber}`,
+							html,
+						})),
+					);
+					await niscLog("worker_email_sent", {
+						niscOrderId,
+						emailType: "failed_partial",
+						recipients: "super_admins",
+						count: superAdminEmails.length,
 					});
 				}
 			} catch (emailErr) {
-				console.error("NISC order notification email failed:", emailErr);
+				const emailErrMsg = emailErr instanceof Error ? emailErr.message : String(emailErr);
+				await niscLog("worker_email_failed", {
+					niscOrderId,
+					recipients: "super_admins",
+					error: emailErrMsg,
+				});
 			}
+		} else if (superAdminEmails.length === 0) {
+			await niscLog("worker_email_skipped_no_super_admins", { niscOrderId });
 		}
 
+		await niscLog("worker_response_success", {
+			niscOrderId,
+			status: result.status,
+			failureReason: result.failureReason ?? null,
+		});
 		return NextResponse.json({
 			success: true,
 			niscOrderId,
@@ -172,7 +237,12 @@ export async function POST(request: NextRequest) {
 		});
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		console.error("NISC order processing failed:", error);
+		const stack = error instanceof Error ? error.stack : undefined;
+		await niscLog("worker_processor_exception", {
+			niscOrderId,
+			error: errorMessage,
+			stack: stack ?? undefined,
+		});
 
 		const isRetryable =
 			errorMessage.includes("timeout") ||

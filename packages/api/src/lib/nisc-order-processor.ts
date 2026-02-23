@@ -7,6 +7,30 @@
  */
 import prisma from "@nPanel/db";
 import { Prisma } from "@nPanel/db";
+import { niscLog } from "./nisc-order-logger";
+import { isKenicDomain } from "./epp/kenic-tlds";
+import { ensureKenicIntegration, registerKenicDomain } from "./kenic-nisc";
+import { OpenProviderApiError } from "./openprovider-client";
+
+/** Build a serializable error-details object for provisioningErrorDetails (exact provider response for debugging). */
+function buildProvisioningErrorDetails(err: unknown): Record<string, unknown> {
+	if (err instanceof OpenProviderApiError) {
+		return {
+			provider: "openprovider",
+			code: err.code,
+			description: err.description,
+			rawResponse: err.rawResponse,
+		};
+	}
+	if (err instanceof Error) {
+		return {
+			provider: "unknown",
+			message: err.message,
+			name: err.name,
+		};
+	}
+	return { provider: "unknown", raw: String(err) };
+}
 
 const NO_INTEGRATION_SERVICE_TYPES = [
 	"email_marketing",
@@ -19,6 +43,18 @@ const NO_INTEGRATION_SERVICE_TYPES = [
 ];
 const PLESK_SERVICE_TYPES = ["web_hosting", "email_hosting"];
 const OPENPROVIDER_SERVICE_TYPES = ["domain_registration", "domain_transfer"];
+
+/** Product serviceType "domains" is treated as domain_registration. */
+function resolveServiceType(serviceType: string): string {
+	if (serviceType === "domains") return "domain_registration";
+	return serviceType;
+}
+
+/** Resolve domain provider from TLD: KENIC for .ke/.co.ke etc., OpenProvider for the rest. */
+function getDomainProvider(domain: string | null): "kenic" | "openprovider" {
+	if (!domain || typeof domain !== "string" || !domain.trim()) return "openprovider";
+	return isKenicDomain(domain) ? "kenic" : "openprovider";
+}
 
 export type ProcessNiscOrderResult =
 	| { ok: true; status: "COMPLETED" | "PARTIAL"; failureReason?: string }
@@ -41,21 +77,47 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 	});
 
 	if (!order) {
+		await niscLog("processor_order_not_found", { niscOrderId });
 		return { ok: false, status: "FAILED", failureReason: "Order not found" };
 	}
+
+	await niscLog("processor_start", {
+		niscOrderId,
+		orderNumber: order.orderNumber,
+		itemCount: order.orderItems.length,
+		itemIds: order.orderItems.map((i) => i.id),
+	});
 
 	const now = new Date();
 	await prisma.niscOrder.update({
 		where: { id: niscOrderId },
 		data: { status: "PROCESSING", processedAt: now, updatedAt: now },
 	});
+	await niscLog("processor_order_status_updated", { niscOrderId, status: "PROCESSING" });
 
 	let hasFailure = false;
 	let hasSuccess = false;
 	const failureReasons: string[] = [];
 
 	for (const item of order.orderItems) {
+		const rawServiceType = item.product.serviceType;
+		const serviceType = resolveServiceType(rawServiceType);
+		if (rawServiceType !== serviceType) {
+			await niscLog("processor_service_type_resolved", {
+				niscOrderId,
+				orderItemId: item.id,
+				productName: item.product.name,
+				rawServiceType,
+				resolvedServiceType: serviceType,
+			});
+		}
+
 		if (item.status === "PROVISIONED") {
+			await niscLog("processor_item_skip_already_provisioned", {
+				niscOrderId,
+				orderItemId: item.id,
+				productName: item.product.name,
+			});
 			hasSuccess = true;
 			continue;
 		}
@@ -63,11 +125,22 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 			where: { id: item.id },
 			data: { status: "PROCESSING", updatedAt: now },
 		});
-
-		const serviceType = item.product.serviceType;
+		await niscLog("processor_item_start", {
+			niscOrderId,
+			orderItemId: item.id,
+			productName: item.product.name,
+			serviceType,
+			primaryDomain: item.primaryDomain ?? null,
+		});
 
 		try {
 			if (NO_INTEGRATION_SERVICE_TYPES.includes(serviceType)) {
+				await niscLog("processor_item_branch", {
+					niscOrderId,
+					orderItemId: item.id,
+					branch: "no_integration",
+					serviceType,
+				});
 				const sub = await createSubscriptionForOrderItem(order, item);
 				await prisma.niscOrderItem.update({
 					where: { id: item.id },
@@ -77,13 +150,32 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 						updatedAt: now,
 					},
 				});
+				await niscLog("processor_item_success", {
+					niscOrderId,
+					orderItemId: item.id,
+					branch: "no_integration",
+					subscriptionId: sub.id,
+				});
 				hasSuccess = true;
 				continue;
 			}
 
 			if (PLESK_SERVICE_TYPES.includes(serviceType)) {
+				await niscLog("processor_item_branch", {
+					niscOrderId,
+					orderItemId: item.id,
+					branch: "plesk",
+					serviceType,
+				});
 				const result = await processPleskOrderItem(order, item);
 				if (result.ok) {
+					await niscLog("processor_api_raw_response", {
+						niscOrderId,
+						orderItemId: item.id,
+						provider: "plesk",
+						call: "provisionToPlesk",
+						rawResponse: result.rawResponse,
+					});
 					await prisma.niscOrderItem.update({
 						where: { id: item.id },
 						data: {
@@ -92,15 +184,42 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 							updatedAt: now,
 						},
 					});
+					await niscLog("processor_item_success", {
+						niscOrderId,
+						orderItemId: item.id,
+						branch: "plesk",
+						subscriptionId: result.subscriptionId,
+					});
 					hasSuccess = true;
 				} else {
+					const pleskErrorDetails = {
+						provider: "plesk" as const,
+						message: result.error,
+						...(result.errorDetails && { rawResponse: result.errorDetails }),
+					};
+					await niscLog("processor_api_raw_response", {
+						niscOrderId,
+						orderItemId: item.id,
+						provider: "plesk",
+						call: "provisionToPlesk",
+						rawResponse: pleskErrorDetails,
+					});
 					await prisma.niscOrderItem.update({
 						where: { id: item.id },
 						data: {
 							status: "FAILED",
 							provisioningError: result.error,
+							provisioningErrorDetails: pleskErrorDetails as Prisma.InputJsonValue,
 							updatedAt: now,
 						},
+					});
+					await niscLog("processor_item_failed", {
+						niscOrderId,
+						orderItemId: item.id,
+						branch: "plesk",
+						error: result.error,
+						errorDetails: pleskErrorDetails,
+						rawResponse: result.errorDetails,
 					});
 					hasFailure = true;
 					failureReasons.push(`Item ${item.product.name}: ${result.error}`);
@@ -109,10 +228,49 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 			}
 
 			if (OPENPROVIDER_SERVICE_TYPES.includes(serviceType)) {
+				const primaryDomain = item.primaryDomain?.trim() ?? null;
+				const domainProvider = getDomainProvider(primaryDomain);
+				await niscLog("processor_domain_provider_resolved", {
+					niscOrderId,
+					orderItemId: item.id,
+					primaryDomain,
+					domainProvider,
+					serviceType,
+					reason:
+						domainProvider === "kenic"
+							? "TLD is .ke/.co.ke or other KENIC TLD"
+							: "TLD is not KENIC; using OpenProvider",
+				});
+				await niscLog("processor_item_branch", {
+					niscOrderId,
+					orderItemId: item.id,
+					branch:
+						domainProvider === "kenic"
+							? serviceType === "domain_transfer"
+								? "kenic_transfer"
+								: "kenic_registration"
+							: serviceType === "domain_transfer"
+								? "openprovider_transfer"
+								: "openprovider_registration",
+					serviceType,
+					domainProvider,
+				});
 				const result =
-					serviceType === "domain_transfer"
-						? await processOpenProviderTransferOrderItem(order, item)
-						: await processOpenProviderOrderItem(order, item);
+					domainProvider === "kenic"
+						? serviceType === "domain_transfer"
+							? await processKenicTransferOrderItem(order, item)
+							: await processKenicOrderItem(order, item)
+						: serviceType === "domain_transfer"
+							? await processOpenProviderTransferOrderItem(order, item)
+							: await processOpenProviderOrderItem(order, item);
+				const branchName =
+					domainProvider === "kenic"
+						? serviceType === "domain_transfer"
+							? "kenic_transfer"
+							: "kenic_registration"
+						: serviceType === "domain_transfer"
+							? "openprovider_transfer"
+							: "openprovider_registration";
 				if (result.ok) {
 					await prisma.niscOrderItem.update({
 						where: { id: item.id },
@@ -123,15 +281,36 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 							updatedAt: now,
 						},
 					});
+					await niscLog("processor_item_success", {
+						niscOrderId,
+						orderItemId: item.id,
+						branch: branchName,
+						subscriptionId: result.subscriptionId ?? null,
+						status: result.status,
+						pendingVerification: result.pendingVerification ?? false,
+					});
 					hasSuccess = true;
 				} else {
+					const errDetails = "errorDetails" in result ? result.errorDetails : undefined;
 					await prisma.niscOrderItem.update({
 						where: { id: item.id },
 						data: {
 							status: "FAILED",
 							provisioningError: result.error,
+							provisioningErrorDetails: errDetails != null ? (errDetails as Prisma.InputJsonValue) : undefined,
 							updatedAt: now,
 						},
+					});
+					await niscLog("processor_item_failed", {
+						niscOrderId,
+						orderItemId: item.id,
+						branch: branchName,
+						error: result.error,
+						errorDetails: errDetails ?? undefined,
+						rawResponse:
+							errDetails && typeof errDetails === "object" && "rawResponse" in errDetails
+								? (errDetails as { rawResponse?: unknown }).rawResponse
+								: errDetails,
 					});
 					hasFailure = true;
 					failureReasons.push(`Item ${item.product.name}: ${result.error}`);
@@ -139,12 +318,24 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 				continue;
 			}
 
-			// Unknown service type
+			// Unknown service type (after resolution: no mapping matched)
+			await niscLog("processor_item_unsupported_service_type", {
+				niscOrderId,
+				orderItemId: item.id,
+				productName: item.product.name,
+				serviceType,
+				reason: "Not in NO_INTEGRATION_SERVICE_TYPES, PLESK_SERVICE_TYPES, or OPENPROVIDER_SERVICE_TYPES",
+			});
 			await prisma.niscOrderItem.update({
 				where: { id: item.id },
 				data: {
 					status: "FAILED",
 					provisioningError: `Unsupported service type: ${serviceType}`,
+					provisioningErrorDetails: {
+						provider: null,
+						reason: "unsupported_service_type",
+						serviceType,
+					},
 					updatedAt: now,
 				},
 			});
@@ -152,11 +343,25 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 			failureReasons.push(`Item ${item.product.name}: Unsupported service type ${serviceType}`);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
+			const errorDetails = buildProvisioningErrorDetails(err);
+			const rawResponse =
+				errorDetails && "rawResponse" in errorDetails ? errorDetails.rawResponse : errorDetails;
+			await niscLog("processor_item_exception", {
+				niscOrderId,
+				orderItemId: item.id,
+				productName: item.product.name,
+				serviceType,
+				error: message,
+				stack: err instanceof Error ? err.stack : undefined,
+				errorDetails,
+				rawResponse,
+			});
 			await prisma.niscOrderItem.update({
 				where: { id: item.id },
 				data: {
 					status: "FAILED",
 					provisioningError: message,
+					provisioningErrorDetails: buildProvisioningErrorDetails(err) as Prisma.InputJsonValue,
 					updatedAt: now,
 				},
 			});
@@ -174,6 +379,15 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 	} else {
 		orderStatus = "COMPLETED";
 	}
+
+	await niscLog("processor_complete", {
+		niscOrderId,
+		orderStatus,
+		hasFailure,
+		hasSuccess,
+		failureReason: failureReason ?? null,
+		failureReasons,
+	});
 
 	await prisma.niscOrder.update({
 		where: { id: niscOrderId },
@@ -273,7 +487,10 @@ async function processPleskOrderItem(
 		} | null;
 		domainSubscription: { name: string | null; primaryDomain: string | null } | null;
 	},
-): Promise<{ ok: true; subscriptionId: string } | { ok: false; error: string }> {
+): Promise<
+	| { ok: true; subscriptionId: string; rawResponse: unknown }
+	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
+> {
 	if (!item.productPlanId || !item.productPlan) {
 		return { ok: false, error: "Hosting item requires a product plan." };
 	}
@@ -337,15 +554,142 @@ async function processPleskOrderItem(
 				metadata: Prisma.JsonNull,
 			},
 		});
-		return { ok: true, subscriptionId: sub.id };
+		return {
+			ok: true,
+			subscriptionId: sub.id,
+			rawResponse: result.pleskResponseData,
+		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
-		return { ok: false, error: message };
+		return {
+			ok: false as const,
+			error: message,
+			errorDetails: buildProvisioningErrorDetails(err),
+		};
 	}
 }
 
 /** Metadata stored on NiscOrderItem for domain_transfer (auth code, optional nameservers). */
 type DomainTransferItemMetadata = { transferAuthCode?: string; nameServers?: Array<{ name: string; ip?: string }> } | null;
+
+type DomainOrderItem = {
+	id: string;
+	productId: string;
+	productPlanId: string | null;
+	billingCycle: string | null;
+	itemPrice: string;
+	itemSubtotal: string;
+	primaryDomain: string | null;
+	description: string | null;
+	metadata: unknown;
+	product: { name: string };
+	productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null } | null;
+};
+
+type DomainOrder = { teamId: string | null; userId: string | null; createdBy: string | null; id: string; currency: string };
+
+function billingCycleToYears(billingCycle: string | null): number {
+	if (!billingCycle) return 1;
+	if (billingCycle === "BIENNIALLY") return 2;
+	return 1;
+}
+
+/** KENIC TLD (.ke, .co.ke, etc.): registration via NISC using EPP (contacts + domain create). */
+async function processKenicOrderItem(
+	order: DomainOrder,
+	item: DomainOrderItem,
+): Promise<
+	| { ok: true; subscriptionId: string; status: "PROVISIONED"; pendingVerification?: boolean }
+	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
+> {
+	const domain = item.primaryDomain?.trim();
+	if (!domain) {
+		return { ok: false, error: "Primary domain is required for KENIC domain registration." };
+	}
+	const ownerId = order.teamId
+		? (await prisma.team.findUnique({ where: { id: order.teamId }, select: { createdById: true } }))?.createdById
+		: order.userId;
+	if (!ownerId || !order.createdBy) {
+		return {
+			ok: false,
+			error: "Order must have a team or user and createdBy for KENIC domain registration.",
+		};
+	}
+	try {
+		const { contactId } = await ensureKenicIntegration(ownerId, order.createdBy, {
+			niscOrderId: order.id,
+			orderItemId: item.id,
+		});
+		const period = billingCycleToYears(item.billingCycle);
+		const regResult = await registerKenicDomain({
+			domainName: domain,
+			registrantContactId: contactId,
+			period,
+			orderId: order.id,
+			orderItemId: item.id,
+		});
+		const name = item.productPlan
+			? `${item.product.name} - ${item.productPlan.name}`
+			: item.product.name;
+		const sub = await prisma.niscClientSubscription.create({
+			data: {
+				name,
+				description: item.description ?? undefined,
+				userId: order.userId,
+				teamId: order.teamId,
+				productId: item.productId,
+				productPlanId: item.productPlanId ?? null,
+				niscOrderId: order.id,
+				subscribedBy: order.createdBy,
+				status: "ACTIVE",
+				subscriptionDate: new Date(),
+				billingCycle: item.billingCycle as "YEARLY" | "BIENNIALLY" | null ?? null,
+				pricingModel: "FIXED",
+				agreedPrice: item.itemPrice,
+				agreedCurrency: order.currency,
+				agreedCost: item.productPlan?.cost ?? null,
+				agreedCostCurrency: "KES",
+				primaryDomain: domain,
+				openProviderId: null,
+				expiryDate: regResult.exDate ? new Date(regResult.exDate) : null,
+				metadata: Prisma.JsonNull,
+			},
+		});
+		return {
+			ok: true,
+			subscriptionId: sub.id,
+			status: "PROVISIONED",
+		};
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		const errorDetails = buildProvisioningErrorDetails(err);
+		return {
+			ok: false,
+			error: message,
+			errorDetails,
+		};
+	}
+}
+
+/** KENIC TLD: transfer. Not yet implemented. */
+async function processKenicTransferOrderItem(
+	_order: DomainOrder,
+	item: DomainOrderItem,
+): Promise<
+	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean }
+	| { ok: false; error: string }
+> {
+	const domain = item.primaryDomain?.trim();
+	if (!domain) {
+		return { ok: false, error: "Primary domain is required for KENIC domain transfer." };
+	}
+	// TODO: Implement KENIC EPP transfer and create NiscClientSubscription / Domain.
+	return {
+		ok: false,
+		error:
+			"KENIC domain transfer via NISC is not yet implemented. Use domain transfer flow for .ke/.co.ke.",
+	};
+}
 
 async function processOpenProviderTransferOrderItem(
 	order: { teamId: string | null; userId: string | null; createdBy: string | null; id: string; currency: string },
@@ -364,7 +708,7 @@ async function processOpenProviderTransferOrderItem(
 	},
 ): Promise<
 	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean }
-	| { ok: false; error: string }
+	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domainName = item.primaryDomain;
 	if (!domainName) {
@@ -410,7 +754,11 @@ async function processOpenProviderTransferOrderItem(
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
-		return { ok: false, error: message };
+		return {
+			ok: false as const,
+			error: message,
+			errorDetails: buildProvisioningErrorDetails(err),
+		};
 	}
 }
 
@@ -430,7 +778,7 @@ async function processOpenProviderOrderItem(
 	},
 ): Promise<
 	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean }
-	| { ok: false; error: string }
+	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domainName = item.primaryDomain;
 	if (!domainName) {
@@ -476,6 +824,10 @@ async function processOpenProviderOrderItem(
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
-		return { ok: false, error: message };
+		return {
+			ok: false as const,
+			error: message,
+			errorDetails: buildProvisioningErrorDetails(err),
+		};
 	}
 }

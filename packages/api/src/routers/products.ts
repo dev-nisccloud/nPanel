@@ -104,8 +104,8 @@ const productOutputSchema = z.object({
     features: z.array(z.unknown()),
     highlights: z.array(z.string()),
     metadata: z.unknown().nullable(),
-    createdAt: z.date(),
-    updatedAt: z.date(),
+    createdAt: z.coerce.date(),
+    updatedAt: z.coerce.date(),
 });
 
 // --- Product Plan schemas ----------------------------------------------------
@@ -208,8 +208,8 @@ const planOutputSchema = z.object({
     pleskIpAddress: z.string().nullable(),
     hostingType: hostingTypeSchema.nullable(),
     metadata: z.unknown().nullable(),
-    createdAt: z.date(),
-    updatedAt: z.date(),
+    createdAt: z.coerce.date(),
+    updatedAt: z.coerce.date(),
 });
 
 // ============================================================================

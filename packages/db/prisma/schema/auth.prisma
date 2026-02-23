@@ -99,6 +99,7 @@ enum PromoTarget {
 enum CustomerPlatform {
   PLESK // Plesk hosting platform
   OPENPROVIDER // OpenProvider domain platform
+  KENIC // KENIC EPP (.ke and other KENIC TLDs)
 }
 
 enum MarginType {

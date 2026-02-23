@@ -143,7 +143,7 @@ const getIntegrationsInputSchema = z.object({
 const integrationOutputSchema = z.object({
 	id: z.string(),
 	userId: z.string(),
-	platform: z.enum(["PLESK", "OPENPROVIDER"]),
+	platform: z.enum(["PLESK", "OPENPROVIDER", "KENIC"]),
 	platformCustomerId: z.string().nullable(),
 	isActive: z.boolean(),
 	isCreated: z.boolean(),

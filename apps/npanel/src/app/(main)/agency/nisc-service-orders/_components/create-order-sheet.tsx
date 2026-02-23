@@ -93,7 +93,7 @@ export function CreateOrderSheet({
 	const watchedTeamId = form.watch("teamId");
 	const watchedUserId = form.watch("userId");
 	const hasOwner = !!watchedUserId || !!watchedTeamId;
-	const { data: domainSubs = [] } =
+	const { data: domainSubs = [], isLoading: loadingDomainSubs } =
 		trpc.clientSubscriptions.getDomainSubscriptions.useQuery(
 			{
 				...(watchedUserId && { userId: watchedUserId }),
@@ -210,6 +210,8 @@ export function CreateOrderSheet({
 									index={index}
 									products={products}
 									domainSubs={domainSubs}
+									loadingDomainSubs={loadingDomainSubs}
+									hasOwner={hasOwner}
 									onRemove={() => remove(index)}
 									control={form.control}
 									setValue={form.setValue}
@@ -256,6 +258,8 @@ function OrderItemRow({
 	index,
 	products,
 	domainSubs,
+	loadingDomainSubs,
+	hasOwner,
 	onRemove,
 	control,
 	setValue,
@@ -265,6 +269,8 @@ function OrderItemRow({
 	index: number;
 	products: Array<{ id: string; name: string; serviceType: string }>;
 	domainSubs: Array<{ id: string; name: string | null; primaryDomain: string | null }>;
+	loadingDomainSubs: boolean;
+	hasOwner: boolean;
 	onRemove: () => void;
 	control: Control<CreateOrderFormData>;
 	setValue: UseFormSetValue<CreateOrderFormData>;
@@ -392,7 +398,11 @@ function OrderItemRow({
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									{domainSubs.length === 0 ? (
+									{loadingDomainSubs ? (
+										<div className="p-2 text-sm text-muted-foreground">
+											Loading domains…
+										</div>
+									) : domainSubs.length === 0 ? (
 										<div className="p-2 text-sm text-muted-foreground">
 											No domain subscriptions.{" "}
 											<Link
@@ -417,24 +427,47 @@ function OrderItemRow({
 				/>
 			)}
 			{isDomain && (
-				<FormField
-					control={control}
-					name={`items.${index}.primaryDomain`}
-					render={({ field }) => (
-						<FormItem className="w-full">
-							<FormLabel className="text-xs">Domain name</FormLabel>
-							<FormControl>
-								<Input
-									className="w-full"
-									{...field}
-									value={field.value ?? ""}
-									placeholder="example.com"
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
+				<>
+					{hasOwner && (
+						<div className="space-y-1.5">
+							<FormLabel className="text-xs">Your domains</FormLabel>
+							{loadingDomainSubs ? (
+								<p className="text-xs text-muted-foreground">Loading domains…</p>
+							) : domainSubs.length > 0 ? (
+								<div className="flex flex-wrap gap-1.5">
+									{domainSubs.map((d) => (
+										<span
+											key={d.id}
+											className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+										>
+											{d.primaryDomain ?? d.name ?? d.id}
+										</span>
+									))}
+								</div>
+							) : (
+								<p className="text-xs text-muted-foreground">No domains yet.</p>
+							)}
+						</div>
 					)}
-				/>
+					<FormField
+						control={control}
+						name={`items.${index}.primaryDomain`}
+						render={({ field }) => (
+							<FormItem className="w-full">
+								<FormLabel className="text-xs">Register new domain</FormLabel>
+								<FormControl>
+									<Input
+										className="w-full"
+										{...field}
+										value={field.value ?? ""}
+										placeholder="example.com"
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+				</>
 			)}
 		</div>
 	);
