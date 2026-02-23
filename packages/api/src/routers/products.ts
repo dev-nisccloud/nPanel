@@ -2,6 +2,15 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import prisma, { Prisma } from "@nPanel/db";
+import {
+    getCached,
+    setCached,
+    invalidateProductsCache,
+    listKey,
+    idKey,
+    addonsKey,
+    hostingUpsellKey,
+} from "../lib/products-cache";
 
 // ============================================================================
 // ZOD SCHEMAS — independent from the database schema layer
@@ -281,7 +290,7 @@ function mapProduct(product: any): z.infer<typeof productOutputSchema> {
 export const productsRouter = router({
     // ── Products ─────────────────────────────────────────────────────────────
 
-    /** List all products with optional filtering */
+    /** List all products with optional filtering (cached via Upstash Redis) */
     getAll: protectedProcedure
         .input(getProductsInputSchema.optional())
         .output(z.array(productOutputSchema))
@@ -294,6 +303,10 @@ export const productsRouter = router({
                 });
             }
 
+            const cacheInput = input ? { category: input.category, serviceType: input.serviceType, isActive: input.isActive } : undefined;
+            const cached = await getCached<z.infer<typeof productOutputSchema>[]>(listKey(cacheInput));
+            if (cached != null) return cached;
+
             const where: Record<string, unknown> = {};
             if (input?.category !== undefined) where.category = input.category;
             if (input?.serviceType !== undefined) where.serviceType = input.serviceType;
@@ -304,10 +317,12 @@ export const productsRouter = router({
                 orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
             });
 
-            return products.map(mapProduct);
+            const result = products.map(mapProduct);
+            await setCached(listKey(cacheInput), result);
+            return result;
         }),
 
-    /** Get a single product by ID, optionally including its plans */
+    /** Get a single product by ID, optionally including its plans (cached via Upstash Redis) */
     getById: protectedProcedure
         .input(getProductByIdInputSchema)
         .query(async ({ ctx, input }) => {
@@ -318,6 +333,9 @@ export const productsRouter = router({
                     message: "You must be logged in to view products",
                 });
             }
+
+            const cached = await getCached<ReturnType<typeof mapProduct> & { plans?: ReturnType<typeof mapPlan>[] }>(idKey(input.id, input.includePlans));
+            if (cached != null) return cached;
 
             const product = await prisma.niscProduct.findUnique({
                 where: { id: input.id },
@@ -338,12 +356,100 @@ export const productsRouter = router({
                 });
             }
 
-            return {
+            const result = {
                 ...mapProduct(product),
                 ...(input.includePlans && (product as any).plans
                     ? { plans: (product as any).plans.map(mapPlan) }
                     : {}),
             };
+            await setCached(idKey(input.id, input.includePlans), result);
+            return result;
+        }),
+
+    /** Get add-on products for a base product (cached via Upstash Redis) */
+    getAddOnsForProduct: protectedProcedure
+        .input(z.object({ baseProductId: z.string() }))
+        .output(
+            z.array(
+                z.object({
+                    product: productOutputSchema,
+                    plans: z.array(z.unknown()),
+                })
+            )
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view products",
+                });
+            }
+            const cached = await getCached<Array<{ product: z.infer<typeof productOutputSchema>; plans: unknown[] }>>(addonsKey(input.baseProductId));
+            if (cached != null) return cached;
+
+            const relations = await prisma.niscProductAddOn.findMany({
+                where: { baseProductId: input.baseProductId },
+                orderBy: { sortOrder: "asc" },
+                include: {
+                    addOnProduct: {
+                        include: {
+                            plans: {
+                                where: { isActive: true },
+                                orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                            },
+                        },
+                    },
+                },
+            });
+            const result = relations.map((r) => ({
+                product: mapProduct(r.addOnProduct),
+                plans: (r.addOnProduct as any).plans.map(mapPlan),
+            }));
+            await setCached(addonsKey(input.baseProductId), result);
+            return result;
+        }),
+
+    /** Get products whose name contains "hosting" (cached via Upstash Redis) */
+    getHostingProductsForUpsell: protectedProcedure
+        .output(
+            z.array(
+                z.object({
+                    product: productOutputSchema,
+                    plans: z.array(z.unknown()),
+                })
+            )
+        )
+        .query(async ({ ctx }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view products",
+                });
+            }
+            const cached = await getCached<Array<{ product: z.infer<typeof productOutputSchema>; plans: unknown[] }>>(hostingUpsellKey());
+            if (cached != null) return cached;
+
+            const products = await prisma.niscProduct.findMany({
+                where: {
+                    isActive: true,
+                    name: { contains: "hosting", mode: "insensitive" },
+                },
+                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+                include: {
+                    plans: {
+                        where: { isActive: true },
+                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                    },
+                },
+            });
+            const result = products.map((p) => ({
+                product: mapProduct(p),
+                plans: (p as any).plans.map(mapPlan),
+            }));
+            await setCached(hostingUpsellKey(), result);
+            return result;
         }),
 
     /** Create a new product */
@@ -373,6 +479,7 @@ export const productsRouter = router({
                 },
             });
 
+            await invalidateProductsCache();
             return mapProduct(product);
         }),
 
@@ -417,6 +524,7 @@ export const productsRouter = router({
                 },
             });
 
+            await invalidateProductsCache();
             return mapProduct(updated);
         }),
 
@@ -457,6 +565,7 @@ export const productsRouter = router({
                 where: { id: input.id },
             });
 
+            await invalidateProductsCache();
             return { success: true };
         }),
 
@@ -546,6 +655,7 @@ export const productsRouter = router({
                 },
             });
 
+            await invalidateProductsCache();
             return mapPlan(plan);
         }),
 
@@ -633,6 +743,7 @@ export const productsRouter = router({
                 },
             });
 
+            await invalidateProductsCache();
             return mapPlan(updated);
         }),
 
@@ -661,6 +772,7 @@ export const productsRouter = router({
                 data: { isActive: false },
             });
 
+            await invalidateProductsCache();
             return { success: true };
         }),
 });

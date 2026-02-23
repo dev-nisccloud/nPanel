@@ -23,8 +23,9 @@ import {
   getCountryCodeTlds,
   getAllTldExtensions
 } from "@nPanel/utils";
-import type { DomainSearchResult } from "./domain-search";
-import { BuyNowDialog } from "./buy-now-dialog";
+import type { DomainSearchResult } from "@/hooks/use-domain-search";
+import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
+import { trpc } from "@/utils/trpc";
 
 interface AISuggestion {
   name: string;
@@ -119,8 +120,8 @@ export function AIDomainCard({
   isComplete = false 
 }: AIDomainCardProps) {
   const [copiedDomain, setCopiedDomain] = React.useState<string | null>(null);
-  const [buyNowDomain, setBuyNowDomain] = React.useState<DomainSearchResult | null>(null);
-  const [buyNowOpen, setBuyNowOpen] = React.useState(false);
+  const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
+  const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
 
   // Show toast for errors instead of displaying them in UI
   React.useEffect(() => {
@@ -261,17 +262,9 @@ export function AIDomainCard({
                                   onClick={(e) => {
                                     e?.preventDefault();
                                     e?.stopPropagation();
-                                    try {
-                                      if (result && result.domain) {
-                                    setBuyNowDomain(result);
-                                    setBuyNowOpen(true);
-                                      } else {
-                                        console.error('Invalid result for buy now:', result);
-                                      }
-                                    } catch (error) {
-                                      console.error('Error opening buy now dialog:', error);
-                                    }
+                                    if (domainsProductId && result?.domain) openForProduct({ productId: domainsProductId, productName: "Domains", domain: result });
                                   }}
+                                  disabled={!domainsProductId}
                                   className="flex-shrink-0 h-8 text-xs"
                                 >
                                   Buy Now
@@ -355,14 +348,6 @@ export function AIDomainCard({
                 </div>
       </CardContent>
 
-      {/* Buy Now Dialog */}
-      {buyNowDomain && buyNowDomain.domain && (
-      <BuyNowDialog
-        open={buyNowOpen}
-        onOpenChange={setBuyNowOpen}
-        domain={buyNowDomain}
-      />
-      )}
     </Card>
   );
 }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TldLogo } from "./tld-logo";
-import { BuyNowDialog } from "./buy-now-dialog";
+import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { parseFullDomain, isKenicTld, normalizedItemToKenicCard } from "./kenic-card-schema";
 import { nameForOpenProvider } from "./use-section-domain-check";
 import type { KenicCardItem } from "./kenic-card-schema";
@@ -104,8 +104,8 @@ export function ExactMatchSection({
 
 	const pricingHook = useDomainPricing(currencyContext);
 	const [openProviderResult, setOpenProviderResult] = React.useState<DomainSearchResult | null>(null);
-	const [kenicBuyOpen, setKenicBuyOpen] = React.useState(false);
-	const [openProviderBuyOpen, setOpenProviderBuyOpen] = React.useState(false);
+	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
+	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: !!parsed });
 
 	const openProviderRaw = openProviderQuery.data?.success && openProviderQuery.data?.data?.results
 		? (openProviderQuery.data.data.results as Array<{ domain: string; status: string; reason?: string; price?: DomainSearchResult["price"] }>)[0]
@@ -272,7 +272,7 @@ export function ExactMatchSection({
 					<div className="mt-auto flex items-center justify-center gap-2">
 						{kenicCard.available ? (
 							<>
-								<Button size="sm" variant="default" onClick={() => setKenicBuyOpen(true)} className="text-xs h-8 px-3">
+								<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult })} className="text-xs h-8 px-3" disabled={!domainsProductId}>
 									Buy Now
 								</Button>
 								<Button
@@ -296,9 +296,6 @@ export function ExactMatchSection({
 						)}
 					</div>
 				</div>
-				{kenicCard.available && (
-					<BuyNowDialog open={kenicBuyOpen} onOpenChange={setKenicBuyOpen} domain={displayResult} />
-				)}
 			</>
 		);
 	}
@@ -391,7 +388,7 @@ export function ExactMatchSection({
 					<div className="mt-auto flex items-center justify-center gap-2">
 						{isAvailable ? (
 							<>
-								<Button size="sm" variant="default" onClick={() => setOpenProviderBuyOpen(true)} className="text-xs h-8 px-3">
+								<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: r })} className="text-xs h-8 px-3" disabled={!domainsProductId}>
 									Buy Now
 								</Button>
 								<Button
@@ -415,7 +412,6 @@ export function ExactMatchSection({
 						)}
 					</div>
 				</div>
-				{isAvailable && <BuyNowDialog open={openProviderBuyOpen} onOpenChange={setOpenProviderBuyOpen} domain={r} />}
 			</>
 		);
 	}

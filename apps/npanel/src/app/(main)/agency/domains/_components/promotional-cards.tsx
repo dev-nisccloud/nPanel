@@ -27,8 +27,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { BuyNowDialog } from "./buy-now-dialog";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
+import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
+import { trpc } from "@/utils/trpc";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import { useCurrency } from "./currency-context";
 
@@ -118,7 +119,8 @@ function SearchTldCard({
   queryTldResult: any;
   isLoadingTld: boolean;
 }) {
-  const [buyNowOpen, setBuyNowOpen] = React.useState(false);
+  const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
+  const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
   const currencyContext = useCurrency();
   const pricingHook = useDomainPricing(currencyContext);
   const domain = `${queryTldParsed.name}.${queryTldParsed.extension}`;
@@ -268,9 +270,10 @@ function SearchTldCard({
                 onClick={(e) => {
                   e?.preventDefault();
                   e?.stopPropagation();
-                  setBuyNowOpen(true);
+                  if (domainsProductId && displayResult) openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult });
                 }}
                 className="px-4"
+                disabled={!domainsProductId}
               >
                 Buy Now
               </Button>
@@ -296,9 +299,6 @@ function SearchTldCard({
         </div>
       </div>
 
-      {displayResult?.domain && (
-        <BuyNowDialog open={buyNowOpen} onOpenChange={setBuyNowOpen} domain={displayResult} />
-      )}
     </>
   );
 }
@@ -316,7 +316,6 @@ function BundleCard({
   bundleData: { com: any; info: any; online: any };
   isLoadingBundle: boolean;
 }) {
-  const [buyNowOpen, setBuyNowOpen] = React.useState(false);
   const currencyContext = useCurrency();
   const pricingHook = useDomainPricing(currencyContext);
 
@@ -544,22 +543,10 @@ function BundleCard({
           <Button
             size="sm"
             variant="outline"
-            onClick={(e) => {
-              e?.preventDefault();
-              e?.stopPropagation();
-              try {
-                if (pricedBundleResults && pricedBundleResults.length > 0) {
-                  setBuyNowOpen(true);
-                } else {
-                  console.error('Invalid bundle results for buy now:', pricedBundleResults);
-                }
-              } catch (error) {
-                console.error('Error opening bundle buy now dialog:', error);
-              }
-            }}
+            onClick={() => { /* Get deal – logic left blank for now */ }}
             className="px-4 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
           >
-            Buy Now
+            Get deal
           </Button>
           <Button
             size="sm"
@@ -577,19 +564,11 @@ function BundleCard({
         </div>
       </div>
 
-      {/* Bundle Buy Now Dialog - will need custom implementation */}
-      {buyNowOpen && pricedBundleResults && pricedBundleResults.length > 0 && (
-        <BundleBuyNowDialog
-          open={buyNowOpen}
-          onOpenChange={setBuyNowOpen}
-          domains={pricedBundleResults}
-        />
-      )}
     </>
   );
 }
 
-// Bundle Buy Now Dialog Component
+// Bundle Buy Now Dialog Component (kept for future use; domain bundle "Get deal" has no-op for now)
 function BundleBuyNowDialog({
   open,
   onOpenChange,

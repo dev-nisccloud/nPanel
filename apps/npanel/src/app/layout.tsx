@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import { Toaster } from "@/components/ui/sonner";
+import { GlobalBuyNowDialogWrapper } from "@/components/global-buy-now-dialog-wrapper";
 import { QueryProvider } from "@/providers/query-provider";
 import { APP_CONFIG } from "@/config/app-config";
 import { getPreference } from "@/server/server-actions";
@@ -91,6 +92,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           <QueryProvider>
             <PreferencesStoreProvider themeMode={themeMode} themePreset={themePreset}>
               {children}
+              <GlobalBuyNowDialogWrapper />
               <Toaster />
             </PreferencesStoreProvider>
           </QueryProvider>

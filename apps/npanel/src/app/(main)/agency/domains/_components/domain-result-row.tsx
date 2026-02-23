@@ -4,7 +4,8 @@ import * as React from "react";
 import { ShoppingCart, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BuyNowDialog } from "./buy-now-dialog";
+import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
+import { trpc } from "@/utils/trpc";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 
 const formatPrice = (price?: number, currency?: string) => {
@@ -55,7 +56,11 @@ export function DomainResultRow({
 	onAddToCart,
 	onRemoveFromCart,
 }: DomainResultRowProps) {
-	const [buyNowOpen, setBuyNowOpen] = React.useState(false);
+	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
+	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: isAvailable });
+	const handleBuyNow = React.useCallback(() => {
+		if (domainsProductId) openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult });
+	}, [domainsProductId, openForProduct, displayResult]);
 	const isInCart = isDomainInCart(domain);
 
 	const handleCart = (e?: React.MouseEvent) => {
@@ -113,8 +118,9 @@ export function DomainResultRow({
 							<Button
 								size="sm"
 								variant="default"
-								onClick={(e) => { e?.preventDefault(); setBuyNowOpen(true); }}
+								onClick={(e) => { e?.preventDefault(); handleBuyNow(); }}
 								className="text-xs h-8 px-3"
+								disabled={!domainsProductId}
 							>
 								Buy Now
 							</Button>
@@ -135,9 +141,6 @@ export function DomainResultRow({
 					)}
 				</div>
 			</div>
-			{isAvailable && (
-				<BuyNowDialog open={buyNowOpen} onOpenChange={setBuyNowOpen} domain={displayResult} />
-			)}
 		</>
 	);
 }

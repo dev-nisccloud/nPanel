@@ -5,8 +5,9 @@ import { CheckCircle, XCircle, ShoppingCart } from "lucide-react";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { DomainSearchResult } from "./domain-search";
-import { BuyNowDialog } from "./buy-now-dialog";
+import type { DomainSearchResult } from "@/hooks/use-domain-search";
+import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
+import { trpc } from "@/utils/trpc";
 
 interface DomainResultCardProps {
   result: DomainSearchResult;
@@ -89,7 +90,8 @@ const getStatusBadge = (status: string) => {
 };
 
 export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemoveFromCart }: DomainResultCardProps) {
-  const [buyNowOpen, setBuyNowOpen] = React.useState(false);
+  const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
+  const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: result.status === "free" });
   const isInCart = isDomainInCart(result.domain);
 
   const handleCartAction = (e?: React.MouseEvent) => {
@@ -196,17 +198,10 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
               onClick={(e) => {
                 e?.preventDefault();
                 e?.stopPropagation();
-                try {
-                  if (result && result.domain) {
-                    setBuyNowOpen(true);
-                  } else {
-                    console.error('Invalid domain result for buy now:', result);
-                  }
-                } catch (error) {
-                  console.error('Error opening buy now dialog:', error);
-                }
+                if (domainsProductId && result?.domain) openForProduct({ productId: domainsProductId, productName: "Domains", domain: result });
               }}
               className="text-xs h-7 px-4"
+              disabled={!domainsProductId}
             >
               Buy Now
             </Button>
@@ -239,12 +234,6 @@ export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemove
         )}
       </div>
 
-      {/* Buy Now Dialog */}
-      <BuyNowDialog
-        open={buyNowOpen}
-        onOpenChange={setBuyNowOpen}
-        domain={result}
-      />
     </div>
   );
 }

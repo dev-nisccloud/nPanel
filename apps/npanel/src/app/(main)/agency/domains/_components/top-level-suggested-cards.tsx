@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TldLogo } from "./tld-logo";
-import { BuyNowDialog } from "./buy-now-dialog";
+import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { nameForOpenProvider } from "./use-section-domain-check";
 import { parseFullDomain, normalizedItemToKenicCard } from "./kenic-card-schema";
 import type { KenicCardItem } from "./kenic-card-schema";
@@ -504,7 +504,8 @@ function SingleTldCard({
 	variant: "kenyan" | "openprovider";
 	formatPrice: (price?: number, currency?: string) => string;
 }) {
-	const [buyOpen, setBuyOpen] = React.useState(false);
+	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
+	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: available });
 	const isInCart = isDomainInCart(domain);
 	return (
 		<>
@@ -543,7 +544,7 @@ function SingleTldCard({
 				<div className="mt-auto flex items-center justify-center gap-2">
 					{available ? (
 						<>
-							<Button size="sm" variant="default" onClick={() => setBuyOpen(true)} className="text-xs h-8 px-3">Buy Now</Button>
+							<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult })} className="text-xs h-8 px-3" disabled={!domainsProductId}>Buy Now</Button>
 							<Button size="sm" variant={isInCart ? "destructive" : "outline"} onClick={(e) => { e?.preventDefault(); isInCart ? onRemoveFromCart(domain) : onAddToCart(displayResult); }} className="h-8 w-8 p-0" title={isInCart ? "Remove from cart" : "Add to cart"}>
 								{isInCart ? <XCircle className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
 							</Button>
@@ -553,7 +554,6 @@ function SingleTldCard({
 					)}
 				</div>
 			</div>
-			{available && <BuyNowDialog open={buyOpen} onOpenChange={setBuyOpen} domain={displayResult} />}
 		</>
 	);
 }
@@ -663,7 +663,10 @@ function BundleCard({
 				</div>
 			) : null}
 			<div className="mt-auto flex items-center justify-center gap-2">
-				<Button size="sm" variant="default" onClick={handleAddBundle} className="text-xs h-8 px-3" disabled={anyInCart}>
+				<Button size="sm" variant="default" onClick={() => { /* Get deal – logic left blank for now */ }} className="text-xs h-8 px-3">
+					Get deal
+				</Button>
+				<Button size="sm" variant="outline" onClick={handleAddBundle} className="text-xs h-8 px-3" disabled={anyInCart}>
 					{anyInCart ? "In cart" : "Add bundle to cart"}
 				</Button>
 			</div>
