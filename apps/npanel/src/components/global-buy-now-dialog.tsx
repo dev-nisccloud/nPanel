@@ -80,7 +80,7 @@ interface SelectedAddOn {
 
 export function GlobalBuyNowDialog() {
   const { open, mode, productContext, close } = useGlobalBuyNowStore();
-  const { items, getTotalsByCurrency, getCurrenciesInCart, getItemCount } = useCartStore();
+  const { items, getTotalsByCurrency, getCurrenciesInCart, getItemCount, clearCart, getDomains } = useCartStore();
 
   const [currentStep, setCurrentStep] = React.useState<Step>("review");
   const [couponCode, setCouponCode] = React.useState("");
@@ -105,18 +105,22 @@ export function GlobalBuyNowDialog() {
   const [amountError, setAmountError] = React.useState("");
   const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
+  const [isPolling, setIsPolling] = React.useState(false);
   const [shouldStopPolling, setShouldStopPolling] = React.useState(false);
-  const pollingStartTimeRef = React.useRef<number | null>(null);
-  const pollingAttemptsRef = React.useRef(0);
+  const pollingIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const terminalStateDetectedRef = React.useRef(false);
   const immediateStepRef = React.useRef<Step | null>(null);
   const immediatePaymentErrorRef = React.useRef<string | null>(null);
+  const orderCreatedForCheckoutRef = React.useRef<string | null>(null);
 
   const isCartMode = mode === "cart";
   const ctx = productContext;
   const hasDomain = !!ctx?.domain?.domain;
   const isDomainProduct = hasDomain;
 
+  const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, {
+    enabled: open && (isCartMode || !!ctx?.productId),
+  });
   const { data: addOnsData = [] } = trpc.products.getAddOnsForProduct.useQuery(
     { baseProductId: ctx?.productId ?? "" },
     { enabled: open && !!ctx?.productId && !isCartMode }
@@ -176,14 +180,7 @@ export function GlobalBuyNowDialog() {
     return map[code] ?? resultDesc ?? `Payment failed with error code ${code}`;
   };
 
-  const isTerminalResultCode = (resultCode: string | number): boolean => {
-    const code = typeof resultCode === "string" ? parseInt(resultCode, 10) : resultCode;
-    if (isNaN(code)) return false;
-    const terminal = new Set([0, 1, 2, 3, 4, 8, 17, 1019, 1025, 1032, 2001, 2028, 8006]);
-    const processing = new Set([1037, 4999]);
-    if (processing.has(code)) return false;
-    return terminal.has(code) || true;
-  };
+  const utils = trpc.useUtils();
 
   const initiateMpesaPayment = trpc.paymentGateway.mpesa.initiateStkPush.useMutation({
     onSuccess: (response) => {
@@ -193,10 +190,9 @@ export function GlobalBuyNowDialog() {
         return;
       }
       setShouldStopPolling(false);
-      pollingStartTimeRef.current = Date.now();
-      pollingAttemptsRef.current = 0;
       setCheckoutRequestId(checkoutId);
       setPaymentError(null);
+      startPolling(checkoutId);
     },
     onError: (error) => {
       const msg = error.message || "Failed to initiate payment.";
@@ -211,71 +207,86 @@ export function GlobalBuyNowDialog() {
     },
   });
 
-  const POLL_INTERVAL_MS = 3000;
-  const POLL_TIMEOUT_MS = 2 * 60 * 1000;
+  // Polling: DB-only status every 5s, max 12 attempts (1 min) - same pattern as solidarity-online-drivers-sacco
+  const POLL_INTERVAL_MS = 5000;
+  const POLL_MAX_ATTEMPTS = 12;
 
-  const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
-    { checkoutRequestId: checkoutRequestId! },
-    {
-      enabled: !!checkoutRequestId && currentStep === "payment" && !shouldStopPolling,
-      staleTime: 0,
-      gcTime: 0,
-      refetchOnMount: "always",
-      refetchOnWindowFocus: false,
-      refetchInterval: (query) => {
-        if (shouldStopPolling) return false;
-        const elapsed = pollingStartTimeRef.current ? Date.now() - pollingStartTimeRef.current : 0;
-        if (elapsed >= POLL_TIMEOUT_MS) {
-          const msg = "Payment is taking longer than expected. Please check your M-Pesa or try again.";
-          terminalStateDetectedRef.current = true;
-          immediateStepRef.current = "error";
-          immediatePaymentErrorRef.current = msg;
-          setShouldStopPolling(true);
-          setPaymentError(msg);
-          setCurrentStep("error");
-          toast.error(msg);
-          return false;
-        }
-        if (query.state.error) {
-          const errMsg = query.state.error.message || "";
-          terminalStateDetectedRef.current = true;
-          immediateStepRef.current = "error";
-          immediatePaymentErrorRef.current = errMsg;
-          setShouldStopPolling(true);
-          setPaymentError(errMsg);
-          setCurrentStep("error");
-          toast.error(errMsg);
-          return false;
-        }
-        const data = query.state.data;
-        const resultCode = data?.data?.resultCode;
-        if (resultCode !== undefined && resultCode !== null) {
-          const code = typeof resultCode === "string" ? parseInt(resultCode, 10) : resultCode;
-          if (!isNaN(code) && isTerminalResultCode(code)) {
+  // @ts-expect-error - tRPC useMutation type instantiation is excessively deep with createFromPayment input
+  const createOrderFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation({
+    onSuccess: () => {
+      if (isCartMode) clearCart();
+      setCheckoutRequestId(null);
+      orderCreatedForCheckoutRef.current = null;
+    },
+    onError: (err) => {
+      toast.error(err.message || "Order could not be created. Please contact support.");
+    },
+  });
+
+  const startPolling = React.useCallback(
+    (cid: string) => {
+      setIsPolling(true);
+      setShouldStopPolling(false);
+      terminalStateDetectedRef.current = false;
+
+      const poll = async (): Promise<boolean> => {
+        try {
+          const result = await utils.paymentGateway.mpesa.getPaymentStatusByCheckoutId.fetch({
+            checkoutRequestId: cid,
+          });
+          if (result.status === "SUCCESS") {
             terminalStateDetectedRef.current = true;
-            if (code === 0) {
-              immediateStepRef.current = "success";
-              immediatePaymentErrorRef.current = null;
-              setShouldStopPolling(true);
-              setCheckoutRequestId(null);
-              setPaymentError(null);
-              setCurrentStep("success");
-              toast.success("Payment completed successfully!");
-            } else {
-              const msg = getUserFriendlyError(code, data?.data?.resultDesc);
-              immediateStepRef.current = "error";
-              immediatePaymentErrorRef.current = msg;
-              setShouldStopPolling(true);
-              setPaymentError(msg);
-              setCurrentStep("error");
-              toast.error(msg);
-            }
-            return false;
+            immediateStepRef.current = "success";
+            immediatePaymentErrorRef.current = null;
+            setShouldStopPolling(true);
+            setPaymentError(null);
+            setCurrentStep("success");
+            toast.success("Payment completed successfully!");
+            return true;
+          }
+          if (result.status === "FAILED" || result.status === "CANCELLED") {
+            terminalStateDetectedRef.current = true;
+            const code = result.resultCode ? parseInt(String(result.resultCode), 10) : 1;
+            const msg = getUserFriendlyError(code, result.resultDesc ?? undefined);
+            immediateStepRef.current = "error";
+            immediatePaymentErrorRef.current = msg;
+            setShouldStopPolling(true);
+            setPaymentError(msg);
+            setCurrentStep("error");
+            toast.error(msg);
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      };
+
+      let attempts = 0;
+      const id = setInterval(async () => {
+        attempts += 1;
+        const finished = await poll();
+        if (finished || attempts >= POLL_MAX_ATTEMPTS) {
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+          setIsPolling(false);
+          if (!finished && attempts >= POLL_MAX_ATTEMPTS) {
+            const msg = "Payment is taking longer than expected. Please check your M-Pesa or try again.";
+            terminalStateDetectedRef.current = true;
+            immediateStepRef.current = "error";
+            immediatePaymentErrorRef.current = msg;
+            setShouldStopPolling(true);
+            setPaymentError(msg);
+            setCurrentStep("error");
+            toast.error(msg);
           }
         }
-        return POLL_INTERVAL_MS;
-      },
-    }
+      }, POLL_INTERVAL_MS);
+      pollingIntervalRef.current = id;
+    },
+    [utils, getUserFriendlyError]
   );
 
   const validateAccountReference = (v: string) => {
@@ -467,13 +478,73 @@ export function GlobalBuyNowDialog() {
       setCheckoutRequestId(null);
       setPaymentError(null);
       setShouldStopPolling(false);
-      pollingStartTimeRef.current = null;
-      pollingAttemptsRef.current = 0;
+      setIsPolling(false);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
       terminalStateDetectedRef.current = false;
       immediateStepRef.current = null;
       immediatePaymentErrorRef.current = null;
+      orderCreatedForCheckoutRef.current = null;
     }
   }, [open]);
+
+  // When payment succeeds, create order from payment (once per checkoutRequestId)
+  React.useEffect(() => {
+    if (currentStep !== "success" || !checkoutRequestId || orderCreatedForCheckoutRef.current === checkoutRequestId) return;
+    if (isCartMode) {
+      const domains = getDomains();
+      if (!domainsProductId || domains.length === 0) return;
+      const orderItems = domains.map((d) => {
+        const { price, currency } = (() => {
+          if (d.addedInCurrency && d.price?.calculated?.convertedPrice != null) {
+            return { price: d.price.calculated.convertedPrice, currency: d.addedInCurrency };
+          }
+          if (d.price?.calculated?.finalPrice != null) {
+            return {
+              price: d.price.calculated.finalPrice,
+              currency: d.price.calculated.currency ?? "KES",
+            };
+          }
+          const p = d.price?.reseller?.price ?? d.price?.product?.price ?? 0;
+          const c = d.price?.reseller?.currency ?? d.price?.product?.currency ?? "KES";
+          return { price: p, currency: c };
+        })();
+        const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
+        return {
+          productId: domainsProductId,
+          primaryDomain: d.domain,
+          description: "registration",
+          productPlanId: null,
+          itemPrice: str(price),
+          itemSubtotal: str(price),
+        };
+      });
+      orderCreatedForCheckoutRef.current = checkoutRequestId;
+      createOrderFromPayment.mutate({ checkoutRequestId, items: orderItems, currency: primaryCurrency });
+      return;
+    }
+    if (!ctx?.productId || !ctx?.domain?.domain) return;
+    const calc = ctx.domain.price?.calculated as { convertedPrice?: number; finalPrice?: number } | undefined;
+    const price = calc?.convertedPrice ?? calc?.finalPrice ?? ctx.domain.price?.reseller?.price ?? 0;
+    const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
+    orderCreatedForCheckoutRef.current = checkoutRequestId;
+    createOrderFromPayment.mutate({
+      checkoutRequestId,
+      items: [
+        {
+          productId: ctx.productId,
+          primaryDomain: ctx.domain.domain,
+          description: "registration",
+          productPlanId: null,
+          itemPrice: str(price),
+          itemSubtotal: str(price),
+        },
+      ],
+      currency: displayCurrency,
+    });
+  }, [currentStep, checkoutRequestId, isCartMode, ctx, domainsProductId, getDomains, primaryCurrency, displayCurrency]);
 
   if (!open) return null;
   if (isCartMode && totalItems === 0) {
@@ -483,13 +554,7 @@ export function GlobalBuyNowDialog() {
 
   const effectiveStep = immediateStepRef.current ?? currentStep;
   const primaryCurr = isCartMode ? primaryCurrency : displayCurrency;
-  const showPaymentWaiting =
-    !!checkoutRequestId &&
-    effectiveStep === "payment" &&
-    !immediatePaymentErrorRef.current &&
-    !paymentError &&
-    !shouldStopPolling &&
-    !terminalStateDetectedRef.current;
+  const showPaymentWaiting = isPolling;
 
   const renderStep = () => {
     switch (effectiveStep) {

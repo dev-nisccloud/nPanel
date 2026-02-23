@@ -70,16 +70,29 @@ export default async function TeamLayout({
     redirect("/create-team");
   }
 
-  const cookieStore = await cookies();
-  const sidebarState = cookieStore.get("sidebar_state")?.value;
-  // Default to true (open) unless explicitly set to "false"
-  const defaultOpen = sidebarState !== "false";
-
-  const [sidebarVariant, sidebarCollapsible, contentLayout] = await Promise.all([
-    getPreference<SidebarVariant>("sidebar_variant", SIDEBAR_VARIANT_VALUES, "floating"),
-    getPreference<SidebarCollapsible>("sidebar_collapsible", SIDEBAR_COLLAPSIBLE_VALUES, "icon"),
-    getPreference<ContentLayout>("content_layout", CONTENT_LAYOUT_VALUES, "full-width"),
-  ]);
+  let defaultOpen = true;
+  let sidebarVariant: SidebarVariant = "floating";
+  let sidebarCollapsible: SidebarCollapsible = "icon";
+  let contentLayout: ContentLayout = "full-width";
+  try {
+    const cookieStore = await cookies();
+    const sidebarState = cookieStore.get("sidebar_state")?.value;
+    defaultOpen = sidebarState !== "false";
+    const [variant, collapsible, layout] = await Promise.all([
+      getPreference<SidebarVariant>("sidebar_variant", SIDEBAR_VARIANT_VALUES, "floating"),
+      getPreference<SidebarCollapsible>("sidebar_collapsible", SIDEBAR_COLLAPSIBLE_VALUES, "icon"),
+      getPreference<ContentLayout>("content_layout", CONTENT_LAYOUT_VALUES, "full-width"),
+    ]);
+    sidebarVariant = variant;
+    sidebarCollapsible = collapsible;
+    contentLayout = layout;
+  } catch (err) {
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[Team Layout] cookies/getPreference failed, using defaults");
+    } else {
+      console.warn("[Team Layout] cookies/getPreference failed, using defaults:", err);
+    }
+  }
 
   const layoutPreferences = {
     contentLayout,

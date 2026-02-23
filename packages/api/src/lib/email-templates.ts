@@ -440,6 +440,43 @@ export async function renderNiscOrderConfirmationEmail({
 </div>`;
 }
 
+/** "Order received" email — sent when order is created from payment; user will get another email when processed. */
+export async function renderNiscOrderReceivedEmail({
+  customerName,
+  orderNumber,
+  orderDate,
+  totalAmount,
+  currency,
+  orderItems,
+  orderLink,
+}: {
+  customerName?: string;
+  orderNumber?: string;
+  orderDate?: string;
+  totalAmount?: string;
+  currency?: string;
+  orderItems?: Array<{ name: string; description?: string; price?: string }>;
+  orderLink?: string;
+}): Promise<string> {
+  const itemsHtml =
+    orderItems?.map(
+      (i) =>
+        `<tr><td>${escapeHtml(i.name)}</td><td>${i.description ? escapeHtml(i.description) : ""}</td><td>${i.price ?? ""} ${currency ?? ""}</td></tr>`
+    ).join("") ?? "";
+  return `<div style="font-family:sans-serif;max-width:600px;">
+  <h2>Order received</h2>
+  <p>Hi ${escapeHtml(customerName ?? "Customer")},</p>
+  <p>We have received your order and payment. Here are the details:</p>
+  <p><strong>Order number:</strong> ${escapeHtml(orderNumber ?? "")}</p>
+  <p><strong>Date:</strong> ${orderDate ?? ""}</p>
+  <table style="border-collapse:collapse;width:100%;"><thead><tr><th style="text-align:left;">Item</th><th style="text-align:left;">Details</th><th style="text-align:right;">Price</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+  <p><strong>Total:</strong> ${totalAmount ?? ""} ${currency ?? "KES"}</p>
+  ${orderLink ? `<p><a href="${escapeHtml(orderLink)}">View order</a></p>` : ""}
+  <p>You will receive another email once your order has been processed.</p>
+  <p>Thank you for your business.</p>
+</div>`;
+}
+
 export async function renderNiscOrderFailedEmail({
   customerName,
   orderNumber,
@@ -460,11 +497,11 @@ export async function renderNiscOrderFailedEmail({
   return `<div style="font-family:sans-serif;max-width:600px;">
   <h2>Order could not be completed</h2>
   <p>Hi ${escapeHtml(customerName ?? "Customer")},</p>
-  <p>Your NISC service order could not be fully processed.</p>
+  <p>Your Nisc service order could not be fully processed.</p>
   <p><strong>Order number:</strong> ${escapeHtml(orderNumber ?? "")}</p>
   ${failureReason ? `<p><strong>Reason:</strong> ${escapeHtml(failureReason)}</p>` : ""}
   ${itemsHtml ? `<ul>${itemsHtml}</ul>` : ""}
-  ${retryLink ? `<p>You can retry from the <a href="${escapeHtml(retryLink)}">NISC Service Orders</a> page.</p>` : "<p>You can retry from the NISC Service Orders page.</p>"}
+  ${retryLink ? `<p>You can retry from the <a href="${escapeHtml(retryLink)}">Nisc Service Orders</a> page.</p>` : "<p>You can retry from the NISC Service Orders page.</p>"}
   <p>If you need help, please contact support.</p>
 </div>`;
 }

@@ -40,8 +40,9 @@ model PaymentTransaction {
   receiptNumber        String? // Payment receipt number (M-Pesa specific)
 
   // Payment Details
-  amount   String // Amount in string format to preserve precision
-  currency String @default("KES") // Currency code (KES, USD, etc.)
+  amount     String // Amount requested/sent in STK push (preserves precision)
+  paidAmount String? // Amount actually paid from callback (if different; e.g. for testing)
+  currency   String  @default("KES") // Currency code (KES, USD, etc.)
 
   // Payment Metadata
   accountReference String? // Account reference (e.g., order number, invoice number)

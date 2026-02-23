@@ -65,7 +65,6 @@ export function CreateOrderSheet({
 	const { data: users = [], isLoading: loadingUsers } =
 		trpc.manageUsers.getAll.useQuery(undefined, { enabled: open });
 
-	// @ts-expect-error - tRPC useMutation type instantiation is excessively deep with complex create input (items + metadata)
 	const createMutation = trpc.niscServiceOrders.create.useMutation({
 		onSuccess: () => {
 			toast.success("Order created and queued for processing");

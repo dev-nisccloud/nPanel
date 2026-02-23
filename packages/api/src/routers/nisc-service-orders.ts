@@ -60,6 +60,33 @@ const createInputSchema = z
 
 const retryInputSchema = z.object({ niscOrderId: z.string() });
 
+/** Item for createFromPayment: domain/product line from checkout (no plan required for domains). */
+const createFromPaymentItemSchema = z.object({
+	productId: z.string(),
+	productPlanId: z.string().nullable().optional(),
+	billingCycle: billingCycleSchema.optional(),
+	primaryDomain: z.string().optional(),
+	/** e.g. "registration", "transfer", "renewal" — per item. */
+	description: z.string().optional(),
+	itemPrice: z.string(),
+	itemSubtotal: z.string(),
+	domainSubscriptionId: z.string().optional(),
+	metadata: z
+		.object({
+			transferAuthCode: z.string().optional(),
+			nameServers: z
+				.array(z.object({ name: z.string(), ip: z.string().optional() }))
+				.optional(),
+		})
+		.optional(),
+});
+
+const createFromPaymentInputSchema = z.object({
+	checkoutRequestId: z.string().min(1),
+	items: z.array(createFromPaymentItemSchema).min(1),
+	currency: z.string().default("KES"),
+});
+
 function generateNiscOrderNumber(): string {
 	const year = new Date().getFullYear();
 	const timestamp = Date.now().toString().slice(-6);
@@ -125,8 +152,9 @@ export const niscServiceOrdersRouter = router({
 						productId: i.productId,
 						productPlanId: i.productPlanId,
 						productName: i.product.name,
-						planName: i.productPlan.name,
+						planName: i.productPlan?.name ?? null,
 						serviceType: i.product.serviceType,
+						description: i.description,
 						itemPrice: i.itemPrice,
 						itemSubtotal: i.itemSubtotal,
 						status: i.status,
@@ -387,6 +415,230 @@ export const niscServiceOrdersRouter = router({
 				where: { id: order.id },
 				data: { qstashMessageId },
 			});
+
+			return prisma.niscOrder.findUnique({
+				where: { id: order.id },
+				include: {
+					orderItems: {
+						include: {
+							product: { select: { id: true, name: true, serviceType: true } },
+							productPlan: { select: { id: true, name: true } },
+						},
+					},
+					user: { select: { id: true, name: true, email: true } },
+					team: { select: { id: true, name: true } },
+				},
+			});
+		}),
+
+	/**
+	 * Create a NISC order from a successful M-Pesa payment (agency: logged-in user only).
+	 * Verifies payment by checkoutRequestId, creates order with paymentTransactionId, enqueues processing, sends "order received" email.
+	 */
+	createFromPayment: protectedProcedure
+		.input(createFromPaymentInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in to create an order from payment",
+				});
+			}
+			const userId = session.user.id;
+
+			const transaction = await prisma.paymentTransaction.findFirst({
+				where: {
+					checkoutRequestId: input.checkoutRequestId,
+					userId,
+					status: "SUCCESS",
+				},
+			});
+			if (!transaction) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Payment not found or not yet successful. Wait a moment and try again.",
+				});
+			}
+
+			for (const item of input.items) {
+				const product = await prisma.niscProduct.findUnique({
+					where: { id: item.productId },
+				});
+				if (!product || !product.isActive) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Product ${item.productId} not found or inactive`,
+					});
+				}
+				if (
+					(product.serviceType === "domain_registration" || product.serviceType === "domain_transfer") &&
+					!item.primaryDomain?.trim()
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Domain item "${product.name}" requires a primary domain.`,
+					});
+				}
+			}
+
+			const needsProfile = await Promise.all(
+				input.items.map(async (i) => {
+					const p = await prisma.niscProduct.findUnique({
+						where: { id: i.productId },
+						select: { serviceType: true },
+					});
+					return (
+						p?.serviceType === "web_hosting" ||
+						p?.serviceType === "email_hosting" ||
+						p?.serviceType === "domain_registration" ||
+						p?.serviceType === "domain_transfer"
+					);
+				}),
+			).then((arr) => arr.some(Boolean));
+
+			if (needsProfile) {
+				const user = await prisma.user.findUnique({
+					where: { id: userId },
+					include: { profile: true },
+				});
+				if (!user?.profile) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Complete your profile information and retry creating an order.",
+					});
+				}
+				const profile = user.profile;
+				const required = [
+					profile.firstName,
+					profile.lastName,
+					profile.address,
+					profile.city,
+					profile.country,
+					profile.postalCode,
+					profile.phone,
+				];
+				if (required.some((f) => !f || String(f).trim() === "")) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Complete your profile information and retry creating an order.",
+					});
+				}
+			}
+
+			let orderNumber: string;
+			let existing: { id: string } | null;
+			do {
+				orderNumber = generateNiscOrderNumber();
+				existing = await prisma.niscOrder.findUnique({
+					where: { orderNumber },
+					select: { id: true },
+				});
+			} while (existing);
+
+			const subtotalNum = input.items.reduce((sum, i) => sum + parseFloat(i.itemSubtotal || "0"), 0);
+			const totalNum = subtotalNum;
+			const subtotal = String(subtotalNum);
+			const total = String(totalNum);
+			const currency = input.currency || "KES";
+
+			const order = await prisma.niscOrder.create({
+				data: {
+					orderNumber,
+					userId,
+					teamId: null,
+					createdBy: session.user.id,
+					status: "PENDING",
+					subtotal,
+					total,
+					currency,
+					paymentTransactionId: transaction.id,
+				},
+			});
+
+			for (const item of input.items) {
+				const metadata =
+					item.metadata && typeof item.metadata === "object"
+						? (item.metadata as { transferAuthCode?: string; nameServers?: Array<{ name: string; ip?: string }> })
+						: null;
+				await prisma.niscOrderItem.create({
+					data: {
+						niscOrderId: order.id,
+						productId: item.productId,
+						productPlanId: item.productPlanId ?? null,
+						billingCycle: item.billingCycle ?? null,
+						itemPrice: item.itemPrice,
+						itemSubtotal: item.itemSubtotal,
+						itemCurrency: currency,
+						primaryDomain: item.primaryDomain ?? null,
+						domainSubscriptionId: item.domainSubscriptionId ?? null,
+						description: item.description ?? null,
+						metadata: metadata ?? undefined,
+					},
+				});
+			}
+
+			let qstashMessageId: string | null = null;
+			try {
+				const result = await enqueueNiscOrderProcessing(order.id);
+				qstashMessageId = result.messageId;
+			} catch (err) {
+				await prisma.niscOrder.update({
+					where: { id: order.id },
+					data: { failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500) },
+				});
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message:
+						err instanceof Error ? err.message : "Failed to enqueue order for processing",
+				});
+			}
+
+			await prisma.niscOrder.update({
+				where: { id: order.id },
+				data: { qstashMessageId },
+			});
+
+			// Fire-and-forget: send "order received" email to the logged-in user
+			void (async () => {
+				try {
+					const orderWithUser = await prisma.niscOrder.findUnique({
+						where: { id: order.id },
+						include: {
+							orderItems: {
+								include: {
+									product: { select: { name: true } },
+								},
+							},
+							user: { select: { id: true, name: true, email: true } },
+						},
+					});
+					if (!orderWithUser?.user?.email) return;
+					const { sendEmail } = await import("../lib/email");
+					const { renderNiscOrderReceivedEmail } = await import("../lib/email-templates");
+					const orderItems = orderWithUser.orderItems.map((i) => ({
+						name: i.primaryDomain || (i.product?.name ?? "Order item"),
+						description: i.description ?? undefined,
+						price: i.itemPrice,
+					}));
+					const html = await renderNiscOrderReceivedEmail({
+						customerName: orderWithUser.user.name ?? undefined,
+						orderNumber: orderWithUser.orderNumber,
+						orderDate: orderWithUser.createdAt.toISOString().slice(0, 10),
+						totalAmount: orderWithUser.total,
+						currency: orderWithUser.currency,
+						orderItems,
+						orderLink: undefined,
+					});
+					await sendEmail({
+						to: orderWithUser.user.email,
+						subject: `Order ${orderWithUser.orderNumber} received`,
+						html,
+					});
+				} catch (e) {
+					console.error("Failed to send order received email:", e);
+				}
+			})();
 
 			return prisma.niscOrder.findUnique({
 				where: { id: order.id },

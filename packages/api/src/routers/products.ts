@@ -569,6 +569,33 @@ export const productsRouter = router({
             return { success: true };
         }),
 
+    /** Get default (or first) active plan ID for a product. Used when creating orders from payment (e.g. domain registration). */
+    getDefaultPlanIdForProduct: protectedProcedure
+        .input(z.object({ productId: z.string() }))
+        .output(z.string().nullable())
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view products",
+                });
+            }
+            const plan = await prisma.niscProductPlan.findFirst({
+                where: {
+                    productId: input.productId,
+                    isActive: true,
+                },
+                orderBy: [
+                    { isDefault: "desc" }, // default first
+                    { sortOrder: "asc" },
+                    { createdAt: "asc" },
+                ],
+                select: { id: true },
+            });
+            return plan?.id ?? null;
+        }),
+
     // ── Product Plans ─────────────────────────────────────────────────────────
 
     /** Get a single plan by ID */

@@ -205,7 +205,7 @@ export default function NiscServiceOrdersPage() {
 											</TableCell>
 											<TableCell>
 												{order.orderItems
-													.map((i: { productName: string; planName: string }) => `${i.productName} – ${i.planName}`)
+													.map((i) => `${i.productName} – ${i.planName ?? "—"}`)
 													.join(", ")}
 											</TableCell>
 											<TableCell>

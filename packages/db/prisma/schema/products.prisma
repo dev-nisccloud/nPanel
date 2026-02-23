@@ -195,7 +195,8 @@ model NiscProductPlan {
 model NiscClientSubscription {
   id String @id @default(cuid())
 
-  name String? //Name of the subscription which can be a combination of the product and plan name
+  name        String? // Name of the subscription which can be a combination of the product and plan name
+  description String? // e.g. "registration", "transfer", "renewal" — further describes the subscription
 
   // Ownership — both optional
   userId String? // individual client contact

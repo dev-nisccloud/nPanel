@@ -36,13 +36,14 @@ model NiscOrder {
   notes    String?
   metadata Json?
 
-  niscProductPromoId String?
-  invoiceId          String?
-  invoiceNumber      String?
-  processedAt        DateTime?
-  completedAt        DateTime?
-  failureReason      String?
-  qstashMessageId    String?
+  niscProductPromoId   String?
+  invoiceId            String?
+  invoiceNumber        String?
+  processedAt          DateTime?
+  completedAt          DateTime?
+  failureReason        String?
+  qstashMessageId      String?
+  paymentTransactionId String? // When set, order is fully paid (agency/customer checkout)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -59,16 +60,17 @@ model NiscOrder {
   @@index([status])
   @@index([createdAt])
   @@index([qstashMessageId])
+  @@index([paymentTransactionId])
   @@map("nisc_order")
 }
 
 // --- NiscOrderItem -------------------------------------------------------------
 
 model NiscOrderItem {
-  id            String @id @default(cuid())
+  id            String  @id @default(cuid())
   niscOrderId   String
   productId     String
-  productPlanId String
+  productPlanId String? // null for domain product (no plans; use description for registration/transfer/renewal)
 
   billingCycle BillingCycle?
   itemPrice    String
@@ -80,6 +82,7 @@ model NiscOrderItem {
   niscClientSubscriptionId String?
   primaryDomain            String?
   domainSubscriptionId     String?
+  description              String? // e.g. "registration", "transfer", "renewal" — identifies type per product/item
   metadata                 Json? // e.g. { transferAuthCode?: string } for domain_transfer
 
   createdAt DateTime @default(now())
@@ -87,7 +90,7 @@ model NiscOrderItem {
 
   niscOrder              NiscOrder               @relation(fields: [niscOrderId], references: [id], onDelete: Cascade)
   product                NiscProduct             @relation(fields: [productId], references: [id], onDelete: Restrict)
-  productPlan            NiscProductPlan         @relation(fields: [productPlanId], references: [id], onDelete: Restrict)
+  productPlan            NiscProductPlan?        @relation(fields: [productPlanId], references: [id], onDelete: SetNull)
   niscClientSubscription NiscClientSubscription? @relation("OrderItemSubscription", fields: [niscClientSubscriptionId], references: [id], onDelete: SetNull)
   domainSubscription     NiscClientSubscription? @relation("OrderItemDomainSubscription", fields: [domainSubscriptionId], references: [id], onDelete: SetNull)
 

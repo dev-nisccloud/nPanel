@@ -205,9 +205,10 @@ const TERMINAL_RESULT_CODES = new Set([
 
 /**
  * Processing result codes that indicate the transaction is still being processed
- * These codes should continue polling
+ * These codes should continue polling (do not treat as terminal)
  */
 const PROCESSING_RESULT_CODES = new Set([
+	1037, // DS timeout / user cannot be reached - request still in progress
 	4999, // Request processing
 ]);
 

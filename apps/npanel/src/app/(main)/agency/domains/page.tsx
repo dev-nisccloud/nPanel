@@ -48,7 +48,7 @@ export default function DomainsPage() {
           </div>
         </TabsContent> */}
 
-        <TabsContent value="settings" className="mt-6 data-[state=inactive]:hidden" forceMount>
+        <TabsContent value="settings" className="mt-6">
           <TldSettings />
         </TabsContent>
       </Tabs>

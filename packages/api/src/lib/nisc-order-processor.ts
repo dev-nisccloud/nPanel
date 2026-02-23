@@ -206,10 +206,11 @@ async function createSubscriptionForOrderItem(
 	item: {
 		id: string;
 		productId: string;
-		productPlanId: string;
+		productPlanId: string | null;
 		billingCycle: string | null;
 		itemPrice: string;
 		itemSubtotal: string;
+		description: string | null;
 		product: { name: string };
 		productPlan: {
 			name: string;
@@ -217,14 +218,16 @@ async function createSubscriptionForOrderItem(
 			price: string | null;
 			cost: string | null;
 			hostingType: string | null;
-		};
+		} | null;
 	},
 ) {
-	const name = `${item.product.name} - ${item.productPlan.name}`;
-	const pricingModel = item.productPlan.pricingModel as "FIXED" | "COMMISSION";
+	const plan = item.productPlan;
+	const name = plan ? `${item.product.name} - ${plan.name}` : item.product.name;
+	const pricingModel = (plan?.pricingModel as "FIXED" | "COMMISSION") ?? "FIXED";
 	const sub = await prisma.niscClientSubscription.create({
 		data: {
 			name,
+			description: item.description ?? undefined,
 			userId: order.userId,
 			teamId: order.teamId,
 			productId: item.productId,
@@ -237,9 +240,9 @@ async function createSubscriptionForOrderItem(
 			pricingModel,
 			agreedPrice: item.itemPrice,
 			agreedCurrency: order.currency,
-			agreedCost: item.productPlan.cost ?? null,
+			agreedCost: plan?.cost ?? null,
 			agreedCostCurrency: "KES",
-			providerCost: item.productPlan.cost ?? null,
+			providerCost: plan?.cost ?? null,
 			providerCostCurrency: "KES",
 			metadata: Prisma.JsonNull,
 		},
@@ -252,7 +255,7 @@ async function processPleskOrderItem(
 	item: {
 		id: string;
 		productId: string;
-		productPlanId: string;
+		productPlanId: string | null;
 		billingCycle: string | null;
 		itemPrice: string;
 		itemSubtotal: string;
@@ -267,10 +270,13 @@ async function processPleskOrderItem(
 			pleskServicePlanId: string | null;
 			pleskIpAddress: string | null;
 			hostingType: string | null;
-		};
+		} | null;
 		domainSubscription: { name: string | null; primaryDomain: string | null } | null;
 	},
 ): Promise<{ ok: true; subscriptionId: string } | { ok: false; error: string }> {
+	if (!item.productPlanId || !item.productPlan) {
+		return { ok: false, error: "Hosting item requires a product plan." };
+	}
 	const domainName =
 		item.primaryDomain ||
 		item.domainSubscription?.primaryDomain ||
@@ -346,14 +352,15 @@ async function processOpenProviderTransferOrderItem(
 	item: {
 		id: string;
 		productId: string;
-		productPlanId: string;
+		productPlanId: string | null;
 		billingCycle: string | null;
 		itemPrice: string;
 		itemSubtotal: string;
 		primaryDomain: string | null;
+		description: string | null;
 		metadata: unknown;
 		product: { name: string };
-		productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null };
+		productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null } | null;
 	},
 ): Promise<
 	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean }
@@ -386,7 +393,8 @@ async function processOpenProviderTransferOrderItem(
 			orderId: order.id,
 			orderItemId: item.id,
 			productId: item.productId,
-			productPlanId: item.productPlanId,
+			productPlanId: item.productPlanId ?? undefined,
+			description: item.description ?? undefined,
 			userId: order.userId,
 			teamId: order.teamId,
 			billingCycle: item.billingCycle,
@@ -411,13 +419,14 @@ async function processOpenProviderOrderItem(
 	item: {
 		id: string;
 		productId: string;
-		productPlanId: string;
+		productPlanId: string | null;
 		billingCycle: string | null;
 		itemPrice: string;
 		itemSubtotal: string;
 		primaryDomain: string | null;
+		description: string | null;
 		product: { name: string };
-		productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null };
+		productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null } | null;
 	},
 ): Promise<
 	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean }
@@ -444,7 +453,8 @@ async function processOpenProviderOrderItem(
 			orderId: order.id,
 			orderItemId: item.id,
 			productId: item.productId,
-			productPlanId: item.productPlanId,
+			productPlanId: item.productPlanId ?? undefined,
+			description: item.description ?? undefined,
 			userId: order.userId,
 			teamId: order.teamId,
 			billingCycle: item.billingCycle,

@@ -257,6 +257,38 @@ export const mpesaRouter = router({
 		}),
 
 	/**
+	 * Get payment status by checkout ID (DB-only, no M-Pesa API).
+	 * Used for polling after STK Push: webhook updates DB, client polls this.
+	 * Matches pattern from solidarity-online-drivers-sacco (GET /api/mpesa/status).
+	 */
+	getPaymentStatusByCheckoutId: protectedProcedure
+		.input(StkPushQueryRequestSchema)
+		.query(async ({ input, ctx }) => {
+			if (!ctx.session?.user?.id) {
+				throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required" });
+			}
+			const transaction = await prisma.paymentTransaction.findFirst({
+				where: {
+					checkoutRequestId: input.checkoutRequestId,
+					userId: ctx.session.user.id,
+				},
+				select: {
+					status: true,
+					gatewayStatus: true,
+					gatewayMessage: true,
+				},
+			});
+			if (!transaction) {
+				return { status: null, resultCode: null, resultDesc: null };
+			}
+			return {
+				status: transaction.status,
+				resultCode: transaction.gatewayStatus,
+				resultDesc: transaction.gatewayMessage,
+			};
+		}),
+
+	/**
 	 * Query STK Push payment status
 	 * 
 	 * This endpoint queries the status of a previously initiated STK Push payment.

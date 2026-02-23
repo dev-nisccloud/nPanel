@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
 						totalAmount: orderAfter.total,
 						currency: orderAfter.currency,
 						orderItems: orderAfter.orderItems.map((i) => ({
-							name: `${i.product.name} - ${i.productPlan.name}`,
+							name: [i.product?.name, i.productPlan?.name].filter(Boolean).join(" - ") || i.primaryDomain || "Order item",
 							price: i.itemSubtotal,
 						})),
 						orderLink,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
 					const failedItems = orderAfter.orderItems
 						.filter((i) => i.status === "FAILED")
 						.map((i) => ({
-							name: `${i.product.name} - ${i.productPlan.name}`,
+							name: [i.product?.name, i.productPlan?.name].filter(Boolean).join(" - ") || i.primaryDomain || "Order item",
 							error: i.provisioningError ?? undefined,
 						}));
 					const html = await renderNiscOrderFailedEmail({

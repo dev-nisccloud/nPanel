@@ -131,6 +131,7 @@ const activityLogsResponseSchema = z.object({
 // ============================================================================
 
 function transformNameserverGroup(group: any) {
+  const rawCount = group._count;
   return {
     id: group.id,
     name: group.name,
@@ -140,10 +141,10 @@ function transformNameserverGroup(group: any) {
     createdAt: group.createdAt,
     updatedAt: group.updatedAt,
     nameservers: group.nameservers || [],
-    _count: group._count || {
-      tldSettings: 0,
-      domainRegistrations: 0,
-      domainTransfers: 0,
+    _count: {
+      tldSettings: rawCount?.tldSettings ?? 0,
+      domainRegistrations: rawCount?.domains ?? 0,
+      domainTransfers: rawCount?.domainTransfers ?? 0,
     },
   };
 }

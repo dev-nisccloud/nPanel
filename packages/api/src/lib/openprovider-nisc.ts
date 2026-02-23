@@ -30,7 +30,8 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 	orderId: string;
 	orderItemId: string;
 	productId: string;
-	productPlanId: string;
+	productPlanId?: string | null;
+	description?: string | null;
 	userId: string | null;
 	teamId: string | null;
 	billingCycle: string | null;
@@ -117,7 +118,17 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 			html,
 		});
 
-		const sub = await createDomainSubscription(params, integration.id, params.domainName, null, "PENDING");
+		const sub = await createDomainSubscription(
+			{
+				...params,
+				productPlanId: params.productPlanId ?? null,
+				description: params.description ?? null,
+			},
+			integration.id,
+			params.domainName,
+			null,
+			"PENDING",
+		);
 		return { subscriptionId: sub.id, pendingVerification: true };
 	}
 
@@ -209,7 +220,8 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 	orderId: string;
 	orderItemId: string;
 	productId: string;
-	productPlanId: string;
+	productPlanId?: string | null;
+	description?: string | null;
 	userId: string | null;
 	teamId: string | null;
 	billingCycle: string | null;
@@ -437,7 +449,8 @@ async function createDomainSubscription(
 	params: {
 		orderId: string;
 		productId: string;
-		productPlanId: string;
+		productPlanId?: string | null;
+		description?: string | null;
 		userId: string | null;
 		teamId: string | null;
 		createdBy: string;
@@ -453,10 +466,11 @@ async function createDomainSubscription(
 	return prisma.niscClientSubscription.create({
 		data: {
 			name: primaryDomain,
+			description: params.description ?? undefined,
 			userId: params.userId,
 			teamId: params.teamId,
 			productId: params.productId,
-			productPlanId: params.productPlanId,
+			productPlanId: params.productPlanId ?? null,
 			niscOrderId: params.orderId,
 			subscribedBy: params.createdBy,
 			status,
