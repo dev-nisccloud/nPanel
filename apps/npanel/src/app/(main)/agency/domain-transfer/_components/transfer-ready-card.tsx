@@ -20,8 +20,15 @@ export type TransferProvider = "kenic" | "openprovider";
 interface TransferReadyCardProps {
   domain: string;
   extension: string;
+  /** Customer-facing price (after margin) – shown in UI */
   price: number;
   currency: string;
+  /** Provider price (no margin) – for DB when initiating transfer */
+  providerPriceAmount?: number | null;
+  providerPriceCurrency?: string | null;
+  /** Customer price (after margin) – for DB when initiating transfer */
+  customerPriceAmount?: number | null;
+  customerPriceCurrency?: string | null;
   provider: TransferProvider;
   onPurchase: () => void;
   purchaseSheetOpen: boolean;
@@ -62,6 +69,10 @@ export function TransferReadyCard({
   extension,
   price,
   currency,
+  providerPriceAmount,
+  providerPriceCurrency,
+  customerPriceAmount,
+  customerPriceCurrency,
   provider,
   purchaseSheetOpen,
   onPurchaseSheetOpenChange,
@@ -147,6 +158,10 @@ export function TransferReadyCard({
                   initialExtension={initialExtension.startsWith(".") ? initialExtension.slice(1) : initialExtension}
                   price={price}
                   currency={currency}
+                  providerPriceAmount={providerPriceAmount}
+                  providerPriceCurrency={providerPriceCurrency}
+                  customerPriceAmount={customerPriceAmount ?? price}
+                  customerPriceCurrency={customerPriceCurrency ?? currency}
                   provider={provider}
                   onSuccess={() => onPurchaseSheetOpenChange(false)}
                 />

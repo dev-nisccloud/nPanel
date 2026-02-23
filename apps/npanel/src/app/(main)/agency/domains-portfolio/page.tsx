@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Plus, RefreshCw, Search, Globe, Grid3X3, List, EllipsisVertical } from "lucide-react";
+import { Plus, RefreshCw, Search, Globe, Grid3X3, List, EllipsisVertical, FilePlus2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { DomainPortfolioCardsList, type DomainPortfolio } from "./_components/domain-portfolio-card";
+import { CreateSubscriptionFromDomainDialog } from "./_components/create-subscription-from-domain-dialog";
 import { EmptyState } from "./_components/empty-state";
 import { trpc } from "@/utils/trpc";
 import {
@@ -39,6 +40,8 @@ export default function DomainsPortfolioPage() {
   const [limit] = React.useState(100);
   const [offset, setOffset] = React.useState(0);
   const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
+  const [createSubscriptionDomain, setCreateSubscriptionDomain] = React.useState<DomainPortfolio | null>(null);
+
   const handleNavigation = (path: string) => {
     router.push(path);
   };
@@ -83,6 +86,23 @@ export default function DomainsPortfolioPage() {
       );
     });
   }, [domainsData?.data, searchQuery]);
+
+  const openProviderIds = React.useMemo(() => {
+    return (filteredDomains as DomainPortfolio[])
+      .map((d) => (typeof d.id === "string" ? Number.parseInt(d.id, 10) : d.id))
+      .filter((id) => !Number.isNaN(id));
+  }, [filteredDomains]);
+
+  const { data: openProviderIdsWithSubscriptions = [] } =
+    trpc.clientSubscriptions.getOpenProviderIdsWithSubscriptions.useQuery(
+      { openProviderIds },
+      { enabled: openProviderIds.length > 0 }
+    );
+
+  const openProviderIdsWithSubscriptionsSet = React.useMemo(
+    () => new Set(openProviderIdsWithSubscriptions),
+    [openProviderIdsWithSubscriptions]
+  );
 
   // Show error state
   if (error) {
@@ -188,10 +208,37 @@ export default function DomainsPortfolioPage() {
                               <span className="sr-only">Open menu</span>
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-32">
+                          <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem onClick={() => handleNavigation(`/agency/domains-portfolio/${domain.id}`)}>
                               View Details
                             </DropdownMenuItem>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="block w-full">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      const id = typeof domain.id === "string" ? Number.parseInt(domain.id, 10) : domain.id;
+                                      if (!openProviderIdsWithSubscriptionsSet.has(id)) {
+                                        setCreateSubscriptionDomain(domain);
+                                      }
+                                    }}
+                                    disabled={openProviderIdsWithSubscriptionsSet.has(
+                                      typeof domain.id === "string" ? Number.parseInt(domain.id, 10) : domain.id
+                                    )}
+                                  >
+                                    <FilePlus2 className="mr-2 h-4 w-4" />
+                                    Create subscription
+                                  </DropdownMenuItem>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="max-w-xs">
+                                {openProviderIdsWithSubscriptionsSet.has(
+                                  typeof domain.id === "string" ? Number.parseInt(domain.id, 10) : domain.id
+                                )
+                                  ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
+                                  : "Create a NISC subscription for this domain and link it to a user or team."}
+                              </TooltipContent>
+                            </Tooltip>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TooltipTrigger>
@@ -214,6 +261,8 @@ export default function DomainsPortfolioPage() {
       data={filteredDomains as DomainPortfolio[]}
       cols={4}
       onView={(id) => handleNavigation(`/agency/domains-portfolio/${id}`)}
+      onCreateSubscription={(d) => setCreateSubscriptionDomain(d)}
+      openProviderIdsWithSubscriptions={openProviderIdsWithSubscriptionsSet}
     />
   );
 
@@ -301,6 +350,14 @@ export default function DomainsPortfolioPage() {
           ) : (
             <>
               {viewMode === "card" ? <CardView /> : <TableView />}
+              {createSubscriptionDomain && (
+                <CreateSubscriptionFromDomainDialog
+                  open={!!createSubscriptionDomain}
+                  onOpenChange={(open) => !open && setCreateSubscriptionDomain(null)}
+                  domain={createSubscriptionDomain}
+                  onSuccess={() => setCreateSubscriptionDomain(null)}
+                />
+              )}
               {domainsData?.meta && domainsData.meta.total > filteredDomains.length && (
                 <div className="text-center text-sm text-muted-foreground">
                   Showing {filteredDomains.length} of {domainsData.meta.total} domains

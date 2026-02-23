@@ -1,9 +1,12 @@
+import * as crypto from "crypto";
 import { z } from "zod";
-import { publicProcedure, router } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
-import { getKenicPricingForTld } from "../lib/epp/kenic-pricing";
 import { rdapLookup } from "../lib/rdap/client";
 import { createOpenProviderClient, OpenProviderApiError } from "../lib/openprovider-client";
+import { executeKenicTransferRequest } from "../lib/kenic-transfer-request";
+import prisma from "@nPanel/db";
 
 /**
  * Parse domain into name and extension (extension without leading dot).
@@ -97,25 +100,13 @@ export const domainTransferRouter = router({
 			const provider: "kenic" | "openprovider" = isKenicDomain(parsed.full) ? "kenic" : "openprovider";
 
 			if (provider === "kenic") {
-				// KENIC TLDs: get TLD pricing via a random placeholder domain (no availability claim). Show Continue, no "Ready" badge.
-				const pricing = await getKenicPricingForTld(parsed.extension);
-				if (pricing === null) {
-					return buildReturn("unavailable", false, "kenic", parsed, {
-						error: "Could not get ." + parsed.extension + " pricing. Please try again.",
-					});
-				}
-				const transferFee = pricing.transferFee;
-				const createFee = pricing.createFee;
-				if (!transferFee) {
-					return buildReturn("unavailable", false, "kenic", parsed, {
-						error: "Transfer price not available for ." + parsed.extension + ".",
-					});
-				}
+				// KENIC TLDs: EPP fee extension returns 0; use standard rate so we can show a price and send transfer requests.
+				const KENIC_STANDARD_TRANSFER_KES = 2100;
 				return buildReturn("pending_check", true, "kenic", parsed, {
-					price: transferFee.amount,
-					currency: transferFee.currency,
-					createPrice: createFee?.amount ?? null,
-					createCurrency: createFee?.currency ?? null,
+					price: KENIC_STANDARD_TRANSFER_KES,
+					currency: "KES",
+					createPrice: KENIC_STANDARD_TRANSFER_KES,
+					createCurrency: "KES",
 				});
 			} else {
 				// OpenProvider/gTLD: use RDAP for status, then OpenProvider for pricing when ready.
@@ -229,6 +220,125 @@ export const domainTransferRouter = router({
 							? error.message
 							: "Failed to get transfer price.";
 				return buildReturn("ready", true, "openprovider", parsed, { error: message });
+			}
+		}),
+
+	/**
+	 * Initiate domain transfer: save to DB (DomainTransferRequest) then send to provider (KENIC or OpenProvider).
+	 * EPP/auth code is required. Caller must be authenticated.
+	 */
+	initiateTransfer: protectedProcedure
+		.input(
+			z.object({
+				domain: z.string().min(1, "Domain is required"),
+				authCode: z.string().min(1, "Authorization code (EPP code) is required"),
+				provider: z.enum(["kenic", "openprovider"]),
+				domainName: z.string().min(1),
+				extension: z.string().min(1),
+				providerPriceAmount: z.string().optional(),
+				providerPriceCurrency: z.string().optional(),
+				customerPriceAmount: z.string().optional(),
+				customerPriceCurrency: z.string().optional(),
+				teamId: z.string().optional(),
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session.user.id;
+			const now = new Date();
+			const id = crypto.randomUUID();
+
+			const record = await prisma.domainTransferRequest.create({
+				data: {
+					id,
+					domainName: input.domain,
+					authCode: input.authCode,
+					provider: input.provider === "kenic" ? "KENIC" : "OPENPROVIDER",
+					status: "PENDING",
+					providerPriceAmount: input.providerPriceAmount ?? null,
+					providerPriceCurrency: input.providerPriceCurrency ?? null,
+					customerPriceAmount: input.customerPriceAmount ?? null,
+					customerPriceCurrency: input.customerPriceCurrency ?? null,
+					teamId: input.teamId ?? null,
+					createdById: userId,
+					createdAt: now,
+					updatedAt: now,
+				},
+			});
+
+			try {
+				if (input.provider === "kenic") {
+					const result = await executeKenicTransferRequest({
+						name: input.domain,
+						authCode: input.authCode,
+						period: 1,
+					});
+					await prisma.domainTransferRequest.update({
+						where: { id: record.id },
+						data: {
+							status: "SUBMITTED_TO_PROVIDER",
+							submittedToProviderAt: new Date(),
+							providerResponse: result as unknown as object,
+							updatedAt: new Date(),
+						},
+					});
+					return { success: true, id: record.id, pending: result.pending, domain: result.domain };
+				}
+
+				const client = createOpenProviderClient();
+				await client.authenticate({
+					username: process.env.OPENPROVIDER_USERNAME!,
+					password: process.env.OPENPROVIDER_PASSWORD!,
+					ip: process.env.OPENPROVIDER_IP,
+				});
+				const ext = input.extension.startsWith(".") ? input.extension.slice(1) : input.extension;
+				const response = await client.transferDomain({
+					domain: { name: input.domainName, extension: ext },
+					auth_code: input.authCode,
+					owner_handle: "default",
+					admin_handle: "default",
+					tech_handle: "default",
+					autorenew: "default",
+				});
+				if (response.code !== 0) {
+					await prisma.domainTransferRequest.update({
+						where: { id: record.id },
+						data: {
+							status: "FAILED",
+							providerResponse: { code: response.code, desc: response.desc },
+							updatedAt: new Date(),
+						},
+					});
+					throw new TRPCError({ code: "BAD_REQUEST", message: response.desc ?? "Transfer failed" });
+				}
+				await prisma.domainTransferRequest.update({
+					where: { id: record.id },
+					data: {
+						status: "SUBMITTED_TO_PROVIDER",
+						submittedToProviderAt: new Date(),
+						providerResponse: { success: true, data: response.data },
+						updatedAt: new Date(),
+					},
+				});
+				return {
+					success: true,
+					id: record.id,
+					domain: `${input.domainName}.${ext}`,
+				};
+			} catch (error) {
+				if (error instanceof TRPCError) throw error;
+				const message = error instanceof Error ? error.message : String(error);
+				await prisma.domainTransferRequest.update({
+					where: { id: record.id },
+					data: {
+						status: "FAILED",
+						providerResponse: { error: message },
+						updatedAt: new Date(),
+					},
+				}).catch(() => {});
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: message,
+				});
 			}
 		}),
 });

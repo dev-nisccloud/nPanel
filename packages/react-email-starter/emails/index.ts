@@ -13,6 +13,7 @@ export { InvoiceDeliveryEmail } from './invoice-delivery';
 export { QuotationDeliveryEmail } from './quotation-delivery';
 export { ServiceRestorationConfirmationEmail } from './service-restoration-confirmation';
 export { ServiceSuspensionEmail } from './service-suspension';
+export { ServiceRenewalReminderEmail } from './service-renewal-reminder';
 export { DomainAutoRenewalReminderEmail } from './domain-auto-renewal-reminder';
 export { TeamInviteEmail } from './team-invite';
 export { AccountCreatedEmail } from './account-created-email';

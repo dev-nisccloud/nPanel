@@ -11,6 +11,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { 
   MoreHorizontal, 
@@ -22,6 +28,7 @@ import {
   Settings,
   ExternalLink,
   Trash2,
+  FilePlus2,
 } from "lucide-react";
 
 export type DomainPortfolio = {
@@ -80,8 +87,15 @@ interface DomainPortfolioCardProps {
   onRenew?: (id: string) => void;
   onTransfer?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onCreateSubscription?: (domain: DomainPortfolio) => void;
+  hasExistingSubscription?: boolean;
   className?: string;
 }
+
+const CREATE_SUBSCRIPTION_TOOLTIP_EXISTING =
+  "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it.";
+const CREATE_SUBSCRIPTION_TOOLTIP_DEFAULT =
+  "Create a NISC subscription for this domain and link it to a user or team.";
 
 export function DomainPortfolioCard({
   data,
@@ -90,6 +104,8 @@ export function DomainPortfolioCard({
   onRenew,
   onTransfer,
   onDelete,
+  onCreateSubscription,
+  hasExistingSubscription = false,
   className,
 }: DomainPortfolioCardProps) {
   const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
@@ -206,6 +222,31 @@ export function DomainPortfolioCard({
               <ExternalLink className="mr-2 h-4 w-4" />
               View Details
             </DropdownMenuItem>
+            {onCreateSubscription && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="block w-full">
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          if (!hasExistingSubscription) onCreateSubscription(data);
+                        }}
+                        disabled={hasExistingSubscription}
+                      >
+                        <FilePlus2 className="mr-2 h-4 w-4" />
+                        Create subscription
+                      </DropdownMenuItem>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs">
+                    {hasExistingSubscription
+                      ? CREATE_SUBSCRIPTION_TOOLTIP_EXISTING
+                      : CREATE_SUBSCRIPTION_TOOLTIP_DEFAULT}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             <DropdownMenuItem
               onSelect={(e) => {
                 e.preventDefault();
@@ -261,8 +302,14 @@ interface DomainPortfolioCardsListProps {
   onRenew?: (id: string) => void;
   onTransfer?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onCreateSubscription?: (domain: DomainPortfolio) => void;
+  openProviderIdsWithSubscriptions?: Set<number>;
   className?: string;
   cols?: 1 | 2 | 3 | 4;
+}
+
+function domainIdToNumber(id: string | number): number {
+  return typeof id === "string" ? Number.parseInt(id, 10) : id;
 }
 
 export function DomainPortfolioCardsList({
@@ -272,6 +319,8 @@ export function DomainPortfolioCardsList({
   onRenew,
   onTransfer,
   onDelete,
+  onCreateSubscription,
+  openProviderIdsWithSubscriptions,
   cols = 1,
   className,
 }: DomainPortfolioCardsListProps) {
@@ -295,6 +344,10 @@ export function DomainPortfolioCardsList({
           onRenew={onRenew}
           onTransfer={onTransfer}
           onDelete={onDelete}
+          onCreateSubscription={onCreateSubscription}
+          hasExistingSubscription={
+            openProviderIdsWithSubscriptions?.has(domainIdToNumber(domain.id)) ?? false
+          }
         />
       ))}
     </div>

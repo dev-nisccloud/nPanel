@@ -31,23 +31,50 @@ export interface KenicPricingResult {
 
 const MAX_TLD_PRICING_ATTEMPTS = 15;
 
+/**
+ * Known-registered domains per KENIC TLD used to fetch TLD-level fees when the registry
+ * only returns fee data for existing (non-available) domains. Random placeholders often return
+ * "available" with no fee info.
+ */
+const FALLBACK_DOMAINS_BY_TLD: Record<string, string[]> = {
+	"co.ke": ["nic.co.ke", "kenya.co.ke", "google.co.ke"],
+	ke: ["nic.ke", "kenic.ke", "google.ke"],
+	"or.ke": ["nic.or.ke"],
+	"ne.ke": ["nic.ne.ke"],
+	"me.ke": ["nic.me.ke"],
+	"mobi.ke": ["nic.mobi.ke"],
+	"info.ke": ["nic.info.ke"],
+	"sc.ke": ["nic.sc.ke"],
+	"ac.ke": ["nic.ac.ke"],
+};
+
 /** Random label for placeholder domain (not a real word; avoids collisions with taken names). */
 function randomPlaceholderLabel(): string {
 	return `${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-6)}`;
 }
 
 /**
- * Get KENIC create and transfer fees for a TLD by running a check on a random placeholder domain.
- * If the placeholder returns "exists" / not available (no fee info), retries with another random name
- * until we get fee data or max attempts. Use when you only need TLD-level pricing and must not claim availability.
+ * Get KENIC create and transfer fees for a TLD by running a check on a domain.
+ * Tries random placeholders first; if the registry returns "available" with no fee info (common),
+ * falls back to known-registered domains for that TLD so we get real-time transfer/create pricing.
  */
 export async function getKenicPricingForTld(extension: string): Promise<KenicPricingResult | null> {
 	if (!validateKenicDomains([`x.${extension}`]).valid) return null;
+
 	for (let attempt = 0; attempt < MAX_TLD_PRICING_ATTEMPTS; attempt++) {
 		const placeholder = `${randomPlaceholderLabel()}.${extension}`;
 		const result = await getKenicPricing(placeholder);
 		if (result?.transferFee != null) return result;
 	}
+
+	const fallbacks = FALLBACK_DOMAINS_BY_TLD[extension.toLowerCase()];
+	if (fallbacks) {
+		for (const domain of fallbacks) {
+			const result = await getKenicPricing(domain);
+			if (result?.transferFee != null) return result;
+		}
+	}
+
 	return null;
 }
 
@@ -96,7 +123,11 @@ export async function getKenicPricing(domain: string): Promise<KenicPricingResul
 		await readFrame(socket);
 
 		const normalized = normalizeDomainCheckResponse(checkParsed);
-		const item = normalized.find((d) => d.domain.toLowerCase() === domain.toLowerCase());
+		// Prefer an item that has transfer fee (handles single-result TLD check and casing/objID mismatches).
+		const item =
+			normalized.find((d) => d.transferFee != null) ??
+			normalized.find((d) => d.domain.toLowerCase() === domain.toLowerCase()) ??
+			normalized.at(0);
 		if (!item) return null;
 
 		const createFee =

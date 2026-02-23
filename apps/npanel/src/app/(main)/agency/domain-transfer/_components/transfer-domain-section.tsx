@@ -254,28 +254,37 @@ export function TransferDomainSection() {
 
   const hasNumericPrice =
     transferPrice != null &&
-    transferPrice.price != null;
+    typeof transferPrice.price === "number" &&
+    !Number.isNaN(transferPrice.price);
 
-  // Only use calculated prices (margin + conversion) — never show raw API currency before conversion is ready
+  // Prefer calculated (margin + conversion); fallback to raw API price so Kenic/other never shows blank
   const displayPrice =
     calculated != null
       ? (calculated.convertedPrice ?? calculated.finalPrice)
-      : null;
+      : hasNumericPrice && transferPrice
+        ? transferPrice.price
+        : null;
 
   const displayCurrency =
     calculated != null
       ? (calculated.displayCurrency ?? calculated.currency)
-      : null;
+      : hasNumericPrice && transferPrice?.currency
+        ? transferPrice.currency
+        : null;
 
   const createDisplayPrice =
     calculatedCreate != null
       ? (calculatedCreate.convertedPrice ?? calculatedCreate.finalPrice)
-      : null;
+      : transferPrice?.createPrice != null && (transferPrice?.createCurrency ?? "").length > 0
+        ? transferPrice.createPrice
+        : null;
 
   const createDisplayCurrency =
     calculatedCreate != null
       ? (calculatedCreate.displayCurrency ?? calculatedCreate.currency)
-      : null;
+      : (transferPrice?.createCurrency ?? "").length > 0
+        ? transferPrice!.createCurrency!
+        : null;
 
   const inputBorderClass =
     status === "error"
@@ -429,17 +438,18 @@ export function TransferDomainSection() {
         )}
 
         {showPricingLoading && (
-          <div className="mt-2 flex items-center justify-center rounded-md bg-muted/80 px-3 py-2">
-            <Spinner variant="ellipsis" size="sm" />
-          </div>
+          <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Spinner variant="ellipsis" size={14} className="shrink-0 text-muted-foreground" />
+            Getting price…
+          </p>
         )}
 
         {showReadyCard && status === "valid" && parsedDomain && provider && transferStatus !== "pending_check" && (
           <p className="mt-2 rounded-md bg-muted/80 px-3 py-2 text-sm text-muted-foreground">
             {hasNumericPrice && displayPrice != null && displayCurrency != null ? (
               <>
-                Transfer your .{parsedDomain.extension} for {formatPrice(displayPrice, displayCurrency)}.
-                The price includes domain renewal for a year.
+                Transfer your .{parsedDomain.extension} for {formatPrice(displayPrice, displayCurrency)}. Price
+                includes one year&apos;s renewal.
               </>
             ) : (
               <>Contact support for .{parsedDomain.extension} transfer pricing.</>
@@ -475,6 +485,10 @@ export function TransferDomainSection() {
             extension={parsedDomain.extension}
             price={displayPrice ?? 0}
             currency={displayCurrency ?? transferPrice?.currency ?? "USD"}
+            providerPriceAmount={transferPrice?.price ?? null}
+            providerPriceCurrency={transferPrice?.currency ?? null}
+            customerPriceAmount={displayPrice ?? null}
+            customerPriceCurrency={displayCurrency ?? transferPrice?.currency ?? null}
             provider={provider}
             onPurchase={() => setPurchaseSheetOpen(true)}
             purchaseSheetOpen={purchaseSheetOpen}

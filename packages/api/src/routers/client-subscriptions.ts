@@ -56,6 +56,9 @@ const serviceRefsSchema = z
 
 const createSubscriptionInputSchema = z
     .object({
+        // Subscription display name (e.g. domain name for Domains product)
+        name: z.string().optional(),
+
         // Ownership
         userId: z.string().optional(),
         teamId: z.string().optional(),
@@ -79,6 +82,10 @@ const createSubscriptionInputSchema = z
         pricingModel: pricingModelSchema,
         agreedPrice: z.string().optional(),
         agreedCurrency: z.string().default("KES"),
+        agreedCost: z.string().optional(),
+        agreedCostCurrency: z.string().optional(),
+        providerCost: z.string().optional(),
+        providerCostCurrency: z.string().optional(),
         agreedCommissionRate: z.number().positive().optional(),
         agreedCommissionBase: z.string().optional(),
 
@@ -405,6 +412,74 @@ export const clientSubscriptionsRouter = router({
             return subs.map(mapSubscription);
         }),
 
+    /** List subscriptions for agency UI with product/plan/team/user names. */
+    listForAgency: protectedProcedure
+        .input(
+            z
+                .object({
+                    limit: z.number().int().min(1).max(200).default(100),
+                    offset: z.number().int().min(0).default(0),
+                    search: z.string().optional(),
+                })
+                .optional()
+        )
+        .output(
+            z.array(
+                subscriptionOutputSchema.extend({
+                    productName: z.string(),
+                    productPlanName: z.string().nullable(),
+                    subscriptionName: z.string().nullable(),
+                    teamName: z.string().nullable(),
+                    userName: z.string().nullable(),
+                })
+            )
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const subs = await prisma.niscClientSubscription.findMany({
+                where: {},
+                orderBy: { createdAt: "desc" },
+                take: input?.limit ?? 100,
+                skip: input?.offset ?? 0,
+                include: {
+                    product: { select: { name: true } },
+                    productPlan: { select: { name: true } },
+                    team: { select: { name: true } },
+                },
+            });
+
+            const userIds = [...new Set(subs.map((s) => s.userId).filter(Boolean))] as string[];
+            const users =
+                userIds.length > 0
+                    ? await prisma.user.findMany({
+                          where: { id: { in: userIds } },
+                          select: { id: true, name: true, email: true },
+                      })
+                    : [];
+            const userMap = new Map(users.map((u) => [u.id, u.name ?? u.email ?? u.id]));
+
+            return subs.map((sub) => {
+                const mapped = mapSubscription(sub);
+                const userName = sub.userId ? userMap.get(sub.userId) ?? null : null;
+                const teamName = sub.team?.name ?? null;
+                return {
+                    ...mapped,
+                    productName: sub.product.name,
+                    productPlanName: sub.productPlan?.name ?? null,
+                    subscriptionName: sub.name ?? null,
+                    teamName,
+                    userName,
+                };
+            });
+        }),
+
     /** Get a single subscription by ID */
     getById: protectedProcedure
         .input(getSubscriptionByIdInputSchema)
@@ -422,6 +497,7 @@ export const clientSubscriptionsRouter = router({
                 include: {
                     product: true,
                     productPlan: true,
+                    team: true,
                     ...(input.includeRenewals && {
                         renewals: { orderBy: { renewalDate: "desc" } },
                     }),
@@ -438,15 +514,77 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
+            let userName: string | null = null;
+            if (sub.userId) {
+                const u = await prisma.user.findUnique({
+                    where: { id: sub.userId },
+                    select: { name: true, email: true },
+                });
+                userName = u ? (u.name ?? u.email ?? null) : null;
+            }
+
             return {
                 ...mapSubscription(sub),
                 product: sub.product,
                 productPlan: sub.productPlan ?? null,
+                team: sub.team ?? null,
+                userName,
                 ...((sub as any).renewals && { renewals: (sub as any).renewals }),
                 ...((sub as any).commissionEntries && {
                     commissionEntries: (sub as any).commissionEntries.map(mapCommissionEntry),
                 }),
             };
+        }),
+
+    /** Resolve product ID for "Domains" product (name contains "domain", case-insensitive). Used when creating domain subscriptions from portfolio. */
+    getDomainsProductId: protectedProcedure.query(async () => {
+        const product = await prisma.niscProduct.findFirst({
+            where: {
+                name: { contains: "domain", mode: "insensitive" },
+                isActive: true,
+            },
+            select: { id: true },
+        });
+        return product?.id ?? null;
+    }),
+
+    /** Get subscription by OpenProvider domain ID (for checking if domain already has a connected subscription). */
+    getByOpenProviderId: protectedProcedure
+        .input(z.object({ openProviderId: z.number().int().positive() }))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+            const sub = await prisma.niscClientSubscription.findFirst({
+                where: { openProviderId: input.openProviderId },
+            });
+            return sub ? mapSubscription(sub) : null;
+        }),
+
+    /** Return OpenProvider domain IDs that already have a subscription (for batch check on list). */
+    getOpenProviderIdsWithSubscriptions: protectedProcedure
+        .input(z.object({ openProviderIds: z.array(z.number().int()) }))
+        .output(z.array(z.number().int()))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+            if (input.openProviderIds.length === 0) return [];
+            const subs = await prisma.niscClientSubscription.findMany({
+                where: { openProviderId: { in: input.openProviderIds } },
+                select: { openProviderId: true },
+            });
+            return subs
+                .map((s) => s.openProviderId)
+                .filter((id): id is number => id != null);
         }),
 
     /** Create a new subscription */
@@ -486,6 +624,7 @@ export const clientSubscriptionsRouter = router({
 
             const sub = await prisma.niscClientSubscription.create({
                 data: {
+                    name: input.name ?? null,
                     userId: input.userId ?? null,
                     teamId: input.teamId ?? null,
                     productId: input.productId,
@@ -502,6 +641,10 @@ export const clientSubscriptionsRouter = router({
                     pricingModel: input.pricingModel as any,
                     agreedPrice: input.agreedPrice ?? null,
                     agreedCurrency: input.agreedCurrency,
+                    agreedCost: input.agreedCost ?? null,
+                    agreedCostCurrency: input.agreedCostCurrency ?? null,
+                    providerCost: input.providerCost ?? null,
+                    providerCostCurrency: input.providerCostCurrency ?? null,
                     agreedCommissionRate: input.agreedCommissionRate ?? null,
                     agreedCommissionBase: input.agreedCommissionBase ?? null,
                     primaryDomain: input.primaryDomain ?? null,
@@ -676,6 +819,96 @@ export const clientSubscriptionsRouter = router({
             });
 
             return mapSubscription(updated);
+        }),
+
+    /** Send a service renewal reminder email. Grace period: 7 days before suspension for most services; for domains, suspension is immediate. */
+    sendRenewalEmail: protectedProcedure
+        .input(
+            z.object({
+                subscriptionId: z.string(),
+                to: z.string().email(),
+                ccOrBcc: z
+                    .object({
+                        type: z.enum(["cc", "bcc"]),
+                        email: z.string().email(),
+                    })
+                    .optional(),
+            })
+        )
+        .output(z.object({ sent: z.boolean() }))
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to send renewal emails",
+                });
+            }
+
+            const sub = await prisma.niscClientSubscription.findUnique({
+                where: { id: input.subscriptionId },
+                include: { product: { select: { name: true } }, productPlan: { select: { name: true } } },
+            });
+            if (!sub) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+
+            const productName = sub.product.name;
+            const planName = sub.productPlan?.name ?? null;
+            const serviceNameLabel = planName ? `${productName} - ${planName}` : productName;
+            const subscriptionName = sub.name ?? null;
+            const isDomain = productName.toLowerCase().includes("domain");
+            const gracePeriodText = isDomain
+                ? "For domain services, suspension is immediate after expiry."
+                : "Your service will be suspended 7 days after the expiry date if not renewed.";
+            const subscriptionDateStr = sub.subscriptionDate
+                ? new Date(sub.subscriptionDate).toLocaleDateString()
+                : "—";
+            const expiryDateStr = sub.expiryDate ? new Date(sub.expiryDate).toLocaleDateString() : "—";
+
+            const { renderServiceRenewalReminderEmail } = await import("../lib/email-templates");
+            const html = await renderServiceRenewalReminderEmail({
+                serviceName: serviceNameLabel,
+                subscriptionName: subscriptionName ?? undefined,
+                subscriptionDate: subscriptionDateStr,
+                expiryDate: expiryDateStr,
+                gracePeriodText,
+            });
+
+            const { sendEmail } = await import("../lib/email");
+            const cc = input.ccOrBcc?.type === "cc" ? [input.ccOrBcc.email] : undefined;
+            const bcc = input.ccOrBcc?.type === "bcc" ? [input.ccOrBcc.email] : undefined;
+            const subject = `Renewal reminder: ${subscriptionName ?? serviceNameLabel}`;
+            await sendEmail({
+                to: input.to,
+                subject,
+                html,
+                cc,
+                bcc,
+            });
+
+            await prisma.niscClientSubscriptionActivityLog.create({
+                data: {
+                    subscriptionId: input.subscriptionId,
+                    userId: session.user.id,
+                    action: "SEND_RENEWAL_REMINDER",
+                    description: `Sent renewal reminder email to ${input.to}`,
+                    metadata: {
+                        to: input.to,
+                        cc: cc ?? null,
+                        bcc: bcc ?? null,
+                        subject,
+                        serviceName: serviceNameLabel,
+                        subscriptionName: subscriptionName ?? null,
+                        subscriptionDate: subscriptionDateStr,
+                        expiryDate: expiryDateStr,
+                        gracePeriodText,
+                        sentAt: new Date().toISOString(),
+                    },
+                },
+            });
+
+            return { sent: true };
         }),
 
     /** Record a renewal for a subscription */

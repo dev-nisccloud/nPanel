@@ -14,6 +14,7 @@ import {
 	CampaignCompletedEmail,
 	CampaignScheduledEmail,
 	CampaignCancelledEmail,
+	ServiceRenewalReminderEmail,
 } from "react-email-starter/emails";
 
 export async function renderResetPasswordEmail({
@@ -365,6 +366,39 @@ export async function renderCampaignCancelledEmail({
       subject,
       cancelledAt,
       viewCampaignLink,
+    })
+  );
+}
+
+export async function renderServiceRenewalReminderEmail({
+  recipientName,
+  serviceName,
+  subscriptionName,
+  subscriptionDate,
+  expiryDate,
+  gracePeriodText,
+  supportEmail,
+  supportPhone,
+}: {
+  recipientName?: string;
+  serviceName?: string;
+  subscriptionName?: string;
+  subscriptionDate?: string;
+  expiryDate?: string;
+  gracePeriodText?: string;
+  supportEmail?: string;
+  supportPhone?: string;
+}): Promise<string> {
+  return render(
+    ServiceRenewalReminderEmail({
+      recipientName,
+      serviceName,
+      subscriptionName,
+      subscriptionDate,
+      expiryDate,
+      gracePeriodText,
+      supportEmail,
+      supportPhone,
     })
   );
 }

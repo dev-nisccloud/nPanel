@@ -1,18 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { CreativeAssetsListing } from "./_components/creative-assets-listing";
 import { AddAssetSheet } from "./_components/add-asset-sheet";
 import { EditAssetSheet } from "./_components/edit-asset-sheet";
 import { creativeAssetSchema } from "./_components/schema";
+import { CreativeBriefsTabContent } from "./_components/creative-briefs-tab-content";
 
 export default function CreativeAssetsPage() {
-  const router = useRouter();
   const [isAddAssetOpen, setIsAddAssetOpen] = React.useState(false);
   const [isEditAssetOpen, setIsEditAssetOpen] = React.useState(false);
   const [editingAsset, setEditingAsset] = React.useState<z.infer<typeof creativeAssetSchema> | null>(null);
@@ -111,6 +112,9 @@ export default function CreativeAssetsPage() {
     refetch();
   };
 
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get("tab") === "briefs" ? "briefs" : "design";
+
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
@@ -121,30 +125,41 @@ export default function CreativeAssetsPage() {
           </p>
         </div>
 
-        <div className="mt-6">
-          <CreativeAssetsListing
-            data={(assets || []).map(asset => ({
-              ...asset,
-              status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
-              versions: asset.versions?.map(version => ({
-                ...version,
-                fileMetadata: (version as any).fileMetadata ?? null,
-                internalApprovalStatus: version.internalApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
-                publicApprovalStatus: version.publicApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
-              })) || [],
-            }))}
-            isLoading={isLoading}
-            isError={isError}
-            error={error ? new Error(error.message || "An error occurred") : undefined}
-            onRetry={() => refetch()}
-            onEdit={handleEdit}
-            onArchive={handleArchive}
-            onUnarchive={handleUnarchive}
-            archivingAssetId={archivingAssetId}
-            unarchivingAssetId={unarchivingAssetId}
-            onAddAsset={() => setIsAddAssetOpen(true)}
-          />
-        </div>
+        <Tabs defaultValue={defaultTab} className="w-full mt-6">
+          <TabsList className="w-fit">
+            <TabsTrigger value="design">Creative & design</TabsTrigger>
+            <TabsTrigger value="briefs">Creative briefs</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="design" className="mt-6">
+            <CreativeAssetsListing
+              data={(assets || []).map(asset => ({
+                ...asset,
+                status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
+                versions: asset.versions?.map(version => ({
+                  ...version,
+                  fileMetadata: (version as any).fileMetadata ?? null,
+                  internalApprovalStatus: version.internalApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+                  publicApprovalStatus: version.publicApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
+                })) || [],
+              }))}
+              isLoading={isLoading}
+              isError={isError}
+              error={error ? new Error(error.message || "An error occurred") : undefined}
+              onRetry={() => refetch()}
+              onEdit={handleEdit}
+              onArchive={handleArchive}
+              onUnarchive={handleUnarchive}
+              archivingAssetId={archivingAssetId}
+              unarchivingAssetId={unarchivingAssetId}
+              onAddAsset={() => setIsAddAssetOpen(true)}
+            />
+          </TabsContent>
+
+          <TabsContent value="briefs" className="mt-6">
+            <CreativeBriefsTabContent />
+          </TabsContent>
+        </Tabs>
       </div>
       <AddAssetSheet
         open={isAddAssetOpen}

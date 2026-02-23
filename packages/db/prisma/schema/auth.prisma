@@ -260,58 +260,59 @@ model User {
   browserNotificationPermission    String?   @default("default") // "default" | "granted" | "denied"
   notificationPreferencesUpdatedAt DateTime?
 
-  createdAt                    DateTime
-  updatedAt                    DateTime
-  sessions                     Session[]
-  accounts                     Account[]
-  teamMemberships              TeamMember[]
-  profile                      UserProfile?
-  customerIntegrations         CustomerIntegration[]
-  domains                      Domain[]
-  domainRenewals               DomainRenewal[]               @relation("DomainRenewalCreatedBy")
-  createdDomainTransfers       DomainTransfer[]              @relation("DomainTransferCreatedBy")
-  activityLogs                 UserActivityLog[]
+  createdAt                     DateTime
+  updatedAt                     DateTime
+  sessions                      Session[]
+  accounts                      Account[]
+  teamMemberships               TeamMember[]
+  profile                       UserProfile?
+  customerIntegrations          CustomerIntegration[]
+  domains                       Domain[]
+  domainRenewals                DomainRenewal[]               @relation("DomainRenewalCreatedBy")
+  createdDomainTransfers        DomainTransfer[]              @relation("DomainTransferCreatedBy")
+  activityLogs                  UserActivityLog[]
   // Social Media Marketing Relations
-  socialMediaIntegrations      SocialMediaIntegration[]
-  socialMediaPageTokens        SocialMediaPageToken[]
-  metaContentCalendarPosts     MetaContentCalendar[]
-  LinkedInContentCalendar      LinkedInContentCalendar[]
+  socialMediaIntegrations       SocialMediaIntegration[]
+  socialMediaPageTokens         SocialMediaPageToken[]
+  metaContentCalendarPosts      MetaContentCalendar[]
+  LinkedInContentCalendar       LinkedInContentCalendar[]
   // Google Ads Relations
-  googleAdsIntegrations        GoogleAdsIntegration[]
+  googleAdsIntegrations         GoogleAdsIntegration[]
   // Meta Ads Relations (via activity logs - accounts are linked to integrations)
-  metaAdsAccountActivityLogs   MetaAdsAccountActivityLog[]
-  metaAdsCampaignActivityLogs  MetaAdsCampaignActivityLog[]
-  metaAdsAdSetActivityLogs     MetaAdsAdSetActivityLog[]
-  metaAdsAdActivityLogs        MetaAdsAdActivityLog[]
+  metaAdsAccountActivityLogs    MetaAdsAccountActivityLog[]
+  metaAdsCampaignActivityLogs   MetaAdsCampaignActivityLog[]
+  metaAdsAdSetActivityLogs      MetaAdsAdSetActivityLog[]
+  metaAdsAdActivityLogs         MetaAdsAdActivityLog[]
   // ImageGen Studio Relations
-  imageGenProjects             ImageGenProject[]
-  imageGenTemplates            ImageGenTemplate[]
-  ImageGenUpload               ImageGenUpload[]
-  imageGenAiGenerations        ImageGenAiGeneration[]
+  imageGenProjects              ImageGenProject[]
+  imageGenTemplates             ImageGenTemplate[]
+  ImageGenUpload                ImageGenUpload[]
+  imageGenAiGenerations         ImageGenAiGeneration[]
   // Image Generator Relations
-  imageGeneratorGenerations    ImageGeneratorGeneration[]
-  backgroundRemoverGenerations BackgroundRemoverGeneration[]
+  imageGeneratorGenerations     ImageGeneratorGeneration[]
+  backgroundRemoverGenerations  BackgroundRemoverGeneration[]
   // Ticket System Relations
-  createdTickets               Ticket[]                      @relation("CreatedTickets")
-  assignedTickets              Ticket[]                      @relation("AssignedTickets")
-  ticketMessages               TicketMessage[]               @relation("TicketMessages")
-  ticketAttachments            TicketAttachment[]            @relation("TicketAttachments")
+  createdTickets                Ticket[]                      @relation("CreatedTickets")
+  assignedTickets               Ticket[]                      @relation("AssignedTickets")
+  ticketMessages                TicketMessage[]               @relation("TicketMessages")
+  ticketAttachments             TicketAttachment[]            @relation("TicketAttachments")
   // Creative Briefs Relations
-  creativeBriefs               CreativeBrief[]               @relation("CreatedBriefs")
-  approvedCreativeBriefs       CreativeBrief[]               @relation("ApprovedBriefs")
+  creativeBriefs                CreativeBrief[]               @relation("CreatedBriefs")
+  approvedCreativeBriefs        CreativeBrief[]               @relation("ApprovedBriefs")
   // Web Design Quote Requests (submitted via domain portfolio dialog)
-  webDesignQuoteRequests       WebDesignQuoteRequest[]
+  webDesignQuoteRequests        WebDesignQuoteRequest[]
   // Notifications Relations
-  notifications                Notification[]
+  notifications                 Notification[]
   // SEO Reports Relations
-  seoReports                   SeoReport[]
+  seoReports                    SeoReport[]
   // Email Marketing Relations
-  emailDomains                 EmailDomain[]
-  emailCampaigns               EmailCampaign[]
-  EmailBuilderDesign           EmailBuilderDesign[]
-  aiChats                      AiChat[]
-  niscOrders                   NiscOrder[]
-  quotations                   Quotation[]
+  emailDomains                  EmailDomain[]
+  emailCampaigns                EmailCampaign[]
+  EmailBuilderDesign            EmailBuilderDesign[]
+  aiChats                       AiChat[]
+  niscOrders                    NiscOrder[]
+  quotations                    Quotation[]
+  createdDomainTransferRequests DomainTransferRequest[]       @relation("DomainTransferRequestCreatedBy")
 
   @@unique([email])
   @@index([role])
@@ -413,6 +414,7 @@ model Team {
   EmailBuilderDesign           EmailBuilderDesign[]
   aiChats                      AiChat[]
   NiscClientSubscription       NiscClientSubscription[]
+  domainTransferRequests       DomainTransferRequest[]
 
   @@index([slug])
   @@index([createdById])

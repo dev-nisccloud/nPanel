@@ -276,10 +276,6 @@ export const agencysidebarItems: NavGroup[] = [
         title: "Creatives & Design",
         url: "/agency/creative-assets",
         icon: (props: any) => React.createElement(Icons.CreativeAssets, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Creatives & Design", url: "/agency/creative-assets", },
-          { title: "Creative Briefs", url: "/agency/creative-briefs", },
-        ],
       },
     ],
   },

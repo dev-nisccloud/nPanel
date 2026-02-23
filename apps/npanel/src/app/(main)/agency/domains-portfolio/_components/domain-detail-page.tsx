@@ -1,14 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, ExternalLink, Info, QrCode, Monitor, LayoutDashboard, Network, Server, Globe, ChevronRight, Code2, AlertCircle, Calendar, MoreVertical, Link2, Link2Off, RefreshCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, Info, QrCode, Monitor, LayoutDashboard, Network, Server, Globe, ChevronRight, Code2, AlertCircle, Calendar, MoreVertical, RefreshCw, FilePlus2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,25 +18,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 import { QrCodeDialog } from "./qr-code-dialog";
@@ -46,6 +26,7 @@ import { ProtectBrandTab } from "./protect-brand-tab";
 import { DnsTab } from "./dns-tab";
 import { NameserversTab } from "./nameservers-tab";
 import { WebDesignContactDialog } from "./web-design-contact-dialog";
+import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
 interface DomainDetailPageProps {
@@ -60,8 +41,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const [hostingPlanType, setHostingPlanType] = React.useState<"web" | "email" | null>(null);
   const [activeTab, setActiveTab] = React.useState("overview");
   const [webDesignDialogOpen, setWebDesignDialogOpen] = React.useState(false);
-  const [linkToTeamDialogOpen, setLinkToTeamDialogOpen] = React.useState(false);
-  const [unlinkConfirmOpen, setUnlinkConfirmOpen] = React.useState(false);
+  const [createSubscriptionDialogOpen, setCreateSubscriptionDialogOpen] = React.useState(false);
 
   // Fetch domains list to find the specific domain
   const { data: domainsData, isLoading } = trpc.openProvider.domains.list.useQuery(
@@ -77,23 +57,16 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
     return (domainsData.data as DomainPortfolio[]).find((d) => d.id === domainId);
   }, [domainsData, domainId]);
 
-  const utils = trpc.useUtils();
-  const { data: ourDomain } = trpc.domains.getByDomainName.useQuery(
-    { domainName: domain?.domain ?? "" },
-    { enabled: !!domain?.domain }
+  const openProviderId = domain
+    ? typeof domain.id === "string"
+      ? Number.parseInt(domain.id, 10)
+      : domain.id
+    : null;
+  const { data: existingSubscription } = trpc.clientSubscriptions.getByOpenProviderId.useQuery(
+    { openProviderId: openProviderId! },
+    { enabled: openProviderId != null && !Number.isNaN(openProviderId) }
   );
-  const isLinkedToTeam = !!ourDomain?.teamId;
-
-  const unlinkFromTeamMutation = trpc.domains.unlinkFromTeam.useMutation({
-    onSuccess: () => {
-      setUnlinkConfirmOpen(false);
-      toast.success("Domain unlinked from team");
-      utils.domains.getByDomainName.invalidate({ domainName: domain?.domain ?? "" });
-    },
-    onError: (error) => {
-      toast.error("Failed to unlink domain from team", { description: error.message });
-    },
-  });
+  const hasExistingSubscription = !!existingSubscription;
 
   const domainNameWithoutTld = React.useMemo(() => {
     if (!domain?.domain) return "";
@@ -211,20 +184,26 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {isLinkedToTeam ? (
-                <DropdownMenuItem
-                  onClick={() => setUnlinkConfirmOpen(true)}
-                  disabled={unlinkFromTeamMutation.isPending}
-                >
-                  <Link2Off className="h-4 w-4 mr-2" />
-                  Unlink from team
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem onClick={() => setLinkToTeamDialogOpen(true)}>
-                  <Link2 className="h-4 w-4 mr-2" />
-                  Link to team
-                </DropdownMenuItem>
-              )}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="block w-full">
+                      <DropdownMenuItem
+                        onClick={() => !hasExistingSubscription && setCreateSubscriptionDialogOpen(true)}
+                        disabled={hasExistingSubscription}
+                      >
+                        <FilePlus2 className="h-4 w-4 mr-2" />
+                        Create subscription
+                      </DropdownMenuItem>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs">
+                    {hasExistingSubscription
+                      ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
+                      : "Create a NISC subscription for this domain and link it to a user or team."}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -360,240 +339,12 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         onOpenChange={setEmailDialogOpen}
         planType="email"
       />
-      <LinkToTeamDialog
-        open={linkToTeamDialogOpen}
-        onOpenChange={setLinkToTeamDialogOpen}
+      <CreateSubscriptionFromDomainDialog
+        open={createSubscriptionDialogOpen}
+        onOpenChange={setCreateSubscriptionDialogOpen}
         domain={domain}
       />
-      <AlertDialog open={unlinkConfirmOpen} onOpenChange={setUnlinkConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Unlink domain from team?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the domain from the team. The team will no longer have access to
-              this domain for management or visibility. You can link it to another team later if
-              needed. This action does not affect the domain&apos;s registration or DNS.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={unlinkFromTeamMutation.isPending}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                if (ourDomain && !unlinkFromTeamMutation.isPending) {
-                  unlinkFromTeamMutation.mutate({ id: ourDomain.id });
-                }
-              }}
-              disabled={unlinkFromTeamMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {unlinkFromTeamMutation.isPending ? "Unlinking…" : "Unlink from team"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
-  );
-}
-
-// Link to Team dialog: updateTeam if domain exists in our DB, else linkToTeam (create)
-interface LinkToTeamDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  domain: DomainPortfolio;
-}
-
-function LinkToTeamDialog({ open, onOpenChange, domain }: LinkToTeamDialogProps) {
-  const utils = trpc.useUtils();
-  const [selectedTeamId, setSelectedTeamId] = React.useState("");
-  const [openProviderPrice, setOpenProviderPrice] = React.useState("");
-  const [niscPrice, setNiscPrice] = React.useState("");
-  const [notes, setNotes] = React.useState("");
-
-  const { data: ourDomain } = trpc.domains.getByDomainName.useQuery(
-    { domainName: domain.domain },
-    { enabled: open && !!domain?.domain }
-  );
-
-  React.useEffect(() => {
-    if (open && ourDomain) {
-      setOpenProviderPrice(ourDomain.openProviderPrice ?? "");
-      setNiscPrice(ourDomain.niscPrice ?? "");
-      setNotes(ourDomain.notes ?? "");
-    }
-  }, [open, ourDomain]);
-
-  const { data: teams, isLoading: isLoadingTeams } = trpc.teams.getUserTeams.useQuery(undefined, {
-    enabled: open,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const updateTeamMutation = trpc.domains.updateTeam.useMutation({
-    onSuccess: () => {
-      toast.success("Domain linked to team successfully");
-      onOpenChange(false);
-      setSelectedTeamId("");
-      utils.domains.getByDomainName.invalidate({ domainName: domain.domain });
-    },
-    onError: (error) => {
-      toast.error("Failed to link domain to team", { description: error.message });
-    },
-  });
-
-  const linkToTeamMutation = trpc.domains.linkToTeam.useMutation({
-    onSuccess: () => {
-      toast.success("Domain linked to team successfully");
-      onOpenChange(false);
-      setSelectedTeamId("");
-      setOpenProviderPrice("");
-      setNiscPrice("");
-      setNotes("");
-      utils.domains.getByDomainName.invalidate({ domainName: domain.domain });
-    },
-    onError: (error) => {
-      toast.error("Failed to link domain to team", { description: error.message });
-    },
-  });
-
-  const isUpdateFlow = !!ourDomain;
-  const isSubmitting = updateTeamMutation.isPending || linkToTeamMutation.isPending;
-
-  const openProviderId = typeof domain.id === "string" ? Number.parseInt(domain.id, 10) : domain.id;
-  const registrationDate = domain.registrationDate
-    ? new Date(domain.registrationDate)
-    : new Date();
-  const activationDate = domain.activeDate ? new Date(domain.activeDate) : null;
-  const expirationDate = domain.expiryDate ? new Date(domain.expiryDate) : null;
-  const renewalDate = domain.renewalDate ? new Date(domain.renewalDate) : null;
-
-  const handleSubmit = () => {
-    if (!selectedTeamId) {
-      toast.error("Please select a team");
-      return;
-    }
-    if (isUpdateFlow) {
-      updateTeamMutation.mutate({
-        id: ourDomain.id,
-        teamId: selectedTeamId,
-        openProviderPrice: openProviderPrice || undefined,
-        niscPrice: niscPrice || undefined,
-        notes: notes || undefined,
-      });
-    } else {
-      if (Number.isNaN(openProviderId)) {
-        toast.error("Invalid OpenProvider domain ID");
-        return;
-      }
-      linkToTeamMutation.mutate({
-        domainName: domain.domain,
-        openProviderId,
-        teamId: selectedTeamId,
-        registrationDate,
-        openProviderPrice: openProviderPrice || undefined,
-        niscPrice: niscPrice || undefined,
-        activationDate: activationDate ?? undefined,
-        expirationDate: expirationDate ?? undefined,
-        renewalDate: renewalDate ?? undefined,
-        notes: notes || undefined,
-      });
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Link to team</DialogTitle>
-          <DialogDescription>
-            {isUpdateFlow
-              ? `Link ${domain.domain} to a team. The team owner will be notified.`
-              : `Add ${domain.domain} to the system and link it to a team. The team owner will be notified.`}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="link-team-select">Team *</Label>
-            {isLoadingTeams ? (
-              <div className="flex h-10 items-center justify-center rounded-md border">
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              </div>
-            ) : (
-              <select
-                id="link-team-select"
-                value={selectedTeamId}
-                onChange={(e) => setSelectedTeamId(e.target.value)}
-                disabled={isSubmitting}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="">Select a team</option>
-                {teams?.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="link-openprovider-price">OpenProvider price (KES)</Label>
-              <Input
-                id="link-openprovider-price"
-                type="number"
-                step="0.01"
-                value={openProviderPrice}
-                onChange={(e) => setOpenProviderPrice(e.target.value)}
-                placeholder="0.00"
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="link-nisc-price">NISC price (KES)</Label>
-              <Input
-                id="link-nisc-price"
-                type="number"
-                step="0.01"
-                value={niscPrice}
-                onChange={(e) => setNiscPrice(e.target.value)}
-                placeholder="0.00"
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="link-notes">Notes (optional)</Label>
-            <Textarea
-              id="link-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any additional notes..."
-              disabled={isSubmitting}
-              rows={3}
-            />
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 border-t pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !selectedTeamId}>
-            {isSubmitting ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Linking...
-              </>
-            ) : (
-              <>
-                <Link2 className="mr-2 h-4 w-4" />
-                Link to team
-              </>
-            )}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
 

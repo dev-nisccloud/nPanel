@@ -99,7 +99,9 @@ export function normalizeDomainCheckResponse(
 		const item = cd as Record<string, unknown>;
 		const objId = item["fee:objID"];
 		const domain = typeof objId === "string" ? objId : String(objId ?? "");
-		const existing = byDomain.get(domain);
+		// Match by case-insensitive domain so fee data merges into domain:cd entry when registry returns different casing (e.g. KENIC).
+		const existingKey = Array.from(byDomain.keys()).find((k) => k.toLowerCase() === domain.toLowerCase());
+		const existing = existingKey != null ? byDomain.get(existingKey) : undefined;
 		const feeClass = typeof item["fee:class"] === "string" ? item["fee:class"] : undefined;
 		const commands = item["fee:command"];
 		const cmdList = Array.isArray(commands) ? commands : commands != null ? [commands] : [];
@@ -115,8 +117,8 @@ export function normalizeDomainCheckResponse(
 		const transferFee = getFee("transfer");
 		const restoreFee = getFee("restore");
 
-		if (existing) {
-			byDomain.set(domain, {
+		if (existing && existingKey !== undefined) {
+			byDomain.set(existingKey, {
 				...existing,
 				currency: currency || existing.currency,
 				feeClass,

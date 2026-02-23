@@ -154,24 +154,26 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
 
     // First pass: Process all domains in parallel and collect prices needing conversion
     const processedDomains = await Promise.all(results.map(async (result, index) => {
-      if (result.status !== 'free' || !result.price?.reseller?.price) {
+      const rawPrice = result.price?.reseller?.price;
+      const hasValidPrice = typeof rawPrice === "number" && !Number.isNaN(rawPrice);
+      if (result.status !== "free" || !hasValidPrice) {
         return {
           result,
           calculated: null,
           needsConversion: false,
-          domainCacheKey: '',
-          convertedCacheKey: '',
+          domainCacheKey: "",
+          convertedCacheKey: "",
         };
       }
 
       const domain = result.domain;
-      const originalPrice = result.price.reseller.price;
-      const currency = result.price.reseller.currency || 'USD';
+      const originalPrice = rawPrice as number;
+      const currency = result.price?.reseller?.currency || "USD";
       const domainCacheKey = `${domain}-${originalPrice}-${currency}`;
       const convertedCacheKey = `${domainCacheKey}-converted-${selectedCurrency}`;
 
       // Check if result already has correct conversion - skip if it does
-      const existingCalculated = result.price.calculated;
+      const existingCalculated = result.price?.calculated;
       if (existingCalculated) {
         const needsConversion = selectedCurrency !== currency;
         const hasCorrectConversion = needsConversion 

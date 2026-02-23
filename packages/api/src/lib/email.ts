@@ -30,6 +30,8 @@ export async function sendEmail({
   html,
   text,
   attachments,
+  cc,
+  bcc,
   maxRetries = 3,
 }: {
   to: string;
@@ -41,6 +43,8 @@ export async function sendEmail({
     content: Buffer | string;
     contentType?: string;
   }>;
+  cc?: string[];
+  bcc?: string[];
   maxRetries?: number;
 }) {
   let lastError: unknown;
@@ -54,6 +58,8 @@ export async function sendEmail({
         subject: string;
         html?: string;
         text?: string;
+        cc?: string[];
+        bcc?: string[];
       } = {
         from: process.env.RESEND_FROM_EMAIL || "nPanel <noreply@npanel.com>",
         to: [to],
@@ -67,6 +73,8 @@ export async function sendEmail({
       if (text) {
         emailData.text = text;
       }
+      if (cc?.length) emailData.cc = cc;
+      if (bcc?.length) emailData.bcc = bcc;
 
       // Get Resend client (lazy initialization)
       const resend = getResendClient();
@@ -84,6 +92,8 @@ export async function sendEmail({
         subject: string;
         html?: string;
         text?: string;
+        cc?: string[];
+        bcc?: string[];
         attachments?: Array<{
           filename: string;
           content: Buffer | string;
@@ -95,6 +105,8 @@ export async function sendEmail({
         subject: emailData.subject,
         ...(emailData.html && { html: emailData.html }),
         ...(emailData.text && { text: emailData.text }),
+        ...(cc && cc.length > 0 && { cc }),
+        ...(bcc && bcc.length > 0 && { bcc }),
         ...(attachments && attachments.length > 0 && {
           attachments: attachments.map(att => ({
             filename: att.filename,
