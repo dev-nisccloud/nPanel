@@ -1,63 +1,28 @@
-# Customer-Side Email Hosting Migration Summary
+# Customer-Side Hosting Migration Summary
 
 ## Overview
-Successfully migrated the customer-side email hosting feature from hosting folder, customized for email hosting with only Overview, DNS, and Email tabs.
+Successfully migrated the customer-side hosting feature from the old UI to the new agency-side UI, while maintaining all security measures and filters.
 
 ## Completed Tasks
 
-### 1. Folder Copy ✅
-- Copied entire `apps/npanel/src/app/(main)/[slug]/hosting/` folder to `apps/npanel/src/app/(main)/[slug]/emails/`
+### 1. Security Measures Documentation ✅
+- Created `SECURITY_MEASURES.md` documenting all security measures in place
+- Documented API-level, frontend-level, and UI-level security measures
+- Listed all custom logic for customer side
+
+### 2. Old UI Removal ✅
+- Deleted entire `apps/npanel/src/app/(main)/[slug]/hosting/` folder (old UI)
+
+### 3. Agency UI Copy ✅
+- Copied entire `apps/npanel/src/app/(main)/agency/hosting/` folder to customer side
 - Used PowerShell `Copy-Item` command for recursive copy
 
-### 2. File Manager Tab Removal ✅
-- Removed File Manager tab from detail page
-- Removed File Manager imports and TabsContent
-- Deleted `file-manager-data.ts` file
-- Deleted `file-manager-schema.ts` file
-
-### 3. Subdomains Tab Removal ✅
-- Removed Subdomains tab from detail page
-- Removed Subdomains imports and TabsContent
-- Deleted `subdomains-data.ts` file
-- Deleted `subdomains-schema.ts` file
-
-### 4. Tabs Configuration ✅
-- Updated TabsList to show 3 tabs: Overview, DNS, and Email
-- Updated grid-cols from 2 to 3 for proper layout
-- Added DNS tab with Network icon
-- Kept Overview and Email tabs
-
-### 5. Path Updates ✅
-- Updated all paths from `/hosting/` to `/emails/`
-- Updated `hosting-detail-page.tsx` back links
-- Updated `hosting-data-table.tsx` navigation
-- Updated `columns.tsx` links to use customer paths with team slug
-
-### 6. Pricing Plans Update ✅
-- Updated `hosting-pricing.tsx` to use `EMAIL_HOSTING` subtype:
-  ```typescript
-  hostingSubType: "EMAIL_HOSTING"
-  ```
-- Updated `subType` in plan details to `"EMAIL_HOSTING"`
-
-### 7. Hooks Update ✅
-- Updated `use-hosting-subscriptions.ts` to filter by `EMAIL_HOSTING`:
-  ```typescript
-  hostingSubType: "EMAIL_HOSTING"
-  ```
-
-### 8. Customer-Only Features Removal ✅
-- Removed `LinkToTeamDialog` component and logic
-- Removed `Unlink` functionality and dialog
-- Removed unused imports (MoreVertical, Edit, Unlink, DropdownMenu components)
-- Removed AlertDialog for unlink confirmation
-
-### 9. Security Measures Verification ✅
-All security measures are in place:
+### 4. Security Measures Implementation ✅
+All security measures are already in place:
 
 #### Backend Security (Already Implemented)
 - **Ownership Verification**: `getDetailWithSubscription` endpoint verifies team ownership via `ServiceSubscription` table
-- **Team-Based Filtering**: `getByTeamFilterIds` endpoint filters subscriptions by team and `EMAIL_HOSTING` subtype
+- **Team-Based Filtering**: `getByTeamFilterIds` endpoint filters subscriptions by team and hosting subtype
 - **Unauthorized Access Logging**: All unauthorized attempts logged to `UserActivityLog`
 - **Plesk Filter ID Validation**: Empty `pleskFilterId` results in access denial
 
@@ -67,33 +32,41 @@ All security measures are in place:
 - **Query Gating**: Queries only execute when `teamId` is available
 - **Error Handling**: `FORBIDDEN` errors show `UnauthorizedAccess` component
 
-## Files Structure
+### 5. Route Updates ✅
+Updated all routes from agency paths to customer paths:
 
-```
-apps/npanel/src/app/(main)/[slug]/emails/
-├── _components/
-│   ├── hosting-data-table.tsx      # Main table with empty state logic
-│   ├── hosting-detail-page.tsx     # Detail page with 3 tabs (Overview, DNS, Email)
-│   ├── hosting-pricing.tsx         # Pricing plans for EMAIL_HOSTING
-│   ├── use-hosting-subscriptions.ts # Team-based filtering hook (EMAIL_HOSTING)
-│   ├── use-hosting-detail-batched.ts # Ownership verification hook
-│   ├── dns-table.tsx               # DNS records table
-│   ├── mail-table.tsx              # Email accounts table
-│   ├── hosting-overview.tsx        # Overview tab content
-│   └── ... (other components)
-├── [id]/
-│   └── page.tsx                    # Detail page route
-├── page.tsx                         # Main email hosting page
-└── MIGRATION_SUMMARY.md            # This file
-```
+#### Files Updated:
+1. **hosting-detail-page.tsx**:
+   - Changed `/agency/hosting` → `/${teamSlug}/hosting`
+   - Removed agency-only features (Link to Team, Link to Subscription, Unlink)
+   - Updated error component to use customer paths
 
-## Tabs Configuration
+2. **hosting-data-table.tsx**:
+   - Already using customer paths (`/${teamSlug}/hosting/${id}`)
+   - Empty state logic already in place
 
-The detail page now shows only 3 tabs:
+3. **columns.tsx**:
+   - Updated links to use customer paths with team slug extraction
+   - Uses `window.location.pathname` to extract team slug (client-side only)
 
-1. **Overview** - Subscription details and information
-2. **DNS** - DNS records management
-3. **Email** - Email accounts management
+4. **use-hosting-subscriptions.ts**:
+   - Already extracting team slug from pathname
+   - Already filtering by `WEB_HOSTING` subtype
+   - Already passing `teamId` for filtering
+
+5. **use-hosting-detail-batched.ts**:
+   - Already extracting team slug and converting to team ID
+   - Already passing `teamId` for ownership verification
+
+### 6. Empty State with Pricing Plans ✅
+- **hosting-pricing.tsx**: Already exists and correctly loads pricing plans
+  - Uses `trpc.hostingPlans.getAll.useQuery` with filters:
+    - `planType: "HOSTING"`
+    - `hostingSubType: "WEB_HOSTING"`
+    - `isActive: true`
+- **hosting-data-table.tsx**: Already implements empty state logic
+  - Shows `HostingPricing` when `hasServiceSubscriptions === false`
+  - Shows empty state message when subscriptions exist but no Plesk data
 
 ## Security Measures Summary
 
@@ -105,37 +78,47 @@ The detail page now shows only 3 tabs:
 
 ### Filters in Place:
 1. **Team-Based Filtering**: Only subscriptions belonging to user's team are shown
-2. **Hosting Subtype Filter**: Only `EMAIL_HOSTING` subscriptions are shown
+2. **Hosting Subtype Filter**: Only `WEB_HOSTING` subscriptions are shown
 3. **Ownership Verification**: Detail page verifies subscription belongs to team
 4. **Plesk Filter ID Check**: Empty filter IDs result in access denial
 
-## Empty State Flow
+## Files Structure
 
-1. **No Service Subscriptions**: Shows `HostingPricing` component with EMAIL_HOSTING plans
-2. **Has Subscriptions but No Plesk Data**: Shows empty state message
-3. **Has Subscriptions and Plesk Data**: Shows subscription list/cards
+```
+apps/npanel/src/app/(main)/[slug]/hosting/
+├── _components/
+│   ├── hosting-data-table.tsx      # Main table with empty state logic
+│   ├── hosting-detail-page.tsx     # Detail page with security measures
+│   ├── hosting-pricing.tsx         # Pricing plans for empty state
+│   ├── use-hosting-subscriptions.ts # Team-based filtering hook
+│   ├── use-hosting-detail-batched.ts # Ownership verification hook
+│   └── ... (other components)
+├── [id]/
+│   └── page.tsx                    # Detail page route
+├── page.tsx                         # Main hosting page
+├── SECURITY_MEASURES.md            # Security documentation
+└── MIGRATION_SUMMARY.md            # This file
+```
 
 ## Notes
 
-1. **File Manager & Subdomains**: Completely removed - no tabs, no files, no logic
-2. **Customer-Only Features**: Removed Link to Team and Unlink functionality
-3. **Pricing Plans**: Uses same loading method as hosting but filters by `EMAIL_HOSTING`
-4. **Security**: All measures from hosting feature are preserved
+1. **Columns.tsx**: Currently commented out in `hosting-data-table.tsx` but updated for future use
+2. **Agency-Only Features**: Removed from customer side (Link to Team, Link to Subscription, Unlink)
+3. **Duplicate Folder**: Removed `hosting/hosting/` duplicate folder if it existed
+4. **Pricing Plans**: Uses same loading method as before (`trpc.hostingPlans.getAll.useQuery`)
 
 ## Testing Checklist
 
-- [ ] Verify customer can only see their team's email hosting subscriptions
-- [ ] Verify customer cannot access other teams' email hosting subscriptions (FORBIDDEN error)
-- [ ] Verify empty state shows EMAIL_HOSTING pricing plans when no subscriptions exist
-- [ ] Verify detail page shows only Overview, DNS, and Email tabs
-- [ ] Verify File Manager and Subdomains tabs are not visible
-- [ ] Verify all links use customer-side paths (`/${teamSlug}/emails/...`)
-- [ ] Verify DNS tab works correctly
-- [ ] Verify Email tab works correctly
+- [ ] Verify customer can only see their team's hosting subscriptions
+- [ ] Verify customer cannot access other teams' hosting subscriptions (FORBIDDEN error)
+- [ ] Verify empty state shows pricing plans when no subscriptions exist
+- [ ] Verify detail page shows correct subscription data
+- [ ] Verify all links use customer-side paths (`/${teamSlug}/hosting/...`)
+- [ ] Verify agency-only features are not visible to customers
 
 ## Next Steps
 
 1. Test the migrated feature thoroughly
 2. Verify all security measures are working as expected
 3. Remove any unused imports or components
-4. Update any remaining references if found
+4. Update any remaining references to old paths if found

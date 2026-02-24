@@ -452,6 +452,223 @@ export const productsRouter = router({
             return result;
         }),
 
+    /** Get plans for pricing table from products named "web hosting" or "website hosting" (case-insensitive). Returns product-level feature list (table rows) and plans with per-feature values (enabled + valueOverride exactly as stored, no number conversion). */
+    getHostingPlansForPricing: protectedProcedure
+        .output(
+            z.object({
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                plans: z.array(
+                    z.object({
+                        id: z.string(),
+                        name: z.string(),
+                        niscPrice: z.string().nullable(),
+                        niscCurrency: z.string(),
+                        billingCycle: z.string(),
+                        isPopular: z.boolean(),
+                        isRecommended: z.boolean(),
+                        productId: z.string(),
+                        productName: z.string(),
+                        featureValues: z.array(
+                            z.object({
+                                available: z.boolean(),
+                                valueOverride: z.string().nullable(),
+                            })
+                        ),
+                    })
+                ),
+            })
+        )
+        .query(async ({ ctx }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view plans",
+                });
+            }
+
+            const products = await prisma.niscProduct.findMany({
+                where: {
+                    isActive: true,
+                    OR: [
+                        { name: { contains: "web hosting", mode: "insensitive" } },
+                        { name: { contains: "website hosting", mode: "insensitive" } },
+                    ],
+                },
+                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+                include: {
+                    plans: {
+                        where: { isActive: true, pricingModel: "FIXED" },
+                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                    },
+                },
+            });
+
+            // Master feature list from products (first product's order, then any keys from other products)
+            const seenKeys = new Set<string>();
+            const productFeatures: Array<{ key: string; label: string }> = [];
+            for (const p of products) {
+                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                for (const f of features) {
+                    if (!seenKeys.has(f.key)) {
+                        seenKeys.add(f.key);
+                        productFeatures.push(f);
+                    }
+                }
+            }
+
+            const plans: Array<{
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: Array<{ available: boolean; valueOverride: string | null }>;
+            }> = [];
+
+            for (const product of products) {
+                for (const plan of (product as any).plans ?? []) {
+                    const planFeats = (plan.planFeatures as Array<{ key: string; available: boolean; valueOverride?: string | null }>) ?? [];
+                    const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
+
+                    // One cell per productFeatures row: from plan we use enabled + valueOverride (exact, no conversion)
+                    const featureValues = productFeatures.map((pf) => {
+                        const entry = planFeatsByKey.get(pf.key);
+                        const available = !!entry?.available;
+                        const valueOverride =
+                            entry?.valueOverride != null && entry.valueOverride !== ""
+                                ? String(entry.valueOverride)
+                                : null;
+                        return { available, valueOverride };
+                    });
+
+                    plans.push({
+                        id: plan.id,
+                        name: plan.name,
+                        niscPrice: plan.price ?? null,
+                        niscCurrency: plan.currency ?? "KES",
+                        billingCycle: plan.billingCycle ?? "MONTHLY",
+                        isPopular: plan.isPopular ?? false,
+                        isRecommended: plan.isRecommended ?? false,
+                        productId: product.id,
+                        productName: product.name,
+                        featureValues,
+                    });
+                }
+            }
+
+            return { productFeatures, plans };
+        }),
+
+    /** Get plans for pricing table from products named "email hosting" (case-insensitive). Same shape as getHostingPlansForPricing. */
+    getEmailHostingPlansForPricing: protectedProcedure
+        .output(
+            z.object({
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                plans: z.array(
+                    z.object({
+                        id: z.string(),
+                        name: z.string(),
+                        niscPrice: z.string().nullable(),
+                        niscCurrency: z.string(),
+                        billingCycle: z.string(),
+                        isPopular: z.boolean(),
+                        isRecommended: z.boolean(),
+                        productId: z.string(),
+                        productName: z.string(),
+                        featureValues: z.array(
+                            z.object({
+                                available: z.boolean(),
+                                valueOverride: z.string().nullable(),
+                            })
+                        ),
+                    })
+                ),
+            })
+        )
+        .query(async ({ ctx }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view plans",
+                });
+            }
+
+            const products = await prisma.niscProduct.findMany({
+                where: {
+                    isActive: true,
+                    name: { contains: "email hosting", mode: "insensitive" },
+                },
+                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+                include: {
+                    plans: {
+                        where: { isActive: true, pricingModel: "FIXED" },
+                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                    },
+                },
+            });
+
+            const seenKeys = new Set<string>();
+            const productFeatures: Array<{ key: string; label: string }> = [];
+            for (const p of products) {
+                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                for (const f of features) {
+                    if (!seenKeys.has(f.key)) {
+                        seenKeys.add(f.key);
+                        productFeatures.push(f);
+                    }
+                }
+            }
+
+            const plans: Array<{
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: Array<{ available: boolean; valueOverride: string | null }>;
+            }> = [];
+
+            for (const product of products) {
+                for (const plan of (product as any).plans ?? []) {
+                    const planFeats = (plan.planFeatures as Array<{ key: string; available: boolean; valueOverride?: string | null }>) ?? [];
+                    const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
+                    const featureValues = productFeatures.map((pf) => {
+                        const entry = planFeatsByKey.get(pf.key);
+                        const available = !!entry?.available;
+                        const valueOverride =
+                            entry?.valueOverride != null && entry.valueOverride !== ""
+                                ? String(entry.valueOverride)
+                                : null;
+                        return { available, valueOverride };
+                    });
+                    plans.push({
+                        id: plan.id,
+                        name: plan.name,
+                        niscPrice: plan.price ?? null,
+                        niscCurrency: plan.currency ?? "KES",
+                        billingCycle: plan.billingCycle ?? "MONTHLY",
+                        isPopular: plan.isPopular ?? false,
+                        isRecommended: plan.isRecommended ?? false,
+                        productId: product.id,
+                        productName: product.name,
+                        featureValues,
+                    });
+                }
+            }
+
+            return { productFeatures, plans };
+        }),
+
     /** Create a new product */
     create: protectedProcedure
         .input(createProductInputSchema)

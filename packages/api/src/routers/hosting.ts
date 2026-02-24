@@ -132,7 +132,7 @@ const getDetailWithSubscriptionOutputSchema = z.object({
 
 export const hostingRouter = router({
 	// Get hosting subscription detail with subscription link (batched)
-	getDetailWithSubscription: protectedProcedure
+		getDetailWithSubscription: protectedProcedure
 		.input(getDetailWithSubscriptionInputSchema)
 		.output(getDetailWithSubscriptionOutputSchema)
 		.query(async ({ ctx, input }) => {
@@ -144,12 +144,93 @@ export const hostingRouter = router({
 				});
 			}
 
-			const subscriptionIdNumber = parseInt(input.subscriptionId, 10);
-			if (isNaN(subscriptionIdNumber) || subscriptionIdNumber <= 0) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Invalid subscription ID",
+			// Resolve subscriptionId: numeric Plesk id, or NiscClientSubscription id (CUID) or HostingSubscription id (CUID)
+			// Customer list uses NiscClientSubscription.id; Plesk id is in serviceRefs.pleskSubscriptionId or pleskFilterId
+			let subscriptionIdNumber: number;
+			const parsedNumber = parseInt(input.subscriptionId, 10);
+			if (!Number.isNaN(parsedNumber) && parsedNumber > 0) {
+				subscriptionIdNumber = parsedNumber;
+			} else {
+				// CUID path: resolve NiscClientSubscription (customer) or HostingSubscription (agency/legacy)
+				// 1) Try NiscClientSubscription (customer hosting list uses this id); teamId required for ownership
+				const niscSub = await prisma.niscClientSubscription.findUnique({
+					where: { id: input.subscriptionId },
+					select: {
+						teamId: true,
+						serviceRefs: true,
+						pleskFilterId: true,
+						hostingSubscriptionId: true,
+					},
 				});
+				if (niscSub) {
+					if (!input.teamId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Team context is required to view this subscription",
+						});
+					}
+					if (niscSub.teamId !== input.teamId) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You do not have access to this resource",
+						});
+					}
+					let pleskIdStr: string | null = null;
+					const refs = niscSub.serviceRefs as Record<string, unknown> | null;
+					if (refs && (typeof refs.pleskSubscriptionId === "string" || typeof refs.pleskSubscriptionId === "number")) {
+						pleskIdStr = String(refs.pleskSubscriptionId);
+					}
+					if (!pleskIdStr && niscSub.pleskFilterId) pleskIdStr = niscSub.pleskFilterId;
+					if (!pleskIdStr && niscSub.hostingSubscriptionId) {
+						const hs = await prisma.hostingSubscription.findUnique({
+							where: { id: niscSub.hostingSubscriptionId },
+							select: { pleskFilterId: true },
+						});
+						if (hs?.pleskFilterId) pleskIdStr = hs.pleskFilterId;
+					}
+					const pleskNum = pleskIdStr ? parseInt(pleskIdStr, 10) : NaN;
+					if (Number.isNaN(pleskNum) || pleskNum <= 0) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Hosting subscription not found",
+						});
+					}
+					subscriptionIdNumber = pleskNum;
+				} else {
+					// 2) Fallback: HostingSubscription id (legacy/agency)
+					const hostingSub = await prisma.hostingSubscription.findUnique({
+						where: { id: input.subscriptionId },
+						select: { pleskFilterId: true, teamId: true },
+					});
+					if (!hostingSub?.pleskFilterId) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Hosting subscription not found",
+						});
+					}
+					const hasAccess = await prisma.serviceSubscription.findFirst({
+						where: {
+							teamId: input.teamId,
+							hostingSubscriptionId: input.subscriptionId,
+							niscServicePlan: { planType: "HOSTING" },
+						},
+						select: { id: true },
+					});
+					if (!hasAccess && hostingSub.teamId !== input.teamId) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You do not have access to this resource",
+						});
+					}
+					const pleskNum = parseInt(hostingSub.pleskFilterId, 10);
+					if (Number.isNaN(pleskNum) || pleskNum <= 0) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Invalid subscription ID",
+						});
+					}
+					subscriptionIdNumber = pleskNum;
+				}
 			}
 
 			// Build XML request to fetch subscription from Plesk
@@ -267,55 +348,35 @@ export const hostingRouter = router({
 			// Extract pleskFilterId from Plesk response
 			const pleskFilterId = String(pleskResult["filter-id"] || "");
 
-			// If teamId is provided, verify ownership
+			// If teamId is provided, verify ownership: id in URL must belong to this team (ServiceSubscription or NiscClientSubscription)
 			if (input.teamId) {
-				// Only check ownership if we have a valid pleskFilterId
-				// If pleskFilterId is empty, the subscription isn't linked, so deny access
-				if (!pleskFilterId || pleskFilterId === "") {
-					// Log unauthorized access attempt (fire and forget to not affect performance)
-					prisma.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: session.user.id,
-							action: "UNAUTHORIZED_RESOURCE_ACCESS",
-							description: `Attempted to access hosting subscription ${input.subscriptionId} that is not linked to any team`,
-							metadata: {
-								resourceType: "hosting_subscription",
-								resourceId: input.subscriptionId,
-								teamId: input.teamId,
-								pleskFilterId: null,
-							},
-							ipAddress: null, // Headers not available in tRPC context
-							userAgent: null, // Headers not available in tRPC context
-							createdAt: new Date(),
+				const [hasAccessViaServiceSub, hasAccessViaNiscSub] = await Promise.all([
+					// Legacy: HostingSubscription linked via ServiceSubscription (needs pleskFilterId from Plesk response)
+					pleskFilterId
+						? prisma.serviceSubscription.findFirst({
+								where: {
+									teamId: input.teamId,
+									hostingSubscription: { pleskFilterId },
+									niscServicePlan: { planType: "HOSTING" },
+								},
+								select: { id: true },
+							})
+						: null,
+					// Customer: NiscClientSubscription for this team with this Plesk id (URL id or pleskFilterId from response)
+					prisma.niscClientSubscription.findFirst({
+						where: {
+							teamId: input.teamId,
+							OR: [
+								...(pleskFilterId ? [{ pleskFilterId }] : []),
+								{ pleskFilterId: input.subscriptionId },
+								{ serviceRefs: { path: ["pleskSubscriptionId"], equals: input.subscriptionId } },
+							],
 						},
-					}).catch(() => {
-						// Silently fail logging to not affect performance
-					});
+						select: { id: true },
+					}),
+				]);
 
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "You do not have access to this resource",
-					});
-				}
-
-				// Efficiently check if subscription belongs to team via ServiceSubscription
-				// This avoids fetching HostingSubscription if not needed
-				// Accept all hosting subtypes for ownership verification
-				const hasAccess = await prisma.serviceSubscription.findFirst({
-					where: {
-						teamId: input.teamId,
-						hostingSubscription: {
-							pleskFilterId: pleskFilterId,
-						},
-						niscServicePlan: {
-							planType: "HOSTING",
-						},
-					},
-					select: {
-						id: true,
-					},
-				});
+				const hasAccess = !!hasAccessViaServiceSub || !!hasAccessViaNiscSub;
 
 				if (!hasAccess) {
 					// Log unauthorized access attempt (fire and forget to not affect performance)

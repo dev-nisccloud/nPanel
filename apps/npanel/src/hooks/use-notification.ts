@@ -13,9 +13,10 @@ export function useNotification() {
         if (typeof window !== "undefined") {
             audioRef.current = new Audio("/sound_notification.wav");
 
-            // Register Service Worker for better background notifications
+            // Register Service Worker (version in URL so production always gets latest after deploy)
             if ("serviceWorker" in navigator) {
-                navigator.serviceWorker.register("/sw.js").then((reg) => {
+                const swUrl = "/sw.js?v=3";
+                navigator.serviceWorker.register(swUrl).then((reg) => {
                     console.log("Service Worker registered:", reg.scope);
                 }).catch((err) => {
                     console.warn("Service Worker registration failed:", err);

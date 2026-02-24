@@ -50,6 +50,7 @@ export function WordPressTools({ installationId }: WordPressToolsProps) {
     // Actually, the user provided APIs show specific endpoints for settings.
     // We can load them on demand or in this component. Let's rely on individual queries for the Settings cards to be robust.
 
+    // Mutations
     // Helper for optimistic updates
     const updateLocalCache = (path: string[], value: any) => {
         utils.plesk.wordpress.getById.setData({ id }, (old) => {

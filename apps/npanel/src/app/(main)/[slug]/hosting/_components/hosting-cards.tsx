@@ -5,48 +5,51 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  getStatusDisplayText, 
-  getStatusBadgeVariant, 
-  formatFileSize 
+import {
+  getStatusDisplayText,
+  getStatusBadgeVariant,
+  formatFileSize
 } from "./hosting-utils";
-import { hostingSubscriptionSchema } from "./schema";
+import { hostingSubscriptionSchema, type CustomerHostingListItem } from "./schema";
+
+type HostingCardData = z.infer<typeof hostingSubscriptionSchema> | (CustomerHostingListItem & { sslEnabled?: boolean; realSize?: number; traffic?: number });
 
 interface HostingCardProps {
-  data: z.infer<typeof hostingSubscriptionSchema>;
-  onViewDetails?: (id: number) => void;
+  data: HostingCardData;
+  onViewDetails?: (idOrData: number | string | HostingCardData) => void;
   onEdit?: (id: number) => void;
   onSuspend?: (id: number) => void;
   onCancel?: (id: number) => void;
   className?: string;
 }
 
-export function HostingCard({ 
-  data, 
-  onViewDetails, 
-  onEdit, 
-  onSuspend, 
+export function HostingCard({
+  data,
+  onViewDetails,
+  onEdit,
+  onSuspend,
   onCancel,
-  className 
+  className
 }: HostingCardProps) {
-  const handleViewDetails = () => {
+  const handleViewDetails = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (onViewDetails) {
-      onViewDetails(data.id);
+      onViewDetails(data);
     }
   };
 
   return (
-    <Card 
+    <Card
       className={cn("group cursor-pointer transition-all hover:shadow-md hover:border-primary/50", className)}
       onClick={handleViewDetails}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
-            {data.subscriptionName}
+            {data.subscriptionName ?? "—"}
           </CardTitle>
-          <Badge 
-            variant={getStatusBadgeVariant(data.status)} 
+          <Badge
+            variant={getStatusBadgeVariant(data.status)}
             className={cn(
               "flex-shrink-0",
               data.status === 0 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""
@@ -58,33 +61,39 @@ export function HostingCard({
       </CardHeader>
 
       <CardContent className="pt-0">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              SSL Security
-            </p>
-            <Badge 
-              variant={data.sslEnabled ? "default" : "destructive"}
-              className="text-xs w-fit"
-            >
-              {data.sslEnabled ? "Enabled" : "Disabled"}
-            </Badge>
+        {(data.sslEnabled !== undefined || data.realSize !== undefined || data.traffic !== undefined) && (
+          <div className="grid grid-cols-3 gap-3">
+            {data.sslEnabled !== undefined && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  SSL Security
+                </p>
+                <Badge
+                  variant={data.sslEnabled ? "default" : "destructive"}
+                  className={cn("text-xs w-fit", data.sslEnabled && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800")}
+                >
+                  {data.sslEnabled ? "Enabled" : "Disabled"}
+                </Badge>
+              </div>
+            )}
+            {data.realSize !== undefined && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Disk Usage
+                </p>
+                <p className="text-sm font-semibold">{formatFileSize(data.realSize)}</p>
+              </div>
+            )}
+            {data.traffic !== undefined && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Total Traffic
+                </p>
+                <p className="text-sm font-semibold">{formatFileSize(data.traffic)}</p>
+              </div>
+            )}
           </div>
-          
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Disk Usage
-            </p>
-            <p className="text-sm font-semibold">{formatFileSize(data.realSize)}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Total Traffic
-            </p>
-            <p className="text-sm font-semibold">{formatFileSize(data.traffic)}</p>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -92,8 +101,8 @@ export function HostingCard({
 
 // Hosting Cards List Component
 interface HostingCardsListProps {
-  data: z.infer<typeof hostingSubscriptionSchema>[];
-  onViewDetails?: (id: number) => void;
+  data: HostingCardData[];
+  onViewDetails?: (idOrData: number | string | HostingCardData) => void;
   onEdit?: (id: number) => void;
   onSuspend?: (id: number) => void;
   onCancel?: (id: number) => void;
@@ -101,17 +110,17 @@ interface HostingCardsListProps {
   className?: string;
 }
 
-export function HostingCardsList({ 
-  data, 
-  onViewDetails, 
-  onEdit, 
-  onSuspend, 
+export function HostingCardsList({
+  data,
+  onViewDetails,
+  onEdit,
+  onSuspend,
   onCancel,
   cols = 1,
-  className 
+  className
 }: HostingCardsListProps) {
   return (
-    <div 
+    <div
       className={cn(
         "grid gap-4",
         cols === 1 && "grid-cols-1",
@@ -137,8 +146,8 @@ export function HostingCardsList({
 
 // Hosting Cards Grid Component
 interface HostingCardsGridProps {
-  data: z.infer<typeof hostingSubscriptionSchema>[];
-  onViewDetails?: (id: number) => void;
+  data: HostingCardData[];
+  onViewDetails?: (idOrData: number | string | HostingCardData) => void;
   onEdit?: (id: number) => void;
   onSuspend?: (id: number) => void;
   onCancel?: (id: number) => void;
@@ -146,14 +155,14 @@ interface HostingCardsGridProps {
   className?: string;
 }
 
-export function HostingCardsGrid({ 
-  data, 
-  onViewDetails, 
-  onEdit, 
-  onSuspend, 
+export function HostingCardsGrid({
+  data,
+  onViewDetails,
+  onEdit,
+  onSuspend,
   onCancel,
   cols = 3,
-  className 
+  className
 }: HostingCardsGridProps) {
   return (
     <div className={cn("grid gap-4", className)}>

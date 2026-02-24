@@ -71,7 +71,7 @@ export function ViewSubdomainSheet({ open, onOpenChange, data }: ViewSubdomainSh
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Subdomain Name</p>
-                  <p className="text-base font-mono">
+                  <p className="text-base font-bold text-primary">
                     {data.name || "Unknown Subdomain"}
                   </p>
                 </div>
@@ -93,7 +93,7 @@ export function ViewSubdomainSheet({ open, onOpenChange, data }: ViewSubdomainSh
                 {data.properties?.www_root && (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">Document Root</p>
-                    <p className="text-base font-mono break-all">
+                    <p className="text-base font-bold text-primary break-all">
                       {data.properties.www_root}
                     </p>
                   </div>
@@ -137,7 +137,7 @@ export function ViewSubdomainSheet({ open, onOpenChange, data }: ViewSubdomainSh
                   {data.properties?.php_handler_id && (
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-muted-foreground">PHP Handler</p>
-                      <p className="text-base font-mono">
+                      <p className="text-base font-bold text-primary">
                         {getPhpVersion(data.properties.php_handler_id)}
                       </p>
                       <p className="text-xs text-muted-foreground">

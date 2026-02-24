@@ -1,16 +1,8 @@
 "use client";
 
 import * as React from "react";
-import {
-	RefreshCw,
-	Search,
-	EllipsisVertical,
-	Mail,
-	PauseCircle,
-	PlayCircle,
-	XCircle,
-	Eye,
-} from "lucide-react";
+import { RefreshCw, Search, Eye } from "lucide-react";
+import Link from "next/link";
 import {
 	Table,
 	TableBody,
@@ -23,19 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { trpc } from "@/utils/trpc";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
@@ -86,14 +65,11 @@ function teamOrUserName(userName: string | null, teamName: string | null): strin
 }
 
 export interface SubscriptionsTableProps {
+	/** Optional: if provided, View link will use this instead of navigation */
 	onViewSubscription?: (subscriptionId: string) => void;
-	onSendRenewalEmail?: (subscriptionId: string) => void;
 }
 
-export function SubscriptionsTable({
-	onViewSubscription,
-	onSendRenewalEmail,
-}: SubscriptionsTableProps) {
+export function SubscriptionsTable({ onViewSubscription }: SubscriptionsTableProps) {
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const {
 		data: list,
@@ -120,14 +96,6 @@ export function SubscriptionsTable({
 				s.status.toLowerCase().includes(q)
 		);
 	}, [list, searchQuery]);
-
-	const updateStatus = trpc.clientSubscriptions.update.useMutation({
-		onSuccess: () => refetch(),
-	});
-
-	const cancelSubscription = trpc.clientSubscriptions.cancel.useMutation({
-		onSuccess: () => refetch(),
-	});
 
 	if (isLoading) {
 		return (
@@ -229,109 +197,54 @@ export function SubscriptionsTable({
 								<TableHead>Billing cycle</TableHead>
 								<TableHead>Subscription date</TableHead>
 								<TableHead>Expiry date</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead className="w-12">Actions</TableHead>
+							<TableHead>Status</TableHead>
+							<TableHead className="w-24">Actions</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{filtered.length === 0 ? (
+							<TableRow>
+								<TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+									No subscriptions match &quot;{searchQuery}&quot;
+								</TableCell>
 							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filtered.length === 0 ? (
-								<TableRow>
-									<TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-										No subscriptions match &quot;{searchQuery}&quot;
+						) : (
+							filtered.map((sub) => (
+								<TableRow key={sub.id}>
+									<TableCell className="pl-6 font-medium">
+										{displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName)}
+									</TableCell>
+									<TableCell>{teamOrUserName(sub.userName, sub.teamName)}</TableCell>
+									<TableCell>{getBillingCycleDisplayName(sub.billingCycle)}</TableCell>
+									<TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
+									<TableCell>{formatDate(sub.expiryDate)}</TableCell>
+									<TableCell>
+										<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
+											{sub.status}
+										</Badge>
+									</TableCell>
+									<TableCell onClick={(e) => e.stopPropagation()}>
+										{onViewSubscription ? (
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => onViewSubscription(sub.id)}
+											>
+												<Eye className="mr-2 h-4 w-4" />
+												View
+											</Button>
+										) : (
+											<Button variant="ghost" size="sm" asChild>
+												<Link href={`/agency/subscriptions?subscriptionId=${sub.id}`}>
+													<Eye className="mr-2 h-4 w-4" />
+													View
+												</Link>
+											</Button>
+										)}
 									</TableCell>
 								</TableRow>
-							) : (
-								filtered.map((sub) => {
-									const isSuspended = sub.status === "SUSPENDED";
-									const canReactivate = isSuspended;
-									const canSuspend = sub.status === "ACTIVE" || sub.status === "PENDING";
-									const canCancel = sub.status !== "CANCELLED" && sub.status !== "EXPIRED";
-									return (
-										<TableRow key={sub.id}>
-											<TableCell className="pl-6 font-medium">
-												{displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName)}
-											</TableCell>
-											<TableCell>{teamOrUserName(sub.userName, sub.teamName)}</TableCell>
-											<TableCell>{getBillingCycleDisplayName(sub.billingCycle)}</TableCell>
-											<TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
-											<TableCell>{formatDate(sub.expiryDate)}</TableCell>
-											<TableCell>
-												<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
-													{sub.status}
-												</Badge>
-											</TableCell>
-											<TableCell onClick={(e) => e.stopPropagation()}>
-												<TooltipProvider>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<DropdownMenu>
-																<DropdownMenuTrigger asChild>
-																	<Button variant="ghost" size="icon" className="h-8 w-8">
-																		<EllipsisVertical className="h-4 w-4" />
-																		<span className="sr-only">Actions</span>
-																	</Button>
-																</DropdownMenuTrigger>
-																<DropdownMenuContent align="end" className="w-56">
-																	<DropdownMenuItem onClick={() => onViewSubscription?.(sub.id)}>
-																		<Eye className="mr-2 h-4 w-4" />
-																		View subscription
-																	</DropdownMenuItem>
-																	<DropdownMenuSeparator />
-																	{canSuspend && (
-																		<DropdownMenuItem
-																			onClick={() =>
-																				updateStatus.mutate({ id: sub.id, status: "SUSPENDED" })
-																			}
-																			disabled={updateStatus.isPending}
-																		>
-																			<PauseCircle className="mr-2 h-4 w-4" />
-																			Suspend service
-																		</DropdownMenuItem>
-																	)}
-																	<DropdownMenuItem
-																		onClick={() => onSendRenewalEmail?.(sub.id)}
-																		disabled={!sub.teamId && !sub.userId}
-																	>
-																		<Mail className="mr-2 h-4 w-4" />
-																		Send renewal email reminder
-																	</DropdownMenuItem>
-																	{canReactivate && (
-																		<DropdownMenuItem
-																			onClick={() =>
-																				updateStatus.mutate({ id: sub.id, status: "ACTIVE" })
-																			}
-																			disabled={updateStatus.isPending}
-																		>
-																			<PlayCircle className="mr-2 h-4 w-4" />
-																			Re-activate service
-																		</DropdownMenuItem>
-																	)}
-																	{canCancel && (
-																		<>
-																			<DropdownMenuSeparator />
-																			<DropdownMenuItem
-																				onClick={() => cancelSubscription.mutate({ id: sub.id })}
-																				disabled={cancelSubscription.isPending}
-																				className="text-destructive focus:text-destructive"
-																			>
-																				<XCircle className="mr-2 h-4 w-4" />
-																				Cancel service
-																			</DropdownMenuItem>
-																		</>
-																	)}
-																</DropdownMenuContent>
-															</DropdownMenu>
-														</TooltipTrigger>
-														<TooltipContent>
-															<p>Actions</p>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
-											</TableCell>
-										</TableRow>
-									);
-								})
-							)}
+							))
+						)}
 						</TableBody>
 					</Table>
 				</div>

@@ -87,7 +87,7 @@ export const hostingSubscriptionSchema = z.object({
   id: z.number(),
   subscriptionName: z.string(),
   setupDate: z.string(),
-  status: z.number(), // From Plesk API
+  status: z.number().optional(), // From Plesk API - may be missing for some subscriptions
   dnsIpAddress: z.string(),
   hostingType: z.string(),
   realSize: z.number(),
@@ -98,5 +98,16 @@ export const hostingSubscriptionSchema = z.object({
   traffic: z.number(), // Total traffic
 });
 
+/** Shape returned by clientSubscriptions.listForTeamHosting (customer hosting list from NiscClientSubscription). */
+export const customerHostingListSchema = z.object({
+  id: z.string(),
+  pleskSubscriptionId: z.string().nullable(),
+  subscriptionName: z.string().nullable(),
+  status: z.string(),
+  productName: z.string().optional(),
+  productPlanName: z.string().nullable().optional(),
+});
+
 export type PleskSubscriptionResponse = z.infer<typeof pleskSubscriptionResponseSchema>;
 export type HostingSubscription = z.infer<typeof hostingSubscriptionSchema>;
+export type CustomerHostingListItem = z.infer<typeof customerHostingListSchema>;

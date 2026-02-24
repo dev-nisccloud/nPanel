@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import { z } from "zod";
 import Link from "next/link";
@@ -18,13 +19,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { toWordPressDetailSlug } from "@/lib/wordpress-url-slug";
 import { wordpressInstallationSchema } from "../../wordpress/_components/schema";
 import { useWordPressInstances } from "../../wordpress/_components/use-wordpress-instances";
 import { Plus, RefreshCw } from "lucide-react";
-
-/** When provided (customer side), links use /{teamSlug}/wordpress/{id}. When omitted (agency side), links use /agency/wordpress/{id}. */
-const DEFAULT_WORDPRESS_BASE = "/agency";
 
 // Loading skeleton component
 function WordPressTableSkeleton() {
@@ -95,18 +92,11 @@ interface WordPressInstancesTableProps {
   domainName: string;
   hostingData?: any; // Will be properly typed
   onInstallClick?: () => void;
-  /** Customer-side base path (e.g. /my-team). When set, WordPress links use {teamSlug}/wordpress/{id}. */
-  teamSlug?: string;
-  /** When set (e.g. subscriptionId on hosting detail), WordPress detail URLs get ?fromHosting=... so Back returns to this hosting page. */
-  returnToHostingId?: string;
 }
 
-export function WordPressInstancesTable({ domainName, onInstallClick, teamSlug, returnToHostingId }: WordPressInstancesTableProps) {
-  const wordpressBase = teamSlug ? `/${teamSlug}` : DEFAULT_WORDPRESS_BASE;
-  const detailQuery = returnToHostingId ? `?fromHosting=${returnToHostingId}` : "";
-  const detailSegment = (item: { id?: number }) =>
-    teamSlug && item.id != null ? toWordPressDetailSlug(item.id, teamSlug) : String(item.id ?? "");
-
+export function WordPressInstancesTable({ domainName, onInstallClick }: WordPressInstancesTableProps) {
+  const pathname = usePathname();
+  const teamSlug = pathname.split("/")[1] ?? "";
   const { data: wordpressData, isLoading, isError, error, refetch } = useWordPressInstances();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -243,14 +233,14 @@ export function WordPressInstancesTable({ domainName, onInstallClick, teamSlug, 
                   key={item.id}
                   className="cursor-pointer"
                   onClick={() => {
-                    if (item.id != null) {
-                      window.location.href = `${wordpressBase}/wordpress/${detailSegment(item)}${detailQuery}`;
+                    if (item.id && teamSlug) {
+                      window.location.href = `/${teamSlug}/wordpress/${item.id}`;
                     }
                   }}
                 >
                   <TableCell className="pl-6">
                     <Link 
-                      href={`${wordpressBase}/wordpress/${detailSegment(item)}${detailQuery}`}
+                      href={`/${teamSlug}/wordpress/${item.id}`}
                       className="font-medium text-primary hover:underline"
                       onClick={(e) => e.stopPropagation()}
                     >

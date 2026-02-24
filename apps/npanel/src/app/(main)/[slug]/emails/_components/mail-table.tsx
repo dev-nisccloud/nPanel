@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Search, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Search, RefreshCw, Grid3X3, List, EllipsisVertical, Mail } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 
@@ -12,6 +12,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDataTableInstance } from "@/hooks/use-data-table-instance";
 import { trpc } from "@/utils/trpc";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 // Table imports (commented out for performance)
@@ -66,7 +88,7 @@ function MailTableSkeleton() {
                       <Skeleton className="h-8 w-8" />
                     </div>
                   </div>
-                  
+
                   {/* Card content skeleton */}
                   <div className="grid grid-cols-5 gap-4">
                     <div className="space-y-1">
@@ -102,7 +124,7 @@ function MailTableSkeleton() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Additional info skeleton */}
                   <div className="mt-4 pt-4 border-t space-y-2">
                     <div className="space-y-1">
@@ -152,6 +174,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
   const { data: emailsData, isLoading, isError, error, refetch } = useEmailsBySiteId(siteId);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
+  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
   const [isAddMailOpen, setIsAddMailOpen] = React.useState(false);
   const [sheetInitial, setSheetInitial] = React.useState<any | null>(null);
   const [sheetMode, setSheetMode] = React.useState<'create' | 'edit'>('create');
@@ -182,7 +205,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
 
   const filteredData = React.useMemo(() => {
     if (!emailsData) return [];
-    
+
     let filtered = emailsData;
 
     if (searchTerm.trim()) {
@@ -268,10 +291,114 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
     }
   };
 
-  const handleCopy = (data: z.infer<typeof emailAccountSchema>) => {
-    console.log("Copy email settings:", data);
-    // TODO: Implement copy functionality
-  };
+  const TableView = () => (
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="pl-6">Email Address</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Mailbox</TableHead>
+            <TableHead>Usage</TableHead>
+            <TableHead className="w-12"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredData.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                No email addresses found
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredData.map((email) => (
+              <TableRow
+                key={email.id}
+                className="cursor-pointer"
+                onClick={() => handleEdit(email.id)}
+              >
+                <TableCell className="pl-6">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {email.name || "Unknown Email"}@{domainName || "example.com"}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {email.description || "—"}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={email.mailbox?.enabled ? "default" : "secondary"} className={email.mailbox?.enabled ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}>
+                    {email.mailbox?.enabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    {email.mailbox?.usage
+                      ? `${Math.round((email.mailbox.usage / 1024 / 1024) * 100) / 100} MB`
+                      : "0 MB"}
+                    {email.mailbox?.quota && email.mailbox.quota !== -1 && (
+                      <span className="text-muted-foreground">
+                        {" / "}
+                        {Math.round((email.mailbox.quota / 1024 / 1024) * 100) / 100} MB
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
+                              <EllipsisVertical className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem onClick={() => handleEdit(email.id)}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => handleDelete(email.id)}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Actions</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const CardView = () => (
+    <div className="p-4">
+      <MailCardsList
+        data={filteredData}
+        domainName={domainName}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        cols={3}
+      />
+    </div>
+  );
+
 
   if (isLoading) {
     return <MailTableSkeleton />;
@@ -308,23 +435,30 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
             </SelectContent>
           </Select>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
-          {/* <DataTableViewOptions table={table} /> */}
-          {/* {selectedCount > 0 && (
-            <Button 
-              variant="destructive" 
+          {/* View Mode Toggle */}
+          <div className="flex items-center border rounded-md">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
               size="sm"
-              onClick={handleDeleteSelected}
-              className="flex-shrink-0 min-w-0"
+              onClick={() => setViewMode("card")}
+              className="rounded-r-none"
             >
-              <Trash2 className="h-4 w-4 @sm/main:mr-2" />
-              <span className="hidden @sm/main:inline">Remove ({selectedCount})</span>
-              <span className="@sm/main:hidden">Remove</span>
+              <Grid3X3 className="h-4 w-4" />
             </Button>
-          )} */}
-          <Button 
-            variant="outline" 
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => {
               setSheetMode('create');
@@ -339,20 +473,8 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
         </div>
       </div>
 
-      {/* Cards implementation */}
-      <div className="rounded-lg border bg-card">
-        <ScrollArea className="h-[600px]">
-          <div className="p-4">
-            <MailCardsList
-              data={filteredData}
-              domainName={domainName}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onCopy={handleCopy}
-            />
-          </div>
-        </ScrollArea>
-      </div>
+      {/* Content */}
+      {viewMode === "card" ? <CardView /> : <TableView />}
 
       {/* Table implementation (commented out for performance) */}
       {/* <div className="overflow-hidden rounded-lg border">
@@ -362,11 +484,12 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
       <DataTablePagination table={table} /> */}
 
       {/* Add Mail Address Sheet */}
-      <AddMailAddressSheet 
+      <AddMailAddressSheet
         open={isAddMailOpen}
-        onOpenChange={(open) => { 
-          setIsAddMailOpen(open); 
+        onOpenChange={(open) => {
+          setIsAddMailOpen(open);
           if (!open) {
+            // Reset all states when sheet closes
             setSheetInitial(null);
             setSheetMode('create');
           }
@@ -377,6 +500,9 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
         onSuccess={() => {
           // Refetch email data after successful creation/update
           refetch();
+          // Reset states after successful operation
+          setSheetInitial(null);
+          setSheetMode('create');
         }}
       />
 

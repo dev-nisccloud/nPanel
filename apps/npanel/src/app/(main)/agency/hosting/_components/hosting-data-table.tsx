@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Grid3X3, List } from "lucide-react";
+import { Search, Grid3X3, List, FilePlus2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -21,6 +21,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { CreateSubscriptionForHostingDialog } from "./create-subscription-for-hosting-dialog";
+import { trpc } from "@/utils/trpc";
 // import { useDataTableInstance } from "@/hooks/use-data-table-instance";
 
 // Table imports (commented out for performance)
@@ -139,6 +147,26 @@ export function HostingDataTable() {
   const { data, isLoading, isError, error, refetch } = useHostingSubscriptions();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
+  const [createSubscriptionFor, setCreateSubscriptionFor] = React.useState<
+    { pleskSubscriptionId: string | number; subscriptionName: string } | null
+  >(null);
+
+  const pleskIds = React.useMemo(
+    () => data.map((s) => String(s.id)),
+    [data]
+  );
+  const { data: pleskIdsWithLinked = [] } =
+    trpc.clientSubscriptions.getPleskSubscriptionIdsWithLinkedSubscription.useQuery(
+      { pleskSubscriptionIds: pleskIds },
+      { enabled: pleskIds.length > 0 }
+    );
+  const pleskIdsWithLinkedSet = React.useMemo(
+    () => new Set(pleskIdsWithLinked),
+    [pleskIdsWithLinked]
+  );
+
+  const CREATE_SUBSCRIPTION_TOOLTIP_LINKED =
+    "This service already has a subscription attached. You need to suspend or disable the current subscription to link it to a new one.";
 
   // Filter data based on search query
   const filteredData = React.useMemo(() => {
@@ -180,12 +208,13 @@ export function HostingDataTable() {
           <TableRow>
             <TableHead className="pl-6">Subscription Name</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead className="w-[140px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
                 No subscriptions found
               </TableCell>
             </TableRow>
@@ -208,6 +237,37 @@ export function HostingDataTable() {
                     {getStatusDisplayText(subscription.status)}
                   </Badge>
                 </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-block">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary"
+                            disabled={pleskIdsWithLinkedSet.has(String(subscription.id))}
+                            onClick={() =>
+                              setCreateSubscriptionFor({
+                                pleskSubscriptionId: subscription.id,
+                                subscriptionName: subscription.subscriptionName,
+                              })
+                            }
+                          >
+                            <FilePlus2 className="mr-2 h-4 w-4" />
+                            Create subscription
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-xs">
+                        {pleskIdsWithLinkedSet.has(String(subscription.id))
+                          ? CREATE_SUBSCRIPTION_TOOLTIP_LINKED
+                          : "Create a NISC subscription and link it to a team or user."}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
               </TableRow>
             ))
           )}
@@ -221,6 +281,14 @@ export function HostingDataTable() {
       <HostingCardsList
         data={filteredData}
         onViewDetails={handleViewDetails}
+        onCreateSubscription={(sub) =>
+          setCreateSubscriptionFor({
+            pleskSubscriptionId: sub.id,
+            subscriptionName: sub.subscriptionName,
+          })
+        }
+        pleskIdsWithLinkedSubscription={pleskIdsWithLinkedSet}
+        createSubscriptionTooltipLinked={CREATE_SUBSCRIPTION_TOOLTIP_LINKED}
         cols={3}
       />
     </div>
@@ -245,30 +313,50 @@ export function HostingDataTable() {
             </Badge>
           )}
         </div>
-        
-        {/* View Mode Toggle */}
-        <div className="flex items-center border rounded-md">
+        <div className="flex items-center gap-2">
           <Button
-            variant={viewMode === "card" ? "default" : "ghost"}
+            type="button"
+            variant="outline"
             size="sm"
-            onClick={() => setViewMode("card")}
-            className="rounded-r-none"
+            onClick={() => setCreateSubscriptionFor({ pleskSubscriptionId: "", subscriptionName: "" })}
           >
-            <Grid3X3 className="h-4 w-4" />
+            <FilePlus2 className="mr-2 h-4 w-4" />
+            Create subscription
           </Button>
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="rounded-l-none"
-          >
-            <List className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center border rounded-md">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("card")}
+              className="rounded-r-none"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
-      
-      {/* Content */}
+
       {viewMode === "card" ? <CardView /> : <TableView />}
+
+      <CreateSubscriptionForHostingDialog
+        open={createSubscriptionFor !== null}
+        onOpenChange={(open) => !open && setCreateSubscriptionFor(null)}
+        pleskSubscriptionId={
+          createSubscriptionFor?.pleskSubscriptionId !== ""
+            ? createSubscriptionFor?.pleskSubscriptionId
+            : undefined
+        }
+        subscriptionName={createSubscriptionFor?.subscriptionName}
+        onSuccess={() => setCreateSubscriptionFor(null)}
+      />
     </div>
   );
 }

@@ -1,23 +1,28 @@
+"use client";
+
 import { ColumnDef } from "@tanstack/react-table";
-import { EllipsisVertical } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { DataTableColumnHeader } from "../../../../../components/data-table/data-table-column-header";
 
 import { hostingSubscriptionSchema } from "./schema";
 import { getStatusDisplayText, getStatusBadgeVariant, formatFileSize } from "./hosting-utils";
+
+function EmailSubscriptionLink({ id, pleskId, children }: { id: string; pleskId?: string | null; children: React.ReactNode }) {
+  const pathname = usePathname();
+  const teamSlug = pathname.split("/")[1] ?? "";
+  const detailId = pleskId ?? id;
+  return (
+    <Link href={`/${teamSlug}/emails/${detailId}`} className="font-medium text-primary hover:underline">
+      {children}
+    </Link>
+  );
+}
 
 export const hostingColumns: ColumnDef<z.infer<typeof hostingSubscriptionSchema>>[] = [
   {
@@ -46,19 +51,11 @@ export const hostingColumns: ColumnDef<z.infer<typeof hostingSubscriptionSchema>
   {
     accessorKey: "subscriptionName",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Subscription name" />,
-    cell: ({ row, table }) => {
-      // Extract team slug from pathname - columns are used in customer context
-      const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-      const teamSlug = pathname.split("/")[1] || '';
-      return (
-        <Link 
-          href={`/${teamSlug}/emails/${row.original.id}`}
-          className="font-medium text-primary hover:underline"
-        >
-          {row.original.subscriptionName}
-        </Link>
-      );
-    },
+    cell: ({ row }) => (
+      <EmailSubscriptionLink id={String(row.original.id)} pleskId={(row.original as { pleskSubscriptionId?: string | null }).pleskSubscriptionId}>
+        {row.original.subscriptionName}
+      </EmailSubscriptionLink>
+    ),
   },
   {
     accessorKey: "status",
@@ -104,34 +101,5 @@ export const hostingColumns: ColumnDef<z.infer<typeof hostingSubscriptionSchema>
         {formatFileSize(row.original.realSize)}
       </div>
     ),
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="data-[state=open]:bg-muted text-muted-foreground flex size-8" size="icon">
-            <EllipsisVertical />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem asChild>
-            {(() => {
-              const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-              const teamSlug = pathname.split("/")[1] || '';
-              return <Link href={`/${teamSlug}/emails/${row.original.id}`}>View details</Link>;
-            })()}
-          </DropdownMenuItem>
-          <DropdownMenuItem>Edit subscription</DropdownMenuItem>
-          <DropdownMenuItem>Renew</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>Suspend</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive">Cancel</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
-    enableSorting: false,
-    enableHiding: false,
   },
 ];

@@ -51,4 +51,24 @@ All code paths that run for GET "/" (and the root layout) are hardened so they *
 - **Session check**: `isSessionValid` never throws; on error treats as not logged in.
 - **Layout**: All async and render paths in try/catch; only `NEXT_REDIRECT` is re-thrown.
 
-If a 500 still occurs, check Cloud Run / Firebase logs for the exact error (e.g. `[Proxy]`, `[RootLayout]`, or an uncaught stack trace).
+### Production 500 on GET / (fixed by Service Worker update)
+
+If you fixed the issue **locally** by changing the Service Worker (redirect mode, chrome-extension, etc.), production can still show 500 because **users’ browsers keep using the old cached SW**. The old SW causes "a redirected response was used for a request whose redirect mode is not 'follow'" and the request fails.
+
+**What we did so production gets the new SW:**
+
+1. **Cache-bust the registration** – The app registers `/sw.js?v=3`. After each deploy where you change the SW, bump the version (e.g. to `?v=4`) in `src/hooks/use-notification.ts` so every client fetches the new script and installs the new SW.
+2. **Don’t cache sw.js** – In `next.config.ts`, `/sw.js` is served with `Cache-Control: no-store, max-age=0` so the browser always gets the latest file when checking for updates.
+
+After deploying, users may need one reload (or close and reopen the tab) so the new SW installs. Existing tabs might keep the old SW until the next visit.
+
+### Finding the real error when you still get 500
+
+**Instrumentation** (`src/instrumentation.ts`) logs every request error so it appears in Cloud Run.
+
+1. Deploy the app (with the instrumentation file).
+2. Reproduce the 500 (open `https://your-run-url/`).
+3. In **Google Cloud Console** → **Logging**, filter by your service and search for **`[onRequestError]`**.
+4. The log line will show: **message**, **path** (e.g. `/`), **routePath**, **routeType**, **digest**, and **stack**.
+
+Use that message and stack to fix the failing code (e.g. missing env, import error, or runtime exception).

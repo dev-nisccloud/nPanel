@@ -67,7 +67,7 @@ const FormSchema = z.object({
   maxOutgoingMessages: z.number().min(0).max(120, { message: "Maximum outgoing messages cannot exceed 120." }),
 });
 
-// Create a conditional schema for edit mode where password is optional
+// Create a conditional schema for edit mode where password and quota are optional
 const createFormSchema = (mode: 'create' | 'edit') => {
   if (mode === 'edit') {
     return FormSchema.extend({
@@ -83,6 +83,8 @@ const createFormSchema = (mode: 'create' | 'edit') => {
           if (!/[^\w\s]/.test(val)) return false;
           return true;
         }, { message: "Password must be at least 12 characters and include lowercase, uppercase, digit, and special character." }),
+      quota: z.number().min(0).optional(), // Make quota optional in edit mode
+      maxOutgoingMessages: z.number().min(0).max(120, { message: "Maximum outgoing messages cannot exceed 120." }).optional(), // Make optional in edit mode
     });
   }
   return FormSchema;
@@ -157,7 +159,9 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
       password: mode === 'edit' ? "" : "", // Empty password in edit mode, will be filled if user wants to change it
       description: initialValues?.description || "",
       mailboxEnabled: initialValues?.mailboxEnabled ?? true,
-      quota: initialValues?.quota ?? 53687091200, // 50GB default (50 * 1024 * 1024 * 1024)
+      quota: (initialValues?.quota !== undefined && initialValues.quota >= 0) 
+        ? initialValues.quota 
+        : 53687091200, // 50GB default (50 * 1024 * 1024 * 1024) - ensure always valid
       forwardingEnabled: initialValues?.forwardingEnabled ?? false,
       forwardingAddresses: initialValues?.forwardingAddresses || "",
       aliases: initialValues?.aliases || "",
@@ -166,7 +170,9 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
       autoresponderText: initialValues?.autoresponderText || "",
       autoresponderEndDate: initialValues?.autoresponderEndDate || "",
       antivir: initialValues?.antivir || "off",
-      maxOutgoingMessages: initialValues?.maxOutgoingMessages ?? 100,
+      maxOutgoingMessages: (initialValues?.maxOutgoingMessages !== undefined && initialValues.maxOutgoingMessages >= 0)
+        ? initialValues.maxOutgoingMessages
+        : 100, // Ensure always valid
     },
   });
 
@@ -207,14 +213,18 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
       ...current,
       ...initialValues,
       // Ensure booleans/numbers remain valid if undefined in initialValues
-      mailboxEnabled: initialValues.mailboxEnabled ?? current.mailboxEnabled,
-      quota: initialValues.quota ?? current.quota,
-      forwardingEnabled: initialValues.forwardingEnabled ?? current.forwardingEnabled,
-      aliases: initialValues.aliases ?? current.aliases,
-      forwardingAddresses: initialValues.forwardingAddresses ?? current.forwardingAddresses,
-      autoresponderEnabled: initialValues.autoresponderEnabled ?? current.autoresponderEnabled,
-      antivir: initialValues.antivir ?? current.antivir,
-      maxOutgoingMessages: initialValues.maxOutgoingMessages ?? current.maxOutgoingMessages,
+      mailboxEnabled: initialValues.mailboxEnabled ?? current.mailboxEnabled ?? true,
+      quota: (initialValues.quota !== undefined && initialValues.quota >= 0) 
+        ? initialValues.quota 
+        : ((current.quota !== undefined && current.quota >= 0) ? current.quota : 53687091200), // Use initial, current, or default 50GB
+      forwardingEnabled: initialValues.forwardingEnabled ?? current.forwardingEnabled ?? false,
+      aliases: initialValues.aliases ?? current.aliases ?? "",
+      forwardingAddresses: initialValues.forwardingAddresses ?? current.forwardingAddresses ?? "",
+      autoresponderEnabled: initialValues.autoresponderEnabled ?? current.autoresponderEnabled ?? false,
+      antivir: initialValues.antivir ?? current.antivir ?? "off",
+      maxOutgoingMessages: (initialValues.maxOutgoingMessages !== undefined && initialValues.maxOutgoingMessages >= 0)
+        ? initialValues.maxOutgoingMessages
+        : ((current.maxOutgoingMessages !== undefined && current.maxOutgoingMessages >= 0) ? current.maxOutgoingMessages : 100),
       password: "", // Always clear password in edit mode
     });
   }, [open, initialValues, mode, form]);
@@ -266,30 +276,54 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
         // Create email account with all settings in one call
         await createEmailAccount.mutateAsync(apiData);
       } else {
-        // Update email account - only send supported fields
-        const updateData = {
+        // Update email account - only send fields that are actually provided/changed
+        const updateData: any = {
           siteId,
           name: data.name,
-          password: data.password && data.password.trim() ? data.password : undefined,
-          passwordType: 'plain' as const,
-          antivir: data.antivir,
-          outgoingMessagesLimit: data.maxOutgoingMessages,
-          description: data.description,
-          forwarding: data.forwardingEnabled && data.forwardingAddresses && data.forwardingAddresses.trim() ? {
+        };
+
+        // Only include password if provided
+        if (data.password && data.password.trim()) {
+          updateData.password = data.password;
+          updateData.passwordType = 'plain' as const;
+        }
+
+        // Only include antivir if provided
+        if (data.antivir) {
+          updateData.antivir = data.antivir;
+        }
+
+        // Only include outgoingMessagesLimit if provided and valid
+        if (data.maxOutgoingMessages !== undefined && data.maxOutgoingMessages >= 0) {
+          updateData.outgoingMessagesLimit = data.maxOutgoingMessages;
+        }
+
+        // Only include description if provided
+        if (data.description !== undefined) {
+          updateData.description = data.description;
+        }
+
+        // Only include forwarding if enabled and addresses provided
+        if (data.forwardingEnabled && data.forwardingAddresses && data.forwardingAddresses.trim()) {
+          updateData.forwarding = {
             enabled: true,
             addresses: data.forwardingAddresses.split(',').map(addr => addr.trim()).filter(addr => addr.length > 0),
-          } : undefined,
-          autoresponder: data.autoresponderEnabled ? {
+          };
+        }
+
+        // Only include autoresponder if enabled
+        if (data.autoresponderEnabled) {
+          updateData.autoresponder = {
             enabled: true,
             subject: data.autoresponderSubject,
             content: data.autoresponderText,
             contentType: 'text/plain',
-          } : undefined,
-          mailbox: {
-            enabled: data.mailboxEnabled,
-            quota: data.quota,
-          },
-        };
+          };
+        }
+
+        // Note: Mailbox/quota updates are not supported by the Plesk API in update operations
+        // The mailbox field is commented out in the API buildMailUpdateXml function
+        // So we don't send mailbox updates even if quota is provided
         
         await updateEmailAccount.mutateAsync(updateData);
       }
@@ -337,7 +371,7 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const quotaValue = form.watch("quota");
+  const quotaValue = form.watch("quota") ?? 53687091200; // Default to 50GB if undefined
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

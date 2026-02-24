@@ -17,6 +17,8 @@ const subscriptionStatusSchema = z.enum([
     "EXPIRED",
     "PROCESSING",
     "FAILED",
+    "UPGRADED",
+    "DOWNGRADED",
 ]);
 
 const pricingModelSchema = z.enum(["FIXED", "COMMISSION"]);
@@ -412,7 +414,7 @@ export const clientSubscriptionsRouter = router({
             return subs.map(mapSubscription);
         }),
 
-    /** List subscriptions for agency UI with product/plan/team/user names. */
+    /** List subscriptions for agency UI with product/plan/team/user names. Optional productFilter: "hosting" restricts to products whose name contains "hosting". */
     listForAgency: protectedProcedure
         .input(
             z
@@ -420,6 +422,7 @@ export const clientSubscriptionsRouter = router({
                     limit: z.number().int().min(1).max(200).default(100),
                     offset: z.number().int().min(0).default(0),
                     search: z.string().optional(),
+                    productFilter: z.enum(["hosting"]).optional(),
                 })
                 .optional()
         )
@@ -443,8 +446,22 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
+            const where: { productId?: { in: string[] } } = {};
+            if (input?.productFilter === "hosting") {
+                const hostingProducts = await prisma.niscProduct.findMany({
+                    where: { name: { contains: "hosting", mode: "insensitive" }, isActive: true },
+                    select: { id: true },
+                });
+                const ids = hostingProducts.map((p) => p.id);
+                if (ids.length > 0) where.productId = { in: ids };
+                else {
+                    // No hosting products: return empty list
+                    return [];
+                }
+            }
+
             const subs = await prisma.niscClientSubscription.findMany({
-                where: {},
+                where,
                 orderBy: { createdAt: "desc" },
                 take: input?.limit ?? 100,
                 skip: input?.offset ?? 0,
@@ -476,6 +493,317 @@ export const clientSubscriptionsRouter = router({
                     subscriptionName: sub.name ?? null,
                     teamName,
                     userName,
+                };
+            });
+        }),
+
+    /** List hosting subscriptions for a team (customer view). teamSlug is the route slug; returns only subscriptions for products named "web hosting" or "website hosting" (case-insensitive). Caller must be a member of the team. */
+    listForTeamHosting: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(
+            z.array(
+                z.object({
+                    id: z.string(),
+                    /** Plesk subscription id for detail URL; use this for links when present. */
+                    pleskSubscriptionId: z.string().nullable(),
+                    subscriptionName: z.string().nullable(),
+                    status: subscriptionStatusSchema,
+                    productName: z.string(),
+                    productPlanName: z.string().nullable(),
+                })
+            )
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const team = await prisma.team.findUnique({
+                where: { slug: input.teamSlug },
+                select: { id: true },
+            });
+            if (!team) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Team not found",
+                });
+            }
+
+            const membership = await prisma.teamMember.findUnique({
+                where: {
+                    teamId_userId: { teamId: team.id, userId: session.user.id },
+                },
+                select: { id: true },
+            });
+            if (!membership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            const hostingProducts = await prisma.niscProduct.findMany({
+                where: {
+                    isActive: true,
+                    OR: [
+                        { name: { contains: "web hosting", mode: "insensitive" } },
+                        { name: { contains: "website hosting", mode: "insensitive" } },
+                    ],
+                },
+                select: { id: true },
+            });
+            const productIds = hostingProducts.map((p) => p.id);
+            if (productIds.length === 0) return [];
+
+            const subs = await prisma.niscClientSubscription.findMany({
+                where: {
+                    teamId: team.id,
+                    productId: { in: productIds },
+                },
+                orderBy: { createdAt: "desc" },
+                select: {
+                    id: true,
+                    name: true,
+                    status: true,
+                    serviceRefs: true,
+                    pleskFilterId: true,
+                    hostingSubscriptionId: true,
+                    product: { select: { name: true } },
+                    productPlan: { select: { name: true } },
+                },
+            });
+
+            const hostingSubIds = [...new Set(subs.map((s) => s.hostingSubscriptionId).filter(Boolean))] as string[];
+            const hostingPleskMap = new Map<string, string>();
+            if (hostingSubIds.length > 0) {
+                const hsList = await prisma.hostingSubscription.findMany({
+                    where: { id: { in: hostingSubIds } },
+                    select: { id: true, pleskFilterId: true },
+                });
+                for (const hs of hsList) {
+                    if (hs.pleskFilterId) hostingPleskMap.set(hs.id, hs.pleskFilterId);
+                }
+            }
+
+            return subs.map((sub) => {
+                let pleskId: string | null = null;
+                const refs = sub.serviceRefs as Record<string, unknown> | null;
+                if (refs && (typeof refs.pleskSubscriptionId === "string" || typeof refs.pleskSubscriptionId === "number")) {
+                    pleskId = String(refs.pleskSubscriptionId);
+                }
+                if (!pleskId && sub.pleskFilterId) pleskId = sub.pleskFilterId;
+                if (!pleskId && sub.hostingSubscriptionId) pleskId = hostingPleskMap.get(sub.hostingSubscriptionId) ?? null;
+                return {
+                    id: sub.id,
+                    pleskSubscriptionId: pleskId,
+                    subscriptionName: sub.name ?? null,
+                    status: sub.status,
+                    productName: sub.product.name,
+                    productPlanName: sub.productPlan?.name ?? null,
+                };
+            });
+        }),
+
+    /** List email hosting subscriptions for a team (customer view). Same as listForTeamHosting but for products named "email hosting" (case-insensitive). */
+    listForTeamEmailHosting: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(
+            z.array(
+                z.object({
+                    id: z.string(),
+                    pleskSubscriptionId: z.string().nullable(),
+                    subscriptionName: z.string().nullable(),
+                    status: subscriptionStatusSchema,
+                    productName: z.string(),
+                    productPlanName: z.string().nullable(),
+                })
+            )
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const team = await prisma.team.findUnique({
+                where: { slug: input.teamSlug },
+                select: { id: true },
+            });
+            if (!team) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Team not found",
+                });
+            }
+
+            const membership = await prisma.teamMember.findUnique({
+                where: {
+                    teamId_userId: { teamId: team.id, userId: session.user.id },
+                },
+                select: { id: true },
+            });
+            if (!membership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            const emailHostingProducts = await prisma.niscProduct.findMany({
+                where: {
+                    isActive: true,
+                    name: { contains: "email hosting", mode: "insensitive" },
+                },
+                select: { id: true },
+            });
+            const productIds = emailHostingProducts.map((p) => p.id);
+            if (productIds.length === 0) return [];
+
+            const subs = await prisma.niscClientSubscription.findMany({
+                where: {
+                    teamId: team.id,
+                    productId: { in: productIds },
+                },
+                orderBy: { createdAt: "desc" },
+                select: {
+                    id: true,
+                    name: true,
+                    status: true,
+                    serviceRefs: true,
+                    pleskFilterId: true,
+                    hostingSubscriptionId: true,
+                    product: { select: { name: true } },
+                    productPlan: { select: { name: true } },
+                },
+            });
+
+            const hostingSubIds = [...new Set(subs.map((s) => s.hostingSubscriptionId).filter(Boolean))] as string[];
+            const hostingPleskMap = new Map<string, string>();
+            if (hostingSubIds.length > 0) {
+                const hsList = await prisma.hostingSubscription.findMany({
+                    where: { id: { in: hostingSubIds } },
+                    select: { id: true, pleskFilterId: true },
+                });
+                for (const hs of hsList) {
+                    if (hs.pleskFilterId) hostingPleskMap.set(hs.id, hs.pleskFilterId);
+                }
+            }
+
+            return subs.map((sub) => {
+                let pleskId: string | null = null;
+                const refs = sub.serviceRefs as Record<string, unknown> | null;
+                if (refs && (typeof refs.pleskSubscriptionId === "string" || typeof refs.pleskSubscriptionId === "number")) {
+                    pleskId = String(refs.pleskSubscriptionId);
+                }
+                if (!pleskId && sub.pleskFilterId) pleskId = sub.pleskFilterId;
+                if (!pleskId && sub.hostingSubscriptionId) pleskId = hostingPleskMap.get(sub.hostingSubscriptionId) ?? null;
+                return {
+                    id: sub.id,
+                    pleskSubscriptionId: pleskId,
+                    subscriptionName: sub.name ?? null,
+                    status: sub.status,
+                    productName: sub.product.name,
+                    productPlanName: sub.productPlan?.name ?? null,
+                };
+            });
+        }),
+
+    /** List domain subscriptions for a team (customer view). Returns subscriptions for products whose name contains "domains" (case-insensitive). Caller must be a member of the team. */
+    listForTeamDomains: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(
+            z.array(
+                z.object({
+                    id: z.string(),
+                    pleskSubscriptionId: z.string().nullable(),
+                    subscriptionName: z.string().nullable(),
+                    status: subscriptionStatusSchema,
+                    productName: z.string(),
+                    productPlanName: z.string().nullable(),
+                })
+            )
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const team = await prisma.team.findUnique({
+                where: { slug: input.teamSlug },
+                select: { id: true },
+            });
+            if (!team) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Team not found",
+                });
+            }
+
+            const membership = await prisma.teamMember.findUnique({
+                where: {
+                    teamId_userId: { teamId: team.id, userId: session.user.id },
+                },
+                select: { id: true },
+            });
+            if (!membership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            const domainProducts = await prisma.niscProduct.findMany({
+                where: {
+                    isActive: true,
+                    name: { contains: "domains", mode: "insensitive" },
+                },
+                select: { id: true },
+            });
+            const productIds = domainProducts.map((p) => p.id);
+            if (productIds.length === 0) return [];
+
+            const subs = await prisma.niscClientSubscription.findMany({
+                where: {
+                    teamId: team.id,
+                    productId: { in: productIds },
+                },
+                orderBy: { createdAt: "desc" },
+                select: {
+                    id: true,
+                    name: true,
+                    status: true,
+                    serviceRefs: true,
+                    pleskFilterId: true,
+                    product: { select: { name: true } },
+                    productPlan: { select: { name: true } },
+                },
+            });
+
+            return subs.map((sub) => {
+                let pleskId: string | null = null;
+                const refs = sub.serviceRefs as Record<string, unknown> | null;
+                if (refs && (typeof refs.pleskSubscriptionId === "string" || typeof refs.pleskSubscriptionId === "number")) {
+                    pleskId = String(refs.pleskSubscriptionId);
+                }
+                if (!pleskId && sub.pleskFilterId) pleskId = sub.pleskFilterId;
+                return {
+                    id: sub.id,
+                    pleskSubscriptionId: pleskId,
+                    subscriptionName: sub.name ?? null,
+                    status: sub.status,
+                    productName: sub.product.name,
+                    productPlanName: sub.productPlan?.name ?? null,
                 };
             });
         }),
@@ -585,6 +913,60 @@ export const clientSubscriptionsRouter = router({
             return subs
                 .map((s) => s.openProviderId)
                 .filter((id): id is number => id != null);
+        }),
+
+    /** Check if a Plesk subscription id already has a linked NiscClientSubscription (serviceRefs.pleskSubscriptionId). */
+    getHasLinkedSubscriptionByPleskId: protectedProcedure
+        .input(z.object({ pleskSubscriptionId: z.union([z.string(), z.number()]) }))
+        .output(z.object({ hasLinked: z.boolean() }))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+            const idStr = String(input.pleskSubscriptionId);
+            const sub = await prisma.niscClientSubscription.findFirst({
+                where: {
+                    serviceRefs: { path: ["pleskSubscriptionId"], equals: idStr },
+                },
+                select: { id: true },
+            });
+            return { hasLinked: !!sub };
+        }),
+
+    /** Return Plesk subscription ids that already have a linked NiscClientSubscription (for batch check on hosting list). */
+    getPleskSubscriptionIdsWithLinkedSubscription: protectedProcedure
+        .input(z.object({ pleskSubscriptionIds: z.array(z.union([z.string(), z.number()])) }))
+        .output(z.array(z.string()))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+            if (input.pleskSubscriptionIds.length === 0) return [];
+            const idStrs = [...new Set(input.pleskSubscriptionIds.map((id) => String(id)))];
+            const subs = await prisma.niscClientSubscription.findMany({
+                where: {
+                    OR: idStrs.map((id) => ({
+                        serviceRefs: { path: ["pleskSubscriptionId"], equals: id },
+                    })),
+                },
+                select: { serviceRefs: true },
+            });
+            const found = new Set<string>();
+            for (const sub of subs) {
+                const refs = sub.serviceRefs as Record<string, unknown> | null;
+                if (refs && typeof refs.pleskSubscriptionId === "string") {
+                    found.add(refs.pleskSubscriptionId);
+                }
+            }
+            return idStrs.filter((id) => found.has(id));
         }),
 
     /** Create a new subscription */

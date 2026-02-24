@@ -1,9 +1,18 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc";
 import prisma from "@nPanel/db";
-import { aggregateSales } from "./utils";
 import { subDays } from "date-fns";
-import { revenueByServiceSnapshotSchema, revenueByTeamSnapshotSchema, salesReportSnapshotSchema } from "./schemas";
+import { aggregateSales } from "./utils";
+import { computeSalesReportOverview } from "./sales-overview";
+import {
+	revenueByServiceSnapshotSchema,
+	revenueByTeamSnapshotSchema,
+	salesReportSnapshotSchema,
+} from "./schemas";
+import {
+	salesReportOverviewInputSchema,
+	salesReportOverviewSchema,
+} from "./sales-overview-schemas";
 
 /** Aggregate daily team snapshots into one row per team (total amount), sorted by amount desc, top N. */
 function aggregateRevenueByTeam(
@@ -44,7 +53,22 @@ function aggregateRevenueByTeam(
 }
 
 export const salesReportsRouter = router({
-    getRevenueTrends: protectedProcedure
+	getSalesReportOverview: protectedProcedure
+		.input(salesReportOverviewInputSchema)
+		.output(salesReportOverviewSchema)
+		.query(async ({ input }) => {
+			const from =
+				input.from ?? subDays(new Date(), 30);
+			const to = input.to ?? new Date();
+			return computeSalesReportOverview({
+				from,
+				to,
+				monthsTrend: input.monthsTrend,
+				topTeamsLimit: input.topTeamsLimit,
+			});
+		}),
+
+	getRevenueTrends: protectedProcedure
         .input(z.object({
             from: z.coerce.date().optional(),
             to: z.coerce.date().optional(),

@@ -1,14 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, Shield } from "lucide-react";
-import { useRouter, useParams } from "next/navigation";
 
-import { toWordPressDetailSlug } from "@/lib/wordpress-url-slug";
 import { wordpressInstallationSchema } from "./schema";
 
 interface WordPressCardProps {
@@ -29,14 +28,12 @@ export function WordPressCard({
   className,
 }: WordPressCardProps) {
   const router = useRouter();
-  const params = useParams();
-  const slug = (params?.slug as string) ?? "";
-  const basePath = slug ? `/${slug}` : "/agency";
+  const pathname = usePathname();
+  const teamSlug = pathname.split("/")[1] ?? "";
 
   const handleCardClick = () => {
-    if (data.id != null) {
-      const segment = slug ? toWordPressDetailSlug(data.id, slug) : String(data.id);
-      router.push(`${basePath}/wordpress/${segment}`);
+    if (data.id && teamSlug) {
+      router.push(`/${teamSlug}/wordpress/${data.id}`);
     }
   };
 
@@ -44,12 +41,16 @@ export function WordPressCard({
     const isActive = data.status?.alive && !data.status?.infected && !data.status?.unsupported;
     if (isActive) {
       return (
-        <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
+        <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
           Active
         </Badge>
       );
     }
-    return <Badge variant="destructive">Suspended</Badge>;
+    return (
+      <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">
+        Suspended
+      </Badge>
+    );
   };
 
   const getWordPressVersion = () => {
@@ -91,7 +92,7 @@ export function WordPressCard({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               WordPress Version
             </p>
-            <Badge 
+            <Badge
               variant={data.version ? "default" : "secondary"}
               className="text-xs w-fit"
             >
@@ -103,9 +104,14 @@ export function WordPressCard({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               SSL Security
             </p>
-            <Badge 
-              variant={getSslStatus() ? "default" : "destructive"}
-              className="text-xs w-fit"
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-xs w-fit",
+                getSslStatus()
+                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+                  : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800"
+              )}
             >
               {getSslStatus() ? "Enabled" : "Disabled"}
             </Badge>

@@ -18,12 +18,12 @@ interface MailCardProps {
   className?: string;
 }
 
-export function MailCard({ 
-  data, 
+export function MailCard({
+  data,
   domainName,
-  onEdit, 
-  onDelete, 
-  className 
+  onEdit,
+  onDelete,
+  className
 }: MailCardProps) {
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -70,7 +70,7 @@ export function MailCard({
   };
 
   return (
-    <Card 
+    <Card
       className={cn("group cursor-pointer transition-all hover:shadow-md hover:border-primary/50", className)}
       onClick={handleCardClick}
     >
@@ -89,9 +89,9 @@ export function MailCard({
             {onEdit && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-8 w-8 p-0"
                     onClick={handleEdit}
                   >
@@ -106,9 +106,9 @@ export function MailCard({
             {onDelete && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={handleDelete}
                   >
@@ -130,14 +130,14 @@ export function MailCard({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Mailbox
             </p>
-            <Badge 
+            <Badge
               variant={data.mailbox?.enabled ? "default" : "secondary"}
-              className="text-xs"
+              className={cn("text-xs", data.mailbox?.enabled && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800")}
             >
               {data.mailbox?.enabled ? "Enabled" : "Disabled"}
             </Badge>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Quota Usage
@@ -146,31 +146,31 @@ export function MailCard({
               {data.mailbox?.usage && data.mailbox.usage > 0 ? formatQuota(data.mailbox.usage) : "Not used"}
             </p>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Forwarding
             </p>
             <div className="flex items-center gap-1">
               <Forward className="h-3 w-3 text-muted-foreground" />
-              <Badge 
+              <Badge
                 variant={data.forwarding?.enabled ? "default" : "secondary"}
-                className="text-xs"
+                className={cn("text-xs", data.forwarding?.enabled && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800")}
               >
                 {data.forwarding?.enabled ? "Enabled" : "Disabled"}
               </Badge>
             </div>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Auto-reply
             </p>
             <div className="flex items-center gap-1">
               <Reply className="h-3 w-3 text-muted-foreground" />
-              <Badge 
+              <Badge
                 variant={data.autoresponder?.enabled ? "default" : "secondary"}
-                className="text-xs"
+                className={cn("text-xs", data.autoresponder?.enabled && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800")}
               >
                 {data.autoresponder?.enabled ? "Enabled" : "Disabled"}
               </Badge>
@@ -191,7 +191,7 @@ export function MailCard({
                 </p>
               </div>
             )}
-            
+
             {data.aliases && data.aliases.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -211,7 +211,7 @@ export function MailCard({
                 </div>
               </div>
             )}
-            
+
             {data.forwarding?.addresses && data.forwarding.addresses.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -248,16 +248,16 @@ interface MailCardsListProps {
   className?: string;
 }
 
-export function MailCardsList({ 
-  data, 
+export function MailCardsList({
+  data,
   domainName,
-  onEdit, 
-  onDelete, 
+  onEdit,
+  onDelete,
   cols = 3,
-  className 
+  className
 }: MailCardsListProps) {
   return (
-    <div 
+    <div
       className={cn(
         "grid gap-4",
         cols === 1 && "grid-cols-1",

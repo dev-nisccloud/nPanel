@@ -128,6 +128,19 @@ const nextConfig: NextConfig = {
 
     return config;
   },
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, max-age=0",
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       // Remove the hardcoded dashboard redirect

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { trpc } from "@/utils/trpc";
 import { pleskSubscriptionResponseSchema, hostingSubscriptionSchema } from "./schema";
@@ -8,37 +8,18 @@ import { toast } from "sonner";
 
 /**
  * Custom hook for fetching hosting subscriptions with error handling and retries
- * Filters subscriptions based on team's active service subscriptions
  */
 export function useHostingSubscriptions() {
-  const pathname = usePathname();
-  // Extract team slug from URL (first segment after /)
-  const teamSlug = pathname.split("/")[1];
-
-  // Get teamId from slug
-  const { data: teamData, isLoading: isTeamLoading } = trpc.teams.getTeamIdBySlug.useQuery(
-    { slug: teamSlug },
-    {
-      enabled: !!teamSlug,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
-
-  // Get filtered subscriptions by team - filter by EMAIL_HOSTING subtype
   const {
     data: pleskData,
-    isLoading: isPleskLoading,
+    isLoading,
     isError,
     error,
     refetch,
     isRefetching,
-  } = trpc.plesk.subscriptions.getByTeamFilterIds.useQuery(
-    { 
-      teamId: teamData?.id || "",
-      hostingSubType: "EMAIL_HOSTING",
-    },
+  } = trpc.plesk.subscriptions.getAll.useQuery(
+    {},
     {
-      enabled: !!teamData?.id,
       staleTime: 10 * 60 * 1000, // 10 minutes - increased to reduce request frequency
       gcTime: 30 * 60 * 1000, // 30 minutes - increased cache time
       retry: (failureCount, error: any) => {
@@ -57,11 +38,11 @@ export function useHostingSubscriptions() {
     }
   );
 
-  const isLoading = isTeamLoading || isPleskLoading || isRefetching;
-
   // Handle API errors
   useEffect(() => {
     if (error) {
+      console.error("Hosting subscriptions fetch error:", error);
+      
       // Show user-friendly error messages
       if (error?.data?.code === "UNAUTHORIZED") {
         toast.error("Authentication failed. Please check your Plesk credentials.");
@@ -82,25 +63,20 @@ export function useHostingSubscriptions() {
   // Transform the data
   let transformedData: z.infer<typeof hostingSubscriptionSchema>[] = [];
   let transformationError: Error | null = null;
-  let hasServiceSubscriptions: boolean | undefined = undefined;
 
   if (pleskData) {
-    hasServiceSubscriptions = pleskData.hasServiceSubscriptions;
-    
     try {
-      // Validate the response against our schema (only if we have parsed data)
-      if (pleskData.parsed?.packet?.webspace?.get?.result) {
-        const validatedData = pleskSubscriptionResponseSchema.parse({
-          raw: pleskData.raw,
-          parsed: pleskData.parsed,
-        });
+      // Validate the response against our schema
+      const validatedData = pleskSubscriptionResponseSchema.parse(pleskData);
       transformedData = transformPleskSubscriptionsToTable(validatedData);
-      }
     } catch (error) {
+      console.error("Data transformation error:", error);
+      console.error("Raw API response:", pleskData);
       transformationError = error as Error;
       
       // Provide more specific error messages based on the error type
       if (error instanceof z.ZodError) {
+        console.error("Zod validation errors:", error.issues);
         toast.error(`Data validation failed: ${error.issues.length} field(s) have invalid data.`);
       } else {
         toast.error("Failed to process subscription data. Please refresh the page.");
@@ -110,11 +86,10 @@ export function useHostingSubscriptions() {
 
   return {
     data: transformedData,
-    isLoading,
+    isLoading: isLoading || isRefetching,
     isError: isError || !!transformationError,
     error: error || transformationError,
     refetch,
     rawData: pleskData,
-    hasServiceSubscriptions,
   };
 }

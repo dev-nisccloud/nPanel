@@ -85,6 +85,8 @@ const createFromPaymentInputSchema = z.object({
 	checkoutRequestId: z.string().min(1),
 	items: z.array(createFromPaymentItemSchema).min(1),
 	currency: z.string().default("KES"),
+	/** When set, order is for this team (customer checkout). Required for team-scoped orders. */
+	teamId: z.string().optional(),
 });
 
 function generateNiscOrderNumber(): string {
@@ -569,8 +571,8 @@ export const niscServiceOrdersRouter = router({
 			const order = await prisma.niscOrder.create({
 				data: {
 					orderNumber,
-					userId,
-					teamId: null,
+					userId: userId,
+					teamId: input.teamId ?? null,
 					createdBy: session.user.id,
 					status: "PENDING",
 					subtotal,

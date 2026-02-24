@@ -3,11 +3,11 @@
 import * as React from "react";
 import { useState } from "react";
 import { format } from "date-fns";
-import { 
-  Upload, 
+import {
+  Upload,
   Download,
-  Trash2, 
-  FolderPlus, 
+  Trash2,
+  FolderPlus,
   MoreHorizontal,
   Grid3X3,
   List,
@@ -57,7 +57,9 @@ import { RenameFileDialog } from "./rename-file-dialog";
 import { MoveFileDialog } from "./move-file-dialog";
 import { NewFolderDialog } from "./new-folder-dialog";
 import { UploadFileSheet } from "./upload-file-sheet";
+import { FileViewerSheet, isViewableFile } from "./file-viewer-sheet";
 import { MediaViewerDialog, isViewableMediaFile } from "./media-viewer-dialog";
+import { ExtractZipDialog } from "./extract-zip-dialog";
 
 interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
@@ -137,16 +139,20 @@ export function FileManager({ hostingData }: FileManagerProps) {
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // Dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false);
   const [uploadSheetOpen, setUploadSheetOpen] = useState(false);
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
   const [viewingMediaFile, setViewingMediaFile] = useState<FileManagerItem | null>(null);
+  const [extractZipDialogOpen, setExtractZipDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FileManagerItem | null>(null);
+  const [viewingFile, setViewingFile] = useState<FileManagerItem | null>(null);
+  const [extractingFile, setExtractingFile] = useState<FileManagerItem | null>(null);
   const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
 
   // Extract FTP credentials from hosting data
@@ -247,6 +253,42 @@ export function FileManager({ hostingData }: FileManagerProps) {
     setMoveDialogOpen(true);
   };
 
+  const handleExtractClick = (item: FileManagerItem) => {
+    setExtractingFile(item);
+    setExtractZipDialogOpen(true);
+  };
+
+  // Check if file is a zip file
+  const isZipFile = (item: FileManagerItem): boolean => {
+    return item.type === "file" &&
+      (item.extension?.toLowerCase() === "zip" ||
+        item.name.toLowerCase().endsWith(".zip"));
+  };
+
+  // Check if selected items include a zip file
+  const hasSelectedZipFile = (): boolean => {
+    if (selectedItems.length === 0) return false;
+    return filteredItems.some(item =>
+      selectedItems.includes(item.id) && isZipFile(item)
+    );
+  };
+
+  // Get the first selected zip file
+  const getSelectedZipFile = (): FileManagerItem | null => {
+    if (selectedItems.length === 0) return null;
+    return filteredItems.find(item =>
+      selectedItems.includes(item.id) && isZipFile(item)
+    ) || null;
+  };
+
+  // Handle extract from selected items
+  const handleExtractSelected = () => {
+    const zipFile = getSelectedZipFile();
+    if (zipFile) {
+      handleExtractClick(zipFile);
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     if (selectedItem) {
       await deleteItem(selectedItem);
@@ -280,7 +322,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
     if (selectedItems.length === 0) return;
 
     // Find the items to delete
-    const itemsToDelete = (data?.items || []).filter(item => 
+    const itemsToDelete = (data?.items || []).filter(item =>
       selectedItems.includes(item.id)
     );
 
@@ -316,10 +358,10 @@ export function FileManager({ hostingData }: FileManagerProps) {
           errorCount++;
         }
       }
-      
+
       // Clear selection after deletion attempt
       setSelectedItems([]);
-      
+
       // Show appropriate success/error message
       if (errorCount === 0) {
         toast.success(`Successfully deleted ${successCount} item${successCount > 1 ? 's' : ''}`);
@@ -339,23 +381,15 @@ export function FileManager({ hostingData }: FileManagerProps) {
     <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4">
         {filteredItems.map((item) => (
-          <Card 
-            key={item.id} 
-            className={`cursor-pointer transition-all hover:shadow-md ${
-              selectedItems.includes(item.id) ? "ring-2 ring-primary" : ""
-            }`}
-            onClick={() => {
-              if (item.type === "folder") {
-                navigateToPath(item.path);
-              } else {
-                handleSelectItem(item.id, !selectedItems.includes(item.id));
-              }
-            }}
+          <Card
+            key={item.id}
+            className={`transition-all hover:shadow-md ${selectedItems.includes(item.id) ? "ring-2 ring-primary" : ""
+              }`}
           >
             <CardContent className="p-1.5">
               {/* Header with checkbox and actions */}
               <div className="flex items-start justify-between mb-2">
-                <Checkbox 
+                <Checkbox
                   checked={selectedItems.includes(item.id)}
                   onChange={(e) => {
                     e.stopPropagation();
@@ -364,8 +398,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
                 />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="sm"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -373,10 +407,10 @@ export function FileManager({ hostingData }: FileManagerProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {isViewableMediaFile(item) && (
+                    {isViewableFile(item) && (
                       <DropdownMenuItem onClick={() => {
-                        setViewingMediaFile(item);
-                        setMediaViewerOpen(true);
+                        setViewingFile(item);
+                        setFileViewerOpen(true);
                       }}>
                         <Eye className="mr-2 h-4 w-4" />
                         View
@@ -386,6 +420,12 @@ export function FileManager({ hostingData }: FileManagerProps) {
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </DropdownMenuItem>
+                    {isZipFile(item) && (
+                      <DropdownMenuItem onClick={() => handleExtractClick(item)}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        Extract
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => handleRenameClick(item)}>
                       <Edit className="mr-2 h-4 w-4" />
                       Rename
@@ -399,7 +439,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
                       Move
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => handleDeleteClick(item)}
                     >
@@ -411,20 +451,52 @@ export function FileManager({ hostingData }: FileManagerProps) {
               </div>
 
               {/* Icon - Centered and bigger */}
-              <div className="flex justify-center mb-2">
+              <div
+                className="flex justify-center mb-2 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (item.type === "folder") {
+                    navigateToPath(item.path);
+                  } else if (isViewableMediaFile(item)) {
+                    setViewingMediaFile(item);
+                    setMediaViewerOpen(true);
+                  } else if (isViewableFile(item)) {
+                    setViewingFile(item);
+                    setFileViewerOpen(true);
+                  } else {
+                    handleSelectItem(item.id, !selectedItems.includes(item.id));
+                  }
+                }}
+              >
                 {item.type === "folder" ? (
                   <Icons.Folder className="h-24 w-24 text-muted-foreground" />
                 ) : (
                   <Icons.Document className="h-24 w-24 text-muted-foreground" />
                 )}
               </div>
-              
+
               {/* File/Folder name - Left aligned */}
-              <div className="mb-2">
+              <div
+                className="mb-2 cursor-pointer hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (item.type === "folder") {
+                    navigateToPath(item.path);
+                  } else if (isViewableMediaFile(item)) {
+                    setViewingMediaFile(item);
+                    setMediaViewerOpen(true);
+                  } else if (isViewableFile(item)) {
+                    setViewingFile(item);
+                    setFileViewerOpen(true);
+                  } else {
+                    handleSelectItem(item.id, !selectedItems.includes(item.id));
+                  }
+                }}
+              >
                 <h3 className="font-medium text-sm truncate" title={item.name}>
                   {item.name}
                 </h3>
-                
+
                 {/* File info - only for files */}
                 {item.type === "file" && (
                   <div className="text-xs text-muted-foreground">
@@ -450,7 +522,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
         <TableHeader>
           <TableRow>
             <TableHead className="w-12">
-              <Checkbox 
+              <Checkbox
                 checked={isAllSelected}
                 ref={(el) => {
                   if (el) (el as HTMLInputElement).indeterminate = isIndeterminate;
@@ -458,7 +530,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
                 onChange={(e) => handleSelectAll((e.target as HTMLInputElement).checked)}
               />
             </TableHead>
-            <TableHead>Name</TableHead>
+            <TableHead className="pl-6">Name</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Size</TableHead>
             <TableHead>Modified</TableHead>
@@ -467,24 +539,13 @@ export function FileManager({ hostingData }: FileManagerProps) {
         </TableHeader>
         <TableBody>
           {filteredItems.map((item) => (
-            <TableRow 
+            <TableRow
               key={item.id}
-              className={`cursor-pointer ${
-                selectedItems.includes(item.id) ? "bg-muted/50" : ""
-              }`}
-              onClick={() => {
-                if (item.type === "folder") {
-                  navigateToPath(item.path);
-                } else if (isViewableMediaFile(item)) {
-                  setViewingMediaFile(item);
-                  setMediaViewerOpen(true);
-                } else {
-                  handleSelectItem(item.id, !selectedItems.includes(item.id));
-                }
-              }}
+              className={`${selectedItems.includes(item.id) ? "bg-muted/50" : ""
+                }`}
             >
               <TableCell>
-                <Checkbox 
+                <Checkbox
                   checked={selectedItems.includes(item.id)}
                   onChange={(e) => {
                     e.stopPropagation();
@@ -492,8 +553,24 @@ export function FileManager({ hostingData }: FileManagerProps) {
                   }}
                 />
               </TableCell>
-              <TableCell>
-                <div className="flex items-center space-x-2">
+              <TableCell className="pl-6">
+                <div
+                  className="flex items-center space-x-2 cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (item.type === "folder") {
+                      navigateToPath(item.path);
+                    } else if (isViewableMediaFile(item)) {
+                      setViewingMediaFile(item);
+                      setMediaViewerOpen(true);
+                    } else if (isViewableFile(item)) {
+                      setViewingFile(item);
+                      setFileViewerOpen(true);
+                    } else {
+                      handleSelectItem(item.id, !selectedItems.includes(item.id));
+                    }
+                  }}
+                >
                   {item.type === "folder" ? (
                     <Icons.Folder className="h-4 w-4 text-muted-foreground" />
                   ) : (
@@ -517,8 +594,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="sm"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -530,6 +607,15 @@ export function FileManager({ hostingData }: FileManagerProps) {
                       <DropdownMenuItem onClick={() => {
                         setViewingMediaFile(item);
                         setMediaViewerOpen(true);
+                      }}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </DropdownMenuItem>
+                    )}
+                    {isViewableFile(item) && !isViewableMediaFile(item) && (
+                      <DropdownMenuItem onClick={() => {
+                        setViewingFile(item);
+                        setFileViewerOpen(true);
                       }}>
                         <Eye className="mr-2 h-4 w-4" />
                         View
@@ -552,7 +638,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
                       Move
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => handleDeleteClick(item)}
                     >
@@ -582,7 +668,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
               className="w-full @sm/main:w-80"
             />
           </div>
-          
+
           {/* Breadcrumbs */}
           <div className="flex items-center space-x-1 text-sm text-muted-foreground">
             <Button
@@ -596,7 +682,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
             </Button>
             {(data?.breadcrumbs || []).map((crumb, index) => (
               <React.Fragment key={crumb.path}>
-                <span 
+                <span
                   className="cursor-pointer hover:text-foreground"
                   onClick={() => navigateToBreadcrumb(crumb.path)}
                 >
@@ -609,11 +695,11 @@ export function FileManager({ hostingData }: FileManagerProps) {
             ))}
           </div>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2">
           {/* Refresh Button */}
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={refreshCurrentPath}
             disabled={isLoading}
@@ -646,8 +732,19 @@ export function FileManager({ hostingData }: FileManagerProps) {
           {/* Action Buttons */}
           {selectedItems.length > 0 && (
             <>
-              <Button 
-                variant="destructive" 
+              {hasSelectedZipFile() && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-shrink-0"
+                  onClick={handleExtractSelected}
+                >
+                  <Archive className="h-4 w-4 @sm/main:mr-2" />
+                  <span className="hidden @sm/main:inline">Extract</span>
+                </Button>
+              )}
+              <Button
+                variant="destructive"
                 size="sm"
                 className="flex-shrink-0"
                 onClick={handleBulkDelete}
@@ -667,9 +764,9 @@ export function FileManager({ hostingData }: FileManagerProps) {
                   </>
                 )}
               </Button>
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 size="sm"
                 className="flex-shrink-0"
                 onClick={() => setSelectedItems([])}
@@ -680,10 +777,10 @@ export function FileManager({ hostingData }: FileManagerProps) {
               </Button>
             </>
           )}
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
+
+          <Button
+            variant="outline"
+            size="sm"
             className="flex-shrink-0"
             onClick={() => setUploadSheetOpen(true)}
           >
@@ -691,10 +788,10 @@ export function FileManager({ hostingData }: FileManagerProps) {
             <span className="hidden @sm/main:inline">Upload</span>
             <span className="@sm/main:hidden">Upload</span>
           </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
+
+          <Button
+            variant="outline"
+            size="sm"
             className="flex-shrink-0"
             onClick={() => setNewFolderDialogOpen(true)}
           >
@@ -720,14 +817,14 @@ export function FileManager({ hostingData }: FileManagerProps) {
               {searchTerm ? "No files match your search" : "This directory is empty"}
             </h3>
             <p className="text-muted-foreground mb-6">
-              {searchTerm 
+              {searchTerm
                 ? `No files or folders match "${searchTerm}". Try adjusting your search terms.`
                 : "Upload files or create folders to get started with your hosting account."
               }
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 size="sm"
                 onClick={() => setUploadSheetOpen(true)}
                 className="flex items-center gap-2"
@@ -735,8 +832,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
                 <Upload className="h-4 w-4" />
                 Upload Files
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
               >
@@ -745,8 +842,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
               </Button>
             </div>
             {searchTerm && (
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={() => setSearchTerm("")}
                 className="mt-4"
@@ -812,6 +909,16 @@ export function FileManager({ hostingData }: FileManagerProps) {
         }}
       />
 
+      {/* File Viewer Sheet (text/code) */}
+      {viewingFile && (
+        <FileViewerSheet
+          open={fileViewerOpen}
+          onOpenChange={setFileViewerOpen}
+          file={viewingFile}
+          hostingData={hostingData}
+        />
+      )}
+
       {/* Media Viewer Dialog (images/videos) */}
       <MediaViewerDialog
         open={mediaViewerOpen}
@@ -823,6 +930,27 @@ export function FileManager({ hostingData }: FileManagerProps) {
         hostingData={hostingData}
         onDownload={handleDownloadClick}
       />
+
+      {/* Extract Zip Dialog */}
+      {extractingFile && (
+        <ExtractZipDialog
+          open={extractZipDialogOpen}
+          onOpenChange={(open) => {
+            setExtractZipDialogOpen(open);
+            if (!open) {
+              setExtractingFile(null);
+            }
+          }}
+          file={extractingFile}
+          hostingData={hostingData}
+          currentPath={currentPath}
+          onSuccess={() => {
+            refreshCurrentPath();
+            setExtractZipDialogOpen(false);
+            setExtractingFile(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -4,7 +4,14 @@ import * as React from "react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   getStatusDisplayText,
   getStatusBadgeVariant,
@@ -18,6 +25,10 @@ interface HostingCardProps {
   onEdit?: (id: number) => void;
   onSuspend?: (id: number) => void;
   onCancel?: (id: number) => void;
+  onCreateSubscription?: (data: z.infer<typeof hostingSubscriptionSchema>) => void;
+  /** When true, Create subscription button is disabled and tooltip shows tooltipLinked */
+  hasLinkedSubscription?: boolean;
+  tooltipLinked?: string;
   className?: string;
 }
 
@@ -27,12 +38,21 @@ export function HostingCard({
   onEdit,
   onSuspend,
   onCancel,
+  onCreateSubscription,
+  hasLinkedSubscription,
+  tooltipLinked,
   className
 }: HostingCardProps) {
-  const handleViewDetails = () => {
+  const handleViewDetails = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (onViewDetails) {
       onViewDetails(data.id);
     }
+  };
+
+  const handleCreateSubscription = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onCreateSubscription?.(data);
   };
 
   return (
@@ -85,6 +105,33 @@ export function HostingCard({
             <p className="text-sm font-semibold">{formatFileSize(data.traffic)}</p>
           </div>
         </div>
+        {onCreateSubscription && (
+          <div className="mt-4 pt-4 border-t" onClick={(e) => e.stopPropagation()}>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="block w-full">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      disabled={hasLinkedSubscription}
+                      onClick={handleCreateSubscription}
+                    >
+                      Create subscription
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  {hasLinkedSubscription && tooltipLinked
+                    ? tooltipLinked
+                    : "Create a NISC subscription and link it to a team or user."}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -97,6 +144,9 @@ interface HostingCardsListProps {
   onEdit?: (id: number) => void;
   onSuspend?: (id: number) => void;
   onCancel?: (id: number) => void;
+  onCreateSubscription?: (data: z.infer<typeof hostingSubscriptionSchema>) => void;
+  pleskIdsWithLinkedSubscription?: Set<string>;
+  createSubscriptionTooltipLinked?: string;
   cols?: 1 | 2 | 3 | 4;
   className?: string;
 }
@@ -107,6 +157,9 @@ export function HostingCardsList({
   onEdit,
   onSuspend,
   onCancel,
+  onCreateSubscription,
+  pleskIdsWithLinkedSubscription,
+  createSubscriptionTooltipLinked,
   cols = 1,
   className
 }: HostingCardsListProps) {
@@ -129,6 +182,9 @@ export function HostingCardsList({
           onEdit={onEdit}
           onSuspend={onSuspend}
           onCancel={onCancel}
+          onCreateSubscription={onCreateSubscription}
+          hasLinkedSubscription={pleskIdsWithLinkedSubscription?.has(String(subscription.id))}
+          tooltipLinked={createSubscriptionTooltipLinked}
         />
       ))}
     </div>

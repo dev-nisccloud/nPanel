@@ -91,7 +91,7 @@ const getStatusBadge = (status: string) => {
 
 export function DomainResultCard({ result, isDomainInCart, onAddToCart, onRemoveFromCart }: DomainResultCardProps) {
   const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
-  const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: result.status === "free" });
+  const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
   const isInCart = isDomainInCart(result.domain);
 
   const handleCartAction = (e?: React.MouseEvent) => {

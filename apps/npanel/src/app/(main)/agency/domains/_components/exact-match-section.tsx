@@ -105,7 +105,7 @@ export function ExactMatchSection({
 	const pricingHook = useDomainPricing(currencyContext);
 	const [openProviderResult, setOpenProviderResult] = React.useState<DomainSearchResult | null>(null);
 	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
-	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: !!parsed });
+	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
 
 	const openProviderRaw = openProviderQuery.data?.success && openProviderQuery.data?.data?.results
 		? (openProviderQuery.data.data.results as Array<{ domain: string; status: string; reason?: string; price?: DomainSearchResult["price"] }>)[0]

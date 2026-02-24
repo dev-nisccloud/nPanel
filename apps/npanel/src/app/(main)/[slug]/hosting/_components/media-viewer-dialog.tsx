@@ -17,6 +17,7 @@ import { trpc } from "@/utils/trpc";
 import { FileManagerItem } from "./file-manager-schema";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 
+// Max file size for preview (100MB) - larger files show "too large" message
 const MAX_PREVIEW_BYTES = 100 * 1024 * 1024;
 
 const IMAGE_EXTENSIONS = [
@@ -107,7 +108,7 @@ export function MediaViewerDialog({
   };
 
   const downloadFileMutation = trpc.plesk.ftp.downloadFile.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       try {
         const blob = bufferToBlob(result.data as unknown as { data?: number[]; type?: string });
         const url = window.URL.createObjectURL(blob);
@@ -122,10 +123,13 @@ export function MediaViewerDialog({
     },
   });
 
+  // Revoke previous object URL when dialog or file changes
   React.useEffect(() => {
     if (!open || !file) {
       setObjectUrl((prev) => {
-        if (prev) window.URL.revokeObjectURL(prev);
+        if (prev) {
+          window.URL.revokeObjectURL(prev);
+        }
         return null;
       });
       return;
@@ -144,6 +148,7 @@ export function MediaViewerDialog({
     });
   }, [open, file?.path]);
 
+  // Cleanup object URL on unmount
   React.useEffect(() => {
     return () => {
       setObjectUrl((prev) => {

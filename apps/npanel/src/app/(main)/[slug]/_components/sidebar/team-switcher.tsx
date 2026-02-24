@@ -38,10 +38,16 @@ export function TeamSwitcher() {
   // Active team is determined by URL slug (no state needed!)
   const activeTeam = teams?.find((team) => team.slug === currentSlug);
 
+  const updateLastAccessed = trpc.teams.updateLastAccessedTeam.useMutation({
+    onError: () => {
+      // Non-blocking: layout's verifyTeamAccess will update on next load if this fails
+    },
+  });
+
   const handleTeamSwitch = (teamId: string, teamSlug: string) => {
     startSwitchTeam();
+    updateLastAccessed.mutate({ teamId });
     const target = `/${teamSlug}/dashboard` as never;
-    // Defer navigation so the overlay paints first (toast showed immediately; overlay needs a tick)
     setTimeout(() => {
       router.push(target);
       router.refresh();

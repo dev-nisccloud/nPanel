@@ -43,10 +43,11 @@ interface AddDnsRecordSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   siteId: number;
+  domainName?: string;
   onSuccess?: () => void;
 }
 
-export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: AddDnsRecordSheetProps) {
+export function AddDnsRecordSheet({ open, onOpenChange, siteId, domainName, onSuccess }: AddDnsRecordSheetProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [selectedRecordType, setSelectedRecordType] = React.useState<string>("");
 
@@ -61,10 +62,10 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: Add
     },
     onError: (error) => {
       console.error("Error adding DNS record:", error);
-      
+
       // Handle different types of errors
       let errorMessage = "Please check your information and try again.";
-      
+
       if (error?.data?.code === "BAD_REQUEST") {
         errorMessage = error.message || "Invalid DNS record data.";
       } else if (error?.data?.code === "UNAUTHORIZED") {
@@ -76,7 +77,7 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: Add
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       toast.error("Failed to add DNS record", {
         description: errorMessage,
       });
@@ -118,7 +119,7 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: Add
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setIsSubmitting(true);
-    
+
     try {
       // Prepare the data for the API call
       const apiData = {
@@ -143,7 +144,7 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: Add
   const handleRecordTypeChange = (value: string) => {
     setSelectedRecordType(value);
     form.setValue("recordType", value as any);
-    
+
     // Reset optional fields when record type changes
     form.setValue("priority", undefined);
     form.setValue("weight", undefined);
@@ -203,139 +204,94 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: Add
           <div className="px-1 pb-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Basic Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Basic Information</CardTitle>
-                  <CardDescription>Configure the DNS record details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="host"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Host</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="www, mail, @, etc." 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="recordType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Record Type</FormLabel>
-                        <Select onValueChange={handleRecordTypeChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select record type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="A">A (IPv4 Address)</SelectItem>
-                            <SelectItem value="AAAA">AAAA (IPv6 Address)</SelectItem>
-                            <SelectItem value="CNAME">CNAME (Alias)</SelectItem>
-                            <SelectItem value="MX">MX (Mail Exchange)</SelectItem>
-                            <SelectItem value="TXT">TXT (Text)</SelectItem>
-                            <SelectItem value="NS">NS (Name Server)</SelectItem>
-                            <SelectItem value="SRV">SRV (Service)</SelectItem>
-                            <SelectItem value="PTR">PTR (Pointer)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {selectedRecordType && (
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        {getRecordTypeDescription(selectedRecordType)}
-                      </p>
-                    </div>
-                  )}
-
-                  <FormField
-                    control={form.control}
-                    name="value"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Value</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder={
-                              selectedRecordType === "A" ? "192.168.1.1" :
-                              selectedRecordType === "AAAA" ? "2001:db8::1" :
-                              selectedRecordType === "CNAME" ? "example.com" :
-                              selectedRecordType === "MX" ? "mail.example.com" :
-                              selectedRecordType === "TXT" ? "v=spf1 include:_spf.google.com ~all" :
-                              selectedRecordType === "NS" ? "ns1.example.com" :
-                              selectedRecordType === "SRV" ? "example.com" :
-                              selectedRecordType === "PTR" ? "example.com" :
-                              "Enter value"
-                            }
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="ttl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>TTL (Time To Live)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            min="60"
-                            placeholder="3600"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 3600)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Additional Fields for MX and SRV Records */}
-              {(selectedRecordType === "MX" || selectedRecordType === "SRV") && (
+                {/* Basic Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Additional Settings</CardTitle>
-                    <CardDescription>
-                      {selectedRecordType === "MX" ? "Mail server priority" : "Service record details"}
-                    </CardDescription>
+                    <CardTitle className="text-lg">Basic Information</CardTitle>
+                    <CardDescription>Configure the DNS record details</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="priority"
+                      name="host"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Priority</FormLabel>
+                          <FormLabel>Host</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number"
-                              min="0"
-                              max="65535"
-                              placeholder={selectedRecordType === "MX" ? "10" : "0"}
+                            <div className="flex items-center gap-1">
+                              <Input
+                                placeholder="www, mail, @, etc."
+                                {...field}
+                                className="flex-1"
+                              />
+                              {domainName && (
+                                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                  .{domainName}
+                                </span>
+                              )}
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="recordType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Record Type</FormLabel>
+                          <Select onValueChange={handleRecordTypeChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select record type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="A">A (IPv4 Address)</SelectItem>
+                              <SelectItem value="AAAA">AAAA (IPv6 Address)</SelectItem>
+                              <SelectItem value="CNAME">CNAME (Alias)</SelectItem>
+                              <SelectItem value="MX">MX (Mail Exchange)</SelectItem>
+                              <SelectItem value="TXT">TXT (Text)</SelectItem>
+                              <SelectItem value="NS">NS (Name Server)</SelectItem>
+                              <SelectItem value="SRV">SRV (Service)</SelectItem>
+                              <SelectItem value="PTR">PTR (Pointer)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {selectedRecordType && (
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          {getRecordTypeDescription(selectedRecordType)}
+                        </p>
+                      </div>
+                    )}
+
+                    <FormField
+                      control={form.control}
+                      name="value"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Value</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder={
+                                selectedRecordType === "A" ? "192.168.1.1" :
+                                  selectedRecordType === "AAAA" ? "2001:db8::1" :
+                                    selectedRecordType === "CNAME" ? "example.com" :
+                                      selectedRecordType === "MX" ? "mail.example.com" :
+                                        selectedRecordType === "TXT" ? "v=spf1 include:_spf.google.com ~all" :
+                                          selectedRecordType === "NS" ? "ns1.example.com" :
+                                            selectedRecordType === "SRV" ? "example.com" :
+                                              selectedRecordType === "PTR" ? "example.com" :
+                                                "Enter value"
+                              }
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -343,78 +299,131 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, onSuccess }: Add
                       )}
                     />
 
-                    {selectedRecordType === "SRV" && (
-                      <>
-                        <FormField
-                          control={form.control}
-                          name="weight"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Weight</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number"
-                                  min="0"
-                                  max="65535"
-                                  placeholder="0"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="port"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Port</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number"
-                                  min="0"
-                                  max="65535"
-                                  placeholder="443"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </>
-                    )}
+                    <FormField
+                      control={form.control}
+                      name="ttl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>TTL (Time To Live)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="60"
+                              placeholder="3600"
+                              {...field}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 3600)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </CardContent>
                 </Card>
-              )}
 
-              <SheetFooter className="flex gap-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => onOpenChange(false)}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
-                      <span>Adding...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      <span>Add Record</span>
-                    </div>
-                  )}
-                </Button>
-              </SheetFooter>
+                {/* Additional Fields for MX and SRV Records */}
+                {(selectedRecordType === "MX" || selectedRecordType === "SRV") && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Additional Settings</CardTitle>
+                      <CardDescription>
+                        {selectedRecordType === "MX" ? "Mail server priority" : "Service record details"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="priority"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Priority</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="65535"
+                                placeholder={selectedRecordType === "MX" ? "10" : "0"}
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {selectedRecordType === "SRV" && (
+                        <>
+                          <FormField
+                            control={form.control}
+                            name="weight"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Weight</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max="65535"
+                                    placeholder="0"
+                                    {...field}
+                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="port"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Port</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max="65535"
+                                    placeholder="443"
+                                    {...field}
+                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                <SheetFooter className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
+                        <span>Adding...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        <span>Add Record</span>
+                      </div>
+                    )}
+                  </Button>
+                </SheetFooter>
               </form>
             </Form>
           </div>

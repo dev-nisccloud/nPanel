@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { CONTACT_TEL_HREF } from "@/lib/contact"
 import { Check } from "lucide-react"
 import NumberFlow from "@number-flow/react"
 import { ArrowRight } from "lucide-react"
@@ -26,13 +27,23 @@ export interface PricingPlan {
     yearly: number
   }
   popular?: boolean
-  // Map of feature name to value
+  recommended?: boolean
+  // Map of feature name to value (legacy, when productFeatures not used)
   features: Record<string, PlanFeatureValue>
+  // Per-row values from product (when productFeatures is used): exact values, no number conversion
+  featureValues?: Array<{ available: boolean; valueOverride: string | null }>
+}
+
+export interface ProductFeatureRow {
+  key: string
+  label: string
 }
 
 export interface PricingTableProps
   extends React.HTMLAttributes<HTMLDivElement> {
   plans: PricingPlan[]
+  /** When set, feature rows come from product; cells use plan.featureValues (exact value or tick) */
+  productFeatures?: ProductFeatureRow[]
   onPlanSelect?: (plan: PricingPlan & { selectedBillingCycle: "MONTHLY" | "YEARLY"; selectedPrice: number }) => void
   onPlanCardClick?: (plan: PricingPlan) => void
   defaultPlan?: PlanLevel
@@ -41,6 +52,8 @@ export interface PricingTableProps
   buttonClassName?: string
   currency?: string
   locale?: string
+  /** When set, "Contact us" (price 0) uses this tel: link instead of onPlanSelect. Defaults to company number. */
+  contactTelHref?: string
 }
 
 /**
@@ -135,6 +148,7 @@ function extractAllFeatures(plans: PricingPlan[]): Array<{
 
 export function PricingTable({
   plans,
+  productFeatures,
   onPlanSelect,
   onPlanCardClick,
   defaultPlan,
@@ -144,6 +158,7 @@ export function PricingTable({
   buttonClassName,
   currency = "KES",
   locale = "en-KE",
+  contactTelHref = CONTACT_TEL_HREF,
   ...props
 }: PricingTableProps) {
   const [isYearly, setIsYearly] = React.useState(defaultInterval === "yearly")
@@ -152,12 +167,13 @@ export function PricingTable({
   )
 
   const handlePlanCardClick = (plan: PricingPlan) => {
-    // Only change the selected plan visually, don't trigger buy now
     setSelectedPlan(plan.level)
   }
 
-  // Extract all unique features
-  const allFeatures = extractAllFeatures(plans)
+  const useProductFeatures = productFeatures != null && productFeatures.length > 0
+  const allFeatures = useProductFeatures
+    ? productFeatures.map((f) => ({ name: f.label, isNumeric: false, unit: undefined as string | undefined }))
+    : extractAllFeatures(plans)
   const selectedPlanData = plans.find((p) => p.level === selectedPlan)
 
   return (
@@ -204,28 +220,51 @@ export function PricingTable({
             </button>
           </div>
 
-          {selectedPlanData && onPlanSelect && (
-            <Button
-              size="lg"
-              className={cn(
-                "w-full sm:w-auto gap-2 rounded-xl font-semibold tracking-tight",
-                "shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0",
-                "transition-all duration-200 border-0",
-                buttonClassName
-              )}
-              onClick={() => {
-                const selectedBillingCycle = isYearly ? "YEARLY" : "MONTHLY";
-                const selectedPrice = isYearly ? selectedPlanData.price.yearly : selectedPlanData.price.monthly;
-                onPlanSelect({
-                  ...selectedPlanData,
-                  selectedBillingCycle,
-                  selectedPrice,
-                });
-              }}
-            >
-              Get started with {selectedPlanData.name}
-              <ArrowRight className="w-4 h-4 opacity-90" />
-            </Button>
+          {selectedPlanData && (onPlanSelect || contactTelHref) && (
+            (() => {
+              const displayPrice = isYearly ? selectedPlanData.price.yearly : selectedPlanData.price.monthly;
+              const isContactUs = displayPrice === 0;
+              return isContactUs ? (
+                <Button
+                  size="lg"
+                  className={cn(
+                    "w-full sm:w-auto gap-2 rounded-xl font-semibold tracking-tight",
+                    "shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0",
+                    "transition-all duration-200 border-0",
+                    buttonClassName
+                  )}
+                  asChild
+                >
+                  <a href={contactTelHref}>
+                    Contact us
+                    <ArrowRight className="w-4 h-4 opacity-90" />
+                  </a>
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  className={cn(
+                    "w-full sm:w-auto gap-2 rounded-xl font-semibold tracking-tight",
+                    "shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0",
+                    "transition-all duration-200 border-0",
+                    buttonClassName
+                  )}
+                  onClick={() => {
+                    if (!onPlanSelect) return;
+                    const selectedBillingCycle = isYearly ? "YEARLY" : "MONTHLY";
+                    const selectedPrice = displayPrice;
+                    onPlanSelect({
+                      ...selectedPlanData,
+                      selectedBillingCycle,
+                      selectedPrice,
+                    });
+                  }}
+                >
+                  Get started with {selectedPlanData.name}
+                  <ArrowRight className="w-4 h-4 opacity-90" />
+                </Button>
+              );
+            })()
           )}
         </div>
 
@@ -278,28 +317,49 @@ export function PricingTable({
                   <span className="text-sm font-semibold tracking-tight text-foreground uppercase">
                     {plan.name}
                   </span>
-                  {plan.popular && !isSelected && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full shrink-0">
-                      Popular
+                  {(plan.popular || plan.recommended) && !isSelected && (
+                    <span className="flex flex-wrap gap-1 justify-end shrink-0">
+                      {plan.popular && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full">
+                          Popular
+                        </span>
+                      )}
+                      {plan.recommended && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-1 rounded-full border border-emerald-500/20">
+                          Recommended
+                        </span>
+                      )}
                     </span>
                   )}
                 </div>
                 <div className="flex items-baseline gap-1.5">
-                  <NumberFlow
-                    format={{
-                      style: "currency",
-                      currency: currency,
-                      trailingZeroDisplay: "stripIfInteger",
-                    }}
-                    value={isYearly ? plan.price.yearly : plan.price.monthly}
-                    className="text-2xl sm:text-3xl font-bold tracking-tight"
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    /{isYearly ? "year" : "month"}
-                  </span>
+                  {(isYearly ? plan.price.yearly : plan.price.monthly) === 0 ? (
+                    <span className="text-2xl sm:text-3xl font-bold tracking-tight">
+                      Contact us
+                    </span>
+                  ) : (
+                    <>
+                      <NumberFlow
+                        format={{
+                          style: "currency",
+                          currency: currency,
+                          trailingZeroDisplay: "stripIfInteger",
+                        }}
+                        value={isYearly ? plan.price.yearly : plan.price.monthly}
+                        className="text-2xl sm:text-3xl font-bold tracking-tight"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        /{isYearly ? "year" : "month"}
+                      </span>
+                    </>
+                  )}
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground">
-                  {isSelected ? "Click Get started above to continue" : "Click to select this plan"}
+                  {isSelected
+                    ? (isYearly ? plan.price.yearly : plan.price.monthly) === 0
+                      ? "Click Contact us above to continue"
+                      : "Click Get started above to continue"
+                    : "Click to select this plan"}
                 </p>
               </button>
             );
@@ -328,67 +388,98 @@ export function PricingTable({
                   ))}
                 </div>
               </div>
-              {allFeatures.map((feature, idx) => (
-                <div
-                  key={feature.name}
-                  className={cn(
-                    "flex items-center px-4 sm:px-5 py-3.5 transition-colors border-b border-border/50 last:border-b-0",
-                    idx % 2 === 0 ? "bg-background/50" : "bg-muted/20",
-                    selectedPlanData &&
+              {allFeatures.map((feature, idx) => {
+                const cellFromProduct = useProductFeatures && productFeatures != null
+                const selectedHighlight = cellFromProduct
+                  ? selectedPlanData?.featureValues?.[idx]?.available
+                  : selectedPlanData &&
                       selectedPlanData.features[feature.name]?.value !== null &&
-                      selectedPlanData.features[feature.name]?.value !== false &&
-                      "bg-primary/[0.06]"
-                  )}
-                >
-                  <div className="w-48 sm:w-64 flex-shrink-0 text-sm text-foreground/90">
-                    {feature.name}
-                  </div>
-                  <div className="flex items-center gap-4 sm:gap-6 text-sm flex-1">
-                    {plans.map((plan) => {
-                      const featureValue = plan.features[feature.name]
-                      const hasFeature =
-                        featureValue &&
-                        featureValue.value !== null &&
-                        featureValue.value !== false
+                      selectedPlanData.features[feature.name]?.value !== false
 
-                      return (
-                        <div
-                          key={plan.level}
-                          className={cn(
-                            "flex-1 min-w-[100px] flex justify-center",
-                            plan.level === selectedPlan && "font-medium text-foreground"
-                          )}
-                        >
-                          {hasFeature && featureValue ? (
-                            feature.isNumeric ? (
-                              <span className="text-foreground">
-                                {(() => {
-                                  const numValue = typeof featureValue.value === "number"
-                                    ? featureValue.value
-                                    : (typeof featureValue.value === "string"
-                                        ? parseFloat(featureValue.value)
-                                        : null)
+                return (
+                  <div
+                    key={feature.name}
+                    className={cn(
+                      "flex items-center px-4 sm:px-5 py-3.5 transition-colors border-b border-border/50 last:border-b-0",
+                      idx % 2 === 0 ? "bg-background/50" : "bg-muted/20",
+                      selectedHighlight && "bg-primary/[0.06]"
+                    )}
+                  >
+                    <div className="w-48 sm:w-64 flex-shrink-0 text-sm text-foreground/90">
+                      {feature.name}
+                    </div>
+                    <div className="flex items-center gap-4 sm:gap-6 text-sm flex-1">
+                      {plans.map((plan) => {
+                        if (cellFromProduct && plan.featureValues) {
+                          const cell = plan.featureValues[idx]
+                          const available = cell?.available ?? false
+                          const valueOverride = cell?.valueOverride ?? null
+                          return (
+                            <div
+                              key={plan.level}
+                              className={cn(
+                                "flex-1 min-w-[100px] flex justify-center",
+                                plan.level === selectedPlan && "font-medium text-foreground"
+                              )}
+                            >
+                              {!available ? (
+                                <span className="text-muted-foreground/70">—</span>
+                              ) : valueOverride != null && valueOverride !== "" ? (
+                                <span className="text-foreground">{valueOverride}</span>
+                              ) : (
+                                <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </span>
+                              )}
+                            </div>
+                          )
+                        }
 
-                                  if (numValue !== null && !isNaN(numValue)) {
-                                    return `${numValue}${feature.unit ? ` ${feature.unit}` : ""}`
-                                  }
-                                  return "-"
-                                })()}
-                              </span>
+                        const featureValue = plan.features[feature.name]
+                        const hasFeature =
+                          featureValue &&
+                          featureValue.value !== null &&
+                          featureValue.value !== false
+
+                        return (
+                          <div
+                            key={plan.level}
+                            className={cn(
+                              "flex-1 min-w-[100px] flex justify-center",
+                              plan.level === selectedPlan && "font-medium text-foreground"
+                            )}
+                          >
+                            {hasFeature && featureValue ? (
+                              feature.isNumeric ? (
+                                <span className="text-foreground">
+                                  {(() => {
+                                    const numValue = typeof featureValue.value === "number"
+                                      ? featureValue.value
+                                      : (typeof featureValue.value === "string"
+                                          ? parseFloat(featureValue.value)
+                                          : null)
+
+                                    if (numValue !== null && !isNaN(numValue)) {
+                                      return `${numValue}${feature.unit ? ` ${feature.unit}` : ""}`
+                                    }
+                                    return "-"
+                                  })()}
+                                </span>
+                              ) : (
+                                <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </span>
+                              )
                             ) : (
-                              <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
-                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                              </span>
-                            )
-                          ) : (
-                            <span className="text-muted-foreground/70">—</span>
-                          )}
-                        </div>
-                      )
-                    })}
+                              <span className="text-muted-foreground/70">—</span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>

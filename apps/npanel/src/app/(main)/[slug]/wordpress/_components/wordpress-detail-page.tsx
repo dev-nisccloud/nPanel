@@ -1,21 +1,52 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, LayoutDashboard, ChevronRight, Lock, Code, FileText, Settings } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { ArrowLeft, MoreVertical, Unlink, Edit, LayoutDashboard, ChevronRight, Lock, Code, FileText, Settings } from "lucide-react";
 import Link from "next/link";
+import { z } from "zod";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { trpc } from "@/utils/trpc";
 
-import { useParams, useSearchParams } from "next/navigation";
+import { PluginDataTable } from "./plugin-data-table";
+import { ThemeDataTable } from "./theme-data-table";
 import { WordPressOverview } from "./wordpress-overview";
 import { WordPressSiteCredentials } from "./wordpress-site-credentials";
 import { WordPressPlugins } from "./wordpress-plugins";
 import { WordPressThemes } from "./wordpress-themes";
 import { WordPressTools } from "./wordpress-tools";
+import { wordpressInstallationSchema } from "./schema";
 import { useWordPressDetailBatched } from "./use-wordpress-detail-batched";
+import { LinkToTeamDialog } from "./link-to-team-dialog";
+import pluginData from "./plugin-data.json";
+import themeData from "./theme-data.json";
 
 interface WordPressDetailPageProps {
   installationId: string;
@@ -49,6 +80,7 @@ function WordPressDetailSkeleton() {
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
         </div>
         <Skeleton className="h-64 w-full" />
       </div>
@@ -56,13 +88,13 @@ function WordPressDetailSkeleton() {
   );
 }
 
-// Error component
-function WordPressDetailError({ error, onRetry, backHref }: { error: Error; onRetry: () => void; backHref: string }) {
+// Error component (customer: back to hosting list)
+function WordPressDetailError({ error, onRetry, teamSlug }: { error: Error; onRetry: () => void; teamSlug: string }) {
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href={backHref}>
+          <Link href={`/${teamSlug}/hosting`}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
@@ -99,10 +131,10 @@ function WordPressDetailError({ error, onRetry, backHref }: { error: Error; onRe
           <Button onClick={onRetry} variant="outline">
             Try Again
           </Button>
-          <Link href={backHref}>
+          <Link href={`/${teamSlug}/hosting`}>
             <Button variant="ghost">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to WordPress
+              Back to Hosting
             </Button>
           </Link>
         </div>
@@ -112,17 +144,41 @@ function WordPressDetailError({ error, onRetry, backHref }: { error: Error; onRe
 }
 
 export function WordPressDetailPage({ installationId }: WordPressDetailPageProps) {
-  const params = useParams();
-  const slug = (params?.slug as string) ?? "";
-  const basePath = slug ? `/${slug}` : "/agency";
-  const searchParams = useSearchParams();
-  const fromHosting = searchParams.get("fromHosting");
-  const backHref = fromHosting && slug ? `/${slug}/hosting/${fromHosting}` : `${basePath}/wordpress`;
+  const pathname = usePathname();
+  const teamSlug = pathname.split("/")[1] ?? "";
+  const { data: wpData, subscription: subscriptionData, isLoading, isError, error, refetch } = useWordPressDetailBatched(installationId);
+  const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
+  const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
 
   const [activeTab, setActiveTab] = React.useState("overview");
 
-  // Use batched endpoint - fetches both WordPress installation and subscription link in one request
-  const { data: wpData, isLoading, isError, error, refetch } = useWordPressDetailBatched(installationId);
+  // Get installation ID as number from wpData or fallback to installationId prop
+  const wpInstallationId = wpData?.id ? Number(wpData.id) : Number(installationId);
+
+  const isLinkedToTeam = !!subscriptionData?.teamId;
+
+  const utils = trpc.useUtils();
+
+  // Unlink mutation
+  const unlinkMutation = trpc.wordpressSubscriptions.unlinkFromTeam.useMutation({
+    onSuccess: () => {
+      toast.success("WordPress instance unlinked from team successfully");
+      setIsUnlinkDialogOpen(false);
+      // Invalidate batched query to refresh data
+      utils.wordpressSubscriptions.getDetailWithSubscription.invalidate({ installationId: wpInstallationId });
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to unlink WordPress instance from team");
+    },
+  });
+
+  const handleUnlink = () => {
+    if (subscriptionData?.id) {
+      unlinkMutation.mutate({ subscriptionId: subscriptionData.id });
+    }
+  };
 
   // Show loading state
   if (isLoading) {
@@ -131,7 +187,7 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
 
   // Show error state - check for error or missing data
   if (isError || !wpData || !wpData.id) {
-    return <WordPressDetailError error={error as Error} onRetry={() => refetch()} backHref={backHref} />;
+    return <WordPressDetailError error={error as Error} onRetry={() => refetch()} teamSlug={teamSlug} />;
   }
 
   const getStatusBadge = () => {
@@ -157,118 +213,217 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href={backHref}>
+            <Link href={`/${teamSlug}/hosting`}>
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">
+              <h1 className="text-base font-semibold tracking-tight">
                 {wpData.displayTitle || wpData.title || `Installation ${wpData.id}`}
               </h1>
-              <p className="text-muted-foreground">WordPress installation details</p>
+              <p className="text-xs text-muted-foreground">WordPress installation details</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {getStatusBadge()}
+            <DropdownMenu open={isActionMenuOpen} onOpenChange={setIsActionMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setIsActionMenuOpen(false);
+                    setTimeout(() => setIsLinkToTeamOpen(true), 0);
+                  }}
+                  disabled={isLinkedToTeam}
+                >
+                  Link to Team
+                </DropdownMenuItem>
+                {isLinkedToTeam && (
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setIsActionMenuOpen(false);
+                      setTimeout(() => setIsUnlinkDialogOpen(true), 0);
+                    }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Unlink className="mr-2 h-4 w-4" />
+                    Unlink from Team
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                {/* Commented out menu items - to be restored later */}
+                {/* <DropdownMenuItem>View Details</DropdownMenuItem> */}
+                {/* <DropdownMenuItem>Edit Installation</DropdownMenuItem> */}
+                {/* <DropdownMenuItem>Update WordPress</DropdownMenuItem> */}
+                {/* <DropdownMenuSeparator /> */}
+                {/* <DropdownMenuSub> */}
+                {/*   <DropdownMenuSubTrigger>Manage</DropdownMenuSubTrigger> */}
+                {/*   <DropdownMenuSubContent> */}
+                {/*     <DropdownMenuItem>Manage Plugins</DropdownMenuItem> */}
+                {/*     <DropdownMenuItem>Manage Themes</DropdownMenuItem> */}
+                {/*     <DropdownMenuItem>Backup</DropdownMenuItem> */}
+                {/*   </DropdownMenuSubContent> */}
+                {/* </DropdownMenuSub> */}
+                {/* <DropdownMenuSeparator /> */}
+                {/* <DropdownMenuItem>Clone</DropdownMenuItem> */}
+                {/* <DropdownMenuItem variant="destructive">Delete Installation</DropdownMenuItem> */}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="mt-6">
+        <div className="mt-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-5 h-auto p-0 bg-transparent">
-              <TabsTrigger
-                value="overview"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Overview</span>
-                  <span className="text-xs text-muted-foreground">Details</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="site-credentials"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Lock className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Site Credentials</span>
-                  <span className="text-xs text-muted-foreground">Access</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="plugins"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Code className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Plugins</span>
-                  <span className="text-xs text-muted-foreground">Extensions</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="themes"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <FileText className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Themes</span>
-                  <span className="text-xs text-muted-foreground">Designs</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="tools"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Settings className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">WP Tools</span>
-                  <span className="text-xs text-muted-foreground">Settings</span>
-                </div>
-              </TabsTrigger>
-            </TabsList>
+            <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
+              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 bg-muted/50 rounded-lg border border-border/50">
+                <TabsTrigger
+                  value="overview"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">Overview</span>
+                    <span className="text-xs text-muted-foreground">Details</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="site-credentials"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Lock className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">Site Credentials</span>
+                    <span className="text-xs text-muted-foreground">Access</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="plugins"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Code className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">Plugins</span>
+                    <span className="text-xs text-muted-foreground">Extensions</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="themes"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <FileText className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">Themes</span>
+                    <span className="text-xs text-muted-foreground">Designs</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="tools"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Settings className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">WP Tools</span>
+                    <span className="text-xs text-muted-foreground">Settings</span>
+                  </div>
+                </TabsTrigger>
+              </TabsList>
+              <ScrollBar orientation="horizontal" className="flex" />
+            </ScrollArea>
 
-            <TabsContent value="overview" className="mt-6">
+            <TabsContent value="overview" className="mt-10">
               <WordPressOverview wpData={wpData} onNavigateToTab={setActiveTab} />
             </TabsContent>
 
-            <TabsContent value="site-credentials" className="mt-6">
+            <TabsContent value="site-credentials" className="mt-10">
               <WordPressSiteCredentials installationId={String(wpData.id)} />
             </TabsContent>
 
-            <TabsContent value="plugins" className="mt-6">
+            <TabsContent value="plugins" className="mt-10">
               <WordPressPlugins installationId={String(wpData.id)} />
             </TabsContent>
 
-            <TabsContent value="themes" className="mt-6">
+            <TabsContent value="themes" className="mt-10">
               <WordPressThemes installationId={String(wpData.id)} />
             </TabsContent>
 
-            <TabsContent value="tools" className="mt-6">
+            <TabsContent value="tools" className="mt-10">
               <WordPressTools installationId={String(wpData.id)} />
             </TabsContent>
           </Tabs>
         </div>
       </div>
+
+      {/* Link to Team Dialog */}
+      <LinkToTeamDialog
+        open={isLinkToTeamOpen}
+        onOpenChange={setIsLinkToTeamOpen}
+        installationId={wpInstallationId}
+        onSuccess={() => {
+          // Invalidate batched query to refresh data
+          utils.wordpressSubscriptions.getDetailWithSubscription.invalidate({ installationId: wpInstallationId });
+          refetch();
+        }}
+      />
+
+      {/* Unlink Confirmation Dialog */}
+      <AlertDialog open={isUnlinkDialogOpen} onOpenChange={setIsUnlinkDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink from Team</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to unlink this WordPress instance from its team? This will remove the association and delete the subscription record so it can be linked to another team later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={unlinkMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUnlink}
+              disabled={unlinkMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {unlinkMutation.isPending ? (
+                <>
+                  <Spinner size={16} className="mr-2" />
+                  Unlinking...
+                </>
+              ) : (
+                "Unlink"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -306,91 +306,81 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
         <TableBody>
           {filteredData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="pl-6 text-center py-8 text-muted-foreground">
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                 No email addresses found
               </TableCell>
             </TableRow>
           ) : (
-            filteredData.map((email) => {
-              const formatBytes = (bytes: number) => {
-                if (bytes === 0) return "0 B";
-                const k = 1024;
-                const sizes = ["B", "KB", "MB", "GB", "TB"];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-              };
-              const usage = email.mailbox?.usage ?? 0;
-              const quota = email.mailbox?.quota ?? -1;
-              const usageText = formatBytes(usage);
-              const quotaText = quota === -1 ? "Unlimited" : formatBytes(quota);
-
-              return (
-                <TableRow
-                  key={email.id}
-                  className="cursor-pointer"
-                  onClick={() => handleEdit(email.id)}
-                >
-                  <TableCell className="pl-6">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">
-                        {email.name || "Unknown Email"}@{domainName || "example.com"}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {email.description || "—"}
+            filteredData.map((email) => (
+              <TableRow
+                key={email.id}
+                className="cursor-pointer"
+                onClick={() => handleEdit(email.id)}
+              >
+                <TableCell className="pl-6">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {email.name || "Unknown Email"}@{domainName || "example.com"}
                     </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={email.mailbox?.enabled ? "outline" : "destructive"}
-                      className={email.mailbox?.enabled ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
-                    >
-                      {email.mailbox?.enabled ? "Enabled" : "Disabled"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div className="font-medium">{usageText}</div>
-                      <div className="text-muted-foreground">of {quotaText}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
-                                <EllipsisVertical className="h-4 w-4" />
-                                <span className="sr-only">Open menu</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-32">
-                              <DropdownMenuItem onClick={() => handleEdit(email.id)}>
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => handleDelete(email.id)}
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Actions</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                </TableRow>
-              );
-            })
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {email.description || "—"}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={email.mailbox?.enabled ? "default" : "secondary"} className={email.mailbox?.enabled ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}>
+                    {email.mailbox?.enabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    {email.mailbox?.usage
+                      ? `${Math.round((email.mailbox.usage / 1024 / 1024) * 100) / 100} MB`
+                      : "0 MB"}
+                    {email.mailbox?.quota && email.mailbox.quota !== -1 && (
+                      <span className="text-muted-foreground">
+                        {" / "}
+                        {Math.round((email.mailbox.quota / 1024 / 1024) * 100) / 100} MB
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
+                              <EllipsisVertical className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem onClick={() => handleEdit(email.id)}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => handleDelete(email.id)}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Actions</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
+              </TableRow>
+            ))
           )}
         </TableBody>
       </Table>
@@ -487,7 +477,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
       {viewMode === "card" ? <CardView /> : <TableView />}
 
       {/* Table implementation (commented out for performance) */}
-      {/* <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+      {/* <div className="overflow-hidden rounded-lg border">
         <DataTableNew table={table} columns={columns} />
       </div>
       

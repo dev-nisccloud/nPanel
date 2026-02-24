@@ -130,7 +130,7 @@ function parseFeatures(features: (string | number)[]): Record<string, PlanFeatur
   return featureMap
 }
 
-interface HostingPlan {
+interface HostingPlanLegacy {
   id: string
   name: string
   niscPrice: string | null
@@ -139,8 +139,34 @@ interface HostingPlan {
   isPopular?: boolean
 }
 
+interface ProductFeatureRow {
+  key: string
+  label: string
+}
+
+interface HostingPlanWithFeatureValues {
+  id: string
+  name: string
+  niscPrice: string | null
+  niscCurrency: string
+  billingCycle: string
+  isPopular: boolean
+  isRecommended: boolean
+  productId: string
+  productName: string
+  featureValues: Array<{ available: boolean; valueOverride: string | null }>
+}
+
+type HostingPlan = HostingPlanLegacy | HostingPlanWithFeatureValues
+
+function isPlanWithFeatureValues(plan: HostingPlan): plan is HostingPlanWithFeatureValues {
+  return "featureValues" in plan && Array.isArray((plan as HostingPlanWithFeatureValues).featureValues)
+}
+
 interface PricingTableWrapperProps {
+  /** Legacy: array of plans with features string[]. Or pass productFeatures + plans with featureValues. */
   plans: HostingPlan[]
+  productFeatures?: ProductFeatureRow[]
   isLoading?: boolean
   onPlanSelect?: (plan: HostingPlan) => void
   currency?: string
@@ -150,6 +176,7 @@ interface PricingTableWrapperProps {
 
 export function PricingTableWrapper({
   plans,
+  productFeatures,
   isLoading = false,
   onPlanSelect,
   currency = "KES",
@@ -172,57 +199,68 @@ export function PricingTableWrapper({
     )
   }
 
-  // Transform plans to PricingPlan format
-  const pricingPlans: PricingPlan[] = plans
-    .map((plan, index) => {
-      const { monthlyPrice, yearlyPrice } = derivePricing(
-        plan.niscPrice,
-        plan.billingCycle
-      )
+  const useProductFeatures = productFeatures != null && productFeatures.length > 0
 
+  const pricingPlans: PricingPlan[] = plans.map((plan) => {
+    const niscPrice = plan.niscPrice
+    const billingCycle = plan.billingCycle
+    const { monthlyPrice, yearlyPrice } = derivePricing(niscPrice, billingCycle)
+
+    const base = {
+      id: plan.id,
+      name: plan.name.toUpperCase(),
+      level: plan.id,
+      price: { monthly: monthlyPrice, yearly: yearlyPrice },
+      popular: plan.isPopular ?? false,
+      recommended: "isRecommended" in plan ? (plan as HostingPlanWithFeatureValues).isRecommended : false,
+    }
+
+    if (useProductFeatures && isPlanWithFeatureValues(plan)) {
       return {
-        id: plan.id,
-        name: plan.name.toUpperCase(),
-        level: plan.id, // Use plan ID as level
-        price: {
-          monthly: monthlyPrice,
-          yearly: yearlyPrice,
-        },
-        popular: plan.isPopular || false,
-        features: parseFeatures(plan.features || []),
+        ...base,
+        features: {},
+        featureValues: plan.featureValues,
       }
-    })
-    // Sort by monthly price from lowest to highest
-    .sort((a, b) => a.price.monthly - b.price.monthly)
+    }
 
-  // Find the popular plan or first plan as default
+    return {
+      ...base,
+      features: parseFeatures((plan as HostingPlanLegacy).features || []),
+    }
+  })
+
+  // Sort by monthly price: lowest first, but zero-price plans last
+  pricingPlans.sort((a, b) => {
+    const am = a.price.monthly
+    const bm = b.price.monthly
+    if (am === 0 && bm === 0) return 0
+    if (am === 0) return 1
+    if (bm === 0) return -1
+    return am - bm
+  })
+
   const defaultPlan = pricingPlans.find((p) => p.popular)?.level || pricingPlans[0]?.level
 
   const handlePlanSelect = (selectedPlan: PricingPlan) => {
     const originalPlan = plans.find((p) => p.id === selectedPlan.level)
-    if (originalPlan) {
-      if (onPlanSelect) {
-        onPlanSelect(originalPlan)
-      }
-    }
+    if (originalPlan && onPlanSelect) onPlanSelect(originalPlan)
   }
 
   const handleBuyNowClick = (selectedPlan: PricingPlan & { selectedBillingCycle: "MONTHLY" | "YEARLY"; selectedPrice: number }) => {
     const originalPlan = plans.find((p) => p.id === selectedPlan.level)
     if (originalPlan && onBuyNow) {
-      // Pass the plan with the selected billing cycle and price as additional properties
       onBuyNow({
         ...originalPlan,
-        // Add selected billing cycle and price as additional properties
         selectedBillingCycle: selectedPlan.selectedBillingCycle,
         selectedPrice: selectedPlan.selectedPrice,
-      } as any)
+      } as HostingPlan & { selectedBillingCycle: "MONTHLY" | "YEARLY"; selectedPrice: number })
     }
   }
 
   return (
     <PricingTable
       plans={pricingPlans}
+      productFeatures={useProductFeatures ? productFeatures : undefined}
       onPlanSelect={onBuyNow ? handleBuyNowClick : handlePlanSelect}
       defaultPlan={defaultPlan}
       defaultInterval="monthly"

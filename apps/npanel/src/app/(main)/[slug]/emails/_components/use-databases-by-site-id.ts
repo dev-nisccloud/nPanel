@@ -52,9 +52,13 @@ export function useDatabasesBySiteId(siteId: number) {
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes
       retry: (failureCount, error: any) => {
+        // Don't retry on authentication errors
         if (error?.data?.code === "UNAUTHORIZED") return false;
+        // Don't retry on service unavailable errors
         if (error?.data?.code === "SERVICE_UNAVAILABLE") return false;
+        // Don't retry on not found errors
         if (error?.data?.code === "NOT_FOUND") return false;
+        // Retry up to 3 times for other errors
         return failureCount < 3;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -63,9 +67,12 @@ export function useDatabasesBySiteId(siteId: number) {
     }
   );
 
+  // Handle API errors
   useEffect(() => {
     if (error) {
       console.error("Databases fetch error:", error);
+      
+      // Show user-friendly error messages
       if (error?.data?.code === "UNAUTHORIZED") {
         toast.error("Authentication failed. Please check your Plesk credentials.");
       } else if (error?.data?.code === "SERVICE_UNAVAILABLE") {
@@ -80,12 +87,14 @@ export function useDatabasesBySiteId(siteId: number) {
     }
   }, [error]);
 
+  // Transform the data
   let transformedData: z.infer<typeof databaseSchema>[] = [];
   let transformationError: Error | null = null;
 
   if (pleskData) {
     const getDb = (pleskData as any)?.parsed?.packet?.database?.["get-db"];
     if (getDb == null) {
+      // Malformed or empty API response (e.g. {}); treat as no databases, no toast
       transformedData = [];
     } else {
       try {
@@ -95,6 +104,7 @@ export function useDatabasesBySiteId(siteId: number) {
         console.error("Data transformation error:", error);
         console.error("Raw API response:", pleskData);
         transformationError = error as Error;
+
         if (error instanceof z.ZodError) {
           console.error("Zod validation errors:", error.issues);
           toast.error(`Data validation failed: ${error.issues.length} field(s) have invalid data.`);

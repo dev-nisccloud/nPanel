@@ -37,19 +37,14 @@ export const hostingColumns: ColumnDef<z.infer<typeof hostingSubscriptionSchema>
   {
     accessorKey: "subscriptionName",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Subscription name" />,
-    cell: ({ row, table }) => {
-      // Extract team slug from pathname - columns are used in customer context
-      const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-      const teamSlug = pathname.split("/")[1] || '';
-      return (
-        <Link 
-          href={`/${teamSlug}/hosting/${row.original.id}`}
-          className="font-medium text-primary hover:underline"
-        >
-          {row.original.subscriptionName}
-        </Link>
-      );
-    },
+    cell: ({ row }) => (
+      <Link 
+        href={`/agency/hosting/${row.original.id}`}
+        className="font-medium text-primary hover:underline"
+      >
+        {row.original.subscriptionName}
+      </Link>
+    ),
   },
   {
     accessorKey: "status",

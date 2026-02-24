@@ -96,6 +96,7 @@ export function MaintenanceModeDialog({
             onOpenChange(false);
             utils.plesk.wpFeatures.getMaintenanceSettings.invalidate({ installationId });
             // Also invalidate the main installation query if it shows maintenance status
+            // Also invalidate the main installation query if it shows maintenance status
             utils.plesk.wordpress.getById.invalidate({ id: installationId });
         },
         onError: (error) => {

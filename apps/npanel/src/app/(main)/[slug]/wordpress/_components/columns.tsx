@@ -3,6 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { EllipsisVertical } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,9 +21,17 @@ import { DataTableColumnHeader } from "../../../../../components/data-table/data
 
 import { wordpressInstallationSchema } from "./schema";
 
-// Columns need basePath from hook - use getWordpressColumns() in components that render the table
-export function getWordpressColumns(basePath: string): ColumnDef<z.infer<typeof wordpressInstallationSchema>>[] {
-  return [
+function WordPressDetailLink({ id, children }: { id: number; children: React.ReactNode }) {
+  const pathname = usePathname();
+  const teamSlug = pathname.split("/")[1] ?? "";
+  return (
+    <Link href={`/${teamSlug}/wordpress/${id}`} className="font-medium text-primary hover:underline">
+      {children}
+    </Link>
+  );
+}
+
+export const wordpressColumns: ColumnDef<z.infer<typeof wordpressInstallationSchema>>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -49,14 +58,12 @@ export function getWordpressColumns(basePath: string): ColumnDef<z.infer<typeof 
   {
     accessorKey: "displayTitle",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Site" />,
-    cell: ({ row }) => (
-      <Link 
-        href={`/agency/wordpress/${row.original.id}`}
-        className="font-medium text-primary hover:underline"
-      >
-        {row.original.displayTitle}
-      </Link>
-    ),
+    cell: ({ row }) =>
+      row.original.id != null ? (
+        <WordPressDetailLink id={row.original.id}>{row.original.displayTitle}</WordPressDetailLink>
+      ) : (
+        <>{row.original.displayTitle}</>
+      ),
   },
   {
     accessorKey: "version",
@@ -82,16 +89,28 @@ export function getWordpressColumns(basePath: string): ColumnDef<z.infer<typeof 
     cell: ({ row }) => {
       const isAlive = row.original.status?.alive;
       const isInfected = row.original.status?.infected;
-      
+
       if (isInfected) {
-        return <Badge variant="destructive">Infected</Badge>;
+        return (
+          <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
+            Infected
+          </Badge>
+        );
       }
-      
+
       if (!isAlive) {
-        return <Badge variant="secondary">Offline</Badge>;
+        return (
+          <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
+            Offline
+          </Badge>
+        );
       }
-      
-      return <Badge variant="default">Online</Badge>;
+
+      return (
+        <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 px-2 py-0.5">
+          Online
+        </Badge>
+      );
     },
   },
   {
@@ -99,12 +118,20 @@ export function getWordpressColumns(basePath: string): ColumnDef<z.infer<typeof 
     header: ({ column }) => <DataTableColumnHeader column={column} title="Security" />,
     cell: ({ row }) => {
       const securityStatus = row.original.features?.security?.status;
-      
+
       if (securityStatus === "secureRecommended") {
-        return <Badge variant="default">Secure</Badge>;
+        return (
+          <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 px-2 py-0.5">
+            Secure
+          </Badge>
+        );
       }
-      
-      return <Badge variant="secondary">Needs Attention</Badge>;
+
+      return (
+        <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
+          Needs Attention
+        </Badge>
+      );
     },
   },
   {
@@ -133,7 +160,3 @@ export function getWordpressColumns(basePath: string): ColumnDef<z.infer<typeof 
     enableHiding: false,
   },
 ];
-}
-
-// Legacy export for backwards compatibility (uses /agency - only use in agency pages)
-export const wordpressColumns: ColumnDef<z.infer<typeof wordpressInstallationSchema>>[] = getWordpressColumns("/agency");

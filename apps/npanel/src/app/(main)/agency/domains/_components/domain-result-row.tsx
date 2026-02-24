@@ -57,7 +57,7 @@ export function DomainResultRow({
 	onRemoveFromCart,
 }: DomainResultRowProps) {
 	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
-	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: isAvailable });
+	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
 	const handleBuyNow = React.useCallback(() => {
 		if (domainsProductId) openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult });
 	}, [domainsProductId, openForProduct, displayResult]);

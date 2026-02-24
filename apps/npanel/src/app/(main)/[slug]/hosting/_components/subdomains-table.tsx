@@ -87,7 +87,7 @@ function SubdomainsTableSkeleton() {
                       <Skeleton className="h-8 w-8" />
                     </div>
                   </div>
-                  
+
                   {/* Card content skeleton */}
                   <div className="grid grid-cols-4 gap-4">
                     <div className="space-y-1">
@@ -116,7 +116,7 @@ function SubdomainsTableSkeleton() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Additional info skeleton */}
                   <div className="mt-4 pt-4 border-t space-y-2">
                     <div className="grid grid-cols-2 gap-4">
@@ -170,7 +170,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
   const [isAddSubdomainOpen, setIsAddSubdomainOpen] = React.useState(false);
   const [isViewSubdomainOpen, setIsViewSubdomainOpen] = React.useState(false);
   const [subdomainToView, setSubdomainToView] = React.useState<z.infer<typeof subdomainSchema> | null>(null);
-  
+
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [subdomainToDelete, setSubdomainToDelete] = React.useState<{
@@ -188,9 +188,9 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
     },
     onError: (error: any) => {
       console.error("Error deleting subdomain:", error);
-      
+
       let errorMessage = "Please try again.";
-      
+
       if (error?.data?.code === "BAD_REQUEST") {
         errorMessage = error.message || "Invalid subdomain data.";
       } else if (error?.data?.code === "UNAUTHORIZED") {
@@ -202,7 +202,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       toast.error("Failed to delete subdomain", {
         description: errorMessage,
       });
@@ -211,7 +211,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
 
   const filteredData = React.useMemo(() => {
     if (!subdomainsData) return [];
-    
+
     let filtered = subdomainsData;
 
     if (searchTerm.trim()) {
@@ -255,7 +255,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
 
   const confirmDelete = async () => {
     if (!subdomainToDelete) return;
-    
+
     try {
       await deleteSubdomain.mutateAsync({
         id: subdomainToDelete.id,
@@ -282,25 +282,25 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
         <TableBody>
           {filteredData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="pl-6 text-center py-8 text-muted-foreground">
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                 No subdomains found
               </TableCell>
             </TableRow>
           ) : (
             filteredData.map((subdomain) => {
               const phpHandler = subdomain.properties?.php_handler_id ?? "";
-              const phpVersion = phpHandler.includes("php82") ? "8.2" : 
-                               phpHandler.includes("php81") ? "8.1" : 
-                               phpHandler.includes("php80") ? "8.0" : 
-                               phpHandler.includes("php74") ? "7.4" : "Unknown";
-              
+              const phpVersion = phpHandler.includes("php82") ? "8.2" :
+                phpHandler.includes("php81") ? "8.1" :
+                  phpHandler.includes("php80") ? "8.0" :
+                    phpHandler.includes("php74") ? "7.4" : "Unknown";
+
               return (
-                <TableRow 
+                <TableRow
                   key={subdomain.id}
                   className="cursor-pointer"
                   onClick={() => handleView(subdomain)}
                 >
-                  <TableCell className="pl-6 font-medium">
+                  <TableCell className="font-medium pl-6">
                     {subdomain.name}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
@@ -312,7 +312,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={subdomain.properties?.ssl ? "default" : "secondary"}>
+                    <Badge variant={subdomain.properties?.ssl ? "default" : "secondary"} className={subdomain.properties?.ssl ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}>
                       {subdomain.properties?.ssl ? "Enabled" : "Disabled"}
                     </Badge>
                   </TableCell>
@@ -332,7 +332,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
                                 View
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 variant="destructive"
                                 onClick={() => handleDelete(subdomain.id)}
                               >
@@ -402,7 +402,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
             </SelectContent>
           </Select>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
           {/* View Mode Toggle */}
           <div className="flex items-center border rounded-md">
@@ -423,9 +423,9 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => setIsAddSubdomainOpen(true)}
             className="flex-shrink-0 min-w-0"
@@ -441,7 +441,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
       {viewMode === "card" ? <CardView /> : <TableView />}
 
       {/* Add Subdomain Sheet */}
-      <AddSubdomainSheet 
+      <AddSubdomainSheet
         open={isAddSubdomainOpen}
         onOpenChange={setIsAddSubdomainOpen}
         domainName={domainName}
@@ -476,7 +476,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               disabled={deleteSubdomain.isPending}
               onClick={() => {
                 setDeleteDialogOpen(false);

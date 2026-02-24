@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
 
 import { z } from "zod";
 
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Grid3X3, List } from "lucide-react";
 import {
   Table,
@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 // import { useDataTableInstance } from "@/hooks/use-data-table-instance";
 
 // Table imports (commented out for performance)
@@ -31,8 +32,8 @@ import Link from "next/link";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 
 import { HostingCardsList } from "./hosting-cards";
-import { useHostingSubscriptions } from "./use-hosting-subscriptions";
 import { HostingPricing } from "./hosting-pricing";
+import { useTeamHostingSubscriptions } from "./use-team-hosting-subscriptions";
 
 // Skeleton component for loading state
 function HostingTableSkeleton() {
@@ -50,21 +51,24 @@ function HostingTableSkeleton() {
         </div>
       </div>
       
-      {/* Cards grid skeleton */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="rounded-lg border p-4">
+      {/* Cards skeleton */}
+      <div className="grid gap-4 grid-cols-1">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="rounded-lg border p-6">
             {/* Card header skeleton */}
-            <div className="flex items-start justify-between mb-3">
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-6 w-16" />
+            <div className="flex items-start justify-between mb-4">
+              <Skeleton className="h-5 w-48" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-8 w-8" />
+              </div>
             </div>
             
             {/* Card content skeleton */}
-            <div className="space-y-3">
+            <div className="grid grid-cols-4 gap-4">
               <div className="space-y-1">
                 <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
               </div>
               <div className="space-y-1">
                 <Skeleton className="h-3 w-24" />
@@ -73,6 +77,27 @@ function HostingTableSkeleton() {
               <div className="space-y-1">
                 <Skeleton className="h-3 w-16" />
                 <Skeleton className="h-4 w-18" />
+              </div>
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            </div>
+            
+            {/* Description skeleton */}
+            <div className="mt-4 pt-4 border-t">
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
               </div>
             </div>
           </div>
@@ -115,8 +140,7 @@ function HostingTableError({ error, onRetry }: { error: Error; onRetry: () => vo
 export function HostingDataTable() {
   const pathname = usePathname();
   const teamSlug = pathname.split("/")[1];
-  
-  const { data, isLoading, isError, error, refetch, hasServiceSubscriptions, rawData } = useHostingSubscriptions();
+  const { data, isLoading, isError, error, refetch } = useTeamHostingSubscriptions(teamSlug);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
 
@@ -125,9 +149,9 @@ export function HostingDataTable() {
     if (!searchQuery.trim()) {
       return data;
     }
-    
+    const q = searchQuery.toLowerCase();
     return data.filter((subscription) =>
-      subscription.subscriptionName.toLowerCase().includes(searchQuery.toLowerCase())
+      (subscription.subscriptionName ?? "").toLowerCase().includes(q)
     );
   }, [data, searchQuery]);
 
@@ -139,24 +163,9 @@ export function HostingDataTable() {
   //   getRowId: (row) => row.id.toString() 
   // });
 
-  const handleViewDetails = (id: number) => {
-    // Navigate to details page using team slug
-    window.location.href = `/${teamSlug}/hosting/${id}`;
-  };
-
-  const handleEdit = (id: number) => {
-    // Open edit modal or navigate to edit page
-    // TODO: Implement edit functionality
-  };
-
-  const handleSuspend = (id: number) => {
-    // Handle suspension
-    // TODO: Implement suspend functionality
-  };
-
-  const handleCancel = (id: number) => {
-    // Handle cancellation
-    // TODO: Implement cancel functionality
+  const handleViewDetails = (subscription: { id: string; pleskSubscriptionId?: string | null }) => {
+    const detailId = subscription.pleskSubscriptionId ?? subscription.id;
+    window.location.href = `/${teamSlug}/hosting/${detailId}`;
   };
 
   // Show loading state
@@ -166,51 +175,12 @@ export function HostingDataTable() {
 
   // Show error state
   if (isError) {
-    return <HostingTableError error={error as Error} onRetry={() => refetch()} />;
+    return <HostingTableError error={error as unknown as Error} onRetry={() => refetch()} />;
   }
 
-  // Show pricing cards only if team has NO service subscriptions
-  // If team has service subscriptions but no Plesk data, still show empty state (not pricing)
-  if (!isLoading) {
-    // If we have a definitive answer that there are no service subscriptions, show pricing
-    if (hasServiceSubscriptions === false) {
-      return <HostingPricing />;
-    }
-
-    // If has service subscriptions but no data, show empty state with message
-    if (hasServiceSubscriptions === true && (!data || data.length === 0)) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="mb-4">
-            <svg
-              className="mx-auto h-12 w-12 text-muted-foreground"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-              />
-            </svg>
-          </div>
-          <h3 className="mb-2 text-lg font-semibold">No hosting subscriptions found</h3>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Your company has hosting subscriptions, but no matching Plesk subscriptions were found.
-            <br />
-            <span className="text-xs">This may happen if the subscription hasn't been provisioned yet or the Plesk filter ID doesn't match.</span>
-          </p>
-        </div>
-      );
-    }
-
-    // Fallback: if hasServiceSubscriptions is undefined but we're not loading, show pricing
-    // This shouldn't normally happen, but handle it gracefully
-    if (hasServiceSubscriptions === undefined) {
-      return <HostingPricing />;
-    }
+  // No subscriptions: show pricing (products-based) so the customer can choose a plan
+  if (data.length === 0) {
+    return <HostingPricing />;
   }
 
   const TableView = () => (
@@ -218,7 +188,7 @@ export function HostingDataTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Subscription Name</TableHead>
+            <TableHead className="pl-6">Subscription Name</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -232,18 +202,18 @@ export function HostingDataTable() {
           ) : (
             filteredData.map((subscription) => (
               <TableRow key={subscription.id}>
-                <TableCell>
-                  <Link 
-                    href={`/${teamSlug}/hosting/${subscription.id}`}
+                <TableCell className="pl-6">
+                  <Link
+                    href={`/${teamSlug}/hosting/${subscription.pleskSubscriptionId ?? subscription.id}`}
                     className="font-medium text-primary hover:underline"
                   >
                     {subscription.subscriptionName}
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <Badge 
+                  <Badge
                     variant={getStatusBadgeVariant(subscription.status)}
-                    className={subscription.status === 0 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
+                    className={String(subscription.status).toUpperCase() === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
                   >
                     {getStatusDisplayText(subscription.status)}
                   </Badge>
@@ -260,10 +230,10 @@ export function HostingDataTable() {
     <div className="p-4">
       <HostingCardsList
         data={filteredData}
-        onViewDetails={handleViewDetails}
-        onEdit={handleEdit}
-        onSuspend={handleSuspend}
-        onCancel={handleCancel}
+        onViewDetails={(sub) => {
+          const payload = typeof sub === "string" ? { id: sub } : typeof sub === "number" ? { id: String(sub) } : { id: String((sub as { id: string | number }).id), pleskSubscriptionId: (sub as { pleskSubscriptionId?: string | null }).pleskSubscriptionId };
+          handleViewDetails(payload);
+        }}
         cols={3}
       />
     </div>
@@ -288,8 +258,6 @@ export function HostingDataTable() {
             </Badge>
           )}
         </div>
-        
-        {/* View Mode Toggle */}
         <div className="flex items-center border rounded-md">
           <Button
             variant={viewMode === "card" ? "default" : "ghost"}
@@ -309,8 +277,7 @@ export function HostingDataTable() {
           </Button>
         </div>
       </div>
-      
-      {/* Content */}
+
       {viewMode === "card" ? <CardView /> : <TableView />}
     </div>
   );

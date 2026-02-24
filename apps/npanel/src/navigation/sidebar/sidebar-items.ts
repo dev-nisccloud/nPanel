@@ -105,7 +105,7 @@ export const sidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "Ad Campaigns",
+        title: "Media Buying",
         url: "/dashboard/ad-campaigns",
         icon: (props: any) => React.createElement(Icons.Campaigns, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
@@ -115,18 +115,24 @@ export const sidebarItems: NavGroup[] = [
         ],
       },
       {
+        title: "Email Marketing",
+        url: "/dashboard/email-marketing",
+        icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Campaigns", url: "/dashboard/email-marketing/campaigns", },
+          { title: "Domains", url: "/dashboard/email-marketing/domain-configuration", },
+          { title: "Email Builder", url: "/dashboard/email-marketing/email-builder", },
+        ],
+      },
+      {
         title: "SEO",
         url: "/dashboard/seo",
         icon: (props: any) => React.createElement(Icons.Seo, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
-        title: "Creatives",
+        title: "Creatives & Design",
         url: "/dashboard/creative-assets",
         icon: (props: any) => React.createElement(Icons.CreativeAssets, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Visual Creatives", url: "/dashboard/creative-assets", },
-          { title: "Creative Briefs", url: "/dashboard/creative-briefs", },
-        ],
       },
     ],
   },

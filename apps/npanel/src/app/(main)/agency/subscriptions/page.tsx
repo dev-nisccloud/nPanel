@@ -1,14 +1,25 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { SubscriptionsTable } from "./_components/subscriptions-table";
 import { SubscriptionViewSheet } from "./_components/subscription-view-sheet";
 import { SendRenewalEmailDialog } from "./_components/send-renewal-email-dialog";
 
 export default function SubscriptionsPage() {
+	const searchParams = useSearchParams();
 	const [viewSubscriptionId, setViewSubscriptionId] = React.useState<string | null>(null);
 	const [sheetOpen, setSheetOpen] = React.useState(false);
 	const [renewalEmailSubscriptionId, setRenewalEmailSubscriptionId] = React.useState<string | null>(null);
+
+	// Open view sheet when landing with ?subscriptionId=xxx (e.g. from hosting client subscriptions)
+	React.useEffect(() => {
+		const id = searchParams.get("subscriptionId");
+		if (id) {
+			setViewSubscriptionId(id);
+			setSheetOpen(true);
+		}
+	}, [searchParams]);
 
 	const handleViewSubscription = (id: string) => {
 		setViewSubscriptionId(id);
@@ -30,10 +41,7 @@ export default function SubscriptionsPage() {
 				</div>
 
 				<div className="mt-6">
-					<SubscriptionsTable
-						onViewSubscription={handleViewSubscription}
-						onSendRenewalEmail={handleSendRenewalEmail}
-					/>
+					<SubscriptionsTable onViewSubscription={handleViewSubscription} />
 				</div>
 			</div>
 

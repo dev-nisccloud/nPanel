@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { HelpCircle, Check, CheckCircle2, XCircle } from "lucide-react";
+import Link from "next/link";
+import { HelpCircle, Check, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Label } from "@/components/ui/label";
 import {
@@ -34,7 +35,8 @@ import {
 	AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
-import { trpc } from "@/utils/trpc";
+import { trpc, type RouterInputs } from "@/utils/trpc";
+import type { UseMutationResult } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export interface ServicePlanDetails {
@@ -45,6 +47,8 @@ export interface ServicePlanDetails {
   price: number;
   currency: string;
   billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY";
+  /** Required for creating NISC order from payment (product table flow). */
+  productId?: string;
 }
 
 interface BuyNowDialogProps {
@@ -55,6 +59,8 @@ interface BuyNowDialogProps {
   requireDomainStep?: boolean;
   /** Team ID used to load domains for the dropdown (required when requireDomainStep is true) */
   teamId?: string;
+  /** When set, show a "Need a domain? Buy one" CTA in the domain step (e.g. `/${teamSlug}/domains`) */
+  buyDomainHref?: string;
 }
 
 type Step = "domain" | "review" | "payment" | "success" | "error";
@@ -109,6 +115,7 @@ export function BuyNowDialog({
   plan,
   requireDomainStep = false,
   teamId,
+  buyDomainHref,
 }: BuyNowDialogProps) {
   const showDomainStep = !!requireDomainStep && !!teamId;
   const initialStep: Step = showDomainStep ? "domain" : "review";
@@ -154,6 +161,7 @@ export function BuyNowDialog({
   const terminalStateDetectedRef = React.useRef(false);
   const immediateStepRef = React.useRef<Step | null>(null);
   const immediatePaymentErrorRef = React.useRef<string | null>(null);
+  const orderCreatedForCheckoutRef = React.useRef<string | null>(null);
 
   // Calculate pricing using useMemo to ensure proper reactivity
   const pricing = React.useMemo(() => {
@@ -191,7 +199,8 @@ export function BuyNowDialog({
       terminalStateDetectedRef.current = false;
       immediateStepRef.current = null;
       immediatePaymentErrorRef.current = null;
-      
+      orderCreatedForCheckoutRef.current = null;
+
       // Calculate total and set payment amount
       const planPrice = plan.price || 0;
       const taxes = planPrice * 0.16; // 16% VAT
@@ -316,6 +325,44 @@ export function BuyNowDialog({
     },
   });
 
+  // Create NISC order from successful payment and enqueue for processing (customer team order)
+  type CreateFromPaymentInput = RouterInputs["niscServiceOrders"]["createFromPayment"];
+  // @ts-expect-error - tRPC useMutation type instantiation is excessively deep with createFromPayment input
+  const createOrderFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation({
+    onSuccess: () => {
+      toast.success("Order submitted for processing.");
+    },
+    onError: (err) => {
+      console.error("Create order from payment failed:", err);
+      toast.error(err.message || "Order could not be created. Please contact support.");
+    },
+  }) as UseMutationResult<void, { message?: string }, CreateFromPaymentInput>;
+
+  // When payment step reaches success and we have plan+team+domain, create order and send to processing (once per checkout)
+  React.useEffect(() => {
+    if (currentStep !== "success" || !checkoutRequestId || !plan?.productId || !teamId) return;
+    if (showDomainStep && !effectiveDomain) return;
+    if (orderCreatedForCheckoutRef.current === checkoutRequestId) return;
+
+    orderCreatedForCheckoutRef.current = checkoutRequestId;
+    const priceStr = String(plan.price ?? 0);
+    createOrderFromPayment.mutate({
+      checkoutRequestId,
+      teamId,
+      currency: plan.currency ?? "KES",
+      items: [
+        {
+          productId: plan.productId,
+          productPlanId: plan.planId,
+          billingCycle: plan.billingCycle,
+          primaryDomain: showDomainStep ? effectiveDomain ?? undefined : undefined,
+          itemPrice: priceStr,
+          itemSubtotal: priceStr,
+        },
+      ],
+    });
+  }, [currentStep, checkoutRequestId, plan, teamId, showDomainStep, effectiveDomain, createOrderFromPayment]);
+
   // Poll payment status
   const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
     { checkoutRequestId: checkoutRequestId || "" },
@@ -424,11 +471,13 @@ export function BuyNowDialog({
       formattedPhone = '254' + formattedPhone;
     }
 
+    const transactionDesc = (`Purchase: ${plan?.planName || 'Service Plan'}`).slice(0, 13);
     initiateMpesaPayment.mutate({
       phoneNumber: formattedPhone,
       amount: amount,
       accountReference: accountReference,
-      transactionDesc: `Purchase: ${plan?.planName || 'Service Plan'}`,
+      transactionDesc,
+      ...(teamId && { teamId }),
     });
   };
 
@@ -547,6 +596,19 @@ export function BuyNowDialog({
                 <div className="rounded-lg border border-green-500/50 bg-green-500/5 px-3 py-2 text-sm text-foreground">
                   Using domain: <span className="font-medium">{effectiveDomain}</span>
                 </div>
+              )}
+
+              {buyDomainHref && (
+                <p className="text-sm text-muted-foreground pt-2">
+                  Need a domain?{" "}
+                  <Link
+                    href={buyDomainHref}
+                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  >
+                    Buy one
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                </p>
               )}
             </div>
           </div>

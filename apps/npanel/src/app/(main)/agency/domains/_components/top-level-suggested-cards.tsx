@@ -505,7 +505,7 @@ function SingleTldCard({
 	formatPrice: (price?: number, currency?: string) => string;
 }) {
 	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
-	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: available });
+	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
 	const isInCart = isDomainInCart(domain);
 	return (
 		<>

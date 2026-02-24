@@ -17,68 +17,32 @@ export function HostingPricing() {
   const [buyNowOpen, setBuyNowOpen] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState<ServicePlanDetails | null>(null);
 
-  const { data: plans, isLoading } = trpc.hostingPlans.getAll.useQuery({
-    planType: "HOSTING",
-    hostingSubType: "WEB_HOSTING",
-    isActive: true,
-  });
+  const { data: pricingData, isLoading } = trpc.products.getHostingPlansForPricing.useQuery();
 
   const handleBuyNow = React.useCallback((plan: any & { selectedBillingCycle?: "MONTHLY" | "YEARLY"; selectedPrice?: number }) => {
-    // Transform plan to ServicePlanDetails format
-    // Use the selected billing cycle and price from the pricing table
     const billingCycle = plan.selectedBillingCycle || plan.billingCycle;
-    const price = plan.selectedPrice || parseFloat(plan.niscPrice || "0");
+    const price = plan.selectedPrice ?? parseFloat(plan.niscPrice || "0");
 
     const planDetails: ServicePlanDetails = {
       planId: plan.id,
       planName: plan.name,
       planType: "HOSTING",
       subType: "WEB_HOSTING",
-      price: price,
+      price,
       currency: plan.niscCurrency || "KES",
-      billingCycle: billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY",
+      billingCycle: (billingCycle ?? "MONTHLY") as "MONTHLY" | "YEARLY" | "BIENNIALLY",
+      productId: plan.productId,
     };
 
     setSelectedPlan(planDetails);
     setBuyNowOpen(true);
   }, []);
 
-  // Helper function to derive pricing (same as in wrapper)
-  const derivePricing = (niscPrice: string | null | undefined, billingCycle: string) => {
-    if (!niscPrice) {
-      return { monthlyPrice: 0, yearlyPrice: 0 };
-    }
-
-    const price = parseFloat(niscPrice);
-    if (isNaN(price)) {
-      return { monthlyPrice: 0, yearlyPrice: 0 };
-    }
-
-    if (billingCycle === "MONTHLY") {
-      return {
-        monthlyPrice: Math.round(price),
-        yearlyPrice: Math.round(price * 12 * 0.8),
-      };
-    }
-
-    if (billingCycle === "YEARLY") {
-      const monthly = Math.round(price / 12);
-      return {
-        monthlyPrice: monthly,
-        yearlyPrice: Math.round(price),
-      };
-    }
-
-    return {
-      monthlyPrice: Math.round(price),
-      yearlyPrice: Math.round(price * 12 * 0.8),
-    };
-  };
-
   return (
     <>
       <PricingTableWrapper
-        plans={plans || []}
+        plans={pricingData?.plans ?? []}
+        productFeatures={pricingData?.productFeatures}
         isLoading={isLoading}
         currency="KES"
         locale="en-KE"
@@ -91,6 +55,7 @@ export function HostingPricing() {
           plan={selectedPlan}
           requireDomainStep={true}
           teamId={teamData?.id}
+          buyDomainHref={slug ? `/${slug}/domains` : undefined}
         />
       )}
     </>

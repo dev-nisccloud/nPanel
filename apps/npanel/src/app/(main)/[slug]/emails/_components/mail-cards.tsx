@@ -5,15 +5,9 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Edit, Trash2, Copy, Mail, Forward, Shield, Reply } from "lucide-react";
+import { Edit, Trash2, Mail, Forward, Reply } from "lucide-react";
 import { emailAccountSchema } from "./emails-schema";
 
 interface MailCardProps {
@@ -21,17 +15,15 @@ interface MailCardProps {
   domainName?: string;
   onEdit?: (id: number | undefined) => void;
   onDelete?: (id: number | undefined) => void;
-  onCopy?: (data: z.infer<typeof emailAccountSchema>) => void;
   className?: string;
 }
 
-export function MailCard({ 
-  data, 
+export function MailCard({
+  data,
   domainName,
-  onEdit, 
-  onDelete, 
-  onCopy,
-  className 
+  onEdit,
+  onDelete,
+  className
 }: MailCardProps) {
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -44,13 +36,6 @@ export function MailCard({
     e.stopPropagation();
     if (onDelete) {
       onDelete(data.id);
-    }
-  };
-
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onCopy) {
-      onCopy(data);
     }
   };
 
@@ -77,70 +62,82 @@ export function MailCard({
 
   const emailAddress = `${data.name || "unknown"}@${domainName || "example.com"}`;
 
+  const handleCardClick = () => {
+    // Open edit dialog when card is clicked
+    if (onEdit) {
+      onEdit(data.id);
+    }
+  };
+
   return (
-    <Card 
-      className={cn("group cursor-pointer transition-all hover:shadow-md", className)}
+    <Card
+      className={cn("group cursor-pointer transition-all hover:shadow-md hover:border-primary/50", className)}
+      onClick={handleCardClick}
     >
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <CardTitle className="text-lg font-bold truncate">
+            <CardTitle className="text-base font-semibold truncate">
               {emailAddress}
             </CardTitle>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Badge variant={getStatusBadgeVariant()}>
               {getStatusText()}
             </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem onClick={handleEdit}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Account
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCopy}>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={handleDelete}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {onEdit && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={handleEdit}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit email account</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {onDelete && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Delete email account (this action cannot be reversed)</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="pt-0">
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Mailbox
             </p>
-            <Badge 
+            <Badge
               variant={data.mailbox?.enabled ? "default" : "secondary"}
-              className="text-xs"
+              className={cn("text-xs", data.mailbox?.enabled && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800")}
             >
               {data.mailbox?.enabled ? "Enabled" : "Disabled"}
             </Badge>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Quota Usage
@@ -149,46 +146,31 @@ export function MailCard({
               {data.mailbox?.usage && data.mailbox.usage > 0 ? formatQuota(data.mailbox.usage) : "Not used"}
             </p>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Forwarding
             </p>
             <div className="flex items-center gap-1">
               <Forward className="h-3 w-3 text-muted-foreground" />
-              <Badge 
+              <Badge
                 variant={data.forwarding?.enabled ? "default" : "secondary"}
-                className="text-xs"
+                className={cn("text-xs", data.forwarding?.enabled && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800")}
               >
                 {data.forwarding?.enabled ? "Enabled" : "Disabled"}
               </Badge>
             </div>
           </div>
-          
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Antivirus
-            </p>
-            <div className="flex items-center gap-1">
-              <Shield className="h-3 w-3 text-muted-foreground" />
-              <Badge 
-                variant={data.antivir === "on" ? "default" : "secondary"}
-                className="text-xs"
-              >
-                {data.antivir === "on" ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
-          </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Auto-reply
             </p>
             <div className="flex items-center gap-1">
               <Reply className="h-3 w-3 text-muted-foreground" />
-              <Badge 
+              <Badge
                 variant={data.autoresponder?.enabled ? "default" : "secondary"}
-                className="text-xs"
+                className={cn("text-xs", data.autoresponder?.enabled && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800")}
               >
                 {data.autoresponder?.enabled ? "Enabled" : "Disabled"}
               </Badge>
@@ -209,7 +191,7 @@ export function MailCard({
                 </p>
               </div>
             )}
-            
+
             {data.aliases && data.aliases.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -229,7 +211,7 @@ export function MailCard({
                 </div>
               </div>
             )}
-            
+
             {data.forwarding?.addresses && data.forwarding.addresses.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -262,22 +244,20 @@ interface MailCardsListProps {
   domainName?: string;
   onEdit?: (id: number | undefined) => void;
   onDelete?: (id: number | undefined) => void;
-  onCopy?: (data: z.infer<typeof emailAccountSchema>) => void;
   cols?: 1 | 2 | 3 | 4;
   className?: string;
 }
 
-export function MailCardsList({ 
-  data, 
+export function MailCardsList({
+  data,
   domainName,
-  onEdit, 
-  onDelete, 
-  onCopy,
-  cols = 1,
-  className 
+  onEdit,
+  onDelete,
+  cols = 3,
+  className
 }: MailCardsListProps) {
   return (
-    <div 
+    <div
       className={cn(
         "grid gap-4",
         cols === 1 && "grid-cols-1",
@@ -294,7 +274,6 @@ export function MailCardsList({
           domainName={domainName}
           onEdit={onEdit}
           onDelete={onDelete}
-          onCopy={onCopy}
         />
       ))}
     </div>

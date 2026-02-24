@@ -44,12 +44,26 @@ export function transformPleskSubscriptionsToTable(
     return subscriptions.map((subscription, index) => {
       const genInfo = subscription.data?.gen_info;
       
+      // Safely convert status to number
+      // If status field is missing or undefined, we'll use undefined to indicate unknown status
+      let status: number | undefined = undefined;
+      if (genInfo && 'status' in genInfo && genInfo.status !== undefined && genInfo.status !== null) {
+        // Convert to number if it's a string
+        status = typeof genInfo.status === 'string' 
+          ? parseInt(genInfo.status, 10) 
+          : Number(genInfo.status);
+        // If conversion failed, keep as undefined
+        if (isNaN(status)) {
+          status = undefined;
+        }
+      }
+      
       // Safely access nested properties with fallbacks
       return {
         id: subscription.id || index,
         subscriptionName: genInfo?.name || `Subscription ${subscription.id || index}`,
         setupDate: genInfo?.["cr_date"] || new Date().toISOString().split('T')[0],
-        status: genInfo?.status ?? 0, // Default to active if not specified
+        status: status,
         dnsIpAddress: genInfo?.["dns_ip_address"] || "0.0.0.0",
         hostingType: genInfo?.htype || "unknown",
         realSize: genInfo?.["real_size"] ?? 0,
@@ -68,56 +82,55 @@ export function transformPleskSubscriptionsToTable(
 }
 
 /**
- * Get status display text based on Plesk status number
- * Simplified to show "Active" or "Suspended"
+ * Plesk status codes (bitmask system):
+ * 0 = Active
+ * 1 = Suspended
+ * 2 = Suspended by parent object
+ * 4 = Suspended due to backup/restore
+ * 16 = Suspended by administrator
+ * 32 = Suspended by reseller
+ * 64 = Suspended by client
+ * 256 = Suspended due to expiration
+ * These can be combined (e.g., 3 = 1+2, 272 = 256+16)
  */
-export function getStatusDisplayText(status: number | undefined | null): string {
-  // Handle undefined/null
-  if (status === undefined || status === null) {
-    return "Suspended";
-  }
 
-  // Handle NaN
-  if (isNaN(status)) {
-    return "Suspended";
-  }
+/** NISC subscription status enum → display label */
+const NISC_STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "Active",
+  PENDING: "Pending",
+  SUSPENDED: "Suspended",
+  CANCELLED: "Cancelled",
+  EXPIRED: "Expired",
+  PROCESSING: "Processing",
+  FAILED: "Failed",
+  UPGRADED: "Upgraded",
+  DOWNGRADED: "Downgraded",
+};
 
-  // Convert to number if it's a string
-  const statusNum = typeof status === 'string' ? parseInt(status, 10) : Number(status);
-  
-  // If conversion failed, return Suspended
-  if (isNaN(statusNum)) {
-    return "Suspended";
-  }
-
-  // Active status
-  if (statusNum === 0) {
-    return "Active";
-  }
-
-  // All other statuses are considered suspended
-  return "Suspended";
+/**
+ * Get status display text. Supports (1) Plesk numeric status and (2) NISC enum string (e.g. ACTIVE, SUSPENDED).
+ */
+export function getStatusDisplayText(status: number | string | undefined | null): string {
+  if (status === undefined || status === null) return "Suspended";
+  const s = String(status).toUpperCase();
+  if (NISC_STATUS_LABELS[s]) return NISC_STATUS_LABELS[s];
+  const statusNum = typeof status === "string" ? parseInt(status, 10) : Number(status);
+  if (isNaN(statusNum)) return "Suspended";
+  return statusNum === 0 ? "Active" : "Suspended";
 }
 
 /**
- * Get status badge variant based on Plesk status number
+ * Get status badge variant. Supports Plesk numeric status and NISC enum string.
  */
-export function getStatusBadgeVariant(status: number | undefined | null): "default" | "secondary" | "destructive" | "outline" {
-  // Handle undefined/null/NaN
-  if (status === undefined || status === null || isNaN(status)) {
-    return "destructive";
-  }
-
-  // Convert to number if it's a string
-  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
-
-  // Active status - use default variant (will be styled green via className)
-  if (statusNum === 0) {
-    return "default";
-  }
-
-  // Any suspended status should be destructive
-  return "destructive";
+export function getStatusBadgeVariant(status: number | string | undefined | null): "default" | "secondary" | "destructive" | "outline" {
+  if (status === undefined || status === null) return "destructive";
+  const s = String(status).toUpperCase();
+  if (s === "ACTIVE") return "default";
+  if (["PENDING", "PROCESSING"].includes(s)) return "secondary";
+  if (["SUSPENDED", "CANCELLED", "EXPIRED", "FAILED", "UPGRADED", "DOWNGRADED"].includes(s)) return "destructive";
+  const statusNum = typeof status === "string" ? parseInt(status, 10) : Number(status);
+  if (isNaN(statusNum)) return "destructive";
+  return statusNum === 0 ? "default" : "destructive";
 }
 
 /**
