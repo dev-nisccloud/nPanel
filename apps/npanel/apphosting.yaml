@@ -91,11 +91,6 @@ env:
   - variable: DIRECT_URL
     secret: DIRECT_URL
     availability: [RUNTIME]
-  - variable: GOOGLE_CLIENT_ID
-    secret: GOOGLE_CLIENT_ID
-    availability: [RUNTIME]
-  - variable: GOOGLE_CLIENT_SECRET
-    secret: GOOGLE_CLIENT_SECRET
     availability: [RUNTIME]
   - variable: GOOGLE_ADS_CLIENT_ID
     secret: GOOGLE_ADS_CLIENT_ID

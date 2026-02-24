@@ -4,12 +4,13 @@
 
 | Log / error | Fix |
 |-------------|-----|
-| **Memory limit of 512 MiB exceeded** / **JavaScript heap out of memory** | `apphosting.yaml` now sets `runConfig.memoryMiB: 1024`. Redeploy. |
+| **Memory limit of 512 MiB exceeded** / **JavaScript heap out of memory** | `apphosting.yaml` now sets `runConfig.memoryMiB` and `cpu`. Redeploy. |
 | **BETTER_AUTH_SECRET: You are using the default secret** | Set secret: `firebase apphosting:secrets:set BETTER_AUTH_SECRET` (or use `pnpm run apphosting:secrets` from `.env.production`). |
-| **DATABASE_URL is not set or invalid** | Add secret and reference in `apphosting.yaml` (already referenced). Set: `firebase apphosting:secrets:set DATABASE_URL` and `firebase apphosting:secrets:set DIRECT_URL`. |
-| **Worker endpoint not configured** / **LinkedIn worker endpoint not configured** | Set `NEXT_PUBLIC_APP_URL` to your backend URL (e.g. `https://xxx---nisccloud-npanel-xxx.a.run.app`). Set secret: `firebase apphosting:secrets:set NEXT_PUBLIC_APP_URL`. |
+| **Misconfigured Secret** / **Error resolving secret version** / **Permission 'secretmanager.versions.get' denied** | The App Hosting backend must be allowed to read secrets. Run **once** (and after adding new secret refs): `pnpm run apphosting:secrets:grant`. See "Grant backend access to secrets" below. |
+| **DATABASE_URL is not set or invalid** | Add secret and reference in `apphosting.yaml`. Set: `firebase apphosting:secrets:set DATABASE_URL` (or `pnpm run apphosting:secrets`), then `pnpm run apphosting:secrets:grant`. |
+| **Worker endpoint not configured** / **LinkedIn worker endpoint not configured** | Set `NEXT_PUBLIC_APP_URL` to your backend URL. Set secret and run `pnpm run apphosting:secrets:grant`. |
 
-After adding or changing secrets, redeploy the backend (e.g. push a commit or trigger a new build) so the new env vars are applied.
+After adding or changing secrets, run **`pnpm run apphosting:secrets:grant`** so the backend can read them, then redeploy (push a commit or trigger a new build).
 
 ---
 
@@ -116,13 +117,13 @@ gcloud secrets versions list SECRET_NAME
 - Or with gcloud: `gcloud secrets delete SECRET_NAME`  
 - Only delete if the secret is no longer referenced in `apphosting.yaml` or you will break the next deploy.
 
-**If you created the secret in the Console** (Option B), grant App Hosting access so the backend can read it:
+**Grant backend access to secrets (required for build and runtime):** After setting secrets (Option A or B), run **once**—and again whenever you add new secret references to `apphosting.yaml`:
 
 ```bash
-firebase apphosting:secrets:grantaccess SECRET_NAME --backend BACKEND_ID
+pnpm run apphosting:secrets:grant
 ```
 
-(`BACKEND_ID` is the backend name from Firebase Console → App Hosting, or from `firebase apphosting:backends:list` if available.)
+This grants the App Hosting backend access to every secret in `apphosting.yaml` (script: `scripts/grant-apphosting-secrets-access.mjs`). If your backend has a different name, use `--backend YOUR_BACKEND_ID`. Backend name: Firebase Console → App Hosting, or `firebase apphosting:backends:list`.
 
 ### Copying from an existing .env file
 

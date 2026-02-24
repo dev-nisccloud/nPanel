@@ -17,7 +17,8 @@
     "db:studio": "turbo -F @nPanel/db db:studio",
     "db:generate": "turbo -F @nPanel/db db:generate",
     "db:migrate": "turbo -F @nPanel/db db:migrate",
-    "apphosting:secrets": "node scripts/set-apphosting-secrets.mjs apps/npanel/.env.production"
+    "apphosting:secrets": "node scripts/set-apphosting-secrets.mjs apps/npanel/.env.production",
+    "apphosting:secrets:grant": "node scripts/grant-apphosting-secrets-access.mjs"
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.8",
