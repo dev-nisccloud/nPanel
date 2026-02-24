@@ -33,8 +33,8 @@ export const metadata: Metadata = {
     apple: '/favicon/apple-touch-icon.png',
   },
 
-  // PWA Manifest
-  manifest: '/favicon/site.webmanifest',
+  // PWA Manifest (served by route so response is always JSON, not HTML)
+  manifest: '/manifest',
 
   // Apple-specific meta tags
   appleWebApp: {

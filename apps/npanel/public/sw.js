@@ -9,7 +9,7 @@ const PRECACHE_ASSETS = [
     '/nisclogowhite.png',
     '/favicon/favicon.ico',
     '/favicon/apple-touch-icon.png',
-    '/favicon/site.webmanifest',
+    '/manifest',
 ];
 
 let lastTotalUnreadCount = 0;
@@ -121,6 +121,10 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') {
         return;
     }
+    // Only handle http(s); Cache API does not support chrome-extension:, etc.
+    if (!event.request.url.startsWith('http')) {
+        return;
+    }
 
     // For document navigations, always follow redirects so we never return a redirect
     // response to the client (avoids "redirected response was used for a request whose
@@ -143,10 +147,11 @@ self.addEventListener('fetch', (event) => {
                     }
 
                     const responseToCache = response.clone();
-                    if (!event.request.url.includes('/api/')) {
+                    const url = event.request.url;
+                    if (url.startsWith('http') && !url.includes('/api/')) {
                         caches.open(CACHE_NAME).then((cache) => {
                             cache.put(event.request, responseToCache);
-                        });
+                        }).catch(function () {});
                     }
 
                     return response;
