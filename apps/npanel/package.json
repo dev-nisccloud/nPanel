@@ -94,7 +94,7 @@
     "lucide-react": "^0.487.0",
     "marked": "^16.4.1",
     "material-colors": "^1.2.6",
-    "next": "15.5.4",
+    "next": "16.1.6",
     "next-themes": "^0.4.6",
     "nuqs": "^2.7.1",
     "pdfjs-dist": "3.4.120",

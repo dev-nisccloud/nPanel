@@ -7,10 +7,6 @@ const monorepoRoot = path.join(__dirname, "../..");
 const nextConfig: NextConfig = {
   // Disable typedRoutes during build to save memory (can be enabled locally)
   // typedRoutes: true,
-  eslint: {
-    // Don't run ESLint during production builds
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     // Disable type checking during build to save memory on free tier
     // Types are still checked via `pnpm run check-types` in CI/local
