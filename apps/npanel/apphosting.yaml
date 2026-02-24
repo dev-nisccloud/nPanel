@@ -23,6 +23,11 @@ env:
   - variable: NODE_ENV
     value: "production"
     availability: [BUILD, RUNTIME]
+  # Cap Node.js heap so we stay under container memory (avoids "JavaScript heap out of memory").
+  # 460 keeps us under 512 MiB if runConfig isn't applied. After memoryMiB is 4096, you can set 3584.
+  - variable: NODE_OPTIONS
+    value: "--max-old-space-size=460"
+    availability: [RUNTIME]
   - variable: LINKEDIN_API_VERSION
     value: "202501"
     availability: [BUILD, RUNTIME]
@@ -90,7 +95,6 @@ env:
     availability: [RUNTIME]
   - variable: DIRECT_URL
     secret: DIRECT_URL
-    availability: [RUNTIME]
     availability: [RUNTIME]
   - variable: GOOGLE_ADS_CLIENT_ID
     secret: GOOGLE_ADS_CLIENT_ID

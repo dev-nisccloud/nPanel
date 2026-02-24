@@ -21,11 +21,15 @@ env:
   # App URL used for auth callbacks, worker endpoints (QSTASH_*), etc. Set to your backend URL, e.g. https://xxx---nisccloud-npanel-xxx.a.run.app
   - variable: NEXT_PUBLIC_APP_URL
     secret: NEXT_PUBLIC_APP_URL
+  # Cap Node heap to avoid OOM; 460 fits 512 MiB, 3584 fits 4096 MiB.
+  - variable: NODE_OPTIONS
+    value: "--max-old-space-size=460"
+    availability: [RUNTIME]
 
-# Cloud Run: 512 MiB is too low for Next.js (heap OOM). Use 1024 MiB minimum.
+# Cloud Run: 512 MiB default causes heap OOM. memoryMiB >= 4096 requires cpu >= 2.
 runConfig:
   minInstances: 0
   maxInstances: 10
   concurrency: 80
   memoryMiB: 4096
-  cpu: 1
+  cpu: 2

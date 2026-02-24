@@ -79,8 +79,14 @@ function SafeRedirectToLogin() {
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   try {
-    const pathname = (await headers()).get("x-pathname") ?? "";
-    const isRootPath = pathname === "/";
+    let pathname = "";
+    try {
+      pathname = (await headers()).get("x-pathname") ?? "";
+    } catch {
+      pathname = "/";
+    }
+    // Use minimal shell for "/" or when header is missing (e.g. Cloud Run proxy) so we never run getPreference for root and risk 500.
+    const isRootPath = pathname === "/" || pathname === "";
 
     // For GET / only: minimal shell – no getPreference, no providers, no font (max reliability).
     // Any throw below is caught so we never 500; we return 200 with redirect HTML.
