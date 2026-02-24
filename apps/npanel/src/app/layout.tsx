@@ -19,13 +19,8 @@ import "./globals.css";
 const DEFAULT_THEME_MODE: ThemeMode = "light";
 const DEFAULT_THEME_PRESET: ThemePreset = "twitter";
 
-// Font init must not throw or GET "/" can 500 (layout module loads before request). next/font can throw in some runtimes.
-let inter: { className: string };
-try {
-  inter = Inter({ subsets: ["latin"] });
-} catch {
-  inter = { className: "" };
-}
+// Must be const at module scope (Next.js font loader requirement).
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: APP_CONFIG.meta.title,

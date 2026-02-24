@@ -4,11 +4,11 @@
 
 All code paths that run for GET "/" (and the root layout) are hardened so they **never throw** uncaught. Below is the full list of guards.
 
-### Middleware (`src/middleware.ts`)
+### Proxy (`src/proxy.ts`) — Next.js 16+ request boundary (formerly middleware)
 
 | Risk | Guard |
 |------|--------|
-| Any throw in middleware | Outer `try/catch` → `NextResponse.next()` so request continues |
+| Any throw in proxy | Outer `try/catch` → `NextResponse.next()` so request continues |
 | `req.nextUrl` or `pathname` undefined (proxy) | `pathname = (req.nextUrl?.pathname ?? "").trim()` |
 | Root path as `""`, `"//"`, `" / "` | Normalize with `replace(/\/+/g, "/")`, treat `""` or `"/"` as root |
 | `new Headers(req.headers)` or `.set()` throws | Root branch in try/catch → `NextResponse.next()` on failure |
@@ -23,7 +23,7 @@ All code paths that run for GET "/" (and the root layout) are hardened so they *
 | `x-pathname` missing or odd (`"//"`, whitespace) | Normalize like middleware; `isRootPath` = `""` or `"/"` |
 | `getPreference` throws | try/catch, use default theme mode/preset |
 | Any other throw in layout | Outer try/catch → `<SafeRedirectToLogin />` (200 + redirect). Re-throw only `NEXT_REDIRECT` |
-| `Inter()` (next/font) throws at module load | try/catch, fallback `{ className: "" }` |
+| Font loader | Must be `const` at module scope (Next.js requirement); no try/catch allowed. |
 
 ### Layout module load (before request)
 
@@ -46,9 +46,9 @@ All code paths that run for GET "/" (and the root layout) are hardened so they *
 
 ### Summary
 
-- **Root path**: Handled as `""` or `"/"` (and normalized variants) in both middleware and layout; minimal HTML returned, no DB/auth.
+- **Root path**: Handled as `""` or `"/"` (and normalized variants) in both proxy and layout; minimal HTML returned, no DB/auth.
 - **Redirects**: Built inside `safeRedirectToLogin()`; if URL/redirect fails, request is passed through instead of 500.
 - **Session check**: `isSessionValid` never throws; on error treats as not logged in.
 - **Layout**: All async and render paths in try/catch; only `NEXT_REDIRECT` is re-thrown.
 
-If a 500 still occurs, check Cloud Run / Firebase logs for the exact error (e.g. `[Middleware]`, `[RootLayout]`, or an uncaught stack trace).
+If a 500 still occurs, check Cloud Run / Firebase logs for the exact error (e.g. `[Proxy]`, `[RootLayout]`, or an uncaught stack trace).
