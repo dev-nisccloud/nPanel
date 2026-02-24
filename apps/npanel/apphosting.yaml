@@ -1,31 +1,181 @@
 # Firebase App Hosting configuration
 # See: https://firebase.google.com/docs/app-hosting/configure
 #
-# SECURITY: Do NOT put real secrets (DATABASE_URL, API keys, etc.) as plain "value:" in this file.
-# This file is committed to git. For secrets, use "secret: SECRET_NAME" and store the actual
-# value in Firebase/Cloud Secret Manager: firebase apphosting:secrets:set SECRET_NAME
+# SECURITY: Do NOT put real secrets as plain "value:" in this file. Use "secret: NAME" and
+# set values via: pnpm run apphosting:secrets (or firebase apphosting:secrets:set NAME)
 
 env:
-  # Safe to commit: platform identifiers only, not sensitive.
+  # --- Build-only (non-sensitive) ---
   - variable: PRISMA_BINARY_TARGETS
     value: '["native", "debian-openssl-3.0.x"]'
     availability: [BUILD]
+  - variable: NODE_VERSION
+    value: "24.11.0"
+    availability: [BUILD]
+  - variable: PNPM_VERSION
+    value: "10.16.1"
+    availability: [BUILD]
 
-  # Required at RUNTIME — create secrets first: pnpm run apphosting:secrets (or firebase apphosting:secrets:set NAME)
+  # --- Runtime: non-sensitive literals (safe to commit) ---
+  - variable: BETTER_AUTH_ACCEPT_ANY_HTTPS
+    value: "true"
+  - variable: NODE_ENV
+    value: "production"
+  - variable: LINKEDIN_API_VERSION
+    value: "202501"
+  - variable: META_API_VERSION
+    value: "v24.0"
+  - variable: OPENPROVIDER_API_VERSION
+    value: "v1beta"
+  - variable: OPENPROVIDER_BASE_URL
+    value: "https://api.openprovider.eu"
+  - variable: OPENPROVIDER_TIMEOUT
+    value: "50000"
+  - variable: MPESA_ENVIRONMENT
+    value: "sandbox"
+  - variable: MPESA_TRANSACTION_TYPE
+    value: "CustomerPayBillOnline"
+  - variable: KENIC_EPP_TLS_SERVERNAME
+    value: "epp.coccaregistry.org"
+  - variable: KENIC_EPP_HOST
+    value: "registry.kenic.or.ke"
+  - variable: KENIC_EPP_PORT
+    value: "700"
+  - variable: KENIC_EPP_TIMEOUT_MS
+    value: "30000"
+  - variable: ETIMS_BASE_URL
+    value: "https://sbx.kra.go.ke/etims-oscu/api/v1"
+  - variable: ETIMS_TOKEN_URL
+    value: "https://sbx.kra.go.ke/v1/token/generate"
+  - variable: NEXT_PUBLIC_FTP_HOST
+    value: "orion.nisccloud.com"
+  - variable: NEXT_PUBLIC_FTP_PORT
+    value: "21"
+  - variable: NEXT_PUBLIC_PLESK_HOST
+    value: "orion.nisccloud.com"
+
+  # --- Runtime: secrets (set via pnpm run apphosting:secrets) ---
+  - variable: BETTER_AUTH_SECRET
+    secret: BETTER_AUTH_SECRET
+  - variable: BETTER_AUTH_URL
+    secret: BETTER_AUTH_URL
+  - variable: BETTER_AUTH_URLS
+    secret: BETTER_AUTH_URLS
+  - variable: CORS_ORIGIN
+    secret: CORS_ORIGIN
   - variable: DATABASE_URL
     secret: DATABASE_URL
   - variable: DIRECT_URL
     secret: DIRECT_URL
-  - variable: BETTER_AUTH_SECRET
-    secret: BETTER_AUTH_SECRET
-  # App URL used for auth callbacks, worker endpoints (QSTASH_*), etc. Set to your backend URL, e.g. https://xxx---nisccloud-npanel-xxx.a.run.app
+  - variable: GOOGLE_CLIENT_ID
+    secret: GOOGLE_CLIENT_ID
+  - variable: GOOGLE_CLIENT_SECRET
+    secret: GOOGLE_CLIENT_SECRET
+  - variable: GOOGLE_ADS_CLIENT_ID
+    secret: GOOGLE_ADS_CLIENT_ID
+  - variable: GOOGLE_ADS_CLIENT_SECRET
+    secret: GOOGLE_ADS_CLIENT_SECRET
+  - variable: GOOGLE_ADS_DEVELOPER_TOKEN
+    secret: GOOGLE_ADS_DEVELOPER_TOKEN
+  - variable: GOOGLE_ADS_REDIRECT_URI
+    secret: GOOGLE_ADS_REDIRECT_URI
+  - variable: LINKEDIN_CLIENT_ID
+    secret: LINKEDIN_CLIENT_ID
+  - variable: LINKEDIN_CLIENT_SECRET
+    secret: LINKEDIN_CLIENT_SECRET
+  - variable: META_APP_ID
+    secret: META_APP_ID
+  - variable: META_APP_SECRET
+    secret: META_APP_SECRET
   - variable: NEXT_PUBLIC_APP_URL
     secret: NEXT_PUBLIC_APP_URL
+  - variable: OPENAI_API_KEY
+    secret: OPENAI_API_KEY
+  - variable: OPENPROVIDER_USERNAME
+    secret: OPENPROVIDER_USERNAME
+  - variable: OPENPROVIDER_PASSWORD
+    secret: OPENPROVIDER_PASSWORD
+  - variable: PLESK_REST_ENDPOINT
+    secret: PLESK_REST_ENDPOINT
+  - variable: PLESK_SECRET_KEY
+    secret: PLESK_SECRET_KEY
+  - variable: PLESK_XML_ENDPOINT
+    secret: PLESK_XML_ENDPOINT
+  - variable: PLESK_XML_USERNAME
+    secret: PLESK_XML_USERNAME
+  - variable: PLESK_XML_PASSWORD
+    secret: PLESK_XML_PASSWORD
+  - variable: QSTASH_CURRENT_SIGNING_KEY
+    secret: QSTASH_CURRENT_SIGNING_KEY
+  - variable: QSTASH_NEXT_SIGNING_KEY
+    secret: QSTASH_NEXT_SIGNING_KEY
+  - variable: QSTASH_TOKEN
+    secret: QSTASH_TOKEN
+  - variable: QSTASH_URL
+    secret: QSTASH_URL
+  - variable: QSTASH_CAMPAIGN_WORKER_ENDPOINT
+    secret: QSTASH_CAMPAIGN_WORKER_ENDPOINT
+  - variable: QSTASH_NISC_ORDER_WORKER_ENDPOINT
+    secret: QSTASH_NISC_ORDER_WORKER_ENDPOINT
+  - variable: RESEND_API_KEY
+    secret: RESEND_API_KEY
+  - variable: RESEND_FROM_EMAIL
+    secret: RESEND_FROM_EMAIL
+  - variable: RESEND_WEBHOOK_SECRET
+    secret: RESEND_WEBHOOK_SECRET
+  - variable: UPLOADTHING_TOKEN
+    secret: UPLOADTHING_TOKEN
+  - variable: UPSTASH_REDIS_REST_URL
+    secret: UPSTASH_REDIS_REST_URL
+  - variable: UPSTASH_REDIS_REST_TOKEN
+    secret: UPSTASH_REDIS_REST_TOKEN
+  - variable: REPLICATE_API_TOKEN
+    secret: REPLICATE_API_TOKEN
+  - variable: NEXT_PUBLIC_UNSPLASH_ACCESS_KEY
+    secret: NEXT_PUBLIC_UNSPLASH_ACCESS_KEY
+  - variable: MPESA_CONSUMER_KEY
+    secret: MPESA_CONSUMER_KEY
+  - variable: MPESA_CONSUMER_SECRET
+    secret: MPESA_CONSUMER_SECRET
+  - variable: MPESA_SHORTCODE
+    secret: MPESA_SHORTCODE
+  - variable: MPESA_PASSKEY
+    secret: MPESA_PASSKEY
+  - variable: MPESA_PARTY_B
+    secret: MPESA_PARTY_B
+  - variable: MPESA_ACCOUNT_REFERENCE
+    secret: MPESA_ACCOUNT_REFERENCE
+  - variable: MPESA_CALLBACK_URL
+    secret: MPESA_CALLBACK_URL
+  - variable: STABILITY_AI_API_KEY
+    secret: STABILITY_AI_API_KEY
+  - variable: GOOGLE_PAGESPEED_API_KEY
+    secret: GOOGLE_PAGESPEED_API_KEY
+  - variable: GOOGLE_SA_PROJECT_ID
+    secret: GOOGLE_SA_PROJECT_ID
+  - variable: GOOGLE_SA_PRIVATE_KEY_ID
+    secret: GOOGLE_SA_PRIVATE_KEY_ID
+  - variable: GOOGLE_SA_PRIVATE_KEY
+    secret: GOOGLE_SA_PRIVATE_KEY
+  - variable: GOOGLE_SA_CLIENT_EMAIL
+    secret: GOOGLE_SA_CLIENT_EMAIL
+  - variable: GOOGLE_SA_CLIENT_ID
+    secret: GOOGLE_SA_CLIENT_ID
+  - variable: GOOGLE_SA_CLIENT_CERT_URL
+    secret: GOOGLE_SA_CLIENT_CERT_URL
+  - variable: ETIMS_CONSUMER_KEY
+    secret: ETIMS_CONSUMER_KEY
+  - variable: ETIMS_CONSUMER_SECRET
+    secret: ETIMS_CONSUMER_SECRET
+  - variable: KENIC_EPP_USERNAME
+    secret: KENIC_EPP_USERNAME
+  - variable: KENIC_EPP_PASSWORD
+    secret: KENIC_EPP_PASSWORD
 
-# Cloud Run: 512 MiB is too low for Next.js (heap OOM). Use 1024 MiB minimum.
+# Cloud Run: 512 MiB is too low for Next.js (heap OOM). memoryMiB >= 4096 requires cpu >= 2.
 runConfig:
   minInstances: 0
   maxInstances: 10
   concurrency: 80
   memoryMiB: 4096
-  cpu: 1
+  cpu: 2

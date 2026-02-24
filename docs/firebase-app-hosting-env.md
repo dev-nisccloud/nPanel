@@ -77,6 +77,53 @@ The values are stored in **Google Cloud Secret Manager** and are not in your rep
    firebase apphosting:secrets:grantaccess
    ```
 
+### Listing, editing, and deleting secrets
+
+Firebase CLI only has **set** for secrets. To **list**, **edit**, or **delete** you use **Google Cloud Secret Manager** (same project as your Firebase project).
+
+**List existing secrets (names only):**
+
+```bash
+gcloud secrets list --project=YOUR_PROJECT_ID
+```
+
+Example with default project: `gcloud secrets list` (uses current gcloud project). To see your Firebase project: `firebase use` or `cat .firebaserc`.
+
+**Edit / update a secret (new value):**
+
+- **Option 1 – Firebase CLI (easiest):** Run set again; it creates a new version and App Hosting will use the latest.
+  ```bash
+  firebase apphosting:secrets:set BETTER_AUTH_URL
+  # Paste the new value when prompted.
+  ```
+- **Option 2 – gcloud:** Add a new version (never overwrites; Secret Manager is versioned).
+  ```bash
+  echo -n "new-secret-value" | gcloud secrets versions add SECRET_NAME --data-file=-
+  ```
+  Example: `echo -n "https://myapp.run.app" | gcloud secrets versions add BETTER_AUTH_URL --data-file=-`
+
+After updating a secret, **redeploy** the backend (e.g. push a commit or trigger a new rollout) so the running app picks up the new value.
+
+**List versions of one secret:**
+
+```bash
+gcloud secrets versions list SECRET_NAME
+```
+
+**Delete a secret (use with care):**
+
+- In [Google Cloud Console → Secret Manager](https://console.cloud.google.com/security/secret-manager): select the secret → Delete.  
+- Or with gcloud: `gcloud secrets delete SECRET_NAME`  
+- Only delete if the secret is no longer referenced in `apphosting.yaml` or you will break the next deploy.
+
+**If you created the secret in the Console** (Option B), grant App Hosting access so the backend can read it:
+
+```bash
+firebase apphosting:secrets:grantaccess SECRET_NAME --backend BACKEND_ID
+```
+
+(`BACKEND_ID` is the backend name from Firebase Console → App Hosting, or from `firebase apphosting:backends:list` if available.)
+
 ### Copying from an existing .env file
 
 You can keep using `apps/npanel/.env` locally (and add it to `.gitignore` if it isn’t already). For App Hosting, **each** of those secret values must be set separately via Option A or B above — there is no “paste whole .env file” in the Firebase UI; you create one secret per variable.
