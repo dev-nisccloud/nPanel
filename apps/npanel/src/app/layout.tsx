@@ -19,7 +19,13 @@ import "./globals.css";
 const DEFAULT_THEME_MODE: ThemeMode = "light";
 const DEFAULT_THEME_PRESET: ThemePreset = "twitter";
 
-const inter = Inter({ subsets: ["latin"] });
+// Font init must not throw or GET "/" can 500 (layout module loads before request). next/font can throw in some runtimes.
+let inter: { className: string };
+try {
+  inter = Inter({ subsets: ["latin"] });
+} catch {
+  inter = { className: "" };
+}
 
 export const metadata: Metadata = {
   title: APP_CONFIG.meta.title,
@@ -85,8 +91,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     } catch {
       pathname = "/";
     }
-    // Use minimal shell for "/" or when header is missing (e.g. Cloud Run proxy) so we never run getPreference for root and risk 500.
-    const isRootPath = pathname === "/" || pathname === "";
+    // Normalize like middleware: root can be "", "/", "//", or whitespace (e.g. when behind a proxy).
+    const normalized = typeof pathname === "string" ? pathname.trim().replace(/\/+/g, "/") : "";
+    const isRootPath = normalized === "" || normalized === "/";
 
     // For GET / only: minimal shell – no getPreference, no providers, no font (max reliability).
     // Any throw below is caught so we never 500; we return 200 with redirect HTML.

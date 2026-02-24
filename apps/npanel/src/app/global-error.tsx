@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
+
 /**
  * Catches uncaught errors in the root layout and elsewhere.
  * Only active in production; in dev Next.js shows the error overlay.
  * Must define its own <html> and <body> (replaces root layout when triggered).
+ * Logs error so Cloud Run / server logs show the real cause.
  */
 export default function GlobalError({
   error,
@@ -12,6 +15,16 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    // Log so Cloud Run / Firebase logs show the actual error (next.config keeps error/warn)
+    console.error(
+      "[GlobalError]",
+      error?.message ?? String(error),
+      error?.digest ? `(digest: ${error.digest})` : "",
+      error?.stack ?? ""
+    );
+  }, [error]);
+
   return (
     <html lang="en">
       <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#fafafa", color: "#18181b", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
