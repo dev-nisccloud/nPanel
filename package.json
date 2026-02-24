@@ -9,6 +9,7 @@
   "scripts": {
     "ruler:apply": "pnpm dlx @intellectronica/ruler@latest apply --local-only",
     "dev": "turbo dev",
+    "dev:npanel": "turbo dev --filter=npanel",
     "build": "turbo build",
     "check-types": "turbo check-types",
     "dev:native": "turbo -F native dev",

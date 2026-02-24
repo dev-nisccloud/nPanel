@@ -1,5 +1,5 @@
 // Service Worker for nPanel - Notifications + PWA Caching
-const CACHE_NAME = 'npanel-v1';
+const CACHE_NAME = 'npanel-v2';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache immediately on install
@@ -118,10 +118,17 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - PWA caching strategy
 self.addEventListener('fetch', (event) => {
-    // Only handle GET requests
     if (event.request.method !== 'GET') {
         return;
     }
+
+    // For document navigations, always follow redirects so we never return a redirect
+    // response to the client (avoids "redirected response was used for a request whose
+    // redirect mode is not 'follow'" which breaks the page).
+    const isNavigate = event.request.mode === 'navigate';
+    const fetchRequest = isNavigate
+        ? new Request(event.request, { redirect: 'follow' })
+        : event.request;
 
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
@@ -129,17 +136,13 @@ self.addEventListener('fetch', (event) => {
                 return cachedResponse;
             }
 
-            return fetch(event.request)
+            return fetch(fetchRequest)
                 .then((response) => {
-                    // Don't cache non-successful responses
                     if (!response || response.status !== 200 || response.type !== 'basic') {
                         return response;
                     }
 
-                    // Clone the response
                     const responseToCache = response.clone();
-
-                    // Cache successful responses (except API calls)
                     if (!event.request.url.includes('/api/')) {
                         caches.open(CACHE_NAME).then((cache) => {
                             cache.put(event.request, responseToCache);
@@ -149,9 +152,8 @@ self.addEventListener('fetch', (event) => {
                     return response;
                 })
                 .catch(() => {
-                    // If fetch fails (offline), serve offline page for navigation requests
                     if (event.request.mode === 'navigate') {
-                        return caches.match(OFFLINE_URL);
+                        return caches.match(OFFLINE_URL) || caches.match('/');
                     }
                     return new Response('Offline', { status: 503 });
                 });

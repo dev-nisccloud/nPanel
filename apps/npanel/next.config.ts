@@ -5,6 +5,9 @@ import type { NextConfig } from "next";
 const monorepoRoot = path.join(__dirname, "../..");
 
 const nextConfig: NextConfig = {
+  // Next.js 16: Turbopack is default for dev; empty config silences "webpack config but no turbopack" error.
+  // Build still uses webpack (see package.json "build" script with --webpack).
+  turbopack: {},
   // Disable typedRoutes during build to save memory (can be enabled locally)
   // typedRoutes: true,
   typescript: {

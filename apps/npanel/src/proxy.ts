@@ -17,46 +17,52 @@ export async function proxy(req: NextRequest) {
 async function runProxy(req: NextRequest): Promise<NextResponse> {
   const rawPath = req.nextUrl?.pathname ?? "";
   const pathname = typeof rawPath === "string" ? rawPath.trim() : "";
+  const normalizedPath = pathname.replace(/\/+/g, "/");
+  const pathForHeader = normalizedPath === "" || normalizedPath === "/" ? "/" : normalizedPath;
+
+  // Always forward pathname so root layout can choose minimal shell vs full layout (QueryProvider).
+  const nextRes = (response: NextResponse) => {
+    try {
+      const requestHeaders = new Headers(req.headers);
+      requestHeaders.set("x-pathname", pathForHeader);
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    } catch {
+      return response;
+    }
+  };
 
   if (pathname.startsWith("/agency")) {
     const isLoggedIn = await isSessionValid(req);
     if (!isLoggedIn) {
       const redirectRes = safeRedirectToLogin(req, pathname);
       if (redirectRes) return redirectRes;
-      return NextResponse.next();
+      return nextRes(NextResponse.next());
     }
-    return NextResponse.next();
+    return nextRes(NextResponse.next());
   }
 
-  const normalizedPath = pathname.replace(/\/+/g, "/");
   const isRoot = normalizedPath === "" || normalizedPath === "/";
   if (isRoot) {
-    try {
-      const requestHeaders = new Headers(req.headers);
-      requestHeaders.set("x-pathname", "/");
-      return NextResponse.next({ request: { headers: requestHeaders } });
-    } catch {
-      return NextResponse.next();
-    }
+    return nextRes(NextResponse.next());
   }
 
   if (pathname.startsWith("/auth")) {
-    return NextResponse.next();
+    return nextRes(NextResponse.next());
   }
 
   const publicRoutes = ["/auth", "/api", "/_next", "/accept-invite", "/create-team", "/account-status", "/unauthorized", "/update-role"];
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next();
+    return nextRes(NextResponse.next());
   }
 
   const isLoggedIn = await isSessionValid(req);
   if (!isLoggedIn) {
     const redirectRes = safeRedirectToLogin(req, pathname);
     if (redirectRes) return redirectRes;
-    return NextResponse.next();
+    return nextRes(NextResponse.next());
   }
 
-  return NextResponse.next();
+  return nextRes(NextResponse.next());
 }
 
 function safeRedirectToLogin(req: NextRequest, pathname: string): NextResponse | null {

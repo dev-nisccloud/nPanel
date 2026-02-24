@@ -1,27 +1,29 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { trpc } from "@/utils/trpc";
 
 /**
- * Client component that prefetches teams data to ensure it's available
- * when the layout and sidebar components render. This prevents loading states
- * in TeamSwitcher on initial page load.
+ * Prefetches teams data so TeamSwitcher has it on first paint.
+ * Renders only on client so tRPC context is available (avoids "Unable to find tRPC Context" when
+ * layout streams before root QueryProvider has mounted).
  */
-export function PrefetchTeams() {
+function PrefetchTeamsInner() {
   const utils = trpc.useUtils();
-
   useEffect(() => {
-    // Prefetch teams data with same caching options as TeamSwitcher
-    utils.teams.getUserTeams.prefetch(undefined, {
-      staleTime: 10 * 60 * 1000, // Cache for 10 minutes
-    }).catch((error) => {
-      // Silently handle errors - TeamSwitcher will handle loading/error states
-      console.warn("Failed to prefetch teams:", error);
-    });
+    utils.teams.getUserTeams
+      .prefetch(undefined, { staleTime: 10 * 60 * 1000 })
+      .catch((error) => {
+        console.warn("Failed to prefetch teams:", error);
+      });
   }, [utils]);
-
   return null;
 }
+
+export const PrefetchTeams = dynamic(
+  () => Promise.resolve(PrefetchTeamsInner),
+  { ssr: false }
+);
 
 

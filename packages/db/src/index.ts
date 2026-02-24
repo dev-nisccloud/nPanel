@@ -138,7 +138,7 @@ if (typeof process !== "undefined") {
 export * from "./connection-pool";
 export * from "./monitor";
 
-// Export all generated types and enums
-export * from "../prisma/generated/client";
+// Explicit named re-export for Turbopack (no `export *` from CJS Prisma client)
+export { Prisma } from "../prisma/generated/client";
 
 export default prisma;
