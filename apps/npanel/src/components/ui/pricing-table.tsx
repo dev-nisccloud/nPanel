@@ -163,8 +163,8 @@ export function PricingTable({
   return (
     <section
       className={cn(
-        "bg-background text-foreground",
-        "py-12 sm:py-24 md:py-32 px-4",
+        "text-foreground",
+        "py-12 sm:py-16 md:py-20 px-4",
         className
       )}
       {...props}
@@ -172,15 +172,16 @@ export function PricingTable({
       <div
         className={cn("w-full max-w-6xl mx-auto px-4", containerClassName)}
       >
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-2 p-1 bg-muted rounded-lg border border-border">
+        {/* Billing toggle + CTA */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 sm:mb-10">
+          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted/80 border border-border/80 shadow-sm">
             <button
               type="button"
               onClick={() => setIsYearly(false)}
               className={cn(
-                "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
                 !isYearly
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-sm border border-border/60"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -190,105 +191,158 @@ export function PricingTable({
               type="button"
               onClick={() => setIsYearly(true)}
               className={cn(
-                "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-1.5",
                 isYearly
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-sm border border-border/60"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
               Yearly
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                Save 20%
+              </span>
             </button>
           </div>
-          
-        {selectedPlanData && onPlanSelect && (
-          <Button
-            className={cn(
-              "w-full sm:w-auto px-8 py-2 rounded-xl",
-              buttonClassName
-            )}
-            onClick={() => {
-              const selectedBillingCycle = isYearly ? "YEARLY" : "MONTHLY";
-              const selectedPrice = isYearly ? selectedPlanData.price.yearly : selectedPlanData.price.monthly;
-              onPlanSelect({
-                ...selectedPlanData,
-                selectedBillingCycle,
-                selectedPrice,
-              });
-            }}
-          >
-            Get started with {selectedPlanData.name}
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        )}
-        </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          {plans.map((plan) => (
-            <button
-              key={plan.id}
-              type="button"
-              onClick={() => handlePlanCardClick(plan)}
+          {selectedPlanData && onPlanSelect && (
+            <Button
+              size="lg"
               className={cn(
-                "flex-1 p-4 rounded-xl text-left transition-all",
-                "border border-border",
-                selectedPlan === plan.level &&
-                  "ring-2 ring-primary"
+                "w-full sm:w-auto gap-2 rounded-xl font-semibold tracking-tight",
+                "shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0",
+                "transition-all duration-200 border-0",
+                buttonClassName
               )}
+              onClick={() => {
+                const selectedBillingCycle = isYearly ? "YEARLY" : "MONTHLY";
+                const selectedPrice = isYearly ? selectedPlanData.price.yearly : selectedPlanData.price.monthly;
+                onPlanSelect({
+                  ...selectedPlanData,
+                  selectedBillingCycle,
+                  selectedPrice,
+                });
+              }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">{plan.name}</span>
-                {plan.popular && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
-                    Popular
-                  </span>
-                )}
-              </div>
-              <div className="flex items-baseline gap-1">
-                <NumberFlow
-                  format={{
-                    style: "currency",
-                    currency: currency,
-                    trailingZeroDisplay: "stripIfInteger",
-                  }}
-                  value={isYearly ? plan.price.yearly : plan.price.monthly}
-                  className="text-2xl font-bold"
-                />
-                <span className="text-sm font-normal text-zinc-500">
-                  /{isYearly ? "year" : "month"}
-                </span>
-              </div>
-            </button>
-          ))}
+              Get started with {selectedPlanData.name}
+              <ArrowRight className="w-4 h-4 opacity-90" />
+            </Button>
+          )}
         </div>
 
-        <div className="border border-border rounded-xl overflow-hidden">
+        {/* Plan selector cards */}
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 mb-10">
+          {plans.map((plan) => {
+            const isSelected = selectedPlan === plan.level;
+            return (
+              <button
+                key={plan.id}
+                type="button"
+                onClick={() => handlePlanCardClick(plan)}
+                className={cn(
+                  "relative flex-1 p-5 sm:p-6 rounded-2xl text-left transition-all duration-200",
+                  "border-2 bg-card/60 hover:bg-card/90",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                  isSelected
+                    ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-2 ring-primary/25"
+                    : "border-border/80 hover:border-primary/40 hover:shadow-md"
+                )}
+              >
+                {/* Selected indicator */}
+                <div
+                  className={cn(
+                    "absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-opacity",
+                    isSelected
+                      ? "bg-primary text-primary-foreground opacity-100"
+                      : "opacity-0"
+                  )}
+                >
+                  <Check className="w-3 h-3 stroke-[2.5]" />
+                  Selected
+                </div>
+
+                {/* Radio-style dot */}
+                <div
+                  className={cn(
+                    "mb-4 flex size-8 items-center justify-center rounded-full border-2 transition-colors",
+                    isSelected
+                      ? "border-primary bg-primary"
+                      : "border-muted-foreground/30 bg-muted/50"
+                  )}
+                >
+                  {isSelected ? (
+                    <div className="size-2 rounded-full bg-primary-foreground" />
+                  ) : null}
+                </div>
+
+                <div className="flex items-center justify-between gap-2 mb-3 pr-20">
+                  <span className="text-sm font-semibold tracking-tight text-foreground uppercase">
+                    {plan.name}
+                  </span>
+                  {plan.popular && !isSelected && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full shrink-0">
+                      Popular
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <NumberFlow
+                    format={{
+                      style: "currency",
+                      currency: currency,
+                      trailingZeroDisplay: "stripIfInteger",
+                    }}
+                    value={isYearly ? plan.price.yearly : plan.price.monthly}
+                    className="text-2xl sm:text-3xl font-bold tracking-tight"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    /{isYearly ? "year" : "month"}
+                  </span>
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {isSelected ? "Click Get started above to continue" : "Click to select this plan"}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Features table */}
+        <div className="rounded-2xl border border-border overflow-hidden shadow-sm bg-card/30">
           <div className="overflow-x-auto">
-            <div className="min-w-[640px] divide-y divide-border">
-              <div className="flex items-center p-4 bg-muted">
-                <div className="w-48 sm:w-64 flex-shrink-0 text-sm font-medium">Features</div>
+            <div className="min-w-[640px]">
+              <div className="flex items-center px-4 sm:px-5 py-3.5 bg-muted/60 border-b border-border/80">
+                <div className="w-48 sm:w-64 flex-shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Features
+                </div>
                 <div className="flex items-center gap-4 sm:gap-6 text-sm flex-1">
                   {plans.map((plan) => (
                     <div
                       key={plan.level}
-                      className="flex-1 min-w-[100px] text-center font-medium"
+                      className={cn(
+                        "flex-1 min-w-[100px] text-center font-semibold text-foreground",
+                        plan.level === selectedPlan && "text-primary"
+                      )}
                     >
                       {plan.name}
                     </div>
                   ))}
                 </div>
               </div>
-              {allFeatures.map((feature) => (
+              {allFeatures.map((feature, idx) => (
                 <div
                   key={feature.name}
                   className={cn(
-                    "flex items-center p-4 transition-colors",
+                    "flex items-center px-4 sm:px-5 py-3.5 transition-colors border-b border-border/50 last:border-b-0",
+                    idx % 2 === 0 ? "bg-background/50" : "bg-muted/20",
                     selectedPlanData &&
                       selectedPlanData.features[feature.name]?.value !== null &&
                       selectedPlanData.features[feature.name]?.value !== false &&
-                      "bg-primary/5"
+                      "bg-primary/[0.06]"
                   )}
                 >
-                  <div className="w-48 sm:w-64 flex-shrink-0 text-sm">{feature.name}</div>
+                  <div className="w-48 sm:w-64 flex-shrink-0 text-sm text-foreground/90">
+                    {feature.name}
+                  </div>
                   <div className="flex items-center gap-4 sm:gap-6 text-sm flex-1">
                     {plans.map((plan) => {
                       const featureValue = plan.features[feature.name]
@@ -302,21 +356,19 @@ export function PricingTable({
                           key={plan.level}
                           className={cn(
                             "flex-1 min-w-[100px] flex justify-center",
-                            plan.level === selectedPlan && "font-medium"
+                            plan.level === selectedPlan && "font-medium text-foreground"
                           )}
                         >
                           {hasFeature && featureValue ? (
                             feature.isNumeric ? (
-                              // Show numeric value with unit
                               <span className="text-foreground">
                                 {(() => {
-                                  // Handle both number and string numbers
-                                  const numValue = typeof featureValue.value === "number" 
-                                    ? featureValue.value 
-                                    : (typeof featureValue.value === "string" 
-                                        ? parseFloat(featureValue.value) 
+                                  const numValue = typeof featureValue.value === "number"
+                                    ? featureValue.value
+                                    : (typeof featureValue.value === "string"
+                                        ? parseFloat(featureValue.value)
                                         : null)
-                                  
+
                                   if (numValue !== null && !isNaN(numValue)) {
                                     return `${numValue}${feature.unit ? ` ${feature.unit}` : ""}`
                                   }
@@ -324,13 +376,12 @@ export function PricingTable({
                                 })()}
                               </span>
                             ) : (
-                              // Show checkmark for boolean features
-                              <Check className="w-5 h-5 text-primary" />
+                              <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                              </span>
                             )
                           ) : (
-                            <span className="text-muted-foreground">
-                              -
-                            </span>
+                            <span className="text-muted-foreground/70">—</span>
                           )}
                         </div>
                       )
@@ -341,7 +392,6 @@ export function PricingTable({
             </div>
           </div>
         </div>
-
       </div>
     </section>
   )

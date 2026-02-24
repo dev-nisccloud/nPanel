@@ -1,4 +1,8 @@
+import path from "node:path";
 import type { NextConfig } from "next";
+
+// Monorepo root for standalone file tracing (pnpm symlinks + workspace packages)
+const monorepoRoot = path.join(__dirname, "../..");
 
 const nextConfig: NextConfig = {
   // Disable typedRoutes during build to save memory (can be enabled locally)
@@ -46,7 +50,17 @@ const nextConfig: NextConfig = {
     ],
   },
   // Output standalone for Docker builds to optimize container size
-  output: process.env.DOCKER_BUILD === 'true' ? 'standalone' : undefined,
+  output: process.env.DOCKER_BUILD === "true" ? "standalone" : undefined,
+  // Trace from monorepo root so pnpm symlinks and workspace packages (@nPanel/db) resolve in standalone
+  ...(process.env.DOCKER_BUILD === "true"
+    ? {
+        outputFileTracingRoot: monorepoRoot,
+        outputFileTracingIncludes: {
+          "/api/**": ["packages/db/**/*", "node_modules/@prisma/client/**/*"],
+          "/**": ["packages/db/**/*"],
+        },
+      }
+    : {}),
   // Reduce memory usage during build
   // NOTE: Disabled optimizePackageImports for now because it can trigger
   // Next.js 15.x clientReferenceManifest build bugs in some setups.

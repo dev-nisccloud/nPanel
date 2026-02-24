@@ -71,8 +71,13 @@ COPY --from=builder /app/apps/npanel/public ./apps/npanel/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/npanel/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/npanel/.next/static ./apps/npanel/.next/static
 
+# Ensure Prisma generated client is present at runtime (standalone tracer can miss workspace packages)
+RUN mkdir -p node_modules/@nPanel/db/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/packages/db/prisma/generated ./node_modules/@nPanel/db/prisma/generated
+
 ENV HOSTNAME="0.0.0.0"
 ENV NODE_ENV=production
+# Do NOT set PORT here: Cloud Run injects PORT at runtime (default 8080). Hardcoding PORT can conflict with Cloud Run and break the build/deploy.
 # Fallback so app doesn't crash when no secret is provided at runtime (Docker warns about ENV secrets—override in production via GCP Secret Manager or -e)
 ENV BETTER_AUTH_SECRET="6314f0d045ce9041126b81021bc5123bd51f718ec650ed8aa06f3ffe5ac45558"
 

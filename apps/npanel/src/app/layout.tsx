@@ -78,23 +78,23 @@ function SafeRedirectToLogin() {
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const pathname = (await headers()).get("x-pathname") ?? "";
-  const isRootPath = pathname === "/";
-
-  // For GET / only: minimal shell – no getPreference (no cookies()), no providers.
-  // Ensures first load always returns 200 and never ERR_FAILED; client page then fetches redirect.
-  if (isRootPath) {
-    return (
-      <html lang="en" suppressHydrationWarning>
-        <head />
-        <body className={`${inter.className} min-h-screen antialiased`}>
-          {children}
-        </body>
-      </html>
-    );
-  }
-
   try {
+    const pathname = (await headers()).get("x-pathname") ?? "";
+    const isRootPath = pathname === "/";
+
+    // For GET / only: minimal shell – no getPreference, no providers, no font (max reliability).
+    // Any throw below is caught so we never 500; we return 200 with redirect HTML.
+    if (isRootPath) {
+      return (
+        <html lang="en" suppressHydrationWarning>
+          <head />
+          <body className="min-h-screen antialiased">
+            {children}
+          </body>
+        </html>
+      );
+    }
+
     let themeMode: ThemeMode = DEFAULT_THEME_MODE;
     let themePreset: ThemePreset = DEFAULT_THEME_PRESET;
     try {
@@ -140,6 +140,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     if (typeof errDigest === "string" && errDigest.startsWith("NEXT_REDIRECT")) {
       throw err;
     }
+    // Log so Cloud Run Logging shows the real cause; then return 200 with redirect so we never 500.
     console.error(
       "[RootLayout] unexpected error:",
       err instanceof Error ? (err as Error).message : String(err),
