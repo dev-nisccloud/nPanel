@@ -1,0 +1,26 @@
+# Firebase App Hosting configuration
+# See: https://firebase.google.com/docs/app-hosting/configure
+#
+# SECURITY: Do NOT put real secrets (DATABASE_URL, API keys, etc.) as plain "value:" in this file.
+# This file is committed to git. For secrets, use "secret: SECRET_NAME" and store the actual
+# value in Firebase/Cloud Secret Manager: firebase apphosting:secrets:set SECRET_NAME
+
+env:
+  # Safe to commit: platform identifiers only, not sensitive.
+  - variable: PRISMA_BINARY_TARGETS
+    value: '["native", "debian-openssl-3.0.x"]'
+    availability: [BUILD]
+
+  # Use Secret Manager for these — uncomment and create the secrets, never paste real values here.
+  # - variable: DATABASE_URL
+  #   secret: DATABASE_URL
+  # - variable: DIRECT_URL
+  #   secret: DIRECT_URL
+
+# Optional: Cloud Run service settings
+# runConfig:
+#   minInstances: 0
+#   maxInstances: 100
+#   concurrency: 80
+#   memoryMiB: 512
+#   cpu: 1
