@@ -53,6 +53,10 @@ ENV NODE_ENV=production
 ENV DOCKER_BUILD=true
 # Skip env validation during build to prevent failures due to missing runtime secrets
 ENV SKIP_ENV_VALIDATION=1
+# Prisma generate (inside @nPanel/db build) needs these; reuse same values as db:generate step
+ENV PRISMA_BINARY_TARGETS='["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]'
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
+ENV DIRECT_URL="postgresql://postgres:postgres@localhost:5432/postgres"
 # Increase memory limit and limit concurrency to prevent OOM errors (API build is memory-heavy)
 RUN NODE_OPTIONS="--max-old-space-size=8192" pnpm turbo run build --filter=npanel... --concurrency=1
 

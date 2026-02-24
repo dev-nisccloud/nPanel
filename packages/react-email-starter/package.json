@@ -7,7 +7,7 @@
     "./src/*": "./src/*.ts"
   },
   "scripts": {
-    "build": "email build && node scripts/fix-spam-check.js",
+    "build": "email build && node scripts/fix-spam-check.js && node -e \"require('fs').mkdirSync('dist',{recursive:true}); require('fs').writeFileSync('dist/.turbo-build','')\"",
     "dev": "email dev",
     "export": "email export",
     "postinstall": "node scripts/fix-spam-check.js || true"
