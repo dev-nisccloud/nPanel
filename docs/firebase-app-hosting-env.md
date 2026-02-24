@@ -1,5 +1,18 @@
 # Firebase App Hosting – Environment Variables
 
+## Quick checklist (fixes common errors)
+
+| Log / error | Fix |
+|-------------|-----|
+| **Memory limit of 512 MiB exceeded** / **JavaScript heap out of memory** | `apphosting.yaml` now sets `runConfig.memoryMiB: 1024`. Redeploy. |
+| **BETTER_AUTH_SECRET: You are using the default secret** | Set secret: `firebase apphosting:secrets:set BETTER_AUTH_SECRET` (or use `pnpm run apphosting:secrets` from `.env.production`). |
+| **DATABASE_URL is not set or invalid** | Add secret and reference in `apphosting.yaml` (already referenced). Set: `firebase apphosting:secrets:set DATABASE_URL` and `firebase apphosting:secrets:set DIRECT_URL`. |
+| **Worker endpoint not configured** / **LinkedIn worker endpoint not configured** | Set `NEXT_PUBLIC_APP_URL` to your backend URL (e.g. `https://xxx---nisccloud-npanel-xxx.a.run.app`). Set secret: `firebase apphosting:secrets:set NEXT_PUBLIC_APP_URL`. |
+
+After adding or changing secrets, redeploy the backend (e.g. push a commit or trigger a new build) so the new env vars are applied.
+
+---
+
 ## PRISMA_BINARY_TARGETS (build)
 
 Before `@nPanel/db` is built, `prisma generate` runs and needs **`PRISMA_BINARY_TARGETS`** so the generated client includes the correct query engine for the **server** (App Hosting / Cloud Run), not only the build environment.
@@ -106,6 +119,18 @@ Environment variables for Firebase App Hosting are configured in **`apphosting.y
 ## For this project (nPanel)
 
 - **Build:** The `@nPanel/db` build runs `prisma generate`; it does **not** require a real database. If your Prisma schema still expects `DATABASE_URL`/`DIRECT_URL` at generate time, define them for **BUILD** (e.g. placeholder value or the same secret).
-- **Runtime:** The app needs real **`DATABASE_URL`** and **`DIRECT_URL`** at runtime. Prefer **secrets** for these in `apphosting.yaml` as above.
+- **Runtime:** The app expects these secrets to be set (referenced in `apphosting.yaml`):
+  - **DATABASE_URL** – Postgres connection string (use pooler URL if using Supabase/Neon).
+  - **DIRECT_URL** – Direct Postgres URL (no pooler) for migrations/schema.
+  - **BETTER_AUTH_SECRET** – Strong random secret for auth; never use the default in production.
+  - **NEXT_PUBLIC_APP_URL** – Your backend’s public URL (e.g. the App Hosting/Cloud Run URL like `https://xxx---nisccloud-npanel-xxx.a.run.app`). Used for auth callbacks and QStash worker endpoints.
 
-After editing `apphosting.yaml`, commit and push; the next App Hosting build will use the new env configuration.
+Set them all at once from `apps/npanel/.env.production` with:
+
+```bash
+pnpm run apphosting:secrets
+```
+
+Or set one by one: `firebase apphosting:secrets:set DATABASE_URL`, etc.
+
+After editing `apphosting.yaml` or secrets, commit and push (or trigger a new build); the next App Hosting build will use the new env configuration.

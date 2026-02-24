@@ -11,16 +11,21 @@ env:
     value: '["native", "debian-openssl-3.0.x"]'
     availability: [BUILD]
 
-  # Use Secret Manager for these — uncomment and create the secrets, never paste real values here.
-  # - variable: DATABASE_URL
-  #   secret: DATABASE_URL
-  # - variable: DIRECT_URL
-  #   secret: DIRECT_URL
+  # Required at RUNTIME — create secrets first: pnpm run apphosting:secrets (or firebase apphosting:secrets:set NAME)
+  - variable: DATABASE_URL
+    secret: DATABASE_URL
+  - variable: DIRECT_URL
+    secret: DIRECT_URL
+  - variable: BETTER_AUTH_SECRET
+    secret: BETTER_AUTH_SECRET
+  # App URL used for auth callbacks, worker endpoints (QSTASH_*), etc. Set to your backend URL, e.g. https://xxx---nisccloud-npanel-xxx.a.run.app
+  - variable: NEXT_PUBLIC_APP_URL
+    secret: NEXT_PUBLIC_APP_URL
 
-# Optional: Cloud Run service settings
-# runConfig:
-#   minInstances: 0
-#   maxInstances: 100
-#   concurrency: 80
-#   memoryMiB: 512
-#   cpu: 1
+# Cloud Run: 512 MiB is too low for Next.js (heap OOM). Use 1024 MiB minimum.
+runConfig:
+  minInstances: 0
+  maxInstances: 10
+  concurrency: 80
+  memoryMiB: 4096
+  cpu: 1
