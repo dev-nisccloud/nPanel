@@ -13,7 +13,11 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   compiler: {
-    removeConsole: process.env.NODE_ENV === "production",
+    // Keep error/warn in production so root-route and auth failures show in Cloud Run logs
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? { exclude: ["error", "warn"] }
+        : false,
   },
   // Disable source maps in production to save memory
   productionBrowserSourceMaps: false,

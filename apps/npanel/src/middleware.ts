@@ -27,9 +27,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow root to resolve auth server-side (prevents ping-pong at entry)
+  // Root: pass pathname so layout can render minimal shell (no getPreference/providers) for reliable first load
   if (pathname === "/") {
-    return NextResponse.next();
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   // If user hits auth pages while already authenticated, determine their role and redirect appropriately

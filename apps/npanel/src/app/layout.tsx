@@ -1,6 +1,7 @@
 import { ReactNode, Suspense } from "react";
 
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
@@ -77,6 +78,22 @@ function SafeRedirectToLogin() {
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const isRootPath = pathname === "/";
+
+  // For GET / only: minimal shell – no getPreference (no cookies()), no providers.
+  // Ensures first load always returns 200 and never ERR_FAILED; client page then fetches redirect.
+  if (isRootPath) {
+    return (
+      <html lang="en" suppressHydrationWarning>
+        <head />
+        <body className={`${inter.className} min-h-screen antialiased`}>
+          {children}
+        </body>
+      </html>
+    );
+  }
+
   try {
     let themeMode: ThemeMode = DEFAULT_THEME_MODE;
     let themePreset: ThemePreset = DEFAULT_THEME_PRESET;
@@ -119,11 +136,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       </html>
     );
   } catch (err) {
-    // Log full error so Cloud Run logs show the real cause; never 500 for GET /
+    const errDigest = (err as Error & { digest?: string })?.digest;
+    if (typeof errDigest === "string" && errDigest.startsWith("NEXT_REDIRECT")) {
+      throw err;
+    }
     console.error(
       "[RootLayout] unexpected error:",
-      err instanceof Error ? err.message : String(err),
-      err instanceof Error ? err.stack : ""
+      err instanceof Error ? (err as Error).message : String(err),
+      err instanceof Error ? (err as Error).stack : ""
     );
     return <SafeRedirectToLogin />;
   }
