@@ -332,7 +332,7 @@ export function BuyNowDialog({
     onSuccess: () => {
       toast.success("Order submitted for processing.");
     },
-    onError: (err) => {
+    onError: (err: { message?: string }) => {
       console.error("Create order from payment failed:", err);
       toast.error(err.message || "Order could not be created. Please contact support.");
     },

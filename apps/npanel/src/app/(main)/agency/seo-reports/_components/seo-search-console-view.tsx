@@ -217,15 +217,6 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                             ))}
                         </SelectContent>
                     </Select>
-
-                    {/* Connection Status badge */}
-                    {selectedSite && (
-                        <div className="flex items-center gap-2 text-[10px]">
-                            <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-100">
-                                <CheckCircle2 className="h-3 w-3" /> Search Console
-                            </span>
-                        </div>
-                    )}
                 </div>
 
                 <div className="flex items-center gap-2 w-full md:w-auto">
@@ -277,7 +268,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                 <div className="mt-8 space-y-12">
                     {/* Overview Scorecards - SEARCH CONSOLE */}
                     <div className="space-y-4">
-                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Search Console Performance</h3>
+                        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Search Console Performance</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <MetricCard
                                 title="Total Clicks"
@@ -328,7 +319,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             <TrendingUp className="h-4 w-4 text-primary" />
                                             <CardTitle className="text-sm font-bold tracking-tight">Performance Trend</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[10px]">Daily clicks vs impressions for the selected period</CardDescription>
+                                        <CardDescription className="text-sm text-muted-foreground">Daily clicks vs impressions for the selected period</CardDescription>
                                     </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -354,7 +345,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             <Smartphone className="h-4 w-4 text-primary" />
                                             <CardTitle className="text-sm font-bold tracking-tight">Device Traffic</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[10px]">Distribution of traffic by device type</CardDescription>
+                                        <CardDescription className="text-sm text-muted-foreground">Distribution of traffic by device type</CardDescription>
                                     </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -384,7 +375,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             <CardTitle className="text-sm font-bold tracking-tight">Top Search Queries</CardTitle>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant="outline" className="text-[10px] uppercase font-bold opacity-60">High Traffic</Badge>
+                                            <Badge variant="outline" className="text-xs uppercase font-bold opacity-60">High Traffic</Badge>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Top search queries info">
@@ -402,16 +393,16 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             <Table>
                                                 <TableHeader className="bg-muted/10">
                                                     <TableRow className="hover:bg-transparent">
-                                                        <TableHead className="h-10 px-6 text-[10px] uppercase tracking-wider font-bold">Query</TableHead>
-                                                        <TableHead className="h-10 px-4 text-right text-[10px] uppercase tracking-wider font-bold">Clicks</TableHead>
-                                                        <TableHead className="h-10 px-4 text-right text-[10px] uppercase tracking-wider font-bold">Impr.</TableHead>
-                                                        <TableHead className="h-10 px-4 text-right text-[10px] uppercase tracking-wider font-bold">CTR</TableHead>
-                                                        <TableHead className="h-10 px-6 text-right text-[10px] uppercase tracking-wider font-bold">Pos.</TableHead>
+                                                        <TableHead className="h-10 px-6 text-sm uppercase tracking-wider font-bold">Query</TableHead>
+                                                        <TableHead className="h-10 px-4 text-right text-sm uppercase tracking-wider font-bold">Clicks</TableHead>
+                                                        <TableHead className="h-10 px-4 text-right text-sm uppercase tracking-wider font-bold">Impr.</TableHead>
+                                                        <TableHead className="h-10 px-4 text-right text-sm uppercase tracking-wider font-bold">CTR</TableHead>
+                                                        <TableHead className="h-10 px-6 text-right text-sm uppercase tracking-wider font-bold">Pos.</TableHead>
                                                     </TableRow>
                                                 </TableHeader>
-                                                <TableBody className="text-xs font-medium">
+                                                <TableBody className="text-sm font-medium">
                                                     {topKeywords.map((k, i) => (
-                                                        <TableRow key={i} className="hover:bg-muted/30 transition-colors border-muted/40 text-[11px]">
+                                                        <TableRow key={i} className="hover:bg-muted/30 transition-colors border-muted/40">
                                                             <td className="px-6 py-2.5 font-bold border-none">{k.query}</td>
                                                             <td className="px-4 py-2.5 text-right border-none font-black">{formatNumber(k.clicks)}</td>
                                                             <td className="px-4 py-2.5 text-right text-muted-foreground border-none">{formatNumber(k.impressions)}</td>
@@ -436,7 +427,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             <CardTitle className="text-sm font-bold tracking-tight">Top Landing Pages</CardTitle>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant="outline" className="text-[10px] opacity-60">Clicks</Badge>
+                                            <Badge variant="outline" className="text-xs opacity-60">Clicks</Badge>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Top landing pages info">
@@ -457,11 +448,11 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                                         <TableRow key={i} className="hover:bg-muted/30 border-muted/40">
                                                             <TableCell className="px-6 py-2 border-none">
                                                                 <div className="flex flex-col">
-                                                                    <span className="text-[11px] font-bold truncate max-w-[180px]">{p.url.split('/').pop() || p.url.replace(/^https?:\/\//, '')}</span>
-                                                                    <span className="text-[9px] text-muted-foreground truncate max-w-[180px]">{p.url.replace(/^https?:\/\//, '')}</span>
+                                                                    <span className="text-sm font-bold truncate max-w-[180px]">{p.url.split('/').pop() || p.url.replace(/^https?:\/\//, '')}</span>
+                                                                    <span className="text-xs text-muted-foreground truncate max-w-[180px]">{p.url.replace(/^https?:\/\//, '')}</span>
                                                                 </div>
                                                             </TableCell>
-                                                            <TableCell className="text-right px-6 py-2 border-none font-black text-[11px]">
+                                                            <TableCell className="text-right px-6 py-2 border-none font-black text-sm">
                                                                 {formatNumber(p.clicks)}
                                                             </TableCell>
                                                         </TableRow>
@@ -483,9 +474,9 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                         <div className="flex items-center gap-2">
                                             <Sparkles className="h-4 w-4 text-primary" />
                                             <CardTitle className="text-sm font-bold tracking-tight">"Low Hanging Fruit"</CardTitle>
-                                            <Badge variant="outline" className="text-[9px] border-none bg-blue-50 text-blue-600">Page 2</Badge>
+                                            <Badge variant="outline" className="text-xs border-none bg-blue-50 text-blue-600">Page 2</Badge>
                                         </div>
-                                        <CardDescription className="text-[9px]">Push these positions (11-20) to Page 1 for quick wins.</CardDescription>
+                                        <CardDescription className="text-sm text-muted-foreground">Push these positions (11-20) to Page 1 for quick wins.</CardDescription>
                                     </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -504,14 +495,14 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             {opportunities.pageTwo.length > 0 ? opportunities.pageTwo.map((o: any, i: number) => (
                                                 <TableRow key={i} className="hover:bg-primary/5 transition-colors border-muted/40">
                                                     <TableCell className="px-6 py-2 border-none">
-                                                        <span className="text-[11px] font-bold">{o.query}</span>
+                                                        <span className="text-sm font-bold">{o.query}</span>
                                                     </TableCell>
                                                     <TableCell className="text-right px-6 py-2 border-none">
-                                                        <span className="text-[10px] font-black opacity-60">#{o.position.toFixed(1)}</span>
+                                                        <span className="text-xs font-black opacity-60">#{o.position.toFixed(1)}</span>
                                                     </TableCell>
                                                 </TableRow>
                                             )) : (
-                                                <TableRow><TableCell className="h-12 text-center text-[10px] text-muted-foreground italic">No opportunities found.</TableCell></TableRow>
+                                                <TableRow><TableCell className="h-12 text-center text-sm text-muted-foreground italic">No opportunities found.</TableCell></TableRow>
                                             )}
                                         </TableBody>
                                     </Table>
@@ -525,7 +516,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             <Zap className="h-4 w-4 text-amber-500" />
                                             <CardTitle className="text-sm font-bold tracking-tight">CTR Boosting Targets</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[9px]">Keywords with high impressions but low CTR.</CardDescription>
+                                        <CardDescription className="text-sm text-muted-foreground">Keywords with high impressions but low CTR.</CardDescription>
                                     </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -544,14 +535,14 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             {opportunities.highPotential.length > 0 ? opportunities.highPotential.map((o: any, i: number) => (
                                                 <TableRow key={i} className="hover:bg-amber-500/5 transition-colors border-muted/40">
                                                     <TableCell className="px-6 py-2 border-none">
-                                                        <span className="text-[11px] font-bold">{o.query}</span>
+                                                        <span className="text-sm font-bold">{o.query}</span>
                                                     </TableCell>
                                                     <TableCell className="text-right px-6 py-2 border-none">
-                                                        <span className="text-[10px] font-black text-amber-600">{o.ctr.toFixed(2)}%</span>
+                                                        <span className="text-xs font-black text-amber-600">{o.ctr.toFixed(2)}%</span>
                                                     </TableCell>
                                                 </TableRow>
                                             )) : (
-                                                <TableRow><TableCell className="h-12 text-center text-[10px] text-muted-foreground italic">No targets found.</TableCell></TableRow>
+                                                <TableRow><TableCell className="h-12 text-center text-sm text-muted-foreground italic">No targets found.</TableCell></TableRow>
                                             )}
                                         </TableBody>
                                     </Table>
@@ -569,7 +560,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             <TrendingUp className="h-4 w-4 text-emerald-500" />
                                             <CardTitle className="text-sm font-bold tracking-tight">Trending Up</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[9px]">Pages gaining the most clicks vs previous period.</CardDescription>
+                                        <CardDescription className="text-sm text-muted-foreground">Pages gaining the most clicks vs previous period.</CardDescription>
                                     </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -589,16 +580,16 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                                 <TableRow key={i} className="hover:bg-emerald-500/5 transition-colors border-muted/40">
                                                     <TableCell className="px-6 py-2 border-none">
                                                         <div className="flex flex-col">
-                                                            <span className="text-[11px] font-bold truncate max-w-[250px]">{p.url.split('/').pop() || p.url.replace(/^https?:\/\//, '')}</span>
-                                                            <span className="text-[9px] text-muted-foreground truncate max-w-[250px]">{p.url.replace(/^https?:\/\//, '')}</span>
+                                                            <span className="text-sm font-bold truncate max-w-[250px]">{p.url.split('/').pop() || p.url.replace(/^https?:\/\//, '')}</span>
+                                                            <span className="text-xs text-muted-foreground truncate max-w-[250px]">{p.url.replace(/^https?:\/\//, '')}</span>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-right px-6 py-2 border-none">
-                                                        <span className="text-[11px] font-black text-emerald-600">{formatNumber(p.clicks)}</span>
+                                                        <span className="text-sm font-black text-emerald-600">{formatNumber(p.clicks)}</span>
                                                     </TableCell>
                                                 </TableRow>
                                             )) : (
-                                                <TableRow><TableCell className="h-12 text-center text-[10px] text-muted-foreground italic">No trending pages.</TableCell></TableRow>
+                                                <TableRow><TableCell className="h-12 text-center text-sm text-muted-foreground italic">No trending pages.</TableCell></TableRow>
                                             )}
                                         </TableBody>
                                     </Table>
@@ -613,7 +604,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             <TrendingDown className="h-4 w-4 text-rose-500" />
                                             <CardTitle className="text-sm font-bold tracking-tight">Trending Down</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[9px]">Pages losing the most clicks vs previous period.</CardDescription>
+                                        <CardDescription className="text-sm text-muted-foreground">Pages losing the most clicks vs previous period.</CardDescription>
                                     </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -633,16 +624,16 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                                 <TableRow key={i} className="hover:bg-rose-500/5 transition-colors border-muted/40">
                                                     <TableCell className="px-6 py-2 border-none">
                                                         <div className="flex flex-col">
-                                                            <span className="text-[11px] font-bold truncate max-w-[250px]">{p.url.split('/').pop() || p.url.replace(/^https?:\/\//, '')}</span>
-                                                            <span className="text-[9px] text-muted-foreground truncate max-w-[250px]">{p.url.replace(/^https?:\/\//, '')}</span>
+                                                            <span className="text-sm font-bold truncate max-w-[250px]">{p.url.split('/').pop() || p.url.replace(/^https?:\/\//, '')}</span>
+                                                            <span className="text-xs text-muted-foreground truncate max-w-[250px]">{p.url.replace(/^https?:\/\//, '')}</span>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-right px-6 py-2 border-none">
-                                                        <span className="text-[11px] font-black text-rose-600">{formatNumber(p.clicks)}</span>
+                                                        <span className="text-sm font-black text-rose-600">{formatNumber(p.clicks)}</span>
                                                     </TableCell>
                                                 </TableRow>
                                             )) : (
-                                                <TableRow><TableCell className="h-12 text-center text-[10px] text-muted-foreground italic">No trending pages.</TableCell></TableRow>
+                                                <TableRow><TableCell className="h-12 text-center text-sm text-muted-foreground italic">No trending pages.</TableCell></TableRow>
                                             )}
                                         </TableBody>
                                     </Table>
@@ -655,7 +646,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                             {/* Geography */}
                             <Card className="shadow-none border-muted/60 overflow-hidden">
                                 <CardHeader className="py-3 px-6 border-b border-muted/60 flex flex-row items-center justify-between">
-                                    <CardTitle className="text-xs font-bold tracking-tight uppercase opacity-60">Top Countries</CardTitle>
+                                    <CardTitle className="text-sm font-bold tracking-tight uppercase opacity-60">Top Countries</CardTitle>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Top countries info">
@@ -670,7 +661,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                 <CardContent className="p-0">
                                     <ScrollArea className="h-[200px] scrollbar-default">
                                         <Table>
-                                            <TableBody className="text-[11px] font-bold">
+                                            <TableBody className="text-sm font-bold">
                                                 {topCountries.map((c, i) => (
                                                     <TableRow key={i} className="hover:bg-muted/30 border-muted/40 h-8">
                                                         <td className="px-6 py-1 uppercase">{c.country}</td>
@@ -687,7 +678,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                             {/* Search Appearance */}
                             <Card className="shadow-none border-muted/60 overflow-hidden border-dashed">
                                 <CardHeader className="py-3 px-6 border-b border-muted/60 flex flex-row items-center justify-between">
-                                    <CardTitle className="text-xs font-bold tracking-tight uppercase opacity-60">Search Appearance</CardTitle>
+                                    <CardTitle className="text-sm font-bold tracking-tight uppercase opacity-60">Search Appearance</CardTitle>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Search appearance info">
@@ -701,7 +692,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <Table>
-                                        <TableBody className="text-[11px] font-bold">
+                                        <TableBody className="text-sm font-bold">
                                             {searchAppearance.map((a: any, i: number) => (
                                                 <TableRow key={i} className="hover:bg-muted/30 border-muted/40 h-8">
                                                     <td className="px-6 py-1 lowercase">{a.appearance.replace(/^SEARCH_APPEARANCE_/, '').replace(/_/g, ' ')}</td>
@@ -716,7 +707,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                             {/* Sitemap Health */}
                             <Card className="shadow-none border-muted/60 overflow-hidden">
                                 <CardHeader className="py-3 px-6 border-b border-muted/60 flex flex-row items-center justify-between">
-                                    <CardTitle className="text-xs font-bold tracking-tight uppercase opacity-60">Sitemap Health</CardTitle>
+                                    <CardTitle className="text-sm font-bold tracking-tight uppercase opacity-60">Sitemap Health</CardTitle>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Sitemap health info">
@@ -732,15 +723,15 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                     {sitemaps.slice(0, 3).map((s: any, i: number) => (
                                         <div key={i} className="flex flex-col gap-2 border-b border-muted/30 pb-3 last:border-0 last:pb-0">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-bold truncate max-w-[120px]">{s.path.split('/').pop()}</span>
+                                                <span className="text-xs font-bold truncate max-w-[120px]">{s.path.split('/').pop()}</span>
                                                 <Badge variant="outline" className={cn(
-                                                    "text-[8px] px-1.5 py-0 font-bold",
+                                                    "text-xs px-1.5 py-0 font-bold",
                                                     s.status === "Success" ? "text-emerald-600 bg-emerald-50 border-emerald-100" :
                                                         s.status.includes("warning") ? "text-amber-600 bg-amber-50 border-amber-100" :
                                                             "text-rose-600 bg-rose-50 border-rose-100"
                                                 )}>{s.status}</Badge>
                                             </div>
-                                            <div className="flex items-center gap-3 text-[9px] text-muted-foreground">
+                                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                                 {s.errors > 0 && (
                                                     <span className="flex items-center gap-1">
                                                         <AlertCircle className="h-3 w-3 text-rose-500" />
@@ -761,7 +752,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                                 )}
                                             </div>
                                             {s.lastDownloaded && (
-                                                <span className="text-[8px] text-muted-foreground">
+                                                <span className="text-xs text-muted-foreground">
                                                     Updated: {format(new Date(s.lastDownloaded), "MMM dd, yyyy")}
                                                 </span>
                                             )}
@@ -952,7 +943,7 @@ function MetricCard({
                         <Badge
                             variant="outline"
                             className={cn(
-                                "px-1.5 py-0 text-[10px] font-bold border-transparent",
+                                "px-1.5 py-0 text-xs font-bold border-transparent",
                                 isPositive
                                     ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
                                     : "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
@@ -963,11 +954,11 @@ function MetricCard({
                     )}
                 </div>
                 <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{title}</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{title}</p>
                     <h3 className="text-xl font-bold tracking-tight">{value}</h3>
                 </div>
                 <div className="pt-2 border-t border-muted/40">
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
                         vs previous period
                     </p>
                     {!isNeutral && (

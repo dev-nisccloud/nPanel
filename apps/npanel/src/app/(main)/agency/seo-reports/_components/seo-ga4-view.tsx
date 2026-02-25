@@ -199,7 +199,7 @@ export function SeoGa4View() {
                                         <BarChart3 className="h-4 w-4 text-muted-foreground" />
                                         <span>{prop.displayName}</span>
                                         {prop.defaultUrl && (
-                                            <span className="text-muted-foreground text-[10px] truncate max-w-[120px]">
+                                            <span className="text-muted-foreground text-xs truncate max-w-[120px]">
                                                 ({prop.defaultUrl})
                                             </span>
                                         )}
@@ -259,7 +259,7 @@ export function SeoGa4View() {
                 <div className="mt-8 space-y-12">
                     {/* Overview Scorecards - GA4 */}
                     <div className="space-y-4">
-                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Google Analytics 4 Performance</h3>
+                        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Google Analytics 4 Performance</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <MetricCard
                                 title="Organic Sessions"
@@ -327,7 +327,7 @@ export function SeoGa4View() {
                                             <TrendingUp className="h-4 w-4 text-primary" />
                                             <CardTitle className="text-sm font-bold tracking-tight">Traffic Trend</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[10px]">Daily sessions and users</CardDescription>
+                                        <CardDescription className="text-sm text-muted-foreground">Daily sessions and users</CardDescription>
                                     </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -353,7 +353,7 @@ export function SeoGa4View() {
                                             <Laptop className="h-4 w-4 text-primary" />
                                             <CardTitle className="text-sm font-bold tracking-tight">Device Traffic</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[10px]">Organic traffic by device type</CardDescription>
+                                        <CardDescription className="text-sm text-muted-foreground">Organic traffic by device type</CardDescription>
                                     </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -379,7 +379,7 @@ export function SeoGa4View() {
                                             <Globe className="h-4 w-4 text-primary" />
                                             <CardTitle className="text-sm font-bold tracking-tight">Top Countries</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[10px] opacity-60">By organic search</CardDescription>
+                                        <CardDescription className="text-sm text-muted-foreground opacity-60">By organic search</CardDescription>
                                     </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -395,11 +395,11 @@ export function SeoGa4View() {
                                 <CardContent className="p-0">
                                     <ScrollArea className="h-[280px] scrollbar-default">
                                         <Table>
-                                            <TableBody className="text-[11px] font-bold">
+                                            <TableBody className="text-sm font-bold">
                                                 {topCountries.map((c: any, i: number) => (
                                                     <TableRow key={i} className="hover:bg-muted/30 border-muted/40 h-8">
                                                         <td className="px-6 py-1 uppercase">{c.country}</td>
-                                                        <td className="px-6 py-1 text-right">{formatNumber(c.clicks)} <span className="text-[9px] font-normal opacity-50 ml-1">Sessions</span></td>
+                                                        <td className="px-6 py-1 text-right">{formatNumber(c.clicks)} <span className="text-xs font-normal opacity-50 ml-1">Sessions</span></td>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
@@ -420,7 +420,7 @@ export function SeoGa4View() {
                                         <CardTitle className="text-sm font-bold tracking-tight">Highly Engaged Pages</CardTitle>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Badge variant="outline" className="text-[9px] bg-emerald-100 text-emerald-700 border-emerald-200 uppercase tracking-tighter">High Impact</Badge>
+                                        <Badge variant="outline" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200 uppercase tracking-tighter">High Impact</Badge>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Highly engaged pages info">
@@ -441,10 +441,10 @@ export function SeoGa4View() {
                                             .map((p: any, i: number) => (
                                                 <li key={i} className="flex flex-col gap-0.5">
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-[11px] font-bold truncate max-w-[200px]">{p.url.split('/').pop() || p.url}</span>
-                                                        <span className="text-[10px] font-medium text-emerald-600">{(p.engagementRate).toFixed(1)}% Eng.</span>
+                                                        <span className="text-sm font-bold truncate max-w-[200px]">{p.url.split('/').pop() || p.url}</span>
+                                                        <span className="text-xs font-medium text-emerald-600">{(p.engagementRate).toFixed(1)}% Eng.</span>
                                                     </div>
-                                                    <span className="text-[9px] text-muted-foreground italic">Exceptional retention. These pages are keeping users engaged.</span>
+                                                    <span className="text-xs text-muted-foreground italic">Exceptional retention. These pages are keeping users engaged.</span>
                                                 </li>
                                             ))}
                                     </ul>
@@ -459,7 +459,7 @@ export function SeoGa4View() {
                                         <CardTitle className="text-sm font-bold tracking-tight">Bounce Rate Alerts</CardTitle>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Badge variant="outline" className="text-[9px] bg-rose-100 text-rose-700 border-rose-200 uppercase tracking-tighter">Needs Focus</Badge>
+                                        <Badge variant="outline" className="text-xs bg-rose-100 text-rose-700 border-rose-200 uppercase tracking-tighter">Needs Focus</Badge>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Bounce rate alerts info">
@@ -480,10 +480,10 @@ export function SeoGa4View() {
                                             .map((p: any, i: number) => (
                                                 <li key={i} className="flex flex-col gap-0.5">
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-[11px] font-bold truncate max-w-[200px]">{p.url.split('/').pop() || p.url}</span>
-                                                        <span className="text-[10px] font-medium text-rose-600">{(p.bounceRate || 0).toFixed(1)}% Bounce</span>
+                                                        <span className="text-sm font-bold truncate max-w-[200px]">{p.url.split('/').pop() || p.url}</span>
+                                                        <span className="text-xs font-medium text-rose-600">{(p.bounceRate || 0).toFixed(1)}% Bounce</span>
                                                     </div>
-                                                    <span className="text-[9px] text-muted-foreground italic">High sessions but high drop-off. Audit content or page load speed.</span>
+                                                    <span className="text-xs text-muted-foreground italic">High sessions but high drop-off. Audit content or page load speed.</span>
                                                 </li>
                                             ))}
                                     </ul>
@@ -513,12 +513,12 @@ export function SeoGa4View() {
                                 <Table>
                                     <TableHeader className="bg-muted/10">
                                         <TableRow className="hover:bg-transparent">
-                                            <TableHead className="h-10 px-6 text-[10px] uppercase tracking-wider font-bold">Page</TableHead>
-                                            <TableHead className="h-10 px-4 text-right text-[10px] uppercase tracking-wider font-bold">Sessions</TableHead>
-                                            <TableHead className="h-10 px-4 text-right text-[10px] uppercase tracking-wider font-bold">Engagement</TableHead>
-                                            <TableHead className="h-10 px-4 text-right text-[10px] uppercase tracking-wider font-bold">Bounce Rate</TableHead>
-                                            <TableHead className="h-10 px-4 text-right text-[10px] uppercase tracking-wider font-bold">Avg. Duration</TableHead>
-                                            <TableHead className="h-10 px-4 text-right text-[10px] uppercase tracking-wider font-bold">Conversions</TableHead>
+                                            <TableHead className="h-10 px-6 text-sm uppercase tracking-wider font-bold">Page</TableHead>
+                                            <TableHead className="h-10 px-4 text-right text-sm uppercase tracking-wider font-bold">Sessions</TableHead>
+                                            <TableHead className="h-10 px-4 text-right text-sm uppercase tracking-wider font-bold">Engagement</TableHead>
+                                            <TableHead className="h-10 px-4 text-right text-sm uppercase tracking-wider font-bold">Bounce Rate</TableHead>
+                                            <TableHead className="h-10 px-4 text-right text-sm uppercase tracking-wider font-bold">Avg. Duration</TableHead>
+                                            <TableHead className="h-10 px-4 text-right text-sm uppercase tracking-wider font-bold">Conversions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -526,23 +526,23 @@ export function SeoGa4View() {
                                             <TableRow key={i} className="hover:bg-muted/30 border-muted/40">
                                                 <TableCell className="px-6 py-2 border-none">
                                                     <div className="flex flex-col">
-                                                        <span className="text-[11px] font-bold truncate max-w-[280px]">{p.url.split('/').pop() || p.url.replace(/^https?:\/\//, '')}</span>
-                                                        <span className="text-[9px] text-muted-foreground truncate max-w-[280px]">{p.url.replace(/^https?:\/\//, '')}</span>
+                                                        <span className="text-sm font-bold truncate max-w-[280px]">{p.url.split('/').pop() || p.url.replace(/^https?:\/\//, '')}</span>
+                                                        <span className="text-xs text-muted-foreground truncate max-w-[280px]">{p.url.replace(/^https?:\/\//, '')}</span>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-right px-6 py-2 border-none font-black text-[11px]">
+                                                <TableCell className="text-right px-6 py-2 border-none font-black text-sm">
                                                     {formatNumber(p.sessions)}
                                                 </TableCell>
-                                                <TableCell className="text-right px-6 py-2 border-none font-medium text-[11px]">
+                                                <TableCell className="text-right px-6 py-2 border-none font-medium text-sm">
                                                     {p.engagementRate.toFixed(1)}%
                                                 </TableCell>
-                                                <TableCell className="text-right px-6 py-2 border-none font-medium text-[11px]">
+                                                <TableCell className="text-right px-6 py-2 border-none font-medium text-sm">
                                                     {p.bounceRate ? `${p.bounceRate.toFixed(1)}%` : "0%"}
                                                 </TableCell>
-                                                <TableCell className="text-right px-6 py-2 border-none font-medium text-[11px]">
+                                                <TableCell className="text-right px-6 py-2 border-none font-medium text-sm">
                                                     {formatDuration(p.averageSessionDuration || 0)}
                                                 </TableCell>
-                                                <TableCell className="text-right px-6 py-2 border-none font-medium text-[11px]">
+                                                <TableCell className="text-right px-6 py-2 border-none font-medium text-sm">
                                                     {formatNumber(p.conversions)}
                                                 </TableCell>
                                             </TableRow>
@@ -677,7 +677,7 @@ function MetricCard({
                         <Badge
                             variant="outline"
                             className={cn(
-                                "px-1.5 py-0 text-[10px] font-bold border-transparent",
+                                "px-1.5 py-0 text-xs font-bold border-transparent",
                                 isPositive
                                     ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
                                     : "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
@@ -688,16 +688,16 @@ function MetricCard({
                     )}
                 </div>
                 <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{title}</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{title}</p>
                     <h3 className="text-xl font-bold tracking-tight">{value}</h3>
                 </div>
                 <div className="pt-2 border-t border-muted/40">
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
                         vs previous period
                     </p>
                     {!isNeutral && (
                         <p className={cn(
-                            "text-[9px] font-bold mt-0.5",
+                            "text-xs font-bold mt-0.5",
                             isPositive
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : "text-rose-600 dark:text-rose-400"

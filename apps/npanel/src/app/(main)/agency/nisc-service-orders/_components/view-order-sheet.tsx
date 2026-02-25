@@ -18,7 +18,7 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { trpc } from "@/utils/trpc";
+import { trpc, type RouterOutputs } from "@/utils/trpc";
 
 interface ViewOrderSheetProps {
 	open: boolean;
@@ -43,7 +43,7 @@ export function ViewOrderSheet({
 			toast.success("Order re-queued for processing");
 			onRetrySuccess?.();
 		},
-		onError: (e) => toast.error(e.message || "Retry failed"),
+		onError: (e: { message?: string }) => toast.error(e.message || "Retry failed"),
 	});
 
 	const canRetry =
@@ -92,7 +92,7 @@ export function ViewOrderSheet({
 						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground mb-2">Items</p>
 							<ul className="space-y-2 w-full">
-								{order.orderItems.map((item) => (
+								{order.orderItems.map((item: RouterOutputs["niscServiceOrders"]["getById"]["orderItems"][number]) => (
 									<li
 										key={item.id}
 										className="flex flex-col rounded border p-3 text-sm"
@@ -147,7 +147,7 @@ export function ViewOrderSheet({
 									</CollapsibleTrigger>
 									<CollapsibleContent>
 										<ul className="mt-2 space-y-2 border rounded-md divide-y bg-muted/30 max-h-64 overflow-y-auto">
-											{order.processingLogs.map((log) => (
+											{order.processingLogs.map((log: RouterOutputs["niscServiceOrders"]["getById"]["processingLogs"][number]) => (
 												<li key={log.id} className="p-2 text-xs">
 													<div className="flex items-center gap-2 flex-wrap">
 														<span className="font-mono font-medium text-foreground">

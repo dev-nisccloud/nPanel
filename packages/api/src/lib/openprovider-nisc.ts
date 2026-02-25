@@ -329,6 +329,8 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 export type EnsureOpenProviderTransferResult = {
 	subscriptionId?: string;
 	pendingVerification: boolean;
+	/** Raw API response from transferDomain (for processor_api_raw_response logging). */
+	rawResponse?: unknown;
 };
 
 /**
@@ -602,7 +604,7 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 		domainId ?? undefined,
 		"ACTIVE",
 	);
-	return { subscriptionId: sub.id, pendingVerification: false };
+	return { subscriptionId: sub.id, pendingVerification: false, rawResponse: transferResponse };
 }
 
 function buildOpenProviderCustomerRequest(

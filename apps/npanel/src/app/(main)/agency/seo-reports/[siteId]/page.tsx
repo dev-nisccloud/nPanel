@@ -99,9 +99,6 @@ export default function SeoSiteDetailPage({ params }: { params: { siteId: string
                                 </span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="h-7 px-3 bg-secondary/50 border-muted/50 font-medium">Google Search Console</Badge>
-                        </div>
                     </div>
                 </div>
 
@@ -151,7 +148,7 @@ export default function SeoSiteDetailPage({ params }: { params: { siteId: string
                             <CardHeader className="flex flex-row items-center justify-between py-4 px-6 border-b border-muted/60">
                                 <div className="space-y-0.5">
                                     <CardTitle className="text-sm font-semibold tracking-tight">Queries leading to your site</CardTitle>
-                                    <CardDescription className="text-xs">Top performing search terms</CardDescription>
+                                    <CardDescription className="text-sm text-muted-foreground">Top performing search terms</CardDescription>
                                 </div>
                                 <Search className="h-4 w-4 text-muted-foreground/50" />
                             </CardHeader>
@@ -160,14 +157,14 @@ export default function SeoSiteDetailPage({ params }: { params: { siteId: string
                                     <Table>
                                         <TableHeader className="bg-muted/30">
                                             <TableRow className="hover:bg-transparent">
-                                                <TableHead className="h-9 px-6 text-xs uppercase tracking-wider font-bold">Query</TableHead>
-                                                <TableHead className="h-9 px-4 text-right text-xs uppercase tracking-wider font-bold">Clicks</TableHead>
-                                                <TableHead className="h-9 px-4 text-right text-xs uppercase tracking-wider font-bold">Impr.</TableHead>
-                                                <TableHead className="h-9 px-4 text-right text-xs uppercase tracking-wider font-bold">CTR</TableHead>
-                                                <TableHead className="h-9 px-6 text-right text-xs uppercase tracking-wider font-bold">Pos.</TableHead>
+                                                <TableHead className="h-9 px-6 text-sm uppercase tracking-wider font-bold">Query</TableHead>
+                                                <TableHead className="h-9 px-4 text-right text-sm uppercase tracking-wider font-bold">Clicks</TableHead>
+                                                <TableHead className="h-9 px-4 text-right text-sm uppercase tracking-wider font-bold">Impr.</TableHead>
+                                                <TableHead className="h-9 px-4 text-right text-sm uppercase tracking-wider font-bold">CTR</TableHead>
+                                                <TableHead className="h-9 px-6 text-right text-sm uppercase tracking-wider font-bold">Pos.</TableHead>
                                             </TableRow>
                                         </TableHeader>
-                                        <TableBody className="text-xs font-medium">
+                                        <TableBody className="text-sm font-medium">
                                             {topKeywords.map((k, i) => (
                                                 <TableRow key={i} className="hover:bg-muted/30 transition-colors">
                                                     <td className="px-6 py-3 truncate max-w-[200px]">{k.query}</td>
@@ -188,7 +185,7 @@ export default function SeoSiteDetailPage({ params }: { params: { siteId: string
                             <CardHeader className="flex flex-row items-center justify-between py-4 px-6 border-b border-muted/60">
                                 <div className="space-y-0.5">
                                     <CardTitle className="text-sm font-semibold tracking-tight">Top Pages</CardTitle>
-                                    <CardDescription className="text-xs">Content that received the most clicks</CardDescription>
+                                    <CardDescription className="text-sm text-muted-foreground">Content that received the most clicks</CardDescription>
                                 </div>
                                 <FileText className="h-4 w-4 text-muted-foreground/50" />
                             </CardHeader>
@@ -197,12 +194,12 @@ export default function SeoSiteDetailPage({ params }: { params: { siteId: string
                                     <Table>
                                         <TableHeader className="bg-muted/30">
                                             <TableRow className="hover:bg-transparent">
-                                                <TableHead className="h-9 px-6 text-xs uppercase tracking-wider font-bold">URL</TableHead>
-                                                <TableHead className="h-9 px-4 text-right text-xs uppercase tracking-wider font-bold">Clicks</TableHead>
-                                                <TableHead className="h-9 px-6 text-right text-xs uppercase tracking-wider font-bold">Impr.</TableHead>
+                                                <TableHead className="h-9 px-6 text-sm uppercase tracking-wider font-bold">URL</TableHead>
+                                                <TableHead className="h-9 px-4 text-right text-sm uppercase tracking-wider font-bold">Clicks</TableHead>
+                                                <TableHead className="h-9 px-6 text-right text-sm uppercase tracking-wider font-bold">Impr.</TableHead>
                                             </TableRow>
                                         </TableHeader>
-                                        <TableBody className="text-xs font-medium">
+                                        <TableBody className="text-sm font-medium">
                                             {topPages.top.map((p, i) => (
                                                 <TableRow key={i} className="hover:bg-muted/30 transition-colors">
                                                     <td className="px-6 py-3 truncate max-w-[300px] text-primary hover:underline">
@@ -229,35 +226,35 @@ export default function SeoSiteDetailPage({ params }: { params: { siteId: string
                             <CardContent className="p-0">
                                 <div className="p-4 space-y-4">
                                     <div>
-                                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 mb-2 flex items-center gap-1.5">
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2 flex items-center gap-1.5">
                                             <TrendingUp className="h-3 w-3" /> Trending Up
                                         </h4>
                                         <div className="space-y-2">
                                             {topPages.trendingUp.length > 0 ? topPages.trendingUp.map((p, i) => (
                                                 <div key={i} className="flex flex-col p-2.5 rounded-md bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-100/50 dark:border-emerald-500/10">
-                                                    <span className="text-xs font-medium truncate mb-1">{p.url.split('/').pop() || p.url}</span>
+                                                    <span className="text-sm font-medium truncate mb-1">{p.url.split('/').pop() || p.url}</span>
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-[10px] text-muted-foreground">{formatNumber(p.clicks)} clicks</span>
-                                                        <span className="text-[10px] font-bold text-emerald-600">+{p.clicksChange} clicks</span>
+                                                        <span className="text-xs text-muted-foreground">{formatNumber(p.clicks)} clicks</span>
+                                                        <span className="text-xs font-bold text-emerald-600">+{p.clicksChange} clicks</span>
                                                     </div>
                                                 </div>
-                                            )) : <p className="text-[10px] text-muted-foreground italic">No gainers found</p>}
+                                            )) : <p className="text-xs text-muted-foreground italic">No gainers found</p>}
                                         </div>
                                     </div>
                                     <div className="pt-2">
-                                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-2 flex items-center gap-1.5">
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-2 flex items-center gap-1.5">
                                             <TrendingUp className="h-3 w-3 rotate-180" /> Trending Down
                                         </h4>
                                         <div className="space-y-2">
                                             {topPages.trendingDown.length > 0 ? topPages.trendingDown.map((p, i) => (
                                                 <div key={i} className="flex flex-col p-2.5 rounded-md bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100/50 dark:border-rose-500/10">
-                                                    <span className="text-xs font-medium truncate mb-1">{p.url.split('/').pop() || p.url}</span>
+                                                    <span className="text-sm font-medium truncate mb-1">{p.url.split('/').pop() || p.url}</span>
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-[10px] text-muted-foreground">{formatNumber(p.clicks)} clicks</span>
-                                                        <span className="text-[10px] font-bold text-rose-600">{p.clicksChange} clicks</span>
+                                                        <span className="text-xs text-muted-foreground">{formatNumber(p.clicks)} clicks</span>
+                                                        <span className="text-xs font-bold text-rose-600">{p.clicksChange} clicks</span>
                                                     </div>
                                                 </div>
-                                            )) : <p className="text-[10px] text-muted-foreground italic">No losers found</p>}
+                                            )) : <p className="text-xs text-muted-foreground italic">No losers found</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -274,11 +271,11 @@ export default function SeoSiteDetailPage({ params }: { params: { siteId: string
                                 <Table>
                                     <TableHeader className="bg-muted/30">
                                         <TableRow className="hover:bg-transparent">
-                                            <TableHead className="h-8 px-6 text-[10px] uppercase font-bold">Country</TableHead>
-                                            <TableHead className="h-8 px-6 text-right text-[10px] uppercase font-bold">Clicks</TableHead>
+                                            <TableHead className="h-8 px-6 text-sm uppercase font-bold">Country</TableHead>
+                                            <TableHead className="h-8 px-6 text-right text-sm uppercase font-bold">Clicks</TableHead>
                                         </TableRow>
                                     </TableHeader>
-                                    <TableBody className="text-[11px] font-medium">
+                                    <TableBody className="text-sm font-medium">
                                         {topCountries.map((c, i) => (
                                             <TableRow key={i} className="hover:bg-muted/30 transition-colors">
                                                 <td className="px-6 py-2 uppercase">{c.country}</td>
@@ -341,7 +338,7 @@ function MetricCard({
                         <Badge
                             variant="outline"
                             className={cn(
-                                "px-1.5 py-0 text-[10px] font-bold border-transparent",
+                                "px-1.5 py-0 text-xs font-bold border-transparent",
                                 isPositive
                                     ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
                                     : "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
@@ -352,11 +349,11 @@ function MetricCard({
                     )}
                 </div>
                 <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{title}</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{title}</p>
                     <h3 className="text-xl font-bold tracking-tight">{value}</h3>
                 </div>
                 <div className="pt-2 border-t border-muted/40">
-                    <p className="text-[10px] text-muted-foreground">vs previous period</p>
+                    <p className="text-xs text-muted-foreground">vs previous period</p>
                 </div>
             </CardContent>
         </Card>

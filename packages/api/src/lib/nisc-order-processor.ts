@@ -255,6 +255,21 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 					serviceType,
 					domainProvider,
 				});
+
+				const transferMeta = serviceType === "domain_transfer" ? (item.metadata as DomainTransferItemMetadata) : null;
+				const domainTransferRequestId = transferMeta?.domainTransferRequestId?.trim();
+				if (domainTransferRequestId) {
+					await prisma.domainTransferRequest.update({
+						where: { id: domainTransferRequestId },
+						data: {
+							status: "SUBMITTED_TO_PROVIDER",
+							submittedToProviderAt: now,
+							providerResponse: { niscOrderId, orderItemId: item.id },
+							updatedAt: now,
+						},
+					});
+				}
+
 				const result =
 					domainProvider === "kenic"
 						? serviceType === "domain_transfer"
@@ -272,6 +287,19 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 							? "openprovider_transfer"
 							: "openprovider_registration";
 				if (result.ok) {
+					if (branchName === "kenic_transfer" || branchName === "openprovider_transfer") {
+						const rawResponse =
+							"rawResponse" in result ? (result as { rawResponse?: unknown }).rawResponse : undefined;
+						if (rawResponse !== undefined) {
+							await niscLog("processor_api_raw_response", {
+								niscOrderId,
+								orderItemId: item.id,
+								provider: branchName === "kenic_transfer" ? "kenic" : "openprovider",
+								call: branchName === "kenic_transfer" ? "executeKenicTransferRequest" : "transferDomain",
+								rawResponse,
+							});
+						}
+					}
 					await prisma.niscOrderItem.update({
 						where: { id: item.id },
 						data: {
@@ -281,6 +309,20 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 							updatedAt: now,
 						},
 					});
+					if (domainTransferRequestId) {
+						await prisma.domainTransferRequest.update({
+							where: { id: domainTransferRequestId },
+							data: {
+								status: "COMPLETED",
+								providerResponse: {
+									subscriptionId: result.subscriptionId ?? null,
+									status: result.status,
+									pendingVerification: result.pendingVerification ?? false,
+								},
+								updatedAt: now,
+							},
+						});
+					}
 					await niscLog("processor_item_success", {
 						niscOrderId,
 						orderItemId: item.id,
@@ -292,6 +334,19 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 					hasSuccess = true;
 				} else {
 					const errDetails = "errorDetails" in result ? result.errorDetails : undefined;
+					if (branchName === "kenic_transfer" || branchName === "openprovider_transfer") {
+						const rawResponse =
+							errDetails && typeof errDetails === "object" && "rawResponse" in errDetails
+								? (errDetails as { rawResponse?: unknown }).rawResponse
+								: errDetails;
+						await niscLog("processor_api_raw_response", {
+							niscOrderId,
+							orderItemId: item.id,
+							provider: branchName === "kenic_transfer" ? "kenic" : "openprovider",
+							call: branchName === "kenic_transfer" ? "executeKenicTransferRequest" : "transferDomain",
+							rawResponse: rawResponse ?? errDetails,
+						});
+					}
 					await prisma.niscOrderItem.update({
 						where: { id: item.id },
 						data: {
@@ -301,6 +356,19 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 							updatedAt: now,
 						},
 					});
+					if (domainTransferRequestId) {
+						await prisma.domainTransferRequest.update({
+							where: { id: domainTransferRequestId },
+							data: {
+								status: "FAILED",
+								providerResponse: {
+									error: result.error,
+									errorDetails: errDetails ?? undefined,
+								} as Prisma.InputJsonValue,
+								updatedAt: now,
+							},
+						});
+					}
 					await niscLog("processor_item_failed", {
 						niscOrderId,
 						orderItemId: item.id,
@@ -569,8 +637,12 @@ async function processPleskOrderItem(
 	}
 }
 
-/** Metadata stored on NiscOrderItem for domain_transfer (auth code, optional nameservers). */
-type DomainTransferItemMetadata = { transferAuthCode?: string; nameServers?: Array<{ name: string; ip?: string }> } | null;
+/** Metadata stored on NiscOrderItem for domain_transfer (auth code, optional nameservers, link to DomainTransferRequest). */
+type DomainTransferItemMetadata = {
+	transferAuthCode?: string;
+	nameServers?: Array<{ name: string; ip?: string }>;
+	domainTransferRequestId?: string;
+} | null;
 
 type DomainOrderItem = {
 	id: string;
@@ -671,24 +743,82 @@ async function processKenicOrderItem(
 	}
 }
 
-/** KENIC TLD: transfer. Not yet implemented. */
+/** KENIC TLD: transfer via EPP, then create NiscClientSubscription (same as registration for tracking). */
 async function processKenicTransferOrderItem(
-	_order: DomainOrder,
+	order: DomainOrder,
 	item: DomainOrderItem,
 ): Promise<
-	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean }
-	| { ok: false; error: string }
+	| { ok: true; subscriptionId: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean; rawResponse?: unknown }
+	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domain = item.primaryDomain?.trim();
 	if (!domain) {
 		return { ok: false, error: "Primary domain is required for KENIC domain transfer." };
 	}
-	// TODO: Implement KENIC EPP transfer and create NiscClientSubscription / Domain.
-	return {
-		ok: false,
-		error:
-			"KENIC domain transfer via NISC is not yet implemented. Use domain transfer flow for .ke/.co.ke.",
-	};
+	const meta = item.metadata as DomainTransferItemMetadata;
+	const authCode = meta?.transferAuthCode?.trim();
+	if (!authCode) {
+		return { ok: false, error: "Transfer auth code is required. Provide it in the order item metadata (transferAuthCode)." };
+	}
+	const ownerId = order.teamId
+		? (await prisma.team.findUnique({ where: { id: order.teamId }, select: { createdById: true } }))?.createdById
+		: order.userId;
+	if (!ownerId || !order.createdBy) {
+		return {
+			ok: false,
+			error: "Order must have a team or user and createdBy for KENIC domain transfer.",
+		};
+	}
+	try {
+		const { executeKenicTransferRequest } = await import("./kenic-transfer-request");
+		const transferResult = await executeKenicTransferRequest({
+			name: domain,
+			authCode,
+			period: 1,
+		});
+		const name = item.productPlan
+			? `${item.product.name} - ${item.productPlan.name}`
+			: item.product.name;
+		const sub = await prisma.niscClientSubscription.create({
+			data: {
+				name,
+				description: item.description ?? "transfer",
+				userId: order.userId,
+				teamId: order.teamId,
+				productId: item.productId,
+				productPlanId: item.productPlanId ?? null,
+				niscOrderId: order.id,
+				subscribedBy: order.createdBy,
+				status: "ACTIVE",
+				subscriptionDate: new Date(),
+				billingCycle: item.billingCycle as "YEARLY" | "BIENNIALLY" | null ?? null,
+				pricingModel: "FIXED",
+				agreedPrice: item.itemPrice,
+				agreedCurrency: order.currency,
+				agreedCost: item.productPlan?.cost ?? null,
+				agreedCostCurrency: "KES",
+				primaryDomain: domain,
+				openProviderId: null,
+				expiryDate: transferResult.exDate ? new Date(transferResult.exDate) : null,
+				metadata: Prisma.JsonNull,
+			},
+		});
+		return {
+			ok: true,
+			subscriptionId: sub.id,
+			status: transferResult.pending ? "PENDING" : "PROVISIONED",
+			pendingVerification: transferResult.pending,
+			rawResponse: transferResult.raw,
+		};
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		const errorDetails = buildProvisioningErrorDetails(err);
+		return {
+			ok: false as const,
+			error: message,
+			errorDetails,
+		};
+	}
 }
 
 async function processOpenProviderTransferOrderItem(
@@ -707,7 +837,7 @@ async function processOpenProviderTransferOrderItem(
 		productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null } | null;
 	},
 ): Promise<
-	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean }
+	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean; rawResponse?: unknown }
 	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domainName = item.primaryDomain;
@@ -751,6 +881,7 @@ async function processOpenProviderTransferOrderItem(
 			subscriptionId: result.subscriptionId,
 			status: result.pendingVerification ? "PENDING" : "PROVISIONED",
 			pendingVerification: result.pendingVerification,
+			rawResponse: result.rawResponse,
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);

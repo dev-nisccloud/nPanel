@@ -1,11 +1,18 @@
 import { z } from "zod";
 
+/**
+ * NISC Service Orders – UI-layer schemas and enums.
+ * Fully independent from DB/Prisma. Enum values must stay in sync with API (nisc-service-orders-schemas).
+ * Used for forms and display only; no imports from API or db.
+ */
+
 export const billingCycleSchema = z.enum([
 	"MONTHLY",
 	"YEARLY",
 	"BIENNIALLY",
 	"CUSTOM",
 ]);
+export type BillingCycle = z.infer<typeof billingCycleSchema>;
 
 export const niscOrderStatusSchema = z.enum([
 	"PENDING",
@@ -14,6 +21,16 @@ export const niscOrderStatusSchema = z.enum([
 	"FAILED",
 	"PARTIAL",
 ]);
+export type NiscOrderStatus = z.infer<typeof niscOrderStatusSchema>;
+
+export const niscOrderItemStatusSchema = z.enum([
+	"PENDING",
+	"PROCESSING",
+	"PROVISIONED",
+	"FAILED",
+	"SKIPPED",
+]);
+export type NiscOrderItemStatus = z.infer<typeof niscOrderItemStatusSchema>;
 
 export const createOrderItemSchema = z.object({
 	productId: z.string().min(1, "Product is required"),

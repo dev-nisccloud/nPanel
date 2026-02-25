@@ -21,6 +21,11 @@ type TransferProvider = "kenic" | "openprovider" | null;
 /** Matches API transferStatus: available = register CTA, locked = unlock message, ready = purchase, pending_check = KENIC Continue (no Ready badge). */
 type TransferStatus = "available" | "locked" | "ready" | "pending_check" | "reserved" | "unavailable";
 
+export interface TransferDomainSectionProps {
+  /** Base URL for "Register domain" link when domain is available for registration. Defaults to /agency/domains. */
+  registerDomainsHref?: string;
+}
+
 // Same formatPrice as domain search/registration (Intl.NumberFormat + currency symbols)
 function formatPrice(price?: number, currency?: string): string {
   if (price == null) return "N/A";
@@ -44,7 +49,7 @@ function formatPrice(price?: number, currency?: string): string {
   return `${symbol} ${formattedNumber}`;
 }
 
-export function TransferDomainSection() {
+export function TransferDomainSection({ registerDomainsHref = "/agency/domains" }: TransferDomainSectionProps = {}) {
   const [domainInput, setDomainInput] = React.useState("");
   const [status, setStatus] = React.useState<ValidationStatus>("idle");
   const [message, setMessage] = React.useState("");
@@ -376,13 +381,12 @@ export function TransferDomainSection() {
           </Button>
         </div>
 
-        {message && (
+        {/* Only show inline message for non-error states; errors use the dedicated sections below to avoid duplicate text */}
+        {message && status !== "error" && (
           <p
             className={cn(
               "mt-2 rounded-md px-3 py-2 text-sm",
-              status === "error"
-                ? "bg-destructive/10 text-destructive"
-                : "bg-primary/10 text-primary"
+              "bg-primary/10 text-primary"
             )}
           >
             {message}
@@ -402,7 +406,7 @@ export function TransferDomainSection() {
               </div>
             </div>
             <Button asChild className="w-fit">
-              <Link href={`/agency/domains${domainInput.trim() ? `?search=${encodeURIComponent(domainInput.trim())}` : ""}`}>
+              <Link href={`${registerDomainsHref}${domainInput.trim() ? `?search=${encodeURIComponent(domainInput.trim())}` : ""}`}>
                 Register domain
               </Link>
             </Button>

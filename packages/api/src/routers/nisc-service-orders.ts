@@ -1,93 +1,17 @@
-import { z } from "zod";
+import * as crypto from "crypto";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import prisma, { Prisma } from "@nPanel/db";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
-
-const billingCycleSchema = z.enum(["MONTHLY", "YEARLY", "BIENNIALLY", "CUSTOM"]);
-const niscOrderStatusSchema = z.enum([
-	"PENDING",
-	"PROCESSING",
-	"COMPLETED",
-	"FAILED",
-	"PARTIAL",
-]);
-
-const createItemSchema = z.object({
-	productId: z.string(),
-	productPlanId: z.string(),
-	billingCycle: billingCycleSchema.optional(),
-	primaryDomain: z.string().optional(),
-	domainSubscriptionId: z.string().optional(),
-	/** For domain_transfer: { transferAuthCode: string, nameServers?: Array<{ name: string; ip?: string }> } */
-	metadata: z
-		.object({
-			transferAuthCode: z.string().optional(),
-			nameServers: z
-				.array(z.object({ name: z.string(), ip: z.string().optional() }))
-				.optional(),
-		})
-		.optional(),
-});
-
-const getAllInputSchema = z.object({
-	userId: z.string().optional(),
-	teamId: z.string().optional(),
-	status: niscOrderStatusSchema.optional(),
-	limit: z.number().min(1).max(100).default(50),
-	offset: z.number().min(0).default(0),
-});
-
-const getByIdInputSchema = z.object({ id: z.string() });
-
-const createInputSchema = z
-	.object({
-		userId: z.string().optional(),
-		teamId: z.string().optional(),
-		items: z.array(createItemSchema).min(1),
-		promoCode: z.string().optional(),
-		notes: z.string().optional(),
-	})
-	.superRefine((data, ctx) => {
-		if (!data.userId && !data.teamId) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: "Either userId or teamId is required",
-				path: ["userId"],
-			});
-		}
-	});
-
-const retryInputSchema = z.object({ niscOrderId: z.string() });
-
-/** Item for createFromPayment: domain/product line from checkout (no plan required for domains). */
-const createFromPaymentItemSchema = z.object({
-	productId: z.string(),
-	productPlanId: z.string().nullable().optional(),
-	billingCycle: billingCycleSchema.optional(),
-	primaryDomain: z.string().optional(),
-	/** e.g. "registration", "transfer", "renewal" — per item. */
-	description: z.string().optional(),
-	itemPrice: z.string(),
-	itemSubtotal: z.string(),
-	domainSubscriptionId: z.string().optional(),
-	metadata: z
-		.object({
-			transferAuthCode: z.string().optional(),
-			nameServers: z
-				.array(z.object({ name: z.string(), ip: z.string().optional() }))
-				.optional(),
-		})
-		.optional(),
-});
-
-const createFromPaymentInputSchema = z.object({
-	checkoutRequestId: z.string().min(1),
-	items: z.array(createFromPaymentItemSchema).min(1),
-	currency: z.string().default("KES"),
-	/** When set, order is for this team (customer checkout). Required for team-scoped orders. */
-	teamId: z.string().optional(),
-});
+import { isKenicDomain } from "../lib/epp/kenic-tlds";
+import {
+	createFromPaymentInputSchema,
+	createOrderInputSchema,
+	createOrderItemSchema,
+	getAllNiscOrdersInputSchema,
+	getNiscOrderByIdInputSchema,
+	retryNiscOrderInputSchema,
+} from "./nisc-service-orders-schemas";
 
 function generateNiscOrderNumber(): string {
 	const year = new Date().getFullYear();
@@ -98,7 +22,7 @@ function generateNiscOrderNumber(): string {
 
 export const niscServiceOrdersRouter = router({
 	getAll: protectedProcedure
-		.input(getAllInputSchema)
+		.input(getAllNiscOrdersInputSchema)
 		.query(async ({ ctx, input }) => {
 			if (!ctx.session?.user?.id) {
 				throw new TRPCError({
@@ -110,8 +34,7 @@ export const niscServiceOrdersRouter = router({
 			const where: Prisma.NiscOrderWhereInput = {};
 			if (input.userId != null) where.userId = input.userId;
 			if (input.teamId != null) where.teamId = input.teamId;
-			if (input.status != null)
-				where.status = input.status as "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "PARTIAL";
+			if (input.status != null) where.status = input.status;
 
 			const [orders, total] = await Promise.all([
 				prisma.niscOrder.findMany({
@@ -169,7 +92,7 @@ export const niscServiceOrdersRouter = router({
 		}),
 
 	getById: protectedProcedure
-		.input(getByIdInputSchema)
+		.input(getNiscOrderByIdInputSchema)
 		.query(async ({ ctx, input }) => {
 			if (!ctx.session?.user?.id) {
 				throw new TRPCError({
@@ -209,7 +132,7 @@ export const niscServiceOrdersRouter = router({
 		}),
 
 	create: protectedProcedure
-		.input(createInputSchema)
+		.input(createOrderInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			const session = ctx.session;
 			if (!session?.user?.id) {
@@ -552,6 +475,54 @@ export const niscServiceOrdersRouter = router({
 				}
 			}
 
+			// For domain_transfer items: create DomainTransferRequest (PENDING) so processor can update status later
+			const transferRequestIdsByIndex: (string | null)[] = [];
+			const now = new Date();
+			for (let idx = 0; idx < input.items.length; idx++) {
+				const item = input.items[idx];
+				if (item == null) {
+					transferRequestIdsByIndex.push(null);
+					continue;
+				}
+				const product = await prisma.niscProduct.findUnique({
+					where: { id: item.productId },
+					select: { serviceType: true },
+				});
+				if (product?.serviceType !== "domain_transfer" || !item.primaryDomain?.trim()) {
+					transferRequestIdsByIndex.push(null);
+					continue;
+				}
+				const meta = item.metadata && typeof item.metadata === "object"
+					? (item.metadata as { transferAuthCode?: string })
+					: null;
+				const authCode = meta?.transferAuthCode?.trim();
+				if (!authCode) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Domain transfer item requires metadata.transferAuthCode.`,
+					});
+				}
+				const domainName = item.primaryDomain.trim();
+				const provider = isKenicDomain(domainName) ? "KENIC" : "OPENPROVIDER";
+				const requestId = crypto.randomUUID();
+				await prisma.domainTransferRequest.create({
+					data: {
+						id: requestId,
+						domainName,
+						authCode,
+						provider,
+						status: "PENDING",
+						customerPriceAmount: item.itemSubtotal ?? null,
+						customerPriceCurrency: input.currency ?? "KES",
+						teamId: input.teamId ?? null,
+						createdById: userId,
+						createdAt: now,
+						updatedAt: now,
+					},
+				});
+				transferRequestIdsByIndex.push(requestId);
+			}
+
 			let orderNumber: string;
 			let existing: { id: string } | null;
 			do {
@@ -582,11 +553,17 @@ export const niscServiceOrdersRouter = router({
 				},
 			});
 
-			for (const item of input.items) {
+			for (let idx = 0; idx < input.items.length; idx++) {
+				const item = input.items[idx]!;
 				const metadata =
 					item.metadata && typeof item.metadata === "object"
 						? (item.metadata as { transferAuthCode?: string; nameServers?: Array<{ name: string; ip?: string }> })
 						: null;
+				const domainTransferRequestId = transferRequestIdsByIndex[idx] ?? undefined;
+				const mergedMetadata =
+					domainTransferRequestId != null
+						? { ...(metadata ?? {}), domainTransferRequestId }
+						: (metadata ?? undefined);
 				await prisma.niscOrderItem.create({
 					data: {
 						niscOrderId: order.id,
@@ -599,9 +576,19 @@ export const niscServiceOrdersRouter = router({
 						primaryDomain: item.primaryDomain ?? null,
 						domainSubscriptionId: item.domainSubscriptionId ?? null,
 						description: item.description ?? null,
-						metadata: metadata ?? undefined,
+						metadata: mergedMetadata ?? undefined,
 					},
 				});
+			}
+
+			// Link DomainTransferRequest(s) to this order for tracking
+			for (const requestId of transferRequestIdsByIndex) {
+				if (requestId) {
+					await prisma.domainTransferRequest.update({
+						where: { id: requestId },
+						data: { niscOrder: { connect: { id: order.id } }, updatedAt: new Date() },
+					});
+				}
 			}
 
 			let qstashMessageId: string | null = null;
@@ -682,7 +669,7 @@ export const niscServiceOrdersRouter = router({
 		}),
 
 	retry: protectedProcedure
-		.input(retryInputSchema)
+		.input(retryNiscOrderInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			if (!ctx.session?.user?.id) {
 				throw new TRPCError({

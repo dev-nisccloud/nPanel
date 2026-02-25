@@ -213,14 +213,13 @@ export function GlobalBuyNowDialog() {
 
   const PROCESSING_CODES = new Set([1037, 4999]);
 
-  // @ts-expect-error - tRPC useMutation type instantiation is excessively deep with createFromPayment input
   const createOrderFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation({
     onSuccess: () => {
       if (isCartMode) clearCart();
       setCheckoutRequestId(null);
       orderCreatedForCheckoutRef.current = null;
     },
-    onError: (err) => {
+    onError: (err: { message?: string }) => {
       toast.error(err.message || "Order could not be created. Please contact support.");
     },
   });

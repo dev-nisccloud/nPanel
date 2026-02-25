@@ -35,6 +35,10 @@ model DomainTransferRequest {
   submittedToProviderAt DateTime?
   providerResponse      Json? // Success/error payload from provider
 
+  // Optional link to NiscOrder when this transfer is created as/from an order (for tracking)
+  niscOrderId String?
+  niscOrder   NiscOrder? @relation(fields: [niscOrderId], references: [id], onDelete: SetNull)
+
   createdById String
   createdBy   User   @relation("DomainTransferRequestCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
 
@@ -46,5 +50,6 @@ model DomainTransferRequest {
   @@index([createdById])
   @@index([teamId])
   @@index([createdAt])
+  @@index([niscOrderId])
   @@map("domain_transfer_request")
 }

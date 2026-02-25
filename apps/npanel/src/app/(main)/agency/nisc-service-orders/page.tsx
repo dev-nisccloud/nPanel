@@ -22,7 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { trpc } from "@/utils/trpc";
+import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { CreateOrderSheet } from "./_components/create-order-sheet";
 import { ViewOrderSheet } from "./_components/view-order-sheet";
 
@@ -60,7 +60,7 @@ export default function NiscServiceOrdersPage() {
 	const utils = trpc.useUtils();
 	const { data, isLoading, error, refetch } = trpc.niscServiceOrders.getAll.useQuery(
 		{ limit: 50 },
-		{ placeholderData: (prev) => prev }
+		{ placeholderData: (prev: RouterOutputs["niscServiceOrders"]["getAll"] | undefined) => prev }
 	);
 
 	const retryMutation = trpc.niscServiceOrders.retry.useMutation({
@@ -68,7 +68,7 @@ export default function NiscServiceOrdersPage() {
 			toast.success("Order re-queued for processing");
 			utils.niscServiceOrders.getAll.invalidate();
 		},
-		onError: (e) => toast.error(e.message || "Retry failed"),
+		onError: (e: { message?: string }) => toast.error(e.message || "Retry failed"),
 	});
 
 	const filteredOrders = React.useMemo(() => {
@@ -76,7 +76,7 @@ export default function NiscServiceOrdersPage() {
 		if (!searchQuery.trim()) return data.orders;
 		const q = searchQuery.toLowerCase().trim();
 		return data.orders.filter(
-			(o) =>
+			(o: RouterOutputs["niscServiceOrders"]["getAll"]["orders"][number]) =>
 				o.orderNumber.toLowerCase().includes(q) ||
 				o.user?.name?.toLowerCase().includes(q) ||
 				o.team?.name?.toLowerCase().includes(q) ||
@@ -190,7 +190,7 @@ export default function NiscServiceOrdersPage() {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{filteredOrders.map((order) => (
+									{filteredOrders.map((order: RouterOutputs["niscServiceOrders"]["getAll"]["orders"][number]) => (
 										<TableRow
 											key={order.id}
 											className="cursor-pointer"
@@ -207,7 +207,7 @@ export default function NiscServiceOrdersPage() {
 											</TableCell>
 											<TableCell>
 												{order.orderItems
-													.map((i) => `${i.productName} – ${i.planName ?? "—"}`)
+													.map((i: { productName: string; planName?: string | null }) => `${i.productName} – ${i.planName ?? "—"}`)
 													.join(", ")}
 											</TableCell>
 											<TableCell>

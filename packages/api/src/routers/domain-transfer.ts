@@ -341,4 +341,31 @@ export const domainTransferRouter = router({
 				});
 			}
 		}),
+
+	/**
+	 * List domain transfer requests for the agency (all requests; auth required).
+	 * Does not return authCode for security.
+	 */
+	listTransferRequests: protectedProcedure.query(async () => {
+		const list = await prisma.domainTransferRequest.findMany({
+			orderBy: { createdAt: "desc" },
+			select: {
+				id: true,
+				domainName: true,
+				provider: true,
+				status: true,
+				providerPriceAmount: true,
+				providerPriceCurrency: true,
+				customerPriceAmount: true,
+				customerPriceCurrency: true,
+				submittedToProviderAt: true,
+				createdAt: true,
+				updatedAt: true,
+				createdBy: {
+					select: { id: true, name: true, email: true },
+				},
+			},
+		});
+		return list;
+	}),
 });

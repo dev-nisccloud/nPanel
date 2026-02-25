@@ -72,7 +72,7 @@ export function CreateOrderSheet({
 			onSuccess?.();
 			utils.niscServiceOrders.getAll.invalidate();
 		},
-		onError: (e) => toast.error(e.message || "Failed to create order"),
+		onError: (e: { message?: string }) => toast.error(e.message || "Failed to create order"),
 	});
 
 	const form = useForm<CreateOrderFormData>({
