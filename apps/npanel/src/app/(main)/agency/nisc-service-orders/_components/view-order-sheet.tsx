@@ -18,7 +18,27 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { trpc, type RouterOutputs } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
+
+/** Shallow type for order items in the view to avoid deep tRPC type instantiation. */
+type ViewOrderItem = {
+	id: string;
+	product: { name: string };
+	productPlan: { name: string } | null;
+	itemSubtotal: string;
+	itemCurrency: string | null;
+	status: string;
+	provisioningError: string | null;
+	provisioningErrorDetails: object | null;
+};
+
+/** Shallow type for processing logs to avoid deep tRPC type instantiation. */
+type ViewProcessingLog = {
+	id: string;
+	step: string;
+	createdAt: string;
+	payload: unknown;
+};
 
 interface ViewOrderSheetProps {
 	open: boolean;
@@ -92,7 +112,7 @@ export function ViewOrderSheet({
 						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground mb-2">Items</p>
 							<ul className="space-y-2 w-full">
-								{order.orderItems.map((item: RouterOutputs["niscServiceOrders"]["getById"]["orderItems"][number]) => (
+								{(order.orderItems as unknown as ViewOrderItem[]).map((item) => (
 									<li
 										key={item.id}
 										className="flex flex-col rounded border p-3 text-sm"
@@ -108,20 +128,20 @@ export function ViewOrderSheet({
 												{item.provisioningError}
 											</span>
 										)}
-										{item.provisioningErrorDetails && (
+										{item.provisioningErrorDetails != null ? (
 											<details className="mt-2">
 												<summary className="text-muted-foreground text-xs cursor-pointer hover:text-foreground">
 													Provider error details (raw response)
 												</summary>
 												<pre className="mt-1 p-2 rounded bg-muted/50 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px]">
 													{JSON.stringify(
-														item.provisioningErrorDetails as object,
+														item.provisioningErrorDetails,
 														null,
 														2
 													)}
 												</pre>
 											</details>
-										)}
+										) : null}
 									</li>
 								))}
 							</ul>
@@ -147,7 +167,7 @@ export function ViewOrderSheet({
 									</CollapsibleTrigger>
 									<CollapsibleContent>
 										<ul className="mt-2 space-y-2 border rounded-md divide-y bg-muted/30 max-h-64 overflow-y-auto">
-											{order.processingLogs.map((log: RouterOutputs["niscServiceOrders"]["getById"]["processingLogs"][number]) => (
+											{(order.processingLogs as unknown as ViewProcessingLog[]).map((log) => (
 												<li key={log.id} className="p-2 text-xs">
 													<div className="flex items-center gap-2 flex-wrap">
 														<span className="font-mono font-medium text-foreground">

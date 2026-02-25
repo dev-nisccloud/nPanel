@@ -936,6 +936,18 @@ export const clientSubscriptionsRouter = router({
         return product?.id ?? null;
     }),
 
+    /** Resolve product ID for domain transfer (serviceType domain_transfer). Used for transfer checkout → createFromPayment. */
+    getTransferProductId: protectedProcedure.query(async () => {
+        const product = await prisma.niscProduct.findFirst({
+            where: {
+                serviceType: "domain_transfer",
+                isActive: true,
+            },
+            select: { id: true, name: true },
+        });
+        return product ? { id: product.id, name: product.name } : null;
+    }),
+
     /** Get subscription by OpenProvider domain ID (for checking if domain already has a connected subscription). */
     getByOpenProviderId: protectedProcedure
         .input(z.object({ openProviderId: z.number().int().positive() }))

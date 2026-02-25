@@ -79,7 +79,7 @@ interface SelectedAddOn {
 }
 
 export function GlobalBuyNowDialog() {
-  const { open, mode, productContext, close } = useGlobalBuyNowStore();
+  const { open, mode, productContext, transferContext, close } = useGlobalBuyNowStore();
   const { items, getTotalsByCurrency, getCurrenciesInCart, getItemCount, clearCart, getDomains } = useCartStore();
 
   const [currentStep, setCurrentStep] = React.useState<Step>("review");
@@ -114,6 +114,7 @@ export function GlobalBuyNowDialog() {
   const orderCreatedForCheckoutRef = React.useRef<string | null>(null);
 
   const isCartMode = mode === "cart";
+  const isTransferMode = mode === "transfer";
   const ctx = productContext;
   const hasDomain = !!ctx?.domain?.domain;
   const isDomainProduct = hasDomain;
@@ -134,9 +135,11 @@ export function GlobalBuyNowDialog() {
   );
   const plans = (planSelectionProduct as { plans?: Array<{ id: string; name: string; price: string | null; currency: string; billingCycle: string | null }> })?.plans ?? [];
 
-  const displayCurrency = ctx?.domain?.price?.calculated
-    ? (ctx.domain.price.calculated as { displayCurrency?: string })?.displayCurrency ?? (ctx.domain.price.calculated as { currency?: string })?.currency ?? "KES"
-    : ctx?.domain?.price?.reseller?.currency ?? "KES";
+  const displayCurrency = isTransferMode && transferContext
+    ? transferContext.currency
+    : ctx?.domain?.price?.calculated
+      ? (ctx.domain.price.calculated as { displayCurrency?: string })?.displayCurrency ?? (ctx.domain.price.calculated as { currency?: string })?.currency ?? "KES"
+      : ctx?.domain?.price?.reseller?.currency ?? "KES";
   const domainDisplayPrice = (() => {
     if (!ctx?.domain) return 0;
     const calc = ctx.domain.price?.calculated as { convertedPrice?: number; finalPrice?: number } | undefined;
@@ -154,7 +157,8 @@ export function GlobalBuyNowDialog() {
   const primaryCurrency = currenciesInCart[0] ?? "KES";
   const cartSubtotal = totalsByCurrency[primaryCurrency] ?? 0;
 
-  const subtotal = isCartMode ? cartSubtotal : productSubtotal;
+  const transferSubtotal = isTransferMode && transferContext ? transferContext.price : 0;
+  const subtotal = isTransferMode ? transferSubtotal : isCartMode ? cartSubtotal : productSubtotal;
   const taxRate = 0.16;
   const taxes = subtotal * taxRate;
   const total = subtotal + taxes;
@@ -378,7 +382,9 @@ export function GlobalBuyNowDialog() {
     }
     const amount = parseFloat(paymentAmount);
     const timestamp = Date.now().toString().slice(-9);
-    const transactionDesc = isCartMode ? `CART${timestamp}` : (ctx?.domain?.domain?.replace(/\./g, "").slice(0, 9).toUpperCase() ?? "ORD") + timestamp;
+    const transactionDesc = isCartMode ? `CART${timestamp}` : isTransferMode && transferContext
+      ? (transferContext.domain.replace(/\./g, "").slice(0, 9).toUpperCase() || "TRF") + timestamp
+      : (ctx?.domain?.domain?.replace(/\./g, "").slice(0, 9).toUpperCase() ?? "ORD") + timestamp;
     try {
       await initiateMpesaPayment.mutateAsync({
         phoneNumber: mpesaPhoneNumber.trim(),
@@ -406,7 +412,9 @@ export function GlobalBuyNowDialog() {
     setCurrentStep("payment");
     setPaymentAmount(total.toString());
     const ts = Date.now().toString().slice(-9);
-    setAccountReference(isCartMode ? `CART${ts}`.slice(0, 12) : (ctx?.domain?.domain?.replace(/\./g, "").slice(0, 3).toUpperCase() || "ORD") + ts);
+    setAccountReference(isCartMode ? `CART${ts}`.slice(0, 12) : isTransferMode && transferContext
+      ? (transferContext.domain.replace(/\./g, "").slice(0, 3).toUpperCase() || "TRF") + ts
+      : (ctx?.domain?.domain?.replace(/\./g, "").slice(0, 3).toUpperCase() || "ORD") + ts);
     setAccountRefError("");
     setPhoneError("");
     setAmountError("");
@@ -495,12 +503,14 @@ export function GlobalBuyNowDialog() {
 
   React.useEffect(() => {
     if (!open) return;
-    if (isCartMode) {
+    if (isTransferMode) {
+      setCurrentStep("review");
+    } else if (isCartMode) {
       setCurrentStep("review");
     } else {
       setCurrentStep(hasDomain ? "product" : "product");
     }
-  }, [open, isCartMode, hasDomain]);
+  }, [open, isCartMode, isTransferMode, hasDomain]);
 
   React.useEffect(() => {
     if (!open) {
@@ -538,6 +548,27 @@ export function GlobalBuyNowDialog() {
   // When payment succeeds, create order from payment (once per checkoutRequestId)
   React.useEffect(() => {
     if (currentStep !== "success" || !checkoutRequestId || orderCreatedForCheckoutRef.current === checkoutRequestId) return;
+    if (isTransferMode && transferContext) {
+      const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
+      orderCreatedForCheckoutRef.current = checkoutRequestId;
+      createOrderFromPayment.mutate({
+        checkoutRequestId,
+        items: [
+          {
+            productId: transferContext.productId,
+            primaryDomain: transferContext.domain,
+            description: "transfer",
+            productPlanId: null,
+            itemPrice: str(transferContext.price),
+            itemSubtotal: str(transferContext.price),
+            metadata: { transferAuthCode: transferContext.authCode },
+          },
+        ],
+        currency: transferContext.currency,
+        teamId: transferContext.teamId,
+      });
+      return;
+    }
     if (isCartMode) {
       const domains = getDomains();
       if (!domainsProductId || domains.length === 0) return;
@@ -589,10 +620,14 @@ export function GlobalBuyNowDialog() {
       ],
       currency: displayCurrency,
     });
-  }, [currentStep, checkoutRequestId, isCartMode, ctx, domainsProductId, getDomains, primaryCurrency, displayCurrency]);
+  }, [currentStep, checkoutRequestId, isCartMode, isTransferMode, transferContext, ctx, domainsProductId, getDomains, primaryCurrency, displayCurrency]);
 
   if (!open) return null;
   if (isCartMode && totalItems === 0) {
+    close();
+    return null;
+  }
+  if (isTransferMode && !transferContext) {
     close();
     return null;
   }
@@ -805,6 +840,28 @@ export function GlobalBuyNowDialog() {
         );
 
       case "review":
+        if (isTransferMode && transferContext) {
+          return (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-4 flex justify-between items-center">
+                <div>
+                  <div className="font-medium">Domain transfer – {transferContext.domain}</div>
+                  <div className="text-sm text-muted-foreground">Includes 1 year renewal</div>
+                </div>
+                <div className="font-semibold">{formatPrice(transferContext.price, transferContext.currency)}</div>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Taxes & fees</span>
+                <span>{formatPrice(taxes, primaryCurr)}</span>
+              </div>
+              <div className="border-t pt-4 flex items-center justify-between font-bold text-lg">
+                <span>Total</span>
+                <span>{formatPrice(total, primaryCurr)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">By paying you agree to our Terms of Service. The transfer will be processed after payment.</p>
+            </div>
+          );
+        }
         if (isCartMode) {
           return (
             <div className="space-y-4">
@@ -1077,8 +1134,12 @@ export function GlobalBuyNowDialog() {
           )}
           {effectiveStep === "review" && (
             <>
-              <Button variant="ghost" onClick={isCartMode ? () => close() : handleBack}>{isCartMode ? "Cancel" : "Back"}</Button>
-              <Button onClick={openForPayment}>Choose payment method</Button>
+              <Button variant="ghost" onClick={isCartMode ? () => close() : isTransferMode ? () => close() : handleBack}>
+                {isCartMode ? "Cancel" : isTransferMode ? "Cancel" : "Back"}
+              </Button>
+              <Button onClick={openForPayment}>
+                {isTransferMode ? "Proceed to payment" : "Choose payment method"}
+              </Button>
             </>
           )}
           {effectiveStep === "payment" && (

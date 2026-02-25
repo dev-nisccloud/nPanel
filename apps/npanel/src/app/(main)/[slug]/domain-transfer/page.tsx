@@ -5,10 +5,15 @@ import { usePathname } from "next/navigation";
 import { CurrencyProvider } from "../../agency/domains/_components/currency-context";
 import { TransferDomainSection } from "../../agency/domain-transfer/_components/transfer-domain-section";
 import { TransferPrerequisites } from "../../agency/domain-transfer/_components/transfer-prerequisites";
+import { trpc } from "@/utils/trpc";
 
 export default function DomainTransferPage() {
   const pathname = usePathname();
   const teamSlug = pathname.split("/")[1] ?? "";
+  const { data: teamData } = trpc.teams.getTeamIdBySlug.useQuery(
+    { slug: teamSlug },
+    { enabled: !!teamSlug }
+  );
 
   return (
     <CurrencyProvider>
@@ -22,7 +27,10 @@ export default function DomainTransferPage() {
           </div>
 
           <div className="mt-6">
-            <TransferDomainSection registerDomainsHref={teamSlug ? `/${teamSlug}/domains` : "/agency/domains"} />
+            <TransferDomainSection
+              registerDomainsHref={teamSlug ? `/${teamSlug}/domains` : "/agency/domains"}
+              teamId={teamData?.id ?? null}
+            />
           </div>
 
           <div className="mt-6">

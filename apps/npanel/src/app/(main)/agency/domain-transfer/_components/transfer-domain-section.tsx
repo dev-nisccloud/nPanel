@@ -24,6 +24,8 @@ type TransferStatus = "available" | "locked" | "ready" | "pending_check" | "rese
 export interface TransferDomainSectionProps {
   /** Base URL for "Register domain" link when domain is available for registration. Defaults to /agency/domains. */
   registerDomainsHref?: string;
+  /** For customer/team checkout (createFromPayment teamId). Pass when on a team slug page. */
+  teamId?: string | null;
 }
 
 // Same formatPrice as domain search/registration (Intl.NumberFormat + currency symbols)
@@ -49,7 +51,7 @@ function formatPrice(price?: number, currency?: string): string {
   return `${symbol} ${formattedNumber}`;
 }
 
-export function TransferDomainSection({ registerDomainsHref = "/agency/domains" }: TransferDomainSectionProps = {}) {
+export function TransferDomainSection({ registerDomainsHref = "/agency/domains", teamId }: TransferDomainSectionProps = {}) {
   const [domainInput, setDomainInput] = React.useState("");
   const [status, setStatus] = React.useState<ValidationStatus>("idle");
   const [message, setMessage] = React.useState("");
@@ -494,6 +496,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains" 
             customerPriceAmount={displayPrice ?? null}
             customerPriceCurrency={displayCurrency ?? transferPrice?.currency ?? null}
             provider={provider}
+            teamId={teamId}
             onPurchase={() => setPurchaseSheetOpen(true)}
             purchaseSheetOpen={purchaseSheetOpen}
             onPurchaseSheetOpenChange={setPurchaseSheetOpen}

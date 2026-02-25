@@ -16,16 +16,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "sonner";
 import { SheetClose } from "@/components/npanel-ui/sheet";
 import { trpc } from "@/utils/trpc";
+import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import type { TransferProvider } from "./transfer-ready-card";
-
-type ProviderResponseState =
-  | { type: "error"; message: string }
-  | { type: "success"; message: string }
-  | null;
 
 const transferFormSchema = z.object({
   authCode: z.string().min(1, "Authorization code is required"),
@@ -72,6 +67,8 @@ interface TransferFormProps {
   customerPriceAmount?: number | null;
   customerPriceCurrency?: string | null;
   provider: TransferProvider;
+  /** For customer/team checkout (createFromPayment teamId) */
+  teamId?: string | null;
   onSuccess?: () => void;
 }
 
@@ -86,10 +83,14 @@ export function TransferForm({
   customerPriceAmount,
   customerPriceCurrency,
   provider,
+  teamId,
   onSuccess,
 }: TransferFormProps) {
   const [showEppCode, setShowEppCode] = React.useState(false);
-  const [providerResponse, setProviderResponse] = React.useState<ProviderResponseState>(null);
+  const openForTransfer = useGlobalBuyNowStore((s) => s.openForTransfer);
+  // Use the existing \"Domains\" product for transfer (same as registration).
+  const { data: domainsProductId, isLoading: loadingDomainsProduct } =
+    trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined);
 
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(transferFormSchema),
@@ -98,50 +99,7 @@ export function TransferForm({
     },
   });
 
-  const authCodeValue = form.watch("authCode");
-  const prevAuthCodeRef = React.useRef(authCodeValue);
-
-  // Clear error state when user changes EPP code so they can retry
-  React.useEffect(() => {
-    if (providerResponse?.type === "error" && prevAuthCodeRef.current !== authCodeValue) {
-      setProviderResponse(null);
-    }
-    prevAuthCodeRef.current = authCodeValue;
-  }, [authCodeValue, providerResponse?.type]);
-
-  const onTransferSuccess = (message: string) => {
-    setProviderResponse({ type: "success", message });
-    toast.success("Domain transfer initiated successfully", {
-      description: `Transfer request for ${fullDomain} has been submitted. We will process it shortly.`,
-    });
-    form.reset();
-  };
-
-  const handleDone = () => {
-    setProviderResponse(null);
-    onSuccess?.();
-  };
-
-  const initiateTransfer = trpc.domainTransfer.initiateTransfer.useMutation({
-    onSuccess: (_data) => {
-      const pending = _data && "pending" in _data && _data.pending;
-      const msg = pending
-        ? "Transfer is pending approval from the current registrar."
-        : "Transfer request has been sent to the provider.";
-      onTransferSuccess(msg);
-    },
-    onError: (error) => {
-      setProviderResponse({
-        type: "error",
-        message: error.message ?? "An unexpected error occurred. Please check the EPP code and try again.",
-      });
-      toast.error("Failed to initiate transfer", {
-        description: error.message ?? "An unexpected error occurred",
-      });
-    },
-  });
-
-  const onSubmit = async (data: TransferFormValues) => {
+  const onSubmit = (data: TransferFormValues) => {
     const authCode = (data.authCode ?? "").trim();
     if (!authCode) {
       toast.error("Authorization code required", {
@@ -149,25 +107,24 @@ export function TransferForm({
       });
       return;
     }
-    try {
-      await initiateTransfer.mutateAsync({
-        domain: fullDomain,
-        authCode,
-        provider,
-        domainName: initialDomain,
-        extension: initialExtension.startsWith(".") ? initialExtension.slice(1) : initialExtension,
-        providerPriceAmount: providerPriceAmount != null ? String(providerPriceAmount) : undefined,
-        providerPriceCurrency: providerPriceCurrency ?? undefined,
-        customerPriceAmount: customerPriceAmount != null ? String(customerPriceAmount) : undefined,
-        customerPriceCurrency: customerPriceCurrency ?? undefined,
+    if (!domainsProductId) {
+      toast.error("Domain product not available for transfer", {
+        description: "Please try again or contact support.",
       });
-    } catch {
-      // Error handled by mutation onError
+      return;
     }
+    openForTransfer({
+      domain: fullDomain,
+      authCode,
+      price,
+      currency,
+      productId: domainsProductId,
+      teamId: teamId ?? undefined,
+    });
+    onSuccess?.();
   };
 
-  const isSubmitting = initiateTransfer.isPending;
-  const isSubmitDisabled = isSubmitting || providerResponse?.type === "error";
+  const isSubmitDisabled = loadingDomainsProduct;
 
   return (
     <Form {...form}>
@@ -193,7 +150,6 @@ export function TransferForm({
                     placeholder="Enter authorization code from current registrar"
                     className="pr-10"
                     {...field}
-                    disabled={isSubmitting}
                   />
                   <Button
                     type="button"
@@ -219,46 +175,6 @@ export function TransferForm({
           )}
         />
 
-        {providerResponse !== null && (
-          <div
-            className={`rounded-lg border p-4 ${
-              providerResponse.type === "error"
-                ? "border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/30"
-                : "border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-950/30"
-            }`}
-            role="alert"
-          >
-            <p
-              className={`text-sm font-medium ${
-                providerResponse.type === "error"
-                  ? "text-red-800 dark:text-red-200"
-                  : "text-green-800 dark:text-green-200"
-              }`}
-            >
-              {providerResponse.type === "error" ? "Error" : "Success"}
-            </p>
-            <p
-              className={`mt-1 text-sm ${
-                providerResponse.type === "error"
-                  ? "text-red-700 dark:text-red-300"
-                  : "text-green-700 dark:text-green-300"
-              }`}
-            >
-              {providerResponse.message}
-            </p>
-            {providerResponse.type === "error" && (
-              <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-                Change the EPP code above to enable the submit button and try again.
-              </p>
-            )}
-            {providerResponse.type === "success" && (
-              <Button type="button" size="sm" className="mt-3" onClick={handleDone}>
-                Done
-              </Button>
-            )}
-          </div>
-        )}
-
         <div className="rounded-lg border bg-muted/50 p-4">
           <p className="text-sm font-medium text-foreground">Transfer price</p>
           <p className="text-xl font-bold text-foreground">{formatPrice(price, currency)}</p>
@@ -269,19 +185,12 @@ export function TransferForm({
 
         <div className="flex justify-end gap-2 pt-4">
           <SheetClose asChild>
-            <Button type="button" variant="outline" disabled={isSubmitting}>
+            <Button type="button" variant="outline">
               Cancel
             </Button>
           </SheetClose>
           <Button type="submit" disabled={isSubmitDisabled}>
-            {isSubmitting ? (
-              <>
-                <Spinner variant="ellipsis" className="mr-2" size="sm" />
-                Initiating transfer...
-              </>
-            ) : (
-              "Initiate transfer"
-            )}
+            Proceed to payment
           </Button>
         </div>
       </form>

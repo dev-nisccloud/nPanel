@@ -39,6 +39,8 @@ interface TransferReadyCardProps {
   ctaLabel?: string;
   /** Badge label; default "Ready for transfer". Use "We'll check availability" for KENIC pending_check. */
   statusLabel?: string;
+  /** For customer/team checkout (createFromPayment teamId) */
+  teamId?: string | null;
 }
 
 // Same formatPrice as domain search/registration (Intl.NumberFormat + currency symbols)
@@ -80,6 +82,7 @@ export function TransferReadyCard({
   initialExtension,
   ctaLabel = "Purchase",
   statusLabel = "Ready for transfer",
+  teamId,
 }: TransferReadyCardProps) {
   const renewalYear = new Date().getFullYear() + 1;
   const renewalDate = `${renewalYear}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`;
@@ -163,6 +166,7 @@ export function TransferReadyCard({
                   customerPriceAmount={customerPriceAmount ?? price}
                   customerPriceCurrency={customerPriceCurrency ?? currency}
                   provider={provider}
+                  teamId={teamId}
                   onSuccess={() => onPurchaseSheetOpenChange(false)}
                 />
               </div>

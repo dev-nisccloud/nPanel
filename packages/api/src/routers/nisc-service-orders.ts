@@ -209,14 +209,24 @@ export const niscServiceOrdersRouter = router({
 						message: `Domain registration item "${product.name}" requires a primary domain name.`,
 					});
 				}
-				if (
-					product.serviceType === "domain_transfer" &&
-					(!item.primaryDomain || !(item.metadata as { transferAuthCode?: string })?.transferAuthCode?.trim())
-				) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: `Domain transfer item "${product.name}" requires a primary domain and transfer auth code (metadata.transferAuthCode).`,
-					});
+				const isDomainService =
+					product.serviceType === "domain_transfer" ||
+					product.serviceType === "domain_registration" ||
+					product.serviceType === "domains" ||
+					product.serviceType.toLowerCase().includes("domain");
+				const isTransferItem =
+					isDomainService && product.serviceType === "domain_transfer";
+				if (isTransferItem) {
+					const meta =
+						item.metadata && typeof item.metadata === "object"
+							? (item.metadata as { transferAuthCode?: string })
+							: null;
+					if (!item.primaryDomain || !meta?.transferAuthCode?.trim()) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: `Domain transfer item "${product.name}" requires a primary domain and transfer auth code (metadata.transferAuthCode).`,
+						});
+					}
 				}
 			}
 
@@ -488,7 +498,15 @@ export const niscServiceOrdersRouter = router({
 					where: { id: item.productId },
 					select: { serviceType: true },
 				});
-				if (product?.serviceType !== "domain_transfer" || !item.primaryDomain?.trim()) {
+				const isDomainService =
+					product?.serviceType === "domain_transfer" ||
+					product?.serviceType === "domain_registration" ||
+					product?.serviceType === "domains" ||
+					(product?.serviceType?.toLowerCase().includes("domain") ?? false);
+				const isTransferItem =
+					isDomainService &&
+					(item.description === "transfer" || product?.serviceType === "domain_transfer");
+				if (!isTransferItem || !item.primaryDomain?.trim()) {
 					transferRequestIdsByIndex.push(null);
 					continue;
 				}
@@ -637,11 +655,10 @@ export const niscServiceOrdersRouter = router({
 					const html = await renderNiscOrderReceivedEmail({
 						customerName: orderWithUser.user.name ?? undefined,
 						orderNumber: orderWithUser.orderNumber,
-						orderDate: orderWithUser.createdAt.toISOString().slice(0, 10),
+						orderDate: orderWithUser.createdAt.toISOString().replace("T", " ").slice(0, 16),
 						totalAmount: orderWithUser.total,
 						currency: orderWithUser.currency,
 						orderItems,
-						orderLink: undefined,
 					});
 					await sendEmail({
 						to: orderWithUser.user.email,
