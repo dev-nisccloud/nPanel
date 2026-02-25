@@ -14,7 +14,7 @@ export const pleskDnsResponseSchema = z.object({
               "site-id": z.number().optional(),
               type: z.string().optional(),
               host: z.string().optional(),
-              value: z.string().optional(),
+              value: z.union([z.string(), z.number()]).optional(),
               opt: z.union([z.string(), z.number()]).optional(),
             }).optional(),
           })),

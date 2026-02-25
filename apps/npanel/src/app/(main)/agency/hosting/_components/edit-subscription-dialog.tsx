@@ -41,6 +41,18 @@ import { DatePicker } from "@/components/npanel-ui/date-picker";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 
+function addBillingPeriod(
+  date: Date,
+  cycle: "YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM"
+): Date {
+  const next = new Date(date);
+  if (cycle === "MONTHLY") next.setMonth(next.getMonth() + 1);
+  else if (cycle === "YEARLY") next.setFullYear(next.getFullYear() + 1);
+  else if (cycle === "BIENNIALLY") next.setFullYear(next.getFullYear() + 2);
+  else next.setFullYear(next.getFullYear() + 1);
+  return next;
+}
+
 // Edit form schema - all fields optional
 const editFormSchema = z.object({
   hostingPlanId: z.string().optional(),
@@ -293,7 +305,16 @@ export function EditSubscriptionDialog({
                   <FormItem>
                     <FormLabel>Billing Cycle</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        const nextRenewal = form.getValues("nextRenewalDate");
+                        if (nextRenewal) {
+                          form.setValue(
+                            "expiryDate",
+                            addBillingPeriod(nextRenewal, value as "YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM")
+                          );
+                        }
+                      }}
                       value={field.value}
                     >
                       <FormControl>
@@ -323,7 +344,16 @@ export function EditSubscriptionDialog({
                       <FormControl>
                         <DatePicker
                           value={field.value}
-                          onChange={field.onChange}
+                          onChange={(date) => {
+                            field.onChange(date);
+                            const cycle = form.getValues("billingCycle");
+                            if (date && cycle) {
+                              form.setValue(
+                                "expiryDate",
+                                addBillingPeriod(date, cycle as "YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM")
+                              );
+                            }
+                          }}
                           placeholder="Pick a date"
                         />
                       </FormControl>

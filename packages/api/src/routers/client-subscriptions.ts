@@ -190,6 +190,8 @@ const getSubscriptionsInputSchema = z.object({
 
 const getSubscriptionByIdInputSchema = z.object({
     id: z.string(),
+    /** When provided (e.g. customer detail at /[teamSlug]/domains-portfolio/[id]), enforces that the subscription belongs to this team and the user is a member. */
+    teamSlug: z.string().optional(),
     includeRenewals: z.boolean().default(false),
     includeCommissions: z.boolean().default(false),
 });
@@ -510,6 +512,9 @@ export const clientSubscriptionsRouter = router({
                     status: subscriptionStatusSchema,
                     productName: z.string(),
                     productPlanName: z.string().nullable(),
+                    subscriptionDate: z.date().nullable(),
+                    expiryDate: z.date().nullable(),
+                    primaryDomain: z.string().nullable(),
                 })
             )
         )
@@ -569,6 +574,9 @@ export const clientSubscriptionsRouter = router({
                     id: true,
                     name: true,
                     status: true,
+                    subscriptionDate: true,
+                    expiryDate: true,
+                    primaryDomain: true,
                     serviceRefs: true,
                     pleskFilterId: true,
                     hostingSubscriptionId: true,
@@ -604,6 +612,9 @@ export const clientSubscriptionsRouter = router({
                     status: sub.status,
                     productName: sub.product.name,
                     productPlanName: sub.productPlan?.name ?? null,
+                    subscriptionDate: sub.subscriptionDate,
+                    expiryDate: sub.expiryDate,
+                    primaryDomain: sub.primaryDomain,
                 };
             });
         }),
@@ -620,6 +631,9 @@ export const clientSubscriptionsRouter = router({
                     status: subscriptionStatusSchema,
                     productName: z.string(),
                     productPlanName: z.string().nullable(),
+                    subscriptionDate: z.date().nullable(),
+                    expiryDate: z.date().nullable(),
+                    primaryDomain: z.string().nullable(),
                 })
             )
         )
@@ -676,6 +690,9 @@ export const clientSubscriptionsRouter = router({
                     id: true,
                     name: true,
                     status: true,
+                    subscriptionDate: true,
+                    expiryDate: true,
+                    primaryDomain: true,
                     serviceRefs: true,
                     pleskFilterId: true,
                     hostingSubscriptionId: true,
@@ -711,6 +728,9 @@ export const clientSubscriptionsRouter = router({
                     status: sub.status,
                     productName: sub.product.name,
                     productPlanName: sub.productPlan?.name ?? null,
+                    subscriptionDate: sub.subscriptionDate,
+                    expiryDate: sub.expiryDate,
+                    primaryDomain: sub.primaryDomain,
                 };
             });
         }),
@@ -727,6 +747,9 @@ export const clientSubscriptionsRouter = router({
                     status: subscriptionStatusSchema,
                     productName: z.string(),
                     productPlanName: z.string().nullable(),
+                    subscriptionDate: z.date().nullable(),
+                    expiryDate: z.date().nullable(),
+                    primaryDomain: z.string().nullable(),
                 })
             )
         )
@@ -783,6 +806,9 @@ export const clientSubscriptionsRouter = router({
                     id: true,
                     name: true,
                     status: true,
+                    subscriptionDate: true,
+                    expiryDate: true,
+                    primaryDomain: true,
                     serviceRefs: true,
                     pleskFilterId: true,
                     product: { select: { name: true } },
@@ -804,6 +830,9 @@ export const clientSubscriptionsRouter = router({
                     status: sub.status,
                     productName: sub.product.name,
                     productPlanName: sub.productPlan?.name ?? null,
+                    subscriptionDate: sub.subscriptionDate,
+                    expiryDate: sub.expiryDate,
+                    primaryDomain: sub.primaryDomain,
                 };
             });
         }),
@@ -840,6 +869,37 @@ export const clientSubscriptionsRouter = router({
                     code: "NOT_FOUND",
                     message: "Subscription not found",
                 });
+            }
+
+            if (input.teamSlug) {
+                const team = await prisma.team.findUnique({
+                    where: { slug: input.teamSlug },
+                    select: { id: true },
+                });
+                if (!team) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "Team not found",
+                    });
+                }
+                const membership = await prisma.teamMember.findUnique({
+                    where: {
+                        teamId_userId: { teamId: team.id, userId: session.user.id },
+                    },
+                    select: { id: true },
+                });
+                if (!membership) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You do not have access to this team",
+                    });
+                }
+                if (sub.teamId !== team.id) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You do not have access to this subscription",
+                    });
+                }
             }
 
             let userName: string | null = null;

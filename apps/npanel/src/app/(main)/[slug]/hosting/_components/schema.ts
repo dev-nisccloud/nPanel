@@ -106,6 +106,10 @@ export const customerHostingListSchema = z.object({
   status: z.string(),
   productName: z.string().optional(),
   productPlanName: z.string().nullable().optional(),
+  /** ISO date strings from API (tRPC serializes dates as strings over the wire) */
+  subscriptionDate: z.string().nullable().optional(),
+  expiryDate: z.string().nullable().optional(),
+  primaryDomain: z.string().nullable().optional(),
 });
 
 export type PleskSubscriptionResponse = z.infer<typeof pleskSubscriptionResponseSchema>;

@@ -163,9 +163,8 @@ export function HostingDataTable() {
   //   getRowId: (row) => row.id.toString() 
   // });
 
-  const handleViewDetails = (subscription: { id: string; pleskSubscriptionId?: string | null }) => {
-    const detailId = subscription.pleskSubscriptionId ?? subscription.id;
-    window.location.href = `/${teamSlug}/emails/${detailId}`;
+  const handleViewDetails = (subscription: { id: string }) => {
+    window.location.href = `/${teamSlug}/emails/${subscription.id}`;
   };
 
   // Show loading state
@@ -188,14 +187,16 @@ export function HostingDataTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="pl-6">Subscription Name</TableHead>
+            <TableHead className="pl-6">Subscription / Domain</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Subscription date</TableHead>
+            <TableHead>Expiry date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                 No subscriptions found
               </TableCell>
             </TableRow>
@@ -204,10 +205,10 @@ export function HostingDataTable() {
               <TableRow key={subscription.id}>
                 <TableCell className="pl-6">
                   <Link
-                    href={`/${teamSlug}/emails/${subscription.pleskSubscriptionId ?? subscription.id}`}
+                    href={`/${teamSlug}/emails/${subscription.id}`}
                     className="font-medium text-primary hover:underline"
                   >
-                    {subscription.subscriptionName}
+                    {subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id}
                   </Link>
                 </TableCell>
                 <TableCell>
@@ -217,6 +218,16 @@ export function HostingDataTable() {
                   >
                     {getStatusDisplayText(subscription.status)}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {subscription.subscriptionDate
+                    ? new Date(subscription.subscriptionDate).toLocaleDateString()
+                    : "—"}
+                </TableCell>
+                <TableCell>
+                  {subscription.expiryDate
+                    ? new Date(subscription.expiryDate).toLocaleDateString()
+                    : "—"}
                 </TableCell>
               </TableRow>
             ))
@@ -231,7 +242,7 @@ export function HostingDataTable() {
       <HostingCardsList
         data={filteredData}
         onViewDetails={(sub) => {
-          const payload = typeof sub === "string" ? { id: sub } : typeof sub === "number" ? { id: String(sub) } : { id: String((sub as { id: string | number }).id), pleskSubscriptionId: (sub as { pleskSubscriptionId?: string | null }).pleskSubscriptionId };
+          const payload = typeof sub === "string" ? { id: sub } : typeof sub === "number" ? { id: String(sub) } : { id: String((sub as { id: string }).id) };
           handleViewDetails(payload);
         }}
         cols={3}

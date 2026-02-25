@@ -17,8 +17,8 @@ function transformPleskDnsToComponent(
     "site-id": record.data?.["site-id"] ?? 0,
     type: record.data?.type ?? "A",
     host: record.data?.host ?? "Unknown Host",
-    value: record.data?.value ?? "Unknown Value",
-    opt: record.data?.opt ?? "",
+    value: record.data?.value != null ? String(record.data.value) : "Unknown Value",
+    opt: record.data?.opt != null ? String(record.data.opt) : "",
     status: record.status ?? "unknown",
   }));
 }

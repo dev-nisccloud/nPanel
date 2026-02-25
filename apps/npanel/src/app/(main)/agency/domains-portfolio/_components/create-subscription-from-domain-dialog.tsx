@@ -100,15 +100,27 @@ export function CreateSubscriptionFromDomainDialog({
   const selectedTeam = teamItems.find((t) => t.id === selectedTeamId);
   const selectedUser = userItems.find((u) => u.id === selectedUserId);
 
+  // Map OpenProvider response to subscription fields (orderDate -> subscriptionDate, expiryDate/registryExpirationDate -> expiryDate)
   const subscriptionDate = domain.orderDate
     ? new Date(domain.orderDate)
     : new Date();
   const expiryDate = domain.registryExpirationDate
     ? new Date(domain.registryExpirationDate)
     : new Date(domain.expiryDate);
+  const nextRenewalDate = domain.renewalDate
+    ? new Date(domain.renewalDate)
+    : expiryDate;
 
   const openProviderId =
     typeof domain.id === "string" ? Number.parseInt(domain.id, 10) : domain.id;
+
+  // Billing: OpenProvider unit "y" = yearly, "m" = monthly
+  const billingCycle =
+    domain.unit === "m"
+      ? "MONTHLY"
+      : domain.unit === "y"
+        ? "YEARLY"
+        : "YEARLY";
 
   const handleSubmit = () => {
     setSubmitError(null);
@@ -134,11 +146,14 @@ export function CreateSubscriptionFromDomainDialog({
       teamId: linkType === "team" ? selectedTeamId : undefined,
       status: "ACTIVE",
       subscriptionDate,
+      nextRenewalDate,
       expiryDate,
-      billingCycle: "YEARLY",
-      autoRenew: false,
+      billingCycle,
+      autoRenew: domain.autoRenewal ?? false,
       pricingModel: "FIXED",
+      primaryDomain: domain.domain,
       openProviderId: Number.isNaN(openProviderId) ? undefined : openProviderId,
+      domainAuthCode: domain.authCode ?? undefined,
       agreedPrice: agreedPrice || undefined,
       agreedCurrency: agreedCurrency || "KES",
       agreedCost: agreedPrice || undefined,
@@ -230,7 +245,7 @@ export function CreateSubscriptionFromDomainDialog({
 
               <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                 Subscription date: {subscriptionDate.toLocaleDateString()} · Expiry:{" "}
-                {expiryDate.toLocaleDateString()} · Billing: Annual · Auto-renew: Off
+                {expiryDate.toLocaleDateString()} · Next renewal: {nextRenewalDate.toLocaleDateString()} · Billing: {billingCycle} · Auto-renew: {domain.autoRenewal ? "On" : "Off"}
               </div>
 
               <div className="space-y-3">

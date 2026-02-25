@@ -49,11 +49,35 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const [webDesignDialogOpen, setWebDesignDialogOpen] = React.useState(false);
   const [createSubscriptionDialogOpen, setCreateSubscriptionDialogOpen] = React.useState(false);
 
-  // Customer view: load subscription by id (no OpenProvider)
+  // Customer view: load subscription by id; teamSlug enforces access (subscription must belong to this team and user must be member)
   const { data: subscriptionById, isLoading: isLoadingSub } = trpc.clientSubscriptions.getById.useQuery(
-    { id: domainId },
-    { enabled: !isAgency }
+    { id: domainId, teamSlug: !isAgency ? teamSlug : undefined },
+    { enabled: !isAgency && !!teamSlug }
   );
+
+  // Customer view with openProviderId: fetch that domain from OpenProvider to show full detail (DNS, nameservers, etc.)
+  const domainNamePattern = React.useMemo(() => {
+    if (isAgency || !subscriptionById?.primaryDomain) return undefined;
+    const name = subscriptionById.primaryDomain;
+    const parts = name.split(".");
+    return parts.length > 1 ? parts[0] : name;
+  }, [isAgency, subscriptionById?.primaryDomain]);
+
+  const { data: customerDomainsData, isLoading: isLoadingCustomerDomain } = trpc.openProvider.domains.list.useQuery(
+    {
+      domain_name_pattern: domainNamePattern,
+      limit: 100,
+      offset: 0,
+      with_customer_info: false,
+    },
+    { enabled: !isAgency && !!subscriptionById?.openProviderId && !!domainNamePattern }
+  );
+
+  const domainFromOpenProvider = React.useMemo(() => {
+    if (isAgency || !subscriptionById?.openProviderId || !customerDomainsData?.data) return null;
+    const idStr = String(subscriptionById.openProviderId);
+    return (customerDomainsData.data as DomainPortfolio[]).find((d) => d.id === idStr) ?? null;
+  }, [isAgency, subscriptionById?.openProviderId, customerDomainsData?.data]);
 
   // Agency view: fetch domains list from OpenProvider
   const { data: domainsData, isLoading: isLoadingDomains } = trpc.openProvider.domains.list.useQuery(
@@ -66,9 +90,12 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   );
 
   const domain = React.useMemo(() => {
-    if (!isAgency || !domainsData?.data) return null;
-    return (domainsData.data as DomainPortfolio[]).find((d) => d.id === domainId);
-  }, [isAgency, domainsData, domainId]);
+    if (isAgency) {
+      if (!domainsData?.data) return null;
+      return (domainsData.data as DomainPortfolio[]).find((d) => d.id === domainId) ?? null;
+    }
+    return domainFromOpenProvider;
+  }, [isAgency, domainsData?.data, domainId, domainFromOpenProvider]);
 
   const openProviderId = domain
     ? typeof domain.id === "string"
@@ -115,7 +142,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const portfolioHref = isAgency ? "/agency/domains-portfolio" : `/${teamSlug}/domains-portfolio`;
   const domainsHref = isAgency ? "/agency/domains" : `/${teamSlug}/domains`;
 
-  // Customer view: show subscription detail or not found (no OpenProvider)
+  // Customer view: either full page (when domain from OpenProvider is available) or not found/unavailable. No subscription card.
   if (!isAgency) {
     if (isLoadingSub) {
       return (
@@ -141,53 +168,41 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         </div>
       );
     }
-    const sub = subscriptionById;
-    const statusColors: Record<string, string> = {
-      ACTIVE: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300",
-      PENDING: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300",
-      EXPIRED: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300",
-      SUSPENDED: "bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300",
-    };
-    return (
-      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-        <div className="w-full max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-6">
-            <Button asChild variant="ghost" size="sm">
-              <Link href={portfolioHref}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Link>
-            </Button>
+    // Subscription has openProviderId and we're still fetching OpenProvider domain: show loading (no flash of card)
+    const needsOpenProvider = !!subscriptionById.openProviderId && !!domainNamePattern;
+    if (needsOpenProvider && isLoadingCustomerDomain) {
+      return (
+        <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+          <div className="w-full max-w-7xl mx-auto">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-32" />
           </div>
-          <h1 className="text-base font-semibold tracking-tight mb-2">Domain subscription</h1>
-          <p className="text-xs text-muted-foreground mb-6">Subscription details for this team.</p>
-          <Card>
-            <CardContent className="pt-6">
-              <dl className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs text-muted-foreground">Name</dt>
-                  <dd className="font-medium">{sub.name ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Status</dt>
-                  <dd>
-                    <Badge className={statusColors[sub.status] ?? ""}>{sub.status}</Badge>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Product</dt>
-                  <dd className="font-medium">{sub.product?.name ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Plan</dt>
-                  <dd className="font-medium">{sub.productPlan?.name ?? "—"}</dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
         </div>
-      </div>
-    );
+      );
+    }
+    // No domain data: show unavailable (subscription exists but no OpenProvider link or domain not found)
+    if (!domain) {
+      return (
+        <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+          <div className="w-full max-w-7xl mx-auto">
+            <div className="flex items-center gap-4 mb-6">
+              <Button asChild variant="ghost" size="sm">
+                <Link href={portfolioHref}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Link>
+              </Button>
+            </div>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground mb-4">Domain details are unavailable for this subscription.</p>
+              <Button asChild variant="outline">
+                <Link href={portfolioHref}>Back to My Domains</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
 
   if (isLoadingDomains) {
@@ -268,35 +283,37 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
               <p className="text-xs text-muted-foreground">Manage and monitor your domain</p>
             </div>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="block w-full">
-                      <DropdownMenuItem
-                        onClick={() => !hasExistingSubscription && setCreateSubscriptionDialogOpen(true)}
-                        disabled={hasExistingSubscription}
-                      >
-                        <FilePlus2 className="h-4 w-4 mr-2" />
-                        Create subscription
-                      </DropdownMenuItem>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" className="max-w-xs">
-                    {hasExistingSubscription
-                      ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
-                      : "Create a NISC subscription for this domain and link it to a user or team."}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {isAgency && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="block w-full">
+                        <DropdownMenuItem
+                          onClick={() => !hasExistingSubscription && setCreateSubscriptionDialogOpen(true)}
+                          disabled={hasExistingSubscription}
+                        >
+                          <FilePlus2 className="h-4 w-4 mr-2" />
+                          Create subscription
+                        </DropdownMenuItem>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      {hasExistingSubscription
+                        ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
+                        : "Create a NISC subscription for this domain and link it to a user or team."}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         {/* Tabs */}

@@ -15,7 +15,19 @@ export function useNotification() {
 
             // Register Service Worker (version in URL so production always gets latest after deploy)
             if ("serviceWorker" in navigator) {
-                const swUrl = "/sw.js?v=3";
+                // First, aggressively unregister any old/foreign Service Workers (like Vite/Workbox)
+                // that might be intercepting requests to / and caching old HTML.
+                navigator.serviceWorker.getRegistrations().then((registrations) => {
+                    for (const registration of registrations) {
+                        const sw = registration.installing || registration.waiting || registration.active;
+                        if (sw && sw.scriptURL && !sw.scriptURL.includes('/sw.js')) {
+                            console.warn("Unregistering legacy Service Worker:", sw.scriptURL);
+                            registration.unregister();
+                        }
+                    }
+                }).catch(console.error);
+
+                const swUrl = "/sw.js?v=4";
                 navigator.serviceWorker.register(swUrl).then((reg) => {
                     console.log("Service Worker registered:", reg.scope);
                 }).catch((err) => {

@@ -19,17 +19,26 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-/** Map listForTeamDomains item to DomainPortfolio-like shape for table/cards */
+/** Map listForTeamDomains item to DomainPortfolio-like shape for table/cards. Dates from API are serialized as strings. */
 function toDisplayItem(
-  sub: { id: string; subscriptionName: string | null; status: string; productName: string; productPlanName: string | null }
+  sub: {
+    id: string;
+    subscriptionName: string | null;
+    status: string;
+    productName: string;
+    productPlanName: string | null;
+    subscriptionDate: string | null;
+    expiryDate: string | null;
+    primaryDomain: string | null;
+  }
 ): DomainPortfolio {
-  const domain = sub.subscriptionName ?? sub.productName ?? sub.id;
+  const domain = sub.primaryDomain ?? sub.subscriptionName ?? sub.productName ?? sub.id;
   return {
     id: sub.id,
     domain,
     status: sub.status as DomainPortfolio["status"],
-    registrationDate: new Date(),
-    expiryDate: new Date(),
+    registrationDate: sub.subscriptionDate ? new Date(sub.subscriptionDate) : new Date(),
+    expiryDate: sub.expiryDate ? new Date(sub.expiryDate) : new Date(),
     clientName: "—",
     clientEmail: undefined,
     tld: "",
@@ -114,12 +123,14 @@ export default function DomainsPortfolioPage() {
           <TableRow>
             <TableHead className="pl-6">Domain / Subscription</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Subscription date</TableHead>
+            <TableHead>Expiry date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredDomains.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                 No domains found
               </TableCell>
             </TableRow>
@@ -137,6 +148,16 @@ export default function DomainsPortfolioPage() {
                   </div>
                 </TableCell>
                 <TableCell>{getStatusBadge(item.status)}</TableCell>
+                <TableCell>
+                  {item.registrationDate instanceof Date
+                    ? item.registrationDate.toLocaleDateString()
+                    : new Date(item.registrationDate).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  {item.expiryDate instanceof Date
+                    ? item.expiryDate.toLocaleDateString()
+                    : new Date(item.expiryDate).toLocaleDateString()}
+                </TableCell>
               </TableRow>
             ))
           )}
