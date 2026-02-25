@@ -5,7 +5,7 @@ import prisma from "@nPanel/db";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email } = body;
+    const { email, redirectTo } = body as { email?: string; redirectTo?: string };
 
     if (!email) {
       return NextResponse.json(
@@ -14,49 +14,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("Password reset request received for email:", email);
-
-    // Check if user exists in database first
+    // Check if user exists before sending any reset email (avoids misleading success + server "User not found" logs)
     const user = await prisma.user.findUnique({
-      where: { email: email },
+      where: { email },
     });
 
     if (!user) {
-      console.log("User not found:", email);
       return NextResponse.json(
-        { error: "No account found with this email address" },
+        {
+          error:
+            "No account found with this email address. The email may be invalid or not registered. Please check the address or sign up for an account.",
+        },
         { status: 404 }
       );
     }
 
-    console.log("User found, proceeding with password reset:", user.email);
-
-    // Call Better Auth's requestPasswordReset API
+    // Call Better Auth's requestPasswordReset API (user exists, so we can send the email)
     const result = await auth.api.requestPasswordReset({
       body: {
-        email: email,
+        email,
+        ...(redirectTo && { redirectTo }),
       },
     });
 
-    console.log("Password reset API result:", result);
-
-    // Check if the result has an error property
-    if (result && typeof result === 'object' && 'error' in result && result.error) {
-      console.error("Password reset error:", result.error);
+    if (result && typeof result === "object" && "error" in result && result.error) {
       return NextResponse.json(
-        { error: (result.error as Error).message || "Failed to send password reset email" },
+        {
+          error:
+            (result.error as Error).message || "Failed to send password reset email",
+        },
         { status: 400 }
       );
     }
-
-    console.log("✅ Password reset email sent successfully");
     return NextResponse.json({ 
       success: true, 
       message: "Password reset instructions sent to your email" 
     });
 
   } catch (error: unknown) {
-    console.error("Password reset API error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to send password reset email" },
       { status: 500 }

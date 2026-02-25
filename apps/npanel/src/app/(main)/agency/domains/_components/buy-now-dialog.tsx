@@ -387,17 +387,17 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
     },
   });
 
-  // Poll payment status
+  // Poll payment status — real-time only, no cache (staleTime/gcTime 0)
   const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
     { checkoutRequestId: checkoutRequestId! },
     {
       enabled: !!checkoutRequestId && currentStep === "payment" && !shouldStopPolling,
-      staleTime: 0, // Always consider data stale - never use cache for payment status
-      gcTime: 0, // Don't cache payment queries - we need real-time data
-      refetchOnMount: "always", // Always refetch on mount, even if data exists
-      refetchOnWindowFocus: false, // Don't refetch on window focus
-      refetchOnReconnect: true, // Refetch when reconnecting
-      notifyOnChangeProps: ["data", "error", "status"], // Notify on all changes for immediate updates
+      staleTime: 0,
+      gcTime: 0,
+      refetchOnMount: "always",
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      notifyOnChangeProps: ["data", "error", "status"],
       refetchInterval: (query) => {
         // Check if we should stop polling (state-based, updates immediately)
         if (shouldStopPolling) {

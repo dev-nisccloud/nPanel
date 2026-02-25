@@ -115,69 +115,76 @@ export default function CreativeAssetsPage() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") === "briefs" ? "briefs" : "design";
 
-  return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      <div className="w-full max-w-7xl mx-auto">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-base font-semibold tracking-tight">Creative Assets</h1>
-          <p className="text-xs text-muted-foreground">
-            Manage creative assets, versions, approvals, and collaborate with your team and clients.
-          </p>
-        </div>
+	return (
+		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+			<div className="w-full max-w-7xl mx-auto">
+				<div className="flex flex-col gap-2">
+					<h1 className="text-base font-semibold tracking-tight">Creative Assets</h1>
+					<p className="text-xs text-muted-foreground">
+						Manage creative assets, versions, approvals, and collaborate with your team and clients.
+					</p>
+				</div>
 
-        <Tabs defaultValue={defaultTab} className="w-full mt-6">
-          <TabsList className="w-fit">
-            <TabsTrigger value="design">Creative & design</TabsTrigger>
-            <TabsTrigger value="briefs">Creative briefs</TabsTrigger>
-          </TabsList>
+				<Tabs defaultValue={defaultTab} className="w-full mt-6">
+					<TabsList className="w-fit">
+						<TabsTrigger value="design">Creative & design</TabsTrigger>
+						<TabsTrigger value="briefs">Creative briefs</TabsTrigger>
+					</TabsList>
 
-          <TabsContent value="design" className="mt-6">
-            <CreativeAssetsListing
-              data={(assets || []).map(asset => ({
-                ...asset,
-                status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
-                versions: asset.versions?.map(version => ({
-                  ...version,
-                  fileMetadata: (version as any).fileMetadata ?? null,
-                  internalApprovalStatus: version.internalApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
-                  publicApprovalStatus: version.publicApprovalStatus as "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE",
-                })) || [],
-              }))}
-              isLoading={isLoading}
-              isError={isError}
-              error={error ? new Error(error.message || "An error occurred") : undefined}
-              onRetry={() => refetch()}
-              onEdit={handleEdit}
-              onArchive={handleArchive}
-              onUnarchive={handleUnarchive}
-              archivingAssetId={archivingAssetId}
-              unarchivingAssetId={unarchivingAssetId}
-              onAddAsset={() => setIsAddAssetOpen(true)}
-            />
-          </TabsContent>
+					<TabsContent value="design" className="mt-6">
+						<CreativeAssetsListing
+							data={(assets ?? []).map((asset) => ({
+								...asset,
+								status: asset.status as "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED",
+								versions:
+									asset.versions?.map((version) => ({
+										...version,
+										fileMetadata: (version as { fileMetadata?: unknown })?.fileMetadata ?? null,
+										internalApprovalStatus: version.internalApprovalStatus as
+											| "PENDING"
+											| "APPROVED"
+											| "REJECTED"
+											| "NOT_APPLICABLE",
+										publicApprovalStatus: version.publicApprovalStatus as
+											| "PENDING"
+											| "APPROVED"
+											| "REJECTED"
+											| "NOT_APPLICABLE",
+									})) ?? [],
+							}))}
+							isLoading={isLoading}
+							isError={isError}
+							error={error ? new Error(error.message ?? "An error occurred") : undefined}
+							onRetry={() => refetch()}
+							onEdit={handleEdit}
+							onArchive={handleArchive}
+							onUnarchive={handleUnarchive}
+							archivingAssetId={archivingAssetId}
+							unarchivingAssetId={unarchivingAssetId}
+							onAddAsset={() => setIsAddAssetOpen(true)}
+						/>
+					</TabsContent>
 
-          <TabsContent value="briefs" className="mt-6">
-            <CreativeBriefsTabContent />
-          </TabsContent>
-        </Tabs>
-      </div>
-      <AddAssetSheet
-        open={isAddAssetOpen}
-        onOpenChange={setIsAddAssetOpen}
-        onAddAsset={handleAddAsset}
-      />
-      <EditAssetSheet
-        open={isEditAssetOpen}
-        onOpenChange={(open) => {
-          setIsEditAssetOpen(open);
-          if (!open) {
-            setEditingAsset(null);
-          }
-        }}
-        asset={editingAsset}
-        onEditAsset={handleEditAsset}
-      />
-    </div>
-  );
+					<TabsContent value="briefs" className="mt-6">
+						<CreativeBriefsTabContent />
+					</TabsContent>
+				</Tabs>
+			</div>
+			<AddAssetSheet
+				open={isAddAssetOpen}
+				onOpenChange={setIsAddAssetOpen}
+				onAddAsset={handleAddAsset}
+			/>
+			<EditAssetSheet
+				open={isEditAssetOpen}
+				onOpenChange={(open) => {
+					setIsEditAssetOpen(open);
+					if (!open) setEditingAsset(null);
+				}}
+				asset={editingAsset}
+				onEditAsset={handleEditAsset}
+			/>
+		</div>
+	);
 }
 

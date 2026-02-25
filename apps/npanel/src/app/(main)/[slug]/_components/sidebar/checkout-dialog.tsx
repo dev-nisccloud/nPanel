@@ -191,7 +191,7 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
     },
   });
 
-  // Poll payment status
+  // Poll payment status — real-time only, no cache
   const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
     { checkoutRequestId: checkoutRequestId! },
     {

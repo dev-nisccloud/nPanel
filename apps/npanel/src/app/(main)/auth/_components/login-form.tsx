@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
@@ -14,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { redirectToTarget } from "@/lib/auth-redirect";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 const FormSchema = z.object({
@@ -23,7 +23,6 @@ const FormSchema = z.object({
 });
 
 export function LoginForm() {
-  const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -44,10 +43,10 @@ export function LoginForm() {
     setIsSuccess(false);
   }, []);
 
-  // Redirect if user is already authenticated (fallback in case middleware didn't catch it)
+  // Redirect if user is already authenticated – go straight to dashboard or create-team (no "/" round-trip)
   useEffect(() => {
     if (!isPending && session) {
-      window.location.href = "/";
+      redirectToTarget(0);
     }
   }, [session, isPending]);
 
@@ -89,12 +88,9 @@ export function LoginForm() {
       }
 
       if (result?.data) {
-        // Set success state to prevent form from reappearing
         setIsSuccess(true);
-        // Redirect immediately - session cookie is already set by the auth library
-        // Server-side will handle role-based redirect (agency/customer)
-        window.location.href = "/";
-        // Don't reset isSubmitting on success - keep loading state until redirect
+        // Go straight to dashboard or create-team (avoids "/" → redirect-target race and login loop)
+        await redirectToTarget(400);
         return;
       } else if (result?.error) {
         // Handle error response from auth
@@ -125,23 +121,13 @@ export function LoginForm() {
     }
   };
 
-  if (isPending) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Spinner variant="ellipsis" className="text-primary" />
-      </div>
-    );
-  }
-
-  // Show success/loading state after successful login to prevent form from reappearing
-  // Show success/loading state after successful login to prevent form from reappearing
-  // Also show loading if we are checking session and believe user might be logged in
+  // Show loading only when submitting, just logged in, or redirecting logged-in user (form shows immediately; no wait for session check)
   if (isSuccess || isSubmitting || (session && !isPending)) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 p-8">
         <Spinner variant="ellipsis" className="text-primary" />
         <p className="text-sm text-muted-foreground">
-          {isSuccess || isSubmitting ? "Signing you in..." : "Redirecting to dashboard..."}
+          {isSuccess || isSubmitting ? "Signing you in…" : "Redirecting…"}
         </p>
       </div>
     );

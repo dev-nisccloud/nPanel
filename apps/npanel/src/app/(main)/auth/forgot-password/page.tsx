@@ -34,39 +34,23 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setIsSubmitting(true);
     try {
-      // Use NEXT_PUBLIC_APP_URL for redirectTo - this should match the origin in trustedOrigins
-      // Better Auth validates redirectTo against trustedOrigins, so ensure APP_URL is included
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
       const result = await authClient.forgetPassword({
         email: data.email,
         redirectTo: `${appUrl}/auth/reset-password`,
       });
-      
-      console.log("Forgot password result:", result);
 
       if (result.error) {
-        console.error("Forgot password error:", result.error);
-        toast.error(result.error.message || "Failed to send reset email");
+        toast.error(
+          result.error.message ?? "We couldn't send a reset email. Please try again.",
+        );
         return;
       }
-      
+
       setIsEmailSent(true);
       toast.success("Password reset email sent!");
-    } catch (error: any) {
-      console.error("Forgot password error:", error);
-      
-      let errorMessage = "Failed to send reset email. Please try again.";
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      } else if (error?.error?.message) {
-        errorMessage = error.error.message;
-      }
-      
-      toast.error("Reset failed", {
-        description: errorMessage,
-      });
+    } catch {
+      toast.error("We couldn't send a reset email. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -88,28 +72,6 @@ export default function ForgotPasswordPage() {
             <p className="text-muted-foreground text-sm">
               We've sent a password reset link to your email address. Please check your inbox and follow the instructions to reset your password.
             </p>
-            <div className="space-y-2 pt-4">
-              <Link 
-                href="/auth/login" 
-                className="text-primary hover:underline block"
-              >
-                Back to Login
-              </Link>
-              <button 
-                onClick={() => setIsEmailSent(false)}
-                className="text-primary hover:underline block"
-              >
-                Try again
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute top-5 flex w-full justify-end px-10">
-          <div className="text-muted-foreground text-sm">
-            <Link className="text-foreground" href="/auth/login">
-              Back to Login
-            </Link>
           </div>
         </div>
 
@@ -126,6 +88,14 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
+      <div className="absolute top-5 flex w-full justify-end px-10">
+        <div className="text-muted-foreground text-sm">
+          <Link className="text-foreground" href="/auth/login">
+            Back to Login
+          </Link>
+        </div>
+      </div>
+
       <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[350px]">
         <div className="space-y-2 text-center">
           <h1 className="text-3xl font-medium">Forgot your password?</h1>
@@ -166,14 +136,6 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
         </Form>
-      </div>
-
-      <div className="absolute top-5 flex w-full justify-end px-10">
-        <div className="text-muted-foreground text-sm">
-          <Link className="text-foreground" href="/auth/login">
-            Back to Login
-          </Link>
-        </div>
       </div>
 
       <div className="absolute bottom-5 flex w-full justify-between px-10">

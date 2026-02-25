@@ -27,8 +27,8 @@ interface CommentsDialogProps {
   version: z.infer<typeof creativeAssetVersionSchema>;
 }
 
-// Comment type from API (dates are Date objects)
-type Comment = {
+// Comment type from API (dates are Date objects) - exported for use in CommentsSheet
+export type Comment = {
   id: string;
   creativeAssetVersionId: string;
   userId: string;
@@ -55,7 +55,7 @@ interface CommentItemProps {
   onSetActiveComment: (commentId: string | null) => void;
 }
 
-function CommentItem({ comment, getUserName, getUserInitials, formatTime, onReply, onEdit, activeCommentId, onSetActiveComment }: CommentItemProps) {
+export function CommentItem({ comment, getUserName, getUserInitials, formatTime, onReply, onEdit, activeCommentId, onSetActiveComment }: CommentItemProps) {
   const [isHovered, setIsHovered] = React.useState(false);
   
   const isActive = activeCommentId === comment.id;

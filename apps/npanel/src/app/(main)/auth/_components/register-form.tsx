@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { redirectToTarget } from "@/lib/auth-redirect";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 const FormSchema = z
@@ -54,10 +55,10 @@ export function RegisterForm() {
     setIsEmailSent(false);
   }, []);
 
-  // Redirect if user is already authenticated (fallback in case middleware didn't catch it)
+  // Redirect if user is already authenticated – go straight to dashboard or create-team
   useEffect(() => {
     if (!isPending && session) {
-      window.location.href = "/";
+      redirectToTarget(0);
     }
   }, [session, isPending]);
 
@@ -132,10 +133,12 @@ export function RegisterForm() {
     }
   };
 
-  if (isPending) {
+  // Redirecting already-logged-in user (don't flash the form)
+  if (!isPending && session) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex flex-col items-center justify-center space-y-4 p-8">
         <Spinner variant="ellipsis" className="text-primary" />
+        <p className="text-sm text-muted-foreground">Redirecting…</p>
       </div>
     );
   }

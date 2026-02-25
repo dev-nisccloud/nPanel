@@ -363,13 +363,15 @@ export function BuyNowDialog({
     });
   }, [currentStep, checkoutRequestId, plan, teamId, showDomainStep, effectiveDomain, createOrderFromPayment]);
 
-  // Poll payment status
+  // Poll payment status — real-time only, no cache
   const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
     { checkoutRequestId: checkoutRequestId || "" },
     {
       enabled: !!checkoutRequestId && currentStep === "payment" && !shouldStopPolling,
       staleTime: 0,
       gcTime: 0,
+      refetchOnMount: "always",
+      refetchOnWindowFocus: false,
       refetchInterval: (query) => {
         if (terminalStateDetectedRef.current) {
           return false;

@@ -3,60 +3,83 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
-import { httpBatchLink } from "@trpc/client";
+import { httpBatchLink, httpLink, splitLink } from "@trpc/client";
+import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
 interface QueryProviderProps {
   children: React.ReactNode;
 }
 
+function isUnauthorized(error: unknown): boolean {
+  const err = error as { data?: { code?: string } } | undefined;
+  return err?.data?.code === "UNAUTHORIZED";
+}
+
+function is4xx(error: unknown): boolean {
+  const status = (error as { status?: number })?.status;
+  return typeof status === "number" && status >= 400 && status < 500;
+}
+
 export function QueryProvider({ children }: QueryProviderProps) {
   // Create a new QueryClient instance for each app instance
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            // With SSR, we usually want to set some default staleTime
-            // above 0 to avoid refetching immediately on the client
-            staleTime: 60 * 1000, // 1 minute
-            gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
-            retry: (failureCount, error: any) => {
-              // Don't retry on 4xx errors (client errors)
-              if (error?.status >= 400 && error?.status < 500) return false;
-              // Retry up to 3 times for other errors
-              return failureCount < 3;
-            },
-            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-            refetchOnWindowFocus: false, // Disable refetch on window focus for better UX
-            refetchOnReconnect: true, // Refetch when reconnecting to network
+  const [queryClient] = useState(() => {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 60 * 1000, // 1 minute
+          gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+          retry: (failureCount, error: unknown) => {
+            if (isUnauthorized(error)) return false;
+            if (is4xx(error)) return false;
+            return failureCount < 3;
           },
-          mutations: {
-            retry: (failureCount, error: any) => {
-              // Don't retry mutations on 4xx errors
-              if (error?.status >= 400 && error?.status < 500) return false;
-              return failureCount < 2;
-            },
+          retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+          refetchOnWindowFocus: false,
+          refetchOnReconnect: true,
+        },
+        mutations: {
+          retry: (failureCount, error: unknown) => {
+            if (isUnauthorized(error)) return false;
+            if (is4xx(error)) return false;
+            return failureCount < 2;
           },
         },
-      })
-  );
+      },
+    });
 
-  const [trpcClient] = useState(() =>
-    trpc.createClient({
+    // When session has expired (UNAUTHORIZED), sign out and redirect to login so both dashboards behave strictly
+    const redirectToLogin = () => {
+      authClient.signOut().then(() => {
+        window.location.href = "/auth/login";
+      });
+    };
+    client.getQueryCache().subscribe((event) => {
+      if (event?.type === "updated" && event.query.state.status === "error" && isUnauthorized(event.query.state.error))
+        redirectToLogin();
+    });
+    client.getMutationCache().subscribe((event) => {
+      if (event?.type === "updated" && event.mutation.state.status === "error" && isUnauthorized(event.mutation.state.error))
+        redirectToLogin();
+    });
+
+    return client;
+  });
+
+  const [trpcClient] = useState(() => {
+    const url = "/api/trpc";
+    const fetchWithCredentials: typeof fetch = (input, init) =>
+      fetch(input, { ...init, credentials: "include" });
+    return trpc.createClient({
       links: [
-        httpBatchLink({
-          url: "/api/trpc",
-          fetch(url, options) {
-            return fetch(url, {
-              ...options,
-              credentials: "include",
-            });
-          },
+        splitLink({
+          condition: (op) => op.path === "paymentGateway.mpesa.queryStkPush",
+          true: httpLink({ url, fetch: fetchWithCredentials }),
+          false: httpBatchLink({ url, fetch: fetchWithCredentials }),
         }),
       ],
-    })
-  );
+    });
+  });
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>

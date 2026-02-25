@@ -98,13 +98,33 @@ export const auth = betterAuth<BetterAuthOptions>({
 	baseURL: undefined,
 	secret: process.env.BETTER_AUTH_SECRET,
 	session: {
-		// Default session duration: 2 hours
-		// Can be extended to 30 days if user checks "Remember me"
-		updateAge: 60 * 60, // 1 hour - refresh session data
-		expiresIn: 60 * 60 * 1, // 2 hours default
+		// Strict expiry: session ends exactly after expiresIn, no sliding extension
+		expiresIn: 60 * 60 * 2, // 2 hours (7200 seconds) – fixed lifetime from login
+		updateAge: 0, // Not used when refresh is disabled
+		disableSessionRefresh: true, // Never extend on activity – log out when token expires
+		// "Remember me" at login still overrides via hook (sets expiresAt to 30 days in DB)
 	},
 	hooks: {
 		before: createAuthMiddleware(async (ctx) => {
+			// Reject unknown emails on forget-password so client gets a clear error (no misleading success toast)
+			const isForgetPassword =
+				ctx.path === "/forget-password" || ctx.path === "/forgot-password";
+			if (isForgetPassword) {
+				const email = ctx.body?.email;
+				if (email && typeof email === "string") {
+					const user = await prisma.user.findUnique({
+						where: { email },
+						select: { id: true },
+					});
+					if (!user) {
+						throw new APIError("NOT_FOUND", {
+							message:
+								"No account found with this email address. The email may be invalid or not registered. Please check the address or sign up for an account.",
+						});
+					}
+				}
+			}
+
 			// Check user status before login
 			if (ctx.path === "/sign-in/email") {
 				const email = ctx.body?.email;
@@ -217,28 +237,26 @@ export const auth = betterAuth<BetterAuthOptions>({
 							});
 						});
 
-						// Create login notification (separate transaction to avoid blocking login)
-						// This is non-critical and can fail without affecting login
-						try {
-							const ipAddress = ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || null;
-							const accessTime = new Date().toLocaleString("en-US", {
-								year: "numeric",
-								month: "long",
-								day: "numeric",
-								hour: "2-digit",
-								minute: "2-digit",
-								timeZoneName: "short",
-							});
-							
-							const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
-							const message = `Your account was recently accessed at ${accessTime}${ipDisplay}. If this was not you, kindly reach out to support to secure your account.`;
-
-							// Batch notification creation and activity log
-							await prisma.$transaction(async (tx) => {
+						// Create login notification in background so login response returns immediately
+						const loginUserId = newSession.user.id;
+						const loginHeaders = ctx.headers;
+						void prisma
+							.$transaction(async (tx) => {
+								const ipAddress = loginHeaders?.get("x-forwarded-for") || loginHeaders?.get("x-real-ip") || null;
+								const accessTime = new Date().toLocaleString("en-US", {
+									year: "numeric",
+									month: "long",
+									day: "numeric",
+									hour: "2-digit",
+									minute: "2-digit",
+									timeZoneName: "short",
+								});
+								const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
+								const message = `Your account was recently accessed at ${accessTime}${ipDisplay}. If this was not you, kindly reach out to support to secure your account.`;
 								const notification = await tx.notification.create({
 									data: {
 										id: crypto.randomUUID(),
-										userId: newSession.user.id,
+										userId: loginUserId,
 										teamId: null,
 										type: "SYSTEM",
 										priority: "NORMAL",
@@ -256,29 +274,21 @@ export const auth = betterAuth<BetterAuthOptions>({
 										updatedAt: new Date(),
 									} as any,
 								});
-
-								// Log notification activity
 								await tx.notificationActivityLog.create({
 									data: {
 										id: crypto.randomUUID(),
 										notificationId: notification.id,
-										userId: newSession.user.id,
+										userId: loginUserId,
 										action: "CREATE",
 										description: "Login notification created",
-										metadata: {
-											ipAddress: ipAddress,
-											accessTime: accessTime,
-										},
+										metadata: { ipAddress: ipAddress, accessTime: accessTime },
 										ipAddress: ipAddress,
-										userAgent: ctx.headers?.get("user-agent") || null,
+										userAgent: loginHeaders?.get("user-agent") || null,
 										createdAt: new Date(),
 									} as any,
 								});
-							});
-						} catch (error) {
-							// Log error but don't fail the login
-							console.error("Failed to create login notification:", error);
-						}
+							})
+							.catch((error) => console.error("Failed to create login notification:", error));
 					} catch (error) {
 						// Log error but don't fail the login (transaction already committed)
 						console.error("Failed to update login-related data:", error);
@@ -286,85 +296,65 @@ export const auth = betterAuth<BetterAuthOptions>({
 				}
 			}
 
-			// Log successful signup
+			// Log successful signup in background so sign-up response returns immediately
 			if (ctx.path.startsWith("/sign-up")) {
 				const newSession = ctx.context.newSession;
 				if (newSession) {
-					// Batch signup logging in a transaction
-					try {
-						await prisma.$transaction(async (tx) => {
+					const signupUserId = newSession.user.id;
+					const signupEmailVerified = newSession.user.emailVerified;
+					const signupHeaders = ctx.headers;
+					void prisma
+						.$transaction(async (tx) => {
 							await tx.userActivityLog.create({
 								data: {
 									id: crypto.randomUUID(),
-									userId: newSession.user.id,
+									userId: signupUserId,
 									action: "SIGNUP_SUCCESS",
 									description: "User successfully signed up",
 									metadata: {
 										signupMethod: "email_password",
-										emailVerified: newSession.user.emailVerified
+										emailVerified: signupEmailVerified,
 									},
-									ipAddress: ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || "unknown",
-									userAgent: ctx.headers?.get("user-agent") || "unknown",
-									createdAt: new Date()
-								}
+									ipAddress: signupHeaders?.get("x-forwarded-for") || signupHeaders?.get("x-real-ip") || "unknown",
+									userAgent: signupHeaders?.get("user-agent") || "unknown",
+									createdAt: new Date(),
+								},
 							});
-						});
-
-						// Create signup notification (separate transaction, non-critical)
-						try {
-							const ipAddress = ctx.headers?.get("x-forwarded-for") || ctx.headers?.get("x-real-ip") || null;
+							const ipAddress = signupHeaders?.get("x-forwarded-for") || signupHeaders?.get("x-real-ip") || null;
 							const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
 							const message = `Your account was successfully created${ipDisplay}. Welcome to nPanel!`;
-
-							// Batch notification creation and activity log
-							await prisma.$transaction(async (tx) => {
-								const notification = await tx.notification.create({
-									data: {
-										id: crypto.randomUUID(),
-										userId: newSession.user.id,
-										teamId: null,
-										type: "SYSTEM",
-										priority: "NORMAL",
-										title: "Account Created",
-										message: message,
-										link: null,
-										metadata: {
-											ipAddress: ipAddress,
-											signupMethod: "email_password",
-										},
-										seen: false,
-										readAt: null,
-										createdAt: new Date(),
-										updatedAt: new Date(),
-									} as any,
-								});
-
-								// Log notification activity
-								await tx.notificationActivityLog.create({
-									data: {
-										id: crypto.randomUUID(),
-										notificationId: notification.id,
-										userId: newSession.user.id,
-										action: "CREATE",
-										description: "Signup notification created",
-										metadata: {
-											ipAddress: ipAddress,
-											signupMethod: "email_password",
-										},
-										ipAddress: ipAddress,
-										userAgent: ctx.headers?.get("user-agent") || null,
-										createdAt: new Date(),
-									} as any,
-								});
+							const notification = await tx.notification.create({
+								data: {
+									id: crypto.randomUUID(),
+									userId: signupUserId,
+									teamId: null,
+									type: "SYSTEM",
+									priority: "NORMAL",
+									title: "Account Created",
+									message: message,
+									link: null,
+									metadata: { ipAddress: ipAddress, signupMethod: "email_password" },
+									seen: false,
+									readAt: null,
+									createdAt: new Date(),
+									updatedAt: new Date(),
+								} as any,
 							});
-						} catch (error) {
-							// Log error but don't fail the signup
-							console.error("Failed to create signup notification:", error);
-						}
-					} catch (error) {
-						// Log error but don't fail the signup
-						console.error("Failed to log signup activity:", error);
-					}
+							await tx.notificationActivityLog.create({
+								data: {
+									id: crypto.randomUUID(),
+									notificationId: notification.id,
+									userId: signupUserId,
+									action: "CREATE",
+									description: "Signup notification created",
+									metadata: { ipAddress: ipAddress, signupMethod: "email_password" },
+									ipAddress: ipAddress,
+									userAgent: signupHeaders?.get("user-agent") || null,
+									createdAt: new Date(),
+								} as any,
+							});
+						})
+						.catch((error) => console.error("Failed to log signup / create signup notification:", error));
 				}
 			}
 

@@ -108,10 +108,12 @@ export function GlobalBuyNowDialog() {
   const [isPolling, setIsPolling] = React.useState(false);
   const [shouldStopPolling, setShouldStopPolling] = React.useState(false);
   const pollingIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingQuickRetryRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const terminalStateDetectedRef = React.useRef(false);
   const immediateStepRef = React.useRef<Step | null>(null);
   const immediatePaymentErrorRef = React.useRef<string | null>(null);
   const orderCreatedForCheckoutRef = React.useRef<string | null>(null);
+  const onPaymentSuccessRef = React.useRef<(checkoutRequestId: string) => void | undefined>(undefined);
 
   const isCartMode = mode === "cart";
   const isTransferMode = mode === "transfer";
@@ -211,9 +213,9 @@ export function GlobalBuyNowDialog() {
     },
   });
 
-  // Poll queryStkPush: DB first, then M-Pesa API so we get result even if webhook is slow. 3s interval, 2 min max.
-  const POLL_INTERVAL_MS = 3000;
-  const POLL_MAX_ATTEMPTS = 40;
+  // Poll queryStkPush: backend checks DB when Daraja returns 1037 so webhook result shows on next poll.
+  const POLL_INTERVAL_MS = 1000;
+  const POLL_MAX_ATTEMPTS = 90;
 
   const PROCESSING_CODES = new Set([1037, 4999]);
 
@@ -228,6 +230,94 @@ export function GlobalBuyNowDialog() {
     },
   });
 
+  // Create order on payment success — called from poll callback to avoid useEffect latency
+  const triggerOrderFromPayment = React.useCallback(
+    (checkoutRequestIdParam: string) => {
+      if (orderCreatedForCheckoutRef.current === checkoutRequestIdParam) return;
+      orderCreatedForCheckoutRef.current = checkoutRequestIdParam;
+      const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
+      if (isTransferMode && transferContext) {
+        createOrderFromPayment.mutate({
+          checkoutRequestId: checkoutRequestIdParam,
+          items: [
+            {
+              productId: transferContext.productId,
+              primaryDomain: transferContext.domain,
+              description: "transfer",
+              productPlanId: null,
+              itemPrice: str(transferContext.price),
+              itemSubtotal: str(transferContext.price),
+              metadata: { transferAuthCode: transferContext.authCode },
+            },
+          ],
+          currency: transferContext.currency,
+          teamId: transferContext.teamId,
+        });
+        return;
+      }
+      if (isCartMode) {
+        const domains = getDomains();
+        if (!domainsProductId || domains.length === 0) return;
+        const orderItems = domains.map((d) => {
+          const { price, currency } = (() => {
+            if (d.addedInCurrency && d.price?.calculated?.convertedPrice != null) {
+              return { price: d.price.calculated.convertedPrice, currency: d.addedInCurrency };
+            }
+            if (d.price?.calculated?.finalPrice != null) {
+              return {
+                price: d.price.calculated.finalPrice,
+                currency: d.price.calculated.currency ?? "KES",
+              };
+            }
+            const p = d.price?.reseller?.price ?? d.price?.product?.price ?? 0;
+            const c = d.price?.reseller?.currency ?? d.price?.product?.currency ?? "KES";
+            return { price: p, currency: c };
+          })();
+          return {
+            productId: domainsProductId,
+            primaryDomain: d.domain,
+            description: "registration",
+            productPlanId: null,
+            itemPrice: str(price),
+            itemSubtotal: str(price),
+          };
+        });
+        createOrderFromPayment.mutate({ checkoutRequestId: checkoutRequestIdParam, items: orderItems, currency: primaryCurrency });
+        return;
+      }
+      if (!ctx?.productId || !ctx?.domain?.domain) return;
+      const calc = ctx.domain.price?.calculated as { convertedPrice?: number; finalPrice?: number } | undefined;
+      const price = calc?.convertedPrice ?? calc?.finalPrice ?? ctx.domain.price?.reseller?.price ?? 0;
+      createOrderFromPayment.mutate({
+        checkoutRequestId: checkoutRequestIdParam,
+        items: [
+          {
+            productId: ctx.productId,
+            primaryDomain: ctx.domain.domain,
+            description: "registration",
+            productPlanId: null,
+            itemPrice: str(price),
+            itemSubtotal: str(price),
+          },
+        ],
+        currency: displayCurrency,
+      });
+    },
+    [
+      isTransferMode,
+      transferContext,
+      isCartMode,
+      getDomains,
+      domainsProductId,
+      primaryCurrency,
+      ctx,
+      displayCurrency,
+      createOrderFromPayment,
+    ]
+  );
+
+  onPaymentSuccessRef.current = triggerOrderFromPayment;
+
   const startPolling = React.useCallback(
     (cid: string) => {
       setIsPolling(true);
@@ -235,6 +325,10 @@ export function GlobalBuyNowDialog() {
       terminalStateDetectedRef.current = false;
 
       const stopPolling = (intervalId: ReturnType<typeof setInterval> | null) => {
+        if (pollingQuickRetryRef.current !== null) {
+          clearTimeout(pollingQuickRetryRef.current);
+          pollingQuickRetryRef.current = null;
+        }
         if (intervalId !== null) {
           clearInterval(intervalId);
         }
@@ -248,7 +342,11 @@ export function GlobalBuyNowDialog() {
           return true;
         }
         try {
-          const res = await utils.paymentGateway.mpesa.queryStkPush.fetch({ checkoutRequestId: cid });
+          // Real-time only: no cache so every poll hits the server (avoids stale payment status)
+          const res = await utils.paymentGateway.mpesa.queryStkPush.fetch(
+            { checkoutRequestId: cid },
+            { staleTime: 0, gcTime: 0 }
+          );
           // Backend returns { success, data: { resultCode, resultDesc } }; accept both shapes
           const data = res && "data" in res ? (res as { data?: { resultCode?: string | number; resultDesc?: string } }).data : null;
           const resultCode = data?.resultCode ?? (res as { resultCode?: string | number })?.resultCode;
@@ -271,6 +369,7 @@ export function GlobalBuyNowDialog() {
             immediatePaymentErrorRef.current = null;
             setPaymentError(null);
             setCurrentStep("success");
+            onPaymentSuccessRef.current?.(cid);
             toast.success("Payment completed successfully!");
           } else {
             const msg = getUserFriendlyError(code, resultDesc);
@@ -309,30 +408,41 @@ export function GlobalBuyNowDialog() {
         }
       };
 
-      // First poll immediately
+      // First poll immediately, one quick retry at 1s, then every POLL_INTERVAL_MS (Daraja-first backend)
       poll().then((finished) => {
         if (finished) {
           stopPolling(null);
           return;
         }
         let attempts = 1;
-        const id = setInterval(async () => {
+        pollingQuickRetryRef.current = setTimeout(async () => {
+          pollingQuickRetryRef.current = null;
+          if (terminalStateDetectedRef.current) return;
           attempts += 1;
-          const finishedAgain = await poll();
-          if (finishedAgain || attempts >= POLL_MAX_ATTEMPTS) {
-            stopPolling(id);
-            if (!finishedAgain && attempts >= POLL_MAX_ATTEMPTS) {
-              const msg = "Payment is taking longer than expected. Please check your M-Pesa or try again.";
-              terminalStateDetectedRef.current = true;
-              immediateStepRef.current = "error";
-              immediatePaymentErrorRef.current = msg;
-              setPaymentError(msg);
-              setCurrentStep("error");
-              toast.error(msg);
-            }
+          const done = await poll();
+          if (done) {
+            stopPolling(null);
+            return;
           }
-        }, POLL_INTERVAL_MS);
-        pollingIntervalRef.current = id;
+          const id = setInterval(async () => {
+            if (terminalStateDetectedRef.current) return;
+            attempts += 1;
+            const finishedAgain = await poll();
+            if (finishedAgain || attempts >= POLL_MAX_ATTEMPTS) {
+              stopPolling(id);
+              if (!finishedAgain && attempts >= POLL_MAX_ATTEMPTS) {
+                const msg = "Payment is taking longer than expected. Please check your M-Pesa or try again.";
+                terminalStateDetectedRef.current = true;
+                immediateStepRef.current = "error";
+                immediatePaymentErrorRef.current = msg;
+                setPaymentError(msg);
+                setCurrentStep("error");
+                toast.error(msg);
+              }
+            }
+          }, POLL_INTERVAL_MS);
+          pollingIntervalRef.current = id;
+        }, 1000);
       });
     },
     [utils, getUserFriendlyError]
@@ -544,83 +654,6 @@ export function GlobalBuyNowDialog() {
       orderCreatedForCheckoutRef.current = null;
     }
   }, [open]);
-
-  // When payment succeeds, create order from payment (once per checkoutRequestId)
-  React.useEffect(() => {
-    if (currentStep !== "success" || !checkoutRequestId || orderCreatedForCheckoutRef.current === checkoutRequestId) return;
-    if (isTransferMode && transferContext) {
-      const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
-      orderCreatedForCheckoutRef.current = checkoutRequestId;
-      createOrderFromPayment.mutate({
-        checkoutRequestId,
-        items: [
-          {
-            productId: transferContext.productId,
-            primaryDomain: transferContext.domain,
-            description: "transfer",
-            productPlanId: null,
-            itemPrice: str(transferContext.price),
-            itemSubtotal: str(transferContext.price),
-            metadata: { transferAuthCode: transferContext.authCode },
-          },
-        ],
-        currency: transferContext.currency,
-        teamId: transferContext.teamId,
-      });
-      return;
-    }
-    if (isCartMode) {
-      const domains = getDomains();
-      if (!domainsProductId || domains.length === 0) return;
-      const orderItems = domains.map((d) => {
-        const { price, currency } = (() => {
-          if (d.addedInCurrency && d.price?.calculated?.convertedPrice != null) {
-            return { price: d.price.calculated.convertedPrice, currency: d.addedInCurrency };
-          }
-          if (d.price?.calculated?.finalPrice != null) {
-            return {
-              price: d.price.calculated.finalPrice,
-              currency: d.price.calculated.currency ?? "KES",
-            };
-          }
-          const p = d.price?.reseller?.price ?? d.price?.product?.price ?? 0;
-          const c = d.price?.reseller?.currency ?? d.price?.product?.currency ?? "KES";
-          return { price: p, currency: c };
-        })();
-        const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
-        return {
-          productId: domainsProductId,
-          primaryDomain: d.domain,
-          description: "registration",
-          productPlanId: null,
-          itemPrice: str(price),
-          itemSubtotal: str(price),
-        };
-      });
-      orderCreatedForCheckoutRef.current = checkoutRequestId;
-      createOrderFromPayment.mutate({ checkoutRequestId, items: orderItems, currency: primaryCurrency });
-      return;
-    }
-    if (!ctx?.productId || !ctx?.domain?.domain) return;
-    const calc = ctx.domain.price?.calculated as { convertedPrice?: number; finalPrice?: number } | undefined;
-    const price = calc?.convertedPrice ?? calc?.finalPrice ?? ctx.domain.price?.reseller?.price ?? 0;
-    const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
-    orderCreatedForCheckoutRef.current = checkoutRequestId;
-    createOrderFromPayment.mutate({
-      checkoutRequestId,
-      items: [
-        {
-          productId: ctx.productId,
-          primaryDomain: ctx.domain.domain,
-          description: "registration",
-          productPlanId: null,
-          itemPrice: str(price),
-          itemSubtotal: str(price),
-        },
-      ],
-      currency: displayCurrency,
-    });
-  }, [currentStep, checkoutRequestId, isCartMode, isTransferMode, transferContext, ctx, domainsProductId, getDomains, primaryCurrency, displayCurrency]);
 
   if (!open) return null;
   if (isCartMode && totalItems === 0) {
