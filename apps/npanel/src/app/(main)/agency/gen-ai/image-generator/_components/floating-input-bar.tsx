@@ -8,6 +8,12 @@ import { AspectRatioSelector, type AspectRatio } from "./aspect-ratio-selector";
 import { FormatSelector, type OutputFormat } from "./format-selector";
 import { ResolutionSelector } from "./resolution-selector";
 import { VariationsSelector } from "./variations-selector";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronDown } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
@@ -19,8 +25,22 @@ import {
 } from "@/components/ui/tooltip";
 import { uploadFiles } from "@/hooks/use-uploadthing";
 import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
+import { RefineOptions } from "./refine-options";
+import {
+  DEFAULT_REFINE_VALUES,
+  REFINE_OPTION_NONE,
+  type VisualCreativeRefineValues,
+} from "./refine-options-config";
 
 type Resolution = "1K" | "2K" | "4K";
+
+/** Normal = standard generation; visual-creative = for advanced visual/creative prompts (prompt refinement TBD). */
+export type GenerationMode = "normal" | "visual-creative";
+
+const GENERATION_MODES: { value: GenerationMode; label: string }[] = [
+  { value: "normal", label: "Normal" },
+  { value: "visual-creative", label: "Visual & creative design" },
+];
 
 function useAutoResizeTextarea({
   minHeight,
@@ -78,8 +98,13 @@ export function FloatingInputBar() {
   const [outputFormat, setOutputFormat] = React.useState<OutputFormat>("png");
   const [resolution, setResolution] = React.useState<Resolution>("2K");
   const [variations, setVariations] = React.useState<number>(2);
+  const [generationMode, setGenerationMode] = React.useState<GenerationMode>("normal");
   const [selectedImages, setSelectedImages] = React.useState<File[]>([]);
   const [isStarting, setIsStarting] = React.useState(false);
+  const [isRefining, setIsRefining] = React.useState(false);
+  const [generationModeOpen, setGenerationModeOpen] = React.useState(false);
+  const [refineValues, setRefineValues] =
+    React.useState<VisualCreativeRefineValues>(DEFAULT_REFINE_VALUES);
 
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight: 72,
@@ -93,7 +118,7 @@ export function FloatingInputBar() {
       setPrompt("");
       setSelectedImages([]);
       adjustHeight(true);
-      toast.success("Generation started. Images will appear as they’re ready.");
+      toast.success("Generation started. This can take about 30 seconds to 10 minutes depending on complexity. Images will appear as they’re ready.");
     },
   });
 
@@ -142,14 +167,55 @@ export function FloatingInputBar() {
     }
   };
 
-  const handleClearPrompt = () => {
-    setPrompt("");
-    adjustHeight(true);
-  };
-
-  const handleEnhancePrompt = () => {
-    // Disabled for now
-    toast.info("Prompt enhancement is currently disabled");
+  const handleEnhancePrompt = async () => {
+    if (isRefining || isStarting) return;
+    setIsRefining(true);
+    try {
+      const body: Record<string, unknown> = {
+        prompt: prompt.trim() || "",
+        generationMode,
+        aspectRatio,
+        outputFormat,
+        resolution,
+      };
+      if (generationMode === "visual-creative") {
+        const add = (key: string, v: string) => {
+          if (v && v !== REFINE_OPTION_NONE) body[key] = v;
+        };
+        add("style", refineValues.style);
+        add("composition", refineValues.composition);
+        add("colorPalette", refineValues.colorPalette);
+        add("colorMood", refineValues.colorMood);
+        add("typography", refineValues.typography);
+        add("lighting", refineValues.lighting);
+        add("texture", refineValues.texture);
+        add("mood", refineValues.mood);
+        if (refineValues.primaryColor?.trim()) body.primaryColor = refineValues.primaryColor.trim();
+        if (refineValues.secondaryColor?.trim()) body.secondaryColor = refineValues.secondaryColor.trim();
+        if (refineValues.accentColor?.trim()) body.accentColor = refineValues.accentColor.trim();
+        if (refineValues.audience?.trim()) body.audience = refineValues.audience.trim();
+        if (refineValues.intent?.trim()) body.intent = refineValues.intent.trim();
+      }
+      const res = await fetch("/api/ai/refine-image-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error ?? "Failed to refine prompt");
+      }
+      if (data.refinedPrompt) {
+        setPrompt(data.refinedPrompt);
+        adjustHeight(true);
+        toast.success("Prompt refined.");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to refine prompt";
+      toast.error(message);
+    } finally {
+      setIsRefining(false);
+    }
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -221,6 +287,18 @@ export function FloatingInputBar() {
                 />
               </div>
 
+              {/* Refine options (7 pillars) — only in Visual & creative design mode */}
+              {generationMode === "visual-creative" && (
+                <div className="px-3 pt-4 pb-2">
+                  <RefineOptions
+                    values={refineValues}
+                    onChange={setRefineValues}
+                    disabled={isStarting || isRefining}
+                    defaultOpen={true}
+                  />
+                </div>
+              )}
+
               {/* Bottom Bar with Controls */}
               <div className="flex h-14 items-center rounded-b-xl bg-black/5 dark:bg-white/5">
                 <div className="absolute left-3 right-3 bottom-3 flex w-[calc(100%-24px)] items-center justify-between">
@@ -257,6 +335,40 @@ export function FloatingInputBar() {
 
                     <div className="h-4 w-px bg-border mx-0.5" />
 
+                    {/* Generation mode: Normal vs Visual & creative */}
+                    <Popover open={generationModeOpen} onOpenChange={setGenerationModeOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          disabled={isStarting}
+                          className="h-8 gap-1.5 px-2 text-xs rounded-md bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-blue-500"
+                        >
+                          {GENERATION_MODES.find((m) => m.value === generationMode)?.label ?? "Normal"}
+                          <ChevronDown className="h-3 w-3 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-56 p-1" align="start">
+                        <div className="space-y-1">
+                          {GENERATION_MODES.map((mode) => (
+                            <button
+                              key={mode.value}
+                              onClick={() => {
+                                setGenerationMode(mode.value);
+                                setGenerationModeOpen(false);
+                              }}
+                              className={cn(
+                                "w-full flex items-center justify-between px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors",
+                                generationMode === mode.value && "bg-accent"
+                              )}
+                            >
+                              <span>{mode.label}</span>
+                              {generationMode === mode.value && <Check className="h-4 w-4" />}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+
                     {/* Aspect Ratio */}
                     <AspectRatioSelector
                       value={aspectRatio}
@@ -288,41 +400,26 @@ export function FloatingInputBar() {
 
                   {/* Right Side Actions */}
                   <div className="flex items-center gap-2">
-                    {/* Enhance Prompt - Disabled */}
+                    {/* Refine prompt (Master Design Guide) */}
                     <button
                       type="button"
                       onClick={handleEnhancePrompt}
-                      disabled={true}
+                      disabled={isStarting || isRefining}
                       className={cn(
                         "rounded-lg p-2 transition-colors",
-                        "bg-black/5 dark:bg-white/5",
-                        "text-muted-foreground",
+                        "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
+                        "text-muted-foreground hover:text-foreground",
                         "focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
-                        "opacity-50 cursor-not-allowed"
+                        "disabled:opacity-50 disabled:cursor-not-allowed"
                       )}
-                      aria-label="Enhance prompt (disabled)"
+                      aria-label="Refine prompt using AI"
                     >
-                      <Wand2 className="h-4 w-4" />
+                      {isRefining ? (
+                        <Spinner size={16} />
+                      ) : (
+                        <Wand2 className="h-4 w-4" />
+                      )}
                     </button>
-
-                    {/* Clear Button */}
-                    {prompt && (
-                      <button
-                        type="button"
-                        onClick={handleClearPrompt}
-                        disabled={isStarting}
-                        className={cn(
-                          "rounded-lg p-2 transition-colors",
-                          "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
-                          "text-muted-foreground hover:text-foreground",
-                          "focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
-                          "disabled:opacity-50 disabled:cursor-not-allowed"
-                        )}
-                        aria-label="Clear prompt"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
 
                     {/* Generate Button */}
                     <button

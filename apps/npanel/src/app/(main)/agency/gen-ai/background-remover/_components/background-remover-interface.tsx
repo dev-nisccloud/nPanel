@@ -46,8 +46,8 @@ export function BackgroundRemoverInterface() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto px-2 min-h-0">
-        <div className="max-w-4xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="w-full">
           <BackgroundRemoverResultsView
             generations={generations}
             isLoadingHistory={isLoadingHistory}

@@ -19,7 +19,9 @@ export function FloatingInputBar() {
   const startMutation = trpc.backgroundRemover.startBackgroundRemoval.useMutation({
     onSuccess: () => {
       utils.backgroundRemover.getGenerations.invalidate();
-      toast.success("Background removal started. Result will appear when ready.");
+      toast.success(
+        "Background removal started. This can take about 30 seconds to 10 minutes depending on complexity. Results will appear when ready."
+      );
     },
   });
 

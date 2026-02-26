@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@nPanel/db";
 import Replicate, { validateWebhook } from "replicate";
+import { UTApi } from "uploadthing/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+const utapi = new UTApi();
 
 type PredictionStatus = "starting" | "processing" | "succeeded" | "failed" | "canceled";
 
@@ -83,39 +86,53 @@ export async function POST(request: NextRequest) {
 	let errorMessage: string | null = null;
 
 	if (status === "succeeded") {
-		imageUrl = extractImageUrl(payload.output);
-		if (!imageUrl) {
+		const replicateImageUrl = extractImageUrl(payload.output);
+		if (!replicateImageUrl) {
 			variationStatus = "FAILED";
 			errorMessage = "No image URL in Replicate output";
 		} else {
-			variationStatus = "COMPLETED";
+			// Upload to UploadThing so we store a persistent URL (Replicate URLs expire)
+			try {
+				const uploadResult = await utapi.uploadFilesFromUrl(replicateImageUrl);
+				const result = Array.isArray(uploadResult) ? uploadResult[0] : uploadResult;
+				if (result?.data) {
+					imageUrl = result.data.ufsUrl ?? result.data.url;
+					variationStatus = "COMPLETED";
+					// Save UploadThing URL and key (schema: "Generated Image Storage (UploadThing)")
+					await prisma.imageGeneratorVariation.update({
+						where: { id: variation.id },
+						data: {
+							status: "COMPLETED",
+							errorMessage: null,
+							imageUrl,
+							imageKey: result.data.key,
+							imageFileName: result.data.name,
+							imageSize: result.data.size,
+							imageMimeType: result.data.type,
+							imageMetadata: {
+								model: "google/nano-banana-pro",
+								resolution: variation.imageGeneratorGeneration.resolution,
+								aspectRatio: variation.imageGeneratorGeneration.aspectRatio,
+								outputFormat: variation.imageGeneratorGeneration.outputFormat,
+							},
+							updatedAt: now,
+						},
+					});
+				} else {
+					variationStatus = "FAILED";
+					errorMessage = "Failed to store image";
+				}
+			} catch {
+				variationStatus = "FAILED";
+				errorMessage = "Failed to store image";
+			}
 		}
 	} else {
 		variationStatus = "FAILED";
 		errorMessage = payload.error ?? "Prediction failed or canceled";
 	}
 
-	if (variationStatus === "COMPLETED" && imageUrl) {
-		await prisma.imageGeneratorVariation.update({
-			where: { id: variation.id },
-			data: {
-				status: "COMPLETED",
-				errorMessage: null,
-				imageUrl,
-				imageKey: "",
-				imageFileName: variation.imageFileName ?? `ai-generated-${Date.now()}-${variation.variationIndex}.${variation.imageGeneratorGeneration.outputFormat}`,
-				imageSize: variation.imageSize ?? 0,
-				imageMimeType: variation.imageMimeType ?? `image/${variation.imageGeneratorGeneration.outputFormat === "jpg" ? "jpeg" : "png"}`,
-				imageMetadata: {
-					model: "google/nano-banana-pro",
-					resolution: variation.imageGeneratorGeneration.resolution,
-					aspectRatio: variation.imageGeneratorGeneration.aspectRatio,
-					outputFormat: variation.imageGeneratorGeneration.outputFormat,
-				},
-				updatedAt: now,
-			},
-		});
-	} else {
+	if (variationStatus !== "COMPLETED") {
 		await prisma.imageGeneratorVariation.update({
 			where: { id: variation.id },
 			data: {

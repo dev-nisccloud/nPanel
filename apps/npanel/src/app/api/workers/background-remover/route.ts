@@ -3,7 +3,10 @@ import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import prisma from "@nPanel/db";
 import { getQStashSigningKeys } from "@nPanel/api/lib/qstash/client";
 import Replicate from "replicate";
+import { UTApi } from "uploadthing/server";
 import { randomUUID } from "node:crypto";
+
+const utapi = new UTApi();
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 min for background removal job
@@ -98,20 +101,19 @@ export async function POST(request: NextRequest) {
       BACKGROUND_REMOVER_MODEL as `${string}/${string}`,
       { input: { image: generation.originalImageUrl } },
     );
-    const processedImageUrl = parseOutput(output);
-    if (!processedImageUrl || typeof processedImageUrl !== "string") {
+    const replicateImageUrl = parseOutput(output);
+    if (!replicateImageUrl || typeof replicateImageUrl !== "string") {
       throw new Error("No image URL in Replicate response");
     }
 
-    const imageResponse = await fetch(processedImageUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to download result: ${imageResponse.statusText}`);
+    // Upload to UploadThing so we store a persistent URL (Replicate URLs expire)
+    const uploadResult = await utapi.uploadFilesFromUrl(replicateImageUrl);
+    const result = Array.isArray(uploadResult) ? uploadResult[0] : uploadResult;
+    if (!result?.data) {
+      throw new Error("Failed to store processed image");
     }
-    const contentType =
-      imageResponse.headers.get("content-type") ?? "image/png";
-    const arrayBuffer = await imageResponse.arrayBuffer();
-    const size = arrayBuffer.byteLength;
 
+    const processedImageUrl = result.data.ufsUrl ?? result.data.url;
     const completedAt = new Date();
     await prisma.backgroundRemoverGeneration.update({
       where: { id: generationId },
@@ -119,14 +121,14 @@ export async function POST(request: NextRequest) {
         status: "COMPLETED",
         errorMessage: null,
         processedImageUrl,
-        processedImageKey: "",
-        processedImageFileName: `background-removed-${Date.now()}.png`,
-        processedImageSize: size,
-        processedImageMimeType: contentType,
+        processedImageKey: result.data.key,
+        processedImageFileName: result.data.name,
+        processedImageSize: result.data.size,
+        processedImageMimeType: result.data.type,
         processedImageMetadata: {
           model: BACKGROUND_REMOVER_MODEL,
-          contentType,
-          size,
+          contentType: result.data.type,
+          size: result.data.size,
         },
         completedAt,
         updatedAt: completedAt,
@@ -142,7 +144,7 @@ export async function POST(request: NextRequest) {
         description: "Background removal completed",
         metadata: {
           model: BACKGROUND_REMOVER_MODEL,
-          processedImageFileName: `background-removed-${Date.now()}.png`,
+          processedImageFileName: result.data.name,
         },
         ipAddress: null,
         userAgent: null,
