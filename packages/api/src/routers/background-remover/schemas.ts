@@ -1,8 +1,32 @@
 import { z } from "zod";
 
-// Remove background schema
+// --- Status (API layer) ---
+export const backgroundRemoverStatusSchema = z.enum([
+  "QUEUED",
+  "PROCESSING",
+  "COMPLETED",
+  "FAILED",
+]);
+export type BackgroundRemoverStatus = z.infer<typeof backgroundRemoverStatusSchema>;
+
+// Start background removal (fire-and-forget via QStash)
+export const startBackgroundRemovalSchema = z.object({
+  image: z.string().min(1, "Image URL is required"), // Must be a URL the worker can fetch
+  teamId: z.string().optional(),
+  originalImageKey: z.string().optional(),
+  originalImageFileName: z.string().optional(),
+  originalImageSize: z.number().int().nonnegative().optional(),
+  originalImageMimeType: z.string().optional(),
+});
+
+export const startBackgroundRemovalResponseSchema = z.object({
+  generationId: z.string(),
+  status: backgroundRemoverStatusSchema,
+});
+
+// Legacy: synchronous remove (deprecated; use startBackgroundRemoval)
 export const removeBackgroundSchema = z.object({
-  image: z.string(), // Image URL or base64
+  image: z.string(),
   teamId: z.string().optional(),
 });
 
@@ -33,25 +57,30 @@ export const deleteBackgroundRemovalSchema = z.object({
   id: z.string(),
 });
 
-// Response schemas for parsing DB data
+// Response schemas for parsing DB data (processed* nullable until COMPLETED)
 export const backgroundRemoverGenerationSchema = z.object({
   id: z.string(),
   userId: z.string(),
   teamId: z.string().nullable(),
-  originalImageUrl: z.string().url(),
+  originalImageUrl: z.string(),
   originalImageKey: z.string(),
   originalImageFileName: z.string(),
   originalImageSize: z.number().int(),
   originalImageMimeType: z.string(),
   originalImageMetadata: z.record(z.string(), z.any()).nullable(),
-  processedImageUrl: z.string().url(),
-  processedImageKey: z.string(),
-  processedImageFileName: z.string(),
-  processedImageSize: z.number().int(),
-  processedImageMimeType: z.string(),
+  processedImageUrl: z.string().nullable(),
+  processedImageKey: z.string().nullable(),
+  processedImageFileName: z.string().nullable(),
+  processedImageSize: z.number().int().nullable(),
+  processedImageMimeType: z.string().nullable(),
   processedImageMetadata: z.record(z.string(), z.any()).nullable(),
   modelId: z.string(),
   modelName: z.string().nullable(),
+  status: backgroundRemoverStatusSchema,
+  errorMessage: z.string().nullable(),
+  qstashMessageId: z.string().nullable(),
+  startedAt: z.date().nullable(),
+  completedAt: z.date().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

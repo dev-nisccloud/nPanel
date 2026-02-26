@@ -44,3 +44,31 @@ export interface NiscOrderJobResult {
 	messageId: string;
 }
 
+/**
+ * QStash job payload for image generator (immediate, no schedule)
+ */
+export interface ImageGeneratorJobPayload {
+	generationId: string;
+}
+
+/**
+ * QStash job result for image generator
+ */
+export interface ImageGeneratorJobResult {
+	messageId: string;
+}
+
+/**
+ * QStash job payload for background remover (immediate, no schedule)
+ */
+export interface BackgroundRemoverJobPayload {
+	generationId: string;
+}
+
+/**
+ * QStash job result for background remover
+ */
+export interface BackgroundRemoverJobResult {
+	messageId: string;
+}
+

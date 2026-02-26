@@ -11,37 +11,27 @@ import { cn } from "@/lib/utils";
 import { uploadFiles } from "@/hooks/use-uploadthing";
 import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
 
-interface FloatingInputBarProps {
-  onGenerate: (image: { originalUrl: string; processedUrl: string; originalMimeType: string; processedMimeType: string; timestamp: string }) => void;
-  onGenerationStart: () => void;
-  onGenerationEnd: () => void;
-}
-
-export function FloatingInputBar({ 
-  onGenerate, 
-  onGenerationStart, 
-  onGenerationEnd 
-}: FloatingInputBarProps) {
+export function FloatingInputBar() {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [isStarting, setIsStarting] = React.useState(false);
 
-  const removeBackgroundMutation = trpc.backgroundRemover.removeBackground.useMutation();
-  const updateGenerationMutation = trpc.backgroundRemover.updateGenerationAfterUpload.useMutation();
-
-  const handleDrop = React.useCallback(
-    (acceptedFiles: File[]) => {
-      if (acceptedFiles.length === 0) return;
-
-      const file = acceptedFiles[0];
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please upload an image file");
-        return;
-      }
-
-      setSelectedFile(file);
+  const utils = trpc.useUtils();
+  const startMutation = trpc.backgroundRemover.startBackgroundRemoval.useMutation({
+    onSuccess: () => {
+      utils.backgroundRemover.getGenerations.invalidate();
+      toast.success("Background removal started. Result will appear when ready.");
     },
-    []
-  );
+  });
+
+  const handleDrop = React.useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+    const file = acceptedFiles[0];
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    setSelectedFile(file);
+  }, []);
 
   const handleRemoveFile = React.useCallback(() => {
     setSelectedFile(null);
@@ -53,104 +43,43 @@ export function FloatingInputBar({
       return;
     }
 
-    setIsGenerating(true);
-    onGenerationStart();
-
+    setIsStarting(true);
     try {
-      // Step 1: Upload original image to UploadThing
       const originalUploadResponse = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
         files: [selectedFile],
       });
 
-      if (!originalUploadResponse || originalUploadResponse.length === 0) {
-        throw new Error("Failed to upload original image to UploadThing");
+      if (!originalUploadResponse?.length) {
+        throw new Error("Failed to upload original image");
       }
 
-      const originalUploadedFile = originalUploadResponse[0];
-      const originalImageUrl = originalUploadedFile.ufsUrl || originalUploadedFile.url || "";
-
+      const file = originalUploadResponse[0];
+      const originalImageUrl = file.ufsUrl ?? file.url ?? "";
       if (!originalImageUrl) {
-        throw new Error("Original image URL not found in upload response");
+        throw new Error("Original image URL not found");
       }
 
-      // Step 2: Send to Replicate for processing
-      const result = await removeBackgroundMutation.mutateAsync({
+      await startMutation.mutateAsync({
         image: originalImageUrl,
+        originalImageKey: file.key ?? undefined,
+        originalImageFileName: file.name ?? selectedFile.name,
+        originalImageSize: file.size ?? selectedFile.size,
+        originalImageMimeType: file.type ?? selectedFile.type,
       });
-
-      if (!result.data) {
-        throw new Error("No processed image URL returned from generation");
-      }
-
-      const processedImageUrl = result.data;
-      const generationId = result.generationId;
-
-      // Step 3: Download processed image and upload to UploadThing
-      const processedImageResponse = await fetch(processedImageUrl);
-      if (!processedImageResponse.ok) {
-        throw new Error("Failed to download processed image");
-      }
-
-      const processedBlob = await processedImageResponse.blob();
-      const processedFile = new File([processedBlob], `background-removed-${Date.now()}.png`, { type: "image/png" });
-
-      const processedUploadResponse = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
-        files: [processedFile],
-      });
-
-      if (!processedUploadResponse || processedUploadResponse.length === 0) {
-        throw new Error("Failed to upload processed image to UploadThing");
-      }
-
-      const processedUploadedFile = processedUploadResponse[0];
-      const finalProcessedImageUrl = processedUploadedFile.ufsUrl || processedUploadedFile.url || "";
-
-      if (!finalProcessedImageUrl) {
-        throw new Error("Processed image URL not found in upload response");
-      }
-
-      // Step 4: Update generation record with UploadThing data
-      if (generationId) {
-        await updateGenerationMutation.mutateAsync({
-          generationId,
-          originalImageUrl: originalImageUrl,
-          originalImageKey: originalUploadedFile.key || "",
-          originalImageFileName: originalUploadedFile.name || selectedFile.name,
-          originalImageSize: originalUploadedFile.size || selectedFile.size,
-          originalImageMimeType: originalUploadedFile.type || selectedFile.type,
-          processedImageUrl: finalProcessedImageUrl,
-          processedImageKey: processedUploadedFile.key || "",
-          processedImageFileName: processedUploadedFile.name || processedFile.name,
-          processedImageSize: processedUploadedFile.size || processedFile.size,
-          processedImageMimeType: processedUploadedFile.type || "image/png",
-        });
-      }
-
-      // Step 5: Add to current session
-      onGenerate({
-        originalUrl: originalImageUrl,
-        processedUrl: finalProcessedImageUrl,
-        originalMimeType: originalUploadedFile.type || selectedFile.type,
-        processedMimeType: processedUploadedFile.type || "image/png",
-        timestamp: Date.now().toString(),
-      });
-
-      toast.success("Background removed successfully!");
-    } catch (error: any) {
-      console.error("Error removing background:", error);
-      toast.error(`Failed to remove background: ${error.message || "Unknown error"}`);
+      setSelectedFile(null);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to start background removal";
+      toast.error(message);
     } finally {
-      setIsGenerating(false);
-      onGenerationEnd();
+      setIsStarting(false);
     }
   };
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 z-50 bg-background border-t">
-      <div className="max-w-4xl mx-auto px-4 py-4">
-        <div className="flex items-end gap-3">
-          {/* Dropzone */}
-          <div className="flex-1">
+    <div className="fixed bottom-0 left-0 right-0 z-0 border-t border-border bg-background/95 backdrop-blur-sm pb-1.5 pt-2">
+      <div className="max-w-4xl mx-auto px-4 py-2">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
             {!selectedFile ? (
               <Dropzone
                 onDrop={handleDrop}
@@ -158,70 +87,70 @@ export function FloatingInputBar({
                   "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif"],
                 }}
                 maxFiles={1}
-                maxSize={10 * 1024 * 1024} // 10MB
-                disabled={isGenerating}
-                className="border-2 border-dashed"
+                maxSize={10 * 1024 * 1024}
+                disabled={isStarting}
+                className={cn(
+                  "rounded-lg border border-dashed border-border bg-muted/20 transition-colors min-h-[52px]",
+                  "hover:border-primary/30 hover:bg-muted/30",
+                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                )}
               >
                 <DropzoneEmptyState>
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="mb-3 p-3 bg-primary/10 rounded-full">
-                      <Upload className="h-5 w-5 text-primary" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Drop your images here to remove the background
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      or click to select an image
+                  <div className="flex items-center justify-center gap-2 py-2 text-center">
+                    <Upload className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
+                    <p className="text-xs text-muted-foreground">
+                      Drop image or click to browse · PNG, JPG, WebP up to 10MB
                     </p>
                   </div>
                 </DropzoneEmptyState>
               </Dropzone>
             ) : (
-              <div className="relative border-2 border-dashed rounded-lg p-3 bg-muted/50">
-                <div className="flex items-center gap-3">
-                  <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-background flex items-center justify-center flex-shrink-0">
-                    <img
-                      src={URL.createObjectURL(selectedFile)}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{selectedFile.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleRemoveFile}
-                    disabled={isGenerating}
-                    className="h-8 w-8 flex-shrink-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-2 py-1.5">
+                <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded bg-muted">
+                  <img
+                    src={URL.createObjectURL(selectedFile)}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
                 </div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-xs font-medium text-foreground">
+                    {selectedFile.name}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRemoveFile}
+                  disabled={isStarting}
+                  className="h-6 w-6 shrink-0"
+                  aria-label="Remove selected image"
+                >
+                  <X className="h-3 w-3" aria-hidden />
+                </Button>
               </div>
             )}
           </div>
-
-          {/* Remove Background Button */}
           <Button
+            type="button"
             onClick={handleGenerate}
-            disabled={!selectedFile || isGenerating}
-            size="lg"
-            className="flex-shrink-0"
+            disabled={!selectedFile || isStarting}
+            size="sm"
+            className="shrink-0"
           >
-            {isGenerating ? (
+            {isStarting ? (
               <>
-                <Spinner className="mr-2 h-4 w-4" />
-                Processing...
+                <Spinner className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                Starting...
               </>
             ) : (
               <>
-                <ImageIcon className="mr-2 h-4 w-4" />
-                Remove Background
+                <ImageIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                Remove
               </>
             )}
           </Button>

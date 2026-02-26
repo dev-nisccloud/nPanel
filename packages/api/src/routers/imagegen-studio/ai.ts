@@ -11,11 +11,14 @@ import {
   updateGenerationAfterUploadResponseSchema,
   removeBgResponseSchema,
 } from "./schemas";
-import { fetch } from "undici";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
+
+/** Replicate model: 851-labs/background-remover (InSPyReNet). Input: image (URL). Output: URI string. */
+const BACKGROUND_REMOVER_MODEL =
+  "851-labs/background-remover:a029dff38972b5fda4ec5d75d7d1cd25aeff621d2cf4946a41055d7db66b80bc";
 
 /**
  * Run Replicate prediction with timeout and better error handling
@@ -252,7 +255,7 @@ export const imageGenAiRouter = router({
       return { data: { id: input.generationId } };
     }),
 
-  // Remove background from an image
+  // Remove background from an image (851-labs/background-remover)
   removeBg: protectedProcedure
     .input(removeBgSchema)
     .output(removeBgResponseSchema)
@@ -263,20 +266,30 @@ export const imageGenAiRouter = router({
       }
 
       try {
-        const replicateInput = {
-          image: input.image,
-        };
-
+        const replicateInput = { image: input.image };
         const output = await replicate.run(
-          "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
+          BACKGROUND_REMOVER_MODEL as `${string}/${string}`,
           { input: replicateInput }
         );
 
-        return { data: output as unknown as string };
+        let url: string;
+        if (typeof output === "string") {
+          url = output;
+        } else if (Array.isArray(output) && output.length > 0) {
+          url = output[0] as string;
+        } else if (output && typeof output === "object" && "url" in output) {
+          const u = (output as { url?: string }).url;
+          url = typeof u === "string" ? u : String(u);
+        } else if (output && typeof output === "object" && typeof (output as { url?: () => string }).url === "function") {
+          url = (output as { url: () => string }).url();
+        } else {
+          throw new Error(`Unexpected output from Replicate: ${JSON.stringify(output)}`);
+        }
+        return { data: url };
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to remove background",
+          message: error instanceof Error ? error.message : "Failed to remove background",
         });
       }
     }),

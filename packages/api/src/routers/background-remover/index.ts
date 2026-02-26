@@ -1,11 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import Replicate from "replicate";
-import prisma from "@nPanel/db";
+import prisma, { Prisma } from "@nPanel/db";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { fetch } from "undici";
 import {
+  startBackgroundRemovalSchema,
+  startBackgroundRemovalResponseSchema,
   removeBackgroundSchema,
   updateBackgroundRemovalAfterUploadSchema,
   getBackgroundRemovalsSchema,
@@ -15,10 +16,15 @@ import {
   updateBackgroundRemovalAfterUploadResponseSchema,
   backgroundRemoverGenerationSchema,
 } from "./schemas";
+import { enqueueBackgroundRemoval } from "../../lib/qstash/background-remover";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
+
+/** Replicate model: 851-labs/background-remover (InSPyReNet). Input: image (URL). Output: URI string. */
+const BACKGROUND_REMOVER_MODEL =
+  "851-labs/background-remover:a029dff38972b5fda4ec5d75d7d1cd25aeff621d2cf4946a41055d7db66b80bc";
 
 /**
  * Run Replicate prediction with timeout and better error handling
@@ -74,156 +80,193 @@ async function downloadImage(imageUrl: string): Promise<{
   return { buffer, contentType, size };
 }
 
-/**
- * Transform function to ensure clean data (no Prisma types leak)
- */
+function normalizeStatus(g: any): "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" {
+  const s = g?.status;
+  if (s === "QUEUED" || s === "PROCESSING" || s === "COMPLETED" || s === "FAILED")
+    return s;
+  if (g?.processedImageUrl) return "COMPLETED";
+  return "QUEUED";
+}
+
 function transformBackgroundRemoval(generation: any): z.infer<typeof backgroundRemoverGenerationSchema> {
   return {
     id: generation.id,
     userId: generation.userId,
     teamId: generation.teamId,
     originalImageUrl: generation.originalImageUrl,
-    originalImageKey: generation.originalImageKey,
+    originalImageKey: generation.originalImageKey ?? "",
     originalImageFileName: generation.originalImageFileName,
     originalImageSize: generation.originalImageSize,
     originalImageMimeType: generation.originalImageMimeType,
     originalImageMetadata: generation.originalImageMetadata ?? null,
-    processedImageUrl: generation.processedImageUrl,
-    processedImageKey: generation.processedImageKey,
-    processedImageFileName: generation.processedImageFileName,
-    processedImageSize: generation.processedImageSize,
-    processedImageMimeType: generation.processedImageMimeType,
+    processedImageUrl: generation.processedImageUrl ?? null,
+    processedImageKey: generation.processedImageKey ?? null,
+    processedImageFileName: generation.processedImageFileName ?? null,
+    processedImageSize: generation.processedImageSize ?? null,
+    processedImageMimeType: generation.processedImageMimeType ?? null,
     processedImageMetadata: generation.processedImageMetadata ?? null,
     modelId: generation.modelId,
-    modelName: generation.modelName,
+    modelName: generation.modelName ?? null,
+    status: normalizeStatus(generation),
+    errorMessage: generation.errorMessage ?? null,
+    qstashMessageId: generation.qstashMessageId ?? null,
+    startedAt: generation.startedAt ?? null,
+    completedAt: generation.completedAt ?? null,
     createdAt: generation.createdAt,
     updatedAt: generation.updatedAt,
   };
 }
 
 export const backgroundRemoverRouter = router({
-  // Remove background from an image
+  // Start background removal (fire-and-forget via QStash); worker fills processed* when done.
+  startBackgroundRemoval: protectedProcedure
+    .input(startBackgroundRemovalSchema)
+    .output(startBackgroundRemovalResponseSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+      const now = new Date();
+      const id = randomUUID();
+
+      const generation = await prisma.backgroundRemoverGeneration.create({
+        data: {
+          id,
+          userId,
+          teamId: input.teamId ?? null,
+          originalImageUrl: input.image,
+          originalImageKey: input.originalImageKey ?? "",
+          originalImageFileName: input.originalImageFileName ?? `original-${Date.now()}.png`,
+          originalImageSize: input.originalImageSize ?? 0,
+          originalImageMimeType: input.originalImageMimeType ?? "image/png",
+          originalImageMetadata: Prisma.JsonNull,
+          processedImageUrl: null,
+          processedImageKey: null,
+          processedImageFileName: null,
+          processedImageSize: null,
+          processedImageMimeType: null,
+          processedImageMetadata: Prisma.JsonNull,
+          modelId: BACKGROUND_REMOVER_MODEL,
+          modelName: "851 Labs Background Remover",
+          status: "QUEUED",
+          errorMessage: null,
+          qstashMessageId: null,
+          startedAt: null,
+          completedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      const { messageId } = await enqueueBackgroundRemoval(generation.id);
+      await prisma.backgroundRemoverGeneration.update({
+        where: { id: generation.id },
+        data: { qstashMessageId: messageId, updatedAt: new Date() },
+      });
+
+      await prisma.backgroundRemoverGenerationActivityLog.create({
+        data: {
+          id: randomUUID(),
+          backgroundRemoverGenerationId: generation.id,
+          userId,
+          action: "GENERATE",
+          description: "Background removal job enqueued",
+          metadata: { model: BACKGROUND_REMOVER_MODEL, qstashMessageId: messageId },
+          ipAddress: undefined,
+          userAgent: undefined,
+          createdAt: new Date(),
+        },
+      });
+
+      return { generationId: generation.id, status: "QUEUED" as const };
+    }),
+
+  // Legacy: synchronous remove (deprecated; use startBackgroundRemoval)
   removeBackground: protectedProcedure
     .input(removeBackgroundSchema)
     .output(removeBackgroundResponseSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
-      if (!userId) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-
-      // Note: Request headers are not available in tRPC context
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
       const ipAddress = undefined;
       const userAgent = undefined;
-
+      const now = new Date();
       try {
-        // Prepare Replicate input
-        const replicateInput: Record<string, any> = {
-          image: input.image,
-        };
-
-        // Run Replicate prediction with timeout (2 minutes for background removal)
+        const replicateInput: Record<string, unknown> = { image: input.image };
         const output = await runReplicateWithTimeout(
-          "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
+          BACKGROUND_REMOVER_MODEL,
           replicateInput,
           120000
         );
-
-        // Handle different output formats
-        // Sometimes output is a string (URL), sometimes an array of URLs
         let processedImageUrl: string;
         if (typeof output === "string") {
           processedImageUrl = output;
         } else if (Array.isArray(output) && output.length > 0) {
           processedImageUrl = output[0] as string;
         } else if (output && typeof output === "object" && "url" in output) {
-          processedImageUrl = (output as any).url;
+          const u = (output as { url?: string }).url;
+          processedImageUrl = typeof u === "string" ? u : String(u);
+        } else if (output && typeof output === "object" && typeof (output as { url?: () => string }).url === "function") {
+          processedImageUrl = (output as { url: () => string }).url();
         } else {
-          throw new Error(
-            `Unexpected output format from Replicate: ${JSON.stringify(output)}`
-          );
+          throw new Error(`Unexpected output format from Replicate: ${JSON.stringify(output)}`);
         }
-
         if (!processedImageUrl || typeof processedImageUrl !== "string") {
-          throw new Error(
-            `No valid image URL found in Replicate response. Output: ${JSON.stringify(output)}`
-          );
+          throw new Error(`No valid image URL in Replicate response. Output: ${JSON.stringify(output)}`);
         }
-
-        // Download processed image to get metadata
         const processedImageData = await downloadImage(processedImageUrl);
-
-        // Download original image to get metadata (if it's a URL)
         let originalImageData: { buffer: Buffer; contentType: string; size: number } | null = null;
         if (input.image.startsWith("http://") || input.image.startsWith("https://")) {
           try {
             originalImageData = await downloadImage(input.image);
-          } catch (error) {
-            console.warn("Failed to download original image for metadata:", error);
+          } catch (e) {
+            console.warn("Failed to download original image for metadata:", e);
           }
         }
-
-        // Save generation to database
-        // Note: We'll upload to UploadThing client-side and update the record
-        // For now, we save with the Replicate URLs
         const generation = await prisma.backgroundRemoverGeneration.create({
           data: {
             id: randomUUID(),
             userId,
             teamId: input.teamId ?? null,
-            originalImageUrl: input.image, // Will be updated after UploadThing upload
-            originalImageKey: "", // Will be set after UploadThing upload
+            originalImageUrl: input.image,
+            originalImageKey: "",
             originalImageFileName: originalImageData
               ? `original-${Date.now()}.${originalImageData.contentType.split("/")[1] || "png"}`
               : `original-${Date.now()}.png`,
-            originalImageSize: originalImageData?.size || 0,
-            originalImageMimeType: originalImageData?.contentType || "image/png",
-            originalImageMetadata: originalImageData
-              ? {
-                  contentType: originalImageData.contentType,
-                  size: originalImageData.size,
-                }
-              : undefined,
-            processedImageUrl, // Will be updated after UploadThing upload
-            processedImageKey: "", // Will be set after UploadThing upload
+            originalImageSize: originalImageData?.size ?? 0,
+            originalImageMimeType: originalImageData?.contentType ?? "image/png",
+            originalImageMetadata: originalImageData ? { contentType: originalImageData.contentType, size: originalImageData.size } : undefined,
+            processedImageUrl,
+            processedImageKey: "",
             processedImageFileName: `background-removed-${Date.now()}.png`,
             processedImageSize: processedImageData.size,
             processedImageMimeType: processedImageData.contentType,
-            processedImageMetadata: {
-              model: "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
-              contentType: processedImageData.contentType,
-              size: processedImageData.size,
-            },
-            modelId: "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
-            modelName: "Remove Background",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            processedImageMetadata: { model: BACKGROUND_REMOVER_MODEL, contentType: processedImageData.contentType, size: processedImageData.size },
+            modelId: BACKGROUND_REMOVER_MODEL,
+            modelName: "851 Labs Background Remover",
+            status: "COMPLETED",
+            errorMessage: null,
+            qstashMessageId: null,
+            startedAt: now,
+            completedAt: now,
+            createdAt: now,
+            updatedAt: now,
           },
         });
-
-        // Create activity log
         await prisma.backgroundRemoverGenerationActivityLog.create({
           data: {
             id: randomUUID(),
             backgroundRemoverGenerationId: generation.id,
             userId,
             action: "GENERATE",
-            description: `Removed background from image`,
-            metadata: {
-              originalImageFileName: generation.originalImageFileName,
-              processedImageFileName: generation.processedImageFileName,
-              model: "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
-            },
+            description: "Removed background from image (sync)",
+            metadata: { originalImageFileName: generation.originalImageFileName, processedImageFileName: generation.processedImageFileName, model: BACKGROUND_REMOVER_MODEL },
             ipAddress,
             userAgent,
-            createdAt: new Date(),
+            createdAt: now,
           },
         });
-
-        return {
-          data: processedImageUrl,
-          generationId: generation.id, // Return ID so client can update after UploadThing upload
-        };
+        return { data: processedImageUrl, generationId: generation.id };
       } catch (error) {
         console.error("Error removing background:", error);
         throw new TRPCError({
@@ -346,7 +389,7 @@ export const backgroundRemoverRouter = router({
           backgroundRemoverGenerationId: input.id,
           userId,
           action: "DELETE",
-          description: `Deleted background removal: ${existingGeneration.processedImageFileName}`,
+          description: `Deleted background removal: ${existingGeneration.processedImageFileName ?? "unknown"}`,
           metadata: {
             originalImageFileName: existingGeneration.originalImageFileName,
             processedImageFileName: existingGeneration.processedImageFileName,

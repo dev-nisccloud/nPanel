@@ -1,8 +1,11 @@
 // Image Generator - AI Image Generation Schema
 // Stores prompts and generations for the image generator feature
 
+// Generation status (ImageGeneratorGeneration.status): QUEUED → PROCESSING → COMPLETED or FAILED.
+// Individual image/variation status (ImageGeneratorVariation.status): PROCESSING → COMPLETED or FAILED.
+
 // Image Generator - AI Generations (prompts and generation metadata)
-// One generation can have multiple variations
+// One generation can have multiple variations. Status drives UI (loaders vs loaded).
 model ImageGeneratorGeneration {
   id     String  @id @map("_id")
   userId String // User who generated the image
@@ -22,6 +25,13 @@ model ImageGeneratorGeneration {
   modelId   String // e.g., "google/nano-banana-pro"
   modelName String? // Human-readable model name
 
+  // Job status (top-level): QUEUED -> PROCESSING -> COMPLETED | FAILED
+  status          String    @default("QUEUED") // QUEUED | PROCESSING | COMPLETED | FAILED
+  errorMessage    String? // Last error if FAILED
+  qstashMessageId String? // QStash message ID for the background job
+  startedAt       DateTime?
+  completedAt     DateTime?
+
   createdAt DateTime
   updatedAt DateTime
 
@@ -34,11 +44,12 @@ model ImageGeneratorGeneration {
   @@index([teamId])
   @@index([createdAt])
   @@index([modelId])
+  @@index([status])
   @@map("image_generator_generation")
 }
 
 // Image Generator - Individual Variation Images
-// Each variation is a separate generated image from the same prompt
+// Each variation is a separate generated image. Status: PROCESSING (loader) -> COMPLETED (show image) | FAILED
 model ImageGeneratorVariation {
   id                         String                   @id @map("_id")
   imageGeneratorGenerationId String
@@ -47,12 +58,19 @@ model ImageGeneratorVariation {
   // Variation Index (1, 2, 3, etc.)
   variationIndex Int
 
-  // Generated Image Storage (UploadThing)
-  imageUrl      String // UploadThing file URL for the generated image
-  imageKey      String // UploadThing file key for deletion
-  imageFileName String // Generated file name
-  imageSize     Int // File size in bytes
-  imageMimeType String // File MIME type (should be image/*)
+  // Variation-level status: PROCESSING (show loader) | COMPLETED | FAILED
+  status       String  @default("PROCESSING") // PROCESSING | COMPLETED | FAILED
+  errorMessage String?
+
+  // Replicate async prediction id (for webhook-based completion updates)
+  predictionId String?
+
+  // Generated Image Storage (UploadThing) - set when status = COMPLETED
+  imageUrl      String? // UploadThing file URL
+  imageKey      String? // UploadThing file key for deletion
+  imageFileName String? // Generated file name
+  imageSize     Int? // File size in bytes
+  imageMimeType String? // File MIME type (should be image/*)
   imageMetadata Json? // Additional metadata (dimensions, seed, etc.)
 
   createdAt DateTime
@@ -60,6 +78,8 @@ model ImageGeneratorVariation {
 
   @@index([imageGeneratorGenerationId])
   @@index([variationIndex])
+  @@index([status])
+  @@index([predictionId])
   @@map("image_generator_variation")
 }
 
@@ -84,31 +104,38 @@ model ImageGeneratorGenerationActivityLog {
 }
 
 // Background Remover - Background Removal History
-// Stores original images and their background-removed versions
+// Job status: QUEUED -> PROCESSING -> COMPLETED | FAILED (worker updates processed* when COMPLETED)
 model BackgroundRemoverGeneration {
   id     String  @id @map("_id")
-  userId String // User who removed the background
+  userId String
   teamId String? // Optional team ownership (null = personal generation)
 
-  // Original Image Storage (UploadThing)
-  originalImageUrl      String // UploadThing file URL for the original image
-  originalImageKey      String // UploadThing file key for deletion
-  originalImageFileName String // Original file name
-  originalImageSize     Int // File size in bytes
-  originalImageMimeType String // File MIME type (should be image/*)
-  originalImageMetadata Json? // Additional metadata (dimensions, etc.)
+  // Original Image Storage (set when job is created)
+  originalImageUrl      String
+  originalImageKey      String
+  originalImageFileName String
+  originalImageSize     Int
+  originalImageMimeType String
+  originalImageMetadata Json?
 
-  // Background-Removed Image Storage (UploadThing)
-  processedImageUrl      String // UploadThing file URL for the processed image
-  processedImageKey      String // UploadThing file key for deletion
-  processedImageFileName String // Processed file name
-  processedImageSize     Int // File size in bytes
-  processedImageMimeType String // File MIME type (should be image/*)
-  processedImageMetadata Json? // Additional metadata (dimensions, model used, etc.)
+  // Processed Image (set by worker when status = COMPLETED)
+  processedImageUrl      String?
+  processedImageKey      String?
+  processedImageFileName String?
+  processedImageSize     Int?
+  processedImageMimeType String?
+  processedImageMetadata Json?
 
   // Model Information
-  modelId   String // e.g., "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003"
-  modelName String? // Human-readable model name
+  modelId   String
+  modelName String?
+
+  // Job status: QUEUED -> PROCESSING -> COMPLETED | FAILED
+  status          String    @default("QUEUED") // QUEUED | PROCESSING | COMPLETED | FAILED
+  errorMessage    String?
+  qstashMessageId String?
+  startedAt       DateTime?
+  completedAt     DateTime?
 
   createdAt DateTime
   updatedAt DateTime
@@ -121,6 +148,7 @@ model BackgroundRemoverGeneration {
   @@index([teamId])
   @@index([createdAt])
   @@index([modelId])
+  @@index([status])
   @@map("background_remover_generation")
 }
 

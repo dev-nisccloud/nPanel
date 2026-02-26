@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Download, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, X, ChevronLeft, ChevronRight, ImagePlus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -10,94 +10,57 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-
-interface BackgroundRemovalImage {
-  originalUrl: string;
-  processedUrl: string;
-  originalMimeType: string;
-  processedMimeType: string;
-  timestamp: string;
-}
-
-interface BackgroundRemovalFromDB {
-  id: string;
-  createdAt: Date;
-  originalImageUrl: string;
-  originalImageMimeType: string;
-  processedImageUrl: string;
-  processedImageMimeType: string;
-}
+import type { BackgroundRemovalView } from "./background-remover-interface";
 
 interface BackgroundRemoverResultsViewProps {
-  images: BackgroundRemovalImage[];
-  generations?: BackgroundRemovalFromDB[];
-  isGenerating?: boolean;
-  isLoadingHistory?: boolean;
+  generations: BackgroundRemovalView[];
+  isLoadingHistory: boolean;
 }
 
-export function BackgroundRemoverResultsView({ 
-  images, 
-  generations = [],
-  isGenerating = false,
-  isLoadingHistory = false,
+export function BackgroundRemoverResultsView({
+  generations,
+  isLoadingHistory,
 }: BackgroundRemoverResultsViewProps) {
-  const [selectedGenerationId, setSelectedGenerationId] = React.useState<string | "current-session" | null>(null);
+  const [selectedGenerationId, setSelectedGenerationId] = React.useState<string | null>(null);
   const [selectedImageType, setSelectedImageType] = React.useState<"original" | "processed" | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
-  // Get images for the selected generation
-  const getSelectedGenerationImages = React.useMemo(() => {
-    if (selectedGenerationId === "current-session") {
-      // Current session images
-      if (images.length > 0) {
-        return {
-          original: images[0].originalUrl,
-          processed: images[0].processedUrl,
-        };
-      }
-    } else if (selectedGenerationId) {
-      // DB generation images
-      const generation = generations.find(gen => gen.id === selectedGenerationId);
-      if (generation) {
-        return {
-          original: generation.originalImageUrl,
-          processed: generation.processedImageUrl,
-        };
-      }
-    }
-    return null;
-  }, [selectedGenerationId, images, generations]);
+  const selectedGeneration = selectedGenerationId
+    ? generations.find((g) => g.id === selectedGenerationId)
+    : null;
 
-  const handleDownload = (imageUrl: string, fileName: string) => {
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    const format = imageUrl.split('.').pop() || 'png';
-    link.download = `${fileName}-${Date.now()}.${format}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async (imageUrl: string, fileNameBase: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      const contentType = response.headers.get("content-type") || "image/png";
+      const extFromMime = contentType.split("/")[1] || "png";
+      const extFromUrl = imageUrl.split(".").pop()?.split("?")[0];
+      const ext = (extFromUrl || extFromMime || "png").toLowerCase();
+
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `${fileNameBase}-${Date.now()}.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error("Error downloading image:", error);
+    }
   };
 
-  const handleImageClick = (generationId: string | "current-session" | null, imageType: "original" | "processed") => {
+  const handleImageClick = (generationId: string, imageType: "original" | "processed") => {
+    const gen = generations.find((g) => g.id === generationId);
+    if (imageType === "processed" && (!gen?.processedImageUrl || gen.status !== "COMPLETED")) return;
     setSelectedGenerationId(generationId);
     setSelectedImageType(imageType);
     setIsDialogOpen(true);
-  };
-
-  const handlePrevious = () => {
-    if (!getSelectedGenerationImages) return;
-    
-    if (selectedImageType === "processed") {
-      setSelectedImageType("original");
-    }
-  };
-
-  const handleNext = () => {
-    if (!getSelectedGenerationImages) return;
-    
-    if (selectedImageType === "original") {
-      setSelectedImageType("processed");
-    }
   };
 
   const handleCloseDialog = () => {
@@ -106,42 +69,35 @@ export function BackgroundRemoverResultsView({
     setSelectedImageType(null);
   };
 
+  const selectedImage =
+    selectedImageType && selectedGeneration
+      ? selectedImageType === "original"
+        ? selectedGeneration.originalImageUrl
+        : selectedGeneration.processedImageUrl
+      : null;
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowLeft") {
-      handlePrevious();
-    } else if (e.key === "ArrowRight") {
-      handleNext();
-    } else if (e.key === "Escape") {
-      handleCloseDialog();
+    if (e.key === "Escape") handleCloseDialog();
+    if (!selectedGeneration) return;
+    if (e.key === "ArrowLeft" && selectedImageType === "processed") {
+      setSelectedImageType("original");
+    }
+    if (e.key === "ArrowRight" && selectedImageType === "original" && selectedGeneration.processedImageUrl) {
+      setSelectedImageType("processed");
     }
   };
 
-  // Get the currently selected image
-  const selectedImage = selectedImageType && getSelectedGenerationImages
-    ? getSelectedGenerationImages[selectedImageType]
-    : null;
+  const hasContent = generations.length > 0;
 
-  const hasContent = images.length > 0 || generations.length > 0 || isGenerating;
-
-  // Show skeleton loaders while loading history
   if (isLoadingHistory) {
     return (
-      <div className="space-y-8">
-        {/* Skeleton for generation history */}
+      <div className="space-y-3">
         {[1, 2, 3].map((index) => (
-          <div key={index} className="space-y-4">
-            {/* Date skeleton */}
-            <Skeleton className="h-8 w-64" />
-            {/* Images skeleton */}
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px] max-w-[300px]">
-                <Skeleton className="h-6 w-32 mb-2" />
-                <Skeleton className="aspect-square rounded-lg w-full" />
-              </div>
-              <div className="flex-1 min-w-[200px] max-w-[300px]">
-                <Skeleton className="h-6 w-40 mb-2" />
-                <Skeleton className="aspect-square rounded-lg w-full" />
-              </div>
+          <div key={index} className="rounded-lg border border-border bg-card p-3">
+            <Skeleton className="mb-2 h-4 w-36 rounded" />
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <Skeleton className="aspect-square w-full rounded-md" />
+              <Skeleton className="aspect-square w-full rounded-md" />
             </div>
           </div>
         ))}
@@ -149,14 +105,16 @@ export function BackgroundRemoverResultsView({
     );
   }
 
-  // Show empty state only after loading is complete and there's no content
-  if (!hasContent && !isLoadingHistory) {
+  if (!hasContent) {
     return (
-      <div className="flex items-center justify-center py-24 text-center">
-        <div className="space-y-2">
-          <p className="text-muted-foreground">No background removals yet</p>
-          <p className="text-sm text-muted-foreground">
-            Start by uploading an image below
+      <div className="flex items-center justify-center py-8">
+        <div className="rounded-lg border border-dashed border-border bg-muted/20 px-5 py-6 text-center max-w-xs">
+          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <ImagePlus className="h-5 w-5" aria-hidden />
+          </div>
+          <p className="text-sm font-medium text-foreground">No removals yet</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Drop an image below and click Remove to start.
           </p>
         </div>
       </div>
@@ -165,228 +123,166 @@ export function BackgroundRemoverResultsView({
 
   return (
     <>
-      <div className="space-y-8">
-        {/* Skeleton Loader for Generating - Show at top while generating */}
-        {isGenerating && (
-          <div className="space-y-4">
-            {/* Date skeleton */}
-            <Skeleton className="h-8 w-64" />
-            {/* Images skeleton */}
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px] max-w-[300px]">
-                <Skeleton className="h-6 w-32 mb-2" />
-                <Skeleton className="aspect-square rounded-lg w-full" />
-              </div>
-              <div className="flex-1 min-w-[200px] max-w-[300px]">
-                <Skeleton className="h-6 w-40 mb-2" />
-                <Skeleton className="aspect-square rounded-lg w-full" />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Current Session Images - Show at top */}
-        {images.length > 0 && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold">Current Session</h3>
-            </div>
-            <div className="flex flex-wrap gap-4">
-              {/* Original Image */}
-              <div className="flex-1 min-w-[200px] max-w-[300px] space-y-2">
-                <h4 className="text-sm font-medium">Original Image</h4>
+      <div className="space-y-3">
+        {generations.map((gen) => (
+          <div key={gen.id} className="rounded-lg border border-border bg-card p-3">
+            <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              {format(new Date(gen.createdAt), "MMM d, yyyy · h:mm a")}
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-foreground">Original</p>
                 <div
-                  className="relative group aspect-square rounded-lg border overflow-hidden bg-card cursor-pointer w-full"
-                  onClick={() => handleImageClick("current-session", "original")}
+                  role="button"
+                  tabIndex={0}
+                  className="relative group aspect-square w-full cursor-pointer overflow-hidden rounded-md border border-border bg-muted/30"
+                  onClick={() => handleImageClick(gen.id, "original")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleImageClick(gen.id, "original");
+                    }
+                  }}
                 >
                   <img
-                    src={images[0].originalUrl}
+                    src={gen.originalImageUrl}
                     alt="Original"
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    className="h-full w-full object-contain transition-transform duration-200 group-hover:scale-[1.02]"
                   />
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-1 right-1 rounded bg-background/90 p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     <Button
+                      type="button"
                       variant="secondary"
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDownload(images[0].originalUrl, "original");
+                        handleDownload(gen.originalImageUrl, "original");
                       }}
-                      className="h-8 w-8"
+                      className="h-6 w-6"
+                      aria-label="Download original"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-3 w-3" aria-hidden />
                     </Button>
                   </div>
                 </div>
               </div>
-
-              {/* Background Removed Image */}
-              <div className="flex-1 min-w-[200px] max-w-[300px] space-y-2">
-                <h4 className="text-sm font-medium">Background Removed</h4>
-                <div
-                  className="relative group aspect-square rounded-lg border overflow-hidden bg-card cursor-pointer w-full"
-                  onClick={() => handleImageClick("current-session", "processed")}
-                >
-                  <img
-                    src={images[0].processedUrl}
-                    alt="Background Removed"
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(images[0].processedUrl, "background-removed");
-                      }}
-                      className="h-8 w-8"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-foreground">No background</p>
+                {gen.status === "FAILED" ? (
+                  <div
+                    className="aspect-square w-full rounded-md border border-destructive/50 bg-destructive/5 flex flex-col items-center justify-center gap-1 p-2"
+                    title="Failed"
+                  >
+                    <AlertCircle className="h-6 w-6 text-destructive shrink-0" />
+                    <span className="text-[10px] text-destructive line-clamp-2 text-center">
+                      Failed
+                    </span>
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Generation History from Database */}
-        {generations.map((generation) => (
-          <div key={generation.id} className="space-y-4">
-            {/* Date and Time */}
-            <div>
-              <h2 className="text-2xl font-bold">
-                {format(new Date(generation.createdAt), "EEEE, MMMM d, yyyy 'at' h:mm a")}
-              </h2>
-            </div>
-
-            {/* Images */}
-            <div className="flex flex-wrap gap-4">
-              {/* Original Image */}
-              <div className="flex-1 min-w-[200px] max-w-[300px] space-y-2">
-                <h4 className="text-sm font-medium">Original Image</h4>
-                <div
-                  className="relative group aspect-square rounded-lg border overflow-hidden bg-card cursor-pointer w-full"
-                  onClick={() => handleImageClick(generation.id, "original")}
-                >
-                  <img
-                    src={generation.originalImageUrl}
-                    alt="Original"
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(generation.originalImageUrl, "original");
-                      }}
-                      className="h-8 w-8"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
+                ) : gen.status === "COMPLETED" && gen.processedImageUrl ? (
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className="relative group aspect-square w-full cursor-pointer overflow-hidden rounded-md border border-border bg-checker"
+                    onClick={() => handleImageClick(gen.id, "processed")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleImageClick(gen.id, "processed");
+                      }
+                    }}
+                  >
+                    <img
+                      src={gen.processedImageUrl}
+                      alt="No background"
+                      className="h-full w-full object-contain transition-transform duration-200 group-hover:scale-[1.02]"
+                    />
+                    <div className="absolute top-1 right-1 rounded bg-background/90 p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(gen.processedImageUrl!, "background-removed");
+                        }}
+                        className="h-6 w-6"
+                        aria-label="Download"
+                      >
+                        <Download className="h-3 w-3" aria-hidden />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Background Removed Image */}
-              <div className="flex-1 min-w-[200px] max-w-[300px] space-y-2">
-                <h4 className="text-sm font-medium">Background Removed</h4>
-                <div
-                  className="relative group aspect-square rounded-lg border overflow-hidden bg-card cursor-pointer w-full"
-                  onClick={() => handleImageClick(generation.id, "processed")}
-                >
-                  <img
-                    src={generation.processedImageUrl}
-                    alt="Background Removed"
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(generation.processedImageUrl, "background-removed");
-                      }}
-                      className="h-8 w-8"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
+                ) : (
+                  <div className="aspect-square w-full rounded-md border border-border bg-muted/30 flex items-center justify-center">
+                    <Skeleton className="h-full w-full rounded-md" />
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Image Preview Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent 
-          className="max-w-6xl w-full p-0 bg-transparent border-0 shadow-none"
+        <DialogContent
+          className="max-w-4xl w-full gap-0 overflow-hidden rounded-lg border border-border bg-background p-0 shadow-xl"
           onKeyDown={handleKeyDown}
         >
-          <DialogTitle className="sr-only">Image Preview</DialogTitle>
-          {selectedImage && (
-            <div className="relative w-full h-[80vh] max-h-[800px] flex items-center justify-center">
-              {/* Close Button */}
+          <DialogTitle className="sr-only">Preview</DialogTitle>
+          {selectedImage && selectedGeneration && (
+            <div className="relative flex h-[70vh] max-h-[560px] w-full items-center justify-center">
               <Button
+                type="button"
                 variant="secondary"
                 size="icon"
                 onClick={handleCloseDialog}
-                className="absolute top-4 right-4 z-50 h-10 w-10"
+                className="absolute top-2 right-2 z-50 h-8 w-8 rounded-md"
+                aria-label="Close preview"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" aria-hidden />
               </Button>
-
-              {/* Previous Button - Only show if viewing processed image */}
-              {selectedImageType === "processed" && getSelectedGenerationImages && (
+              {selectedImageType === "processed" && selectedGeneration.processedImageUrl && (
                 <Button
+                  type="button"
                   variant="secondary"
                   size="icon"
-                  onClick={handlePrevious}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12"
+                  onClick={() => setSelectedImageType("original")}
+                  className="absolute left-2 top-1/2 z-50 h-8 w-8 -translate-y-1/2 rounded-md"
+                  aria-label="Previous"
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <ChevronLeft className="h-5 w-5" aria-hidden />
                 </Button>
               )}
-
-              {/* Next Button - Only show if viewing original image */}
-              {selectedImageType === "original" && getSelectedGenerationImages && (
+              {selectedImageType === "original" && selectedGeneration.processedImageUrl && (
                 <Button
+                  type="button"
                   variant="secondary"
                   size="icon"
-                  onClick={handleNext}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12"
+                  onClick={() => setSelectedImageType("processed")}
+                  className="absolute right-2 top-1/2 z-50 h-8 w-8 -translate-y-1/2 rounded-md"
+                  aria-label="Next"
                 >
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight className="h-5 w-5" aria-hidden />
                 </Button>
               )}
-
-              {/* Download Button */}
               <Button
+                type="button"
                 variant="secondary"
                 size="icon"
                 onClick={() => selectedImage && handleDownload(selectedImage, selectedImageType === "original" ? "original" : "background-removed")}
-                className="absolute bottom-4 right-4 z-50 h-12 w-12"
+                className="absolute bottom-2 right-2 z-50 h-8 w-8 rounded-md"
+                aria-label="Download"
               >
-                <Download className="h-6 w-6" />
+                <Download className="h-5 w-5" aria-hidden />
               </Button>
-
-              {/* Image Preview */}
-              <div className="relative w-full h-full flex items-center justify-center bg-background/95 backdrop-blur rounded-lg overflow-hidden">
+              <div className="flex h-full w-full items-center justify-center rounded-md bg-muted/30 p-3">
                 <img
                   src={selectedImage}
-                  alt={selectedImageType === "original" ? "Original" : "Background Removed"}
-                  className="max-w-full max-h-full object-contain"
+                  alt={selectedImageType === "original" ? "Original" : "No background"}
+                  className="max-h-full max-w-full object-contain"
                 />
               </div>
-
-              {/* Image Counter */}
-              <div className="absolute bottom-4 left-4 z-50 bg-background/80 backdrop-blur px-3 py-1.5 rounded-md text-sm">
+              <div className="absolute bottom-2 left-2 z-50 rounded bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground">
                 {selectedImageType === "original" ? "1" : "2"} / 2
               </div>
             </div>

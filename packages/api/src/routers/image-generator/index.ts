@@ -1,19 +1,23 @@
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import Replicate from "replicate";
-import prisma from "@nPanel/db";
+import prisma, { Prisma } from "@nPanel/db";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   generateImageSchema,
+  startGenerationSchema,
+  startGenerationResponseSchema,
   updateVariationAfterUploadSchema,
   getGenerationsSchema,
   deleteGenerationSchema,
   getGenerationsResponseSchema,
   imageGeneratorVariationSchema,
   imageGeneratorGenerationSchema,
+  generationStatusSchema,
+  variationStatusSchema,
 } from "./schemas";
-import { fetch } from "undici";
+import { enqueueImageGeneration } from "../../lib/qstash/image-generator";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -101,28 +105,51 @@ function convertOutputFormat(format: string): string {
   return formatMap[format] || "png";
 }
 
+const GENERATION_STATUS_VALUES = ["QUEUED", "PROCESSING", "COMPLETED", "FAILED"] as const;
+const VARIATION_STATUS_VALUES = ["PROCESSING", "COMPLETED", "FAILED"] as const;
+
+function normalizeGenerationStatus(s: unknown): z.infer<typeof generationStatusSchema> {
+  if (typeof s === "string" && GENERATION_STATUS_VALUES.includes(s as any)) {
+    return s as z.infer<typeof generationStatusSchema>;
+  }
+  return "QUEUED";
+}
+
+function normalizeVariationStatus(s: unknown): z.infer<typeof variationStatusSchema> {
+  if (typeof s === "string" && VARIATION_STATUS_VALUES.includes(s as any)) {
+    return s as z.infer<typeof variationStatusSchema>;
+  }
+  return "PROCESSING";
+}
+
 /**
- * Transform functions to ensure clean data (no Prisma types leak)
- * These convert Prisma types to plain types for API layer
+ * Transform DB variation to API layer shape (independent schema)
  */
 function transformVariation(variation: any): z.infer<typeof imageGeneratorVariationSchema> {
+  const rawUrl = variation.imageUrl;
+  const imageUrl =
+    typeof rawUrl === "string" && rawUrl.length > 0 ? rawUrl : null;
   return {
     id: variation.id,
     imageGeneratorGenerationId: variation.imageGeneratorGenerationId,
     variationIndex: variation.variationIndex,
-    imageUrl: variation.imageUrl,
-    imageKey: variation.imageKey,
-    imageFileName: variation.imageFileName,
-    imageSize: variation.imageSize,
-    imageMimeType: variation.imageMimeType,
+    status: normalizeVariationStatus(variation.status),
+    errorMessage: variation.errorMessage ?? null,
+    imageUrl,
+    imageKey: variation.imageKey ?? null,
+    imageFileName: variation.imageFileName ?? null,
+    imageSize: variation.imageSize ?? null,
+    imageMimeType: variation.imageMimeType ?? null,
     imageMetadata: variation.imageMetadata ?? null,
     createdAt: variation.createdAt,
     updatedAt: variation.updatedAt,
   };
 }
 
+/**
+ * Transform DB generation to API layer shape (independent schema)
+ */
 function transformGeneration(generation: any): z.infer<typeof imageGeneratorGenerationSchema> {
-  // Parse referenceImageUrls if it's a JSON string
   let referenceImageUrls: string[] | null = null;
   if (generation.referenceImageUrls) {
     if (typeof generation.referenceImageUrls === "string") {
@@ -148,6 +175,11 @@ function transformGeneration(generation: any): z.infer<typeof imageGeneratorGene
     variationsCount: generation.variationsCount,
     modelId: generation.modelId,
     modelName: generation.modelName,
+    status: normalizeGenerationStatus(generation.status),
+    errorMessage: generation.errorMessage ?? null,
+    qstashMessageId: generation.qstashMessageId ?? null,
+    startedAt: generation.startedAt ?? null,
+    completedAt: generation.completedAt ?? null,
     createdAt: generation.createdAt,
     updatedAt: generation.updatedAt,
     variations: generation.variations?.map(transformVariation) ?? [],
@@ -155,7 +187,114 @@ function transformGeneration(generation: any): z.infer<typeof imageGeneratorGene
 }
 
 export const imageGeneratorRouter = router({
-  // Generate images with variations from a prompt with optional reference images
+  // Start generation (fire-and-forget): create record, enqueue QStash, return immediately
+  startGeneration: protectedProcedure
+    .input(startGenerationSchema)
+    .output(startGenerationResponseSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
+      const now = new Date();
+      const generationId = randomUUID();
+
+      const generation = await prisma.imageGeneratorGeneration.create({
+        data: {
+          id: generationId,
+          userId,
+          teamId: input.teamId ?? null,
+          prompt: input.prompt,
+          referenceImageUrls:
+            input.referenceImageUrls && input.referenceImageUrls.length > 0
+              ? input.referenceImageUrls
+              : undefined,
+          aspectRatio: input.aspectRatio,
+          outputFormat: input.outputFormat,
+          resolution: input.resolution,
+          variationsCount: input.variations,
+          modelId: "google/nano-banana-pro",
+          modelName: "Nano Banana Pro",
+          status: "QUEUED",
+          errorMessage: null,
+          qstashMessageId: null,
+          startedAt: null,
+          completedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      for (let i = 1; i <= input.variations; i++) {
+        await prisma.imageGeneratorVariation.create({
+          data: {
+            id: randomUUID(),
+            imageGeneratorGenerationId: generation.id,
+            variationIndex: i,
+            status: "PROCESSING",
+            errorMessage: null,
+            imageUrl: null,
+            imageKey: null,
+            imageFileName: null,
+            imageSize: null,
+            imageMimeType: null,
+            imageMetadata: Prisma.JsonNull,
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      }
+
+      let qstashMessageId: string | null = null;
+      try {
+        const result = await enqueueImageGeneration(generation.id);
+        qstashMessageId = result.messageId;
+        await prisma.imageGeneratorGeneration.update({
+          where: { id: generation.id },
+          data: { qstashMessageId: result.messageId, updatedAt: new Date() },
+        });
+      } catch (err) {
+        console.error("QStash enqueue failed:", err);
+        await prisma.imageGeneratorGeneration.update({
+          where: { id: generation.id },
+          data: {
+            status: "FAILED",
+            errorMessage: err instanceof Error ? err.message : "Failed to enqueue job",
+            updatedAt: new Date(),
+          },
+        });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: err instanceof Error ? err.message : "Failed to start generation",
+        });
+      }
+
+      await prisma.imageGeneratorGenerationActivityLog.create({
+        data: {
+          id: randomUUID(),
+          imageGeneratorGenerationId: generation.id,
+          userId,
+          action: "GENERATE",
+          description: `Started generation: ${input.prompt.substring(0, 100)}${input.prompt.length > 100 ? "..." : ""}`,
+          metadata: {
+            prompt: input.prompt,
+            referenceImageCount: input.referenceImageUrls?.length ?? 0,
+            variationsRequested: input.variations,
+            qstashMessageId,
+          },
+          createdAt: new Date(),
+        },
+      });
+
+      return {
+        generationId: generation.id,
+        status: "QUEUED" as const,
+        variationsCount: input.variations,
+      };
+    }),
+
+  // Legacy: synchronous generate (deprecated; use startGeneration)
   generateImage: protectedProcedure
     .input(generateImageSchema)
     .mutation(async ({ ctx, input }) => {
@@ -277,9 +416,9 @@ export const imageGeneratorRouter = router({
               variationIndex: variation.variationIndex,
               imageUrl: generatedImageUrl,
               imageKey: "",
-              imageFileName: variation.imageFileName,
-              imageSize: variation.imageSize,
-              imageMimeType: variation.imageMimeType,
+              imageFileName: variation.imageFileName ?? "",
+              imageSize: variation.imageSize ?? 0,
+              imageMimeType: variation.imageMimeType ?? "",
             });
           } catch (error) {
             console.error(`Error generating variation ${i + 1}:`, error);

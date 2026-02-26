@@ -72,24 +72,14 @@ function useAutoResizeTextarea({
   return { textareaRef, adjustHeight };
 }
 
-interface FloatingInputBarProps {
-  onGenerate: (images: any[]) => void;
-  onGenerationStart: (total: number) => void;
-  onGenerationEnd: () => void;
-}
-
-export function FloatingInputBar({ 
-  onGenerate, 
-  onGenerationStart, 
-  onGenerationEnd 
-}: FloatingInputBarProps) {
+export function FloatingInputBar() {
   const [prompt, setPrompt] = React.useState("");
   const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>("4:3");
   const [outputFormat, setOutputFormat] = React.useState<OutputFormat>("png");
   const [resolution, setResolution] = React.useState<Resolution>("2K");
   const [variations, setVariations] = React.useState<number>(2);
   const [selectedImages, setSelectedImages] = React.useState<File[]>([]);
-  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [isStarting, setIsStarting] = React.useState(false);
 
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight: 72,
@@ -97,8 +87,15 @@ export function FloatingInputBar({
   });
 
   const utils = trpc.useUtils();
-  const generateMutation = trpc.imageGenerator.generateImage.useMutation();
-  const updateVariationMutation = trpc.imageGenerator.updateVariationAfterUpload.useMutation();
+  const startMutation = trpc.imageGenerator.startGeneration.useMutation({
+    onSuccess: () => {
+      utils.imageGenerator.getGenerations.invalidate();
+      setPrompt("");
+      setSelectedImages([]);
+      adjustHeight(true);
+      toast.success("Generation started. Images will appear as they’re ready.");
+    },
+  });
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -106,48 +103,23 @@ export function FloatingInputBar({
       return;
     }
 
-    setIsGenerating(true);
-    // Show skeleton loaders for all variations immediately
-    onGenerationStart(variations);
-
+    setIsStarting(true);
     try {
-      // Step 1: Upload reference images to UploadThing first (if any)
       let referenceImageUrls: string[] = [];
-      
       if (selectedImages.length > 0) {
-        try {
-          // Disable removing images during generation
-          const uploadPromises = selectedImages.map(async (file) => {
-            const response = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
-              files: [file],
-            });
-
-            if (!response || response.length === 0) {
-              throw new Error(`Failed to upload ${file.name}`);
-            }
-
-            const uploadedFile = response[0];
-            const fileUrl = uploadedFile.ufsUrl || uploadedFile.url || "";
-            
-            if (!fileUrl) {
-              throw new Error("File URL not found in upload response");
-            }
-
-            return fileUrl;
+        const uploadPromises = selectedImages.map(async (file) => {
+          const response = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
+            files: [file],
           });
-
-          referenceImageUrls = await Promise.all(uploadPromises);
-        } catch (error: any) {
-          console.error("Error uploading reference images:", error);
-          toast.error(`Failed to upload reference images: ${error.message}`);
-          setIsGenerating(false);
-          onGenerationEnd();
-          return;
-        }
+          if (!response?.length) throw new Error(`Failed to upload ${file.name}`);
+          const url = response[0].ufsUrl ?? response[0].url ?? "";
+          if (!url) throw new Error("File URL not found");
+          return url;
+        });
+        referenceImageUrls = await Promise.all(uploadPromises);
       }
 
-      // Step 2: Generate images with variations using Replicate
-      const result = await generateMutation.mutateAsync({
+      await startMutation.mutateAsync({
         prompt: prompt.trim(),
         referenceImageUrls: referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
         aspectRatio,
@@ -155,90 +127,16 @@ export function FloatingInputBar({
         resolution,
         variations,
       });
-
-      if (!result || !result.variations || result.variations.length === 0) {
-        throw new Error("No images were generated");
-      }
-
-      // Step 3: Process each variation as it's generated
-      // Download each image, upload to UploadThing, and update the variation record
-      const generatedImagesList: any[] = [];
-      
-      for (const variation of result.variations) {
-        try {
-          // Download the generated image from Replicate
-          const imageResponse = await fetch(variation.imageUrl);
-          if (!imageResponse.ok) {
-            throw new Error(`Failed to download image: ${imageResponse.statusText}`);
-          }
-
-          const blob = await imageResponse.blob();
-          const file = new File([blob], variation.imageFileName, { 
-            type: variation.imageMimeType || `image/${outputFormat}` 
-          });
-
-          // Upload to UploadThing
-          const uploadResponse = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
-            files: [file],
-          });
-
-          if (!uploadResponse || uploadResponse.length === 0) {
-            throw new Error("Failed to upload generated image to UploadThing");
-          }
-
-          const uploadedFile = uploadResponse[0];
-          const finalImageUrl = uploadedFile.ufsUrl || uploadedFile.url || "";
-
-          if (!finalImageUrl) {
-            throw new Error("No URL returned from UploadThing");
-          }
-
-          // Update variation record with UploadThing data
-          await updateVariationMutation.mutateAsync({
-            variationId: variation.id,
-            imageUrl: finalImageUrl,
-            imageKey: uploadedFile.key || "",
-            imageFileName: uploadedFile.name || file.name,
-            imageSize: uploadedFile.size || file.size,
-            imageMimeType: uploadedFile.type || file.type,
-          });
-
-          // Create image data for display
-          const imageData = {
-            dataUrl: finalImageUrl,
-            mimeType: variation.imageMimeType,
-            prompt: prompt.trim(),
-            timestamp: new Date().toISOString(),
-            variationId: variation.id,
-            variationIndex: variation.variationIndex,
-          };
-
-          generatedImagesList.push(imageData);
-          // Show each image as it's processed
-          onGenerate([imageData]);
-        } catch (error: any) {
-          console.error(`Error processing variation ${variation.variationIndex}:`, error);
-          toast.error(`Failed to process variation ${variation.variationIndex}: ${error.message || "Unknown error"}`);
-        }
-      }
-
-      // Only show success if we actually generated at least one image
-      if (generatedImagesList.length > 0) {
-        toast.success(`Generated ${generatedImagesList.length} variation(s) successfully!`);
-      } else {
-        toast.error("Failed to generate any images. Please try again.");
-      }
-    } catch (error: any) {
-      console.error("Generation error:", error);
-      toast.error(error.message || "Failed to generate images");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to start generation";
+      toast.error(message);
     } finally {
-      setIsGenerating(false);
-      onGenerationEnd();
+      setIsStarting(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && prompt.trim() && !isGenerating) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && prompt.trim() && !isStarting) {
       e.preventDefault();
       handleGenerate();
     }
@@ -268,13 +166,13 @@ export function FloatingInputBar({
   };
 
   const removeImage = (index: number) => {
-    if (isGenerating) return; // Disable removal during generation
+    if (isStarting) return;
     setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mt-auto">
-      <div className="mx-auto max-w-4xl px-4 py-4 md:px-6 md:py-6">
+    <div className="fixed bottom-0 left-0 right-0 z-0 border-t border-border bg-background/95 backdrop-blur-sm pb-1.5 pt-2">
+      <div className="mx-auto max-w-4xl px-4 py-3 md:px-6 md:py-3">
         {/* Image Previews */}
         {selectedImages.length > 0 && (
           <div className="mb-3 flex gap-2 overflow-x-auto pb-3">
@@ -286,11 +184,12 @@ export function FloatingInputBar({
                   className="h-16 w-16 rounded-lg border object-cover"
                 />
                 <button
+                  type="button"
                   onClick={() => removeImage(index)}
-                  disabled={isGenerating}
+                  disabled={isStarting}
                   className={cn(
                     "absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground transition-colors hover:bg-destructive/90",
-                    isGenerating && "opacity-50 cursor-not-allowed"
+                    isStarting && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <X className="h-3 w-3" />
@@ -314,7 +213,7 @@ export function FloatingInputBar({
                     adjustHeight();
                   }}
                   onKeyDown={handleKeyDown}
-                  disabled={isGenerating}
+                  disabled={isStarting}
                   className={cn(
                     "min-h-[72px] w-full resize-none rounded-xl rounded-b-none border-none bg-black/5 px-4 py-3 placeholder:text-muted-foreground/70 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-white/5",
                     selectedImages.length > 0 && "pr-20"
@@ -336,7 +235,7 @@ export function FloatingInputBar({
                             "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
                             "text-muted-foreground hover:text-foreground",
                             "focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0",
-                            (selectedImages.length >= 3 || isGenerating) && "opacity-50 cursor-not-allowed"
+                            (selectedImages.length >= 3 || isStarting) && "opacity-50 cursor-not-allowed"
                           )}
                           aria-label="Upload images"
                         >
@@ -345,7 +244,7 @@ export function FloatingInputBar({
                             accept="image/*"
                             multiple
                             onChange={handleImageSelect}
-                            disabled={selectedImages.length >= 3 || isGenerating}
+                            disabled={selectedImages.length >= 3 || isStarting}
                             className="hidden"
                           />
                           <ImageIcon className="h-4 w-4" />
@@ -362,28 +261,28 @@ export function FloatingInputBar({
                     <AspectRatioSelector
                       value={aspectRatio}
                       onChange={setAspectRatio}
-                      disabled={isGenerating}
+                      disabled={isStarting}
                     />
 
                     {/* Variations */}
                     <VariationsSelector
                       value={variations}
                       onChange={setVariations}
-                      disabled={isGenerating}
+                      disabled={isStarting}
                     />
 
                     {/* Format */}
                     <FormatSelector
                       value={outputFormat}
                       onChange={setOutputFormat}
-                      disabled={isGenerating}
+                      disabled={isStarting}
                     />
 
                     {/* Resolution */}
                     <ResolutionSelector
                       value={resolution}
                       onChange={setResolution}
-                      disabled={isGenerating}
+                      disabled={isStarting}
                     />
                   </div>
 
@@ -391,6 +290,7 @@ export function FloatingInputBar({
                   <div className="flex items-center gap-2">
                     {/* Enhance Prompt - Disabled */}
                     <button
+                      type="button"
                       onClick={handleEnhancePrompt}
                       disabled={true}
                       className={cn(
@@ -408,8 +308,9 @@ export function FloatingInputBar({
                     {/* Clear Button */}
                     {prompt && (
                       <button
+                        type="button"
                         onClick={handleClearPrompt}
-                        disabled={isGenerating}
+                        disabled={isStarting}
                         className={cn(
                           "rounded-lg p-2 transition-colors",
                           "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
@@ -427,7 +328,7 @@ export function FloatingInputBar({
                     <button
                       type="button"
                       onClick={handleGenerate}
-                      disabled={!prompt.trim() || isGenerating}
+                      disabled={!prompt.trim() || isStarting}
                       className={cn(
                         "flex items-center gap-2 rounded-lg px-4 py-2 transition-colors",
                         "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -436,10 +337,10 @@ export function FloatingInputBar({
                       )}
                       aria-label="Generate images"
                     >
-                      {isGenerating ? (
+                      {isStarting ? (
                         <>
                           <Spinner size={16} />
-                          <span className="text-sm">Generating...</span>
+                          <span className="text-sm">Starting...</span>
                         </>
                       ) : (
                         <>
