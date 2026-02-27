@@ -10,11 +10,46 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import type { GenerationView, VariationView } from "../_types";
 
 interface GeneratedImagesViewProps {
   generations: GenerationView[];
   isLoadingHistory: boolean;
+}
+
+function PromptPreview({ text }: { text: string }) {
+  const [expanded, setExpanded] = React.useState(false);
+
+  const isLong = text.length > 160;
+
+  if (!isLong) {
+    return (
+      <p className="mb-2 text-xs text-muted-foreground">
+        {text}
+      </p>
+    );
+  }
+
+  return (
+    <div className="mb-2">
+      <p
+        className={cn(
+          "text-xs text-muted-foreground",
+          !expanded && "line-clamp-2",
+        )}
+      >
+        {text}
+      </p>
+      <button
+        type="button"
+        onClick={() => setExpanded((prev) => !prev)}
+        className="mt-1 text-[11px] font-medium text-primary hover:underline"
+      >
+        {expanded ? "Show less" : "Show more"}
+      </button>
+    </div>
+  );
 }
 
 function VariationSlot({
@@ -224,9 +259,7 @@ export function GeneratedImagesView({
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               {format(new Date(generation.createdAt), "MMM d, yyyy · h:mm a")}
             </p>
-            <p className="mb-2 line-clamp-2 text-xs text-muted-foreground">
-              {generation.prompt}
-            </p>
+            <PromptPreview text={generation.prompt} />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {Array.from({ length: generation.variationsCount }, (_, i) => i + 1).map((idx) => {
                 const variation = generation.variations.find((v) => v.variationIndex === idx);

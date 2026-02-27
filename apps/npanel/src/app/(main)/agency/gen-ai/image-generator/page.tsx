@@ -10,7 +10,7 @@ export default function ImageGeneratorPage() {
         <div className="flex flex-col gap-2 flex-shrink-0">
           <h1 className="text-base font-semibold tracking-tight">Image generator</h1>
           <p className="text-xs text-muted-foreground">
-            Create images from text with AI. For designs and posters, use{" "}
+            Effortlessly create anything from quick AI-generated images to striking posters right from your text prompt. For advanced creative control and fine-tuned design features, try{" "}
             <Link href="/agency/gen-ai/image-gen-studio" className="text-primary underline hover:no-underline">
               Visual Studio
             </Link>
