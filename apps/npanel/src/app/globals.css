@@ -55,6 +55,33 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+@keyframes remove-bg-glitter {
+  0% {
+    transform: translateX(-130%) skewX(-18deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateX(0%) skewX(-18deg);
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(130%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@layer utilities {
+  .remove-bg-glitter {
+    animation: remove-bg-glitter 1.1s ease-in-out infinite;
+  }
+}
+
 /* Default theme styles (used when no data-theme-preset is set or when 'default' is selected).
 These serve as the fallback; there is no separate default.css file. */
 :root {

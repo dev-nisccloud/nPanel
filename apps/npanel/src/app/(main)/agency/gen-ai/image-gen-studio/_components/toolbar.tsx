@@ -38,12 +38,16 @@ interface ToolbarProps {
   editor: Editor | undefined;
   activeTool: ActiveTool;
   onChangeActiveTool: (tool: ActiveTool) => void;
+  onRemoveBackground: () => void;
+  isRemovingBackground: boolean;
 };
 
 export const Toolbar = ({
   editor,
   activeTool,
   onChangeActiveTool,
+  onRemoveBackground,
+  isRemovingBackground,
 }: ToolbarProps) => {
   const initialFillColor = editor?.getActiveFillColor();
   const initialStrokeColor = editor?.getActiveStrokeColor();
@@ -156,12 +160,12 @@ export const Toolbar = ({
 
   if (editor?.selectedObjects.length === 0) {
     return (
-      <div className="shrink-0 h-[56px] border-b bg-white w-full flex items-center overflow-x-auto z-[49] p-2 gap-x-2" />
+      <div className="z-[49] flex h-[56px] min-w-0 shrink-0 items-center gap-x-2 overflow-hidden border-b bg-white p-2" />
     );
   }
 
   return (
-    <div className="shrink-0 h-[56px] border-b bg-white w-full flex items-center overflow-x-auto z-[49] p-2 gap-x-2">
+    <div className="z-[49] flex h-[56px] min-w-0 shrink-0 items-center gap-x-2 overflow-hidden border-b bg-white p-2">
       {!isImage && (
         <div className="flex items-center h-full justify-center">
           <Hint label="Color" side="bottom" sideOffset={5}>
@@ -376,12 +380,13 @@ export const Toolbar = ({
         <div className="flex items-center h-full justify-center">
           <Hint label="Remove background" side="bottom" sideOffset={5}>
             <Button
-              onClick={() => onChangeActiveTool("remove-bg")}
+              onClick={onRemoveBackground}
               size="icon"
               variant="ghost"
               className={cn(
-                activeTool === "remove-bg" && "bg-gray-100"
+                isRemovingBackground && "bg-gray-100"
               )}
+              disabled={isRemovingBackground}
             >
               <SquareSplitHorizontal className="size-4" />
             </Button>

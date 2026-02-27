@@ -30,7 +30,7 @@ export const FontSidebar = ({
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex flex-col overflow-hidden",
+        "relative z-[40] flex h-full max-h-full min-h-0 w-[360px] shrink-0 flex-col overflow-hidden border-r bg-white",
         activeTool === "font" ? "flex" : "hidden",
       )}
     >
@@ -38,8 +38,8 @@ export const FontSidebar = ({
         title="Font"
         description="Change the text font"
       />
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <ScrollArea className="h-full min-h-0">
           <div className="p-4 space-y-1">
           {fonts.map((font) => (
             <Button

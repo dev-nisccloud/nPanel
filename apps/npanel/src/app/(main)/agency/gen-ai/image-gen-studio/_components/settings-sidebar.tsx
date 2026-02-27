@@ -66,16 +66,17 @@ export const SettingsSidebar = ({
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex flex-col",
-        activeTool === "settings" ? "visible" : "hidden",
+        "relative z-[40] flex h-full max-h-full min-h-0 w-[360px] shrink-0 flex-col overflow-hidden border-r bg-white",
+        activeTool === "settings" ? "flex" : "hidden",
       )}
     >
       <ToolSidebarHeader
         title="Settings"
         description="Change the look of your workspace"
       />
-      <ScrollArea>
-        <form className="space-y-4 p-4" onSubmit={onSubmit}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <ScrollArea className="h-full">
+          <form className="space-y-4 p-4" onSubmit={onSubmit}>
           <div className="space-y-2">
             <Label>
               Height
@@ -108,7 +109,8 @@ export const SettingsSidebar = ({
             onChange={changeBackground}
           />
         </div>
-      </ScrollArea>
+        </ScrollArea>
+      </div>
       <ToolSidebarClose onClick={onClose} />
     </aside>
   );

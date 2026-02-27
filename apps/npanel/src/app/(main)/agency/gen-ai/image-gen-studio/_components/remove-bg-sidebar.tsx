@@ -47,16 +47,17 @@ export const RemoveBgSidebar = ({
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex flex-col",
-        activeTool === "remove-bg" ? "visible" : "hidden",
+        "relative z-[40] flex h-full max-h-full min-h-0 w-[360px] shrink-0 flex-col overflow-hidden border-r bg-white",
+        activeTool === "remove-bg" ? "flex" : "hidden",
       )}
     >
       <ToolSidebarHeader
         title="Background removal"
         description="Remove background from image using AI"
       />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {!imageSrc && (
-        <div className="flex flex-col gap-y-4 items-center justify-center flex-1">
+        <div className="flex flex-1 flex-col items-center justify-center gap-y-4">
           <AlertTriangle className="size-4 text-muted-foreground" />
           <p className="text-muted-foreground text-xs">
             Feature not available for this object
@@ -64,18 +65,25 @@ export const RemoveBgSidebar = ({
         </div>
       )}
       {imageSrc && (
-        <ScrollArea>
-          <div className="p-4 space-y-4">
-            <div className={cn(
-              "relative aspect-square rounded-md overflow-hidden transition bg-muted",
-              mutation.isPending && "opacity-50",
-            )}>
+        <ScrollArea className="h-full">
+          <div className="space-y-4 p-4">
+            <div
+              className={cn(
+                "relative aspect-square rounded-md overflow-hidden transition bg-muted",
+                mutation.isPending && "opacity-50",
+              )}
+            >
               <Image
                 src={imageSrc}
                 fill
                 alt="Image"
                 className="object-cover"
               />
+              {mutation.isPending && (
+                <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+                  <div className="remove-bg-glitter absolute -inset-1 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.9),transparent)] mix-blend-screen" />
+                </div>
+              )}
             </div>
             <Button
               disabled={mutation.isPending}
@@ -87,6 +95,7 @@ export const RemoveBgSidebar = ({
           </div>
         </ScrollArea>
       )}
+      </div>
       <ToolSidebarClose onClick={onClose} />
     </aside>
   );

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { AlertTriangle, Loader, Search } from "lucide-react";
 import { useState, useCallback } from "react";
@@ -49,7 +48,7 @@ export const ImageSidebar = ({ editor, activeTool, onChangeActiveTool }: ImageSi
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex-col overflow-hidden",
+        "relative z-[40] flex h-full max-h-full min-h-0 w-[360px] shrink-0 flex-col overflow-hidden border-r bg-white",
         activeTool === "images" ? "flex" : "hidden"
       )}
     >
@@ -75,47 +74,47 @@ export const ImageSidebar = ({ editor, activeTool, onChangeActiveTool }: ImageSi
         </div>
       </div>
       {isLoading && (
-        <div className="flex items-center justify-center flex-1">
+        <div className="flex min-h-0 flex-1 items-center justify-center">
           <Loader className="size-4 text-muted-foreground animate-spin" />
         </div>
       )}
       {isError && (
-        <div className="flex flex-col gap-y-4 items-center justify-center flex-1">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-y-4">
           <AlertTriangle className="size-4 text-muted-foreground" />
           <p className="text-muted-foreground text-xs">Failed to fetch images</p>
         </div>
       )}
       {!isLoading && !isError && (
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <ScrollArea className="flex-1">
-          <div className="p-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <ScrollArea className="h-full min-h-0">
+            <div className="p-4">
               {data?.data && data.data.length > 0 ? (
                 <>
-            <div className="grid grid-cols-2 gap-4">
-                    {data.data.map((image) => {
-                  return (
-                    <button
-                      onClick={() => editor?.addImage(image.urls.regular)}
-                      key={image.id}
-                      className="relative w-full h-[100px] group hover:opacity-75 transition bg-muted rounded-sm overflow-hidden border"
-                    >
-                      <img
-                        src={image?.urls?.small || image?.urls?.thumb}
-                        alt={image.alt_description || "Image"}
-                            className="object-cover w-full h-full"
-                        loading="lazy"
-                      />
-                      <Link
-                        target="_blank"
-                        href={image.links.html}
-                        className="opacity-0 group-hover:opacity-100 absolute left-0 bottom-0 w-full text-[10px] truncate text-white hover:underline p-1 bg-black/50 text-left"
+                  <div className="grid grid-cols-2 gap-4">
+                    {data.data.map((image) => (
+                      <button
+                        type="button"
+                        onClick={() => editor?.addImage(image.urls.regular)}
+                        key={image.id}
+                        className="relative h-[100px] w-full group overflow-hidden rounded-sm border bg-muted transition hover:opacity-75"
                       >
-                        {image.user.name}
-                      </Link>
-                    </button>
-                  );
-                })}
-            </div>
+                        <img
+                          src={image?.urls?.small ?? image?.urls?.thumb}
+                          alt={image.alt_description ?? "Image"}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                        <Link
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          href={image.links.html}
+                          className="absolute left-0 bottom-0 w-full truncate bg-black/50 p-1 text-left text-[10px] text-white opacity-0 group-hover:opacity-100 hover:underline"
+                        >
+                          {image.user.name}
+                        </Link>
+                      </button>
+                    ))}
+                  </div>
                   {hasMore && data.data.length > 0 && (
                     <div className="mt-4 flex justify-center">
                       <Button
@@ -142,9 +141,9 @@ export const ImageSidebar = ({ editor, activeTool, onChangeActiveTool }: ImageSi
                   <p className="text-muted-foreground text-xs">No images available</p>
                 </div>
               )}
-          </div>
-        </ScrollArea>
-      </div>
+            </div>
+          </ScrollArea>
+        </div>
       )}
       <ToolSidebarClose onClick={onClose} />
     </aside>

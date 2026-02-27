@@ -3,13 +3,13 @@ import { ReactNode } from "react";
 
 import { cookies } from "next/headers";
 
+import { AgencyContentArea, AgencyContentInner } from "@/app/(main)/agency/_components/agency-content-area";
 import { AppSidebar } from "@/app/(main)/agency/_components/sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { requireAuth, ensureCustomerHasTeam } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 import { users } from "@/data/users";
-import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
 import {
   SIDEBAR_VARIANT_VALUES,
@@ -65,14 +65,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
     <NavigationLoadingProvider>
       <SidebarProvider defaultOpen={defaultOpen}>
         <AppSidebar variant={sidebarVariant} collapsible={sidebarCollapsible} />
-        <SidebarInset
-          data-content-layout={contentLayout}
-          className={cn(
-            "data-[content-layout=centered]:!mx-auto data-[content-layout=centered]:max-w-screen-2xl",
-            // Adds right margin for inset sidebar in centered layout up to 113rem.
-            // On wider screens with collapsed sidebar, removes margin and sets margin auto for alignment.
-            "max-[113rem]:peer-data-[variant=inset]:!mr-2 min-[101rem]:peer-data-[variant=inset]:peer-data-[state=collapsed]:!mr-auto",
-          )}
+        <AgencyContentArea contentLayout={contentLayout}
         >
           <header className="flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
             <div className="flex w-full items-center justify-between px-4 lg:px-6">
@@ -90,10 +83,10 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
               </div>
             </div>
           </header>
-          <div className="h-full p-4 md:p-6 bg-[#f8fafb] dark:bg-background">{children}</div>
+          <AgencyContentInner>{children}</AgencyContentInner>
           <NavigationLoader />
           {/* <FloatingActionButton /> */}
-        </SidebarInset>
+        </AgencyContentArea>
       </SidebarProvider>
     </NavigationLoadingProvider>
   );

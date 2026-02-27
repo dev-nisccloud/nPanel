@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ResponseType } from "../_api/use-get-project";
 import { useUpdateProject } from "../_api/use-update-project";
+import { useRemoveBg } from "../_api/use-remove-bg";
 
 import { 
   ActiveTool, 
@@ -29,7 +30,6 @@ import { FilterSidebar } from "./filter-sidebar";
 import { DrawSidebar } from "./draw-sidebar";
 import { AiSidebar } from "./ai-sidebar";
 import { TemplateSidebar } from "./template-sidebar";
-import { RemoveBgSidebar } from "./remove-bg-sidebar";
 import { SettingsSidebar } from "./settings-sidebar";
 
 interface EditorProps {
@@ -38,6 +38,7 @@ interface EditorProps {
 
 export const Editor = ({ initialData }: EditorProps) => {
   const { mutate } = useUpdateProject();
+  const removeBgMutation = useRemoveBg();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSave = useCallback(
@@ -51,6 +52,12 @@ export const Editor = ({ initialData }: EditorProps) => {
   );
 
   const [activeTool, setActiveTool] = useState<ActiveTool>("select");
+  const [removeBgOverlayRect, setRemoveBgOverlayRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   const onClearSelection = useCallback(() => {
     if (selectionDependentTools.includes(activeTool)) {
@@ -65,6 +72,41 @@ export const Editor = ({ initialData }: EditorProps) => {
     clearSelectionCallback: onClearSelection,
     saveCallback: debouncedSave,
   });
+  const handleRemoveBackground = useCallback(() => {
+    if (!editor || removeBgMutation.isPending) return;
+
+    const selectedObject = editor.selectedObjects[0] as any;
+    const imageSrc = selectedObject?._originalElement?.currentSrc;
+
+    if (!imageSrc) {
+      return;
+    }
+
+    // Compute the on-canvas bounding box for the selected image
+    const aCoords = selectedObject?.aCoords;
+    if (aCoords?.tl && aCoords?.br) {
+      const left = aCoords.tl.x;
+      const top = aCoords.tl.y;
+      const width = aCoords.br.x - aCoords.tl.x;
+      const height = aCoords.br.y - aCoords.tl.y;
+      setRemoveBgOverlayRect({ left, top, width, height });
+    } else {
+      setRemoveBgOverlayRect(null);
+    }
+
+    removeBgMutation.mutate(
+      { image: imageSrc },
+      {
+        onSuccess: ({ data }) => {
+          editor.addImage(data);
+        },
+        onSettled: () => {
+          setRemoveBgOverlayRect(null);
+        },
+      }
+    );
+  }, [editor, removeBgMutation]);
+
 
   const onChangeActiveTool = useCallback((tool: ActiveTool) => {
     if (tool === "draw") {
@@ -124,7 +166,7 @@ export const Editor = ({ initialData }: EditorProps) => {
   }, [init]);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
       <Navbar
         id={initialData.id}
         name={initialData.name}
@@ -132,7 +174,7 @@ export const Editor = ({ initialData }: EditorProps) => {
         activeTool={activeTool}
         onChangeActiveTool={onChangeActiveTool}
       />
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex h-0 min-h-0 min-w-0 flex-1 overflow-hidden">
         <Sidebar
           activeTool={activeTool}
           onChangeActiveTool={onChangeActiveTool}
@@ -197,11 +239,6 @@ export const Editor = ({ initialData }: EditorProps) => {
           activeTool={activeTool}
           onChangeActiveTool={onChangeActiveTool}
         />
-        <RemoveBgSidebar
-          editor={editor}
-          activeTool={activeTool}
-          onChangeActiveTool={onChangeActiveTool}
-        />
         <DrawSidebar
           editor={editor}
           activeTool={activeTool}
@@ -212,15 +249,32 @@ export const Editor = ({ initialData }: EditorProps) => {
           activeTool={activeTool}
           onChangeActiveTool={onChangeActiveTool}
         />
-        <main className="bg-muted flex-1 overflow-auto relative flex flex-col">
+        <main className="relative flex max-h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-muted">
           <Toolbar
             editor={editor}
             activeTool={activeTool}
             onChangeActiveTool={onChangeActiveTool}
+            onRemoveBackground={handleRemoveBackground}
+            isRemovingBackground={removeBgMutation.isPending}
             key={JSON.stringify(editor?.canvas.getActiveObject())}
           />
-          <div className="flex-1 h-[calc(100%-124px)] bg-muted" ref={containerRef}>
-            <canvas ref={canvasRef} />
+          <div className="min-h-0 min-w-0 flex-1 overflow-hidden bg-muted" ref={containerRef}>
+            <div className="relative h-full w-full">
+              <canvas ref={canvasRef} className="block" />
+              {removeBgMutation.isPending && removeBgOverlayRect && (
+                <div
+                  className="pointer-events-none absolute z-10 overflow-hidden"
+                  style={{
+                    left: `${removeBgOverlayRect.left}px`,
+                    top: `${removeBgOverlayRect.top}px`,
+                    width: `${removeBgOverlayRect.width}px`,
+                    height: `${removeBgOverlayRect.height}px`,
+                  }}
+                >
+                  <div className="remove-bg-glitter absolute -inset-1 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.9),transparent)] mix-blend-screen" />
+                </div>
+              )}
+            </div>
           </div>
           <Footer editor={editor} />
         </main>

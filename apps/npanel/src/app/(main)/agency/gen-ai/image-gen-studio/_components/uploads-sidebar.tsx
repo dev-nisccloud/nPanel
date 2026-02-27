@@ -236,7 +236,7 @@ export const UploadsSidebar = ({ editor, activeTool, onChangeActiveTool }: Uploa
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex-col overflow-hidden",
+        "relative z-[40] flex h-full max-h-full min-h-0 w-[360px] shrink-0 flex-col overflow-hidden border-r bg-white",
         activeTool === "uploads" ? "flex" : "hidden"
       )}
     >
@@ -342,20 +342,20 @@ export const UploadsSidebar = ({ editor, activeTool, onChangeActiveTool }: Uploa
             <p className="text-sm font-medium">Your uploads</p>
           </div>
           {isLoadingUploads ? (
-            <div className="flex items-center justify-center flex-1">
+            <div className="flex min-h-0 flex-1 items-center justify-center">
               <Loader className="size-6 text-muted-foreground animate-spin" />
             </div>
           ) : isErrorUploads ? (
-            <div className="flex flex-col items-center justify-center flex-1 gap-2">
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
               <AlertTriangle className="size-6 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Failed to load uploads</p>
             </div>
           ) : !uploadsData?.data || uploadsData.data.length === 0 ? (
-            <div className="flex items-center justify-center flex-1">
+            <div className="flex min-h-0 flex-1 items-center justify-center">
               <p className="text-sm text-muted-foreground">No uploads yet</p>
             </div>
           ) : (
-            <ScrollArea className="flex-1">
+            <ScrollArea className="h-full min-h-0">
               <div className="p-4">
                 <div className="grid grid-cols-2 gap-4">
                   {/* Type assertion to work around TypeScript's "Type instantiation is excessively deep" error */}

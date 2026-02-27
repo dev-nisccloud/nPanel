@@ -42,16 +42,17 @@ export const StrokeWidthSidebar = ({
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex flex-col",
-        activeTool === "stroke-width" ? "visible" : "hidden",
+        "relative z-[40] flex h-full max-h-full min-h-0 w-[360px] shrink-0 flex-col overflow-hidden border-r bg-white",
+        activeTool === "stroke-width" ? "flex" : "hidden",
       )}
     >
       <ToolSidebarHeader
         title="Stroke options"
         description="Modify the stroke of your element"
       />
-      <ScrollArea>
-        <div className="p-4 space-y-4 border-b">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="space-y-4 border-b p-4">
           <Label className="text-sm">
             Stroke width
           </Label>
@@ -93,7 +94,8 @@ export const StrokeWidthSidebar = ({
             <div className="w-full border-black rounded-full border-4 border-dashed" />
           </Button>
         </div>
-      </ScrollArea>
+        </ScrollArea>
+      </div>
       <ToolSidebarClose onClick={onClose} />
     </aside>
   );

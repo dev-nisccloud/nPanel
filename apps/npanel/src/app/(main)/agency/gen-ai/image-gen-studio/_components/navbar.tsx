@@ -125,7 +125,7 @@ export const Navbar = ({
   // });
 
   return (
-    <nav className="w-full flex items-center p-4 h-[68px] gap-x-4 border-b bg-background shrink-0">
+    <nav className="flex h-[68px] min-w-0 shrink-0 items-center gap-x-4 border-b bg-background p-4">
       {/* Back Button */}
       <Link href="/agency/gen-ai/image-gen-studio">
         <Button size="icon" variant="ghost" className="h-8 w-8">

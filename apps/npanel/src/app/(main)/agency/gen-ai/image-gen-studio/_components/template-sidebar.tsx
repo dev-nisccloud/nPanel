@@ -47,8 +47,8 @@ export const TemplateSidebar = ({
   return (
     <aside
       className={cn(
-        "relative z-[40] flex h-full w-[360px] flex-col border-r bg-white",
-        activeTool === "templates" ? "visible" : "hidden"
+        "relative z-[40] flex h-full max-h-full min-h-0 w-[360px] shrink-0 flex-col overflow-hidden border-r bg-white",
+        activeTool === "templates" ? "flex" : "hidden"
       )}
     >
       <ConfirmDialog />
@@ -56,19 +56,20 @@ export const TemplateSidebar = ({
         title="Templates"
         description="Choose from a variety of templates to get started"
       />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {isLoading && (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex min-h-0 flex-1 items-center justify-center">
           <Loader className="text-muted-foreground size-4 animate-spin" />
         </div>
       )}
       {isError && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-y-4">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-y-4">
           <AlertTriangle className="text-muted-foreground size-4" />
           <p className="text-muted-foreground text-xs">Failed to fetch templates</p>
         </div>
       )}
       {!isLoading && !isError && (!data?.data || data.data.length === 0) && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-y-4">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-y-4">
           <div className="text-muted-foreground size-12 rounded-full bg-muted flex items-center justify-center">
             <LayoutTemplate className="size-6" />
           </div>
@@ -79,7 +80,7 @@ export const TemplateSidebar = ({
         </div>
       )}
       {!isLoading && !isError && data?.data && data.data.length > 0 && (
-        <ScrollArea className="flex-1">
+        <ScrollArea className="h-full min-h-0">
         <div className="p-4">
           <div className="grid grid-cols-2 gap-4">
               {data.data.map((template) => {
@@ -109,6 +110,7 @@ export const TemplateSidebar = ({
           <ScrollBar orientation="vertical" />
       </ScrollArea>
       )}
+      </div>
       <ToolSidebarClose onClick={onClose} />
     </aside>
   );

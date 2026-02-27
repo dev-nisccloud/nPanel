@@ -27,16 +27,17 @@ export const TextSidebar = ({
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex flex-col",
-        activeTool === "text" ? "visible" : "hidden",
+        "relative z-[40] flex h-full max-h-full min-h-0 w-[360px] shrink-0 flex-col overflow-hidden border-r bg-white",
+        activeTool === "text" ? "flex" : "hidden",
       )}
     >
       <ToolSidebarHeader
         title="Text"
         description="Add text to your canvas"
       />
-      <ScrollArea>
-        <div className="p-4 space-y-4 border-b">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="space-y-4 border-b p-4">
           <Button
             className="w-full"
             onClick={() => editor?.addText("Textbox")}
@@ -80,7 +81,8 @@ export const TextSidebar = ({
             Paragraph
           </Button>
         </div>
-      </ScrollArea>
+        </ScrollArea>
+      </div>
       <ToolSidebarClose onClick={onClose} />
     </aside>
   );
