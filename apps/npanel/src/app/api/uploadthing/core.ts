@@ -134,6 +134,26 @@ export const ourFileRouter = {
       console.log("Content calendar media upload complete for userId:", metadata.userId);
       return { uploadedBy: metadata.userId };
     }),
+
+  // Email Builder image upload (single image, optimized for email builder library)
+  emailBuilderImage: f({ image: { maxFileSize: "16MB", maxFileCount: 1 } })
+    .middleware(async ({ req }) => {
+      const session = await auth.api.getSession({
+        headers: req.headers,
+      });
+
+      if (!session?.user) {
+        throw new Error("Unauthorized");
+      }
+
+      return {
+        userId: session.user.id,
+      };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("Email builder image upload complete for userId:", metadata.userId);
+      return { uploadedBy: metadata.userId };
+    }),
 };
 
 // Export type for use in client components

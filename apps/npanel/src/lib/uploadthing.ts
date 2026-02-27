@@ -34,6 +34,7 @@ export function parseFileSize(size: string): number {
 export const UPLOAD_ENDPOINTS = {
   FILE: "fileUploader",
   IMAGE: "imageUploader",
+  EMAIL_BUILDER_IMAGE: "emailBuilderImage",
   DOCUMENT: "documentUploader",
   CREATIVE_ASSET_VERSION: "creativeAssetVersion",
   CREATIVE_ASSET: "creativeAsset",

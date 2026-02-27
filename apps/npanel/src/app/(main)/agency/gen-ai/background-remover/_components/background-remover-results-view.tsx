@@ -38,10 +38,47 @@ export function BackgroundRemoverResultsView({
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
 
-      const contentType = response.headers.get("content-type") || "image/png";
-      const extFromMime = contentType.split("/")[1] || "png";
-      const extFromUrl = imageUrl.split(".").pop()?.split("?")[0];
-      const ext = (extFromUrl || extFromMime || "png").toLowerCase();
+      // Try to derive a safe file extension from blob type, headers, or URL.
+      const blobType = blob.type || "";
+      const headerType = response.headers.get("content-type") || "";
+      const mimeType = (blobType || headerType).toLowerCase();
+
+      const mimeToExt: Record<string, string> = {
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/jpg": "jpg",
+        "image/webp": "webp",
+        "image/gif": "gif",
+        "image/svg+xml": "svg",
+        "image/avif": "avif",
+        "image/bmp": "bmp",
+        "image/tiff": "tiff",
+        "image/x-icon": "ico",
+      };
+
+      let ext = "";
+
+      // 1) Try to parse from URL path (before query string)
+      const cleanUrl = imageUrl.split("?")[0];
+      const urlMatch = cleanUrl.match(/\.([a-zA-Z0-9]+)$/);
+      if (urlMatch && urlMatch[1]) {
+        ext = urlMatch[1].toLowerCase();
+      }
+
+      // 2) If no extension from URL, try known MIME types
+      if (!ext && mimeType && mimeToExt[mimeType]) {
+        ext = mimeToExt[mimeType];
+      }
+
+      // 3) As a last resort, fall back to the subtype of the MIME string
+      if (!ext && mimeType.includes("/")) {
+        ext = mimeType.split("/")[1] || "";
+      }
+
+      // 4) Absolute fallback so we never end up without an extension
+      if (!ext) {
+        ext = "png";
+      }
 
       const link = document.createElement("a");
       link.href = objectUrl;

@@ -4,13 +4,13 @@ import * as React from "react";
 import {
 	Sheet,
 	SheetContent,
+	SheetDescription,
+	SheetFooter,
 	SheetHeader,
 	SheetTitle,
-	SheetDescription,
-} from "@/components/ui/sheet";
+} from "@/components/npanel-ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -18,9 +18,6 @@ import {
 	Building2,
 	User,
 	Calendar,
-	RefreshCw,
-	CreditCard,
-	FileText,
 	PauseCircle,
 	PlayCircle,
 	XCircle,
@@ -82,7 +79,7 @@ export function SubscriptionViewSheet({
 	const utils = trpc.useUtils();
 	const { data: sub, isLoading } = trpc.clientSubscriptions.getById.useQuery(
 		{ id: subscriptionId! },
-		{ enabled: open && !!subscriptionId }
+		{ enabled: open && !!subscriptionId },
 	);
 
 	const updateStatus = trpc.clientSubscriptions.update.useMutation({
@@ -117,163 +114,161 @@ export function SubscriptionViewSheet({
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="flex flex-col w-full sm:max-w-lg overflow-hidden">
-				<SheetHeader>
-					<SheetTitle className="flex items-center gap-2">
-						<Package className="h-5 w-5 shrink-0" />
-						{subscriptionId && isLoading ? (
-							<Skeleton className="h-5 w-48" />
-						) : (
-							serviceName(productName, productPlanName)
-						)}
-					</SheetTitle>
-					<SheetDescription>Subscription details and actions</SheetDescription>
+			<SheetContent className="w-full sm:max-w-2xl overflow-hidden flex flex-col p-0">
+				<SheetHeader className="px-6 pt-6 pb-2 flex-shrink-0">
+					<div className="flex items-center gap-3">
+						<div className="p-2 bg-primary/10 rounded-lg">
+							<Package className="h-6 w-6 text-primary" />
+						</div>
+						<div className="min-w-0 flex-1">
+							<SheetTitle className="truncate">
+								{subscriptionId && isLoading ? (
+									<Skeleton className="h-6 w-48" />
+								) : (
+									serviceName(productName, productPlanName) || "Subscription"
+								)}
+							</SheetTitle>
+							<SheetDescription>
+								Subscription details and actions
+							</SheetDescription>
+						</div>
+					</div>
 				</SheetHeader>
 
 				{isLoading ? (
-					<div className="flex-1 space-y-4 py-4">
-						<Skeleton className="h-20 w-full" />
-						<Skeleton className="h-24 w-full" />
-						<Skeleton className="h-24 w-full" />
+					<div className="flex-1 space-y-4 px-6 py-4">
+						<Skeleton className="h-20 w-full rounded-lg" />
+						<Skeleton className="h-24 w-full rounded-lg" />
+						<Skeleton className="h-24 w-full rounded-lg" />
 					</div>
 				) : sub ? (
-					<ScrollArea className="flex-1 -mx-4 px-4">
-						<div className="space-y-6 py-4">
-							{/* Overview */}
-							<section className="space-y-3">
-								<h3 className="text-sm font-medium text-muted-foreground">Overview</h3>
-								<div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-									<div className="flex flex-wrap items-center gap-2">
-										<span className="text-sm text-muted-foreground">Status</span>
-										<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
-											{sub.status}
-										</Badge>
-									</div>
-									<div className="flex items-center gap-2 text-sm">
-										{sub.userId ? (
-											<User className="h-4 w-4 text-muted-foreground shrink-0" />
-										) : (
-											<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-										)}
-										<span className="text-muted-foreground">Team / User</span>
-										<span>{displayOwner}</span>
-									</div>
-								</div>
-							</section>
-
-							<Separator />
-
-							{/* Dates */}
-							<section className="space-y-3">
-								<h3 className="text-sm font-medium text-muted-foreground">Dates</h3>
-								<div className="rounded-lg border bg-muted/30 p-4 space-y-2 text-sm">
-									<div className="flex justify-between">
-										<span className="text-muted-foreground">Subscription date</span>
-										<span>{formatDate(sub.subscriptionDate)}</span>
-									</div>
-									<div className="flex justify-between">
-										<span className="text-muted-foreground">Expiry date</span>
-										<span>{formatDate(sub.expiryDate)}</span>
-									</div>
-									<div className="flex justify-between">
-										<span className="text-muted-foreground">Next renewal</span>
-										<span>{formatDate(sub.nextRenewalDate)}</span>
-									</div>
-								</div>
-							</section>
-
-							<Separator />
-
-							{/* Billing */}
-							<section className="space-y-3">
-								<h3 className="text-sm font-medium text-muted-foreground">Billing</h3>
-								<div className="rounded-lg border bg-muted/30 p-4 space-y-2 text-sm">
-									<div className="flex justify-between">
-										<span className="text-muted-foreground">Billing cycle</span>
-										<span>{getBillingCycleDisplayName(sub.billingCycle)}</span>
-									</div>
-									<div className="flex justify-between">
-										<span className="text-muted-foreground">Auto renew</span>
-										<span>{sub.autoRenew ? "Yes" : "No"}</span>
-									</div>
-									{(sub.agreedPrice ?? sub.agreedCurrency) && (
-										<div className="flex justify-between">
-											<span className="text-muted-foreground">Agreed price</span>
-											<span>
-												{sub.agreedPrice} {sub.agreedCurrency ?? ""}
-											</span>
+					<>
+						<ScrollArea className="flex-1 min-h-0 px-6 pr-4">
+							<div className="space-y-6 pb-6">
+								{/* Overview */}
+								<section className="space-y-2">
+									<h3 className="text-sm font-medium text-muted-foreground">Overview</h3>
+									<div className="rounded-lg border bg-card p-4 space-y-3">
+										<div className="flex flex-wrap items-center justify-between gap-2">
+											<span className="text-sm text-muted-foreground">Status</span>
+											<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
+												{sub.status}
+											</Badge>
 										</div>
-									)}
-								</div>
-							</section>
+										<div className="flex items-center gap-2 text-sm">
+											{sub.userId ? (
+												<User className="h-4 w-4 text-muted-foreground shrink-0" />
+											) : (
+												<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+											)}
+											<span className="text-muted-foreground">Owner</span>
+											<span className="font-medium">{displayOwner}</span>
+										</div>
+									</div>
+								</section>
 
-							{sub.notes && (
-								<>
-									<Separator />
-									<section className="space-y-3">
+								{/* Dates */}
+								<section className="space-y-2">
+									<h3 className="text-sm font-medium text-muted-foreground">Dates</h3>
+									<div className="rounded-lg border bg-card p-4 space-y-3 text-sm">
+										<div className="flex justify-between items-center gap-2">
+											<span className="text-muted-foreground">Subscription date</span>
+											<span className="font-medium">{formatDate(sub.subscriptionDate)}</span>
+										</div>
+										<div className="flex justify-between items-center gap-2">
+											<span className="text-muted-foreground">Expiry date</span>
+											<span className="font-medium">{formatDate(sub.expiryDate)}</span>
+										</div>
+										<div className="flex justify-between items-center gap-2">
+											<span className="text-muted-foreground">Next renewal</span>
+											<span className="font-medium">{formatDate(sub.nextRenewalDate)}</span>
+										</div>
+									</div>
+								</section>
+
+								{/* Billing */}
+								<section className="space-y-2">
+									<h3 className="text-sm font-medium text-muted-foreground">Billing</h3>
+									<div className="rounded-lg border bg-card p-4 space-y-3 text-sm">
+										<div className="flex justify-between items-center gap-2">
+											<span className="text-muted-foreground">Billing cycle</span>
+											<span className="font-medium">{getBillingCycleDisplayName(sub.billingCycle)}</span>
+										</div>
+										<div className="flex justify-between items-center gap-2">
+											<span className="text-muted-foreground">Auto renew</span>
+											<span className="font-medium">{sub.autoRenew ? "Yes" : "No"}</span>
+										</div>
+										{(sub.agreedPrice != null || sub.agreedCurrency) && (
+											<div className="flex justify-between items-center gap-2">
+												<span className="text-muted-foreground">Agreed price</span>
+												<span className="font-medium">
+													{sub.agreedPrice != null ? sub.agreedPrice : "—"}{" "}
+													{sub.agreedCurrency ?? ""}
+												</span>
+											</div>
+										)}
+									</div>
+								</section>
+
+								{sub.notes ? (
+									<section className="space-y-2">
 										<h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
-										<div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+										<div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
 											{sub.notes}
 										</div>
 									</section>
-								</>
+								) : null}
+							</div>
+						</ScrollArea>
+
+						<SheetFooter className="flex-shrink-0 flex-wrap gap-2 px-6 py-4 border-t bg-muted/30">
+							{canSuspend && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => updateStatus.mutate({ id: sub.id, status: "SUSPENDED" })}
+									disabled={updateStatus.isPending}
+								>
+									<PauseCircle className="mr-2 h-4 w-4" />
+									Suspend
+								</Button>
 							)}
-
-							<Separator />
-
-							{/* Actions */}
-							<section className="space-y-3">
-								<h3 className="text-sm font-medium text-muted-foreground">Actions</h3>
-								<div className="flex flex-wrap gap-2">
-									{canSuspend && (
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => updateStatus.mutate({ id: sub.id, status: "SUSPENDED" })}
-											disabled={updateStatus.isPending}
-										>
-											<PauseCircle className="mr-2 h-4 w-4" />
-											Suspend service
-										</Button>
-									)}
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => onSendRenewalEmail?.(sub.id)}
-										disabled={(!sub.teamId && !sub.userId) || !onSendRenewalEmail}
-									>
-										<Mail className="mr-2 h-4 w-4" />
-										Send renewal email
-									</Button>
-									{canReactivate && (
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => updateStatus.mutate({ id: sub.id, status: "ACTIVE" })}
-											disabled={updateStatus.isPending}
-										>
-											<PlayCircle className="mr-2 h-4 w-4" />
-											Re-activate service
-										</Button>
-									)}
-									{canCancel && (
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => cancelSubscription.mutate({ id: sub.id })}
-											disabled={cancelSubscription.isPending}
-											className="text-destructive border-destructive/50 hover:bg-destructive/10"
-										>
-											<XCircle className="mr-2 h-4 w-4" />
-											Cancel service
-										</Button>
-									)}
-								</div>
-							</section>
-						</div>
-					</ScrollArea>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => onSendRenewalEmail?.(sub.id)}
+								disabled={(!sub.teamId && !sub.userId) || !onSendRenewalEmail}
+							>
+								<Mail className="mr-2 h-4 w-4" />
+								Send renewal email
+							</Button>
+							{canReactivate && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => updateStatus.mutate({ id: sub.id, status: "ACTIVE" })}
+									disabled={updateStatus.isPending}
+								>
+									<PlayCircle className="mr-2 h-4 w-4" />
+									Re-activate
+								</Button>
+							)}
+							{canCancel && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => cancelSubscription.mutate({ id: sub.id })}
+									disabled={cancelSubscription.isPending}
+									className="text-destructive border-destructive/50 hover:bg-destructive/10"
+								>
+									<XCircle className="mr-2 h-4 w-4" />
+									Cancel service
+								</Button>
+							)}
+						</SheetFooter>
+					</>
 				) : (
-					<div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
+					<div className="flex-1 flex items-center justify-center px-6 py-12 text-sm text-muted-foreground">
 						Subscription not found
 					</div>
 				)}

@@ -1,7 +1,6 @@
-import { openai } from "@ai-sdk/openai";
-import { generateText } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import Replicate from "replicate";
 
 const refineImagePromptSchema = z.object({
   prompt: z.string().min(1, "Prompt is required"),
@@ -26,6 +25,31 @@ const refineImagePromptSchema = z.object({
 });
 
 export type RefineImagePromptBody = z.infer<typeof refineImagePromptSchema>;
+
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN,
+});
+
+function extractTextFromReplicateOutput(output: unknown): string {
+  if (typeof output === "string") {
+    return output;
+  }
+
+  if (Array.isArray(output)) {
+    // Concatenate array of strings or string-like values
+    return output.map((item) => (typeof item === "string" ? item : String(item ?? ""))).join("");
+  }
+
+  if (output && typeof output === "object" && "output" in (output as any)) {
+    const inner = (output as { output?: unknown }).output;
+    if (typeof inner === "string") return inner;
+    if (Array.isArray(inner)) {
+      return inner.map((item) => (typeof item === "string" ? item : String(item ?? ""))).join("");
+    }
+  }
+
+  return "";
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -552,14 +576,16 @@ ${prompt || "(User did not enter text — build a full detailed prompt from the 
 
 Output ONLY the refined prompt — no other text, no introduction.`;
 
-    const result = await generateText({
-      model: openai("gpt-4o-mini"),
-      system: systemPrompt,
-      prompt: userMessage,
-      temperature: 0.65, // Slight creativity for inferred details; lower = more deterministic, higher = more varied
+    const replicateOutput = await replicate.run("anthropic/claude-opus-4.6" as `${string}/${string}`, {
+      input: {
+        // Combine system and user content into a single prompt, since we're outside a chat API
+        prompt: `${systemPrompt}\n\n${userMessage}`,
+        max_output_tokens: 1024,
+        temperature: 0.65,
+      },
     });
 
-    const refinedPrompt = result.text.trim();
+    const refinedPrompt = extractTextFromReplicateOutput(replicateOutput).trim();
     if (!refinedPrompt) {
       return NextResponse.json(
         { success: false, error: "Refinement produced empty prompt" },

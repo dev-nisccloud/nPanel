@@ -26,6 +26,12 @@ enum CampaignSendJobStatus {
   CANCELLED // User cancelled before run (e.g. scheduled send cancelled)
 }
 
+// Contact status for audience contacts
+enum AudienceContactStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+}
+
 // Resend webhook event types (one email can have multiple events)
 enum EmailEventType {
   email_bounced
@@ -188,6 +194,56 @@ model CampaignRecipient {
   @@index([toEmail])
   @@index([resendId])
   @@map("campaign_recipient")
+}
+
+// Audiences: reusable named collections of contacts for campaigns
+model EmailAudience {
+  id String @id @map("_id")
+
+  name        String
+  description String?
+
+  // Ownership: audience can belong to a user, a team, or both
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime
+  updatedAt DateTime
+
+  // Relations
+  contacts EmailAudienceContact[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([createdAt])
+  @@map("email_audience")
+}
+
+// Contacts stored inside an audience
+model EmailAudienceContact {
+  id String @id @map("_id")
+
+  audienceId String
+  audience   EmailAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+
+  name         String?
+  phoneNumber  String?
+  emailAddress String?
+  description  String?
+  company      String?
+
+  status AudienceContactStatus? @default(SUBSCRIBED)
+
+  createdAt DateTime
+  updatedAt DateTime
+
+  @@index([audienceId])
+  @@index([emailAddress])
+  @@index([status])
+  @@map("email_audience_contact")
 }
 
 // Resend email events (webhook payloads)

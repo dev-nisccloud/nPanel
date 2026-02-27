@@ -25,6 +25,7 @@ const paymentTransactionOutputSchema = z.object({
 	id: z.string(),
 	userId: z.string(),
 	teamId: z.string().nullable(),
+	userName: z.string().nullable(),
 	gateway: paymentGatewaySchema,
 	status: paymentTransactionStatusSchema,
 	amount: z.string(),
@@ -156,12 +157,23 @@ export const paymentTransactionsRouter = router({
 				prisma.paymentTransaction.count({ where }),
 			]);
 
+			const userIds = [...new Set(transactions.map((t) => t.userId))];
+			const users =
+				userIds.length > 0
+					? await prisma.user.findMany({
+							where: { id: { in: userIds } },
+							select: { id: true, name: true },
+						})
+					: [];
+			const userMap = new Map(users.map((u) => [u.id, u.name]));
+
 			return {
 				transactions: transactions.map((t) =>
 					paymentTransactionOutputSchema.parse({
 						id: t.id,
 						userId: t.userId,
 						teamId: t.teamId,
+						userName: userMap.get(t.userId) ?? null,
 						gateway: t.gateway,
 						status: t.status,
 						amount: t.amount,
@@ -177,6 +189,100 @@ export const paymentTransactionsRouter = router({
 					}),
 				),
 				total,
+			};
+		}),
+
+	getById: protectedProcedure
+		.input(z.object({ id: z.string().min(1) }))
+		.output(
+			z.object({
+				id: z.string(),
+				userId: z.string(),
+				teamId: z.string().nullable(),
+				userName: z.string().nullable(),
+				teamName: z.string().nullable(),
+				gateway: paymentGatewaySchema,
+				gatewayStatus: z.string().nullable(),
+				gatewayMessage: z.string().nullable(),
+				gatewayTransactionId: z.string().nullable(),
+				merchantRequestId: z.string().nullable(),
+				checkoutRequestId: z.string().nullable(),
+				receiptNumber: z.string().nullable(),
+				amount: z.string(),
+				paidAmount: z.string().nullable(),
+				currency: z.string(),
+				accountReference: z.string().nullable(),
+				transactionDesc: z.string().nullable(),
+				phoneNumber: z.string().nullable(),
+				status: paymentTransactionStatusSchema,
+				rawResponse: z.unknown().nullable(),
+				rawError: z.unknown().nullable(),
+				initiatedAt: z.date(),
+				processedAt: z.date().nullable(),
+				failedAt: z.date().nullable(),
+				refundedAt: z.date().nullable(),
+				notes: z.string().nullable(),
+				metadata: z.unknown().nullable(),
+				createdAt: z.date(),
+				updatedAt: z.date(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await getAuthenticatedUser(ctx);
+
+			const tx = await prisma.paymentTransaction.findUnique({
+				where: { id: input.id },
+			});
+			if (!tx) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Transaction not found",
+				});
+			}
+
+			const [user, team] = await Promise.all([
+				prisma.user.findUnique({
+					where: { id: tx.userId },
+					select: { name: true },
+				}),
+				tx.teamId
+					? prisma.team.findUnique({
+							where: { id: tx.teamId },
+							select: { name: true },
+						})
+					: null,
+			]);
+
+			return {
+				id: tx.id,
+				userId: tx.userId,
+				teamId: tx.teamId,
+				userName: user?.name ?? null,
+				teamName: team?.name ?? null,
+				gateway: tx.gateway,
+				gatewayStatus: tx.gatewayStatus,
+				gatewayMessage: tx.gatewayMessage,
+				gatewayTransactionId: tx.gatewayTransactionId,
+				merchantRequestId: tx.merchantRequestId,
+				checkoutRequestId: tx.checkoutRequestId,
+				receiptNumber: tx.receiptNumber,
+				amount: tx.amount,
+				paidAmount: tx.paidAmount,
+				currency: tx.currency,
+				accountReference: tx.accountReference,
+				transactionDesc: tx.transactionDesc,
+				phoneNumber: tx.phoneNumber,
+				status: tx.status,
+				rawResponse: tx.rawResponse as unknown,
+				rawError: tx.rawError as unknown,
+				initiatedAt: tx.initiatedAt,
+				processedAt: tx.processedAt,
+				failedAt: tx.failedAt,
+				refundedAt: tx.refundedAt,
+				notes: tx.notes,
+				metadata: tx.metadata as unknown,
+				createdAt: tx.createdAt,
+				updatedAt: tx.updatedAt,
 			};
 		}),
 });

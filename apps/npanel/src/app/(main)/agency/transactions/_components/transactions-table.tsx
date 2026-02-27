@@ -11,7 +11,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
+import { Eye } from "lucide-react";
 import {
   paymentTransactionUiSchema,
   type PaymentTransactionUI,
@@ -24,10 +26,12 @@ function TransactionsTableSkeleton() {
         <TableHeader>
           <TableRow>
             <TableHead className="pl-4">Reference</TableHead>
+            <TableHead>Name</TableHead>
             <TableHead>Gateway</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead className="pr-4">Date</TableHead>
+            <TableHead className="pr-4 w-[80px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -35,6 +39,9 @@ function TransactionsTableSkeleton() {
             <TableRow key={i}>
               <TableCell className="pl-4">
                 <Skeleton className="h-4 w-32" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-24" />
               </TableCell>
               <TableCell>
                 <Skeleton className="h-4 w-20" />
@@ -47,6 +54,9 @@ function TransactionsTableSkeleton() {
               </TableCell>
               <TableCell className="pr-4">
                 <Skeleton className="h-4 w-24" />
+              </TableCell>
+              <TableCell className="pr-4">
+                <Skeleton className="h-4 w-16" />
               </TableCell>
             </TableRow>
           ))}
@@ -95,8 +105,10 @@ function getGatewayDisplayText(gateway: PaymentTransactionUI["gateway"]) {
 
 export function TransactionsTable({
   searchQuery,
+  onViewTransaction,
 }: {
   searchQuery?: string;
+  onViewTransaction?: (id: string) => void;
 }) {
   const { data, isLoading, isError } = trpc.paymentTransactions.list.useQuery({
     limit: 50,
@@ -112,6 +124,7 @@ export function TransactionsTable({
             id: t.id,
             userId: t.userId,
             teamId: t.teamId,
+            userName: t.userName ?? null,
             gateway: t.gateway,
             status: t.status,
             amount: t.amount,
@@ -173,17 +186,19 @@ export function TransactionsTable({
         <TableHeader>
           <TableRow>
             <TableHead className="pl-4">Reference</TableHead>
+            <TableHead>Name</TableHead>
             <TableHead>Gateway</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead className="pr-4">Date</TableHead>
+            <TableHead className="pr-4 w-[80px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {transactions.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={5}
+                colSpan={7}
                 className="text-center py-8 px-4 text-muted-foreground"
               >
                 {searchQuery?.trim()
@@ -194,10 +209,16 @@ export function TransactionsTable({
           ) : (
             transactions.map((transaction) => (
               <TableRow key={transaction.id}>
-                <TableCell className="pl-4 font-medium">
+                <TableCell
+                  className="pl-4 font-medium cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => onViewTransaction?.(transaction.id)}
+                >
                   {transaction.accountReference ||
                     transaction.receiptNumber ||
                     transaction.id.slice(0, 8)}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {transaction.userName ?? "—"}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">
@@ -224,6 +245,17 @@ export function TransactionsTable({
                   {transaction.processedAt
                     ? new Date(transaction.processedAt).toLocaleDateString()
                     : new Date(transaction.initiatedAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell className="pr-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => onViewTransaction?.(transaction.id)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View
+                  </Button>
                 </TableCell>
               </TableRow>
             ))

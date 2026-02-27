@@ -263,7 +263,7 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Campaigns", url: "/agency/email-marketing/campaigns", },
           // { title: "Emails", url: "/agency/email-marketing/emails", },
           { title: "Domains", url: "/agency/email-marketing/domain-configuration", },
-          // { title: "Audiences", url: "/agency/email-marketing/audiences", },
+          { title: "Audiences", url: "/agency/email-marketing/audiences", },
           // { title: "Segments", url: "/agency/segments", },
           // { title: "Templates", url: "/agency/email-marketing/templates", },
           { title: "Email Builder", url: "/agency/email-marketing/email-builder", },

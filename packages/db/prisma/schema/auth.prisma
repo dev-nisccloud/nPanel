@@ -314,6 +314,8 @@ model User {
   niscOrders                    NiscOrder[]
   quotations                    Quotation[]
   createdDomainTransferRequests DomainTransferRequest[]       @relation("DomainTransferRequestCreatedBy")
+  EmailBuilderLibrary           EmailBuilderLibrary[]
+  EmailAudience                 EmailAudience[]
 
   @@unique([email])
   @@index([role])
@@ -416,6 +418,8 @@ model Team {
   aiChats                      AiChat[]
   NiscClientSubscription       NiscClientSubscription[]
   domainTransferRequests       DomainTransferRequest[]
+  EmailBuilderLibrary          EmailBuilderLibrary[]
+  EmailAudience                EmailAudience[]
 
   @@index([slug])
   @@index([createdById])

@@ -27,6 +27,12 @@ export const emailCampaignStatusSchema = z.enum([
 ]);
 export type EmailCampaignStatus = z.infer<typeof emailCampaignStatusSchema>;
 
+export const audienceContactStatusSchema = z.enum([
+	"SUBSCRIBED",
+	"UNSUBSCRIBED",
+]);
+export type AudienceContactStatus = z.infer<typeof audienceContactStatusSchema>;
+
 export const emailEventTypeSchema = z.enum([
 	"email_bounced",
 	"email_clicked",
@@ -264,6 +270,140 @@ export const campaignRecipientListResponseSchema = z.object({
 });
 export type CampaignRecipientListResponse = z.infer<
 	typeof campaignRecipientListResponseSchema
+>;
+
+// ============================================================================
+// AUDIENCE & CONTACT SCHEMAS
+// ============================================================================
+
+export const audienceCreateInputSchema = z.object({
+	name: z.string().min(1, "Audience name is required"),
+	description: optStrNullable(),
+	teamId: optStrNullable(),
+});
+export type AudienceCreateInput = z.infer<typeof audienceCreateInputSchema>;
+
+export const audienceUpdateInputSchema = z.object({
+	id: z.string().min(1),
+	name: optStr(),
+	description: optStrNullable(),
+});
+export type AudienceUpdateInput = z.infer<typeof audienceUpdateInputSchema>;
+
+export const audienceListFiltersSchema = z.object({
+	teamId: optStrNullable(),
+	search: optStr(),
+	limit: z.number().int().min(1).max(100).optional().default(50),
+	offset: z.number().int().min(0).optional().default(0),
+});
+export type AudienceListFilters = z.infer<typeof audienceListFiltersSchema>;
+
+export const audienceSummarySchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	description: z.string().nullable(),
+	userId: z.string().nullable(),
+	teamId: z.string().nullable(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+	contactsCount: z.number().int().nonnegative(),
+});
+export type AudienceSummary = z.infer<typeof audienceSummarySchema>;
+
+export const audienceDetailSchema = audienceSummarySchema.extend({
+	subscribedCount: z.number().int().nonnegative(),
+	unsubscribedCount: z.number().int().nonnegative(),
+});
+export type AudienceDetail = z.infer<typeof audienceDetailSchema>;
+
+export const audienceListResponseSchema = z.object({
+	audiences: z.array(audienceSummarySchema),
+	total: z.number().int().nonnegative(),
+});
+export type AudienceListResponse = z.infer<typeof audienceListResponseSchema>;
+
+export const audienceContactCreateInputSchema = z.object({
+	audienceId: z.string().min(1),
+	name: optStrNullable(),
+	phoneNumber: optStrNullable(),
+	emailAddress: optStrNullable(),
+	description: optStrNullable(),
+	company: optStrNullable(),
+	status: audienceContactStatusSchema.optional(),
+});
+export type AudienceContactCreateInput = z.infer<
+	typeof audienceContactCreateInputSchema
+>;
+
+export const audienceContactUpdateInputSchema = z.object({
+	id: z.string().min(1),
+	audienceId: z.string().min(1),
+	name: optStrNullable(),
+	phoneNumber: optStrNullable(),
+	emailAddress: optStrNullable(),
+	description: optStrNullable(),
+	company: optStrNullable(),
+	status: audienceContactStatusSchema.optional().nullable(),
+});
+export type AudienceContactUpdateInput = z.infer<
+	typeof audienceContactUpdateInputSchema
+>;
+
+export const audienceContactBulkCreateItemSchema = z.object({
+	name: optStrNullable(),
+	phoneNumber: optStrNullable(),
+	emailAddress: optStrNullable(),
+	description: optStrNullable(),
+	company: optStrNullable(),
+	status: audienceContactStatusSchema.optional().nullable(),
+});
+export type AudienceContactBulkCreateItem = z.infer<
+	typeof audienceContactBulkCreateItemSchema
+>;
+
+export const audienceContactBulkCreateInputSchema = z.object({
+	audienceId: z.string().min(1),
+	contacts: z.array(audienceContactBulkCreateItemSchema).min(1),
+});
+export type AudienceContactBulkCreateInput = z.infer<
+	typeof audienceContactBulkCreateInputSchema
+>;
+
+export const audienceContactSummarySchema = z.object({
+	id: z.string(),
+	audienceId: z.string(),
+	name: z.string().nullable(),
+	phoneNumber: z.string().nullable(),
+	emailAddress: z.string().nullable(),
+	description: z.string().nullable(),
+	company: z.string().nullable(),
+	status: audienceContactStatusSchema.nullable(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+export type AudienceContactSummary = z.infer<
+	typeof audienceContactSummarySchema
+>;
+
+export const audienceContactListFiltersSchema = z.object({
+	audienceId: z.string().min(1),
+	search: optStr(),
+	status: audienceContactStatusSchema.optional(),
+	from: optDate(),
+	to: optDate(),
+	limit: z.number().int().min(1).max(500).optional().default(50),
+	offset: z.number().int().min(0).optional().default(0),
+});
+export type AudienceContactListFilters = z.infer<
+	typeof audienceContactListFiltersSchema
+>;
+
+export const audienceContactListResponseSchema = z.object({
+	contacts: z.array(audienceContactSummarySchema),
+	total: z.number().int().nonnegative(),
+});
+export type AudienceContactListResponse = z.infer<
+	typeof audienceContactListResponseSchema
 >;
 
 // ============================================================================

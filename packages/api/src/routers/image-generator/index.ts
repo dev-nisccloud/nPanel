@@ -16,6 +16,7 @@ import {
   imageGeneratorGenerationSchema,
   generationStatusSchema,
   variationStatusSchema,
+  getGenerationByIdSchema,
 } from "./schemas";
 import { enqueueImageGeneration } from "../../lib/qstash/image-generator";
 
@@ -556,6 +557,38 @@ export const imageGeneratorRouter = router({
           totalPages: Math.ceil(total / input.limit),
         },
       };
+    }),
+
+  // Get a single generation by id (for polling specific jobs)
+  getGenerationById: protectedProcedure
+    .input(getGenerationByIdSchema)
+    .output(imageGeneratorGenerationSchema)
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
+      const generation = await prisma.imageGeneratorGeneration.findFirst({
+        where: {
+          id: input.id,
+          userId,
+        },
+        include: {
+          variations: {
+            orderBy: { variationIndex: "asc" },
+          },
+        },
+      });
+
+      if (!generation) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Generation not found",
+        });
+      }
+
+      return transformGeneration(generation);
     }),
 
   // Delete generation

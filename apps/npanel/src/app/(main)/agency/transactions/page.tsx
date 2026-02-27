@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/utils/trpc";
 import { TransactionsTable } from "./_components/transactions-table";
+import { TransactionViewSheet } from "./_components/transaction-view-sheet";
 
 export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [viewingTransactionId, setViewingTransactionId] = React.useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
   const utils = trpc.useUtils();
   const { isFetching } = trpc.paymentTransactions.list.useQuery(
     { limit: 50, offset: 0 },
@@ -18,6 +21,16 @@ export default function TransactionsPage() {
   const handleRefresh = React.useCallback(() => {
     utils.paymentTransactions.list.invalidate();
   }, [utils]);
+
+  const handleViewTransaction = React.useCallback((id: string) => {
+    setViewingTransactionId(id);
+    setSheetOpen(true);
+  }, []);
+
+  const handleSheetOpenChange = React.useCallback((open: boolean) => {
+    setSheetOpen(open);
+    if (!open) setViewingTransactionId(null);
+  }, []);
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
@@ -54,9 +67,18 @@ export default function TransactionsPage() {
         </div>
 
         <div className="mt-6">
-          <TransactionsTable searchQuery={searchQuery} />
+          <TransactionsTable
+            searchQuery={searchQuery}
+            onViewTransaction={handleViewTransaction}
+          />
         </div>
       </div>
+
+      <TransactionViewSheet
+        transactionId={viewingTransactionId}
+        open={sheetOpen}
+        onOpenChange={handleSheetOpenChange}
+      />
     </div>
   );
 }

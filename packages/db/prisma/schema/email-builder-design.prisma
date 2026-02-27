@@ -40,3 +40,33 @@ model EmailBuilderDesignActivityLog {
   @@index([createdAt])
   @@map("email_builder_design_activity_log")
 }
+
+// Upload library for Email Builder assets (images, files, etc.)
+model EmailBuilderLibrary {
+  id     String  @id @map("_id")
+  userId String // Owner of the asset
+  teamId String? // Optional team ownership
+
+  // File Information
+  fileName   String
+  fileSize   Int // Size in bytes
+  mimeType   String
+  fileUrl    String // URL to stored file (UploadThing, S3, etc.)
+  storageKey String? // Provider-specific storage key
+
+  // Optional metadata
+  description String?
+  metadata    Json?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([createdAt])
+  @@map("email_builder_library")
+}

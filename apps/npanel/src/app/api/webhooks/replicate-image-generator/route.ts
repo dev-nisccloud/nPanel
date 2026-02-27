@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@nPanel/db";
 import Replicate, { validateWebhook } from "replicate";
 import { UTApi } from "uploadthing/server";
+import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -98,6 +99,7 @@ export async function POST(request: NextRequest) {
 				if (result?.data) {
 					imageUrl = result.data.ufsUrl ?? result.data.url;
 					variationStatus = "COMPLETED";
+
 					// Save UploadThing URL and key (schema: "Generated Image Storage (UploadThing)")
 					await prisma.imageGeneratorVariation.update({
 						where: { id: variation.id },
@@ -118,6 +120,39 @@ export async function POST(request: NextRequest) {
 							updatedAt: now,
 						},
 					});
+
+					// Also persist in EmailBuilderLibrary so images are available
+					// to the email builder (and related tools) with a non-expiring URL.
+					if (imageUrl) {
+						const existingLibraryEntry =
+							await prisma.emailBuilderLibrary.findFirst({
+								where: {
+									storageKey: result.data.key,
+								},
+							});
+
+						if (!existingLibraryEntry) {
+							await prisma.emailBuilderLibrary.create({
+								data: {
+									id: randomUUID(),
+									userId: variation.imageGeneratorGeneration.userId,
+									teamId: variation.imageGeneratorGeneration.teamId,
+									fileName: result.data.name,
+									fileSize: result.data.size,
+									mimeType: result.data.type,
+									fileUrl: imageUrl,
+									storageKey: result.data.key,
+									description: "AI generated image",
+									metadata: {
+										source: "imageGenerator",
+										generationId: variation.imageGeneratorGenerationId,
+										variationId: variation.id,
+									},
+									createdAt: now,
+								},
+							});
+						}
+					}
 				} else {
 					variationStatus = "FAILED";
 					errorMessage = "Failed to store image";

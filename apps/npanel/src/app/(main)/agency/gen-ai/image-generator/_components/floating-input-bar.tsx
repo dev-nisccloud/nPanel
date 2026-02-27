@@ -97,7 +97,7 @@ export function FloatingInputBar() {
   const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>("4:3");
   const [outputFormat, setOutputFormat] = React.useState<OutputFormat>("png");
   const [resolution, setResolution] = React.useState<Resolution>("2K");
-  const [variations, setVariations] = React.useState<number>(2);
+  const [variations, setVariations] = React.useState<number>(1);
   const [generationMode, setGenerationMode] = React.useState<GenerationMode>("normal");
   const [selectedImages, setSelectedImages] = React.useState<File[]>([]);
   const [isStarting, setIsStarting] = React.useState(false);

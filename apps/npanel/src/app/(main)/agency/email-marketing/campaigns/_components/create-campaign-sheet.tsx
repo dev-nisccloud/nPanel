@@ -5,7 +5,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Mail, ChevronRight, ChevronLeft, Upload, Download, FileText, Calendar as CalendarIcon, Send, X } from "lucide-react";
+import {
+	Mail,
+	ChevronRight,
+	ChevronLeft,
+	Upload,
+	Download,
+	FileText,
+	Calendar as CalendarIcon,
+	Send,
+	X,
+	LayoutTemplate,
+	Loader2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import confetti from "canvas-confetti";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,12 +49,14 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ChevronDownIcon } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
+import { useGetEmailBuilderDesigns } from "@/app/(main)/agency/email-marketing/email-builder/_api/use-get-email-builder-designs";
+import { renderToHtml } from "@/app/(main)/agency/email-marketing/email-builder/_components/email-builder/utils";
 
 const STEPS = [
 	{ title: "Setup", description: "Domain, from address, and subject" },
-	{ title: "Email Template", description: "Upload HTML or write content" },
-	{ title: "Recipients", description: "Add recipient email addresses" },
-	{ title: "Review", description: "Review parsed email addresses" },
+	{ title: "Email Template", description: "Start from a template or provide HTML" },
+	{ title: "Recipients", description: "Choose an audience and load its contacts" },
+	{ title: "Preview", description: "See how the email will look for recipients" },
 	{ title: "Schedule", description: "Schedule or send immediately" },
 ];
 
@@ -326,14 +342,43 @@ function ScheduleDateTimePicker({ form }: { form: UseFormReturn<ScheduleFormValu
 }
 
 export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCampaignSheetProps) {
+	const router = useRouter();
 	const [step, setStep] = React.useState(1);
 	const [htmlFile, setHtmlFile] = React.useState<File | null>(null);
 	const [htmlContent, setHtmlContent] = React.useState<string>("");
 	const [emailInputText, setEmailInputText] = React.useState("");
 	const [parsedEmails, setParsedEmails] = React.useState<string[]>([]);
 	const [isSending, setIsSending] = React.useState(false);
+	const [selectedTemplateId, setSelectedTemplateId] = React.useState<string | null>(null);
+	const [isApplyingTemplate, setIsApplyingTemplate] = React.useState(false);
+	const submitButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
 	const utils = trpc.useUtils();
+
+	const [selectedAudienceId, setSelectedAudienceId] = React.useState<string | null>(null);
+	const [isLoadingAudienceRecipients, setIsLoadingAudienceRecipients] = React.useState(false);
+
+	const { data: audiencesData, isLoading: audiencesLoading } =
+		trpc.emailMarketing.audiences.list.useQuery(
+			{ limit: 100, offset: 0 },
+			{
+				enabled: open,
+			},
+		);
+
+	// Load available email builder designs for this workspace (agency-side usage)
+	const {
+		data: designsPages,
+		isLoading: designsLoading,
+		hasNextPage: designsHasNextPage,
+		fetchNextPage: fetchMoreDesigns,
+		isFetchingNextPage: designsFetchingNextPage,
+	} = useGetEmailBuilderDesigns();
+
+	const emailBuilderDesigns = React.useMemo(
+		() => designsPages?.pages.flatMap((page) => page.data ?? []) ?? [],
+		[designsPages],
+	);
 
 	// Fetch verified domains
 	const { data: domainsData, isLoading: domainsLoading } = trpc.emailMarketing.domains.list.useQuery(
@@ -397,6 +442,67 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 		},
 	});
 
+	const loadAudienceRecipients = React.useCallback(
+		async (audienceId: string) => {
+			setIsLoadingAudienceRecipients(true);
+			try {
+				const limit = 500;
+				let offset = 0;
+				const emailsSet = new Set<string>();
+
+				// Batch through all contacts for this audience (no pagination for campaigns)
+				// Only include subscribed contacts with a valid email address.
+				// eslint-disable-next-line no-constant-condition
+				while (true) {
+					const res = await utils.emailMarketing.audiences.listContacts.fetch({
+						audienceId,
+						limit,
+						offset,
+						status: "SUBSCRIBED",
+					});
+
+					for (const contact of res.contacts) {
+						const email = contact.emailAddress?.toLowerCase();
+						if (email) {
+							emailsSet.add(email);
+						}
+					}
+
+					offset += res.contacts.length;
+					if (offset >= res.total || res.contacts.length === 0) {
+						break;
+					}
+				}
+
+				const emails = Array.from(emailsSet);
+				setParsedEmails(emails);
+				setEmailInputText(emails.join("\n"));
+				form.setValue("recipientEmails", emails, { shouldValidate: false });
+
+				if (emails.length === 0) {
+					toast.error("No usable contacts", {
+						description:
+							"This audience has no subscribed contacts with an email address.",
+					});
+				} else {
+					toast.success("Audience contacts loaded", {
+						description: `Loaded ${emails.length} recipient email${
+							emails.length === 1 ? "" : "s"
+						} from the selected audience.`,
+					});
+				}
+			} catch (error) {
+				toast.error("Failed to load audience contacts", {
+					description:
+						error instanceof Error ? error.message : "An unexpected error occurred.",
+				});
+			} finally {
+				setIsLoadingAudienceRecipients(false);
+			}
+		},
+		[form, setParsedEmails],
+	);
+
 	const sendMutation = trpc.emailMarketing.campaigns.send.useMutation({
 		onError: (e) => {
 			toast.error("Failed to start send", { description: e.message });
@@ -404,6 +510,101 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 			setCreatedCampaignId(null);
 		},
 	});
+
+	const handleApplyTemplateFromDesign = async (designId: string) => {
+		try {
+			setIsApplyingTemplate(true);
+			setSelectedTemplateId(designId);
+
+			const result = await utils.emailBuilder.get.fetch({ id: designId });
+			const design = result.data;
+
+			if (!design?.json) {
+				toast.error("Template has no design JSON", {
+					description: "Open this design in the email builder and save it again.",
+				});
+				return;
+			}
+
+			let parsedDocument: unknown;
+			try {
+				parsedDocument = JSON.parse(design.json);
+			} catch (error) {
+				toast.error("Failed to load template", {
+					description: "Stored template JSON is invalid.",
+				});
+				return;
+			}
+
+			const html = renderToHtml(parsedDocument);
+
+			setHtmlContent(html);
+			form.setValue("htmlContent", html, { shouldValidate: false });
+
+			toast.success("Template applied", {
+				description: design.name ?? undefined,
+			});
+		} catch (error) {
+			toast.error("Unable to apply template", {
+				description: error instanceof Error ? error.message : "Please try again.",
+			});
+			setSelectedTemplateId(null);
+		} finally {
+			setIsApplyingTemplate(false);
+		}
+	};
+
+	const clearSelectedTemplate = () => {
+		setSelectedTemplateId(null);
+	};
+
+	const fireCompletionConfetti = () => {
+		if (typeof window === "undefined") return;
+
+		const button = submitButtonRef.current;
+		if (!button) {
+		void confetti({
+				particleCount: 80,
+				spread: 65,
+				angle: -90,
+				origin: { x: 0.5, y: 0.85 },
+				colors: [
+					"hsl(var(--primary))",
+					"hsl(var(--accent))",
+					"hsl(var(--secondary))",
+					"hsl(var(--muted))",
+				],
+			zIndex: 9999,
+				ticks: 200,
+				gravity: 1.1,
+				decay: 0.93,
+				startVelocity: 36,
+			});
+			return;
+		}
+
+		const rect = button.getBoundingClientRect();
+		const x = (rect.left + rect.width / 2) / window.innerWidth;
+		const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+		void confetti({
+			particleCount: 80,
+			spread: 65,
+			angle: -90,
+			origin: { x, y },
+			colors: [
+				"hsl(var(--primary))",
+				"hsl(var(--accent))",
+				"hsl(var(--secondary))",
+				"hsl(var(--muted))",
+			],
+			zIndex: 9999,
+			ticks: 190,
+			gravity: 1.05,
+			decay: 0.94,
+			startVelocity: 34,
+		});
+	};
 
 	const handleOpenChange = (next: boolean) => {
 		if (!next && isSending) {
@@ -529,11 +730,13 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 					return;
 				}
 				if (data.sendOption === "now" && isValid) {
+					fireCompletionConfetti();
 					setIsSending(true);
 					handleCreateAndSend(data);
 					return;
 				}
 				if (data.sendOption === "schedule" && isValid) {
+					fireCompletionConfetti();
 					setIsSending(true);
 					handleCreateScheduled(data);
 					return;
@@ -588,13 +791,14 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				scheduledAt: undefined,
 			});
 
-			// Fire-and-forget: trigger send (await so we catch e.g. loopback URL errors), then close
+			// Fire-and-forget: trigger send (await so we catch e.g. loopback URL errors)
 			await sendMutation.mutateAsync({ id: campaign.id });
 
 			utils.emailMarketing.campaigns.list.invalidate();
 			toast.success("Campaign created", {
 				description: "Emails are being sent in the background.",
 			});
+
 			handleOpenChange(false);
 			onSuccess?.();
 		} catch (error) {
@@ -638,6 +842,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 			toast.success("Campaign scheduled", {
 				description: "Emails will be sent at the scheduled time.",
 			});
+
 			handleOpenChange(false);
 			onSuccess?.();
 		} catch (error) {
@@ -796,12 +1001,94 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 								</div>
 							)}
 
-							{/* Step 2: Email Template — wider sheet, scrollable editor */}
+							{/* Step 2: Email Template — choose template or provide HTML */}
 							{step === 2 && (
 								<div className="space-y-4 min-w-0 overflow-x-auto">
 									<div>
 										<h3 className="text-lg font-semibold mb-1">{STEPS[1].title}</h3>
 										<p className="text-sm text-muted-foreground">{STEPS[1].description}</p>
+									</div>
+
+									{/* Templates from Email Builder (dropdown) */}
+									<div className="space-y-3 rounded-lg border bg-muted/40 px-3 py-3">
+										<div className="flex items-center gap-2">
+											<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+												<LayoutTemplate className="h-4 w-4 text-primary" />
+											</div>
+											<div className="space-y-0.5">
+												<p className="text-sm font-medium">Start from an email builder template</p>
+												<p className="text-xs text-muted-foreground">
+													Select any saved design and we’ll convert it to ready-to-send HTML for this campaign.
+												</p>
+											</div>
+										</div>
+
+										<div className="mt-3 space-y-2">
+											{designsLoading ? (
+												<div className="flex items-center gap-2 text-xs text-muted-foreground">
+													<Spinner size={14} className="shrink-0" />
+													<span>Loading templates…</span>
+												</div>
+											) : emailBuilderDesigns.length === 0 ? (
+												<p className="text-xs text-muted-foreground">
+													No saved designs yet. Create one from the Email Builder and it will appear here.
+												</p>
+											) : (
+												<FormItem>
+													<FormLabel className="text-xs">Choose a template</FormLabel>
+													<Select
+														value={selectedTemplateId ?? ""}
+														onValueChange={async (value) => {
+															if (!value) {
+																clearSelectedTemplate();
+																return;
+															}
+															await handleApplyTemplateFromDesign(value);
+														}}
+													>
+														<FormControl>
+															<SelectTrigger className="h-9 text-sm">
+																<SelectValue placeholder="Select a saved template" />
+															</SelectTrigger>
+														</FormControl>
+														<SelectContent>
+															{emailBuilderDesigns.map((design) => (
+																<SelectItem key={design.id} value={design.id}>
+																	<div className="flex flex-col">
+																		<span className="text-sm font-medium">{design.name}</span>
+																		{design.description && (
+																			<span className="text-[11px] text-muted-foreground">
+																				{design.description}
+																			</span>
+																		)}
+																	</div>
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												</FormItem>
+											)}
+
+											<div className="flex items-center justify-between">
+												{selectedTemplateId && (
+													<Button
+														type="button"
+														variant="ghost"
+														size="sm"
+														className="h-7 text-[11px]"
+														onClick={clearSelectedTemplate}
+													>
+														Clear selection
+													</Button>
+												)}
+												{isApplyingTemplate && (
+													<div className="flex items-center gap-2 text-[11px] text-muted-foreground ml-auto">
+														<Loader2 className="h-3 w-3 animate-spin" />
+														Applying template…
+													</div>
+												)}
+											</div>
+										</div>
 									</div>
 
 									<div className="space-y-4">
@@ -818,7 +1105,8 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 												className="min-h-[200px] font-mono text-sm mt-2 whitespace-pre-wrap w-full max-w-full overflow-x-auto resize-y"
 											/>
 											<p className="text-xs text-muted-foreground mt-1">
-												HTML or plain text. Use {"{{email}}"} to insert the recipient address. Plain text line breaks are preserved when sent.
+												HTML or plain text. Use {"{{email}}"} to insert the recipient address. Plain text line
+												breaks are preserved when sent.
 											</p>
 										</div>
 
@@ -858,28 +1146,6 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 												</div>
 											)}
 										</div>
-
-										{htmlContent && (
-											<div className="space-y-2">
-												<Label className="text-sm font-medium block">Preview</Label>
-												<div className="rounded-lg border bg-card overflow-hidden">
-													<div className="border-b bg-muted/50 px-4 py-2 flex items-center justify-between">
-														<span className="text-xs font-medium">Email Preview</span>
-														<span className="text-xs text-muted-foreground">
-															{htmlContent.length} characters
-														</span>
-													</div>
-													<div className="relative">
-														<iframe
-															srcDoc={previewDoc(htmlContent)}
-															className="w-full h-[300px] border-0"
-															title="Email template preview"
-															sandbox="allow-same-origin"
-														/>
-													</div>
-												</div>
-											</div>
-										)}
 									</div>
 								</div>
 							)}
@@ -893,61 +1159,115 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 									</div>
 
 									<div className="space-y-4">
-										<div>
-											<Label>Manual Entry</Label>
-											<Textarea
-												placeholder="Enter email addresses separated by commas or new lines&#10;example1@email.com, example2@email.com&#10;example3@email.com"
-												value={emailInputText}
-												onChange={(e) => handleEmailInputChange(e.target.value)}
-												className="min-h-[200px] font-mono text-sm"
-											/>
-											<p className="text-xs text-muted-foreground mt-1">
-												Separate emails by commas, semicolons, or new lines
-											</p>
-										</div>
-
-										<div className="flex items-center gap-2">
-											<div className="flex-1 border-t" />
-											<span className="text-xs text-muted-foreground">OR</span>
-											<div className="flex-1 border-t" />
-										</div>
-
-										<div>
-											<Label>Upload CSV</Label>
-											<div className="mt-2 space-y-2">
-												<Button
-													type="button"
-													variant="outline"
-													onClick={handleDownloadCSVTemplate}
-													className="w-full"
-												>
-													<Download className="mr-2 h-4 w-4" />
-													Download CSV Format
-												</Button>
-												<Input
-													type="file"
-													accept=".csv,text/csv"
-													onChange={handleCSVUpload}
-													className="cursor-pointer"
-												/>
+										{audiencesLoading ? (
+											<div className="flex items-center gap-2 text-xs text-muted-foreground">
+												<Spinner className="h-3 w-3" />
+												Loading audiences…
 											</div>
-										</div>
-
-										{parsedEmails.length > 0 && (
-											<div className="rounded-lg border bg-card p-4">
-												<div className="flex items-center justify-between mb-2">
-													<span className="text-sm font-medium">
-														{parsedEmails.length} email{parsedEmails.length !== 1 ? "s" : ""} found
-													</span>
-													<Badge variant="outline">{parsedEmails.length}</Badge>
+										) : (audiencesData?.audiences?.length ?? 0) === 0 ? (
+											<div className="rounded-lg border bg-card p-4 space-y-3">
+												<p className="text-sm font-medium">No audiences found</p>
+												<p className="text-xs text-muted-foreground">
+													Create an audience with contacts before sending a campaign.
+												</p>
+												<div className="flex flex-wrap gap-2">
+													<Button
+														type="button"
+														variant="outline"
+														onClick={() => {
+															onOpenChange(false);
+															router.push("/agency/email-marketing/audiences");
+														}}
+													>
+														Go to Audiences
+													</Button>
 												</div>
 											</div>
+										) : (
+											<>
+												<div className="space-y-2">
+													<Label>Select audience</Label>
+													<Select
+														value={selectedAudienceId ?? ""}
+														onValueChange={async (value) => {
+															setSelectedAudienceId(value || null);
+															setParsedEmails([]);
+															setEmailInputText("");
+															form.setValue("recipientEmails", [], {
+																shouldValidate: false,
+															});
+															if (value) {
+																await loadAudienceRecipients(value);
+															}
+														}}
+													>
+														<SelectTrigger className="w-full">
+															<SelectValue placeholder="Choose an audience…" />
+														</SelectTrigger>
+														<SelectContent>
+															{audiencesData?.audiences.map((aud) => (
+																<SelectItem key={aud.id} value={aud.id}>
+																	<div className="flex flex-col gap-0.5">
+																		<span className="text-sm">{aud.name}</span>
+																		<span className="text-[11px] text-muted-foreground">
+																			{aud.contactsCount} contact
+																			{aud.contactsCount === 1 ? "" : "s"}
+																		</span>
+																	</div>
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+													<p className="text-xs text-muted-foreground">
+														We’ll load all subscribed contacts from the selected audience and
+														use their email addresses as recipients.
+													</p>
+												</div>
+
+												<div className="rounded-lg border bg-card p-4 space-y-2">
+													<div className="flex items-center justify-between mb-1">
+														<span className="text-sm font-medium">Loaded recipients</span>
+														{isLoadingAudienceRecipients ? (
+															<span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+																<Spinner className="h-3 w-3" />
+																Loading…
+															</span>
+														) : (
+															<Badge variant="outline">
+																{parsedEmails.length} email
+																{parsedEmails.length === 1 ? "" : "s"}
+															</Badge>
+														)}
+													</div>
+													{parsedEmails.length > 0 ? (
+														<ScrollArea className="h-[160px] rounded-md border bg-background/80 p-2">
+															<div className="space-y-1.5">
+																{parsedEmails.map((email, index) => (
+																	<div
+																		key={email + index}
+																		className="flex items-center gap-2 text-xs"
+																	>
+																		<span className="text-muted-foreground">
+																			{index + 1}.
+																		</span>
+																		<span>{email}</span>
+																	</div>
+																))}
+															</div>
+														</ScrollArea>
+													) : (
+														<p className="text-xs text-muted-foreground">
+															Select an audience to load its contacts.
+														</p>
+													)}
+												</div>
+											</>
 										)}
 									</div>
 								</div>
 							)}
 
-							{/* Step 4: Review */}
+							{/* Step 4: Preview — how the email will look to recipients */}
 							{step === 4 && (
 								<div className="space-y-4">
 									<div>
@@ -955,23 +1275,79 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 										<p className="text-sm text-muted-foreground">{STEPS[3].description}</p>
 									</div>
 
-									<ScrollArea className="h-[400px] rounded-lg border bg-card p-4">
-										<div className="space-y-2">
-											{parsedEmails.map((email, index) => (
-												<div key={index} className="flex items-center gap-2 text-sm">
-													<span className="text-muted-foreground">{index + 1}.</span>
-													<span>{email}</span>
+									<div className="space-y-4">
+										{/* Simulated email header + body */}
+										<div className="rounded-lg border bg-card overflow-hidden">
+											<div className="border-b bg-muted/60 px-4 py-3 space-y-2">
+												<div className="flex items-center justify-between gap-3">
+													<div className="flex items-center gap-2">
+														<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+															<Mail className="h-4 w-4 text-primary" />
+														</div>
+														<div className="space-y-0.5">
+															<p className="text-xs text-muted-foreground">From</p>
+															<p className="text-sm font-medium">
+																{form.watch("fromName") || "Your brand"}{" "}
+																<span className="text-muted-foreground">
+																	&lt;{form.watch("fromEmail") || "sender@example.com"}&gt;
+																</span>
+															</p>
+														</div>
+													</div>
+													<Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+														Preview
+													</Badge>
 												</div>
-											))}
-										</div>
-									</ScrollArea>
-
-									<div className="rounded-lg border bg-card p-4">
-										<div className="text-sm">
-											<div className="flex justify-between mb-1">
-												<span className="text-muted-foreground">Total Recipients:</span>
-												<span className="font-medium">{parsedEmails.length}</span>
+												<div className="space-y-1 text-xs">
+													<div className="flex gap-2">
+														<span className="w-10 text-muted-foreground">To</span>
+														<span className="truncate">
+															{parsedEmails[0] || "recipient@example.com"}
+															{parsedEmails.length > 1 ? ` + ${parsedEmails.length - 1} more` : ""}
+														</span>
+													</div>
+													<div className="flex gap-2">
+														<span className="w-10 text-muted-foreground">Subject</span>
+														<span className="truncate">
+															{form.watch("subject") || "(no subject)"}
+														</span>
+													</div>
+												</div>
 											</div>
+											<div className="bg-background">
+												{htmlContent ? (
+													<iframe
+														srcDoc={previewDoc(htmlContent)}
+														className="w-full h-[820px] border-0"
+														title="Email preview"
+														sandbox="allow-same-origin"
+													/>
+												) : (
+													<div className="h-[180px] flex items-center justify-center text-xs text-muted-foreground">
+														Add content in the previous step to see a full preview.
+													</div>
+												)}
+											</div>
+										</div>
+
+										{/* Recipient summary */}
+										<div className="rounded-lg border bg-card p-4 space-y-2">
+											<div className="flex items-center justify-between mb-1">
+												<span className="text-sm text-muted-foreground">Total recipients</span>
+												<span className="text-sm font-semibold">{parsedEmails.length}</span>
+											</div>
+											{parsedEmails.length > 0 && (
+												<ScrollArea className="h-[160px] rounded-md border bg-background/80 p-2">
+													<div className="space-y-1.5">
+														{parsedEmails.map((email, index) => (
+															<div key={index} className="flex items-center gap-2 text-xs">
+																<span className="text-muted-foreground">{index + 1}.</span>
+																<span>{email}</span>
+															</div>
+														))}
+													</div>
+												</ScrollArea>
+											)}
 										</div>
 									</div>
 								</div>
@@ -1046,6 +1422,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 						<Button
 							type="submit"
 							form="create-campaign-form"
+				ref={submitButtonRef}
 							disabled={isSending || createMutation.isPending}
 						>
 							{isSending || createMutation.isPending ? (

@@ -81,6 +81,7 @@ import { emailMarketingRouter } from "./email-marketing";
 import { webDesignQuotesRouter } from "./web-design-quotes";
 import { userRouter } from "./user";
 import { emailBuilderRouter } from "./email-builder";
+import { emailBuilderLibraryRouter } from "./email-builder-library";
 import { aiRouter } from "./ai";
 import { etimsRouter } from "./etims";
 import { reportsRouter } from "./reports";
@@ -233,6 +234,8 @@ export const appRouter = router({
 	user: userRouter,
 	// Email Builder (Design Management)
 	emailBuilder: emailBuilderRouter,
+	// Email Builder Asset Library (uploads)
+	emailBuilderLibrary: emailBuilderLibraryRouter,
 	// Live AI Assistant
 	ai: aiRouter,
 	// eTIMS Integration

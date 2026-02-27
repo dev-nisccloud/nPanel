@@ -2,6 +2,7 @@ import { router } from "../../trpc";
 import { emailMarketingDomainsRouter } from "./domains";
 import { emailMarketingCampaignsRouter } from "./campaigns";
 import { emailMarketingEmailEventsRouter } from "./email-events";
+import { emailMarketingAudiencesRouter } from "./audiences";
 
 /**
  * Email Marketing Router
@@ -14,4 +15,5 @@ export const emailMarketingRouter = router({
 	domains: emailMarketingDomainsRouter,
 	campaigns: emailMarketingCampaignsRouter,
 	emailEvents: emailMarketingEmailEventsRouter,
+	audiences: emailMarketingAudiencesRouter,
 });

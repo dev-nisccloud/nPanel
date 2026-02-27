@@ -45,7 +45,7 @@ export const startGenerationSchema = z.object({
   aspectRatio: aspectRatioSchema.default("4:3"),
   outputFormat: outputFormatSchema.default("png"),
   resolution: resolutionSchema.default("2K"),
-  variations: z.number().int().min(1).max(10).default(2),
+  variations: z.number().int().min(1).max(10).default(1),
   teamId: z.string().optional(),
 });
 
@@ -54,6 +54,11 @@ export const startGenerationResponseSchema = z.object({
   generationId: z.string(),
   status: generationStatusSchema,
   variationsCount: z.number().int(),
+});
+
+// --- Input: get generation by id ---
+export const getGenerationByIdSchema = z.object({
+  id: z.string(),
 });
 
 // --- Input: get generations ---
@@ -135,6 +140,6 @@ export const generateImageSchema = z.object({
   aspectRatio: aspectRatioSchema.default("4:3"),
   outputFormat: outputFormatSchema.default("png"),
   resolution: resolutionSchema.default("2K"),
-  variations: z.number().int().min(1).max(10).default(2),
+  variations: z.number().int().min(1).max(10).default(1),
   teamId: z.string().optional(),
 });
