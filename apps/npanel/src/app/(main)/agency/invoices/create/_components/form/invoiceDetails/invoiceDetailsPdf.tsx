@@ -46,30 +46,25 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
         </View>
       </View>
       {items.map(({ itemDescription, amount, qty }, index) => {
-        const containerStyle = {
-          marginHorizontal: 40,
-          paddingVertical: 14,
-          ...pdfUtils.borderBottom,
-          ...pdfUtils.flexRowItemCenter,
-        };
-        const borderStyle = index === 0 ? pdfUtils.borderTop : {};
-
         return (
           <View
             key={index}
-            style={{
-              ...containerStyle,
-              ...borderStyle,
-            }}
+            style={[
+              { marginHorizontal: 40, paddingVertical: 14 },
+              pdfUtils.flexRowItemStart,
+              pdfUtils.borderBottom,
+              index === 0 ? pdfUtils.borderTop : {},
+            ]}
           >
-            <Text style={{ flex: 1, ...pdfTypography.itemDescription }}>
-              {itemDescription}
-            </Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={pdfTypography.itemDescription}>{itemDescription}</Text>
+            </View>
             <View
               style={{
                 flex: 1,
                 ...pdfUtils.flexRowItemCenter,
                 paddingLeft: 80,
+                flexShrink: 0,
               }}
             >
               <Text style={{ flex: 1, ...pdfTypography.itemDescription }}>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { trpc } from "@/utils/trpc";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -37,6 +37,8 @@ const hasCompleteBilling = (settings: TeamBillingSettings | null | undefined) =>
 export const CompanyDetailsForm = () => {
 	const [teamPickerOpen, setTeamPickerOpen] = useState(false);
 	const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
+	const userDismissedIncompleteRef = useRef(false);
+	const prevTeamIdRef = useRef<string | undefined>(undefined);
 	const form = useFormContext();
 	const selectedTeamId = form.watch("teamId") as string | undefined;
 
@@ -96,21 +98,28 @@ export const CompanyDetailsForm = () => {
 
 		if (!selectedTeam) {
 			applyBillTo(null, undefined, false);
-			// Reset dialog when no team is selected
 			setShowIncompleteDialog(false);
+			prevTeamIdRef.current = undefined;
+			userDismissedIncompleteRef.current = false;
 			return;
 		}
 
 		if (!billingComplete || !billingSettings) {
 			applyBillTo(null, selectedTeam.name, false);
-			// Only show dialog when a team is selected AND billing is incomplete
-			setShowIncompleteDialog(true);
+			// Reset "dismissed" when user selected a different team so we show the dialog again
+			if (prevTeamIdRef.current !== selectedTeamId) {
+				prevTeamIdRef.current = selectedTeamId;
+				userDismissedIncompleteRef.current = false;
+			}
+			if (!userDismissedIncompleteRef.current) {
+				setShowIncompleteDialog(true);
+			}
 			return;
 		}
 
 		applyBillTo(billingSettings, selectedTeam.name, true);
-		// Hide dialog when billing is complete
 		setShowIncompleteDialog(false);
+		userDismissedIncompleteRef.current = false;
 	}, [billingSettings, billingComplete, selectedTeam, setBillToValue]);
 
 	const displayLines = useMemo(() => {
@@ -212,7 +221,13 @@ export const CompanyDetailsForm = () => {
 				)}
 			</div>
 
-			<AlertDialog open={showIncompleteDialog} onOpenChange={setShowIncompleteDialog}>
+			<AlertDialog
+				open={showIncompleteDialog}
+				onOpenChange={(open) => {
+					if (!open) userDismissedIncompleteRef.current = true;
+					setShowIncompleteDialog(open);
+				}}
+			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Billing details incomplete</AlertDialogTitle>
@@ -221,7 +236,13 @@ export const CompanyDetailsForm = () => {
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogAction autoFocus onClick={() => setShowIncompleteDialog(false)}>
+						<AlertDialogAction
+							autoFocus
+							onClick={() => {
+								userDismissedIncompleteRef.current = true;
+								setShowIncompleteDialog(false);
+							}}
+						>
 							Okay
 						</AlertDialogAction>
 					</AlertDialogFooter>

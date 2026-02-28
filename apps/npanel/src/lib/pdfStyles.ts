@@ -63,6 +63,11 @@ export const pdfUtils = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
     },
+    flexRowItemStart: {
+        display: 'flex',
+        alignItems: 'flex-start',
+        flexDirection: 'row',
+    },
     flexRowItemSpaceAround: {
         display: 'flex',
         alignItems: 'center',
