@@ -47,7 +47,7 @@ interface SelectAdAccountSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   commissionRatePercent: number;
-  onSelect: (context: ItemCommissionContext) => void;
+  onSelect: (contexts: ItemCommissionContext[]) => void;
 }
 
 export function SelectAdAccountSheet({
@@ -62,11 +62,9 @@ export function SelectAdAccountSheet({
     to: new Date(),
   });
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
-  const [selectedCampaign, setSelectedCampaign] = React.useState<{
-    id: string;
-    name: string;
-    spend: number;
-  } | null>(null);
+  const [selectedCampaigns, setSelectedCampaigns] = React.useState<
+    Array<{ id: string; name: string; spend: number }>
+  >([]);
 
   const timeRange =
     dateRange?.from && dateRange?.to
@@ -115,7 +113,11 @@ export function SelectAdAccountSheet({
   const accountCurrency = getAccountCurrency(selectedAccount?.currency);
   const currencySymbol = getCurrencySymbol(accountCurrency);
 
-  const totalAmount = selectedCampaign?.spend ?? 0;
+  const totalAmount = selectedCampaigns.reduce((sum, c) => sum + c.spend, 0);
+  const totalAgencyAmount = selectedCampaigns.reduce(
+    (sum, c) => sum + (c.spend * commissionRatePercent) / 100,
+    0
+  );
 
   const [kesConverted, setKesConverted] = React.useState<number | null>(null);
   React.useEffect(() => {
@@ -141,30 +143,41 @@ export function SelectAdAccountSheet({
     };
   }, [accountCurrency, totalAmount]);
 
+  const toggleCampaign = (campaign: { id: string; name: string; spend: number }) => {
+    setSelectedCampaigns((prev) => {
+      const exists = prev.some((c) => c.id === campaign.id);
+      if (exists) return prev.filter((c) => c.id !== campaign.id);
+      return [...prev, campaign];
+    });
+  };
+
   const handleConfirm = () => {
-    if (!selectedAccountId || !selectedAccount || !selectedCampaign || !dateRange?.from || !dateRange?.to) {
-      toast.error("Please select an account, date range, and a campaign.");
+    if (!selectedAccountId || !selectedAccount || selectedCampaigns.length === 0 || !dateRange?.from || !dateRange?.to) {
+      toast.error("Please select an account, date range, and at least one campaign.");
       return;
     }
-    onSelect({
+    const since = format(dateRange.from, "yyyy-MM-dd");
+    const until = format(dateRange.to, "yyyy-MM-dd");
+    const contexts: ItemCommissionContext[] = selectedCampaigns.map((c) => ({
       metaAdsAccountId: selectedAccountId,
       metaAdsAccountName: selectedAccount.accountName ?? undefined,
-      metaAdsCampaignId: selectedCampaign.id,
-      metaAdsCampaignName: selectedCampaign.name,
-      dateRangeSince: format(dateRange.from, "yyyy-MM-dd"),
-      dateRangeUntil: format(dateRange.to, "yyyy-MM-dd"),
-      adSpend: selectedCampaign.spend,
+      metaAdsCampaignId: c.id,
+      metaAdsCampaignName: c.name,
+      dateRangeSince: since,
+      dateRangeUntil: until,
+      adSpend: c.spend,
       commissionRatePercent,
-    });
+    }));
+    onSelect(contexts);
     onOpenChange(false);
     setSelectedAccountId(null);
-    setSelectedCampaign(null);
+    setSelectedCampaigns([]);
   };
 
   const handleClose = (next: boolean) => {
     if (!next) {
       setSelectedAccountId(null);
-      setSelectedCampaign(null);
+      setSelectedCampaigns([]);
     }
     onOpenChange(next);
   };
@@ -183,7 +196,7 @@ export function SelectAdAccountSheet({
           <div className="flex flex-col gap-1">
             <SheetTitle className="text-2xl font-bold">Select ad account</SheetTitle>
             <SheetDescription className="text-base">
-              Choose an ad account, date range, then a campaign to use ad spend for commission.
+              Choose an ad account, date range, then select one or more campaigns. Each campaign is added as a separate invoice line with commission applied.
             </SheetDescription>
           </div>
           <SheetClose asChild>
@@ -212,7 +225,7 @@ export function SelectAdAccountSheet({
                     type="button"
                     onClick={() => {
                       setSelectedAccountId(account.accountId);
-                      setSelectedCampaign(null);
+                      setSelectedCampaigns([]);
                     }}
                     className={cn(
                       "w-full text-left p-3 rounded-md border transition-colors",
@@ -284,18 +297,17 @@ export function SelectAdAccountSheet({
                     <div className="space-y-1.5 max-h-[240px] overflow-y-auto rounded-lg border border-border">
                       {campaigns.map((campaign: { id: string; name?: string; insights?: { spend?: string } }) => {
                         const spend = parseFloat(campaign.insights?.spend ?? "0") || 0;
-                        const isSelected = selectedCampaign?.id === campaign.id;
+                        const campaignEntry = {
+                          id: campaign.id,
+                          name: campaign.name ?? `Campaign ${campaign.id}`,
+                          spend,
+                        };
+                        const isSelected = selectedCampaigns.some((c) => c.id === campaign.id);
                         return (
                           <button
                             key={campaign.id}
                             type="button"
-                            onClick={() =>
-                              setSelectedCampaign({
-                                id: campaign.id,
-                                name: campaign.name ?? `Campaign ${campaign.id}`,
-                                spend,
-                              })
-                            }
+                            onClick={() => toggleCampaign(campaignEntry)}
                             className={cn(
                               "w-full text-left p-3 rounded-md border transition-colors flex items-center justify-between gap-3",
                               isSelected
@@ -309,6 +321,11 @@ export function SelectAdAccountSheet({
                             <span className="text-sm font-medium text-muted-foreground shrink-0">
                               {formatAmount(spend, accountCurrency)}
                             </span>
+                            {isSelected && (
+                              <span className="shrink-0 text-primary font-medium" aria-hidden>
+                                ✓
+                              </span>
+                            )}
                           </button>
                         );
                       })}
@@ -317,7 +334,7 @@ export function SelectAdAccountSheet({
                 </div>
               )}
 
-              {selectedAccount && selectedCampaign && dateRange?.from && dateRange?.to && (
+              {selectedAccount && selectedCampaigns.length > 0 && dateRange?.from && dateRange?.to && (
                 <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2 text-sm">
                   <p className="font-medium text-foreground">Summary</p>
                   <div className="space-y-1 text-muted-foreground">
@@ -328,6 +345,9 @@ export function SelectAdAccountSheet({
                     <p>
                       <span className="text-foreground">Period:</span>{" "}
                       {format(dateRange.from, "MMM d, yyyy")} – {format(dateRange.to, "MMM d, yyyy")}
+                    </p>
+                    <p>
+                      <span className="text-foreground">Campaigns selected:</span> {selectedCampaigns.length}
                     </p>
                     <p>
                       <span className="text-foreground">Currency:</span> {currencySymbol} (
@@ -346,10 +366,10 @@ export function SelectAdAccountSheet({
                       </p>
                     )}
                     <p>
-                      <span className="text-foreground">Commission rate:</span> {commissionRatePercent}%
+                      <span className="text-foreground">Commission rate:</span> {commissionRatePercent}% (per campaign)
                     </p>
                     <p className="font-medium text-foreground">
-                      Agency amount: {formatAmount((totalAmount * commissionRatePercent) / 100, accountCurrency)}
+                      Total agency amount: {formatAmount(totalAgencyAmount, accountCurrency)}
                     </p>
                   </div>
                 </div>
@@ -361,9 +381,9 @@ export function SelectAdAccountSheet({
             <Button
               type="button"
               onClick={handleConfirm}
-              disabled={!selectedAccountId || !selectedCampaign || !dateRange?.from || !dateRange?.to}
+              disabled={!selectedAccountId || selectedCampaigns.length === 0 || !dateRange?.from || !dateRange?.to}
             >
-              Use selection
+              Add {selectedCampaigns.length ? `${selectedCampaigns.length} ` : ""}to invoice
             </Button>
           </div>
         </div>

@@ -35,7 +35,7 @@ export const Banner = () => {
   };
 
   return (
-    <div className="relative aspect-[5/1] min-h-[248px] overflow-hidden rounded-xl text-white">
+    <div className="relative aspect-[5/1] min-h-[248px] overflow-hidden rounded-xl text-white bg-gradient-to-b from-[#2625e3] to-[#0bbaef]">
       <div className="absolute inset-0">
         <ColorBends
           colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}

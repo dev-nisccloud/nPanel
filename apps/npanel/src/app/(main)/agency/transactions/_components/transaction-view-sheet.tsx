@@ -133,7 +133,7 @@ export function TransactionViewSheet({
 									)}
 									{tx.receiptNumber && (
 										<div className="flex justify-between items-center gap-2">
-											<span className="text-muted-foreground">Receipt number</span>
+											<span className="text-muted-foreground">MPESA Receipt number</span>
 											<span className="font-medium">{tx.receiptNumber}</span>
 										</div>
 									)}

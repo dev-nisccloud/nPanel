@@ -76,7 +76,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <img
                     src="/nisciconoriginal.png"
                     alt={APP_CONFIG.name}
-                    className="h-4 w-10 max-w-full"
+                    className="h-24 w-auto max-w-full object-contain"
                   />
                 )}
               </a>

@@ -122,34 +122,39 @@ export const InvoiceDetailsForm = () => {
               open={commissionSheetState !== null}
               onOpenChange={(open) => !open && setCommissionSheetState(null)}
               commissionRatePercent={commissionSheetState?.commissionRatePercent ?? 0}
-              onSelect={(context) => {
-                if (commissionSheetState === null) return;
+              onSelect={(contexts) => {
+                if (commissionSheetState === null || contexts.length === 0) return;
                 const idx = commissionSheetState.index;
-                const fromLabel = context.dateRangeSince
-                  ? new Date(context.dateRangeSince + "T12:00:00").toLocaleDateString("en-US", {
+                const fromLabel = contexts[0]?.dateRangeSince
+                  ? new Date(contexts[0].dateRangeSince + "T12:00:00").toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
                     })
                   : "";
-                const toLabel = context.dateRangeUntil
-                  ? new Date(context.dateRangeUntil + "T12:00:00").toLocaleDateString("en-US", {
+                const toLabel = contexts[0]?.dateRangeUntil
+                  ? new Date(contexts[0].dateRangeUntil + "T12:00:00").toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
                     })
                   : "";
                 const dateRangeLabel = [fromLabel, toLabel].filter(Boolean).join(" – ");
-                const desc = [commissionSheetState.productName, "Meta Ads", dateRangeLabel]
-                  .filter(Boolean)
-                  .join(" - ");
-                const amount = (context.commissionRatePercent / 100) * context.adSpend;
-                updateItem(idx, {
-                  commissionContext: context,
-                  itemDescription: desc || items[idx]?.itemDescription,
-                  amount: Math.round(amount * 100) / 100,
-                  qty: 1,
+                const newItems: Item[] = contexts.map((context) => {
+                  const adSpendFormatted = context.adSpend.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  });
+                  const desc = `${commissionSheetState.productName} - Meta Ads - ${context.metaAdsCampaignName}(Total Ad Spend - ${adSpendFormatted}) - (${dateRangeLabel})`;
+                  return {
+                    commissionContext: context,
+                    itemDescription: desc,
+                    amount: Math.round((context.commissionRatePercent / 100) * context.adSpend * 100) / 100,
+                    qty: 1,
+                  };
                 });
+                const next = [...items.slice(0, idx), ...newItems, ...items.slice(idx + 1)];
+                onChange(next.length > 0 ? next : [{ itemDescription: "" }]);
                 setCommissionSheetState(null);
               }}
             />

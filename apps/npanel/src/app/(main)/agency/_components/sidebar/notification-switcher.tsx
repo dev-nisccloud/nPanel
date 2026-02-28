@@ -22,7 +22,6 @@ import {
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { toast } from "sonner";
 import { useNotificationsSSE } from "@/hooks/use-notifications-sse";
 
 const getPriorityColor = (priority: string) => {
@@ -135,9 +134,6 @@ export function NotificationSwitcher() {
       const updated = [notification as unknown as { id: string; createdAt: Date | string; updatedAt: Date | string;[key: string]: unknown; }, ...notificationsRef.current.filter(n => n.id !== notification.id)];
       notificationsRef.current = updated;
       refetch(); // Refresh to get full data
-      toast.info(notification.title || "New notification", {
-        description: notification.message,
-      });
     },
     (count) => {
       // Unseen count updated via SSE
@@ -206,9 +202,6 @@ export function NotificationSwitcher() {
       // Restore previous local state (even if it was undefined/null)
       setSseUnseenCount(context?.previousSseUnseenCount ?? null);
 
-      toast.error("Failed to mark notification as read", {
-        description: error.message,
-      });
       setUpdatingNotificationId(null);
     },
     onSettled: () => {
@@ -263,9 +256,6 @@ export function NotificationSwitcher() {
       }
       setSseUnseenCount(context?.previousSseUnseenCount ?? null);
 
-      toast.error("Failed to mark notification as unread", {
-        description: error.message,
-      });
       setUpdatingNotificationId(null);
     },
     onSettled: () => {
@@ -309,7 +299,6 @@ export function NotificationSwitcher() {
       return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
     },
     onSuccess: () => {
-      toast.success("Notification deleted");
       setUpdatingNotificationId(null);
     },
     onError: (error, variables, context) => {
@@ -321,9 +310,6 @@ export function NotificationSwitcher() {
       }
       setSseUnseenCount(context?.previousSseUnseenCount ?? null);
 
-      toast.error("Failed to delete notification", {
-        description: error.message,
-      });
       setUpdatingNotificationId(null);
     },
     onSettled: () => {
@@ -353,9 +339,7 @@ export function NotificationSwitcher() {
 
       return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
     },
-    onSuccess: () => {
-      toast.success("All notifications marked as read");
-    },
+    onSuccess: () => {},
     onError: (error, variables, context) => {
       if (context?.previousNotifications) {
         utils.notifications.getAll.setData({ limit: 50, offset: 0 }, context.previousNotifications);
@@ -364,10 +348,6 @@ export function NotificationSwitcher() {
         utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
       }
       setSseUnseenCount(context?.previousSseUnseenCount ?? null);
-
-      toast.error("Failed to mark all as read", {
-        description: error.message,
-      });
     },
   });
 
