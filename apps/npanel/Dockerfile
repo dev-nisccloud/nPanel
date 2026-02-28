@@ -26,9 +26,9 @@ COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 # Copy essential root configs that turbo prune might miss
 COPY tsconfig.json tsconfig.base.json turbo.json ./
 
-# Install dependencies
+# Install dependencies (no --frozen-lockfile: pruned lockfile can miss some package entries)
 # We use --ignore-scripts because some postinstalls might depend on files in 'full'
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm install --ignore-scripts
 
 # Copy source code
 COPY --from=pruner /app/out/full/ .
