@@ -5,10 +5,16 @@ import { getQStashSigningKeys } from "@nPanel/api/lib/qstash/client";
 import { processNiscOrder } from "@nPanel/api/lib/nisc-order-processor";
 import { niscLog } from "@nPanel/api/lib/nisc-order-logger";
 import {
+	renderOrderConfirmationEmail,
 	renderNiscOrderConfirmationEmail,
 	renderNiscOrderFailedEmail,
+	renderInvoiceSuccessEmail,
 } from "@nPanel/api/lib/email-templates";
 import { sendEmail, sendEmailBatch } from "@nPanel/api/lib/email";
+import {
+	isTeamBillingComplete,
+	createInvoiceForNiscOrder,
+} from "@nPanel/api/lib/nisc-order-auto-invoice";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -63,7 +69,7 @@ export async function POST(request: NextRequest) {
 		where: { id: niscOrderId },
 		include: {
 			user: { select: { email: true, name: true } },
-			team: { select: { createdById: true } },
+			team: { select: { createdById: true, slug: true } },
 			orderItems: {
 				include: {
 					product: { select: { name: true } },
@@ -121,7 +127,7 @@ export async function POST(request: NextRequest) {
 		const orderLink = `${baseUrl}/agency/nisc-service-orders?order=${niscOrderId}`;
 		const retryLink = `${baseUrl}/agency/nisc-service-orders`;
 
-		// Customer name for email body (order placed by); only the "order received" email goes to customer (sent at creation).
+		// Customer name for email body (order placed by).
 		const customerName =
 			order.user?.name ??
 			(order.team?.createdById
@@ -133,6 +139,131 @@ export async function POST(request: NextRequest) {
 					)?.name ?? null
 				: null) ??
 			"Customer";
+
+		// On success: send order confirmation to customer (OrderConfirmationEmail), then try auto-invoice + invoice success email.
+		if (result.ok && result.status === "COMPLETED" && orderAfter) {
+			const billingSettings = order.teamId
+				? await prisma.teamBillingSettings.findUnique({
+						where: { teamId: order.teamId },
+					})
+				: null;
+			const customerEmail =
+				order.user?.email ??
+				(billingSettings?.billingEmail?.trim() ? billingSettings.billingEmail : null);
+
+			if (customerEmail) {
+				try {
+					const customerOrderLink =
+						order.team?.slug != null
+							? `${baseUrl}/${order.team.slug}/subscriptions`
+							: `${baseUrl}/dashboard`;
+					const orderConfirmationHtml = await renderOrderConfirmationEmail({
+						customerName: customerName ?? undefined,
+						orderNumber: orderAfter.orderNumber,
+						orderDate: orderAfter.createdAt.toISOString().slice(0, 10),
+						totalAmount: orderAfter.total,
+						currency: orderAfter.currency,
+						orderItems: orderAfter.orderItems.map((i) => ({
+							name: [i.product?.name, i.productPlan?.name].filter(Boolean).join(" - ") || i.primaryDomain || "Order item",
+							price: i.itemSubtotal,
+						})),
+						supportEmail: "accounts@nisccloud.com",
+						supportPhone: "+254 748 777 666",
+						orderLink: customerOrderLink,
+					});
+					await sendEmail({
+						to: customerEmail,
+						subject: `Order Confirmation - ${orderAfter.orderNumber} from Nisc Cloud Limited`,
+						html: orderConfirmationHtml,
+					});
+					await niscLog("worker_email_sent", {
+						niscOrderId,
+						emailType: "order_confirmation",
+						recipients: "customer",
+					});
+				} catch (customerEmailErr) {
+					const errMsg = customerEmailErr instanceof Error ? customerEmailErr.message : String(customerEmailErr);
+					await niscLog("worker_email_failed", {
+						niscOrderId,
+						recipients: "customer",
+						error: errMsg,
+					});
+				}
+			}
+
+			// Auto-create invoice when team has complete billing; send invoice success email to billing email with CC to order initiator.
+			if (order.teamId && order.createdBy) {
+				if (!isTeamBillingComplete(billingSettings)) {
+					await niscLog("invoice_not_created", {
+						niscOrderId,
+						reason: "team_billing_settings_incomplete_or_missing",
+					});
+				} else {
+					try {
+						const invoiceResult = await createInvoiceForNiscOrder(
+							prisma,
+							orderAfter,
+							billingSettings!,
+							order.createdBy,
+						);
+						if (invoiceResult) {
+							const toEmail = billingSettings!.billingEmail.trim();
+							if (!toEmail) {
+								await niscLog("worker_invoice_email_skipped", {
+									niscOrderId,
+									reason: "billing_email_empty",
+								});
+							} else {
+								const initiator = await prisma.user.findUnique({
+									where: { id: order.createdBy },
+									select: { email: true },
+								});
+								const ccList: string[] = [];
+								if (initiator?.email && typeof initiator.email === "string" && initiator.email.trim()) {
+									const initiatorEmail = initiator.email.trim();
+									if (initiatorEmail.toLowerCase() !== toEmail.toLowerCase()) {
+										ccList.push(initiatorEmail);
+									}
+								}
+								// Dashboard link from env (no hardcoding) – only set when we have both base URL and team slug
+								const invoiceDashboardUrl =
+									baseUrl && order.team?.slug
+										? `${baseUrl}/${order.team.slug}/invoices`
+										: undefined;
+								const invoiceSuccessHtml = await renderInvoiceSuccessEmail({
+									customerName: billingSettings!.legalName ?? undefined,
+									invoiceNumber: invoiceResult.invoiceNumber,
+									orderNumber: orderAfter.orderNumber,
+									totalAmount: orderAfter.total,
+									currency: orderAfter.currency,
+									supportEmail: "accounts@nisccloud.com",
+									supportPhone: "+254 748 777 666",
+									invoiceLink: invoiceDashboardUrl,
+								});
+								await sendEmail({
+									to: toEmail,
+									subject: `Your invoice ${invoiceResult.invoiceNumber} from Nisc Cloud Limited`,
+									html: invoiceSuccessHtml,
+									...(ccList.length > 0 && { cc: ccList }),
+								});
+								await niscLog("worker_invoice_created_and_sent", {
+									niscOrderId,
+									invoiceId: invoiceResult.invoiceId,
+									invoiceNumber: invoiceResult.invoiceNumber,
+									ccCount: ccList.length,
+								});
+							}
+						}
+					} catch (invoiceErr) {
+						const errMsg = invoiceErr instanceof Error ? invoiceErr.message : String(invoiceErr);
+						await niscLog("worker_invoice_creation_failed", {
+							niscOrderId,
+							error: errMsg,
+						});
+					}
+				}
+			}
+		}
 
 		// Status emails (confirmation / failed / partial) go to super admins only, not to the customer.
 		const superAdmins = await prisma.user.findMany({

@@ -56,8 +56,10 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               index === 0 ? pdfUtils.borderTop : {},
             ]}
           >
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={pdfTypography.itemDescription}>{itemDescription}</Text>
+            <View style={{ flex: 1, minWidth: 0, maxWidth: "60%" }}>
+              <Text style={pdfTypography.itemDescription} wrap>
+                {itemDescription}
+              </Text>
             </View>
             <View
               style={{

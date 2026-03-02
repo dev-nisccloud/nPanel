@@ -779,6 +779,119 @@ export const teamsRouter = router({
     }),
 
   /**
+   * Get team members (for current user when they are a member of the team).
+   * Returns members with user name and email for display in company settings.
+   */
+  getMembersAsMember: protectedProcedure
+    .input(z.object({ teamId: z.string() }))
+    .output(z.array(z.object({
+      id: z.string(),
+      userId: z.string(),
+      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+      userName: z.string().nullable(),
+      userEmail: z.string().nullable(),
+    })))
+    .query(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const membership = await prisma.teamMember.findUnique({
+        where: {
+          teamId_userId: {
+            teamId: input.teamId,
+            userId: session.user.id,
+          },
+        },
+      });
+
+      if (!membership) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have access to this team",
+        });
+      }
+
+      const members = await prisma.teamMember.findMany({
+        where: { teamId: input.teamId },
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      return members.map((m) => ({
+        id: m.id,
+        userId: m.userId,
+        role: m.role,
+        createdAt: m.createdAt,
+        updatedAt: m.updatedAt,
+        userName: m.user.name ?? null,
+        userEmail: m.user.email ?? null,
+      }));
+    }),
+
+  /**
+   * Get team invites (for current user when they are a member of the team).
+   */
+  getInvitesAsMember: protectedProcedure
+    .input(z.object({ teamId: z.string() }))
+    .output(z.array(z.object({
+      id: z.string(),
+      email: z.string(),
+      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
+      status: z.enum(["PENDING", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"]),
+      invitedById: z.string(),
+      expiresAt: z.date(),
+      acceptedAt: z.date().nullable(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+    })))
+    .query(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const membership = await prisma.teamMember.findUnique({
+        where: {
+          teamId_userId: {
+            teamId: input.teamId,
+            userId: session.user.id,
+          },
+        },
+      });
+
+      if (!membership) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have access to this team",
+        });
+      }
+
+      const invites = await prisma.teamInvite.findMany({
+        where: { teamId: input.teamId },
+        orderBy: { createdAt: "desc" },
+      });
+
+      return invites;
+    }),
+
+  /**
    * Get team by ID with full details
    */
   getById: protectedProcedure
@@ -1136,12 +1249,7 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have permission",
-        });
-      }
+      const isAgency = userRole === "AGENCY_ADMIN" || userRole === "AGENCY_SUPER_ADMIN";
 
       const team = await prisma.team.findUnique({
         where: { id: input.teamId },
@@ -1152,6 +1260,23 @@ export const teamsRouter = router({
           code: "NOT_FOUND",
           message: "Team not found",
         });
+      }
+
+      if (!isAgency) {
+        const membership = await prisma.teamMember.findUnique({
+          where: {
+            teamId_userId: {
+              teamId: input.teamId,
+              userId: session.user.id,
+            },
+          },
+        });
+        if (!membership || (membership.role !== "OWNER" && membership.role !== "ADMIN")) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have permission to invite members to this team",
+          });
+        }
       }
 
       // Batch: Check user membership and pending invites in parallel

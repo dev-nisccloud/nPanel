@@ -84,22 +84,18 @@ export async function sendEmail({
         throw new Error("Either html or text must be provided");
       }
 
-      // Type the payload explicitly for HTML/text emails (not React Email)
-      // Using type assertion to tell TypeScript this is the HTML/text variant
-      const emailPayload: {
-        from: string;
-        to: string[];
-        subject: string;
-        html?: string;
-        text?: string;
-        cc?: string[];
-        bcc?: string[];
-        attachments?: Array<{
-          filename: string;
-          content: Buffer | string;
-          contentType?: string;
-        }>;
-      } = {
+      // Resend API requires attachment content as base64 string (Buffer is not serialized correctly in JSON)
+      const normalizedAttachments =
+        attachments && attachments.length > 0
+          ? attachments.map((att) => ({
+              filename: att.filename,
+              content: typeof att.content === "string" ? att.content : att.content.toString("base64"),
+              ...(att.contentType && { contentType: att.contentType }),
+            }))
+          : undefined;
+
+      // Build payload so attachments are always included when present (Resend expects content as base64 string)
+      const emailPayload = {
         from: emailData.from,
         to: emailData.to,
         subject: emailData.subject,
@@ -107,19 +103,10 @@ export async function sendEmail({
         ...(emailData.text && { text: emailData.text }),
         ...(cc && cc.length > 0 && { cc }),
         ...(bcc && bcc.length > 0 && { bcc }),
-        ...(attachments && attachments.length > 0 && {
-          attachments: attachments.map(att => ({
-            filename: att.filename,
-            content: typeof att.content === 'string' 
-              ? Buffer.from(att.content, 'base64')
-              : att.content,
-            ...(att.contentType && { contentType: att.contentType }),
-          })),
-        }),
+        ...(normalizedAttachments && normalizedAttachments.length > 0 && { attachments: normalizedAttachments }),
       };
 
-      // Type assertion to ensure TypeScript uses the HTML/text variant, not React Email variant
-      // Cast to 'any' first, then to the correct type to bypass the React Email overload
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Resend SDK has overloads that conflict with our payload shape
       const { data, error } = await resend.emails.send(emailPayload as any);
 
       if (error) {

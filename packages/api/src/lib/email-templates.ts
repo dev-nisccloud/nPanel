@@ -7,6 +7,7 @@ import {
 	AccountCreatedEmail,
 	AgencyUserCreatedEmail,
 	InvoiceDeliveryEmail,
+	InvoiceSuccessEmail,
 	QuotationDeliveryEmail,
 	OrderConfirmationEmail,
 	OrderReceivedEmail,
@@ -160,6 +161,37 @@ export async function renderInvoiceDeliveryEmail({
     services,
     supportEmail,
     supportPhone,
+  }));
+}
+
+export async function renderInvoiceSuccessEmail({
+  customerName,
+  invoiceNumber,
+  orderNumber,
+  totalAmount,
+  currency,
+  supportEmail,
+  supportPhone,
+  invoiceLink,
+}: {
+  customerName?: string;
+  invoiceNumber?: string;
+  orderNumber?: string;
+  totalAmount?: string;
+  currency?: string;
+  supportEmail?: string;
+  supportPhone?: string;
+  invoiceLink?: string;
+}) {
+  return render(InvoiceSuccessEmail({
+    customerName,
+    invoiceNumber,
+    orderNumber,
+    totalAmount,
+    currency,
+    supportEmail,
+    supportPhone,
+    invoiceLink,
   }));
 }
 

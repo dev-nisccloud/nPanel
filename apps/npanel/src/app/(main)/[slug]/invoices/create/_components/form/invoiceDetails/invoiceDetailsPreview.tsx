@@ -55,12 +55,12 @@ export const InvoiceDetailsPreview: React.FC<
       </div>
       {items.map(({ itemDescription, amount, qty }, index) => (
         <div
-          className={`grid grid-cols-2 items-center border-b ${
+          className={`grid grid-cols-2 items-start border-b ${
             index === 0 ? "border-t" : ""
-          } border-dashed mx-10 py-3`}
+          } border-dashed mx-10 py-3 gap-x-4`}
           key={index}
         >
-          <p className="flex truncate text-xs font-medium text-gray-600">
+          <p className="min-w-0 text-xs font-medium text-gray-600 break-words whitespace-normal">
             {itemDescription}
           </p>
           <div className="pl-10 grid grid-cols-3 items-center">

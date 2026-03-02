@@ -13,7 +13,7 @@ export function EmptyState({ teamSlug }: { teamSlug: string }) {
       <p className="text-muted-foreground mb-4">
         You haven&apos;t registered any domains yet. Get your first domain to get started.
       </p>
-      <Button asChild>
+      <Button asChild className="w-fit">
         <Link href={teamSlug ? `/${teamSlug}/domains` : "/domains"}>
           <Plus className="mr-2 h-4 w-4" />
           Get a Domain

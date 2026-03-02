@@ -1,7 +1,5 @@
 /* eslint-disable jsx-a11y/alt-text */
 /* eslint-disable @next/next/no-img-element */
-"use client";
-
 import React from "react";
 import { Image, Text, View } from "@react-pdf/renderer";
 import { pdfContainers, pdfTypography } from "@/lib/pdfStyles";

@@ -26,7 +26,7 @@ export function extractTextFromValue(value: string): string {
             StarterKit,
             Link,
             Underline,
-          ]);
+          ] as import("@tiptap/core").AnyExtension[]);
 
           if (textContent.trim()) {
             return textContent.trim();

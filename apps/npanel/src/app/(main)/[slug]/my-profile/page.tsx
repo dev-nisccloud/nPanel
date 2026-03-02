@@ -7,7 +7,7 @@ import { User, Activity } from "lucide-react";
 
 import { ProfileHeader } from "./_components/profile-header";
 import { ProfileForm } from "./_components/profile-form";
-import { SessionsList } from "./_components/sessions-list";
+import { AccountActivitiesList } from "./_components/account-activities-list";
 
 export default function MyProfilePage() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -17,8 +17,8 @@ export default function MyProfilePage() {
       <div className="w-full max-w-7xl mx-auto">
         {/* Page Header */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">My Profile</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-base font-semibold tracking-tight">My Profile</h1>
+          <p className="text-xs text-muted-foreground">
             Manage your account settings and view your account activities
           </p>
         </div>
@@ -36,18 +36,18 @@ export default function MyProfilePage() {
                 <User className="h-4 w-4" />
                 Profile
               </TabsTrigger>
-              <TabsTrigger value="sessions" className="gap-2">
+              <TabsTrigger value="activities" className="gap-2">
                 <Activity className="h-4 w-4" />
                 Account Activities
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="profile">
+            <TabsContent value="profile" className="mt-6">
               <ProfileForm />
             </TabsContent>
 
-            <TabsContent value="sessions">
-              <SessionsList />
+            <TabsContent value="activities" className="mt-6">
+              <AccountActivitiesList />
             </TabsContent>
           </Tabs>
         </div>

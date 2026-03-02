@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { ArrowLeft, Download, Send } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
@@ -137,7 +137,9 @@ function convertInvoiceToPdfData(invoice: InvoiceDetail) {
 		currency: invoice.currency,
 		items: invoice.lineItems.map((item) => ({
 			id: item.id,
-			itemDescription: item.name || "Service",
+			itemDescription: item.description
+				? `${item.name || "Service"}. ${item.description}`
+				: (item.name || "Service"),
 			amount: item.price ? Number(item.price) : undefined,
 			qty: item.quantity || undefined,
 		})),
@@ -211,32 +213,13 @@ export default function InvoiceViewPage() {
 		}
 	);
 
+	const invoicesPath = teamSlug ? `/${teamSlug}/invoices` : "/agency/invoices";
 	const [isDownloading, setIsDownloading] = React.useState(false);
-	const [isSending, setIsSending] = React.useState(false);
-
-	const utils = trpc.useUtils();
-
-	const resendEmailMutation = trpc.invoicing.resendEmailReminder.useMutation({
-		onSuccess: () => {
-			toast.success("Email reminder sent successfully!", {
-				description: `Reminder for invoice ${invoice?.invoiceNumber} has been sent to ${invoice?.customerEmail}`,
-			});
-			utils.invoicing.list.invalidate();
-		},
-		onError: (error) => {
-			toast.error("Failed to send email reminder", {
-				description: error.message || "An error occurred while sending the email reminder",
-			});
-		},
-	});
 
 	const handleDownloadInvoice = async () => {
 		if (!invoice) return;
-
 		try {
 			setIsDownloading(true);
-
-			// Dynamically import PDF-related modules
 			const [
 				{ Document, Page },
 				{ pdf },
@@ -248,29 +231,17 @@ export default function InvoiceViewPage() {
 				import("@/app/(main)/agency/invoices/create/_components/form/pdfDetails"),
 				import("@/lib/pdfStyles"),
 			]);
-
-			// Ensure fonts are registered
 			await registerFonts();
-
-			// Convert invoice data to PDF format
 			const pdfData = convertInvoiceToPdfData(invoice);
-
-			// Generate QR code if needed
 			let qrCodeDataUrl: string | undefined;
 			if (pdfData.paymentDetails.qrCodeValue) {
 				try {
-					// eslint-disable-next-line @typescript-eslint/no-require-imports
-					const QRCodeUtil = await import("qrcode") as any;
-					qrCodeDataUrl = await QRCodeUtil.toDataURL(pdfData.paymentDetails.qrCodeValue, {
-						width: 120,
-						margin: 1,
-					});
+					const QRCodeUtil = await import("qrcode") as { toDataURL: (value: string, opts: { width: number; margin: number }) => Promise<string> };
+					qrCodeDataUrl = await QRCodeUtil.toDataURL(pdfData.paymentDetails.qrCodeValue, { width: 120, margin: 1 });
 				} catch (error) {
 					console.error("Failed to generate QR code:", error);
 				}
 			}
-
-			// Generate PDF
 			const blob = await pdf(
 				<Document>
 					<Page size="A4" style={pdfContainers.page}>
@@ -278,17 +249,12 @@ export default function InvoiceViewPage() {
 							companyDetails={pdfData.companyDetails}
 							invoiceDetails={pdfData.invoiceDetails}
 							invoiceTerms={pdfData.invoiceTerms}
-							paymentDetails={{
-								...pdfData.paymentDetails,
-								qrCodeDataUrl,
-							}}
+							paymentDetails={{ ...pdfData.paymentDetails, qrCodeDataUrl }}
 							yourDetails={pdfData.yourDetails}
 						/>
 					</Page>
 				</Document>
 			).toBlob();
-
-			// Download the PDF
 			const url = URL.createObjectURL(blob);
 			const link = document.createElement("a");
 			link.href = url;
@@ -297,7 +263,6 @@ export default function InvoiceViewPage() {
 			link.click();
 			document.body.removeChild(link);
 			URL.revokeObjectURL(url);
-
 			toast.success("Invoice downloaded successfully", {
 				description: `Invoice ${invoice.invoiceNumber} has been downloaded.`,
 			});
@@ -308,95 +273,6 @@ export default function InvoiceViewPage() {
 			});
 		} finally {
 			setIsDownloading(false);
-		}
-	};
-
-	const handleSendEmail = async () => {
-		if (!invoice) return;
-
-		try {
-			setIsSending(true);
-
-			if (!invoice.customerEmail) {
-				toast.error("No customer email", {
-					description: "This invoice does not have a customer email address.",
-				});
-				return;
-			}
-
-			// Dynamically import PDF-related modules
-			const [
-				{ Document, Page },
-				{ pdf },
-				{ PdfDetails },
-				{ pdfContainers },
-			] = await Promise.all([
-				import("@react-pdf/renderer"),
-				import("@react-pdf/renderer"),
-				import("@/app/(main)/agency/invoices/create/_components/form/pdfDetails"),
-				import("@/lib/pdfStyles"),
-			]);
-
-			// Ensure fonts are registered
-			await registerFonts();
-
-			// Convert invoice data to PDF format
-			const pdfData = convertInvoiceToPdfData(invoice);
-
-			// Generate QR code if needed
-			let qrCodeDataUrl: string | undefined;
-			if (pdfData.paymentDetails.qrCodeValue) {
-				try {
-					// eslint-disable-next-line @typescript-eslint/no-require-imports
-					const QRCodeUtil = await import("qrcode") as any;
-					qrCodeDataUrl = await QRCodeUtil.toDataURL(pdfData.paymentDetails.qrCodeValue, {
-						width: 120,
-						margin: 1,
-					});
-				} catch (error) {
-					console.error("Failed to generate QR code:", error);
-				}
-			}
-
-			// Generate PDF
-			const blob = await pdf(
-				<Document>
-					<Page size="A4" style={pdfContainers.page}>
-						<PdfDetails
-							companyDetails={pdfData.companyDetails}
-							invoiceDetails={pdfData.invoiceDetails}
-							invoiceTerms={pdfData.invoiceTerms}
-							paymentDetails={{
-								...pdfData.paymentDetails,
-								qrCodeDataUrl,
-							}}
-							yourDetails={pdfData.yourDetails}
-						/>
-					</Page>
-				</Document>
-			).toBlob();
-
-			// Convert PDF blob to base64
-			const pdfBase64 = await new Promise<string>((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onloadend = () => {
-					const base64String = (reader.result as string).split(",")[1];
-					resolve(base64String);
-				};
-				reader.onerror = reject;
-				reader.readAsDataURL(blob);
-			});
-
-			// Send email reminder
-			await resendEmailMutation.mutateAsync({
-				invoiceId: invoice.id,
-				pdfBase64,
-			});
-		} catch (error) {
-			console.error("Failed to resend email:", error);
-			// Error toast is handled by mutation
-		} finally {
-			setIsSending(false);
 		}
 	};
 
@@ -412,11 +288,11 @@ export default function InvoiceViewPage() {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 min-h-screen items-center justify-center">
 				<div className="text-center">
-					<h1 className="text-2xl font-semibold mb-2">Invoice Not Found</h1>
-					<p className="text-muted-foreground mb-4">
+					<h1 className="text-base font-semibold mb-2">Invoice Not Found</h1>
+					<p className="text-xs text-muted-foreground mb-4">
 						{error?.message || "The invoice you're looking for doesn't exist."}
 					</p>
-					<Button onClick={() => router.push(`/${teamSlug}/invoices`)} variant="outline">
+					<Button onClick={() => router.push(invoicesPath)} variant="outline">
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Back to Invoices
 					</Button>
@@ -429,60 +305,42 @@ export default function InvoiceViewPage() {
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 py-6">
-			<div className="flex items-center justify-between">
+			<div className="flex items-center justify-between gap-4">
 				<div className="flex items-center gap-4">
 					<Button
-						onClick={() => router.push(`/${teamSlug}/invoices`)}
+						onClick={() => router.push(invoicesPath)}
 						variant="ghost"
 						size="sm"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Back to Invoices
 					</Button>
-					<div>
-						<h1 className="text-2xl font-semibold tracking-tight">
+					<div className="flex flex-col gap-2">
+						<h1 className="text-base font-semibold tracking-tight">
 							Invoice {invoice.invoiceNumber || "View"}
 						</h1>
-						<p className="text-muted-foreground">
+						<p className="text-xs text-muted-foreground">
 							View invoice details and preview
 						</p>
 					</div>
 				</div>
-				<div className="flex items-center gap-2">
-					<Button
-						onClick={handleDownloadInvoice}
-						disabled={isDownloading || isSending}
-						variant="outline"
-					>
-						{isDownloading ? (
-							<>
-								<Spinner className="mr-2 h-4 w-4" />
-								Downloading...
-							</>
-						) : (
-							<>
-								<Download className="mr-2 h-4 w-4" />
-								Download Invoice
-							</>
-						)}
-					</Button>
-					<Button
-						onClick={handleSendEmail}
-						disabled={isDownloading || isSending || !invoice.customerEmail}
-					>
-						{isSending ? (
-							<>
-								<Spinner className="mr-2 h-4 w-4" />
-								Sending...
-							</>
-						) : (
-							<>
-								<Send className="mr-2 h-4 w-4" />
-								Send Email
-							</>
-						)}
-					</Button>
-				</div>
+				<Button
+					onClick={handleDownloadInvoice}
+					disabled={isDownloading}
+					variant="outline"
+				>
+					{isDownloading ? (
+						<>
+							<Spinner className="mr-2 h-4 w-4" />
+							Downloading...
+						</>
+					) : (
+						<>
+							<Download className="mr-2 h-4 w-4" />
+							Download Invoice
+						</>
+					)}
+				</Button>
 			</div>
 
 			{/* Center the preview */}

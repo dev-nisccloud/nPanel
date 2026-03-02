@@ -1,8 +1,29 @@
+/** Source of the line item: from product catalog or manual entry */
+export type ItemSource = "product" | "manual";
+
+/** Commission / ad account context for COMMISSION pricing plan items */
+export type ItemCommissionContext = {
+  metaAdsAccountId: string;
+  metaAdsAccountName?: string;
+  metaAdsCampaignId: string;
+  metaAdsCampaignName: string;
+  dateRangeSince: string;
+  dateRangeUntil: string;
+  adSpend: number;
+  commissionRatePercent: number;
+};
+
 export type Item = {
   id?: string;
   itemDescription: string;
   amount?: number;
   qty?: number;
+  /** When source is product, selected product id */
+  productId?: string;
+  /** When product has plans, selected plan id */
+  productPlanId?: string;
+  /** When selected plan has COMMISSION pricing, ad account + campaign context */
+  commissionContext?: ItemCommissionContext;
 };
 
 export type YourDetails = {

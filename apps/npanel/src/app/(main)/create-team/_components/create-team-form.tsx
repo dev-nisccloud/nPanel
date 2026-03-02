@@ -132,7 +132,7 @@ export function CreateTeamForm() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              {currentStep === 1 ? "Create your company" : "Invite your team"}
+              {currentStep === 1 ? "Create your company" : "Invite members"}
             </h1>
             <p className="text-muted-foreground text-sm mt-1.5 max-w-[280px] mx-auto">
               {currentStep === 1

@@ -13,8 +13,6 @@ import {
 	XCircle,
 	MoreHorizontal,
 	Download,
-	Send,
-	Trash2,
 	Loader2,
 	Eye,
 } from "lucide-react";
@@ -28,16 +26,6 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 import type { InvoiceSummary } from "@/app/(main)/agency/invoicing/api/schemas";
@@ -106,7 +94,7 @@ const formatDate = (value: string | Date | null | undefined) => {
 let fontsRegistered = false;
 let fontsRegistering = false;
 
-const registerFonts = async (): Promise<boolean> => {
+export const registerFonts = async (): Promise<boolean> => {
 	if (fontsRegistered) return true;
 	if (fontsRegistering) {
 		return new Promise((resolve) => {
@@ -182,8 +170,8 @@ const registerFonts = async (): Promise<boolean> => {
 // Hardcoded company logo URL
 const COMPANY_LOGO_URL = "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp";
 
-// Helper function to convert InvoiceDetail to PDF data format
-function convertInvoiceToPdfData(invoice: InvoiceDetail) {
+// Helper function to convert InvoiceDetail to PDF data format (exported for use in invoices-table)
+export function convertInvoiceToPdfData(invoice: InvoiceDetail) {
 	const fromDetails = invoice.fromDetails as any;
 	const customerDetails = invoice.customerDetails as any;
 	const paymentDetails = invoice.paymentDetails as any;
@@ -221,7 +209,9 @@ function convertInvoiceToPdfData(invoice: InvoiceDetail) {
 		currency: invoice.currency,
 		items: invoice.lineItems.map((item) => ({
 			id: item.id,
-			itemDescription: item.name || "Service",
+			itemDescription: item.description
+				? `${item.name || "Service"}. ${item.description}`
+				: (item.name || "Service"),
 			amount: item.price ? Number(item.price) : undefined,
 			qty: item.quantity || undefined,
 		})),
@@ -297,51 +287,17 @@ interface InvoiceCardProps {
 function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 	const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
 	const [isDownloading, setIsDownloading] = React.useState(false);
-	const [isResending, setIsResending] = React.useState(false);
-	const [isDeleting, setIsDeleting] = React.useState(false);
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 	const router = useRouter();
 	const pathname = usePathname();
 	const teamSlug = pathname.split("/")[1];
+	const basePath = teamSlug ? `/${teamSlug}/invoices` : "/agency/invoices";
 
-	const utils = trpc.useUtils();
 	const StatusIcon = statusIcon[invoice.status];
 
 	const getInvoiceDetail = trpc.invoicing.getById.useQuery(
 		{ id: invoice.id },
 		{ enabled: false }
 	);
-
-	const deleteInvoiceMutation = trpc.invoicing.deleteInvoice.useMutation({
-		onSuccess: () => {
-			toast.success("Invoice deleted successfully", {
-				description: `Invoice ${invoice.invoiceNumber} has been deleted.`,
-			});
-			utils.invoicing.list.invalidate();
-			if (onRefetch) {
-				onRefetch();
-			}
-		},
-		onError: (error) => {
-			toast.error("Failed to delete invoice", {
-				description: error.message || "An error occurred while deleting the invoice",
-			});
-		},
-	});
-
-	const resendEmailMutation = trpc.invoicing.resendEmailReminder.useMutation({
-		onSuccess: () => {
-			toast.success("Email reminder sent successfully!", {
-				description: `Reminder for invoice ${invoice.invoiceNumber} has been sent to ${invoice.customerEmail}`,
-			});
-			utils.invoicing.list.invalidate();
-		},
-		onError: (error) => {
-			toast.error("Failed to send email reminder", {
-				description: error.message || "An error occurred while sending the email reminder",
-			});
-		},
-	});
 
 	const handleDownloadInvoice = async () => {
 		try {
@@ -414,106 +370,6 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 		}
 	};
 
-	const handleResendEmail = async () => {
-		try {
-			setIsResending(true);
-			setIsActionMenuOpen(false);
-
-			if (!invoice.customerEmail) {
-				toast.error("No customer email", {
-					description: "This invoice does not have a customer email address.",
-				});
-				return;
-			}
-
-			// Fetch full invoice details
-			const invoiceDetail = await getInvoiceDetail.refetch();
-			if (!invoiceDetail.data) {
-				throw new Error("Failed to fetch invoice details");
-			}
-
-			// Ensure fonts are registered
-			await registerFonts();
-
-			// Convert invoice data to PDF format
-			const pdfData = convertInvoiceToPdfData(invoiceDetail.data);
-
-			// Generate QR code if needed
-			let qrCodeDataUrl: string | undefined;
-			if (pdfData.paymentDetails.qrCodeValue) {
-				try {
-					qrCodeDataUrl = await QRCodeUtil.toDataURL(pdfData.paymentDetails.qrCodeValue, {
-						width: 120,
-						margin: 1,
-					});
-				} catch (error) {
-					console.error("Failed to generate QR code:", error);
-				}
-			}
-
-			// Generate PDF
-			const blob = await pdf(
-				<Document>
-					<Page size="A4" style={pdfContainers.page}>
-						<PdfDetails
-							companyDetails={pdfData.companyDetails}
-							invoiceDetails={pdfData.invoiceDetails}
-							invoiceTerms={pdfData.invoiceTerms}
-							paymentDetails={{
-								...pdfData.paymentDetails,
-								qrCodeDataUrl,
-							}}
-							yourDetails={pdfData.yourDetails}
-						/>
-					</Page>
-				</Document>
-			).toBlob();
-
-			// Convert PDF blob to base64
-			const pdfBase64 = await new Promise<string>((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onloadend = () => {
-					const base64String = (reader.result as string).split(",")[1];
-					resolve(base64String);
-				};
-				reader.onerror = reject;
-				reader.readAsDataURL(blob);
-			});
-
-			// Send email reminder
-			await resendEmailMutation.mutateAsync({
-				invoiceId: invoice.id,
-				pdfBase64,
-			});
-		} catch (error) {
-			console.error("Failed to resend email:", error);
-			// Error toast is handled by mutation
-		} finally {
-			setIsResending(false);
-		}
-	};
-
-	const handleDeleteClick = () => {
-		setIsActionMenuOpen(false);
-		setIsDeleteDialogOpen(true);
-	};
-
-	const handleDeleteInvoice = async () => {
-		try {
-			setIsDeleting(true);
-			setIsDeleteDialogOpen(false);
-
-			await deleteInvoiceMutation.mutateAsync({
-				invoiceId: invoice.id,
-			});
-		} catch (error) {
-			console.error("Failed to delete invoice:", error);
-			// Error toast is handled by mutation
-		} finally {
-			setIsDeleting(false);
-		}
-	};
-
 	return (
 		<div
 			key={invoice.id}
@@ -526,7 +382,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 					if ((e.target as HTMLElement).closest('[role="menu"], [role="menuitem"], button')) {
 						return;
 					}
-					window.location.href = `/${teamSlug}/invoices/${invoice.id}`;
+					window.location.href = `${basePath}/${invoice.id}`;
 				}}
 			>
 				<div className="space-y-2 flex-1">
@@ -565,7 +421,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 								variant="ghost"
 								size="sm"
 								className="h-8 w-8 p-0"
-								disabled={isDownloading || isResending || isDeleting}
+								disabled={isDownloading}
 								onClick={(e) => e.stopPropagation()}
 							>
 								<MoreHorizontal className="h-4 w-4" />
@@ -575,9 +431,9 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 							<DropdownMenuItem
 								onClick={(e) => {
 									e.stopPropagation();
-									router.push(`/${teamSlug}/invoices/${invoice.id}`);
+									router.push(`${basePath}/${invoice.id}`);
 								}}
-								disabled={isDownloading || isResending || isDeleting}
+								disabled={isDownloading}
 							>
 								<Eye className="mr-2 h-4 w-4" />
 								View Invoice
@@ -585,7 +441,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 							<DropdownMenuSeparator />
 							<DropdownMenuItem
 								onClick={handleDownloadInvoice}
-								disabled={isDownloading || isResending || isDeleting}
+								disabled={isDownloading}
 							>
 								{isDownloading ? (
 									<>
@@ -598,31 +454,6 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 										Download Invoice
 									</>
 								)}
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={handleResendEmail}
-								disabled={isDownloading || isResending || isDeleting || !invoice.customerEmail}
-							>
-								{isResending ? (
-									<>
-										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-										Sending...
-									</>
-								) : (
-									<>
-										<Send className="mr-2 h-4 w-4" />
-										Resend Email Reminder
-									</>
-								)}
-							</DropdownMenuItem>
-							<DropdownMenuSeparator />
-							<DropdownMenuItem
-								onClick={handleDeleteClick}
-								disabled={isDownloading || isResending || isDeleting}
-								className="text-destructive focus:text-destructive"
-							>
-								<Trash2 className="mr-2 h-4 w-4" />
-								Delete Invoice
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
@@ -654,35 +485,6 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 					<p className="font-medium">{invoice.currency}</p>
 				</div>
 			</div>
-
-			{/* Delete Confirmation Dialog */}
-			<AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Delete Invoice</AlertDialogTitle>
-						<AlertDialogDescription>
-							Are you sure you want to delete invoice <strong>{invoice.invoiceNumber || "this invoice"}</strong>? This action cannot be undone and will permanently remove the invoice and all associated data.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={handleDeleteInvoice}
-							disabled={isDeleting}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-						>
-							{isDeleting ? (
-								<>
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Deleting...
-								</>
-							) : (
-								"Delete Invoice"
-							)}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
 		</div>
 	);
 }

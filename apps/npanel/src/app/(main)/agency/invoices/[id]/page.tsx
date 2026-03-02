@@ -148,7 +148,9 @@ function convertInvoiceToPdfData(invoice: InvoiceDetail) {
 		currency: invoice.currency,
 		items: invoice.lineItems.map((item) => ({
 			id: item.id,
-			itemDescription: item.name || "Service",
+			itemDescription: item.description
+				? `${item.name || "Service"}. ${item.description}`
+				: (item.name || "Service"),
 			amount: item.price ? Number(item.price) : undefined,
 			qty: item.quantity || undefined,
 		})),
@@ -435,8 +437,8 @@ export default function InvoiceViewPage() {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 min-h-screen items-center justify-center">
 				<div className="text-center">
-					<h1 className="text-2xl font-semibold mb-2">Invoice Not Found</h1>
-					<p className="text-muted-foreground mb-4">
+					<h1 className="text-base font-semibold mb-2">Invoice Not Found</h1>
+					<p className="text-xs text-muted-foreground mb-4">
 						{error?.message || "The invoice you're looking for doesn't exist."}
 					</p>
 					<Button onClick={() => router.push("/agency/invoices")} variant="outline">
@@ -462,11 +464,11 @@ export default function InvoiceViewPage() {
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Back to Invoices
 					</Button>
-					<div>
-						<h1 className="text-2xl font-semibold tracking-tight">
+					<div className="flex flex-col gap-2">
+						<h1 className="text-base font-semibold tracking-tight">
 							Invoice {invoice.invoiceNumber || "View"}
 						</h1>
-						<p className="text-muted-foreground">
+						<p className="text-xs text-muted-foreground">
 							View invoice details and preview
 						</p>
 					</div>

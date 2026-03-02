@@ -837,6 +837,81 @@ export const clientSubscriptionsRouter = router({
             });
         }),
 
+    /** List all NiscClientSubscription for a team (customer dashboard). Same auth as listForTeamDomains; returns all products. */
+    listForTeam: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(
+            z.array(
+                z.object({
+                    id: z.string(),
+                    productName: z.string(),
+                    productPlanName: z.string().nullable(),
+                    subscriptionDate: z.date().nullable(),
+                    nextRenewalDate: z.date().nullable(),
+                    expiryDate: z.date().nullable(),
+                    status: subscriptionStatusSchema,
+                })
+            )
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const team = await prisma.team.findUnique({
+                where: { slug: input.teamSlug },
+                select: { id: true },
+            });
+            if (!team) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Team not found",
+                });
+            }
+
+            const membership = await prisma.teamMember.findUnique({
+                where: {
+                    teamId_userId: { teamId: team.id, userId: session.user.id },
+                },
+                select: { id: true },
+            });
+            if (!membership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            const subs = await prisma.niscClientSubscription.findMany({
+                where: { teamId: team.id },
+                orderBy: { createdAt: "desc" },
+                select: {
+                    id: true,
+                    status: true,
+                    subscriptionDate: true,
+                    nextRenewalDate: true,
+                    expiryDate: true,
+                    name: true,
+                    product: { select: { name: true } },
+                    productPlan: { select: { name: true } },
+                },
+            });
+
+            return subs.map((sub) => ({
+                id: sub.id,
+                productName: sub.name ?? sub.product.name,
+                productPlanName: sub.productPlan?.name ?? null,
+                subscriptionDate: sub.subscriptionDate,
+                nextRenewalDate: sub.nextRenewalDate,
+                expiryDate: sub.expiryDate,
+                status: sub.status,
+            }));
+        }),
+
     /** Get a single subscription by ID */
     getById: protectedProcedure
         .input(getSubscriptionByIdInputSchema)

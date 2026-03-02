@@ -4,7 +4,7 @@ import { Image, Text, View } from "@react-pdf/renderer";
 import { pdfTypography } from "@/lib/pdfStyles";
 import type { YourDetails } from "@/app/(main)/agency/invoices/create/types";
 
-export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
+export const InvoiceHeaderPdf: React.FC<YourDetails & { title?: string }> = ({
   yourEmail,
   yourName,
   yourAddress,
@@ -14,6 +14,7 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
   yourLogo,
   yourTaxId,
   yourZip,
+  title = "Invoice",
 }) => (
   <View>
     {/* Top row: Logo on left, From on right */}
@@ -93,7 +94,7 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
           textTransform: "uppercase",
         }}
       >
-        Invoice
+        {title}
       </Text>
       <View
         style={{

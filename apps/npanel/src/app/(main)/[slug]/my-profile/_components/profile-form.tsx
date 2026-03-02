@@ -33,7 +33,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 // Loading skeleton
 function ProfileFormSkeleton() {
   return (
-    <Card>
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm flex flex-col gap-6 py-6">
       <CardHeader>
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-4 w-96" />
@@ -115,7 +115,7 @@ function ProfileFormSkeleton() {
           <Skeleton className="h-10 w-32" />
         </div>
       </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -160,7 +160,7 @@ export function ProfileForm() {
   }
 
   return (
-    <Card>
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm flex flex-col gap-6 py-6">
       <CardHeader>
         <CardTitle>Personal Information</CardTitle>
         <CardDescription>
@@ -310,8 +310,8 @@ export function ProfileForm() {
                 <FormItem>
                   <FormLabel>Country</FormLabel>
                   <FormControl>
-                    <CountrySelect 
-                      value={field.value} 
+                    <CountrySelect
+                      value={field.value}
                       onValueChange={field.onChange}
                       placeholder="Select your country..."
                     />
@@ -369,7 +369,7 @@ export function ProfileForm() {
           </form>
         </Form>
       </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -380,5 +380,3 @@ function formatDate(date: Date | string) {
     day: "numeric",
   }).format(new Date(date));
 }
-
-

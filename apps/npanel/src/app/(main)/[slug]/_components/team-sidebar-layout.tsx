@@ -1,21 +1,26 @@
 "use client";
 
-import { ReactNode } from "react";
+import dynamic from "next/dynamic";
+import type { ReactNode } from "react";
 import { AppSidebar } from "./sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import type { SidebarVariant, SidebarCollapsible, ContentLayout } from "@/types/preferences/layout";
 import { SearchDialog } from "./sidebar/search-dialog";
-import { TeamSwitcher } from "./sidebar/team-switcher";
 import { CartSwitcher } from "./sidebar/cart-switcher";
 import { ThemeSwitcher } from "./sidebar/theme-switcher";
-import { NotificationSwitcher } from "./sidebar/notification-switcher";
 import { PrefetchTeams } from "./prefetch-teams";
 import { NavigationLoader } from "@/components/navigation-loader";
 import {
   SwitchingTeamOverlay,
 } from "@/contexts/switching-team-context";
+
+/** Load only on client so tRPC context is available (avoids "Unable to find tRPC Context" when layout streams before root QueryProvider has mounted). Single chunk ensures switchers never run during SSR. */
+const ClientTrpcSwitchers = dynamic(
+  () => import("./client-trpc-switchers").then((m) => ({ default: m.ClientTrpcSwitchers })),
+  { ssr: false }
+);
 
 export type TeamSidebarLayoutProps = {
   defaultOpen: boolean;
@@ -61,8 +66,7 @@ export function TeamSidebarLayout({
               <SearchDialog />
             </div>
             <div className="flex items-center gap-2">
-              <TeamSwitcher />
-              <NotificationSwitcher />
+              <ClientTrpcSwitchers />
               <CartSwitcher />
               <ThemeSwitcher />
             </div>

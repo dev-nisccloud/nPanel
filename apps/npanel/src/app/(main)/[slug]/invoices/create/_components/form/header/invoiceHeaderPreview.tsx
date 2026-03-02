@@ -6,7 +6,7 @@ import { ChevronDown } from "lucide-react";
 import type { YourDetails } from "@/app/(main)/agency/invoices/create/types";
 
 export const InvoiceHeaderPreview: React.FC<
-  YourDetails & { onClick?: (step: string) => void }
+  YourDetails & { onClick?: (step: string) => void; title?: string }
 > = ({
   yourEmail,
   yourName,
@@ -18,6 +18,7 @@ export const InvoiceHeaderPreview: React.FC<
   yourTaxId,
   yourZip,
   onClick,
+  title = "Invoice",
 }) => (
   <div className="border-b border-dashed">
     {/* Top row: Logo on left, From on right */}
@@ -78,11 +79,11 @@ export const InvoiceHeaderPreview: React.FC<
         </div>
       </div>
     </div>
-    {/* Separator with INVOICE in the middle */}
+    {/* Separator with title in the middle */}
     <div className="px-10 py-3 flex items-center">
       <div className="flex-1 border-t border-dashed border-gray-300" />
       <span className="px-4 text-sm font-semibold text-gray-700 uppercase">
-        Invoice
+        {title}
       </span>
       <div className="flex-1 border-t border-dashed border-gray-300" />
     </div>

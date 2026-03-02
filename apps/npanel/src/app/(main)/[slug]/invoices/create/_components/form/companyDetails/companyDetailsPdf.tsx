@@ -1,11 +1,9 @@
-"use client";
-
 import React from "react";
 import { Text, View } from "@react-pdf/renderer";
 import { pdfContainers, pdfTypography } from "@/lib/pdfStyles";
 import type { CompanyDetails } from "@/app/(main)/agency/invoices/create/types";
 
-export const CompanyDetailsPdf: React.FC<CompanyDetails> = ({
+export const CompanyDetailsPdf: React.FC<CompanyDetails & { label?: string }> = ({
   email,
   companyName,
   companyAddress,
@@ -14,8 +12,22 @@ export const CompanyDetailsPdf: React.FC<CompanyDetails> = ({
   companyCountry,
   companyTaxId,
   companyZip,
+  label,
 }) => (
   <View style={[pdfContainers.CompanyDetails, { paddingTop: 8, paddingBottom: 16 }]}>
+    {label && (
+      <Text
+        style={{
+          ...pdfTypography.description,
+          fontSize: 11,
+          textTransform: "uppercase",
+          color: "#9ca3af",
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </Text>
+    )}
     {companyName && (
       <Text 
         style={{ 

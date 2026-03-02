@@ -2125,8 +2125,6 @@ export const ordersRouter = router({
 							// Generate QR code
 							let qrCodeDataUrl: string | undefined;
 							try {
-								// eslint-disable-next-line @typescript-eslint/no-require-imports
-								// @ts-expect-error - qrcode package doesn't have type definitions
 								const QRCodeUtil = await import("qrcode");
 								qrCodeDataUrl = await QRCodeUtil.toDataURL(paymentDetails.qrCodeValue, {
 									width: 120,

@@ -10,6 +10,7 @@ export { DomainTransferInitiatedEmail } from './domain-transfer-initiated';
 export { InvoiceFinalNoticeEmail } from './invoice-final-notice';
 export { InvoiceOverdueEmail } from './invoice-overdue';
 export { InvoiceDeliveryEmail } from './invoice-delivery';
+export { InvoiceSuccessEmail } from './invoice-success';
 export { QuotationDeliveryEmail } from './quotation-delivery';
 export { ServiceRestorationConfirmationEmail } from './service-restoration-confirmation';
 export { ServiceSuspensionEmail } from './service-suspension';

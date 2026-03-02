@@ -42,7 +42,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 
 const formSchema = z.object({
-  teamId: z.string().min(1, "Team is required"),
+  teamId: z.string().min(1, "Company is required"),
   hostingPlanId: z.string().min(1, "Hosting plan is required"),
   billingCycle: z.enum(["YEARLY", "MONTHLY", "BIENNIALLY", "CUSTOM"]).optional(),
   nextRenewalDate: z.date().optional(),
@@ -94,13 +94,13 @@ export function LinkToTeamDialog({
   // Create mutation
   const linkToTeamMutation = trpc.hosting.linkToTeam.useMutation({
     onSuccess: () => {
-      toast.success("Subscription linked to team successfully");
+      toast.success("Subscription linked to company successfully");
       form.reset();
       onOpenChange(false);
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to link subscription to team");
+      toast.error(error.message || "Failed to link subscription to company");
     },
   });
 
@@ -185,35 +185,35 @@ export function LinkToTeamDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6" hideClose>
         <DialogHeader className="pb-4">
-          <DialogTitle>Link Subscription to Team</DialogTitle>
+          <DialogTitle>Link Subscription to Company</DialogTitle>
           <DialogDescription>
-            Link this existing Plesk subscription to a customer team in your system.
+            Link this existing Plesk subscription to a company in your system.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Team Selection */}
+            {/* Company Selection */}
             <FormField
               control={form.control}
               name="teamId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Team</FormLabel>
+                  <FormLabel>Company</FormLabel>
                   <FormControl>
                     {isLoadingTeams ? (
                       <div className="flex items-center justify-center h-10 border rounded-md">
                         <Spinner size={20} />
-                        <span className="ml-2 text-sm text-muted-foreground">Loading teams...</span>
+                        <span className="ml-2 text-sm text-muted-foreground">Loading companies...</span>
                       </div>
                     ) : (
                       <ComboboxDropdown
                         items={teamItems}
                         selectedItem={selectedTeam}
                         onSelect={(team) => field.onChange(team.id)}
-                        placeholder="Select a team..."
-                        searchPlaceholder="Search teams..."
-                        emptyResults="No teams found"
+                        placeholder="Select a company..."
+                        searchPlaceholder="Search companies..."
+                        emptyResults="No companies found"
                       />
                     )}
                   </FormControl>
@@ -407,7 +407,7 @@ export function LinkToTeamDialog({
                 ) : (
                   <>
                     <Link2 className="mr-2 h-4 w-4" />
-                    Link to Team
+                    Link to Company
                   </>
                 )}
               </Button>

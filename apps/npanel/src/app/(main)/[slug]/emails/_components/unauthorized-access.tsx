@@ -38,7 +38,7 @@ export function UnauthorizedAccess() {
         </div>
         <h3 className="mb-2 text-lg font-semibold">Access Restricted</h3>
         <p className="mb-6 text-sm text-muted-foreground max-w-md">
-          You do not have permission to access this hosting subscription. This resource belongs to a different team or account.
+          You do not have permission to access this hosting subscription. This resource belongs to a different company or account.
         </p>
         <Link href={backUrl}>
           <Button>

@@ -1,8 +1,19 @@
 "use client";
 
+import * as React from "react";
 import { Activity, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
 
 // Loading skeleton
-function SessionsListSkeleton() {
+function AccountActivitiesListSkeleton() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 3 }).map((_, i) => (
@@ -37,12 +48,17 @@ function SessionsListSkeleton() {
   );
 }
 
-export function SessionsList() {
+export function AccountActivitiesList() {
   const { data: sessions, isLoading, refetch } = trpc.userProfile.getSessions.useQuery();
+
+  const [revokeDialogOpen, setRevokeDialogOpen] = React.useState(false);
+  const [sessionIdToRevoke, setSessionIdToRevoke] = React.useState<string | null>(null);
 
   const revokeSessionMutation = trpc.userProfile.revokeSession.useMutation({
     onSuccess: () => {
       toast.success("Session revoked successfully");
+      setRevokeDialogOpen(false);
+      setSessionIdToRevoke(null);
       refetch();
     },
     onError: (error: { message?: string }) => {
@@ -50,9 +66,14 @@ export function SessionsList() {
     },
   });
 
-  const handleRevokeSession = async (sessionId: string) => {
-    if (confirm("Are you sure you want to revoke this session? The device will be logged out.")) {
-      await revokeSessionMutation.mutateAsync({ sessionId });
+  const openRevokeDialog = (sessionId: string) => {
+    setSessionIdToRevoke(sessionId);
+    setRevokeDialogOpen(true);
+  };
+
+  const handleConfirmRevoke = async () => {
+    if (sessionIdToRevoke) {
+      await revokeSessionMutation.mutateAsync({ sessionId: sessionIdToRevoke });
     }
   };
 
@@ -68,19 +89,19 @@ export function SessionsList() {
 
   const getDeviceInfo = (userAgent: string | null) => {
     if (!userAgent) return "Unknown Device";
-    
+
     if (userAgent.includes("Windows")) return "Windows PC";
     if (userAgent.includes("Mac")) return "macOS";
     if (userAgent.includes("Linux")) return "Linux";
     if (userAgent.includes("iPhone")) return "iPhone";
     if (userAgent.includes("iPad")) return "iPad";
     if (userAgent.includes("Android")) return "Android";
-    
+
     return "Unknown Device";
   };
 
   return (
-    <Card>
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm flex flex-col gap-6 py-6">
       <CardHeader>
         <CardTitle>Account Activities</CardTitle>
         <CardDescription>
@@ -89,7 +110,7 @@ export function SessionsList() {
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
-          <SessionsListSkeleton />
+          <AccountActivitiesListSkeleton />
         ) : sessions && sessions.length > 0 ? (
           <div className="space-y-3">
             {sessions.map((session) => (
@@ -121,7 +142,7 @@ export function SessionsList() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleRevokeSession(session.id)}
+                        onClick={() => openRevokeDialog(session.id)}
                         disabled={revokeSessionMutation.isPending}
                       >
                         <LogOut className="h-4 w-4 mr-1" />
@@ -139,9 +160,30 @@ export function SessionsList() {
           </div>
         )}
       </CardContent>
-    </Card>
+
+      <AlertDialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke session</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to revoke this session? The device will be logged out.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={revokeSessionMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmRevoke();
+              }}
+              disabled={revokeSessionMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {revokeSessionMutation.isPending ? "Revoking…" : "Revoke"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
-
-
-

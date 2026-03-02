@@ -88,9 +88,9 @@ export function InviteMemberDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl p-8" hideClose>
         <DialogHeader className="pb-6 space-y-2">
-          <DialogTitle className="text-xl">Invite Team Member</DialogTitle>
+          <DialogTitle className="text-xl">Invite Company Member</DialogTitle>
           <DialogDescription className="pt-1 text-sm">
-            Send an invitation to join this team. The invitee will receive an email with instructions.
+            Send an invitation to join this company. The invitee will receive an email with instructions.
           </DialogDescription>
         </DialogHeader>
 

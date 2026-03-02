@@ -27,8 +27,8 @@ export const PreviewDetails = ({
   invoiceTerms: InvoiceTerms;
   onClick?: (step: string) => void;
 }) => (
-  <div className="overflow-x-auto">
-    <div className="w-[595px] h-[842px] bg-white rounded-2xl border border-dashed justify-center items-center">
+  <div className="overflow-x-auto overflow-y-visible">
+    <div className="w-[595px] min-h-[842px] bg-white rounded-2xl border border-dashed justify-center items-center">
       {/* New header: Logo on left, From on right, then INVOICE separator */}
       <InvoiceHeaderPreview {...yourDetails} onClick={onClick} />
       

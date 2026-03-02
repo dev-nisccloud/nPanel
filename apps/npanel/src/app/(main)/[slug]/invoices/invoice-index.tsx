@@ -9,33 +9,43 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { InvoicesList } from "./_components/invoices-list";
+import { InvoicesTable } from "./_components/invoices-table";
 import type { InvoiceSummary } from "@/app/(main)/agency/invoices/create/api/schemas";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 
-const InvoicesSkeleton: React.FC = () => (
-	<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-		<div className="w-full max-w-7xl mx-auto">
-			<div className="flex flex-col gap-2">
-				<Skeleton className="h-8 w-48" />
-				<Skeleton className="h-4 w-96" />
-			</div>
-			<div className="mt-6">
-				<div className="flex items-center justify-between gap-4">
-					<Skeleton className="h-10 flex-1 max-w-sm" />
-					<div className="flex items-center gap-2">
-						<Skeleton className="h-10 w-10" />
-						<Skeleton className="h-10 w-32" />
-					</div>
-				</div>
-			</div>
-			<div className="mt-6">
-				<div className="space-y-2">
-					{[...Array(3)].map((_, index) => (
-						<Skeleton key={index} className="h-36 w-full" />
-					))}
-				</div>
-			</div>
-		</div>
+const InvoicesTableSkeleton: React.FC = () => (
+	<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+		<Table>
+			<TableHeader>
+				<TableRow>
+					<TableHead className="pl-6">Invoice #</TableHead>
+					<TableHead>Customer</TableHead>
+					<TableHead>Amount</TableHead>
+					<TableHead>Status</TableHead>
+					<TableHead>Due</TableHead>
+					<TableHead className="w-12 pr-6"></TableHead>
+				</TableRow>
+			</TableHeader>
+			<TableBody>
+				{[...Array(5)].map((_, i) => (
+					<TableRow key={i}>
+						<TableCell className="pl-6"><Skeleton className="h-4 w-28" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-36" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-20" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-20" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-24" /></TableCell>
+						<TableCell className="pr-6"><Skeleton className="h-8 w-8" /></TableCell>
+					</TableRow>
+				))}
+			</TableBody>
+		</Table>
 	</div>
 );
 
@@ -56,13 +66,9 @@ export default function InvoiceIndex() {
 	const teamSlug = pathname.split("/")[1];
 	const [searchTerm, setSearchTerm] = React.useState("");
 
-	// Get teamId from slug
 	const { data: teamData, isLoading: isTeamLoading } = trpc.teams.getTeamIdBySlug.useQuery(
 		{ slug: teamSlug },
-		{
-			enabled: !!teamSlug,
-			staleTime: 5 * 60 * 1000, // 5 minutes
-		}
+		{ enabled: !!teamSlug, staleTime: 5 * 60 * 1000 }
 	);
 
 	const {
@@ -72,17 +78,11 @@ export default function InvoiceIndex() {
 		error,
 		refetch,
 	} = trpc.invoicing.list.useQuery(
-		{ 
-			limit: 100,
-			teamId: teamData?.id || undefined,
-		},
-		{
-			enabled: !!teamData?.id,
-		}
+		{ limit: 100, teamId: teamData?.id ?? undefined },
+		{ enabled: !!teamData?.id }
 	);
 
 	const isLoading = isTeamLoading || isInvoicesLoading;
-
 	const invoices = data?.invoices ?? [];
 
 	const filteredInvoices = React.useMemo(() => {
@@ -104,8 +104,27 @@ export default function InvoiceIndex() {
 		});
 	}, [invoices, searchTerm]);
 
-	if (isLoading) {
-		return <InvoicesSkeleton />;
+	if (isLoading || !teamSlug) {
+		return (
+			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+				<div className="w-full max-w-7xl mx-auto">
+					<div className="flex flex-col gap-2">
+						<Skeleton className="h-5 w-32" />
+						<Skeleton className="h-4 w-72" />
+					</div>
+					<div className="mt-6 flex items-center justify-between gap-4">
+						<Skeleton className="h-10 flex-1 max-w-sm" />
+						<div className="flex items-center gap-2">
+							<Skeleton className="h-10 w-10" />
+							<Skeleton className="h-10 w-32" />
+						</div>
+					</div>
+					<div className="mt-6">
+						<InvoicesTableSkeleton />
+					</div>
+				</div>
+			</div>
+		);
 	}
 
 	if (error) {
@@ -130,8 +149,8 @@ export default function InvoiceIndex() {
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 			<div className="w-full max-w-7xl mx-auto">
 				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-semibold tracking-tight">Invoices</h1>
-					<p className="text-muted-foreground">
+					<h1 className="text-base font-semibold tracking-tight">Invoices</h1>
+					<p className="text-xs text-muted-foreground">
 						View and manage invoices issued to your company.
 					</p>
 				</div>
@@ -174,7 +193,7 @@ export default function InvoiceIndex() {
 							description={`We couldn't find invoices for "${searchTerm}". Try updating your search.`}
 						/>
 					) : (
-						<InvoicesList invoices={filteredInvoices as InvoiceSummary[]} onRefetch={refetch} />
+						<InvoicesTable invoices={filteredInvoices as InvoiceSummary[]} onRefetch={refetch} />
 					)}
 				</div>
 			</div>

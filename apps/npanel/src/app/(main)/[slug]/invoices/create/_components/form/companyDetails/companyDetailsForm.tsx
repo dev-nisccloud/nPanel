@@ -106,6 +106,7 @@ export const CompanyDetailsForm = () => {
 
 		if (!billingComplete || !billingSettings) {
 			applyBillTo(null, selectedTeam.name, false);
+			// Reset "dismissed" when user selected a different team so we show the dialog again
 			if (prevTeamIdRef.current !== selectedTeamId) {
 				prevTeamIdRef.current = selectedTeamId;
 				userDismissedIncompleteRef.current = false;

@@ -221,7 +221,9 @@ export function convertInvoiceToPdfData(invoice: InvoiceDetail) {
 		currency: invoice.currency,
 		items: invoice.lineItems.map((item) => ({
 			id: item.id,
-			itemDescription: item.name || "Service",
+			itemDescription: item.description
+				? `${item.name || "Service"}. ${item.description}`
+				: (item.name || "Service"),
 			amount: item.price ? Number(item.price) : undefined,
 			qty: item.quantity || undefined,
 		})),

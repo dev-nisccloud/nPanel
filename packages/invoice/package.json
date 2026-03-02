@@ -27,6 +27,8 @@
     "@nPanel/ui": "workspace:*",
     "@nPanel/utils": "workspace:*",
     "@react-pdf/renderer": "^4.3.0",
+    "react": "catalog:",
+    "react-dom": "^19.2.3",
     "@react-pdf/types": "^2.9.1",
     "@tiptap/core": "^3.6.6",
     "@tiptap/extension-link": "^2.26.3",
@@ -37,6 +39,8 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
-    "@types/qrcode": "^1.5.5"
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "19.2.3"
   }
 }

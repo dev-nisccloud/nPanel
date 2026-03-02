@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
 import { Package, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { DashboardSubscriptionRow } from "./dashboard-subscriptions-schema";
 
 function SubscriptionsTableSkeleton() {
   return (
@@ -46,15 +47,6 @@ function SubscriptionsTableSkeleton() {
   );
 }
 
-const PLAN_TYPE_LABELS: Record<string, string> = {
-  HOSTING: "Hosting",
-  SEO: "SEO",
-  VIDEOGRAPHY: "Videography",
-  VISUAL_CREATIVE: "Visual Creative",
-  SOCIAL_MEDIA_MARKETING: "Social Media Marketing",
-  PAY_PER_CLICK_ADVERTISING: "Pay Per Click",
-};
-
 function formatDate(value: Date | string | null | undefined) {
   if (!value) return "—";
   const d = value instanceof Date ? value : new Date(value);
@@ -81,33 +73,56 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+/** Map clientSubscriptions.listForTeam item to dashboard-local row type. API dates may be ISO strings over the wire. */
+function toDashboardRow(
+  sub: {
+    id: string;
+    productName: string;
+    productPlanName: string | null;
+    subscriptionDate: Date | string | null;
+    nextRenewalDate: Date | string | null;
+    expiryDate: Date | string | null;
+    status: string;
+  }
+): DashboardSubscriptionRow {
+  const subDate = sub.subscriptionDate ? (sub.subscriptionDate instanceof Date ? sub.subscriptionDate : new Date(sub.subscriptionDate)) : null;
+  const nextDate = sub.nextRenewalDate ?? sub.expiryDate;
+  const nextRenewal = nextDate ? (nextDate instanceof Date ? nextDate : new Date(nextDate)) : null;
+  return {
+    id: sub.id,
+    planName: sub.productName,
+    planType: sub.productName,
+    subscriptionDate: subDate,
+    nextRenewalDate: nextRenewal,
+    status: sub.status as DashboardSubscriptionRow["status"],
+  };
+}
+
 export function DashboardSubscriptionsTable() {
   const pathname = usePathname();
   const teamSlug = pathname.split("/")[1];
 
-  const { data: teamData, isLoading: isTeamLoading } = trpc.teams.getTeamIdBySlug.useQuery(
-    { slug: teamSlug },
-    { enabled: !!teamSlug, staleTime: 5 * 60 * 1000 }
-  );
-
   const {
-    data: subscriptions,
-    isLoading: isSubsLoading,
+    data: apiSubscriptions,
+    isLoading,
     isError,
     error,
     refetch,
-  } = trpc.serviceSubscriptions.getAll.useQuery(
-    { teamId: teamData?.id ?? undefined },
-    { enabled: !!teamData?.id }
+  } = trpc.clientSubscriptions.listForTeam.useQuery(
+    { teamSlug: teamSlug ?? "" },
+    { enabled: !!teamSlug, staleTime: 5 * 60 * 1000 }
   );
 
-  const isLoading = isTeamLoading || isSubsLoading;
+  const subscriptions: DashboardSubscriptionRow[] = React.useMemo(
+    () => (apiSubscriptions ?? []).map(toDashboardRow),
+    [apiSubscriptions]
+  );
 
   if (isLoading) {
     return <SubscriptionsTableSkeleton />;
   }
 
-  if (isError || subscriptions === undefined) {
+  if (isError) {
     return (
       <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -153,12 +168,7 @@ export function DashboardSubscriptionsTable() {
             subscriptions.map((sub) => (
               <TableRow key={sub.id}>
                 <TableCell className="font-medium">{sub.planName ?? "—"}</TableCell>
-                <TableCell>
-                  {PLAN_TYPE_LABELS[sub.planType] ?? sub.planType}
-                  {sub.hostingSubType && (
-                    <span className="text-muted-foreground ml-1">({sub.hostingSubType.replace(/_/g, " ")})</span>
-                  )}
-                </TableCell>
+                <TableCell>{sub.planType ?? "—"}</TableCell>
                 <TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
                 <TableCell>{formatDate(sub.nextRenewalDate)}</TableCell>
                 <TableCell>

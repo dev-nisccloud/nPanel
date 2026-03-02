@@ -22,7 +22,7 @@ export default function CreateTeamPage() {
             Set up your company in minutes
           </h2>
           <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-            Create a workspace, add your team, and start managing domains, hosting, and
+            Create a workspace, add your company, and start managing domains, hosting, and
             billing in one place.
           </p>
           <ul className="mt-8 space-y-4 text-sm text-muted-foreground">
