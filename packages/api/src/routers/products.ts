@@ -23,6 +23,7 @@ const productCategorySchema = z.enum([
     "MARKETING",
     "CONSULTING",
     "CUSTOM",
+    "AI",
 ]);
 
 const pricingModelSchema = z.enum(["FIXED", "COMMISSION"]);
@@ -212,6 +213,51 @@ const planOutputSchema = z.object({
     updatedAt: z.coerce.date(),
 });
 
+// --- Product Plan Usage schemas (independent from DB enums) ------------------
+
+const usageOveruseSchema = z.enum(["HARD", "SOFT"]);
+
+const createPlanUsageInputSchema = z.object({
+    productId: z.string().min(1),
+    productPlanId: z.string().min(1),
+    userId: z.string().optional(),
+    teamId: z.string().optional(),
+    usageKind: z.string().min(1).max(100),
+    limitValue: z.string().min(1),
+    overuse: usageOveruseSchema,
+    period: z.string().max(50).optional(),
+});
+
+const updatePlanUsageInputSchema = z.object({
+    id: z.string(),
+    userId: z.string().optional().nullable(),
+    teamId: z.string().optional().nullable(),
+    usageKind: z.string().min(1).max(100).optional(),
+    limitValue: z.string().min(1).optional(),
+    overuse: usageOveruseSchema.optional(),
+    period: z.string().max(50).optional().nullable(),
+});
+
+const listPlanUsagesInputSchema = z.object({
+    productId: z.string().optional(),
+    productPlanId: z.string().optional(),
+    usageKind: z.string().optional(),
+});
+
+const planUsageOutputSchema = z.object({
+    id: z.string(),
+    productId: z.string(),
+    productPlanId: z.string(),
+    userId: z.string().nullable(),
+    teamId: z.string().nullable(),
+    usageKind: z.string(),
+    limitValue: z.string(),
+    overuse: usageOveruseSchema,
+    period: z.string().nullable(),
+    createdAt: z.coerce.date(),
+    updatedAt: z.coerce.date(),
+});
+
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -281,6 +327,53 @@ function mapProduct(product: any): z.infer<typeof productOutputSchema> {
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,
     };
+}
+
+function mapPlanUsage(row: {
+    id: string;
+    productId: string;
+    productPlanId: string;
+    userId: string | null;
+    teamId: string | null;
+    usageKind: string;
+    limitValue: string;
+    overuse: string;
+    period: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+}): z.infer<typeof planUsageOutputSchema> {
+    return {
+        id: row.id,
+        productId: row.productId,
+        productPlanId: row.productPlanId,
+        userId: row.userId ?? null,
+        teamId: row.teamId ?? null,
+        usageKind: row.usageKind,
+        limitValue: row.limitValue,
+        overuse: row.overuse as "HARD" | "SOFT",
+        period: row.period ?? null,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+    };
+}
+
+/** Map marketplace slug to product name search terms (case-insensitive contains). Enables flexible matching e.g. website-hosting → "website hosting", "web hosting". */
+function getSearchTermsForMarketplaceSlug(slug: string): string[] {
+    const normalized = slug.trim().toLowerCase();
+    const bySlug: Record<string, string[]> = {
+        "business-email": ["business email", "email hosting", "professional email"],
+        "email-marketing": ["email marketing", "newsletter", "email campaigns"],
+        "website-hosting": ["website hosting", "web hosting", "web host"],
+        "vps-hosting": ["vps hosting", "vps", "virtual private server"],
+        "background-remover": ["background remover", "background removal", "bg remove"],
+        "ai-image-generator": ["ai image", "image generator", "ai image generator"],
+        "creatives-design": ["creatives", "design", "creative assets", "creatives & design"],
+        "seo": ["seo", "search engine", "search engine optimization"],
+        "media-buying": ["media buying", "ad campaigns", "ads", "meta ads", "google ads"],
+    };
+    const terms = bySlug[normalized];
+    if (terms?.length) return terms;
+    return [normalized.replace(/-/g, " ")];
 }
 
 // ============================================================================
@@ -603,6 +696,117 @@ export const productsRouter = router({
                 where: {
                     isActive: true,
                     name: { contains: "email hosting", mode: "insensitive" },
+                },
+                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+                include: {
+                    plans: {
+                        where: { isActive: true, pricingModel: "FIXED" },
+                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                    },
+                },
+            });
+
+            const seenKeys = new Set<string>();
+            const productFeatures: Array<{ key: string; label: string }> = [];
+            for (const p of products) {
+                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                for (const f of features) {
+                    if (!seenKeys.has(f.key)) {
+                        seenKeys.add(f.key);
+                        productFeatures.push(f);
+                    }
+                }
+            }
+
+            const plans: Array<{
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: Array<{ available: boolean; valueOverride: string | null }>;
+            }> = [];
+
+            for (const product of products) {
+                for (const plan of (product as any).plans ?? []) {
+                    const planFeats = (plan.planFeatures as Array<{ key: string; available: boolean; valueOverride?: string | null }>) ?? [];
+                    const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
+                    const featureValues = productFeatures.map((pf) => {
+                        const entry = planFeatsByKey.get(pf.key);
+                        const available = !!entry?.available;
+                        const valueOverride =
+                            entry?.valueOverride != null && entry.valueOverride !== ""
+                                ? String(entry.valueOverride)
+                                : null;
+                        return { available, valueOverride };
+                    });
+                    plans.push({
+                        id: plan.id,
+                        name: plan.name,
+                        niscPrice: plan.price ?? null,
+                        niscCurrency: plan.currency ?? "KES",
+                        billingCycle: plan.billingCycle ?? "MONTHLY",
+                        isPopular: plan.isPopular ?? false,
+                        isRecommended: plan.isRecommended ?? false,
+                        productId: product.id,
+                        productName: product.name,
+                        featureValues,
+                    });
+                }
+            }
+
+            return { productFeatures, plans };
+        }),
+
+    /** Get plans for pricing by marketplace slug. Searches products by name using slug-derived or predefined search terms (e.g. website-hosting → "website hosting", "web hosting"). Same output shape as getHostingPlansForPricing. */
+    getPlansForPricingBySlug: protectedProcedure
+        .input(z.object({ slug: z.string().min(1) }))
+        .output(
+            z.object({
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                plans: z.array(
+                    z.object({
+                        id: z.string(),
+                        name: z.string(),
+                        niscPrice: z.string().nullable(),
+                        niscCurrency: z.string(),
+                        billingCycle: z.string(),
+                        isPopular: z.boolean(),
+                        isRecommended: z.boolean(),
+                        productId: z.string(),
+                        productName: z.string(),
+                        featureValues: z.array(
+                            z.object({
+                                available: z.boolean(),
+                                valueOverride: z.string().nullable(),
+                            })
+                        ),
+                    })
+                ),
+            })
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view plans",
+                });
+            }
+
+            const slug = input.slug.trim().toLowerCase();
+            const searchTerms = getSearchTermsForMarketplaceSlug(slug);
+
+            const products = await prisma.niscProduct.findMany({
+                where: {
+                    isActive: true,
+                    OR: searchTerms.map((term) => ({
+                        name: { contains: term, mode: "insensitive" as const },
+                    })),
                 },
                 orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
                 include: {
@@ -1017,6 +1221,100 @@ export const productsRouter = router({
             });
 
             await invalidateProductsCache();
+            return { success: true };
+        }),
+
+    // ── Product Plan Usage (usage limits & overuse config) ───────────────────
+
+    listPlanUsages: protectedProcedure
+        .input(listPlanUsagesInputSchema.optional())
+        .output(z.array(planUsageOutputSchema))
+        .query(async ({ ctx, input }) => {
+            if (!ctx.session?.user?.id) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+            }
+            const where: Record<string, unknown> = {};
+            if (input?.productId) where.productId = input.productId;
+            if (input?.productPlanId) where.productPlanId = input.productPlanId;
+            if (input?.usageKind) where.usageKind = input.usageKind;
+            const rows = await prisma.niscProductPlanUsage.findMany({
+                where,
+                orderBy: [{ productId: "asc" }, { productPlanId: "asc" }, { usageKind: "asc" }],
+            });
+            return rows.map(mapPlanUsage);
+        }),
+
+    getPlanUsageById: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .output(planUsageOutputSchema)
+        .query(async ({ ctx, input }) => {
+            if (!ctx.session?.user?.id) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+            }
+            const row = await prisma.niscProductPlanUsage.findUnique({
+                where: { id: input.id },
+            });
+            if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Plan usage not found" });
+            return mapPlanUsage(row);
+        }),
+
+    createPlanUsage: protectedProcedure
+        .input(createPlanUsageInputSchema)
+        .output(planUsageOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            if (!ctx.session?.user?.id) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+            }
+            const product = await prisma.niscProduct.findUnique({ where: { id: input.productId } });
+            if (!product) throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
+            const plan = await prisma.niscProductPlan.findUnique({ where: { id: input.productPlanId } });
+            if (!plan) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
+            const row = await prisma.niscProductPlanUsage.create({
+                data: {
+                    productId: input.productId,
+                    productPlanId: input.productPlanId,
+                    userId: input.userId ?? null,
+                    teamId: input.teamId ?? null,
+                    usageKind: input.usageKind,
+                    limitValue: input.limitValue,
+                    overuse: input.overuse as "HARD" | "SOFT",
+                    period: input.period ?? null,
+                },
+            });
+            return mapPlanUsage(row);
+        }),
+
+    updatePlanUsage: protectedProcedure
+        .input(updatePlanUsageInputSchema)
+        .output(planUsageOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            if (!ctx.session?.user?.id) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+            }
+            const existing = await prisma.niscProductPlanUsage.findUnique({ where: { id: input.id } });
+            if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Plan usage not found" });
+            const row = await prisma.niscProductPlanUsage.update({
+                where: { id: input.id },
+                data: {
+                    ...(input.userId !== undefined && { userId: input.userId }),
+                    ...(input.teamId !== undefined && { teamId: input.teamId }),
+                    ...(input.usageKind !== undefined && { usageKind: input.usageKind }),
+                    ...(input.limitValue !== undefined && { limitValue: input.limitValue }),
+                    ...(input.overuse !== undefined && { overuse: input.overuse as "HARD" | "SOFT" }),
+                    ...(input.period !== undefined && { period: input.period }),
+                },
+            });
+            return mapPlanUsage(row);
+        }),
+
+    deletePlanUsage: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .output(z.object({ success: z.boolean() }))
+        .mutation(async ({ ctx, input }) => {
+            if (!ctx.session?.user?.id) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+            }
+            await prisma.niscProductPlanUsage.delete({ where: { id: input.id } });
             return { success: true };
         }),
 });

@@ -19,6 +19,7 @@ import {
   getGenerationByIdSchema,
 } from "./schemas";
 import { enqueueImageGeneration } from "../../lib/qstash/image-generator";
+import { getAiImageGeneratorCreditsForTeam } from "../../lib/image-generator-credits";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -198,6 +199,48 @@ export const imageGeneratorRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
+      let effectiveVariations = input.variations;
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      const isCustomer =
+        user?.role === "CUSTOMER" ||
+        (Array.isArray(user?.role) && (user?.role as string[]).includes("CUSTOMER"));
+
+      if (isCustomer) {
+        if (!input.teamId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Team is required for customer image generation.",
+          });
+        }
+        const creditsResult = await getAiImageGeneratorCreditsForTeam(input.teamId);
+        if (!creditsResult) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "No active AI Image Generator subscription found for this team.",
+          });
+        }
+        const credits = creditsResult.credits;
+        if (credits !== null && credits < 1) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Insufficient credits. You need at least 1 credit to generate images.",
+          });
+        }
+        if (credits !== null) {
+          effectiveVariations = Math.min(input.variations, Math.floor(credits));
+        }
+        if (effectiveVariations < 1) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Insufficient credits for the requested number of variations.",
+          });
+        }
+      }
+
       const now = new Date();
       const generationId = randomUUID();
 
@@ -214,7 +257,7 @@ export const imageGeneratorRouter = router({
           aspectRatio: input.aspectRatio,
           outputFormat: input.outputFormat,
           resolution: input.resolution,
-          variationsCount: input.variations,
+          variationsCount: effectiveVariations,
           modelId: "google/nano-banana-pro",
           modelName: "Nano Banana Pro",
           status: "QUEUED",
@@ -227,7 +270,7 @@ export const imageGeneratorRouter = router({
         },
       });
 
-      for (let i = 1; i <= input.variations; i++) {
+      for (let i = 1; i <= effectiveVariations; i++) {
         await prisma.imageGeneratorVariation.create({
           data: {
             id: randomUUID(),
@@ -282,6 +325,7 @@ export const imageGeneratorRouter = router({
             prompt: input.prompt,
             referenceImageCount: input.referenceImageUrls?.length ?? 0,
             variationsRequested: input.variations,
+            variationsScheduled: effectiveVariations,
             qstashMessageId,
           },
           createdAt: new Date(),
@@ -291,7 +335,7 @@ export const imageGeneratorRouter = router({
       return {
         generationId: generation.id,
         status: "QUEUED" as const,
-        variationsCount: input.variations,
+        variationsCount: effectiveVariations,
       };
     }),
 

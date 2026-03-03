@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import prisma from "@nPanel/db";
 import { getQStashSigningKeys } from "@nPanel/api/lib/qstash/client";
+import { deductOneCreditForTeamBackgroundRemover } from "@nPanel/api/lib/background-remover-credits";
 import Replicate from "replicate";
 import { UTApi } from "uploadthing/server";
 import { randomUUID } from "node:crypto";
@@ -150,6 +151,12 @@ export async function POST(request: NextRequest) {
         userAgent: null,
         createdAt: completedAt,
       },
+    });
+
+    await deductOneCreditForTeamBackgroundRemover({
+      teamId: generation.teamId,
+      userId: generation.userId,
+      metadata: { generationId },
     });
 
     return NextResponse.json({

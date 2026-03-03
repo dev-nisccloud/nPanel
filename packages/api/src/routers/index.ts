@@ -87,6 +87,7 @@ import { etimsRouter } from "./etims";
 import { reportsRouter } from "./reports";
 import { productsRouter } from "./products";
 import { clientSubscriptionsRouter } from "./client-subscriptions";
+import { subscriptionUsageRouter } from "./subscription-usage";
 import { niscServiceOrdersRouter } from "./nisc-service-orders";
 
 export const appRouter = router({
@@ -246,6 +247,8 @@ export const appRouter = router({
 	products: productsRouter,
 	// Client Subscriptions Management (universal)
 	clientSubscriptions: clientSubscriptionsRouter,
+	// Subscription usage & credits (per subscription per usage kind)
+	subscriptionUsage: subscriptionUsageRouter,
 	// NISC Service Orders (async processing via QStash)
 	niscServiceOrders: niscServiceOrdersRouter,
 });

@@ -86,7 +86,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     } catch {
       pathname = "/";
     }
-    // Normalize like middleware: root can be "", "/", "//", or whitespace (e.g. when behind a proxy).
+    // Normalize: root can be "", "/", "//", or whitespace. x-pathname is set by src/proxy.ts (Next.js 16 request proxy).
     const normalized = typeof pathname === "string" ? pathname.trim().replace(/\/+/g, "/") : "";
     const isRootPath = normalized === "" || normalized === "/";
 

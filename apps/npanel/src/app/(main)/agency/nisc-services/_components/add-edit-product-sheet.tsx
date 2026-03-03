@@ -41,7 +41,7 @@ import { getCategoryDisplayName } from "./nisc-services-utils";
 const productFormSchema = z.object({
     name: z.string().min(1, "Product name is required").max(255),
     description: z.string().optional(),
-    category: z.enum(["CLOUD", "MARKETING", "CONSULTING", "CUSTOM"]),
+    category: z.enum(["CLOUD", "MARKETING", "CONSULTING", "CUSTOM", "AI"]),
     serviceType: z.string().min(1, "Service type is required").max(100),
     isActive: z.boolean().default(true),
     sortOrder: z.number().int().default(0),
@@ -80,6 +80,7 @@ const CATEGORIES = [
     { value: "MARKETING", label: "Marketing", description: "SEO, Social, Media Buying, Email" },
     { value: "CONSULTING", label: "Consulting", description: "Strategy, advisory, deliverables" },
     { value: "CUSTOM", label: "Custom", description: "Client-defined on-request services" },
+    { value: "AI", label: "AI", description: "Image generator, Background remover, etc." },
 ] as const;
 
 // Suggested service types per category
@@ -88,6 +89,7 @@ const SERVICE_TYPE_SUGGESTIONS: Record<string, string[]> = {
     MARKETING: ["media_buying", "seo", "social_media_management", "email_marketing", "creative_design"],
     CONSULTING: ["strategy_consulting", "digital_transformation", "seo_consulting", "ads_consulting"],
     CUSTOM: ["custom_service"],
+    AI: ["ai_image_generator", "background_remover", "ai_tools"],
 };
 
 // ============================================================================

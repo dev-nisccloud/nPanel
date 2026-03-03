@@ -29,12 +29,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { XIcon, Plus, MoreHorizontal, Pencil, PowerOff, Package, Layers } from "lucide-react";
+import { XIcon, Plus, MoreHorizontal, Pencil, PowerOff, Package, Layers, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { getPricingModelDisplayName, getBillingCycleDisplayName } from "./nisc-services-utils";
 import { AddEditPlanSheet } from "./add-edit-plan-sheet";
+import { AddEditPlanUsageSheet } from "./add-edit-plan-usage-sheet";
 
 interface ManagePlansSheetProps {
     open: boolean;
@@ -70,11 +71,28 @@ export function ManagePlansSheet({
     const [editingPlanId, setEditingPlanId] = React.useState<string | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
     const [planToDelete, setPlanToDelete] = React.useState<{ id: string; name: string } | null>(null);
+    const [usageSheetOpen, setUsageSheetOpen] = React.useState(false);
+    const [usagePlanId, setUsagePlanId] = React.useState<string | null>(null);
+    const [existingUsageId, setExistingUsageId] = React.useState<string | null>(null);
 
     const { data: product, isLoading, refetch } = trpc.products.getById.useQuery(
         { id: productId!, includePlans: true },
         { enabled: open && !!productId },
     );
+
+    const { data: planUsages } = trpc.products.listPlanUsages.useQuery(
+        { productId: productId ?? undefined },
+        { enabled: open && !!productId },
+    );
+
+    const usageByPlanId = React.useMemo(() => {
+        const list = planUsages ?? [];
+        const m: Record<string, (typeof list)[number]> = {};
+        for (const u of list) {
+            if (!m[u.productPlanId]) m[u.productPlanId] = u;
+        }
+        return m;
+    }, [planUsages]);
 
     const utils = trpc.useUtils();
     const deletePlan = trpc.products.deletePlan.useMutation({
@@ -115,7 +133,20 @@ export function ManagePlansSheet({
 
     const handlePlanSheetSuccess = () => {
         refetch();
+        utils.products.listPlanUsages.invalidate();
         onSuccess?.();
+    };
+
+    const handleCreateUsage = (planId: string) => {
+        setUsagePlanId(planId);
+        setExistingUsageId(null);
+        setUsageSheetOpen(true);
+    };
+
+    const handleEditUsage = (planId: string, usageId: string) => {
+        setUsagePlanId(planId);
+        setExistingUsageId(usageId);
+        setUsageSheetOpen(true);
     };
 
     return (
@@ -210,6 +241,21 @@ export function ManagePlansSheet({
                                                                     <Pencil className="mr-2 h-4 w-4" />
                                                                     Edit
                                                                 </DropdownMenuItem>
+                                                                {usageByPlanId[plan.id] ? (
+                                                                    <DropdownMenuItem
+                                                                        onSelect={() =>
+                                                                            handleEditUsage(plan.id, usageByPlanId[plan.id].id)
+                                                                        }
+                                                                    >
+                                                                        <Settings2 className="mr-2 h-4 w-4" />
+                                                                        Edit usage
+                                                                    </DropdownMenuItem>
+                                                                ) : (
+                                                                    <DropdownMenuItem onSelect={() => handleCreateUsage(plan.id)}>
+                                                                        <Settings2 className="mr-2 h-4 w-4" />
+                                                                        Create usage
+                                                                    </DropdownMenuItem>
+                                                                )}
                                                                 {plan.isActive && (
                                                                     <DropdownMenuItem
                                                                         onSelect={() => handleDeletePlan(plan)}
@@ -265,6 +311,16 @@ export function ManagePlansSheet({
                 productCategory={productCategory}
                 productFeatures={productFeatures}
                 planId={editingPlanId}
+                onSuccess={handlePlanSheetSuccess}
+            />
+
+            <AddEditPlanUsageSheet
+                open={usageSheetOpen}
+                onOpenChange={setUsageSheetOpen}
+                productId={productId ?? ""}
+                productPlanId={usagePlanId ?? ""}
+                planName={plans.find((p) => p.id === usagePlanId)?.name ?? "Plan"}
+                existingUsageId={existingUsageId}
                 onSuccess={handlePlanSheetSuccess}
             />
 

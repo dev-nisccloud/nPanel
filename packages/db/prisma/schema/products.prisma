@@ -11,6 +11,7 @@ enum NiscProductCategory {
   MARKETING // SEO, Social Media, Media Buying, Email Marketing, Creatives
   CONSULTING // Strategy, consulting, custom deliverables
   CUSTOM // Client-defined on-request services
+  AI // AI tools: Image generator, Background remover, etc.
 }
 
 enum NiscPricingModel {
@@ -39,6 +40,12 @@ enum NiscRenewalType {
 enum NiscPromoDiscountType {
   PERCENTAGE // e.g. 20% off
   FIXED // e.g. 50 KES off
+}
+
+// How to handle usage over limit: HARD = block when over; SOFT = allow but flag/bill
+enum NiscUsageOveruse {
+  HARD
+  SOFT
 }
 
 // --- NiscProduct -------------------------------------------------------------
@@ -74,6 +81,7 @@ model NiscProduct {
 
   // Relations
   plans                NiscProductPlan[]
+  planUsages           NiscProductPlanUsage[]
   subscriptions        NiscClientSubscription[]
   addOnRelations       NiscProductAddOn[]       @relation("AddOnProduct") // rows where this product is the add-on
   baseProductRelations NiscProductAddOn[]       @relation("BaseProduct") // rows where this product is the base
@@ -169,6 +177,7 @@ model NiscProductPlan {
 
   // Relations
   product        NiscProduct              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  planUsages     NiscProductPlanUsage[]
   subscriptions  NiscClientSubscription[]
   promos         NiscProductPromo[]
   niscOrderItems NiscOrderItem[]
@@ -178,6 +187,39 @@ model NiscProductPlan {
   @@index([isActive])
   @@index([isDefault])
   @@map("nisc_product_plan")
+}
+
+// --- NiscProductPlanUsage ----------------------------------------------------
+// Usage limit/configuration per product+plan (optional user/team override).
+// Defines limit value and overuse behaviour (HARD = block, SOFT = allow and flag).
+// usageKind: e.g. "image_generations", "background_removals" — generic for any plan.
+// limitValue: string for flexibility ("100", "unlimited", future formats).
+
+model NiscProductPlanUsage {
+  id            String  @id @default(cuid())
+  productId     String
+  productPlanId String
+  userId        String? // optional: limit override for a specific user
+  teamId        String? // optional: limit override for a specific team
+
+  usageKind  String // e.g. "image_generations", "background_removals", "api_calls"
+  limitValue String // e.g. "100", "1000", "unlimited"
+  overuse    NiscUsageOveruse // HARD = block when over; SOFT = allow and flag/bill
+
+  period String? // optional: "MONTHLY", "YEARLY", "DAILY" — reset window (app/cron applies)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product     NiscProduct     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productPlan NiscProductPlan @relation(fields: [productPlanId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([productPlanId])
+  @@index([usageKind])
+  @@index([userId])
+  @@index([teamId])
+  @@map("nisc_product_plan_usage")
 }
 
 // --- NiscClientSubscription --------------------------------------------------
@@ -293,6 +335,7 @@ model NiscClientSubscription {
   downgradedFromSubscription NiscClientSubscription? @relation("SubscriptionDowngrade")
 
   renewals     NiscClientSubscriptionRenewal[]
+  usageRecords NiscClientSubscriptionUsage[]
   activityLogs NiscClientSubscriptionActivityLog[]
   promoRedeems NiscProductPromoRedeem[]
 
@@ -313,6 +356,56 @@ model NiscClientSubscription {
   @@index([expiryDate])
   @@index([subscriptionDate])
   @@map("nisc_client_subscription")
+}
+
+// --- NiscClientSubscriptionUsage ---------------------------------------------
+// Per-subscription usage balance per usage kind. Credits can be reduced (on use)
+// or increased (top-up, renewal, manual). No period columns — refill/reset via app/cron.
+// One row per (subscriptionId, usageKind); uniqueness enforced by application or unique constraint.
+
+model NiscClientSubscriptionUsage {
+  id             String @id @default(cuid())
+  subscriptionId String
+  usageKind      String // e.g. "image_generations", "background_removals"
+  credits        String // balance: reduce on use, add on top-up (string for flexibility)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscription NiscClientSubscription                   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  activityLogs NiscClientSubscriptionUsageActivityLog[]
+
+  @@unique([subscriptionId, usageKind])
+  @@index([subscriptionId])
+  @@index([usageKind])
+  @@map("nisc_client_subscription_usage")
+}
+
+// --- NiscClientSubscriptionUsageActivityLog ----------------------------------
+// Activity log for credit usage: same pattern as CreativeAssetVersionActivityLog.
+// action: e.g. CREDIT_USE, CREDIT_ADD, CREDIT_RESET, CREDIT_ADJUST.
+// Extra details (amount, balanceBefore, balanceAfter, reason, generationId, etc.) in metadata.
+
+model NiscClientSubscriptionUsageActivityLog {
+  id                  String   @id @default(cuid())
+  subscriptionUsageId String
+  userId              String // who performed the action (system/admin/user)
+  action              String // CREDIT_USE | CREDIT_ADD | CREDIT_RESET | CREDIT_ADJUST
+  description         String?
+  metadata            Json?
+  ipAddress           String?
+  userAgent           String?
+  createdAt           DateTime @default(now())
+
+  subscriptionUsage NiscClientSubscriptionUsage @relation(fields: [subscriptionUsageId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionUsageId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("nisc_client_subscription_usage_activity_log")
 }
 
 // --- NiscClientSubscriptionRenewal -------------------------------------------

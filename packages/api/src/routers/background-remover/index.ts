@@ -17,6 +17,7 @@ import {
   backgroundRemoverGenerationSchema,
 } from "./schemas";
 import { enqueueBackgroundRemoval } from "../../lib/qstash/background-remover";
+import { getBackgroundRemoverCreditsForTeam } from "../../lib/background-remover-credits";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -125,6 +126,37 @@ export const backgroundRemoverRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      const isCustomer =
+        user?.role === "CUSTOMER" ||
+        (Array.isArray(user?.role) && (user?.role as string[]).includes("CUSTOMER"));
+
+      if (isCustomer) {
+        if (!input.teamId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Team is required for customer background removal.",
+          });
+        }
+        const creditsResult = await getBackgroundRemoverCreditsForTeam(input.teamId);
+        if (!creditsResult) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "No active Background Remover subscription found for this team.",
+          });
+        }
+        const credits = creditsResult.credits;
+        if (credits !== null && credits < 1) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Insufficient credits. You need at least 1 credit to remove backgrounds.",
+          });
+        }
+      }
 
       const now = new Date();
       const id = randomUUID();

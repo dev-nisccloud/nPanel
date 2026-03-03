@@ -138,6 +138,7 @@ function Toolbar({
                         <SelectItem value="MARKETING">Marketing</SelectItem>
                         <SelectItem value="CONSULTING">Consulting</SelectItem>
                         <SelectItem value="CUSTOM">Custom</SelectItem>
+                        <SelectItem value="AI">AI</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

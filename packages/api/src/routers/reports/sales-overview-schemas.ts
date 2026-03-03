@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const categorySchema = z.enum(["CLOUD", "MARKETING", "CONSULTING", "CUSTOM"]);
+const categorySchema = z.enum(["CLOUD", "MARKETING", "CONSULTING", "CUSTOM", "AI"]);
 
 export const salesReportOverviewInputSchema = z.object({
 	from: z.coerce.date().optional(),

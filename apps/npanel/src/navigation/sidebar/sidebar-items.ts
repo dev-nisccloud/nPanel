@@ -194,6 +194,17 @@ export const sidebarItems: NavGroup[] = [
       // },
     ],
   },
+  {
+    id: 6,
+    label: "More Services",
+    items: [
+      {
+        title: "Marketplace",
+        url: "/dashboard/marketplace",
+        icon: (props: any) => React.createElement(Icons.Cart, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      }
+    ],
+  },
 ];
 export const agencysidebarItems: NavGroup[] = [
   {

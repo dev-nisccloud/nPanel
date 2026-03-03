@@ -8,6 +8,7 @@
 import prisma from "@nPanel/db";
 import { Prisma } from "@nPanel/db";
 import { niscLog } from "./nisc-order-logger";
+import { provisionInitialUsageCreditsForSubscription } from "./subscription-usage-provisioning";
 import { isKenicDomain } from "./epp/kenic-tlds";
 import { ensureKenicIntegration, registerKenicDomain } from "./kenic-nisc";
 import { OpenProviderApiError } from "./openprovider-client";
@@ -32,15 +33,7 @@ function buildProvisioningErrorDetails(err: unknown): Record<string, unknown> {
 	return { provider: "unknown", raw: String(err) };
 }
 
-const NO_INTEGRATION_SERVICE_TYPES = [
-	"email_marketing",
-	"seo",
-	"media_buying",
-	"social_media",
-	"creatives",
-	"consulting",
-	"custom",
-];
+/** Service types that require external provisioning (Plesk or domain provider). All other service types are treated as DB-only: create NiscClientSubscription and optionally provision NiscClientSubscriptionUsage from plan. */
 const PLESK_SERVICE_TYPES = ["web_hosting", "email_hosting"];
 const OPENPROVIDER_SERVICE_TYPES = ["domain_registration", "domain_transfer"];
 
@@ -134,32 +127,6 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 		});
 
 		try {
-			if (NO_INTEGRATION_SERVICE_TYPES.includes(serviceType)) {
-				await niscLog("processor_item_branch", {
-					niscOrderId,
-					orderItemId: item.id,
-					branch: "no_integration",
-					serviceType,
-				});
-				const sub = await createSubscriptionForOrderItem(order, item);
-				await prisma.niscOrderItem.update({
-					where: { id: item.id },
-					data: {
-						status: "PROVISIONED",
-						niscClientSubscriptionId: sub.id,
-						updatedAt: now,
-					},
-				});
-				await niscLog("processor_item_success", {
-					niscOrderId,
-					orderItemId: item.id,
-					branch: "no_integration",
-					subscriptionId: sub.id,
-				});
-				hasSuccess = true;
-				continue;
-			}
-
 			if (PLESK_SERVICE_TYPES.includes(serviceType)) {
 				await niscLog("processor_item_branch", {
 					niscOrderId,
@@ -386,29 +353,30 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 				continue;
 			}
 
-			// Unknown service type (after resolution: no mapping matched)
-			await niscLog("processor_item_unsupported_service_type", {
+			// Default: DB-only (no external provider). Create subscription and provision usage from plan when configured.
+			// Covers all service types not requiring Plesk or domain provider, e.g. ai_image_generator, background_remover, creatives, consulting, custom, etc.
+			await niscLog("processor_item_branch", {
 				niscOrderId,
 				orderItemId: item.id,
-				productName: item.product.name,
+				branch: "no_integration",
 				serviceType,
-				reason: "Not in NO_INTEGRATION_SERVICE_TYPES, PLESK_SERVICE_TYPES, or OPENPROVIDER_SERVICE_TYPES",
 			});
+			const sub = await createSubscriptionForOrderItem(order, item);
 			await prisma.niscOrderItem.update({
 				where: { id: item.id },
 				data: {
-					status: "FAILED",
-					provisioningError: `Unsupported service type: ${serviceType}`,
-					provisioningErrorDetails: {
-						provider: null,
-						reason: "unsupported_service_type",
-						serviceType,
-					},
+					status: "PROVISIONED",
+					niscClientSubscriptionId: sub.id,
 					updatedAt: now,
 				},
 			});
-			hasFailure = true;
-			failureReasons.push(`Item ${item.product.name}: Unsupported service type ${serviceType}`);
+			await niscLog("processor_item_success", {
+				niscOrderId,
+				orderItemId: item.id,
+				branch: "no_integration",
+				subscriptionId: sub.id,
+			});
+			hasSuccess = true;
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			const errorDetails = buildProvisioningErrorDetails(err);
@@ -530,6 +498,16 @@ async function createSubscriptionForOrderItem(
 			metadata: Prisma.JsonNull,
 		},
 	});
+
+	if (order.createdBy) {
+		await provisionInitialUsageCreditsForSubscription({
+			subscriptionId: sub.id,
+			productId: item.productId,
+			productPlanId: item.productPlanId,
+			performedByUserId: order.createdBy,
+		});
+	}
+
 	return sub;
 }
 
@@ -624,6 +602,16 @@ async function processPleskOrderItem(
 				metadata: Prisma.JsonNull,
 			},
 		});
+
+		if (order.createdBy) {
+			await provisionInitialUsageCreditsForSubscription({
+				subscriptionId: sub.id,
+				productId: item.productId,
+				productPlanId: item.productPlanId,
+				performedByUserId: order.createdBy,
+			});
+		}
+
 		return {
 			ok: true,
 			subscriptionId: sub.id,
@@ -730,6 +718,16 @@ async function processKenicOrderItem(
 				metadata: Prisma.JsonNull,
 			},
 		});
+
+		if (order.createdBy) {
+			await provisionInitialUsageCreditsForSubscription({
+				subscriptionId: sub.id,
+				productId: item.productId,
+				productPlanId: item.productPlanId ?? null,
+				performedByUserId: order.createdBy,
+			});
+		}
+
 		return {
 			ok: true,
 			subscriptionId: sub.id,
@@ -807,6 +805,16 @@ async function processKenicTransferOrderItem(
 				metadata: Prisma.JsonNull,
 			},
 		});
+
+		if (order.createdBy) {
+			await provisionInitialUsageCreditsForSubscription({
+				subscriptionId: sub.id,
+				productId: item.productId,
+				productPlanId: item.productPlanId ?? null,
+				performedByUserId: order.createdBy,
+			});
+		}
+
 		return {
 			ok: true,
 			subscriptionId: sub.id,

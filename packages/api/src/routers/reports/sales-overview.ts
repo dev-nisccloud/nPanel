@@ -10,7 +10,7 @@ import prisma from "@nPanel/db";
 import type { SalesReportOverview } from "./sales-overview-schemas";
 
 type BillingCycle = "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
-type NiscProductCategory = "CLOUD" | "MARKETING" | "CONSULTING" | "CUSTOM";
+type NiscProductCategory = "CLOUD" | "MARKETING" | "CONSULTING" | "CUSTOM" | "AI";
 
 const ACTIVE = "ACTIVE";
 const CANCELLED = "CANCELLED";
@@ -25,6 +25,7 @@ const CATEGORY_LABELS: Record<NiscProductCategory, string> = {
 	MARKETING: "Marketing",
 	CONSULTING: "Consulting",
 	CUSTOM: "Custom",
+	AI: "AI",
 };
 
 /** Normalize subscription price to monthly (MRR). */
@@ -270,6 +271,7 @@ export async function computeSalesReportOverview(params: {
 		MARKETING: 0,
 		CONSULTING: 0,
 		CUSTOM: 0,
+		AI: 0,
 	};
 	for (const sub of activeSubs) {
 		if (sub.hostingType === "WEB_HOSTING") webHosting += 1;
@@ -973,7 +975,7 @@ export async function computeSalesReportOverview(params: {
 			count: e.count + 1,
 		});
 	}
-	const marginByCategory = (["CLOUD", "MARKETING", "CONSULTING", "CUSTOM"] as const).map(
+	const marginByCategory = (["CLOUD", "MARKETING", "CONSULTING", "CUSTOM", "AI"] as const).map(
 		(cat) => {
 			const e = marginByCatMap.get(cat) ?? {
 				revenue: 0,
@@ -1118,7 +1120,7 @@ export async function computeSalesReportOverview(params: {
 			mrrChangeAmount,
 			currency,
 		},
-		mrrByCategory: (["CLOUD", "MARKETING", "CONSULTING", "CUSTOM"] as const).map(
+		mrrByCategory: (["CLOUD", "MARKETING", "CONSULTING", "CUSTOM", "AI"] as const).map(
 			(cat) => {
 				const e = mrrByCategoryMap.get(cat) ?? { mrr: 0, count: 0 };
 				return {

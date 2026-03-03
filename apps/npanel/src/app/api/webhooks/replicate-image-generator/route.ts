@@ -3,6 +3,7 @@ import prisma from "@nPanel/db";
 import Replicate, { validateWebhook } from "replicate";
 import { UTApi } from "uploadthing/server";
 import { randomUUID } from "node:crypto";
+import { deductOneCreditForTeamImageGenerator } from "@nPanel/api/lib/image-generator-credits";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -118,6 +119,16 @@ export async function POST(request: NextRequest) {
 								outputFormat: variation.imageGeneratorGeneration.outputFormat,
 							},
 							updatedAt: now,
+						},
+					});
+
+					// Deduct 1 credit for customer (per variation, after save to DB)
+					await deductOneCreditForTeamImageGenerator({
+						teamId: variation.imageGeneratorGeneration.teamId,
+						userId: variation.imageGeneratorGeneration.userId,
+						metadata: {
+							generationId: variation.imageGeneratorGenerationId,
+							variationId: variation.id,
 						},
 					});
 

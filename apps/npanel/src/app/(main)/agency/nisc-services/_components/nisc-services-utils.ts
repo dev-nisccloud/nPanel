@@ -4,6 +4,7 @@ export function getCategoryDisplayName(category: string): string {
         MARKETING: "Marketing",
         CONSULTING: "Consulting",
         CUSTOM: "Custom",
+        AI: "AI",
     };
     return map[category] ?? category;
 }
@@ -18,6 +19,7 @@ export function getCategoryBadgeClass(category: string): string {
             "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-800",
         CUSTOM:
             "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700",
+        AI: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800",
     };
     return map[category] ?? "";
 }
