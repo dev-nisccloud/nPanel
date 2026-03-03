@@ -1,0 +1,13 @@
+/* =========================
+Custome Swiper js styles
+=========================== */
+
+.financial-management-platform-pagination {
+  .swiper-pagination-bullet {
+    @apply bg-accent/90;
+  }
+
+  .swiper-pagination-bullet-active {
+    @apply bg-white;
+  }
+}
