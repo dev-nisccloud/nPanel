@@ -7,14 +7,12 @@ import { useNavbarScroll } from '@/hooks/useScrollHeader';
 import { cn } from '@/utils/cn';
 import logoDark from '@public/nisclogowhite.png';
 import logo from '@public/nisclogooriginal.png';
-import mainLogo from '@public/nisclogooriginal.png';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import MobileMenu from '../mobile-menu/MobileMenu';
 import EngageMenu from './EngageMenu';
 import ExploreMenu from './ExploreMenu';
-import InsightsMenu from './InsightsMenu';
 import MobileMenuButton from './MobileMenuButton';
 
 const Navbar = () => {
@@ -43,7 +41,7 @@ const Navbar = () => {
                 <Link href="/">
                   <span className="sr-only">Home</span>
                   <figure className="hidden lg:block lg:max-w-[150px]">
-                    <Image src={mainLogo} alt="Nisc Cloud" className="dark:invert" priority />
+                    <Image src={logo} alt="Nisc Cloud" className="dark:invert" priority />
                   </figure>
                   <figure className="block max-w-[110px] lg:hidden">
                     <Image src={logo} alt="Nisc Cloud" className="block w-full dark:hidden" priority />

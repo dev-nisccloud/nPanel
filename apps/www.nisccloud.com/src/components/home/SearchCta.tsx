@@ -1,5 +1,4 @@
-'use client';
-import { useDividerExpand } from '@/hooks/useDividerExpand';
+'use client'; 
 import RevealAnimation from '../animation/RevealAnimation';
 import dotComLogo from '@public/images/tlds/dot_com_logo.webp';
 import dotNetLogo from '@public/images/tlds/dot_net_logo.webp';
@@ -11,7 +10,6 @@ import coKeTldLogo from '@public/images/tlds/co_ke_tld.png';
 import Image from 'next/image';
 
 const SearchCta = () => {
-  const dividerRef = useDividerExpand();
   return (
     <section className="py-8 md:py-8 xl:py-8">
       <div className="main-container">

@@ -8,7 +8,6 @@ import heroBgPatternDark from '@public/images/ns-img-dark-81.svg';
 import Image from 'next/image';
 import Link from 'next/link';
 import RevealAnimation from '../animation/RevealAnimation';
-import LinkButton from '../ui/button/Button';
 
 const Hero = () => {
   return (

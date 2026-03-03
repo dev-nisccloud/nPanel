@@ -1,16 +1,11 @@
 import RevealAnimation from '@/components/animation/RevealAnimation';
-import LinkButton from '@/components/ui/button/Button';
 import { StarIcon } from '@/icons';
-import avatar1Img from '@public/images/ns-avatar-1.png';
-import avatar2Img from '@public/images/ns-avatar-2.png';
-import avatar3Img from '@public/images/ns-avatar-3.png';
 import arrowUpRightLight from '@public/images/icons/arrow-up-right-light.svg';
 import arrowUpRight from '@public/images/icons/arrow-up-right.svg';
 import hero from '@public/images/ns-img-98.svg';
 import heroChart from '@public/images/ns-img-99.svg';
 import heroDark from '@public/images/ns-img-dark-71.svg';
 import Image from 'next/image';
-import HeroCardImg from './HeroCardImg';
 import Link from 'next/link';
 import Clients from './Clients';
 

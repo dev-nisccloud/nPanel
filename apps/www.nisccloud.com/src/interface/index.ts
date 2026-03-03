@@ -160,3 +160,13 @@ export interface IWhitePaper {
   slug: string;
   content: string;
 }
+
+export interface PricingPlan {
+  id: string;
+  name: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  featured?: boolean;
+  ctaHref: string;
+  ctaLabel?: string;
+}

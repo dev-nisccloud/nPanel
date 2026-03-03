@@ -52,7 +52,7 @@ export const TabV2Provider: React.FC<TabV2ProviderProps> = ({ children, defaultV
 
   // Trigger reveal animation for an element
   const triggerRevealAnimation = useCallback((element: HTMLDivElement) => {
-    if (!element || typeof window === 'undefined') return;
+    if (!element || typeof window === 'undefined') {return;}
 
     gsap.killTweensOf(element);
     gsap.fromTo(

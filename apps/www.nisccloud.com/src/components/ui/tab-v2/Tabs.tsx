@@ -9,7 +9,7 @@ interface TabsProps {
   onValueChange?: (value: string) => void;
 }
 
-const Tabs: React.FC<TabsProps> = ({ children, defaultValue, value, onValueChange }) => {
+const Tabs: React.FC<TabsProps> = ({ children, defaultValue, value }) => {
   // If controlled (value prop provided), we need to handle it differently
   // For now, we'll use defaultValue for uncontrolled mode
   return <TabV2Provider defaultValue={value || defaultValue}>{children}</TabV2Provider>;

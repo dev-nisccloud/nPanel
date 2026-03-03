@@ -69,8 +69,8 @@ const Integration: FC = () => {
       const centerLogo = centerLogoRef.current;
       const outerRing = outerRingRef.current;
       const innerRing = innerRingRef.current;
-      const paths = pathRefs.current.filter((p): p is SVGPathElement => p != null);
-      const nodes = nodeRefs.current.filter((n): n is HTMLDivElement => n != null);
+      const paths = pathRefs.current.filter((p): p is SVGPathElement => p !== null);
+      const nodes = nodeRefs.current.filter((n): n is HTMLDivElement => n !== null);
 
       if (
         !container ||
@@ -80,7 +80,7 @@ const Integration: FC = () => {
         paths.length < 6 ||
         nodes.length < 6
       )
-        return;
+        {return;}
 
       gsap.set(centerLogo, { scale: 0, transformOrigin: '50% 50%' });
       gsap.set([outerRing, innerRing], { scale: 0, transformOrigin: '50% 50%' });
@@ -88,7 +88,7 @@ const Integration: FC = () => {
         const len = path.getTotalLength();
         gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
       });
-      const dots = dotRefs.current.filter((d): d is SVGCircleElement => d != null);
+      const dots = dotRefs.current.filter((d): d is SVGCircleElement => d !== null);
       gsap.set(dots, { opacity: 0 });
       gsap.set(nodes, { scale: 0, transformOrigin: '50% 50%' });
 
@@ -135,7 +135,7 @@ const Integration: FC = () => {
         dotTweensRef.current = [];
         paths.forEach((path, i) => {
           const dot = dotRefs.current[i];
-          if (!dot || !path) return;
+          if (!dot || !path) {return;}
           gsap.set(dot, { opacity: 0.8 });
           const tween = gsap.to(dot, {
             duration: 4,

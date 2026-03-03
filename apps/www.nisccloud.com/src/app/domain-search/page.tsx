@@ -1,4 +1,3 @@
-import RevealAnimation from '@/components/animation/RevealAnimation';
 import SearchCta from '@/components/domains/SearchCta';
 import CTA from '@/components/shared/cta/CTA';
 import { defaultMetadata } from '@/utils/generateMetaData';
