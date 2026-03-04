@@ -3,6 +3,7 @@ const FALLBACK_REDIRECT = "/auth/login";
 /**
  * Fetch redirect target (dashboard or create-team) and navigate.
  * Retries once after delay if session not ready yet (e.g. right after login).
+ * Use a short delay (e.g. 200ms) to avoid blocking redirect when the first call returns login.
  */
 export async function redirectToTarget(retryAfterMs = 0): Promise<void> {
   const doFetch = () =>

@@ -339,17 +339,13 @@ export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<strin
   const teamId = firstTeam.team.id;
   const teamSlug = firstTeam.team.slug;
 
-  // Batch: Update user's lastAccessedTeamId and log activity in a single transaction
-  // This reduces connection usage from 2 queries to 1 transaction
-  await prisma.$transaction(async (tx) => {
-    // Update user's lastAccessedTeamId
-    await tx.user.update({
-      where: { id: userId },
-      data: { lastAccessedTeamId: teamId },
-    });
-
-    // Log the team access
-    await tx.userActivityLog.create({
+  // Update user first so we can return quickly; log activity in background (don't block redirect)
+  await prisma.user.update({
+    where: { id: userId },
+    data: { lastAccessedTeamId: teamId },
+  });
+  prisma.userActivityLog
+    .create({
       data: {
         id: crypto.randomUUID(),
         userId: userId,
@@ -359,12 +355,12 @@ export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<strin
           teamId: teamId,
           teamName: firstTeam.team.name,
           teamSlug: teamSlug,
-          autoSet: !lastAccessedTeamId, // Track if it was auto-set
+          autoSet: !lastAccessedTeamId,
         },
         createdAt: new Date(),
       },
-    });
-  });
+    })
+    .catch(() => {});
 
   return teamSlug;
 }
@@ -396,9 +392,9 @@ export async function getCustomerTeamRedirectPath(user: UserWithStatus): Promise
   const firstTeam = activeTeams[0];
   const teamId = firstTeam.team.id;
   const teamSlug = firstTeam.team.slug;
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: userId }, data: { lastAccessedTeamId: teamId } });
-    await tx.userActivityLog.create({
+  await prisma.user.update({ where: { id: userId }, data: { lastAccessedTeamId: teamId } });
+  prisma.userActivityLog
+    .create({
       data: {
         id: crypto.randomUUID(),
         userId,
@@ -407,8 +403,8 @@ export async function getCustomerTeamRedirectPath(user: UserWithStatus): Promise
         metadata: { teamId, teamName: firstTeam.team.name, teamSlug, autoSet: !lastAccessedTeamId },
         createdAt: new Date(),
       },
-    });
-  });
+    })
+    .catch(() => {});
   return `/${teamSlug}/dashboard`;
 }
 

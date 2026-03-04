@@ -85,8 +85,8 @@ export function DomainSearchResults({
     });
   }, []);
 
-  // Notify parent of loading before paint so spinner updates immediately; no-op if unmounted
-  React.useLayoutEffect(() => {
+  // Notify parent of loading; no-op if unmounted
+  React.useEffect(() => {
     if (isMountedRef.current) onLoadingChangeRef.current?.(loadingSources.size > 0);
   }, [loadingSources]);
 
@@ -97,21 +97,19 @@ export function DomainSearchResults({
 
   const [selectedCategoryId, setSelectedCategoryId] = React.useState(DEFAULT_CATEGORY_ID);
   const visitedCategoryIdsRef = React.useRef<Set<string>>(new Set([DEFAULT_CATEGORY_ID]));
-  const prevSearchQueryRefForTabs = React.useRef(searchQuery);
 
-  // Reset tab when search query changes – run before paint so correct tab shows immediately
-  if (prevSearchQueryRefForTabs.current !== searchQuery && searchQuery.trim().length > 0) {
-    prevSearchQueryRefForTabs.current = searchQuery;
+  // Reset tab + visited set when search query changes
+  React.useEffect(() => {
+    if (!searchQuery.trim()) return;
     visitedCategoryIdsRef.current = new Set([DEFAULT_CATEGORY_ID]);
-  }
-  React.useLayoutEffect(() => {
-    if (searchQuery.trim().length > 0) {
-      setSelectedCategoryId(DEFAULT_CATEGORY_ID);
-    }
+    setSelectedCategoryId(DEFAULT_CATEGORY_ID);
   }, [searchQuery]);
 
-  // Update visited set synchronously during render (ref mutation is allowed)
-  if (selectedCategoryId) visitedCategoryIdsRef.current.add(selectedCategoryId);
+  // Track visited tabs whenever the selected tab changes
+  React.useEffect(() => {
+    if (!selectedCategoryId) return;
+    visitedCategoryIdsRef.current.add(selectedCategoryId);
+  }, [selectedCategoryId]);
 
   if (error) {
     return (

@@ -90,7 +90,7 @@ export function LoginForm() {
       if (result?.data) {
         setIsSuccess(true);
         // Go straight to dashboard or create-team (avoids "/" → redirect-target race and login loop)
-        await redirectToTarget(400);
+        await redirectToTarget(200);
         return;
       } else if (result?.error) {
         // Handle error response from auth

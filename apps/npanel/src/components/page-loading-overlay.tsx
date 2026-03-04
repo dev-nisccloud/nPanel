@@ -16,7 +16,7 @@ export function PageLoadingOverlay() {
     >
       <div className="flex flex-col items-center gap-4">
         <Spinner variant="infinite" className="text-primary" size={32} />
-        <p className="text-xl font-bold text-muted-foreground">Loading page...</p>
+        <p className="text-xl font-bold text-muted-foreground">Loading...</p>
       </div>
     </div>
   );

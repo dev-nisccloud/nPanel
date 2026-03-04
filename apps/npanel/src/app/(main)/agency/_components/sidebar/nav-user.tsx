@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { EllipsisVertical, CircleUser, CreditCard, MessageSquareDot, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { getInitials } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 
@@ -24,16 +26,19 @@ export function NavUser() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session, isPending } = authClient.useSession();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
       await authClient.signOut();
-      // Clear all cached queries on logout
       queryClient.clear();
       toast.success("Logged out successfully");
-      router.push("/auth/login");
-    } catch (error: any) {
+      window.location.replace("/auth/login");
+    } catch (error: unknown) {
       console.error("Logout error:", error);
+      setIsLoggingOut(false);
       toast.error("Logout failed", {
         description: "Please try again.",
       });
@@ -124,9 +129,18 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut />
-              Log out
+            <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+              {isLoggingOut ? (
+                <>
+                  <Spinner variant="ellipsis" className="size-4" />
+                  Logging out…
+                </>
+              ) : (
+                <>
+                  <LogOut />
+                  Log out
+                </>
+              )}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
