@@ -58,21 +58,54 @@ export const etimsInitializationRouter = router({
                     });
                 }
 
-                // 3. Call Initialization API
-                // Note: The client.initializeDevice method signature might need adjustment if it doesn't take dvcSrlNo directly
-                // but based on previous usage: client.initializeDevice(tin, bhfId, dvcSrlNo)
-                const result = await client.initializeDevice(
+                // 3. Call Initialization API (KRA docs: /initialize, response has resultCd and data.info.cmcKey)
+                const result = (await client.initializeDevice(
                     tin,
                     bhfId,
                     dvcSrlNo,
-                    accessToken // Pass the generated token
-                );
+                    accessToken
+                )) as {
+                    resultCd?: string;
+                    resultMsg?: string;
+                    data?: { info?: { cmcKey?: string }; cmcKey?: string };
+                    responseHeader?: { customerMessage?: string; debugMessage?: string };
+                    responseBody?: {
+                        resultCd?: string;
+                        resultMsg?: string;
+                        data?: { info?: { cmcKey?: string }; cmcKey?: string } | null;
+                    };
+                };
 
-                // 4. Extract cmcKey from result
-                // The structure depends on the client implementation. 
-                // Assuming result.data.info.cmcKey or result.cmcKey as seen in other files.
-                // Based on `invoicing/index.ts`: const cmcKey = response.data?.info?.cmcKey || response.data?.cmcKey || response.cmcKey;
-                const cmcKey = (result as any).data?.info?.cmcKey || (result as any).data?.cmcKey || (result as any).cmcKey;
+                // Normalize: API may return flat body (docs) or wrapped { responseHeader, responseBody }
+                const body = result.responseBody ?? result;
+                const resultCode = body.resultCd;
+                const resultMessage =
+                    body.resultMsg ??
+                    result.responseHeader?.customerMessage ??
+                    result.responseHeader?.debugMessage ??
+                    "Unknown eTIMS initialization response";
+
+                // Handle non-success: resultCd "000" = success per KRA docs
+                if (resultCode && resultCode !== "000") {
+                    if (resultCode === "902") {
+                        throw new TRPCError({
+                            code: "PRECONDITION_FAILED",
+                            message:
+                                "This eTIMS device is already installed. If you need to use it here, contact KRA/support to reset the device.",
+                            cause: result
+                        });
+                    }
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: `eTIMS initialization failed: ${resultMessage}`,
+                        cause: result
+                    });
+                }
+
+                // 4. Extract cmcKey per KRA docs: data.info.cmcKey
+                const data = body.data;
+                const cmcKey =
+                    data?.info?.cmcKey ?? (data as { cmcKey?: string } | undefined)?.cmcKey ?? (result as { cmcKey?: string }).cmcKey;
 
                 if (!cmcKey) {
                     throw new TRPCError({
@@ -82,11 +115,7 @@ export const etimsInitializationRouter = router({
                     });
                 }
 
-                // 4. Upsert Configuration
-                // Use findFirst + update/create logic since unique constraint on nullable might be tricky for upsert in all providers
-                // Or try upsert with simple logic if unique constraint holds.
-                // To be safe and consistent with findFirst pattern:
-
+                // 5. Upsert Configuration
                 const whereClause = input.teamId ? { teamId: input.teamId } : { teamId: null };
 
                 const existingConfig = await prisma.eTimsConfiguration.findFirst({
@@ -135,15 +164,20 @@ export const etimsInitializationRouter = router({
                     };
                 }
 
-            } catch (error: any) {
+            } catch (error: unknown) {
+                if (error instanceof TRPCError) throw error;
                 console.error("[eTIMS Initialization Error]", error);
 
-                // Try to parse KRA error message from the error string if possible
+                const err = error as { message?: string };
                 let customMessage = "Failed to initialize eTIMS device";
-                if (error.message && error.message.includes("{")) {
+                if (err.message?.includes("{")) {
                     try {
-                        const jsonPart = error.message.substring(error.message.indexOf("{"));
-                        const kraError = JSON.parse(jsonPart);
+                        const jsonPart = err.message.substring(err.message.indexOf("{"));
+                        const kraError = JSON.parse(jsonPart) as {
+                            responseBody?: { resultMsg?: string };
+                            header?: { customerMessage?: string };
+                            responseHeader?: { customerMessage?: string };
+                        };
                         if (kraError.responseBody?.resultMsg) {
                             customMessage = `KRA Error: ${kraError.responseBody.resultMsg}`;
                         } else if (kraError.header?.customerMessage) {
@@ -151,8 +185,8 @@ export const etimsInitializationRouter = router({
                         } else if (kraError.responseHeader?.customerMessage) {
                             customMessage = `KRA Error: ${kraError.responseHeader.customerMessage}`;
                         }
-                    } catch (e) {
-                        // Failed to parse, stick to default or raw message
+                    } catch {
+                        // keep default message
                     }
                 }
 
