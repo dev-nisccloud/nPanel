@@ -420,62 +420,69 @@ export default function MetaAdsPage() {
 						{/* Account Switcher & Date Picker */}
 						<div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-b border-muted pb-6">
 							<div className="w-full md:max-w-md flex items-center gap-2">
-								<Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-									<SelectTrigger className="w-full h-10 shadow-sm border-muted/60">
-										<SelectValue placeholder="Select an ad account">
-											{(() => {
-												const currentAccount = (accounts as any[]).find((acc: any) => acc.accountId === selectedAccountId);
-												if (selectedAccountId && currentAccount) {
-													const statusStyles = getStatusStyles(currentAccount.status);
-													return (
-														<div className="flex items-center justify-between w-full">
+								{isLoadingAccounts ? (
+									<div className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-muted/30 px-3 py-2 shadow-sm border-muted/60">
+										<Spinner size={16} className="shrink-0 text-muted-foreground" />
+										<span className="text-sm text-muted-foreground">Loading accounts…</span>
+									</div>
+								) : (
+									<Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+										<SelectTrigger className="w-full h-10 shadow-sm border-muted/60">
+											<SelectValue placeholder="Select an ad account">
+												{(() => {
+													const currentAccount = (accounts as any[]).find((acc: any) => acc.accountId === selectedAccountId);
+													if (selectedAccountId && currentAccount) {
+														const statusStyles = getStatusStyles(currentAccount.status);
+														return (
+															<div className="flex items-center justify-between w-full">
+																<div className="flex items-center gap-2">
+																	<Building2 className="h-4 w-4 text-muted-foreground" />
+																	<span className="truncate block max-w-[120px] md:max-w-[180px] lg:max-w-[240px] font-medium">
+																		{currentAccount.accountName || `Account ${selectedAccountId}`}
+																	</span>
+																</div>
+																<Badge
+																	variant={statusStyles.variant}
+																	className={cn("text-[8px] px-1 py-0 font-bold uppercase shrink-0 ml-2", statusStyles.className)}
+																>
+																	{currentAccount.status || "UNKNOWN"}
+																</Badge>
+															</div>
+														);
+													}
+													return null;
+												})()}
+											</SelectValue>
+										</SelectTrigger>
+										<SelectContent>
+											{(accounts as any[]).map((account: any) => {
+												const statusStyles = getStatusStyles(account.status);
+												return (
+													<SelectItem key={account.accountId} value={account.accountId}>
+														<div className="flex items-center justify-between w-full min-w-[200px]">
 															<div className="flex items-center gap-2">
 																<Building2 className="h-4 w-4 text-muted-foreground" />
-																<span className="truncate block max-w-[120px] md:max-w-[180px] lg:max-w-[240px] font-medium">
-																	{currentAccount.accountName || `Account ${selectedAccountId}`}
-																</span>
+																<span className="font-medium">{account.accountName || `Account ${account.accountId}`}</span>
 															</div>
 															<Badge
 																variant={statusStyles.variant}
-																className={cn("text-[8px] px-1 py-0 font-bold uppercase shrink-0 ml-2", statusStyles.className)}
+																className={cn("text-[8px] px-1 py-0 font-bold uppercase ml-2", statusStyles.className)}
 															>
-																{currentAccount.status || "UNKNOWN"}
+																{account.status || "UNKNOWN"}
 															</Badge>
 														</div>
-													);
-												}
-												return null;
-											})()}
-										</SelectValue>
-									</SelectTrigger>
-									<SelectContent>
-										{(accounts as any[]).map((account: any) => {
-											const statusStyles = getStatusStyles(account.status);
-											return (
-												<SelectItem key={account.accountId} value={account.accountId}>
-													<div className="flex items-center justify-between w-full min-w-[200px]">
-														<div className="flex items-center gap-2">
-															<Building2 className="h-4 w-4 text-muted-foreground" />
-															<span className="font-medium">{account.accountName || `Account ${account.accountId}`}</span>
-														</div>
-														<Badge
-															variant={statusStyles.variant}
-															className={cn("text-[8px] px-1 py-0 font-bold uppercase ml-2", statusStyles.className)}
-														>
-															{account.status || "UNKNOWN"}
-														</Badge>
-													</div>
-												</SelectItem>
-											);
-										})}
-									</SelectContent>
-								</Select>
+													</SelectItem>
+												);
+											})}
+										</SelectContent>
+									</Select>
+								)}
 								<Button
 									variant="outline"
 									size="icon"
 									className="h-10 w-10 shrink-0 border-muted/60 shadow-sm"
 									onClick={handleSync}
-									disabled={isSyncing}
+									disabled={isSyncing || isLoadingAccounts}
 									title="Sync accounts"
 								>
 									<RefreshCw className={cn("h-4 w-4 text-muted-foreground", isSyncing && "animate-spin")} />

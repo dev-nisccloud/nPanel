@@ -66,12 +66,13 @@ export const linkedInAdsAuthRouter = router({
 			const scope = integration.scope || '';
 			const hasAdsScopes = scope.includes('r_ads') || scope.includes('r_ads_reporting');
 
-			// Determine if connected (has valid token, status is ACTIVE, and has ads scopes)
+			// Determine if connected:
+			// treat any active, non-expired LinkedIn integration as "connected" for the Ads UI,
+			// and expose hasAdsScopes separately so the frontend can show a warning if needed.
 			const connected =
 				!!integration.accessToken &&
 				integration.status === 'ACTIVE' &&
-				!isExpired &&
-				hasAdsScopes;
+				!isExpired;
 
 			return {
 				success: true,

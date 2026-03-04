@@ -125,7 +125,7 @@ export function DomainSearchResults({
       {/* Top-level: exact match (no title) + suggested cards (.co.ke, .ke, bundle, .com) – load first */}
       {rawSearchQuery.trim().length > 0 && (
         <section className="mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-4 gap-4">
             <ExactMatchSection
               rawSearchQuery={rawSearchQuery.trim()}
               isDomainInCart={isDomainInCart}

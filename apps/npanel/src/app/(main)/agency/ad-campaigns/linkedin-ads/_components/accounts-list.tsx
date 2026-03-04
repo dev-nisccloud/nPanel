@@ -6,9 +6,10 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
-import { Linkedin, Building2, Globe, DollarSign } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { LinkedInAdsAccount } from "./schemas";
+import { ConnectLinkedInAds } from "./connect-linkedin-ads";
 
 export function AccountsList() {
 	const router = useRouter();
@@ -54,23 +55,7 @@ export function AccountsList() {
 
 	if (accounts.length === 0) {
 		return (
-			<Card>
-				<CardHeader>
-					<CardTitle>LinkedIn Ad Accounts</CardTitle>
-					<CardDescription>No accessible LinkedIn ad accounts found.</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className="flex flex-col items-center justify-center py-8 text-center">
-						<Linkedin className="h-12 w-12 text-muted-foreground mb-4" />
-						<p className="text-sm text-muted-foreground">
-							No LinkedIn ad accounts are accessible with your current integration.
-						</p>
-						<p className="text-xs text-muted-foreground mt-2">
-							Make sure you have access to at least one LinkedIn ad account.
-						</p>
-					</div>
-				</CardContent>
-			</Card>
+			<ConnectLinkedInAds />
 		);
 	}
 
