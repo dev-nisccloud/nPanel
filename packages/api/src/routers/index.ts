@@ -89,6 +89,7 @@ import { productsRouter } from "./products";
 import { clientSubscriptionsRouter } from "./client-subscriptions";
 import { subscriptionUsageRouter } from "./subscription-usage";
 import { niscServiceOrdersRouter } from "./nisc-service-orders";
+import { publicPricingRouter } from "./public-pricing";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -251,5 +252,7 @@ export const appRouter = router({
 	subscriptionUsage: subscriptionUsageRouter,
 	// NISC Service Orders (async processing via QStash)
 	niscServiceOrders: niscServiceOrdersRouter,
+	// Public, read-only pricing helpers (margin + conversion)
+	publicPricing: publicPricingRouter,
 });
 export type AppRouter = typeof appRouter;
