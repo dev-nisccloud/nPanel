@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { PageLoadingOverlay } from "@/components/page-loading-overlay";
+import { TopProgressBar } from "@/components/top-progress-bar";
 import { useNavigationLoading } from "@/contexts/navigation-loading-context";
 
 const HIDE_DELAY_MS = 400;
@@ -65,7 +65,5 @@ export function NavigationLoader() {
 
 
   const showOverlay = localLoading || contextNavigating;
-  if (!showOverlay) return null;
-
-  return <PageLoadingOverlay />;
+  return <TopProgressBar active={showOverlay} />;
 }
