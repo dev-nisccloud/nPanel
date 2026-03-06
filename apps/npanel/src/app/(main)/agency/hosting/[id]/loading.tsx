@@ -1,5 +1,5 @@
-import { PageLoadingOverlay } from "@/components/page-loading-overlay";
+import { TopProgressBar } from "@/components/top-progress-bar";
 
 export default function Loading() {
-  return <PageLoadingOverlay />;
+  return <TopProgressBar active />;
 }
