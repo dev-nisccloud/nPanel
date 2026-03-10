@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { ComboboxDropdown } from "@nPanel/ui/combobox-dropdown";
+import type { ComboboxItem } from "@nPanel/ui/combobox-dropdown";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,9 +42,15 @@ const editFormSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
   email: z.string().email("Invalid email address").optional(),
   role: z.enum(["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]).optional(),
+  agencyRoleId: z.string().optional(),
 }).refine(
   (data) => {
-    return data.name !== undefined || data.email !== undefined || data.role !== undefined;
+    return (
+      data.name !== undefined ||
+      data.email !== undefined ||
+      data.role !== undefined ||
+      data.agencyRoleId !== undefined
+    );
   },
   {
     message: "At least one field must be provided for update",
@@ -59,6 +67,7 @@ interface EditUserDialogProps {
     name: string;
     email: string;
     role: "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+    agencyRoleId?: string | null;
   };
   onSuccess?: () => void;
 }
@@ -76,6 +85,7 @@ export function EditUserDialog({
       name: initialData.name,
       email: initialData.email,
       role: initialData.role,
+      agencyRoleId: initialData.agencyRoleId ?? undefined,
     },
   });
 
@@ -84,8 +94,21 @@ export function EditUserDialog({
       name: initialData.name,
       email: initialData.email,
       role: initialData.role,
+      agencyRoleId: initialData.agencyRoleId ?? undefined,
     });
   }, [initialData, form]);
+
+  const { data: roles, isLoading: isLoadingRoles, error: rolesError, refetch: refetchRoles } =
+    trpc.agencyRbac.rolesList.useQuery(undefined, {
+      enabled: open,
+      staleTime: 60_000,
+    });
+
+  const assignRoleMutation = trpc.agencyRbac.userAgencyRoleAssign.useMutation({
+    onError: (error) => {
+      toast.error(error.message || "Failed to update agency role");
+    },
+  });
 
   const updateUserMutation = trpc.manageUsers.update.useMutation({
     onSuccess: () => {
@@ -108,7 +131,15 @@ export function EditUserDialog({
     },
   });
 
-  const onSubmit = (data: FormData) => {
+  const roleOptions: ComboboxItem[] = React.useMemo(() => {
+    if (!roles) return [];
+    return roles.map((role) => ({
+      id: role.id,
+      label: role.name,
+    }));
+  }, [roles]);
+
+  const onSubmit = async (data: FormData) => {
     const submitData: any = { userId };
 
     if (data.name !== undefined && data.name !== initialData.name) {
@@ -123,10 +154,39 @@ export function EditUserDialog({
       submitData.role = data.role;
     }
 
-    if (Object.keys(submitData).length > 1) {
-      updateUserMutation.mutate(submitData);
-    } else {
+    const selectedAgencyRoleId = data.agencyRoleId;
+
+    const hasProfileChanges = Object.keys(submitData).length > 1;
+    const agencyRoleChanged = selectedAgencyRoleId !== initialData.agencyRoleId;
+
+    if (!hasProfileChanges && !agencyRoleChanged) {
       toast.info("No changes to save");
+      return;
+    }
+
+    try {
+      if (hasProfileChanges) {
+        await updateUserMutation.mutateAsync(submitData);
+      }
+
+      if (agencyRoleChanged) {
+        await assignRoleMutation.mutateAsync({
+          userId,
+          roleId: selectedAgencyRoleId ?? null,
+        });
+      }
+
+      toast.success("User updated successfully");
+      form.reset({
+        name: data.name ?? initialData.name,
+        email: data.email ?? initialData.email,
+        role: data.role ?? initialData.role,
+        agencyRoleId: selectedAgencyRoleId,
+      });
+      onOpenChange(false);
+      onSuccess?.();
+    } catch {
+      // errors are handled in individual mutations
     }
   };
 
@@ -198,6 +258,66 @@ export function EditUserDialog({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            <FormField
+              control={form.control}
+              name="agencyRoleId"
+              render={({ field }) => {
+                const selectedRole = roleOptions.find((r) => r.id === field.value);
+
+                return (
+                  <FormItem>
+                    <FormLabel>
+                      Agency Role
+                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">(optional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      {isLoadingRoles ? (
+                        <div className="flex h-10 items-center justify-center rounded-md border">
+                          <Spinner variant="ellipsis" size="sm" />
+                        </div>
+                      ) : rolesError ? (
+                        <div className="flex items-center justify-between gap-2">
+                          <ComboboxDropdown
+                            placeholder="Failed to load agency roles"
+                            searchPlaceholder="Search roles..."
+                            items={[]}
+                            selectedItem={undefined}
+                            onSelect={() => undefined}
+                            emptyResults="Failed to load roles"
+                            disabled
+                            className="w-full"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => refetchRoles()}
+                            aria-label="Retry"
+                          >
+                            <Spinner size={14} className="mr-0" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <ComboboxDropdown
+                          placeholder="Select agency role (optional)"
+                          searchPlaceholder="Search roles..."
+                          items={roleOptions}
+                          selectedItem={selectedRole}
+                          onSelect={(item) => {
+                            field.onChange(item.id);
+                          }}
+                          emptyResults="No roles found"
+                          disabled={roleOptions.length === 0}
+                          className="w-full"
+                        />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <Separator />

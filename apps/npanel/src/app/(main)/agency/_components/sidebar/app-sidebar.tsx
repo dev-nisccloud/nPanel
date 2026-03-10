@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Settings, CircleHelp, Search, Database, ClipboardList, File } from "lucide-react";
 
 import {
@@ -13,7 +14,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { APP_CONFIG } from "@/config/app-config";
-import { agencysidebarItems } from "@/navigation/sidebar/sidebar-items";
+import { agencysidebarItems, type NavGroup, type NavMainItem } from "@/navigation/sidebar/sidebar-items";
+import { authClient } from "@/lib/auth-client";
+import { trpc } from "@/utils/trpc";
 
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
@@ -56,6 +59,64 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session } = authClient.useSession();
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const isAgencySuperAdmin = userRole === "AGENCY_SUPER_ADMIN";
+
+  const { data: menuAccess } = trpc.agencyRbac.myMenuAccess.useQuery(undefined, {
+    enabled: !!session?.user && !isAgencySuperAdmin,
+    staleTime: 60_000,
+  });
+
+  const effectiveItems = React.useMemo<NavGroup[]>(() => {
+    if (isAgencySuperAdmin) {
+      return agencysidebarItems;
+    }
+
+    // While permissions are loading, show nothing to avoid flicker
+    if (!menuAccess) {
+      return [];
+    }
+
+    // If this user has not been assigned an agency role yet, show full menu
+    // and rely on high-level role (AGENCY_* vs CUSTOMER) for coarse access.
+    if (!menuAccess.roleId) {
+      return agencysidebarItems;
+    }
+
+    const allowedKeys = new Set(menuAccess.allowedKeys ?? []);
+
+    const filtered: NavGroup[] = [];
+
+    for (const group of agencysidebarItems) {
+      const items: NavMainItem[] = [];
+
+      for (const item of group.items) {
+        const itemAllowed = allowedKeys.has(item.url as any);
+        const filteredSub =
+          item.subItems?.filter((sub) => allowedKeys.has(sub.url as any)) ?? [];
+
+        if (!itemAllowed && filteredSub.length === 0) {
+          continue;
+        }
+
+        items.push({
+          ...item,
+          subItems: filteredSub.length > 0 ? filteredSub : itemAllowed ? undefined : filteredSub,
+        });
+      }
+
+      if (items.length > 0) {
+        filtered.push({
+          ...group,
+          items,
+        });
+      }
+    }
+
+    return filtered;
+  }, [isAgencySuperAdmin, menuAccess]);
+
   const { state } = useSidebar();
   const isExpanded = state === "expanded";
 
@@ -85,7 +146,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={agencysidebarItems} />
+        <NavMain items={effectiveItems} />
         {/* <NavDocuments items={data.documents} /> */}
         {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>

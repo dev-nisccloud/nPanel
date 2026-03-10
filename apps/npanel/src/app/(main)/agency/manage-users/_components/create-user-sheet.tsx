@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { RefreshCw, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { ComboboxDropdown } from "@nPanel/ui/combobox-dropdown";
+import type { ComboboxItem } from "@nPanel/ui/combobox-dropdown";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +42,7 @@ const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   role: z.enum(["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]),
+  agencyRoleId: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -64,17 +67,44 @@ export function CreateUserSheet({
       email: "",
       password: "",
       role: "AGENCY_USER",
+      agencyRoleId: undefined,
+    },
+  });
+
+  const { data: roles, isLoading: isLoadingRoles, error: rolesError, refetch: refetchRoles } =
+    trpc.agencyRbac.rolesList.useQuery(undefined, {
+      enabled: open,
+      staleTime: 60_000,
+    });
+
+  const assignRoleMutation = trpc.agencyRbac.userAgencyRoleAssign.useMutation({
+    onError: (error) => {
+      toast.error(error.message || "User created, but assigning agency role failed");
     },
   });
 
   const createUserMutation = trpc.manageUsers.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async (user) => {
+      const selectedAgencyRoleId = form.getValues("agencyRoleId");
+
+      if (selectedAgencyRoleId) {
+        try {
+          await assignRoleMutation.mutateAsync({
+            userId: user.id,
+            roleId: selectedAgencyRoleId,
+          });
+        } catch {
+          // error already handled by mutation onError
+        }
+      }
+
       toast.success("User created successfully");
       form.reset({
         name: "",
         email: "",
         password: "",
         role: "AGENCY_USER",
+        agencyRoleId: undefined,
       });
       onOpenChange(false);
       onSuccess?.();
@@ -83,6 +113,14 @@ export function CreateUserSheet({
       toast.error(error.message || "Failed to create user");
     },
   });
+
+  const roleOptions: ComboboxItem[] = React.useMemo(() => {
+    if (!roles) return [];
+    return roles.map((role) => ({
+      id: role.id,
+      label: role.name,
+    }));
+  }, [roles]);
 
   // Password generator function
   const generatePassword = () => {
@@ -179,6 +217,66 @@ export function CreateUserSheet({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            <FormField
+              control={form.control}
+              name="agencyRoleId"
+              render={({ field }) => {
+                const selectedRole = roleOptions.find((r) => r.id === field.value);
+
+                return (
+                  <FormItem>
+                    <FormLabel>
+                      Agency Role
+                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">(optional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      {isLoadingRoles ? (
+                        <div className="flex h-10 items-center justify-center rounded-md border">
+                          <Spinner variant="ellipsis" size="sm" />
+                        </div>
+                      ) : rolesError ? (
+                        <div className="flex items-center justify-between gap-2">
+                          <ComboboxDropdown
+                            placeholder="Failed to load agency roles"
+                            searchPlaceholder="Search roles..."
+                            items={[]}
+                            selectedItem={undefined}
+                            onSelect={() => undefined}
+                            emptyResults="Failed to load roles"
+                            disabled
+                            className="w-full"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => refetchRoles()}
+                            aria-label="Retry"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <ComboboxDropdown
+                          placeholder="Select agency role (optional)"
+                          searchPlaceholder="Search roles..."
+                          items={roleOptions}
+                          selectedItem={selectedRole}
+                          onSelect={(item) => {
+                            field.onChange(item.id);
+                          }}
+                          emptyResults="No roles found"
+                          disabled={roleOptions.length === 0}
+                          className="w-full"
+                        />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField

@@ -90,6 +90,7 @@ import { clientSubscriptionsRouter } from "./client-subscriptions";
 import { subscriptionUsageRouter } from "./subscription-usage";
 import { niscServiceOrdersRouter } from "./nisc-service-orders";
 import { publicPricingRouter } from "./public-pricing";
+import { agencyRbacRouter } from "./agency-rbac";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -254,5 +255,7 @@ export const appRouter = router({
 	niscServiceOrders: niscServiceOrdersRouter,
 	// Public, read-only pricing helpers (margin + conversion)
 	publicPricing: publicPricingRouter,
+	// Agency RBAC – roles and menu access
+	agencyRbac: agencyRbacRouter,
 });
 export type AppRouter = typeof appRouter;

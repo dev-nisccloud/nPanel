@@ -250,6 +250,7 @@ model User {
   emailVerified      Boolean    @default(false)
   image              String?
   role               UserRole   @default(CUSTOMER)
+  agencyRoleId       String?
   status             UserStatus @default(ACTIVE)
   lastAccessedTeamId String?
   lastLoginAt        DateTime?
@@ -317,8 +318,11 @@ model User {
   EmailBuilderLibrary           EmailBuilderLibrary[]
   EmailAudience                 EmailAudience[]
 
+  agencyRole AgencyRole? @relation(fields: [agencyRoleId], references: [id], onDelete: SetNull)
+
   @@unique([email])
   @@index([role])
+  @@index([agencyRoleId])
   @@index([status])
   @@index([lastAccessedTeamId])
   @@map("user")
