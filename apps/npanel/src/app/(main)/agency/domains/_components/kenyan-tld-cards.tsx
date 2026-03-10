@@ -271,11 +271,11 @@ export function KenyanTldCards({
 							key={item.domain}
 							domain={item.domain}
 							isAvailable={item.available}
-							originalPrice={item.createPrice}
-							originalCurrency={currency}
-							marginLabel={marginLabel ?? undefined}
-							displayPrice={priced.createFinal}
-							displayCurrency={currency}
+							originalPrice={item.available ? item.createPrice : undefined}
+							originalCurrency={item.available ? currency : undefined}
+							marginLabel={item.available ? marginLabel ?? undefined : undefined}
+							displayPrice={item.available ? priced.createFinal : undefined}
+							displayCurrency={item.available ? currency : undefined}
 							reason={item.reason ?? undefined}
 							displayResult={displayResult}
 							isDomainInCart={isDomainInCart}

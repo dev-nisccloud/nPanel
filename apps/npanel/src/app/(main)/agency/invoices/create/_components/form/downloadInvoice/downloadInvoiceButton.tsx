@@ -297,34 +297,21 @@ export const DownloadInvoiceButton = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-208px)] justify-center items-center">
-      <div>
-        <h1 className="text-5xl font-semibold pb-6">Your invoice is ready</h1>
-        <p className="text-neutral-500 text-xl pb-7">
+    <div className="flex h-[calc(100vh-208px)] justify-center items-center px-4">
+      <div className="text-center max-w-xl mx-auto">
+        <h1 className="text-3xl font-semibold pb-4">Your invoice is ready</h1>
+        <p className="text-neutral-500 text-base pb-6">
           Review the details carefully before submitting. The invoice will be saved to the database. You can send it to the customer from the invoice details page when you&apos;re ready.
         </p>
         <Button
           disabled={status === "submitting" || status === "submitted"}
           onClick={handleSubmitInvoice}
           type="button"
-          className="w-full h-12 rounded-lg text-lg"
+          className="h-12 rounded-lg text-base px-12 mx-auto block min-w-[260px]"
         >
-          {status === "not-submitted" && (
-            <>
-              <Send className="mr-2 h-6 w-6" /> Submit Invoice
-            </>
-          )}
-          {status === "submitting" && (
-            <>
-              <LoaderIcon className="mr-2 h-6 w-6 animate-spin" />{" "}
-              Submitting...
-            </>
-          )}
-          {status === "submitted" && (
-            <>
-              <CheckCircle2 className="mr-2 h-6 w-6" /> Invoice Submitted
-            </>
-          )}
+          {status === "not-submitted" && "Submit Invoice"}
+          {status === "submitting" && "Submitting..."}
+          {status === "submitted" && "Invoice Submitted"}
         </Button>
       </div>
     </div>

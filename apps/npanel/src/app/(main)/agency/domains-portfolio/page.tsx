@@ -210,6 +210,7 @@ export default function DomainsPortfolioPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem onClick={() => handleNavigation(`/agency/domains-portfolio/${domain.id}`)}>
+                              <Globe className="mr-2 h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
                             <Tooltip>

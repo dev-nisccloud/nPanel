@@ -20,14 +20,14 @@ export interface DomainResultRowProps {
 	domain: string;
 	/** Whether the domain is available for registration. */
 	isAvailable: boolean;
-	/** Original price before markup (small text below domain). */
+	/** Original price before markup (small text below domain). Only used when available. */
 	originalPrice?: number;
 	originalCurrency?: string;
-	/** Margin description e.g. "+15% (+KSh 100)" or "+KSh 50" – shown below original. */
+	/** Margin description e.g. "+15% (+KSh 100)" or "+KSh 50" – shown below original. Only used when available. */
 	marginLabel?: string | null;
-	/** Final price to show (after markup and conversion) – bold, primary. */
-	displayPrice: number;
-	displayCurrency: string;
+	/** Final price to show (after markup and conversion) – bold, primary. Only used when available. */
+	displayPrice?: number;
+	displayCurrency?: string;
 	/** Reason/description from API – shown in left column. */
 	reason?: string | null;
 	/** For cart and Buy Now. */
@@ -107,12 +107,14 @@ export function DomainResultRow({
 				</div>
 				{/* Right: price /1st yr, Buy Now, cart */}
 				<div className="flex items-center gap-3 shrink-0">
-					<div className="text-right">
-						<span className="font-bold text-sm text-primary">
-							{formatPrice(displayPrice, displayCurrency)}
-						</span>
-						<span className="text-sm text-foreground"> /1st yr</span>
-					</div>
+					{isAvailable && displayPrice != null && displayCurrency && (
+						<div className="text-right">
+							<span className="font-bold text-sm text-primary">
+								{formatPrice(displayPrice, displayCurrency)}
+							</span>
+							<span className="text-sm text-foreground"> /1st yr</span>
+						</div>
+					)}
 					{isAvailable ? (
 						<div className="flex items-center gap-1.5">
 							<Button

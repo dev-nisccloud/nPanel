@@ -18,8 +18,8 @@ export const InvoicingContent = () => {
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Create Invoice</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-base font-semibold tracking-tight">Create Invoice</h1>
+        <p className="text-xs text-muted-foreground">
           Create and customize your invoice with a step-by-step process.
         </p>
       </div>

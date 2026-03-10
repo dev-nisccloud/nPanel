@@ -197,6 +197,11 @@ export const PaymentDetailsPreview: React.FC<
         {renderPaymentDetails()}
       </div>
       <div className="py-4 px-10 flex flex-col items-end justify-center">
+        <div className="w-full flex justify-end mb-3">
+          <p className="text-[11px] text-neutral-400 font-medium uppercase">
+            eTIMS verification
+          </p>
+        </div>
         {qrCodeValue ? (
           <QRCodeSVG
             value={qrCodeValue}

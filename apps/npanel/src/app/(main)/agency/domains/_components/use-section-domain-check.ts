@@ -64,6 +64,7 @@ export function nameForOpenProvider(name: string): string {
 
 const STALE_TIME = 5 * 60 * 1000;
 const GC_TIME = 10 * 60 * 1000;
+const MAX_EXTENSIONS_PER_SECTION = 150;
 
 export function useSectionDomainCheck(
 	searchQuery: string,
@@ -71,10 +72,11 @@ export function useSectionDomainCheck(
 	inView: boolean,
 	pricingHook: DomainPricingHook
 ) {
-	const extensions = React.useMemo(
-		() => getExtensionsForSection(sectionId),
-		[sectionId]
-	);
+	const extensions = React.useMemo(() => {
+		const all = getExtensionsForSection(sectionId);
+		if (all.length <= MAX_EXTENSIONS_PER_SECTION) return all;
+		return all.slice(0, MAX_EXTENSIONS_PER_SECTION);
+	}, [sectionId]);
 	const hasExtensions = extensions.length > 0;
 
 	const query = trpc.openProvider.domains.checkAvailability.useQuery(
@@ -110,8 +112,8 @@ export function useSectionDomainCheck(
 		};
 	}, []);
 
-	// Start pricing batch as soon as query data arrives (before paint)
-	React.useLayoutEffect(() => {
+	// Start pricing batch as soon as query data arrives, without blocking initial paint
+	React.useEffect(() => {
 		if (!query.data?.success || !query.data.data?.results) {
 			setProcessedResults([]);
 			return;

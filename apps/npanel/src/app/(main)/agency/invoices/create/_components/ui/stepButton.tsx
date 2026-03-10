@@ -15,7 +15,7 @@ const StepButton = ({ isPrevious, title, step }: StepButtonProps) => (
       <div className="mt-3 w-full flex">
         {isPrevious ? (
           <button
-            className="flex-1  hover:bg-neutral-100 rounded-md p-3"
+            className="flex-1 hover:bg-neutral-100 rounded-md p-3 cursor-pointer"
             onClick={() => {
               onChange(step);
             }}
@@ -42,7 +42,7 @@ const StepButton = ({ isPrevious, title, step }: StepButtonProps) => (
             onClick={() => {
               onChange(step);
             }}
-            className="flex-1  hover:bg-neutral-100 rounded-md p-3"
+            className="flex-1 hover:bg-neutral-100 rounded-md p-3 cursor-pointer"
           >
             <div className="flex gap-2 justify-end items-center">
               <p className="text-sm font-medium text-neutral-500 ">Next </p>

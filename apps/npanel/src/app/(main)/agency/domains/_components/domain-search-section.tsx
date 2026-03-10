@@ -41,6 +41,7 @@ function sectionResultToRowProps(
 	onAddToCart: (r: DomainSearchResult) => void,
 	onRemoveFromCart: (domain: string) => void
 ) {
+	const isAvailable = result.status === "free";
 	const calculated = result.price?.calculated as {
 		convertedPrice?: number;
 		convertedOriginalPrice?: number;
@@ -49,15 +50,24 @@ function sectionResultToRowProps(
 		originalPrice?: number;
 		currency?: string;
 	} | undefined;
-	const displayPrice = calculated?.convertedPrice ?? calculated?.finalPrice ?? result.price?.reseller?.price ?? 0;
-	const displayCurrency = calculated?.displayCurrency ?? calculated?.currency ?? result.price?.reseller?.currency ?? "USD";
-	// Show original in display (converted) currency when available
-	const originalPrice = calculated?.convertedOriginalPrice ?? calculated?.originalPrice ?? result.price?.reseller?.price;
-	const originalCurrency = displayCurrency;
-	const marginLabel = formatMarginInfo(result.price?.calculated, formatPrice);
+
+	let displayPrice: number | undefined;
+	let displayCurrency: string | undefined;
+	let originalPrice: number | undefined;
+	let originalCurrency: string | undefined;
+	let marginLabel: string | null = null;
+
+	if (isAvailable) {
+		displayPrice = calculated?.convertedPrice ?? calculated?.finalPrice ?? result.price?.reseller?.price;
+		displayCurrency = calculated?.displayCurrency ?? calculated?.currency ?? result.price?.reseller?.currency ?? "USD";
+		// Show original in display (converted) currency when available
+		originalPrice = calculated?.convertedOriginalPrice ?? calculated?.originalPrice ?? result.price?.reseller?.price;
+		originalCurrency = displayCurrency;
+		marginLabel = formatMarginInfo(result.price?.calculated, formatPrice);
+	}
 	return {
 		domain: result.domain,
-		isAvailable: result.status === "free",
+		isAvailable,
 		originalPrice,
 		originalCurrency,
 		marginLabel: marginLabel ?? undefined,
@@ -97,6 +107,8 @@ function SectionSkeleton() {
 		</div>
 	);
 }
+
+const MAX_VISIBLE_RESULTS = 100;
 
 export interface DomainSearchSectionProps {
 	sectionId: string;
@@ -140,6 +152,13 @@ export function DomainSearchSection({
 		onLoadingChangeRef.current?.(isSelected ? isLoading : false);
 	}, [isSelected, isLoading]);
 
+	const [visibleCount, setVisibleCount] = React.useState(MAX_VISIBLE_RESULTS);
+	const hasMore = results.length > visibleCount;
+	const visibleResults = React.useMemo(
+		() => results.slice(0, visibleCount),
+		[results, visibleCount]
+	);
+
 	const title = sectionId === SECTION_ID_ALL ? "All TLDs" : getSectionTitle(sectionId);
 
 	if (!searchQuery.trim()) return null;
@@ -167,14 +186,27 @@ export function DomainSearchSection({
 				<p className="text-sm text-muted-foreground">No domains in this category.</p>
 			)}
 			{!isLoading && !isError && results.length > 0 && (
-				<DomainResultList>
-					{results.map((result, index) => (
-						<DomainResultRow
-							key={`${result.domain}-${index}`}
-							{...sectionResultToRowProps(result, isDomainInCart, onAddToCart, onRemoveFromCart)}
-						/>
-					))}
-				</DomainResultList>
+				<>
+					<DomainResultList>
+						{visibleResults.map((result, index) => (
+							<DomainResultRow
+								key={`${result.domain}-${index}`}
+								{...sectionResultToRowProps(result, isDomainInCart, onAddToCart, onRemoveFromCart)}
+							/>
+						))}
+					</DomainResultList>
+					{hasMore && (
+						<div className="mt-4 flex justify-center">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setVisibleCount((prev) => prev + MAX_VISIBLE_RESULTS)}
+							>
+								Show more ({results.length - visibleCount} more)
+							</Button>
+						</div>
+					)}
+				</>
 			)}
 		</section>
 	);
