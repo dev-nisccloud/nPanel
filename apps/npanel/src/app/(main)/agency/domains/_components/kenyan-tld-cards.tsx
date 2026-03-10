@@ -216,7 +216,7 @@ export function KenyanTldCards({
 
 	const onLoadingChangeRef = React.useRef(onLoadingChange);
 	onLoadingChangeRef.current = onLoadingChange;
-	React.useLayoutEffect(() => {
+	React.useEffect(() => {
 		onLoadingChangeRef.current?.(isSelected ? checkMutation.isPending : false);
 	}, [isSelected, checkMutation.isPending]);
 

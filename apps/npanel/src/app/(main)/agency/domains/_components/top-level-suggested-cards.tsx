@@ -124,8 +124,8 @@ export function TopLevelSuggestedCards({
 	const calculatePricesBatchRef = React.useRef(calculatePricesBatch);
 	calculatePricesBatchRef.current = calculatePricesBatch;
 
-	// Start pricing batch as soon as OpenProvider data arrives (before paint)
-	React.useLayoutEffect(() => {
+	// Start pricing batch as soon as OpenProvider data arrives (after paint)
+	React.useEffect(() => {
 		const rawResults = queryData?.success && queryData?.data?.results
 			? (queryData.data.results as Array<{ domain: string; status: string; reason?: string; price?: DomainSearchResult["price"] }>)
 			: [];
@@ -206,7 +206,7 @@ export function TopLevelSuggestedCards({
 	const onLoadingChangeRef = React.useRef(onLoadingChange);
 	onLoadingChangeRef.current = onLoadingChange;
 	const loading = kenicMutation.isPending || openProviderQuery.isLoading || !openProviderSettled;
-	React.useLayoutEffect(() => {
+	React.useEffect(() => {
 		onLoadingChangeRef.current?.(loading);
 	}, [loading]);
 

@@ -152,13 +152,10 @@ function SearchTldCard({
     const key = `${rawResult.domain}-${rawResult.status}-${rawResult.price?.reseller?.price ?? 0}`;
     if (pricingKeyRef.current === key && pricedResultRef.current) return;
     pricingKeyRef.current = key;
-    const timer = setTimeout(() => {
-      pricingHook.calculatePricesBatch([rawResult]).then(([priced]) => {
-        pricedResultRef.current = priced;
-        setPricedResult(priced);
-      }).catch(() => setPricedResult(rawResult));
-    }, 0);
-    return () => clearTimeout(timer);
+    pricingHook.calculatePricesBatch([rawResult]).then(([priced]) => {
+      pricedResultRef.current = priced;
+      setPricedResult(priced);
+    }).catch(() => setPricedResult(rawResult));
   }, [rawResult, pricingHook]);
 
   const displayResult = pricedResult || rawResult;

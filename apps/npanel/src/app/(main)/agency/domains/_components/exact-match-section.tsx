@@ -146,8 +146,8 @@ export function ExactMatchSection({
 		);
 	}, [fullDomain, isKenic, parsed?.name, parsed?.tld]);
 
-	// OpenProvider: clear when domain changes; start pricing batch as soon as raw data exists (before paint)
-	React.useLayoutEffect(() => {
+	// OpenProvider: clear when domain changes; start pricing batch when raw data exists (after paint)
+	React.useEffect(() => {
 		if (!openProviderRaw || !pricingHook?.calculatePricesBatch) {
 			setOpenProviderResult(null);
 			return;
@@ -182,7 +182,7 @@ export function ExactMatchSection({
 	const kenicLoading = isKenic && kenicMutation.isPending;
 	const openProviderLoading = !isKenic && openProviderQuery.isLoading;
 	const anyLoading = kenicLoading || openProviderLoading;
-	React.useLayoutEffect(() => {
+	React.useEffect(() => {
 		onLoadingChangeRef.current?.(anyLoading);
 	}, [anyLoading]);
 
