@@ -121,7 +121,7 @@ export function TopProgressBar({ active, className }: TopProgressBarProps) {
       style={{ top: "env(safe-area-inset-top, 0px)" }}
       aria-hidden="true"
     >
-      <div className="h-1.5 w-full bg-transparent">
+      <div className="h-0.5 w-full bg-transparent">
         <div
           className={cn(
             "h-full origin-left transition-[width,opacity] duration-200 ease-out",

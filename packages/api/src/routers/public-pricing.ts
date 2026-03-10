@@ -34,6 +34,21 @@ export const publicPricingRouter = router({
     )
     .query(async () => {
       try {
+        // If DATABASE_URL is not configured (e.g. standalone landing page env),
+        // skip Prisma entirely and return an "empty" margin config instead of
+        // throwing a PrismaClientInitializationError.
+        if (!process.env.DATABASE_URL) {
+          return {
+            success: true,
+            data: {
+              marginType: null,
+              percentageMargin: null,
+              fixedMargin: null,
+              roundOff: null,
+            },
+          };
+        }
+
         // Fetch global default TLD setting directly from the database.
         const defaultSetting = await prisma.tldSettings.findFirst({
           where: { isDefault: true },

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
+import { TopProgressBar } from "@/components/top-progress-bar";
 
 type SwitchingTeamContextValue = {
   isSwitchingTeam: boolean;
@@ -49,24 +50,11 @@ export function SwitchingTeamProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Overlay shown when switching companies. Matches NavigationLoader style
- * so the user sees a full-screen “Switching company...” state and cannot interact.
+ * Loading indicator when switching companies. Uses the same top progress bar
+ * as route navigation so the experience is consistent.
  * Must be rendered inside SwitchingTeamProvider.
  */
 export function SwitchingTeamOverlay() {
   const ctx = useContext(SwitchingTeamContext);
-  if (!ctx?.isSwitchingTeam) {
-    return null;
-  }
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-      aria-live="polite"
-      aria-busy="true"
-    >
-      <div className="flex flex-col items-center justify-center">
-        <p className="text-xl font-bold text-muted-foreground">Switching company...</p>
-      </div>
-    </div>
-  );
+  return <TopProgressBar active={ctx?.isSwitchingTeam ?? false} />;
 }
