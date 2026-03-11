@@ -77,6 +77,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const mutationRef = React.useRef(convertPricesMutation);
   mutationRef.current = convertPricesMutation;
 
+  // Keep latest exchange rates in a ref so convertPricesBatch can use them without re-creating the callback
+  const exchangeRatesRef = React.useRef(exchangeRates);
+  exchangeRatesRef.current = exchangeRates;
+
   // Batch convert prices function - stabilized with useCallback
   // Empty deps array ensures function reference stays stable
   const convertPricesBatch = React.useCallback(async (
@@ -87,6 +91,39 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       return [];
     }
 
+    const latestRates = exchangeRatesRef.current;
+    const rates = latestRates?.success === true && latestRates.data?.rates
+      ? (latestRates.data.rates as Record<string, number>)
+      : null;
+
+    // Fast path: convert fully on client using loaded exchange rates
+    if (rates) {
+      return prices.map(({ amount, currency }) => {
+        let rate = 1;
+
+        if (currency === targetCurrency) {
+          rate = 1;
+        } else if (currency === 'USD') {
+          rate = rates[targetCurrency] ?? 1;
+        } else if (targetCurrency === 'USD') {
+          rate = 1 / (rates[currency] ?? 1);
+        } else {
+          const usdToSource = rates[currency] ?? 1;
+          const usdToTarget = rates[targetCurrency] ?? 1;
+          rate = usdToTarget / usdToSource;
+        }
+
+        const convertedAmount = Math.round(amount * rate * 100) / 100;
+        return {
+          originalAmount: amount,
+          convertedAmount,
+          rate,
+          currency: targetCurrency,
+        };
+      });
+    }
+
+    // Fallback: use server mutation if rates are not yet available
     try {
       const result = await mutationRef.current.mutateAsync({
         prices,
