@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, publicProcedure } from '../../trpc';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
-import { Redis } from "@upstash/redis";
+import { getRedisClient } from '../../lib/redis';
 import type { 
   OpenProviderDomainCheckRequest,
   OpenProviderDomainRegistrationRequest,
@@ -15,27 +15,15 @@ import type {
   OpenProviderCustomerAdditionalDataRequest,
 } from '../../types/openprovider';
 
-// P1-6: Redis client for backend response caching
-let redisInstance: Redis | null = null;
+/** Whether an OpenProvider error indicates expired/invalid auth (retry with re-auth). */
+function isOpenProviderAuthError(error: unknown): error is OpenProviderApiError {
+  return error instanceof OpenProviderApiError && (error.code === 401 || error.code === 403);
+}
 
-function getRedisClient(): Redis | null {
-  try {
-    if (!redisInstance) {
-      const url = process.env.UPSTASH_REDIS_REST_URL;
-      const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-      if (!url || !token) {
-        // Redis not configured - caching disabled
-        return null;
-      }
-
-      redisInstance = new Redis({ url, token });
-    }
-    return redisInstance;
-  } catch (error) {
-    console.error('Failed to initialize Redis client:', error);
-    return null;
-  }
+/** Whether an OpenProvider error is transient (timeout or server error); can retry once. */
+function isOpenProviderTransientError(error: unknown): error is OpenProviderApiError {
+  if (!(error instanceof OpenProviderApiError)) return false;
+  return error.code === 504 || (error.code >= 500 && error.code < 600);
 }
 
 // Validation schemas
@@ -53,6 +41,13 @@ const DomainCheckRequestSchema = z.object({
   }).optional(),
 }).refine((data) => data.domains || data.name, {
   message: "Either 'domains' array or 'name' must be provided"
+}).refine((data) => {
+  // When checking by name (no domains array), extensions are required (UI always passes them).
+  if (data.name && !data.domains) return (data.extensions?.length ?? 0) > 0;
+  return true;
+}, {
+  message: "extensions are required when checking by name (e.g. ['.com', '.net']). Pass the TLDs to check.",
+  path: ['extensions'],
 });
 
 const DomainRegistrationRequestSchema = z.object({
@@ -200,66 +195,42 @@ export const openProviderDomainsRouter = router({
         }
 
         const client = createOpenProviderClient();
-        
-        // Try to authenticate with environment credentials
-        try {
-          await client.authenticate({
-            username: process.env.OPENPROVIDER_USERNAME!,
-            password: process.env.OPENPROVIDER_PASSWORD!,
-            ip: process.env.OPENPROVIDER_IP,
-          });
-        } catch (authError) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
-          });
+
+        // Authenticate only when client has no token (reuse token across requests; client clears on 401)
+        if (!client.isAuthenticated()) {
+          try {
+            await client.authenticate({
+              username: process.env.OPENPROVIDER_USERNAME!,
+              password: process.env.OPENPROVIDER_PASSWORD!,
+              ip: process.env.OPENPROVIDER_IP,
+            });
+          } catch (authError) {
+            throw new TRPCError({
+              code: 'UNAUTHORIZED',
+              message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            });
+          }
         }
 
         let checkRequest: OpenProviderDomainCheckRequest;
 
-        // If only name is provided, use specific extensions or all available TLDs
         if (input.name && !input.domains) {
-          let extensionsToUse: string[] = [];
-          
-          if (input.extensions && input.extensions.length > 0) {
-            // Use provided extensions - ensure they start with dot
-            extensionsToUse = input.extensions.map(ext => ext.startsWith('.') ? ext : `.${ext}`);
-          } else {
-            // Fetch all available TLDs from OpenProvider
-            try {
-              const tldResponse = await client.getTlds({
-                status: 'ACT',
-                with_price: true,
-                limit: 1000, // Get a large number of TLDs
-              });
-              
-              if (tldResponse.code === 0 && tldResponse.data.results) {
-                extensionsToUse = tldResponse.data.results.map((tld: any) => tld.name);
-              } else {
-                // Fallback to popular extensions if TLD fetch fails
-                extensionsToUse = ['.com', '.net', '.org', '.info', '.biz', '.co', '.io', '.me', '.tv', '.cc', '.xyz', '.online', '.site', '.store', '.tech'];
-              }
-            } catch (tldError) {
-              // Fallback to popular extensions if TLD fetch fails
-              extensionsToUse = ['.com', '.net', '.org', '.info', '.biz', '.co', '.io', '.me', '.tv', '.cc', '.xyz', '.online', '.site', '.store', '.tech'];
-            }
-          }
-
-            checkRequest = {
-              domains: extensionsToUse.map(extension => ({
-                name: input.name!,
-                extension: extension.startsWith('.') ? extension.substring(1) : extension, // Remove dot if present
-              })),
-              with_price: input.with_price,
-              with_whois: input.with_whois,
-              additional_data: input.additional_data,
-            };
+          // Extensions are required when checking by name (validated by schema)
+          const extensionsToUse = (input.extensions ?? []).map(ext => ext.startsWith('.') ? ext : `.${ext}`);
+          checkRequest = {
+            domains: extensionsToUse.map(extension => ({
+              name: input.name!,
+              extension: extension.startsWith('.') ? extension.substring(1) : extension,
+            })),
+            with_price: input.with_price,
+            with_whois: input.with_whois,
+            additional_data: input.additional_data,
+          };
         } else {
-          // Use provided domains array - ensure extensions don't have dots
           checkRequest = {
             domains: input.domains!.map(domain => ({
               name: domain.name,
-              extension: domain.extension.startsWith('.') ? domain.extension.substring(1) : domain.extension, // Remove dot if present
+              extension: domain.extension.startsWith('.') ? domain.extension.substring(1) : domain.extension,
             })),
             with_price: input.with_price,
             with_whois: input.with_whois,
@@ -267,79 +238,74 @@ export const openProviderDomainsRouter = router({
           };
         }
 
-        // Call OpenProvider domain check API
-        let checkResponse;
-        
-        // If we have many domains, batch them into smaller requests
-        // FIX: Process batches sequentially with delays to avoid overwhelming API and prevent 504 timeouts
-        if (checkRequest.domains && checkRequest.domains.length > 10) {
-          const batchSize = 10;
-          const batches: OpenProviderDomainCheckRequest[] = [];
-          
-          for (let i = 0; i < checkRequest.domains.length; i += batchSize) {
-            const batch = checkRequest.domains.slice(i, i + batchSize);
-            batches.push({
-              domains: batch,
-              with_price: checkRequest.with_price,
-              with_whois: checkRequest.with_whois,
-              additional_data: checkRequest.additional_data,
-            });
-          }
-          
-          // Process batches with controlled concurrency (2-3 at a time) to balance speed and API limits
-          const batchResults: any[] = [];
-          const CONCURRENCY_LIMIT = 2; // Process 2 batches at a time
-          
-          for (let i = 0; i < batches.length; i += CONCURRENCY_LIMIT) {
-            const batchGroup = batches.slice(i, i + CONCURRENCY_LIMIT);
+        const doCheck = async (): Promise<{ code: number; desc: string; data: { results: any[] } }> => {
+          if (checkRequest.domains && checkRequest.domains.length > 15) {
+            const batchSize = 15;
+            const batches: OpenProviderDomainCheckRequest[] = [];
             
-            // Process this group of batches in parallel
-            const groupPromises = batchGroup.map(async (batch, groupIndex) => {
-              try {
-                const batchResponse = await client.checkDomains(batch);
-                
-                if (batchResponse.code !== 0) {
-                  throw new TRPCError({
-                    code: 'BAD_REQUEST',
-                    message: batchResponse.desc,
-                  });
+            for (let i = 0; i < checkRequest.domains.length; i += batchSize) {
+              batches.push({
+                domains: checkRequest.domains.slice(i, i + batchSize),
+                with_price: checkRequest.with_price,
+                with_whois: checkRequest.with_whois,
+                additional_data: checkRequest.additional_data,
+              });
+            }
+
+            const batchResults: any[] = [];
+            const CONCURRENCY_LIMIT = 5;
+            let currentBatchIndex = 0;
+
+            // Worker function to process batches from the queue
+            const worker = async () => {
+              while (currentBatchIndex < batches.length) {
+                const batchIndex = currentBatchIndex++;
+                const batch = batches[batchIndex];
+                try {
+                  const batchResponse = await client.checkDomains(batch);
+                  if (batchResponse.code !== 0) {
+                    throw new TRPCError({ code: 'BAD_REQUEST', message: batchResponse.desc });
+                  }
+                  batchResults.push(...(batchResponse.data.results || []));
+                } catch (error) {
+                  console.error(`Batch ${batchIndex + 1} failed:`, error);
+                  // We continue processing even if one batch fails, to return partial results
                 }
-                
-                return batchResponse.data.results || [];
-              } catch (error) {
-                // If a batch fails, log it but return empty array
-                console.error(`Batch ${i + groupIndex + 1} failed:`, error);
-                return [];
               }
-            });
-            
-            // Wait for this group to complete
-            const groupResults = await Promise.all(groupPromises);
-            batchResults.push(...groupResults.flat());
-            
-            // Add small delay between groups (except for the last group) to avoid overwhelming API
-            if (i + CONCURRENCY_LIMIT < batches.length) {
-              await new Promise(resolve => setTimeout(resolve, 150)); // 150ms delay between groups
-            }
+            };
+
+            // Start up to CONCURRENCY_LIMIT workers
+            const workers = Array.from(
+              { length: Math.min(CONCURRENCY_LIMIT, batches.length) },
+              () => worker()
+            );
+
+            await Promise.all(workers);
+            return { code: 0, desc: "OK", data: { results: batchResults } };
           }
-          
-          // Combine all batch results
-          checkResponse = {
-            code: 0,
-            desc: "OK",
-            data: {
-              results: batchResults
-            }
-          };
-        } else {
-          // Single request for small batches
-          checkResponse = await client.checkDomains(checkRequest);
-          
+          const checkResponse = await client.checkDomains(checkRequest);
           if (checkResponse.code !== 0) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: checkResponse.desc,
+            throw new TRPCError({ code: 'BAD_REQUEST', message: checkResponse.desc });
+          }
+          return checkResponse;
+        };
+
+        let checkResponse: { code: number; desc: string; data: { results: any[] } };
+        try {
+          checkResponse = await doCheck();
+        } catch (firstError) {
+          if (isOpenProviderAuthError(firstError)) {
+            await client.authenticate({
+              username: process.env.OPENPROVIDER_USERNAME!,
+              password: process.env.OPENPROVIDER_PASSWORD!,
+              ip: process.env.OPENPROVIDER_IP,
             });
+            checkResponse = await doCheck();
+          } else if (isOpenProviderTransientError(firstError)) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            checkResponse = await doCheck();
+          } else {
+            throw firstError;
           }
         }
 
@@ -349,11 +315,7 @@ export const openProviderDomainsRouter = router({
           meta: {
             checked_at: new Date().toISOString(),
             total_domains_checked: checkRequest.domains?.length || 0,
-            request_type: input.name 
-              ? (input.extensions && input.extensions.length > 0 
-                  ? 'name_with_specific_extensions' 
-                  : 'name_with_custom_extensions')
-              : 'specific_domains',
+            request_type: input.name ? 'name_with_specific_extensions' : 'specific_domains',
             cached: false,
           },
         };

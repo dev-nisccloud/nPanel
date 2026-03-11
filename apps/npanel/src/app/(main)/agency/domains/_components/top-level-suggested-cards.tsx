@@ -157,11 +157,15 @@ export function TopLevelSuggestedCards({
 			if (!cancelled) setOpenProviderSettled(true);
 		};
 		batch(raw).then((priced) => {
-			if (!cancelled) setOpenProviderPriced(priced);
-			markSettled();
+			if (!cancelled) {
+				setOpenProviderPriced(priced);
+				markSettled();
+			}
 		}).catch(() => {
-			if (!cancelled) setOpenProviderPriced(raw);
-			markSettled();
+			if (!cancelled) {
+				setOpenProviderPriced(raw);
+				markSettled();
+			}
 		});
 		return () => { cancelled = true; };
 	}, [queryData]);
@@ -231,7 +235,10 @@ export function TopLevelSuggestedCards({
 
 	// Convert bundle base prices to KES, then sum and add 15% markup. Start before paint.
 	const [bundleTotalKes, setBundleTotalKes] = React.useState<number | null>(null);
-	React.useLayoutEffect(() => {
+	// NOTE: useEffect (NOT useLayoutEffect) is intentional. This is an async price calculation
+	// that must NOT block paint. useLayoutEffect + async Promise caused a tight render loop:
+	// effect fires → Promise resolves → setState → re-render → effect fires again (if deps changed).
+	React.useEffect(() => {
 		if (!bundleInfo?.items.length || !convertPricesBatch) {
 			setBundleTotalKes(null);
 			return;

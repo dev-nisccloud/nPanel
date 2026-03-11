@@ -72,6 +72,17 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
   // Derive from query (avoids one effect + one state update when data loads)
   const defaultTldSetting = tldSettingsData?.success ? (tldSettingsData.data ?? null) : null;
 
+  // CRITICAL STABILITY FIX: Keep stable references to context values so calculatePricesBatch
+  // never changes its reference (which was triggering infinite loops in consuming components' effects).
+  const convertBatchRef = React.useRef(convertPricesBatch);
+  convertBatchRef.current = convertPricesBatch;
+  
+  const selectedCurrencyRef = React.useRef(selectedCurrency);
+  selectedCurrencyRef.current = selectedCurrency;
+  
+  const isConversionAvailableRef = React.useRef(isConversionAvailable);
+  isConversionAvailableRef.current = isConversionAvailable;
+
   // Calculate price for a single domain
   const calculatePrice = React.useCallback((domain: string, originalPrice: number, currency: string): CalculatedPrice => {
     if (!defaultTldSetting) {
@@ -131,7 +142,8 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
 
     // Create a stable cache key based on TLD setting and currency
     const tldSettingHash = getTldSettingHash(defaultTldSetting);
-    const cacheKey = `${tldSettingHash}-${selectedCurrency}`;
+    const currentSelectedCurrency = selectedCurrencyRef.current;
+    const cacheKey = `${tldSettingHash}-${currentSelectedCurrency}`;
     const now = Date.now();
 
     // Check if we have a valid cache for this configuration
@@ -170,15 +182,15 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
       const originalPrice = rawPrice as number;
       const currency = result.price?.reseller?.currency || "USD";
       const domainCacheKey = `${domain}-${originalPrice}-${currency}`;
-      const convertedCacheKey = `${domainCacheKey}-converted-${selectedCurrency}`;
+      const convertedCacheKey = `${domainCacheKey}-converted-${currentSelectedCurrency}`;
 
       // Check if result already has correct conversion - skip if it does
       const existingCalculated = result.price?.calculated;
       if (existingCalculated) {
-        const needsConversion = selectedCurrency !== currency;
+        const needsConversion = currentSelectedCurrency !== currency;
         const hasCorrectConversion = needsConversion 
           ? (existingCalculated as any).convertedPrice && 
-            (existingCalculated as any).displayCurrency === selectedCurrency
+            (existingCalculated as any).displayCurrency === currentSelectedCurrency
           : true; // No conversion needed
         
         if (hasCorrectConversion && existingCalculated.finalPrice) {
@@ -197,8 +209,8 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
       if (cacheIsValid && currentCache[domainCacheKey]) {
         const cached = currentCache[domainCacheKey];
         // Check if cached conversion matches current currency
-        if (selectedCurrency === currency || 
-            (cached as any).displayCurrency === selectedCurrency) {
+        if (currentSelectedCurrency === currency || 
+            (cached as any).displayCurrency === currentSelectedCurrency) {
           return {
             result,
             calculated: cached,
@@ -213,18 +225,18 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
       const calculated = calculatePrice(domain, originalPrice, currency);
 
       // Check if conversion is needed and not cached
-      const needsConversion = isConversionAvailable && selectedCurrency !== currency;
+      const needsConversion = isConversionAvailableRef.current && currentSelectedCurrency !== currency;
       
       if (needsConversion) {
         const cachedConverted = currentCache[convertedCacheKey] as any;
-        if (cachedConverted?.convertedPrice && cachedConverted?.displayCurrency === selectedCurrency) {
+        if (cachedConverted?.convertedPrice && cachedConverted?.displayCurrency === currentSelectedCurrency) {
           // Use cached conversion
           calculated.convertedPrice = cachedConverted.convertedPrice;
           calculated.exchangeRate = cachedConverted.exchangeRate;
           calculated.displayCurrency = cachedConverted.displayCurrency;
         }
         // If not cached, we'll batch convert below
-      } else if (selectedCurrency === currency) {
+      } else if (currentSelectedCurrency === currency) {
         // Same currency, no conversion needed
         calculated.convertedPrice = undefined;
         calculated.exchangeRate = undefined;
@@ -257,7 +269,8 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
           ...finalsToConvert.map(p => ({ amount: p.amount, currency: p.currency })),
           ...originalsToConvert.map(p => ({ amount: p.amount, currency: p.currency })),
         ];
-        const allConverted = await convertPricesBatch(allPricesForConversion, selectedCurrency);
+        // Use ref for the conversion function
+        const allConverted = await convertBatchRef.current(allPricesForConversion, currentSelectedCurrency);
         const n = finalsToConvert.length;
 
         finalsToConvert.forEach((priceData, priceIndex) => {
@@ -266,14 +279,14 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
             const calculated = processedDomains[priceData.index].calculated!;
             calculated.convertedPrice = converted.convertedAmount;
             calculated.exchangeRate = converted.rate;
-            calculated.displayCurrency = selectedCurrency;
+            calculated.displayCurrency = currentSelectedCurrency;
 
             const processed = processedDomains[priceData.index];
             currentCache[processed.convertedCacheKey] = {
               ...calculated,
               convertedPrice: converted.convertedAmount,
               exchangeRate: converted.rate,
-              displayCurrency: selectedCurrency,
+              displayCurrency: currentSelectedCurrency,
             };
           }
         });
@@ -333,36 +346,37 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
     pricingCache.set(cacheKey, currentCache);
     cacheExpiry.set(cacheKey, now);
 
-    // Clean up old cache entries (older than CACHE_DURATION) and enforce size limit
-    const expiredKeys = Array.from(cacheExpiry.entries())
-      .filter(([_, expiry]) => now - expiry > CACHE_DURATION)
-      .map(([key]) => key);
+    // Clean up old cache entries (older than CACHE_DURATION)
+    for (const [key, expiry] of cacheExpiry.entries()) {
+      if (now - expiry > CACHE_DURATION) {
+        pricingCache.delete(key);
+        cacheExpiry.delete(key);
+      }
+    }
 
-    expiredKeys.forEach(key => {
-      pricingCache.delete(key);
-      cacheExpiry.delete(key);
-    });
-
-    // OPTIMIZATION: Enforce maximum cache entries (LRU eviction)
+    // OPTIMIZATION: Enforce maximum cache entries (LRU eviction for currency/tld combos)
     if (pricingCache.size > MAX_CACHE_ENTRIES) {
       // Remove oldest entries (based on expiry time)
       const sortedEntries = Array.from(cacheExpiry.entries())
         .sort(([, a], [, b]) => a - b);
       
       const entriesToRemove = sortedEntries.slice(0, pricingCache.size - MAX_CACHE_ENTRIES);
-      entriesToRemove.forEach(([key]) => {
+      for (const [key] of entriesToRemove) {
         pricingCache.delete(key);
         cacheExpiry.delete(key);
-      });
+      }
     }
 
     return processedResults;
-  }, [defaultTldSetting, calculatePrice, selectedCurrency, isConversionAvailable, convertPricesBatch]);
+  // CRITICAL FIX: Removed selectedCurrency, isConversionAvailable, convertPricesBatch from deps.
+  // They are now accessed via refs to ensure absolute stability of calculatePricesBatch.
+  }, [defaultTldSetting, calculatePrice]);
 
   // Get pricing info for a specific domain
   const getPricingInfo = React.useCallback((domain: string, originalPrice: number, currency: string) => {
     const tldSettingHash = getTldSettingHash(defaultTldSetting);
-    const cacheKey = `${tldSettingHash}-${selectedCurrency}`;
+    const currentSelectedCurrency = selectedCurrencyRef.current;
+    const cacheKey = `${tldSettingHash}-${currentSelectedCurrency}`;
     const domainCacheKey = `${domain}-${originalPrice}-${currency}`;
     
     const cached = pricingCache.get(cacheKey)?.[domainCacheKey];
@@ -375,7 +389,7 @@ export function useDomainPricing(currencyContext: CurrencyContext) {
     }
 
     return calculatePrice(domain, originalPrice, currency);
-  }, [defaultTldSetting, calculatePrice, selectedCurrency]);
+  }, [defaultTldSetting, calculatePrice]); // Removed selectedCurrency
 
   // Clear cache (useful for testing or when TLD settings change)
   const clearCache = React.useCallback(() => {

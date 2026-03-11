@@ -132,7 +132,12 @@ export function useSectionDomainCheck(
 			price: r.price,
 		}));
 		const dataKey = rawResults
-			.map((r) => `${r.domain}:${r.status}:${r.price?.reseller?.price ?? 0}`)
+			.map((r) => {
+				const p = r.price?.reseller?.price ?? 0;
+				// Round to 2 decimal places to prevent floating-point cache invalidation loops
+				const roundedPrice = Math.round(p * 100) / 100;
+				return `${r.domain}:${r.status}:${roundedPrice}`;
+			})
 			.join("|");
 		if (lastProcessedRef.current === dataKey) return;
 		lastProcessedRef.current = dataKey;

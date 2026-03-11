@@ -155,11 +155,26 @@ export function useProgressiveDomainCheck() {
     };
   }, [defaultTldSetting]);
 
+  // CRITICAL STABILITY FIX: Keep stable references to context values so calculatePricesBatchDirect
+  // never changes its reference (which was triggering infinite loops in the progressive AI queue).
+  const convertBatchRef = React.useRef(convertPricesBatch);
+  convertBatchRef.current = convertPricesBatch;
+
+  const selectedCurrencyRef = React.useRef(selectedCurrency);
+  selectedCurrencyRef.current = selectedCurrency;
+
+  const isConversionAvailableRef = React.useRef(isConversionAvailable);
+  isConversionAvailableRef.current = isConversionAvailable;
+
   // Direct batch pricing calculation
   const calculatePricesBatchDirect = React.useCallback(async (results: DomainSearchResult[]): Promise<DomainSearchResult[]> => {
     if (!defaultTldSetting || results.length === 0) {
       return results;
     }
+
+    const currentSelectedCurrency = selectedCurrencyRef.current;
+    const currentIsConversionAvailable = isConversionAvailableRef.current;
+    const currentConvertBatch = convertBatchRef.current;
 
     return Promise.all(results.map(async (result) => {
       if (result.status !== 'free' || !result.price?.reseller?.price) {
@@ -174,18 +189,18 @@ export function useProgressiveDomainCheck() {
       const calculated = calculatePriceDirect(domain, originalPrice, currency);
       
       // Add currency conversion if available and different from original currency
-      if (isConversionAvailable && selectedCurrency !== currency) {
+      if (currentIsConversionAvailable && currentSelectedCurrency !== currency) {
         try {
-          const convertedPrices = await convertPricesBatch([{
+          const convertedPrices = await currentConvertBatch([{
             amount: calculated.finalPrice,
             currency: currency,
-          }], selectedCurrency);
+          }], currentSelectedCurrency);
           
           if (convertedPrices.length > 0) {
             const converted = convertedPrices[0];
             (calculated as any).convertedPrice = converted.convertedAmount;
             (calculated as any).exchangeRate = converted.rate;
-            (calculated as any).displayCurrency = selectedCurrency;
+            (calculated as any).displayCurrency = currentSelectedCurrency;
           }
         } catch (error) {
           console.error('Failed to convert price for domain:', domain, error);
@@ -205,7 +220,8 @@ export function useProgressiveDomainCheck() {
         },
       };
     }));
-  }, [defaultTldSetting, calculatePriceDirect, selectedCurrency, isConversionAvailable, convertPricesBatch]);
+  // Removed selectedCurrency, isConversionAvailable, convertPricesBatch to prevent infinite loops
+  }, [defaultTldSetting, calculatePriceDirect]);
 
   // Process suggestions sequentially
   const processSuggestionsSequentially = React.useCallback(async (
@@ -295,6 +311,10 @@ export function useProgressiveDomainCheck() {
             domain: `${suggestion.name}${ext}`,
             status: 'unknown',
             reason: `Error: ${errorMessage}`,
+            price: {
+              product: { price: 0, currency: 'USD' },
+              reseller: { price: 0, currency: 'USD' }
+            }
           }));
           
                   setSuggestionResults(prev => ({

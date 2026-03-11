@@ -143,8 +143,10 @@ function SearchTldCard({
   const [pricedResult, setPricedResult] = React.useState<DomainSearchResult | null>(null);
   const pricingKeyRef = React.useRef<string>('');
 
+  const { calculatePricesBatch } = pricingHook;
+
   React.useEffect(() => {
-    if (!rawResult || !pricingHook) {
+    if (!rawResult || !calculatePricesBatch) {
       setPricedResult(null);
       pricedResultRef.current = null;
       return;
@@ -152,11 +154,11 @@ function SearchTldCard({
     const key = `${rawResult.domain}-${rawResult.status}-${rawResult.price?.reseller?.price ?? 0}`;
     if (pricingKeyRef.current === key && pricedResultRef.current) return;
     pricingKeyRef.current = key;
-    pricingHook.calculatePricesBatch([rawResult]).then(([priced]) => {
+    calculatePricesBatch([rawResult]).then(([priced]) => {
       pricedResultRef.current = priced;
       setPricedResult(priced);
     }).catch(() => setPricedResult(rawResult));
-  }, [rawResult, pricingHook]);
+  }, [rawResult, calculatePricesBatch]);
 
   const displayResult = pricedResult || rawResult;
   const calculated = displayResult?.price?.calculated;
@@ -388,6 +390,8 @@ function BundleCard({
   const [pricedBundleResults, setPricedBundleResults] = React.useState<DomainSearchResult[]>([]);
   const pricingCalculationRef = React.useRef<string>('');
   
+  const { calculatePricesBatch } = pricingHook;
+
   React.useEffect(() => {
     if (bundleResults.length === 0) {
       setPricedBundleResults([]);
@@ -395,7 +399,7 @@ function BundleCard({
       return;
     }
 
-    if (!pricingHook) {
+    if (!calculatePricesBatch) {
       setPricedBundleResults(bundleResults);
       pricedBundleResultsRef.current = bundleResults;
       return;
@@ -413,7 +417,7 @@ function BundleCard({
     
     // OPTIMIZATION: Use setTimeout to defer non-critical calculations and batch them
     const timer = setTimeout(() => {
-      pricingHook.calculatePricesBatch(bundleResults).then((priced) => {
+      calculatePricesBatch(bundleResults).then((priced) => {
         pricedBundleResultsRef.current = priced;
         setPricedBundleResults(priced);
       }).catch((error) => {
@@ -424,7 +428,7 @@ function BundleCard({
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [bundleResults, pricingHook]);
+  }, [bundleResults, calculatePricesBatch]);
 
   // Calculate total bundle price in KES (ensure all prices are in KES)
   const bundleTotal = React.useMemo(() => {

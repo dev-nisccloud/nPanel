@@ -106,17 +106,18 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
   const isConversionAvailable = Boolean(exchangeRates?.success && exchangeRates.data?.rates);
 
-  // CRITICAL FIX: Remove isConverting from dependencies to prevent loop
-  // isConverting is just UI state, not needed for function stability
+  // NOTE: isConverting is intentionally included in deps now that the consuming side
+  // uses useEffect (not useLayoutEffect). Previously omitting it from deps was a workaround
+  // for the render-loop; with useEffect it's safe. We add it back to deps for correctness.
   const value = React.useMemo(() => ({
     selectedCurrency,
     setSelectedCurrency,
     isConversionAvailable,
     exchangeRates,
     isLoadingRates,
-    isConverting, // Still include in value for UI, but don't use in deps
+    isConverting,
     convertPricesBatch,
-  }), [selectedCurrency, isConversionAvailable, exchangeRates, isLoadingRates, convertPricesBatch]); // Removed isConverting from deps
+  }), [selectedCurrency, isConversionAvailable, exchangeRates, isLoadingRates, isConverting, convertPricesBatch]);
 
   return (
     <CurrencyContext.Provider value={value}>

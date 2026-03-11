@@ -126,13 +126,18 @@ export function DomainSearchResults({
       {rawSearchQuery.trim().length > 0 && (
         <section className="mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-4 gap-4">
-            <ExactMatchSection
-              rawSearchQuery={rawSearchQuery.trim()}
-              isDomainInCart={isDomainInCart}
-              onAddToCart={onAddToCart}
-              onRemoveFromCart={onRemoveFromCart}
-              onLoadingChange={(loading) => reportLoading("exact", loading)}
-            />
+            {/* Only mount ExactMatchSection when rawSearchQuery contains a dot (i.e. user typed a
+                full domain like "example.com"). Without a dot parseFullDomain returns null and the
+                component renders nothing anyway, but still mounts hooks. This guard prevents that. */}
+            {rawSearchQuery.trim().includes(".") && (
+              <ExactMatchSection
+                rawSearchQuery={rawSearchQuery.trim()}
+                isDomainInCart={isDomainInCart}
+                onAddToCart={onAddToCart}
+                onRemoveFromCart={onRemoveFromCart}
+                onLoadingChange={(loading) => reportLoading("exact", loading)}
+              />
+            )}
             {searchQuery.trim().length > 0 && (
               <TopLevelSuggestedCards
                 searchQuery={searchQuery.trim()}

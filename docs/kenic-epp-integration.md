@@ -110,6 +110,9 @@ All KENIC EPP configuration is driven by environment variables. Store credential
 | `KENIC_EPP_TLS_SERVERNAME` | *(none)* | **Yes in practice** | Hostname used for TLS SNI and certificate verification. Set to `epp.coccaregistry.org` because the server presents a cert for that name. Omit only if the server ever presents a cert for `registry.kenic.or.ke`. |
 | `KENIC_EPP_USERNAME` | *(none)* | Yes for login/commands | Registrar ID (EPP &lt;login&gt; clID). |
 | `KENIC_EPP_PASSWORD` | *(none)* | Yes for login/commands | EPP password (EPP &lt;login&gt; pw). |
+| `KENIC_EPP_MAX_RETRIES` | `3` | No | Max retries for domain check on transient errors (timeout, connection refused, reset). Clamped to 1–5. |
+
+**Fault tolerance (retries):** Domain check automatically retries on transient failures: timeout, connection refused, `ECONNRESET`, `ETIMEDOUT`. Retries use exponential backoff (1s, 2s, 4s). Login failures and EPP business errors (e.g. invalid domain) are not retried. The socket idle timeout is reset after each successful read so a single slow server response is less likely to trigger a timeout.
 
 **Example (minimal for greeting only):**
 
@@ -123,6 +126,7 @@ KENIC_EPP_TLS_SERVERNAME=epp.coccaregistry.org
 KENIC_EPP_HOST=registry.kenic.or.ke
 KENIC_EPP_PORT=700
 KENIC_EPP_TIMEOUT_MS=30000
+KENIC_EPP_MAX_RETRIES=3
 KENIC_EPP_TLS_SERVERNAME=epp.coccaregistry.org
 KENIC_EPP_USERNAME=YourRegistrarId
 KENIC_EPP_PASSWORD=YourEppPassword

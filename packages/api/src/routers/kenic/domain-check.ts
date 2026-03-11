@@ -21,6 +21,21 @@ const parser = new XMLParser({ ignoreAttributes: false });
 /** Max domains per EPP check (with or without fee). 2400 was caused by .go.ke in the request; .go.ke is no longer offered. */
 const MAX_DOMAINS_PER_EPP_CHECK = 10;
 
+/** Max retries for transient errors (timeout, connection refused, reset). Default 3. */
+const DEFAULT_MAX_RETRIES = 3;
+
+function isRetryableEppError(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error);
+	const lower = message.toLowerCase();
+	return (
+		lower.includes("timeout") ||
+		message.includes("ECONNREFUSED") ||
+		message.includes("ECONNRESET") ||
+		message.includes("ETIMEDOUT") ||
+		message.includes("connection refused")
+	);
+}
+
 /** Merge multiple EPP domain check responses into one parsed structure (resData + extension). */
 function mergeCheckResponses(parsedList: Record<string, unknown>[]): Record<string, unknown> {
 	const domainCds: unknown[] = [];
@@ -162,15 +177,24 @@ export const kenicDomainCheckRouter = router({
 				});
 			}
 
-			let socket;
-			try {
-				const config = getKenicEppConfig(true);
-				socket = await createConnection(config);
+			const maxRetries = Math.min(
+				Math.max(1, Number(process.env.KENIC_EPP_MAX_RETRIES ?? DEFAULT_MAX_RETRIES)),
+				5
+			);
+			let lastError: unknown = null;
 
-				await readFrame(socket);
+			for (let attempt = 0; attempt < maxRetries; attempt++) {
+				let socket;
+				try {
+					const config = getKenicEppConfig(true);
+					socket = await createConnection(config);
 
-				sendFrame(socket, buildLoginXml(config.username, config.password));
-				const loginResponseBuffer = await readFrame(socket);
+					await readFrame(socket);
+					socket.setTimeout(config.timeoutMs ?? 30_000);
+
+					sendFrame(socket, buildLoginXml(config.username, config.password));
+					const loginResponseBuffer = await readFrame(socket);
+					socket.setTimeout(config.timeoutMs ?? 30_000);
 				const loginResponseXml = loginResponseBuffer.toString("utf8");
 				const loginParsed = parser.parse(loginResponseXml) as Record<string, unknown>;
 				const loginResult = getEppResult(loginParsed);
@@ -212,6 +236,7 @@ export const kenicDomainCheckRouter = router({
 						: buildDomainCheckXml(chunk);
 					sendFrame(socket, checkXml);
 					const checkResponseBuffer = await readFrame(socket);
+					socket.setTimeout(config.timeoutMs ?? 30_000);
 					const checkResponseXml = checkResponseBuffer.toString("utf8");
 					allRaws.push(checkResponseXml);
 
@@ -264,37 +289,50 @@ export const kenicDomainCheckRouter = router({
 				}
 
 				sendFrame(socket, buildLogoutXml());
-				await readFrame(socket);
+					await readFrame(socket);
 
-				return {
-					loginSuccess: true,
-					raw,
-					parsed,
-					normalized,
-					checkResultCode: lastCode,
-					checkResultMsg: lastMsg,
-					...(chunks.length > 1 && { batched: true, batchCount: chunks.length }),
-				};
-			} catch (error) {
-				if (error instanceof TRPCError) throw error;
-				const message = error instanceof Error ? error.message : String(error);
-				if (message.includes("KENIC_EPP_USERNAME") || message.includes("KENIC_EPP_PASSWORD")) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "KENIC_EPP_USERNAME and KENIC_EPP_PASSWORD must be set for domain check",
-					});
+					return {
+						loginSuccess: true,
+						raw,
+						parsed,
+						normalized,
+						checkResultCode: lastCode,
+						checkResultMsg: lastMsg,
+						...(chunks.length > 1 && { batched: true, batchCount: chunks.length }),
+					};
+				} catch (error) {
+					lastError = error;
+					if (error instanceof TRPCError) throw error;
+					const message = error instanceof Error ? error.message : String(error);
+					if (message.includes("KENIC_EPP_USERNAME") || message.includes("KENIC_EPP_PASSWORD")) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "KENIC_EPP_USERNAME and KENIC_EPP_PASSWORD must be set for domain check",
+						});
+					}
+					const retryable = isRetryableEppError(error);
+					const isLastAttempt = attempt === maxRetries - 1;
+					if (!retryable || isLastAttempt) {
+						const isTimeout = message.toLowerCase().includes("timeout");
+						const isRefused =
+							message.toLowerCase().includes("econnrefused") ||
+							message.toLowerCase().includes("connection refused");
+						throw new TRPCError({
+							code: isTimeout ? "TIMEOUT" : isRefused ? "SERVICE_UNAVAILABLE" : "INTERNAL_SERVER_ERROR",
+							message: `EPP domain check failed${isLastAttempt && retryable ? ` after ${maxRetries} attempts` : ""}: ${message}`,
+							cause: error,
+						});
+					}
+					await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+				} finally {
+					socket?.destroy();
 				}
-				const isTimeout = message.toLowerCase().includes("timeout");
-				const isRefused =
-					message.toLowerCase().includes("econnrefused") ||
-					message.toLowerCase().includes("connection refused");
-				throw new TRPCError({
-					code: isTimeout ? "TIMEOUT" : isRefused ? "SERVICE_UNAVAILABLE" : "INTERNAL_SERVER_ERROR",
-					message: `EPP domain check failed: ${message}`,
-					cause: error,
-				});
-			} finally {
-				socket?.destroy();
 			}
+
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "EPP domain check failed after retries",
+				cause: lastError,
+			});
 		}),
 });

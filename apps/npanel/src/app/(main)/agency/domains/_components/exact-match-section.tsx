@@ -146,9 +146,11 @@ export function ExactMatchSection({
 		);
 	}, [fullDomain, isKenic, parsed?.name, parsed?.tld]);
 
+	const { calculatePricesBatch } = pricingHook;
+
 	// OpenProvider: clear when domain changes; start pricing batch when raw data exists (after paint)
 	React.useEffect(() => {
-		if (!openProviderRaw || !pricingHook?.calculatePricesBatch) {
+		if (!openProviderRaw || !calculatePricesBatch) {
 			setOpenProviderResult(null);
 			return;
 		}
@@ -164,10 +166,9 @@ export function ExactMatchSection({
 			reason: openProviderRaw.reason,
 			price: openProviderRaw.price,
 		};
-		pricingHook
-			.calculatePricesBatch([raw])
+		calculatePricesBatch([raw])
 			.then(([priced]) => {
-				if (!cancelled) setOpenProviderResult(priced);
+				if (!cancelled && priced) setOpenProviderResult(priced);
 			})
 			.catch(() => {
 				if (!cancelled) setOpenProviderResult(raw);
@@ -175,7 +176,7 @@ export function ExactMatchSection({
 		return () => {
 			cancelled = true;
 		};
-	}, [openProviderRaw, pricingHook, fullDomain]);
+	}, [openProviderRaw, calculatePricesBatch, fullDomain]);
 
 	const onLoadingChangeRef = React.useRef(onLoadingChange);
 	onLoadingChangeRef.current = onLoadingChange;

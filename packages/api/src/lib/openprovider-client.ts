@@ -132,14 +132,9 @@ export class OpenProviderClient {
       
       if (isHtml) {
         // Response is HTML (likely error page from authentication failure or wrong endpoint)
-        const errorMessage = responseText.length > 500 
-          ? responseText.substring(0, 500) + '...'
-          : responseText;
-        
-        // Try to extract error message from HTML if possible
         const titleMatch = responseText.match(/<title[^>]*>([^<]+)<\/title>/i);
         const h1Match = responseText.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-        const extractedError = titleMatch?.[1] || h1Match?.[1] || 'HTML error page';
+        const extractedError = titleMatch?.[1] || h1Match?.[1] || (responseText.length > 500 ? responseText.substring(0, 500) + '...' : responseText);
         
         throw new OpenProviderApiError(
           response.statusCode || 0,
@@ -207,6 +202,10 @@ export class OpenProviderClient {
           if (msgs.length) extras.push(`Warnings: ${msgs.join('; ')}`);
         }
         const code = errorData.code ?? response.statusCode;
+        // Clear token on auth errors so next request will re-authenticate
+        if (code === 401 || code === 403) {
+          this.clearAuth();
+        }
         // For 399, if we have concrete Details/Registry text, use only that and omit the generic "refer to registry message below"
         const hasConcreteDetail = extras.length > 0;
         const useOnlyExtras = code === 399 && hasConcreteDetail;
