@@ -177,10 +177,11 @@ export const kenicDomainCheckRouter = router({
 				});
 			}
 
-			const maxRetries = Math.min(
-				Math.max(1, Number(process.env.KENIC_EPP_MAX_RETRIES ?? DEFAULT_MAX_RETRIES)),
-				5
-			);
+			const requestedRetries = Number.isNaN(Number(process.env.KENIC_EPP_MAX_RETRIES))
+				? DEFAULT_MAX_RETRIES
+				: Number(process.env.KENIC_EPP_MAX_RETRIES ?? DEFAULT_MAX_RETRIES);
+			// Gentler, fewer retries: clamp between 1 and 2 (default 2).
+			const maxRetries = Math.min(Math.max(1, requestedRetries), 2);
 			let lastError: unknown = null;
 
 			for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -323,7 +324,8 @@ export const kenicDomainCheckRouter = router({
 							cause: error,
 						});
 					}
-					await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+					// Gentler backoff: fixed small delay between retries (e.g. 700ms)
+					await new Promise((r) => setTimeout(r, 700));
 				} finally {
 					socket?.destroy();
 				}

@@ -105,6 +105,22 @@ export function DomainSearchResults({
     setSelectedCategoryId(DEFAULT_CATEGORY_ID);
   }, [searchQuery]);
 
+  // When ExactMatchSection or TopLevelSuggestedCards unmount (e.g. user removes "." from "example.com" -> "example"),
+  // clear their loading flags so the search button spinner stops (they never get to call onLoadingChange(false)).
+  React.useEffect(() => {
+    const hasDot = rawSearchQuery.trim().includes(".");
+    const hasSearchName = searchQuery.trim().length > 0;
+    setLoadingSources((prev) => {
+      const removeExact = !hasDot && prev.has("exact");
+      const removeTopSuggested = !hasSearchName && prev.has("top-suggested");
+      if (!removeExact && !removeTopSuggested) return prev;
+      const next = new Set(prev);
+      if (removeExact) next.delete("exact");
+      if (removeTopSuggested) next.delete("top-suggested");
+      return next;
+    });
+  }, [rawSearchQuery, searchQuery]);
+
   // Track visited tabs whenever the selected tab changes
   React.useEffect(() => {
     if (!selectedCategoryId) return;

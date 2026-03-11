@@ -26,6 +26,12 @@ function isOpenProviderTransientError(error: unknown): error is OpenProviderApiE
   return error.code === 504 || (error.code >= 500 && error.code < 600);
 }
 
+/** Redis key and TTL for OpenProvider auth token (long-lived, like exchange rates). Token lasts 48h; we store 47h. */
+const OPENPROVIDER_TOKEN_KEY = 'openprovider:auth-token';
+const OPENPROVIDER_TOKEN_TTL_SEC = 47 * 60 * 60; // 47 hours
+const OPENPROVIDER_TRANSIENT_RETRY_DELAY_MS = 400;
+const DOMAIN_CHECK_CACHE_TTL_SEC = 600; // 10 min for domain availability
+
 // Validation schemas
 const DomainCheckRequestSchema = z.object({
   domains: z.array(z.object({
@@ -196,19 +202,40 @@ export const openProviderDomainsRouter = router({
 
         const client = createOpenProviderClient();
 
-        // Authenticate only when client has no token (reuse token across requests; client clears on 401)
+        // Use token from Redis when available to skip auth round-trip (resilient + performant across cold starts)
         if (!client.isAuthenticated()) {
-          try {
-            await client.authenticate({
-              username: process.env.OPENPROVIDER_USERNAME!,
-              password: process.env.OPENPROVIDER_PASSWORD!,
-              ip: process.env.OPENPROVIDER_IP,
-            });
-          } catch (authError) {
-            throw new TRPCError({
-              code: 'UNAUTHORIZED',
-              message: 'OpenProvider authentication failed. Please check your environment credentials.',
-            });
+          let hasToken = false;
+          if (redis) {
+            try {
+              const cachedToken = await redis.get(OPENPROVIDER_TOKEN_KEY);
+              if (cachedToken) {
+                const parsed = typeof cachedToken === 'string' ? JSON.parse(cachedToken) as { token?: string; expiresAt?: number } : cachedToken as { token?: string; expiresAt?: number };
+                if (parsed?.token && typeof parsed.expiresAt === 'number' && parsed.expiresAt > Date.now()) {
+                  client.setToken(parsed.token);
+                  hasToken = true;
+                }
+              }
+            } catch {
+              // Ignore Redis parse/read errors; fall back to auth
+            }
+          }
+          if (!hasToken) {
+            try {
+              const authResponse = await client.authenticate({
+                username: process.env.OPENPROVIDER_USERNAME!,
+                password: process.env.OPENPROVIDER_PASSWORD!,
+                ip: process.env.OPENPROVIDER_IP,
+              });
+              if (redis && authResponse?.data?.token) {
+                const expiresAt = Date.now() + OPENPROVIDER_TOKEN_TTL_SEC * 1000;
+                await redis.setex(OPENPROVIDER_TOKEN_KEY, OPENPROVIDER_TOKEN_TTL_SEC, JSON.stringify({ token: authResponse.data.token, expiresAt })).catch(() => {});
+              }
+            } catch (authError) {
+              throw new TRPCError({
+                code: 'UNAUTHORIZED',
+                message: 'OpenProvider authentication failed. Please check your environment credentials.',
+              });
+            }
           }
         }
 
@@ -295,14 +322,19 @@ export const openProviderDomainsRouter = router({
           checkResponse = await doCheck();
         } catch (firstError) {
           if (isOpenProviderAuthError(firstError)) {
-            await client.authenticate({
+            if (redis) await redis.del(OPENPROVIDER_TOKEN_KEY).catch(() => {});
+            const authResponse = await client.authenticate({
               username: process.env.OPENPROVIDER_USERNAME!,
               password: process.env.OPENPROVIDER_PASSWORD!,
               ip: process.env.OPENPROVIDER_IP,
             });
+            if (redis && authResponse?.data?.token) {
+              const expiresAt = Date.now() + OPENPROVIDER_TOKEN_TTL_SEC * 1000;
+              await redis.setex(OPENPROVIDER_TOKEN_KEY, OPENPROVIDER_TOKEN_TTL_SEC, JSON.stringify({ token: authResponse.data.token, expiresAt })).catch(() => {});
+            }
             checkResponse = await doCheck();
           } else if (isOpenProviderTransientError(firstError)) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, OPENPROVIDER_TRANSIENT_RETRY_DELAY_MS));
             checkResponse = await doCheck();
           } else {
             throw firstError;
@@ -320,10 +352,10 @@ export const openProviderDomainsRouter = router({
           },
         };
 
-        // P1-6: Cache the response for 5 minutes (300 seconds)
+        // Cache the response (10 min) to reduce OpenProvider load and improve repeat-search latency
         if (redis && cacheKey) {
           try {
-            await redis.setex(cacheKey, 300, JSON.stringify(response));
+            await redis.setex(cacheKey, DOMAIN_CHECK_CACHE_TTL_SEC, JSON.stringify(response));
           } catch (cacheError) {
             console.error('Failed to cache response:', cacheError);
             // Don't throw error - caching failure shouldn't break the API
