@@ -120,8 +120,9 @@ export const sidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "Campaigns", url: "/dashboard/email-marketing/campaigns", },
-          { title: "Domains", url: "/dashboard/email-marketing/domain-configuration", },
+          { title: "Audiences", url: "/dashboard/email-marketing/audiences", },
           { title: "Email Builder", url: "/dashboard/email-marketing/email-builder", },
+          { title: "Domains", url: "/dashboard/email-marketing/domain-configuration", },
         ],
       },
       {
