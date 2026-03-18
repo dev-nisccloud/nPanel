@@ -10,7 +10,6 @@ export const etimsItemsRouter = router({
      */
     saveItem: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             item: z.object({
                 // Reverting to previous schema but making sure we handle it.
                 itemCd: z.string().optional(),
@@ -41,9 +40,7 @@ export const etimsItemsRouter = router({
             })
         }))
         .mutation(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -66,11 +63,19 @@ export const etimsItemsRouter = router({
             const client = new ETimsClient(clientConfig);
 
             try {
+                // KRA requires itemCd to be present for /saveItem in sandbox.
+                if (!input.item.itemCd || !input.item.itemCd.trim()) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "itemCd is required for registering items in KRA eTIMS.",
+                    });
+                }
                 // If itemCd is missing (new item), we might need to handle it.
                 // But for now pass what we have.
+                const { itemCd, ...restItem } = input.item;
                 const itemPayload = {
-                    ...input.item,
-                    itemCd: input.item.itemCd || "", // Ensure string
+                    ...restItem,
+                    ...(itemCd ? { itemCd } : {}),
                     itemStdNm: input.item.itemStdNm || null,
                     btchNo: input.item.btchNo || null,
                     bcd: input.item.bcd || null,
@@ -98,14 +103,10 @@ export const etimsItemsRouter = router({
                     if (input.item.itemCd) {
                         await prisma.eTimsItem.upsert({
                             where: {
-                                teamId_itemCd: {
-                                    teamId: input.teamId,
-                                    itemCd: input.item.itemCd
-                                }
+                                itemCd: input.item.itemCd
                             },
                             create: {
                                 id: crypto.randomUUID(),
-                                teamId: input.teamId,
                                 itemCd: input.item.itemCd,
                                 itemClsCd: input.item.itemClsCd,
                                 itemNm: input.item.itemNm,
@@ -136,11 +137,14 @@ export const etimsItemsRouter = router({
                     data: result,
                 };
             } catch (error: any) {
-                console.error("[eTIMS Save Item Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to save eTIMS item",
-                });
+                // KRA sandbox can intermittently fail with internal "TestSessionApiLog" errors.
+                // Don't break the UI with a 500: return a non-fatal response so user can retry.
+                console.warn("[eTIMS Save Item Error]", error?.message ?? error);
+                return {
+                    success: false,
+                    data: null,
+                    errorMessage: error?.message || "Failed to save eTIMS item",
+                };
             }
         }),
 
@@ -149,13 +153,11 @@ export const etimsItemsRouter = router({
      */
     getItemInfo: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
+            bhfId: z.string().optional(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 // Fallback: If no config in DB, check if maybe we can't fetch.
@@ -183,7 +185,7 @@ export const etimsItemsRouter = router({
                 const result = await client.selectItemInfo(
                     {
                         tin: config.kraPin,
-                        bhfId: config.branchId,
+                        bhfId: input.bhfId ?? config.branchId,
                         cmcKey: config.cmcKey,
                         accessToken: undefined
                     },
@@ -208,7 +210,6 @@ export const etimsItemsRouter = router({
      */
     saveItemComposition: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             composition: z.object({
                 itemCd: z.string(),
                 cpstItemCd: z.string(),
@@ -218,9 +219,7 @@ export const etimsItemsRouter = router({
             })
         }))
         .mutation(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({

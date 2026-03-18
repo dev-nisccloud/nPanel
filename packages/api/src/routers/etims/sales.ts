@@ -10,13 +10,10 @@ export const etimsSalesRouter = router({
      */
     sendSalesTransaction: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             transaction: z.any() // Using any for large complex object, ideally should be strictly typed
         }))
         .mutation(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -35,6 +32,13 @@ export const etimsSalesRouter = router({
                 consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
                 consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
             };
+
+            if (!clientConfig.consumerKey || !clientConfig.consumerSecret) {
+                throw new TRPCError({
+                    code: "PRECONDITION_FAILED",
+                    message: "System configuration error: eTIMS Consumer Key/Secret missing.",
+                });
+            }
 
             const client = new ETimsClient(clientConfig);
 
@@ -44,7 +48,6 @@ export const etimsSalesRouter = router({
                         tin: config.kraPin,
                         bhfId: config.branchId,
                         cmcKey: config.cmcKey,
-                        accessToken: undefined
                     },
                     input.transaction
                 );
@@ -54,11 +57,12 @@ export const etimsSalesRouter = router({
                     data: result,
                 };
             } catch (error: any) {
-                console.error("[eTIMS Send Sales Transaction Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to send eTIMS sales transaction",
-                });
+                console.warn("[eTIMS Send Sales Transaction Error]", error?.message ?? error);
+                return {
+                    success: false,
+                    data: null,
+                    errorMessage: error?.message || "Failed to send eTIMS sales transaction",
+                };
             }
         }),
 
@@ -67,13 +71,11 @@ export const etimsSalesRouter = router({
      */
     getSalesTransactions: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
+            bhfId: z.string().optional(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -93,15 +95,24 @@ export const etimsSalesRouter = router({
                 consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
             };
 
+            if (!clientConfig.consumerKey || !clientConfig.consumerSecret) {
+                throw new TRPCError({
+                    code: "PRECONDITION_FAILED",
+                    message: "System configuration error: eTIMS Consumer Key/Secret missing.",
+                });
+            }
+
             const client = new ETimsClient(clientConfig);
 
             try {
+                const token = await client.generateToken();
+
                 const result = await client.selectSalesTransactions(
                     {
                         tin: config.kraPin,
-                        bhfId: config.branchId,
+                        bhfId: input.bhfId ?? config.branchId,
                         cmcKey: config.cmcKey,
-                        accessToken: undefined
+                        accessToken: token.access_token
                     },
                     input.lastReqDt
                 );
@@ -124,13 +135,10 @@ export const etimsSalesRouter = router({
      */
     getInvoiceDetail: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             invcNo: z.string(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -150,15 +158,24 @@ export const etimsSalesRouter = router({
                 consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
             };
 
+            if (!clientConfig.consumerKey || !clientConfig.consumerSecret) {
+                throw new TRPCError({
+                    code: "PRECONDITION_FAILED",
+                    message: "System configuration error: eTIMS Consumer Key/Secret missing.",
+                });
+            }
+
             const client = new ETimsClient(clientConfig);
 
             try {
+                const token = await client.generateToken();
+
                 const result = await client.selectInvoiceDetail(
                     {
                         tin: config.kraPin,
                         bhfId: config.branchId,
                         cmcKey: config.cmcKey,
-                        accessToken: undefined
+                        accessToken: token.access_token
                     },
                     input.invcNo
                 );

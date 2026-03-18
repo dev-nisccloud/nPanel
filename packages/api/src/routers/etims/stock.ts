@@ -10,13 +10,10 @@ export const etimsStockRouter = router({
      */
     getStockMovements: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -54,11 +51,12 @@ export const etimsStockRouter = router({
                     data: result,
                 };
             } catch (error: any) {
-                console.error("[eTIMS Get Stock Movements Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to retrieve eTIMS stock movements",
-                });
+                console.warn("[eTIMS Get Stock Movements Error]", error?.message ?? error);
+                return {
+                    success: false,
+                    data: null,
+                    errorMessage: error?.message || "Failed to retrieve eTIMS stock movements",
+                };
             }
         }),
 
@@ -67,13 +65,10 @@ export const etimsStockRouter = router({
      */
     sendStockIO: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             stockData: z.any()
         }))
         .mutation(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -111,11 +106,12 @@ export const etimsStockRouter = router({
                     data: result,
                 };
             } catch (error: any) {
-                console.error("[eTIMS Send Stock IO Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to send eTIMS stock in/out data",
-                });
+                console.warn("[eTIMS Send Stock IO Error]", error?.message ?? error);
+                return {
+                    success: false,
+                    data: null,
+                    errorMessage: error?.message || "Failed to send eTIMS stock in/out data",
+                };
             }
         }),
 
@@ -124,7 +120,6 @@ export const etimsStockRouter = router({
      */
     saveStockMaster: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             stockMaster: z.object({
                 itemCd: z.string(),
                 rsdQty: z.number(),
@@ -135,9 +130,7 @@ export const etimsStockRouter = router({
             })
         }))
         .mutation(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -175,11 +168,12 @@ export const etimsStockRouter = router({
                     data: result,
                 };
             } catch (error: any) {
-                console.error("[eTIMS Save Stock Master Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to save eTIMS stock master",
-                });
+                console.warn("[eTIMS Save Stock Master Error]", error?.message ?? error);
+                return {
+                    success: false,
+                    data: null,
+                    errorMessage: error?.message || "Failed to save eTIMS stock master",
+                };
             }
         }),
 });

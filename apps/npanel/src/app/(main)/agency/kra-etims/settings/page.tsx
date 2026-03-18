@@ -21,15 +21,12 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 export default function ETimsSettingsPage() {
     const utils = trpc.useUtils();
 
-    // Fetch configuration (using null/undefined teamId for global/default config)
-    const { data: configStatus, isLoading: isLoadingConfig } = trpc.etims.auth.getConfiguration.useQuery(
-        { teamId: null }
-    );
+    const { data: configStatus, isLoading: isLoadingConfig } = trpc.etims.auth.getConfiguration.useQuery();
 
     const initMutation = trpc.etims.initialization.initializeDevice.useMutation({
         onSuccess: (data) => {
             toast.success("eTIMS Initialized Successfully");
-            utils.etims.auth.getConfiguration.invalidate({ teamId: null });
+            utils.etims.auth.getConfiguration.invalidate();
         },
         onError: (error) => {
             toast.error(`Initialization Failed: ${error.message}`);
@@ -73,7 +70,6 @@ export default function ETimsSettingsPage() {
     const onHandleInitialize = async () => {
         try {
             initMutation.mutate({
-                teamId: null, // Global config
                 tin: formData.kraPin,
                 bhfId: formData.branchId,
                 dvcSrlNo: formData.deviceSerialNumber,

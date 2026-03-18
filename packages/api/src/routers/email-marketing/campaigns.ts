@@ -98,15 +98,15 @@ export const emailMarketingCampaignsRouter = router({
 					},
 				});
 
-				for (const email of input.recipientEmails) {
-					await tx.campaignRecipient.create({
-						data: {
+				if (input.recipientEmails.length > 0) {
+					await tx.campaignRecipient.createMany({
+						data: input.recipientEmails.map((email) => ({
 							id: crypto.randomUUID(),
 							campaignId: newCampaign.id,
 							toEmail: email,
 							createdAt: now,
 							updatedAt: now,
-						},
+						})),
 					});
 				}
 
@@ -374,15 +374,15 @@ export const emailMarketingCampaignsRouter = router({
 					await tx.campaignRecipient.deleteMany({
 						where: { campaignId: input.id },
 					});
-					for (const email of input.recipientEmails) {
-						await tx.campaignRecipient.create({
-							data: {
+					if (input.recipientEmails.length > 0) {
+						await tx.campaignRecipient.createMany({
+							data: input.recipientEmails.map((email) => ({
 								id: crypto.randomUUID(),
 								campaignId: input.id,
 								toEmail: email,
 								createdAt: now,
 								updatedAt: now,
-							},
+							})),
 						});
 					}
 				}
@@ -858,15 +858,15 @@ export const emailMarketingCampaignsRouter = router({
 				(e) => !existingSet.has(e.toLowerCase()),
 			);
 
-			for (const email of toAdd) {
-				await prisma.campaignRecipient.create({
-					data: {
+			if (toAdd.length > 0) {
+				await prisma.campaignRecipient.createMany({
+					data: toAdd.map((email) => ({
 						id: crypto.randomUUID(),
 						campaignId: input.campaignId,
 						toEmail: email,
 						createdAt: now,
 						updatedAt: now,
-					},
+					})),
 				});
 			}
 

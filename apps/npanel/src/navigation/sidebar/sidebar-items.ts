@@ -376,13 +376,11 @@ export const agencysidebarItems: NavGroup[] = [
       },
       {
         title: "KRA eTIMS",
-        url: "/agency/kra-etims",
+        url: "/agency/kra-etims/sales",
         icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Dashboard", url: "/agency/kra-etims", },
           { title: "Sales", url: "/agency/kra-etims/sales", },
           { title: "Purchases", url: "/agency/kra-etims/purchases", },
-          { title: "Stock", url: "/agency/kra-etims/stock", },
           { title: "Products", url: "/agency/kra-etims/products", },
           { title: "Branches", url: "/agency/kra-etims/branches", },
           { title: "Settings", url: "/agency/kra-etims/settings", },

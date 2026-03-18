@@ -10,25 +10,11 @@ export const etimsAuthRouter = router({
      */
     generateToken: protectedProcedure
         .input(z.object({
-            teamId: z.string().optional().nullable(),
             grantType: z.literal("client_credentials").default("client_credentials"),
         }))
-        .mutation(async ({ input }) => {
-            // 1. Fetch eTIMS Configuration
-            // If teamId is provided, fetch for team. If not, try to search for a global config (teamId: null) or fail?
-            // User said teamId is optional. This likely implies a single global config or optional team association.
-            // Let's search by teamId if present, OR if not present, search where teamId is null.
-
-            const whereClause = input.teamId ? { teamId: input.teamId } : { teamId: null };
-
-            // Prisma `findUnique` requires a unique constraint. 
-            // `teamId` is unique in schema. `teamId: null` is also unique (mongo sparse index).
-            // However, findUnique syntax with nullable fields can be tricky.
-            // findFirst is safer if we are unsure about unique constraints on nulls across connectors.
-            // But let's try findFirst to be safe.
-            const config = await prisma.eTimsConfiguration.findFirst({
-                where: whereClause,
-            });
+        .mutation(async () => {
+            // 1. Fetch global eTIMS Configuration
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config) {
                 throw new TRPCError({
@@ -80,15 +66,8 @@ export const etimsAuthRouter = router({
      * Get current eTIMS configuration status
      */
     getConfiguration: protectedProcedure
-        .input(z.object({
-            teamId: z.string().optional().nullable(),
-        }))
-        .query(async ({ input }) => {
-            const whereClause = input.teamId ? { teamId: input.teamId } : { teamId: null };
-
-            const config = await prisma.eTimsConfiguration.findFirst({
-                where: whereClause,
-            });
+        .query(async () => {
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config) {
                 return {

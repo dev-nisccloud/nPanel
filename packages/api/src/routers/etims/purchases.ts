@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
 import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
+import prisma from "@nPanel/db";
 
 export const etimsPurchasesRouter = router({
     /**
@@ -9,29 +10,39 @@ export const etimsPurchasesRouter = router({
      */
     getPurchaseTransactions: protectedProcedure
         .input(z.object({
-            tin: z.string(),
-            bhfId: z.string(),
             lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
-            accessToken: z.string().optional(),
-            cmcKey: z.string().optional(),
+            bhfId: z.string().optional(),
         }))
         .query(async ({ input }) => {
-            const config = {
-                baseUrl: process.env.ETIMS_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1",
-                tokenUrl: process.env.ETIMS_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate",
+            const config = await prisma.eTimsConfiguration.findFirst();
+
+            if (!config || !config.cmcKey) {
+                throw new TRPCError({
+                    code: "PRECONDITION_FAILED",
+                    message: "eTIMS Configuration not found or device not initialized.",
+                });
+            }
+
+            const clientConfig = {
+                baseUrl: config.isSandbox
+                    ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
+                    : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
+                tokenUrl: config.isSandbox
+                    ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
+                    : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
                 consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
                 consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
             };
 
-            const client = new ETimsClient(config);
+            const client = new ETimsClient(clientConfig);
 
             try {
                 const result = await client.getPurchaseTransactionInfo(
                     {
-                        tin: input.tin,
-                        bhfId: input.bhfId,
-                        cmcKey: input.cmcKey,
-                        accessToken: input.accessToken
+                        tin: config.kraPin,
+                        bhfId: input.bhfId ?? config.branchId,
+                        cmcKey: config.cmcKey,
+                        accessToken: undefined
                     },
                     input.lastReqDt
                 );
@@ -41,11 +52,12 @@ export const etimsPurchasesRouter = router({
                     data: result,
                 };
             } catch (error: any) {
-                console.error("[eTIMS Get Purchase Transactions Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to retrieve eTIMS purchase transactions",
-                });
+                console.warn("[eTIMS Get Purchase Transactions Error]", error?.message ?? error);
+                return {
+                    success: false,
+                    data: null,
+                    errorMessage: error?.message || "Failed to retrieve eTIMS purchase transactions",
+                };
             }
         }),
 
@@ -54,29 +66,39 @@ export const etimsPurchasesRouter = router({
      */
     sendPurchaseTransaction: protectedProcedure
         .input(z.object({
-            tin: z.string(),
-            bhfId: z.string(),
-            accessToken: z.string().optional(),
-            cmcKey: z.string().optional(),
-            purchase: z.any()
+            purchase: z.any(),
+            bhfId: z.string().optional(),
         }))
         .mutation(async ({ input }) => {
-            const config = {
-                baseUrl: process.env.ETIMS_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1",
-                tokenUrl: process.env.ETIMS_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate",
+            const config = await prisma.eTimsConfiguration.findFirst();
+
+            if (!config || !config.cmcKey) {
+                throw new TRPCError({
+                    code: "PRECONDITION_FAILED",
+                    message: "eTIMS Configuration not found or device not initialized.",
+                });
+            }
+
+            const clientConfig = {
+                baseUrl: config.isSandbox
+                    ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
+                    : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
+                tokenUrl: config.isSandbox
+                    ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
+                    : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
                 consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
                 consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
             };
 
-            const client = new ETimsClient(config);
+            const client = new ETimsClient(clientConfig);
 
             try {
                 const result = await client.sendPurchaseTransactionInfo(
                     {
-                        tin: input.tin,
-                        bhfId: input.bhfId,
-                        cmcKey: input.cmcKey,
-                        accessToken: input.accessToken
+                        tin: config.kraPin,
+                        bhfId: input.bhfId ?? config.branchId,
+                        cmcKey: config.cmcKey,
+                        accessToken: undefined
                     },
                     input.purchase
                 );
@@ -86,11 +108,12 @@ export const etimsPurchasesRouter = router({
                     data: result,
                 };
             } catch (error: any) {
-                console.error("[eTIMS Send Purchase Transaction Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to send eTIMS purchase transaction",
-                });
+                console.warn("[eTIMS Send Purchase Transaction Error]", error?.message ?? error);
+                return {
+                    success: false,
+                    data: null,
+                    errorMessage: error?.message || "Failed to send eTIMS purchase transaction",
+                };
             }
         }),
 });

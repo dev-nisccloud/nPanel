@@ -19,42 +19,24 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { ETimsInitializationGuard } from "@/components/etims/etims-initialization-guard";
 
 export default function ETimsStockPage() {
-    const [selectedTeamId, setSelectedTeamId] = React.useState<string | null>(null);
-
     const utils = trpc.useUtils();
 
-    // Fetch all teams (Assuming Agency Admin access)
-    const { data: teams, isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery();
-
     const { data: stockData, isLoading, refetch } = trpc.etims.stock.getStockMovements.useQuery({
-        teamId: selectedTeamId!,
         lastReqDt: "20230101000000",
-    }, {
-        enabled: !!selectedTeamId
     });
 
-    const stockItems = stockData?.data?.itemList || [];
-
-    if (isLoadingTeams) {
-        return (
-            <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-                <div className="w-full max-w-7xl mx-auto flex items-center justify-center py-12">
-                    <Spinner size={32} />
-                </div>
-            </div>
-        );
-    }
+    const stockItems = React.useMemo(() => {
+        // API shape is: { success: true, data: <kraResponse> }
+        // And KRA may wrap response: { responseBody: { data: { itemList: [...] } } }
+        const root: any = stockData;
+        const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
+        const data: any = payload?.data ?? payload;
+        return data?.itemList ?? [];
+    }, [stockData]);
 
     return (
         <ETimsInitializationGuard>
@@ -68,34 +50,10 @@ export default function ETimsStockPage() {
                                     Monitor and adjust stock levels transmitted to KRA eTIMS for compliance.
                                 </p>
                             </div>
-                            <div className="w-full md:w-[300px]">
-                                <Select value={selectedTeamId || ""} onValueChange={setSelectedTeamId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a Team" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {teams?.map((team) => (
-                                            <SelectItem key={team.id} value={team.id}>
-                                                {team.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
                         </div>
 
-                        {!selectedTeamId ? (
-                            <div className="p-12 border border-dashed rounded-lg flex flex-col items-center justify-center text-center text-muted-foreground bg-muted/30">
-                                <Package className="h-12 w-12 mb-4 opacity-50" />
-                                <h3 className="text-lg font-medium">Select a Team</h3>
-                                <p className="text-sm mt-1 max-w-sm">
-                                    Please select a team to view inventory and stock movements.
-                                </p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Stock Summary Metrics */}
-                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {/* Stock Summary Metrics */}
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                     <Card className="bg-card shadow-sm border-l-4 border-l-blue-500">
                                         <CardHeader className="pb-2">
                                             <CardTitle className="text-sm font-medium text-muted-foreground">Stock-In Movements</CardTitle>
@@ -136,8 +94,8 @@ export default function ETimsStockPage() {
                                     </Card>
                                 </div>
 
-                                {/* Actions bar */}
-                                <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+                        {/* Actions bar */}
+                        <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4">
                                     <div className="relative flex-1 max-w-sm w-full">
                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         <Input
@@ -157,8 +115,8 @@ export default function ETimsStockPage() {
                                     </div>
                                 </div>
 
-                                {/* Content Table */}
-                                <div className="mt-6">
+                        {/* Content Table */}
+                        <div className="mt-6">
                                     <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                         <table className="w-full text-sm text-left">
                                             <thead className="bg-muted/50 text-muted-foreground font-medium border-b">
@@ -232,8 +190,6 @@ export default function ETimsStockPage() {
                                         </table>
                                     </div>
                                 </div>
-                            </>
-                        )}
                     </div>
                 </div>
             </div>

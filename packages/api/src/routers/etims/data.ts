@@ -55,13 +55,11 @@ export const etimsDataRouter = router({
      */
     getItemClassList: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
+            bhfId: z.string().optional(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -87,7 +85,7 @@ export const etimsDataRouter = router({
                 const result = await client.selectItemClass(
                     {
                         tin: config.kraPin,
-                        bhfId: config.branchId,
+                        bhfId: input.bhfId ?? config.branchId,
                         cmcKey: config.cmcKey,
                         accessToken: undefined
                     },
@@ -99,11 +97,16 @@ export const etimsDataRouter = router({
                     data: result,
                 };
             } catch (error: any) {
-                console.error("[eTIMS Item Class Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to retrieve eTIMS item classification list",
-                });
+                // KRA sandbox can return 400s here due to internal test-session issues.
+                // Log a concise message (no noisy stack), and return non-fatal response.
+                console.warn("[eTIMS Item Class Error]", error?.message ?? error);
+                // KRA sandbox can return 400s here due to internal test-session issues.
+                // Don't break the UI: return a non-fatal response so users can enter codes manually.
+                return {
+                    success: false,
+                    data: null,
+                    errorMessage: error?.message || "Failed to retrieve eTIMS item classification list",
+                };
             }
         }),
 
@@ -112,14 +115,11 @@ export const etimsDataRouter = router({
      */
     getBranchList: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
         }))
         .query(async ({ input }) => {
-            // 1. Fetch eTIMS Configuration
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            // 1. Fetch global eTIMS Configuration
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -176,13 +176,10 @@ export const etimsDataRouter = router({
      */
     getNoticeList: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             lastReqDt: z.string(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -233,13 +230,10 @@ export const etimsDataRouter = router({
      */
     getTaxpayerInfo: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             lastReqDt: z.string(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -290,13 +284,10 @@ export const etimsDataRouter = router({
      */
     getCustomerList: protectedProcedure
         .input(z.object({
-            teamId: z.string(),
             lastReqDt: z.string(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findUnique({
-                where: { teamId: input.teamId },
-            });
+            const config = await prisma.eTimsConfiguration.findFirst();
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({

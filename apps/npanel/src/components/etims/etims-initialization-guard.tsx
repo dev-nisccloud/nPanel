@@ -14,10 +14,7 @@ interface ETimsInitializationGuardProps {
 }
 
 export function ETimsInitializationGuard({ children }: ETimsInitializationGuardProps) {
-    // Check global configuration (teamId: null)
-    const { data: configStatus, isLoading } = trpc.etims.auth.getConfiguration.useQuery(
-        { teamId: null }
-    );
+    const { data: configStatus, isLoading } = trpc.etims.auth.getConfiguration.useQuery();
 
     if (isLoading) {
         return (

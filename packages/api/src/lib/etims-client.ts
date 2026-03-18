@@ -97,6 +97,8 @@ export interface AuthResponse {
 
 export class ETimsClient {
     private config: ETimsConfig;
+    private cachedAccessToken: string | null = null;
+    private cachedAccessTokenExpiresAtMs: number | null = null;
 
     constructor(config: ETimsConfig) {
         this.config = config;
@@ -127,12 +129,57 @@ export class ETimsClient {
         }
     }
 
+    private async getValidAccessToken(): Promise<string> {
+        const now = Date.now();
+        if (this.cachedAccessToken && this.cachedAccessTokenExpiresAtMs && now < this.cachedAccessTokenExpiresAtMs) {
+            return this.cachedAccessToken;
+        }
+
+        const token = await this.generateToken();
+        const expiresInSec = Number(token.expires_in);
+        // Refresh a bit early to avoid edge-of-expiry failures.
+        const skewMs = 30_000;
+        const ttlMs = Number.isFinite(expiresInSec) ? Math.max(0, expiresInSec * 1000 - skewMs) : 0;
+
+        this.cachedAccessToken = token.access_token;
+        this.cachedAccessTokenExpiresAtMs = now + ttlMs;
+
+        return token.access_token;
+    }
+
+    private maskBearer(bearer: string | undefined) {
+        if (!bearer) return "";
+        if (bearer.length <= 16) return "***";
+        return `${bearer.slice(0, 6)}***${bearer.slice(-6)}`;
+    }
+
+    private omitNullishDeep<T>(value: T): T {
+        // KRA sandbox is strict: remove null/undefined fields from payloads.
+        if (value === null || value === undefined) return value;
+
+        if (Array.isArray(value)) {
+            return value.map((v) => this.omitNullishDeep(v)) as any;
+        }
+
+        if (typeof value === "object") {
+            const out: any = {};
+            for (const [k, v] of Object.entries(value as any)) {
+                if (v === null || v === undefined) continue;
+                out[k] = this.omitNullishDeep(v);
+            }
+            return out;
+        }
+
+        return value;
+    }
+
     private async request<T>(method: 'GET' | 'POST', endpoint: string, headers: ETimsHeaders, body?: any): Promise<T> {
         const url = `${this.config.baseUrl}${endpoint}`;
 
+        const accessToken = headers.accessToken ?? (await this.getValidAccessToken());
         const headersObj = {
             'Content-Type': 'application/json',
-            'Authorization': headers.accessToken ? `Bearer ${headers.accessToken}` : '',
+            'Authorization': `Bearer ${accessToken}`,
             'apigee_app_id': this.config.consumerKey,
             'tin': headers.tin,
             'bhfId': headers.bhfId,
@@ -140,15 +187,21 @@ export class ETimsClient {
         };
 
         console.log(`[eTIMS] ${method} ${url}`);
-        console.log(`[eTIMS] Headers:`, JSON.stringify(headersObj, null, 2));
-        if (body) {
-            console.log(`[eTIMS] Body:`, JSON.stringify(body, null, 2));
-        }
+        const headersForLog = {
+            ...headersObj,
+            Authorization: `Bearer ${this.maskBearer(accessToken)}`,
+            apigee_app_id: this.config.consumerKey ? `${this.config.consumerKey.slice(0, 6)}***${this.config.consumerKey.slice(-6)}` : "",
+            ...(headers.cmcKey ? { cmcKey: `${headers.cmcKey.slice(0, 6)}***${headers.cmcKey.slice(-6)}` } : {}),
+        };
+        console.log(`[eTIMS] Headers:`, JSON.stringify(headersForLog, null, 2));
+
+        const sanitizedBody = body ? this.omitNullishDeep(body) : undefined;
+        if (sanitizedBody) console.log(`[eTIMS] Body:`, JSON.stringify(sanitizedBody, null, 2));
 
         const res = await request(url, {
             method,
             headers: headersObj,
-            body: body ? JSON.stringify(body) : undefined,
+            body: sanitizedBody ? JSON.stringify(sanitizedBody) : undefined,
         });
 
         const responseText = await res.body.text();
@@ -192,15 +245,14 @@ export class ETimsClient {
     }
 
     async selectItemClass(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/selectItemClass', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+        // KRA sandbox is strict here; body should be minimal.
+        // Headers already carry tin/bhfId/cmcKey.
+        return this.request<any>('POST', '/selectItemClass', headers, { lastReqDt });
     }
 
     async selectBhfList(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/branchList', headers, {
+        // KRA docs (Branch Information Management): /selectBhfList
+        return this.request<any>('POST', '/selectBhfList', headers, {
             tin: headers.tin,
             bhfId: headers.bhfId,
             lastReqDt,
@@ -308,14 +360,12 @@ export class ETimsClient {
     }
 
     async branchSendCustomerInfo(headers: ETimsHeaders, customerInfo: any) {
-        return this.request<any>('POST', '/branchSendCustomerInfo', headers, customerInfo);
+        // KRA docs: /saveBhfCustomer
+        return this.request<any>('POST', '/saveBhfCustomer', headers, customerInfo);
     }
 
     async branchUserAccount(headers: ETimsHeaders, userInfo: any) {
-        return this.request<any>('POST', '/branchUserAccount', headers, userInfo);
-    }
-
-    async branchInsuranceInfo(headers: ETimsHeaders, insuranceInfo: any) {
-        return this.request<any>('POST', '/branchInsuranceInfo', headers, insuranceInfo);
+        // KRA docs: /saveBhfUser
+        return this.request<any>('POST', '/saveBhfUser', headers, userInfo);
     }
 }

@@ -791,12 +791,21 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				scheduledAt: undefined,
 			});
 
-			// Fire-and-forget: trigger send (await so we catch e.g. loopback URL errors)
-			await sendMutation.mutateAsync({ id: campaign.id });
+			// Fire-and-forget: enqueue send job in background. Do not block UI on queue latency.
+			sendMutation.mutate(
+				{ id: campaign.id },
+				{
+					onSuccess: () => {
+						utils.emailMarketing.campaigns.list.invalidate();
+					},
+					onError: (e) => {
+						toast.error("Failed to queue send", { description: e.message });
+					},
+				},
+			);
 
-			utils.emailMarketing.campaigns.list.invalidate();
 			toast.success("Campaign created", {
-				description: "Emails are being sent in the background.",
+				description: "Send queued. A background worker will deliver emails shortly.",
 			});
 
 			handleOpenChange(false);
@@ -837,10 +846,22 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				emailDomainId: data.emailDomainId ?? undefined,
 				scheduledAt: data.scheduledAt ?? undefined,
 			});
-			await sendMutation.mutateAsync({ id: campaign.id });
-			utils.emailMarketing.campaigns.list.invalidate();
+
+			// Fire-and-forget: enqueue scheduled send job in background.
+			sendMutation.mutate(
+				{ id: campaign.id },
+				{
+					onSuccess: () => {
+						utils.emailMarketing.campaigns.list.invalidate();
+					},
+					onError: (e) => {
+						toast.error("Failed to queue scheduled send", { description: e.message });
+					},
+				},
+			);
+
 			toast.success("Campaign scheduled", {
-				description: "Emails will be sent at the scheduled time.",
+				description: "Scheduled send queued. A worker will deliver emails at the chosen time.",
 			});
 
 			handleOpenChange(false);

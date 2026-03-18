@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 type AudienceContactList = RouterOutputs["emailMarketing"]["audiences"]["listContacts"];
 
@@ -620,7 +621,15 @@ export default function AudienceDetailPage() {
 			</div>
 
 			{/* Add contact dialog */}
-			<Dialog open={showAddContactDialog} onOpenChange={setShowAddContactDialog}>
+			<Dialog
+				open={showAddContactDialog}
+				onOpenChange={(next) => {
+					// Prevent closing while the mutation is in-flight, otherwise the user sees
+					// no progress and only a delayed success toast after closing.
+					if (addContactsBulkMutation.isPending) return;
+					setShowAddContactDialog(next);
+				}}
+			>
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>
 						<DialogTitle>Add contact</DialogTitle>
@@ -700,12 +709,26 @@ export default function AudienceDetailPage() {
 							type="button"
 							variant="outline"
 							onClick={() => setShowAddContactDialog(false)}
+							disabled={addContactsBulkMutation.isPending}
 						>
 							Cancel
 						</Button>
-						<Button type="button" onClick={handleAddSingleContact}>
-							<Plus className="mr-2 h-3 w-3" />
-							Add contact
+						<Button
+							type="button"
+							onClick={handleAddSingleContact}
+							disabled={addContactsBulkMutation.isPending}
+						>
+							{addContactsBulkMutation.isPending ? (
+								<>
+									<Spinner className="mr-2" size="sm" />
+									Adding…
+								</>
+							) : (
+								<>
+									<Plus className="mr-2 h-3 w-3" />
+									Add contact
+								</>
+							)}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

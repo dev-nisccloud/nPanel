@@ -3,9 +3,7 @@
 // Prioritizes API fetching for transactions/stock, storing only essential persistence data.
 
 model ETimsConfiguration {
-  id     String  @id @map("_id")
-  teamId String? @unique
-
+  id         String  @id @map("_id")
   // Taxpayer Details
   kraPin     String // The User's PIN
   branchId   String  @default("00")
@@ -26,17 +24,12 @@ model ETimsConfiguration {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@index([teamId])
+  @@index([kraPin, branchId])
   @@map("etims_configuration")
 }
 
 model ETimsItem {
-  id     String  @id @map("_id")
-  teamId String?
-
+  id          String  @id @map("_id")
   // Mapping
   localItemId String? // Optional reference to internal Product/Service ID if applicable
 
@@ -56,20 +49,6 @@ model ETimsItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  // Actually, for MongoDB, unique on nullable is fine, it treats nulls as unique values or ignores them depending on index options. 
-  // But safest is to perhaps check if we need this unique constraint here. 
-  // If teamId is null, it means global item? Or legacy item?
-  // Let's assume unique constraint might key collision if multiple nulls.
-  // We can remove unique on teamId+itemCd if teamId is nullable, or just keep it if we expect at most one global config.
-  // But user said "teamId needs to be optional". A global config usually means one config for the whole agency.
-  // So validation: duplicate global config is bad.
-  // Duplicate global item definition is also bad.
-  // unique([teamId, itemCd]) where teamId is null => unique([null, itemCd]). 
-  // This means max 1 global item for a given code. This is correct.
-
-  @@unique([teamId, itemCd]) // Note: Prisma might complain about unique constraint on nullable field, but MongoDB handles sparse indexes.
-  @@index([teamId])
+  @@unique([itemCd])
   @@map("etims_item")
 }

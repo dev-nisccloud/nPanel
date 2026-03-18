@@ -13,7 +13,6 @@ export const etimsInitializationRouter = router({
      */
     initializeDevice: protectedProcedure
         .input(z.object({
-            teamId: z.string().optional().nullable(),
             tin: z.string().regex(/^[A-Z]\d{9}[A-Z]$/, "Invalid TIN format (e.g., A123456789Z)"),
             bhfId: z.string().default("00"),
             dvcSrlNo: z.string().min(1, "Device serial number is required"),
@@ -115,12 +114,8 @@ export const etimsInitializationRouter = router({
                     });
                 }
 
-                // 5. Upsert Configuration
-                const whereClause = input.teamId ? { teamId: input.teamId } : { teamId: null };
-
-                const existingConfig = await prisma.eTimsConfiguration.findFirst({
-                    where: whereClause
-                });
+                // 5. Upsert single global Configuration
+                const existingConfig = await prisma.eTimsConfiguration.findFirst();
 
                 if (existingConfig) {
                     await prisma.eTimsConfiguration.update({
@@ -146,7 +141,6 @@ export const etimsInitializationRouter = router({
                     const newConfig = await prisma.eTimsConfiguration.create({
                         data: {
                             id: crypto.randomUUID(),
-                            teamId: input.teamId || null,
                             kraPin: input.tin,
                             branchId: input.bhfId,
                             deviceSerialNumber: input.dvcSrlNo,

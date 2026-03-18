@@ -388,8 +388,6 @@ model Team {
   invoices                     Invoice[]
   creditNotes                  CreditNote[]
   billingSettings              TeamBillingSettings?
-  etimsConfiguration           ETimsConfiguration?
-  etimsItems                   ETimsItem[]
   // Social Media Marketing Relations (page ownership)
   socialMediaPageTokens        SocialMediaPageToken[]
   // Google Ads Relations (account ownership)
