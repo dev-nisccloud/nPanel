@@ -1,0 +1,24 @@
+{
+  "name": "@npanel/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@npanel/db": "workspace:*",
+    "@npanel/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@npanel/config": "workspace:*",
+    "typescript": "^5"
+  }
+}

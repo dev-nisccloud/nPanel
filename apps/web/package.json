@@ -1,0 +1,52 @@
+{
+  "name": "web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "start": "react-router-serve ./build/server/index.js",
+    "typecheck": "react-router typegen && tsc",
+    "generate-pwa-assets": "pwa-assets-generator"
+  },
+  "dependencies": {
+    "@npanel/api": "workspace:*",
+    "@npanel/auth": "workspace:*",
+    "@npanel/env": "workspace:*",
+    "@npanel/ui": "workspace:*",
+    "@react-router/fs-routes": "^7.10.1",
+    "@react-router/node": "^7.10.1",
+    "@react-router/serve": "^7.10.1",
+    "@tanstack/react-form": "^1.28.0",
+    "@tanstack/react-query": "^5.90.12",
+    "@trpc/client": "catalog:",
+    "@trpc/server": "catalog:",
+    "@trpc/tanstack-react-query": "^11.7.2",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "isbot": "^5.1.28",
+    "lucide-react": "catalog:",
+    "next-themes": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router": "^7.10.1",
+    "sonner": "catalog:",
+    "vite-plugin-pwa": "^1.0.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@npanel/config": "workspace:*",
+    "@react-router/dev": "^7.10.1",
+    "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/react-query-devtools": "^5.91.1",
+    "@types/node": "^20",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vite-pwa/assets-generator": "^1.0.0",
+    "react-router-devtools": "^1.1.0",
+    "tailwindcss": "catalog:",
+    "typescript": "^5.8.3",
+    "vite": "^7.2.7",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}

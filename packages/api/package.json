@@ -1,0 +1,27 @@
+{
+  "name": "@npanel/api",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@npanel/auth": "workspace:*",
+    "@npanel/db": "workspace:*",
+    "@npanel/env": "workspace:*",
+    "@trpc/client": "catalog:",
+    "@trpc/server": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@npanel/config": "workspace:*",
+    "hono": "catalog:",
+    "typescript": "^5"
+  }
+}
