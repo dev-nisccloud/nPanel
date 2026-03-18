@@ -96,7 +96,7 @@ npanel/
 - `bun run dev:web`: Start only the web application
 - `bun run dev:server`: Start only the server
 - `bun run check-types`: Check TypeScript types across all apps
-- `bun run db:push`: Push schema changes to database
+- `bun run db:push`: Push schema changes to database(Always generate  and migrate never use the push command at all unless you are sure to avoid migration conflicts)
 - `bun run db:generate`: Generate database client/types
 - `bun run db:migrate`: Run database migrations
 - `bun run db:studio`: Open database studio UI
