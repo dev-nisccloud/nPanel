@@ -1,5 +1,5 @@
 import { trpcServer } from "@hono/trpc-server";
-import { createContext } from "@npanel/api/context";
+import { createContext, t } from "@npanel/api";
 import { appRouter } from "@npanel/api/routers/index";
 import { auth } from "@npanel/auth";
 import { env } from "@npanel/env/server";
@@ -8,6 +8,8 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
 const app = new Hono();
+
+const appCaller = t.createCallerFactory(appRouter);
 
 app.use(logger());
 app.use(
@@ -26,8 +28,11 @@ app.use(
   "/trpc/*",
   trpcServer({
     router: appRouter,
-    createContext: (_opts, context) => {
-      return createContext({ context });
+    createContext: (_opts, honoContext) => {
+      return createContext({
+        context: honoContext,
+        createCaller: (ctx) => appCaller(ctx),
+      });
     },
   }),
 );

@@ -1,52 +1,61 @@
-import { useQuery } from "@tanstack/react-query";
+import { TopProgressBar } from "@/components/top-progress-bar";
 
-import { trpc } from "@/utils/trpc";
+const FALLBACK_REDIRECT = "/auth/login";
+/** Last-resort redirect if JS fails or fetch hangs (seconds). */
+const META_REFRESH_SECONDS = 5;
 
-import type { Route } from "./+types/_index";
+/**
+ * Root path "/" – Server Component returning a 200 OK HTML document.
+ * 
+ * WHY THIS APPROACH?
+ * 1. Service Worker Bug: If we use Next.js `redirect()` it returns a 307. 
+ *    Service Workers fail to handle 30X redirects on `navigate` requests, causing an offline/Not Found error.
+ * 2. Next.js 15+ Standalone Bug: If we use `"use client"` here, Next.js throws 
+ *    `InvariantError: The client reference manifest for route "/" does not exist.`
+ * 
+ * SOLUTION:
+ * Pure Server Component that returns 200 OK and executes a vanilla inline script 
+ * to fetch the redirect target and navigate client-side.
+ */
+export default function RootPage() {
+  const inlineScript = `
+    const FALLBACK = "${FALLBACK_REDIRECT}";
+    let cancelled = false;
+    
+    // Safety timeout in case fetch hangs
+    setTimeout(function() {
+      if (!cancelled) {
+        cancelled = true;
+        window.location.replace(FALLBACK);
+      }
+    }, ${META_REFRESH_SECONDS * 1000});
 
-const TITLE_TEXT = `
- ██████╗ ███████╗████████╗████████╗███████╗██████╗
- ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
- ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
- ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
- ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
- ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
-
- ████████╗    ███████╗████████╗ █████╗  ██████╗██╗  ██╗
- ╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝
-    ██║       ███████╗   ██║   ███████║██║     █████╔╝
-    ██║       ╚════██║   ██║   ██╔══██║██║     ██╔═██╗
-    ██║       ███████║   ██║   ██║  ██║╚██████╗██║  ██╗
-    ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
- `;
-
-export function meta({}: Route.MetaArgs) {
-  return [{ title: "npanel" }, { name: "description", content: "npanel is a web application" }];
-}
-
-export default function Home() {
-  const healthCheck = useQuery(trpc.healthCheck.queryOptions());
+    fetch("/api/auth/redirect-target", { cache: "no-store", credentials: "include" })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (!cancelled) {
+          cancelled = true;
+          window.location.replace(data.redirect || FALLBACK);
+        }
+      })
+      .catch(function() {
+        if (!cancelled) {
+          cancelled = true;
+          window.location.replace(FALLBACK);
+        }
+      });
+  `;
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-2">
-      <pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-      <div className="grid gap-6">
-        <section className="rounded-lg border p-4">
-          <h2 className="mb-2 font-medium">API Status</h2>
-          <div className="flex items-center gap-2">
-            <div
-              className={`h-2 w-2 rounded-full ${healthCheck.data ? "bg-green-500" : "bg-red-500"}`}
-            />
-            <span className="text-sm text-muted-foreground">
-              {healthCheck.isLoading
-                ? "Checking..."
-                : healthCheck.data
-                  ? "Connected"
-                  : "Disconnected"}
-            </span>
-          </div>
-        </section>
-      </div>
-    </div>
+    <>
+      {/* If JS fails to run entirely, still get to login after N seconds */}
+      <meta
+        httpEquiv="refresh"
+        content={`${META_REFRESH_SECONDS};url=${FALLBACK_REDIRECT}`}
+      />
+      {/* Execute the auth check and redirect client-side */}
+      <script dangerouslySetInnerHTML={{ __html: inlineScript }} />
+      <TopProgressBar active />
+    </>
   );
 }

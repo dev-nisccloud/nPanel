@@ -1,0 +1,48 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+import { SidebarInset } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
+
+const IMAGE_GEN_STUDIO_EDITOR_PATH = "/agency/gen-ai/image-gen-studio/editor";
+
+export function AgencyContentArea({
+  contentLayout,
+  children,
+}: {
+  contentLayout: string;
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const isImageGenStudioEditor = pathname?.includes(IMAGE_GEN_STUDIO_EDITOR_PATH);
+
+  return (
+    <SidebarInset
+      data-content-layout={contentLayout}
+      className={cn(
+        "data-[content-layout=centered]:!mx-auto data-[content-layout=centered]:max-w-screen-2xl",
+        "max-[113rem]:peer-data-[variant=inset]:!mr-2 min-[101rem]:peer-data-[variant=inset]:peer-data-[state=collapsed]:!mr-auto",
+        isImageGenStudioEditor &&
+          "!max-w-none h-svh max-h-svh min-h-0 min-w-0 overflow-hidden"
+      )}
+    >
+      {children}
+    </SidebarInset>
+  );
+}
+
+export function AgencyContentInner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isImageGenStudioEditor = pathname?.includes(IMAGE_GEN_STUDIO_EDITOR_PATH);
+
+  return (
+    <div
+      className={cn(
+        "bg-[#f8fafb] dark:bg-background",
+        isImageGenStudioEditor ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0" : "h-full p-4 md:p-6"
+      )}
+    >
+      {children}
+    </div>
+  );
+}

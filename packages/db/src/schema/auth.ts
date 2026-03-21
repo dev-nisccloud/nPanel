@@ -1,18 +1,36 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, integer } from "drizzle-orm/pg-core";
+import { agencyRole } from "./agency-rbac";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
+  role: text("role").default("CUSTOMER").notNull(),
+  agencyRoleId: text("agency_role_id"),
+  status: text("status").default("ACTIVE").notNull(),
+  lastAccessedTeamId: text("last_accessed_team_id"),
+  lastLoginAt: timestamp("last_login_at"),
   image: text("image"),
+
+  notificationSoundEnabled: boolean("notification_sound_enabled").default(true),
+  browserNotificationsEnabled: boolean("browser_notifications_enabled").default(false),
+  notificationSoundVolume: integer("notification_sound_volume").default(100),
+  browserNotificationPermission: text("browser_notification_permission").default("default"),
+  notificationPreferencesUpdatedAt: timestamp("notification_preferences_updated_at"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-});
+}, (table) => [
+  index("user_role_idx").on(table.role),
+  index("user_agencyRoleId_idx").on(table.agencyRoleId),
+  index("user_status_idx").on(table.status),
+  index("user_lastAccessedTeamId_idx").on(table.lastAccessedTeamId),
+]);
 
 export const session = pgTable(
   "session",
@@ -73,9 +91,13 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-export const userRelations = relations(user, ({ many }) => ({
+export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
+  agencyRole: one(agencyRole, {
+    fields: [user.agencyRoleId],
+    references: [agencyRole.id],
+  }),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({

@@ -1,8 +1,7 @@
-import { Toaster } from "@npanel/ui/components/sonner";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 
 import "./index.css";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   isRouteErrorResponse,
   Links,
@@ -13,9 +12,29 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import Header from "./components/header";
-import { ThemeProvider } from "./components/theme-provider";
-import { queryClient } from "./utils/trpc";
+import RootLoading from "@/components/root-loading";
+import { GlobalBuyNowDialogWrapper } from "@/components/global-buy-now-dialog-wrapper";
+import { Toaster } from "@/components/ui/sonner";
+import { APP_CONFIG } from "@/config/app-config";
+import { QueryProvider } from "@/providers/query-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
+import type { ThemeMode, ThemePreset } from "@/types/preferences/theme";
+
+const DEFAULT_THEME_MODE: ThemeMode = "light";
+const DEFAULT_THEME_PRESET: ThemePreset = "twitter";
+
+export const meta: Route.MetaFunction = () => [
+  { title: APP_CONFIG.meta.title },
+  { name: "description", content: APP_CONFIG.meta.description },
+  { name: "application-name", content: APP_CONFIG.name },
+  { name: "format-detection", content: "telephone=no" },
+  { name: "apple-mobile-web-app-capable", content: "yes" },
+  { name: "apple-mobile-web-app-title", content: "Nisc Cloud - nPanel" },
+  { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+  { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#ffffff" },
+  { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#0a0a0a" },
+];
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -24,18 +43,21 @@ export const links: Route.LinksFunction = () => [
     rel: "stylesheet",
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
+  { rel: "icon", href: "/favicon/favicon.ico" },
+  { rel: "apple-touch-icon", href: "/favicon/apple-touch-icon.png" },
+  { rel: "manifest", href: "/manifest" },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme-preset={DEFAULT_THEME_PRESET} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="min-h-screen font-sans antialiased">
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -46,21 +68,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="dark"
-        disableTransitionOnChange
-        storageKey="vite-ui-theme"
-      >
-        <div className="grid grid-rows-[auto_1fr] h-svh">
-          <Header />
-          <Outlet />
-        </div>
-        <Toaster richColors />
-      </ThemeProvider>
-      <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
-    </QueryClientProvider>
+    <NuqsAdapter>
+      <QueryProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme={DEFAULT_THEME_MODE}
+          disableTransitionOnChange
+          enableSystem
+          storageKey="vite-ui-theme"
+        >
+          <PreferencesStoreProvider themeMode={DEFAULT_THEME_MODE} themePreset={DEFAULT_THEME_PRESET}>
+            <Suspense fallback={<RootLoading />}>
+              <Outlet />
+            </Suspense>
+            <GlobalBuyNowDialogWrapper />
+            <Toaster richColors />
+          </PreferencesStoreProvider>
+        </ThemeProvider>
+      </QueryProvider>
+    </NuqsAdapter>
   );
 }
 
@@ -77,11 +103,11 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     stack = error.stack;
   }
   return (
-    <main className="pt-16 p-4 container mx-auto">
+    <main className="container mx-auto p-4 pt-16">
       <h1>{message}</h1>
       <p>{details}</p>
       {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
+        <pre className="w-full overflow-x-auto p-4">
           <code>{stack}</code>
         </pre>
       )}
