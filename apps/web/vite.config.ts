@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Keep the original `Host` header (e.g. `localhost:5173`) so Better Auth
         // sets cookies for the same host the browser will later send them from.
-        "/api": { target: apiTarget, changeOrigin: false, timeout: 60000, proxyTimeout: 60000 },
+        "/api": { target: apiTarget, changeOrigin: false, timeout: 120000, proxyTimeout: 120000 },
       },
     },
   };

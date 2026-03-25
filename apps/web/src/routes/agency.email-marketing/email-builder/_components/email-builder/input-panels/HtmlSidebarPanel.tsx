@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ZodError } from 'zod';
-import { HtmlProps, HtmlPropsSchema } from '@usewaypoint/block-html';
+import { type HtmlProps, HtmlPropsSchema } from '@usewaypoint/block-html';
 import BaseSidebarPanel from '../helpers/BaseSidebarPanel';
 import TextInput from '../helpers/inputs/TextInput';
 import MultiStylePropertyPanel from '../helpers/style-inputs/MultiStylePropertyPanel';

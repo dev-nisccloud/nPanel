@@ -105,7 +105,7 @@ const getActionOptions = () => [
     bgColor: "bg-blue-50 dark:bg-blue-950/20",
     onClick: () => {
       // Handle phone call
-      const phoneNumber = process.env.NEXT_PUBLIC_PHONE_NUMBER || "+254748777666";
+      const phoneNumber = process.env.VITE_PUBLIC_PHONE_NUMBER || "+254748777666";
       window.open(`tel:${phoneNumber}`, "_blank");
     },
   },

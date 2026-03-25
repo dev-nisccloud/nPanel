@@ -13,12 +13,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DomainResultCard } from "../../domains/_components/domain-result-card";
-import { BuyNowDialog } from "../../domains/_components/buy-now-dialog";
+import { BuyNowDialog } from "../../agency.domains/_components/buy-now-dialog";
 import { trpc } from "@/utils/trpc";
 import { useCartStore } from "@/stores/cart-store";
-import { useCurrency } from "../../domains/_components/currency-context";
-import { CurrencyProvider } from "../../domains/_components/currency-context";
+import { useCurrency } from "../../agency.domains/_components/currency-context";
+import { CurrencyProvider } from "../../agency.domains/_components/currency-context";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import { getPopularTlds } from "@/utils";

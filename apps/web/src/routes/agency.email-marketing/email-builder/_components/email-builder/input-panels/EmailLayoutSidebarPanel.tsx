@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ZodError } from 'zod';
-import { EmailLayoutProps, EmailLayoutPropsSchema } from '../helpers/EmailLayoutTypes';
+import { type EmailLayoutProps, EmailLayoutPropsSchema } from '../helpers/EmailLayoutTypes';
 import BaseSidebarPanel from '../helpers/BaseSidebarPanel';
 import ColorInput, { NullableColorInput } from '../helpers/inputs/ColorInput';
 import { NullableFontFamily } from '../helpers/inputs/FontFamily';

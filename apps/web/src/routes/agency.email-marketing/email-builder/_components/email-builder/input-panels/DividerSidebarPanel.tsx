@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ZodError } from 'zod';
 import { Minus } from 'lucide-react';
-import { DividerProps, DividerPropsDefaults, DividerPropsSchema } from '@usewaypoint/block-divider';
+import { type DividerProps, DividerPropsDefaults, DividerPropsSchema } from '@usewaypoint/block-divider';
 import BaseSidebarPanel from '../helpers/BaseSidebarPanel';
 import { NullableColorInput } from '../helpers/inputs/ColorInput';
 import SliderInput from '../helpers/inputs/SliderInput';

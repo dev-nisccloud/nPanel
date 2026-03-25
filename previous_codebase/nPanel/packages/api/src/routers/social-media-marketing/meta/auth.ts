@@ -201,7 +201,7 @@ export const metaAuthRouter = router({
 				// Step 1: Exchange OAuth code for short-lived token
 				const redirectUri =
 					input.redirectUri ||
-					`${process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/agency/social-media-marketing/facebook/callback`;
+					`${process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3001'}/agency/social-media-marketing/facebook/callback`;
 
 				const shortLivedTokenResponse = await exchangeCodeForToken(input.code, redirectUri);
 
@@ -615,7 +615,7 @@ export const metaAuthRouter = router({
 				// Use provided redirect URI or default
 				const redirectUri =
 					input.redirectUri ||
-					`${process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/agency/social-media-marketing/facebook/callback`;
+					`${process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3000'}/agency/social-media-marketing/facebook/callback`;
 
 				const authUrl = `https://www.facebook.com/${apiVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scopes.join(',')}`;
 
@@ -646,7 +646,7 @@ export const metaAuthRouter = router({
 	/**
 	 * Get stored Meta credentials (integration status)
 	 */
-		getStoredCredentials: protectedProcedure.query(async () => {
+	getStoredCredentials: protectedProcedure.query(async () => {
 		try {
 			const integration = await prisma.socialMediaIntegration.findFirst({
 				where: {

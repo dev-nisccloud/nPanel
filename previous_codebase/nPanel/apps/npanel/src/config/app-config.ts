@@ -12,8 +12,8 @@ const FALLBACK_CONFIG = {
 function buildAppConfig(): typeof FALLBACK_CONFIG {
   try {
     const version =
-      typeof process.env.NEXT_PUBLIC_APP_VERSION === "string" && process.env.NEXT_PUBLIC_APP_VERSION
-        ? process.env.NEXT_PUBLIC_APP_VERSION
+      typeof process.env.VITE_PUBLIC_APP_VERSION === "string" && process.env.VITE_PUBLIC_APP_VERSION
+        ? process.env.VITE_PUBLIC_APP_VERSION
         : "1.0.0";
     const currentYear = new Date().getFullYear();
     return {

@@ -14,17 +14,17 @@ import ContainerSidebarPanel from './input-panels/ContainerSidebarPanel';
 import ColumnsContainerSidebarPanel from './input-panels/ColumnsContainerSidebarPanel';
 
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { ButtonProps, ButtonPropsSchema } from '@usewaypoint/block-button';
-import { ImageProps, ImagePropsSchema } from '@usewaypoint/block-image';
-import { AvatarProps, AvatarPropsSchema } from '@usewaypoint/block-avatar';
-import { TextProps, TextPropsSchema } from '@usewaypoint/block-text';
-import { HeadingProps, HeadingPropsSchema } from '@usewaypoint/block-heading';
-import { DividerProps, DividerPropsSchema } from '@usewaypoint/block-divider';
-import { SpacerProps, SpacerPropsSchema } from '@usewaypoint/block-spacer';
-import { HtmlProps, HtmlPropsSchema } from '@usewaypoint/block-html';
-import { ContainerProps, ContainerPropsSchema } from '@usewaypoint/block-container';
-import { ColumnsContainerProps, ColumnsContainerPropsSchema } from '@usewaypoint/block-columns-container';
-import { EmailLayoutProps, EmailLayoutPropsSchema } from './helpers/EmailLayoutTypes';
+import { type ButtonProps, ButtonPropsSchema } from '@usewaypoint/block-button';
+import { type ImageProps, ImagePropsSchema } from '@usewaypoint/block-image';
+import { type AvatarProps, AvatarPropsSchema } from '@usewaypoint/block-avatar';
+import { type TextProps, TextPropsSchema } from '@usewaypoint/block-text';
+import { type HeadingProps, HeadingPropsSchema } from '@usewaypoint/block-heading';
+import { type DividerProps, DividerPropsSchema } from '@usewaypoint/block-divider';
+import { type SpacerProps, SpacerPropsSchema } from '@usewaypoint/block-spacer';
+import { type HtmlProps, HtmlPropsSchema } from '@usewaypoint/block-html';
+import { type ContainerProps, ContainerPropsSchema } from '@usewaypoint/block-container';
+import { type ColumnsContainerProps, ColumnsContainerPropsSchema } from '@usewaypoint/block-columns-container';
+import { type EmailLayoutProps, EmailLayoutPropsSchema } from './helpers/EmailLayoutTypes';
 
 export function InspectorDrawer() {
     const document = useDocument();

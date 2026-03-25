@@ -9,7 +9,7 @@ function getWorkerEndpoint(): string {
 		return process.env.QSTASH_NISC_ORDER_WORKER_ENDPOINT.replace(/\/$/, "");
 	}
 	const baseUrl =
-		process.env.NEXT_PUBLIC_APP_URL ||
+		process.env.VITE_PUBLIC_APP_URL ||
 		(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
 	if (baseUrl) {
 		return baseUrl.replace(/\/$/, "") + NISC_ORDER_WORKER_PATH;
@@ -42,7 +42,7 @@ export async function enqueueNiscOrderProcessing(
 	const url = getWorkerEndpoint();
 	if (!url) {
 		throw new Error(
-			"NISC order worker URL not configured. Set QSTASH_NISC_ORDER_WORKER_ENDPOINT, NEXT_PUBLIC_APP_URL, or VERCEL_URL.",
+			"NISC order worker URL not configured. Set QSTASH_NISC_ORDER_WORKER_ENDPOINT, VITE_PUBLIC_APP_URL, or VERCEL_URL.",
 		);
 	}
 	if (isLoopbackUrl(url)) {

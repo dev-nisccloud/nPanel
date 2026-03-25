@@ -67,13 +67,13 @@ env:
   - variable: ETIMS_TOKEN_URL
     value: "https://sbx.kra.go.ke/v1/token/generate"
     availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_FTP_HOST
+  - variable: VITE_PUBLIC_FTP_HOST
     value: "orion.nisccloud.com"
     availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_FTP_PORT
+  - variable: VITE_PUBLIC_FTP_PORT
     value: "21"
     availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_PLESK_HOST
+  - variable: VITE_PUBLIC_PLESK_HOST
     value: "orion.nisccloud.com"
     availability: [BUILD, RUNTIME]
 
@@ -120,8 +120,8 @@ env:
   - variable: META_APP_SECRET
     secret: META_APP_SECRET
     availability: [RUNTIME]
-  - variable: NEXT_PUBLIC_APP_URL
-    secret: NEXT_PUBLIC_APP_URL
+  - variable: VITE_PUBLIC_APP_URL
+    secret: VITE_PUBLIC_APP_URL
     availability: [RUNTIME]
   - variable: OPENAI_API_KEY
     secret: OPENAI_API_KEY
@@ -150,8 +150,8 @@ env:
   - variable: QSTASH_CURRENT_SIGNING_KEY
     secret: QSTASH_CURRENT_SIGNING_KEY
     availability: [RUNTIME]
-  - variable: QSTASH_NEXT_SIGNING_KEY
-    secret: QSTASH_NEXT_SIGNING_KEY
+  - variable: QSTASH_VITE_SIGNING_KEY
+    secret: QSTASH_VITE_SIGNING_KEY
     availability: [RUNTIME]
   - variable: QSTASH_TOKEN
     secret: QSTASH_TOKEN
@@ -186,8 +186,8 @@ env:
   - variable: REPLICATE_API_TOKEN
     secret: REPLICATE_API_TOKEN
     availability: [RUNTIME]
-  - variable: NEXT_PUBLIC_UNSPLASH_ACCESS_KEY
-    secret: NEXT_PUBLIC_UNSPLASH_ACCESS_KEY
+  - variable: VITE_PUBLIC_UNSPLASH_ACCESS_KEY
+    secret: VITE_PUBLIC_UNSPLASH_ACCESS_KEY
     availability: [RUNTIME]
   - variable: MPESA_CONSUMER_KEY
     secret: MPESA_CONSUMER_KEY

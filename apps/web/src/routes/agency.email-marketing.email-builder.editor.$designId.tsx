@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { use } from "react";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -13,14 +12,8 @@ import { TemplatePanel } from "@/routes/agency.email-marketing/email-builder/_co
 import { InspectorDrawer } from "@/routes/agency.email-marketing/email-builder/_components/email-builder/inspector";
 import { EditorHeader } from "@/routes/agency.email-marketing/email-builder/_components/editor-header";
 
-interface EmailEditorPageProps {
-    params: Promise<{
-        designId: string;
-    }>;
-}
-
-export default function EmailEditorPage({ params }: EmailEditorPageProps) {
-    const { designId } = use(params);
+export default function EmailEditorPage() {
+    const { designId } = useParams() as { designId: string };
     const { data, isLoading, isError } = useGetEmailBuilderDesign(designId);
 
     if (isLoading || !data) {

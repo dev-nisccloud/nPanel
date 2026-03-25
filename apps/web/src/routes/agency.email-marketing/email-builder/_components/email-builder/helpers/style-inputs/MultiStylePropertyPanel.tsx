@@ -1,5 +1,5 @@
 import React from 'react';
-import { TStyle } from '../TStyle';
+import type { TStyle } from '../TStyle';
 import SingleStylePropertyPanel from './SingleStylePropertyPanel';
 
 type MultiStylePropertyPanelProps = {

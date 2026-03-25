@@ -1,17 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { use } from "react";
+import { useParams } from "react-router";
 import { CreativeAssetsDetailPage } from "./agency.creative-assets/_components/creative-assets-detail-page";
 
-interface CreativeAssetDetailProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
-
-export default function CreativeAssetDetail({ params }: CreativeAssetDetailProps) {
-  const { id } = use(params);
+export default function CreativeAssetDetail() {
+  const params = useParams();
+  const id = params.id as string;
 
   return <CreativeAssetsDetailPage assetId={id} />;
 }

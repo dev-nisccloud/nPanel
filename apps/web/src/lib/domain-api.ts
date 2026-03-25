@@ -3,7 +3,7 @@ import type { DomainApiResponse, DomainQueryParams, DomainTableRow } from '@/typ
 import { formatTldForDisplay } from './openprovider-utils';
 
 // API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.VITE_SERVER_URL || 'http://localhost:3000';
 
 class DomainApiError extends Error {
   constructor(
@@ -25,7 +25,7 @@ export async function fetchDomains(
 ): Promise<DomainApiResponse> {
   try {
     const searchParams = new URLSearchParams();
-    
+
     // Add query parameters
     if (params.limit) searchParams.set('limit', params.limit.toString());
     if (params.offset) searchParams.set('offset', params.offset.toString());
@@ -36,16 +36,13 @@ export async function fetchDomains(
     if (params.with_restrictions !== undefined) searchParams.set('with_restrictions', params.with_restrictions.toString());
 
     const url = `${API_BASE_URL}/api/openprovider/tlds?${searchParams.toString()}`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
       },
-      // Add cache control for better performance
-      cache: 'force-cache',
-      next: { revalidate: 3600 }, // Revalidate every hour
     });
 
     if (!response.ok) {
@@ -58,7 +55,7 @@ export async function fetchDomains(
     }
 
     const data: DomainApiResponse = await response.json();
-    
+
     if (!data.success) {
       throw new DomainApiError(
         500,
@@ -71,12 +68,12 @@ export async function fetchDomains(
     if (error instanceof DomainApiError) {
       throw error;
     }
-    
+
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new DomainApiError(0, 'Network error: Unable to connect to the server');
     }
-    
+
     throw new DomainApiError(500, 'An unexpected error occurred');
   }
 }
@@ -86,7 +83,7 @@ export async function fetchDomains(
  */
 export function transformTldToTableRow(tld: any, index: number): DomainTableRow {
   const formatted = formatTldForDisplay(tld);
-  
+
   return {
     id: `${tld.name}-${index}`,
     extension: formatted.extension,
@@ -115,9 +112,9 @@ export function transformTldToTableRow(tld: any, index: number): DomainTableRow 
 function getPopularityLevel(extension: string): 'high' | 'medium' | 'low' {
   const highPopular = ['.com', '.net', '.org', '.info', '.biz', '.co', '.io'];
   const mediumPopular = ['.me', '.us', '.uk', '.de', '.fr', '.es', '.it', '.nl', '.be', '.ch', '.at'];
-  
+
   const ext = extension.toLowerCase();
-  
+
   if (highPopular.includes(ext)) return 'high';
   if (mediumPopular.includes(ext)) return 'medium';
   return 'low';
@@ -146,7 +143,7 @@ function filterDomainRows(
       const searchLower = searchTerm.toLowerCase();
       const matchesExtension = row.extension.toLowerCase().includes(searchLower);
       const matchesDescription = row.description?.toLowerCase().includes(searchLower) || false;
-      
+
       if (!matchesExtension && !matchesDescription) {
         return false;
       }
@@ -232,7 +229,7 @@ export function processDomainData(
 ): DomainTableRow[] {
   // Transform to table rows
   let rows = tlds.map((tld, index) => transformTldToTableRow(tld, index));
-  
+
   // Apply client-side filtering if needed
   if (params.search) {
     rows = filterDomainRows(rows, params.search, {
@@ -240,12 +237,12 @@ export function processDomainData(
       includeNonPremium: true,
     });
   }
-  
+
   // Apply sorting
   if (params.sortBy) {
     rows = sortDomainRows(rows, params.sortBy, params.sortDirection || 'asc');
   }
-  
+
   return rows;
 }
 
@@ -254,21 +251,21 @@ export function processDomainData(
  */
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  
+
   // Try localStorage first
   const token = localStorage.getItem('openprovider_token');
   if (token) return token;
-  
+
   // Try cookies as fallback
   const cookies = document.cookie.split(';');
-  const tokenCookie = cookies.find(cookie => 
+  const tokenCookie = cookies.find(cookie =>
     cookie.trim().startsWith('openprovider_token=')
   );
-  
+
   if (tokenCookie) {
     return tokenCookie.split('=')[1];
   }
-  
+
   return null;
 }
 
@@ -277,7 +274,7 @@ export function getAuthToken(): string | null {
  */
 export function setAuthToken(token: string): void {
   if (typeof window === 'undefined') return;
-  
+
   localStorage.setItem('openprovider_token', token);
   // Also set as cookie for server-side access
   document.cookie = `openprovider_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`; // 7 days
@@ -288,7 +285,7 @@ export function setAuthToken(token: string): void {
  */
 export function clearAuthToken(): void {
   if (typeof window === 'undefined') return;
-  
+
   localStorage.removeItem('openprovider_token');
   document.cookie = 'openprovider_token=; path=/; max-age=0';
 }

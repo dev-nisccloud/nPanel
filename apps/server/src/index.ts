@@ -6,6 +6,8 @@ import { env } from "@npanel/env/server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { createRouteHandler } from "uploadthing/server";
+import { ourFileRouter } from "./api/uploadthing";
 
 import { registerAuthCustomRoutes } from "./auth-custom-routes";
 
@@ -55,5 +57,19 @@ app.get("/", (c) => {
   return c.text("OK");
 });
 
-export default app;
+const uploadthingHandler = createRouteHandler({
+  router: ourFileRouter,
+});
+
+app.on(["GET", "POST"], "/api/uploadthing*", async (c) => {
+  const response = await uploadthingHandler(c.req.raw);
+  return response;
+});
+
+export default {
+  port: 3000,
+  fetch: app.fetch,
+  idleTimeout: 255,
+  requestTimeout: 60000,
+};
 

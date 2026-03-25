@@ -39,7 +39,7 @@ const getLinkedInClientSecret = () => {
 };
 
 const getFrontendUrl = () => {
-	return process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+	return process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3001';
 };
 
 // Validation schemas

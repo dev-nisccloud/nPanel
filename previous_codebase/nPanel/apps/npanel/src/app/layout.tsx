@@ -145,7 +145,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     );
   } catch (err) {
     const errDigest = (err as Error & { digest?: string })?.digest;
-    if (typeof errDigest === "string" && errDigest.startsWith("NEXT_REDIRECT")) {
+    if (typeof errDigest === "string" && errDigest.startsWith("VITE_REDIRECT")) {
       throw err;
     }
     // Log so Cloud Run Logging shows the real cause; then return 200 with redirect so we never 500.

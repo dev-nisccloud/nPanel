@@ -1,6 +1,6 @@
 "use client";
 
-import { BackgroundRemoverInterface } from "./agency.gen-ai/background-remover/_components/background-remover-interface";
+import { BackgroundRemoverInterface } from "./_agency.gen-ai/background-remover/_components/background-remover-interface";
 
 export default function BackgroundRemoverPage() {
   return (

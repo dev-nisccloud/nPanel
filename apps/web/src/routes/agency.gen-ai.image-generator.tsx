@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "react-router";
-import { ImageGeneratorInterface } from "./agency.gen-ai/image-generator/_components/image-generator-interface";
+import { ImageGeneratorInterface } from "./_agency.gen-ai/image-generator/_components/image-generator-interface";
 
 export default function ImageGeneratorPage() {
   return (

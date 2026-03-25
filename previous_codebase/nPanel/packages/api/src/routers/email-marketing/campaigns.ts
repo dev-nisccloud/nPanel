@@ -23,9 +23,9 @@ import {
 	campaignRecipientListResponseSchema,
 } from "./schemas";
 
-/** Build campaign view link using NEXT_PUBLIC_APP_URL as-is (no extra redirects). */
+/** Build campaign view link using VITE_PUBLIC_APP_URL as-is (no extra redirects). */
 function getCampaignViewLink(campaignId: string): string {
-	const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+	const base = (process.env.VITE_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 	return `${base}/agency/email-marketing/campaigns/${campaignId}`;
 }
 
@@ -261,13 +261,13 @@ export const emailMarketingCampaignsRouter = router({
 					{ userId },
 					...(input.teamId
 						? [
-								{
-									teamId: input.teamId,
-									team: {
-										members: { some: { userId } },
-									},
+							{
+								teamId: input.teamId,
+								team: {
+									members: { some: { userId } },
 								},
-							]
+							},
+						]
 						: []),
 				],
 			};
@@ -770,7 +770,7 @@ export const emailMarketingCampaignsRouter = router({
 
 			// Notify: email + in-app notification
 			const viewCampaignLink = getCampaignViewLink(input.id);
-			const campaignsListLink = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "") + "/agency/email-marketing/campaigns";
+			const campaignsListLink = (process.env.VITE_PUBLIC_APP_URL ?? "").replace(/\/$/, "") + "/agency/email-marketing/campaigns";
 			try {
 				const user = await prisma.user.findUnique({
 					where: { id: userId },

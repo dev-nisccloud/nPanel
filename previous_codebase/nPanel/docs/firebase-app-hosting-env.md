@@ -8,7 +8,7 @@
 | **BETTER_AUTH_SECRET: You are using the default secret** | Set secret: `firebase apphosting:secrets:set BETTER_AUTH_SECRET` (or use `pnpm run apphosting:secrets` from `.env.production`). |
 | **Misconfigured Secret** / **Error resolving secret version** / **Permission 'secretmanager.versions.get' denied** | The App Hosting backend must be allowed to read secrets. Run **once** (and after adding new secret refs): `pnpm run apphosting:secrets:grant`. See "Grant backend access to secrets" below. |
 | **DATABASE_URL is not set or invalid** | Add secret and reference in `apphosting.yaml`. Set: `firebase apphosting:secrets:set DATABASE_URL` (or `pnpm run apphosting:secrets`), then `pnpm run apphosting:secrets:grant`. |
-| **Worker endpoint not configured** / **LinkedIn worker endpoint not configured** | Set `NEXT_PUBLIC_APP_URL` to your backend URL. Set secret and run `pnpm run apphosting:secrets:grant`. |
+| **Worker endpoint not configured** / **LinkedIn worker endpoint not configured** | Set `VITE_PUBLIC_APP_URL` to your backend URL. Set secret and run `pnpm run apphosting:secrets:grant`. |
 
 After adding or changing secrets, run **`pnpm run apphosting:secrets:grant`** so the backend can read them, then redeploy (push a commit or trigger a new build).
 
@@ -171,7 +171,7 @@ Environment variables for Firebase App Hosting are configured in **`apphosting.y
   - **DATABASE_URL** – Postgres connection string (use pooler URL if using Supabase/Neon).
   - **DIRECT_URL** – Direct Postgres URL (no pooler) for migrations/schema.
   - **BETTER_AUTH_SECRET** – Strong random secret for auth; never use the default in production.
-  - **NEXT_PUBLIC_APP_URL** – Your backend’s public URL (e.g. the App Hosting/Cloud Run URL like `https://xxx---nisccloud-npanel-xxx.a.run.app`). Used for auth callbacks and QStash worker endpoints.
+  - **VITE_PUBLIC_APP_URL** – Your backend’s public URL (e.g. the App Hosting/Cloud Run URL like `https://xxx---nisccloud-npanel-xxx.a.run.app`). Used for auth callbacks and QStash worker endpoints.
 
 Set them all at once from `apps/npanel/.env.production` with:
 

@@ -164,7 +164,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild disabled={disabled} className="w-full">
         <Button
           variant="outline"
@@ -189,15 +189,39 @@ export function ComboboxDropdown<T extends ComboboxItem>({
       <PopoverContent
         className="p-0"
         {...popoverProps}
+        onPointerDownOutside={(e) => {
+          // Prevent closing when clicking inside the command list
+          const target = e.target as HTMLElement;
+          if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]') || target.closest('[cmdk-input]')) {
+            e.preventDefault();
+          }
+          if (popoverProps?.onPointerDownOutside) {
+            popoverProps.onPointerDownOutside(e);
+          }
+        }}
+        onInteractOutside={(e) => {
+          // Prevent closing when interacting with command items
+          const target = e.target as HTMLElement;
+          if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]') || target.closest('[cmdk-input]')) {
+            e.preventDefault();
+          }
+          if (popoverProps?.onInteractOutside) {
+            popoverProps.onInteractOutside(e);
+          }
+        }}
         onOpenAutoFocus={(e) => {
           // Prevent default focus on trigger, focus input instead
           e.preventDefault();
           setTimeout(() => {
             (inputRef.current as HTMLInputElement | null)?.focus();
           }, 0);
+          if (popoverProps?.onOpenAutoFocus) {
+            popoverProps.onOpenAutoFocus(e);
+          }
         }}
         style={{
           width: "var(--radix-popover-trigger-width)",
+          pointerEvents: "auto",
           ...popoverProps?.style,
         }}
       >

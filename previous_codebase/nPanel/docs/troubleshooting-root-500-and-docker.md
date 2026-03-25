@@ -62,7 +62,7 @@ docker run --rm -p 8080:8080 \
   -e DATABASE_URL="postgresql://..." \
   -e BETTER_AUTH_SECRET="..." \
   -e BETTER_AUTH_URL="https://your-staging-url.run.app" \
-  -e NEXT_PUBLIC_APP_URL="https://your-staging-url.run.app" \
+  -e VITE_PUBLIC_APP_URL="https://your-staging-url.run.app" \
   africa-south1-docker.pkg.dev/npanel/YOUR_REPO_NAME/npanel:YOUR_TAG
 ```
 
@@ -162,7 +162,7 @@ So the remaining failure modes for `/` are: **layout** throwing, **middleware** 
 - `DATABASE_URL`
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL` (or the URL the app uses for auth callbacks)
-- `NEXT_PUBLIC_APP_URL`
+- `VITE_PUBLIC_APP_URL`
 - (Do not set PORT; Cloud Run injects it.)
 
 ---

@@ -120,7 +120,7 @@ export async function POST(request: Request) {
 			},
 		});
 
-		const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+		const baseUrl = (process.env.VITE_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 		const orderLink = `${baseUrl}/agency/nisc-service-orders?order=${niscOrderId}`;
 		const retryLink = `${baseUrl}/agency/nisc-service-orders`;
 

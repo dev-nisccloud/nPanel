@@ -122,7 +122,7 @@ In `apps/npanel/apphosting.yaml`, under `env`, add entries so the app can read t
     secret: BETTER_AUTH_URL
 ```
 
-If `BETTER_AUTH_URL` is already provided by another mechanism (e.g. same as `NEXT_PUBLIC_APP_URL`), you can reuse that value, but the app must receive it as `BETTER_AUTH_URL` so Better Auth can build the callback URL.
+If `BETTER_AUTH_URL` is already provided by another mechanism (e.g. same as `VITE_PUBLIC_APP_URL`), you can reuse that value, but the app must receive it as `BETTER_AUTH_URL` so Better Auth can build the callback URL.
 
 ### 2.5 Deploy
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ZodError } from 'zod';
-import { TextProps, TextPropsSchema } from '@usewaypoint/block-text';
+import { type TextProps, TextPropsSchema } from '@usewaypoint/block-text';
 import BaseSidebarPanel from '../helpers/BaseSidebarPanel';
 import BooleanInput from '../helpers/inputs/BooleanInput';
 import TextInput from '../helpers/inputs/TextInput';

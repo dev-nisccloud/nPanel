@@ -5,7 +5,7 @@ import { Monitor, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/utils/trpc";
-import { DnsTable } from "@/routes/$slug/hosting/_components/dns-table";
+import { DnsTable } from "@/routes/agency.hosting/_components/dns-table";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
 interface DnsTabProps {

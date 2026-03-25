@@ -16,7 +16,7 @@ export const runtime = 'nodejs';
  * Called by QStash at the scheduled publish time
  * 
  * Environment variables required:
- * - QSTASH_CURRENT_SIGNING_KEY or QSTASH_NEXT_SIGNING_KEY
+ * - QSTASH_CURRENT_SIGNING_KEY or QSTASH_VITE_SIGNING_KEY
  */
 export async function POST(request: NextRequest) {
 	try {
@@ -232,8 +232,8 @@ export async function POST(request: NextRequest) {
 						const assetUrn = registerResponse.value.asset;
 
 						// Download file from URL and upload to LinkedIn
-					const fileResponse = await fetch(photo.url);
-					const fileBuffer = Buffer.from(await fileResponse.arrayBuffer());
+						const fileResponse = await fetch(photo.url);
+						const fileBuffer = Buffer.from(await fileResponse.arrayBuffer());
 						const contentType = 'image/jpeg'; // Default, could be determined from file
 
 						// Upload to LinkedIn
@@ -255,7 +255,7 @@ export async function POST(request: NextRequest) {
 			});
 
 			// Construct permalink (LinkedIn post URL format)
-			const permalink = response.id 
+			const permalink = response.id
 				? `https://www.linkedin.com/feed/update/${response.id.replace('urn:li:activity:', '')}`
 				: null;
 
@@ -308,7 +308,7 @@ export async function POST(request: NextRequest) {
 			if (error instanceof LinkedInApiError) {
 				const errorInfo = LinkedInErrorHandler.handleError(error);
 				errorMessage = errorInfo?.message || error.message;
-				
+
 				// Don't retry on certain errors (e.g., invalid token, permission denied)
 				if (error.status === 401 || error.status === 403) {
 					shouldRetry = false;

@@ -13,13 +13,13 @@ function getCacheKey(url: string, strategy: 'mobile' | 'desktop'): string {
 function getCachedData(key: string): any | null {
   const cached = cache.get(key);
   if (!cached) return null;
-  
+
   const now = Date.now();
   if (now - cached.timestamp > CACHE_TTL) {
     cache.delete(key);
     return null;
   }
-  
+
   return cached.data;
 }
 
@@ -32,7 +32,7 @@ function setCachedData(key: string, data: any): void {
  */
 async function callPageSpeedAPI(url: string, strategy: 'mobile' | 'desktop'): Promise<any> {
   const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY;
-  
+
   if (!apiKey) {
     throw new TRPCError({
       code: 'INTERNAL_SERVER_ERROR',
@@ -101,7 +101,7 @@ function formatPageSpeedData(apiResponse: any) {
 
   // Performance score (0-100)
   const performanceScore = categories.performance?.score != null
-    ? Math.round(categories.performance.score * 100) 
+    ? Math.round(categories.performance.score * 100)
     : null;
 
   // Core Web Vitals
@@ -115,13 +115,13 @@ function formatPageSpeedData(apiResponse: any) {
 
   // Category scores - check for undefined/null, not truthiness (0 is a valid score)
   const accessibilityScore = categories.accessibility?.score != null
-    ? Math.round(categories.accessibility.score * 100) 
+    ? Math.round(categories.accessibility.score * 100)
     : null;
   const bestPracticesScore = categories['best-practices']?.score != null
-    ? Math.round(categories['best-practices'].score * 100) 
+    ? Math.round(categories['best-practices'].score * 100)
     : null;
   const seoScore = categories.seo?.score != null
-    ? Math.round(categories.seo.score * 100) 
+    ? Math.round(categories.seo.score * 100)
     : null;
 
   // Field data (real user metrics) - optional
@@ -133,7 +133,7 @@ function formatPageSpeedData(apiResponse: any) {
       lcp: loadingExperience.metrics.LARGEST_CONTENTFUL_PAINT_MS,
       fid: loadingExperience.metrics.FIRST_INPUT_DELAY_MS,
       cls: loadingExperience.metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE,
-      inp: loadingExperience.metrics.INTERACTION_TO_NEXT_PAINT,
+      inp: loadingExperience.metrics.INTERACTION_TO_VITE_PAINT,
     } : null,
   } : null;
 
@@ -212,7 +212,7 @@ export const pagespeedInsightsRouter = router({
 
         // Call Google API
         const apiResponse = await callPageSpeedAPI(url, strategy);
-        
+
         // Format the response
         const formattedData = formatPageSpeedData(apiResponse);
 

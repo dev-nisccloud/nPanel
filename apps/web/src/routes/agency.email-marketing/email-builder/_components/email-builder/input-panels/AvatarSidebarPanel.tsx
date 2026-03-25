@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ZodError } from 'zod';
 import { Maximize2 } from 'lucide-react';
 import { ToggleGroupItem } from '@/components/ui/toggle-group';
-import { AvatarProps, AvatarPropsDefaults, AvatarPropsSchema } from '@usewaypoint/block-avatar';
+import { type AvatarProps, AvatarPropsDefaults, AvatarPropsSchema } from '@usewaypoint/block-avatar';
 import BaseSidebarPanel from '../helpers/BaseSidebarPanel';
 import RadioGroupInput from '../helpers/inputs/RadioGroupInput';
 import SliderInput from '../helpers/inputs/SliderInput';

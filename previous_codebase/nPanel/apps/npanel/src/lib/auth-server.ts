@@ -360,7 +360,7 @@ export async function ensureCustomerHasTeam(user: UserWithStatus): Promise<strin
         createdAt: new Date(),
       },
     })
-    .catch(() => {});
+    .catch(() => { });
 
   return teamSlug;
 }
@@ -404,7 +404,7 @@ export async function getCustomerTeamRedirectPath(user: UserWithStatus): Promise
         createdAt: new Date(),
       },
     })
-    .catch(() => {});
+    .catch(() => { });
   return `/${teamSlug}/dashboard`;
 }
 
@@ -456,11 +456,11 @@ export async function redirectIfAuthenticated() {
 
     if (userRole?.includes("AGENCY")) {
       console.log("[Auth Server] Redirecting AGENCY to: /agency/dashboard");
-      console.log("[Auth Server] About to call redirect() - this will throw a NEXT_REDIRECT error");
+      console.log("[Auth Server] About to call redirect() - this will throw a VITE_REDIRECT error");
       // Use absolute URL to ensure redirect works correctly
       const redirectUrl = "/agency/dashboard";
       console.log("[Auth Server] Calling redirect() with URL:", redirectUrl);
-      // redirect() throws a NEXT_REDIRECT error that Next.js catches to perform the redirect
+      // redirect() throws a VITE_REDIRECT error that Next.js catches to perform the redirect
       redirect(redirectUrl);
       // This line should never be reached
       console.error("[Auth Server] ERROR: redirect() did not throw - this should never happen!");

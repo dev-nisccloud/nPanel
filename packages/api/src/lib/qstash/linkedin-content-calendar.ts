@@ -5,7 +5,7 @@ import type { PublishContentJobPayload, QStashJobResult } from './types';
  * Get LinkedIn worker endpoint URL
  * Priority:
  * 1. QSTASH_WORKER_ENDPOINT (full URL)
- * 2. Constructed from NEXT_PUBLIC_APP_URL
+ * 2. Constructed from VITE_PUBLIC_APP_URL
  * 3. Constructed from VERCEL_URL (for Vercel deployments)
  */
 function getLinkedInWorkerEndpoint(): string {
@@ -15,8 +15,8 @@ function getLinkedInWorkerEndpoint(): string {
 	}
 
 	// Try to construct from available base URLs
-	let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
-	
+	let baseUrl = process.env.VITE_PUBLIC_APP_URL;
+
 	if (!baseUrl && process.env.VERCEL_URL) {
 		baseUrl = `https://${process.env.VERCEL_URL}`;
 	}
@@ -34,7 +34,7 @@ const LINKEDIN_WORKER_ENDPOINT = getLinkedInWorkerEndpoint();
 
 if (!LINKEDIN_WORKER_ENDPOINT) {
 	console.warn(
-		'LinkedIn worker endpoint not configured. Set QSTASH_LINKEDIN_WORKER_ENDPOINT, NEXT_PUBLIC_APP_URL, or VERCEL_URL.'
+		'LinkedIn worker endpoint not configured. Set QSTASH_LINKEDIN_WORKER_ENDPOINT, VITE_PUBLIC_APP_URL, or VERCEL_URL.'
 	);
 }
 
@@ -52,7 +52,7 @@ export async function scheduleLinkedInPublish(
 ): Promise<QStashJobResult> {
 	if (!LINKEDIN_WORKER_ENDPOINT) {
 		throw new Error(
-			'LinkedIn worker endpoint not configured. Set QSTASH_LINKEDIN_WORKER_ENDPOINT, NEXT_PUBLIC_APP_URL, or VERCEL_URL.'
+			'LinkedIn worker endpoint not configured. Set QSTASH_LINKEDIN_WORKER_ENDPOINT, VITE_PUBLIC_APP_URL, or VERCEL_URL.'
 		);
 	}
 

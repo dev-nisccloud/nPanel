@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
  * Called by QStash at the scheduled publish time
  * 
  * Environment variables required:
- * - QSTASH_CURRENT_SIGNING_KEY or QSTASH_NEXT_SIGNING_KEY
+ * - QSTASH_CURRENT_SIGNING_KEY or QSTASH_VITE_SIGNING_KEY
  */
 export async function POST(request: Request) {
 	try {

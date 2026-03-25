@@ -12,7 +12,7 @@ function getWorkerEndpoint(): string {
 		return process.env.QSTASH_CAMPAIGN_WORKER_ENDPOINT.replace(/\/$/, "");
 	}
 	const baseUrl =
-		process.env.NEXT_PUBLIC_APP_URL ||
+		process.env.VITE_PUBLIC_APP_URL ||
 		(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
 	if (baseUrl) {
 		return baseUrl.replace(/\/$/, "") + CAMPAIGN_SEND_WORKER_PATH;
@@ -48,7 +48,7 @@ export async function enqueueCampaignSend(
 	const url = getWorkerEndpoint();
 	if (!url) {
 		throw new Error(
-			"Campaign send worker URL not configured. Set QSTASH_CAMPAIGN_WORKER_ENDPOINT, NEXT_PUBLIC_APP_URL, or VERCEL_URL.",
+			"Campaign send worker URL not configured. Set QSTASH_CAMPAIGN_WORKER_ENDPOINT, VITE_PUBLIC_APP_URL, or VERCEL_URL.",
 		);
 	}
 	if (isLoopbackUrl(url)) {

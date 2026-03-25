@@ -15,7 +15,7 @@ export const runtime = 'nodejs';
  * Called by QStash at the scheduled publish time
  * 
  * Environment variables required:
- * - QSTASH_CURRENT_SIGNING_KEY or QSTASH_NEXT_SIGNING_KEY
+ * - QSTASH_CURRENT_SIGNING_KEY or QSTASH_VITE_SIGNING_KEY
  */
 export async function POST(request: NextRequest) {
 	try {
@@ -143,9 +143,9 @@ export async function POST(request: NextRequest) {
 		const videos = post.mediaItems?.filter((item) => item.mediaType === 'VIDEO');
 		const video = videos && videos.length > 0
 			? {
-					file_url: videos[0]!.url,
-					description: videos[0]!.description || undefined,
-				}
+				file_url: videos[0]!.url,
+				description: videos[0]!.description || undefined,
+			}
 			: undefined;
 
 		// Publish to Meta API
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
 			if (error instanceof MetaApiError) {
 				const errorInfo = MetaErrorHandler.handleError(error);
 				errorMessage = errorInfo?.message || error.message;
-				
+
 				// Don't retry on certain errors (e.g., invalid token, permission denied)
 				if (error.code === 190 || error.code === 200) {
 					shouldRetry = false;
