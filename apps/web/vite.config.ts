@@ -19,10 +19,10 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: "autoUpdate",
         manifest: {
-          name: "npanel",
-          short_name: "npanel",
-          description: "npanel - PWA Application",
-          theme_color: "#0c0c0c",
+          name: "Nisc Cloud - nPanel",
+          short_name: "nPanel",
+          description: "nPanel - Nisc Cloud, Cloud Services & Digital Marketing Management Platform",
+          theme_color: "#38b6ff",
         },
         pwaAssets: { disabled: false, config: true },
         devOptions: { enabled: true },
@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Keep the original `Host` header (e.g. `localhost:5173`) so Better Auth
         // sets cookies for the same host the browser will later send them from.
-        "/api": { target: apiTarget, changeOrigin: false },
+        "/api": { target: apiTarget, changeOrigin: false, timeout: 60000, proxyTimeout: 60000 },
       },
     },
   };

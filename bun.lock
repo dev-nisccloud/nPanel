@@ -76,6 +76,7 @@
         "@npanel/api": "workspace:*",
         "@npanel/auth": "workspace:*",
         "@npanel/env": "workspace:*",
+        "@npanel/location": "workspace:*",
         "@npanel/ui": "workspace:*",
         "@number-flow/react": "^0.6.0",
         "@radix-ui/react-checkbox": "^1.3.3",

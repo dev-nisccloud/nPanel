@@ -35,8 +35,8 @@ const userInfoOutputSchema = z.object({
 
 const updateProfileInputSchema = z.object({
   name: z.string().min(2).max(100).optional(),
-  firstName: z.string().min(1).max(50).optional(),
-  lastName: z.string().min(1).max(50).optional(),
+  firstName: z.string().max(50).optional(),
+  lastName: z.string().max(50).optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
