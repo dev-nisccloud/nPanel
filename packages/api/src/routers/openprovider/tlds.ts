@@ -16,8 +16,8 @@ async function ensureAuthenticated(client: any) {
       });
     } catch (authError) {
       throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message: 'OpenProvider authentication failed. Please check your environment credentials.',
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'OpenProvider service unavailable. Please check server configuration.',
       });
     }
   }
@@ -158,8 +158,8 @@ export const openProviderTldRouter = router({
           });
         } catch (authError) {
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'OpenProvider service unavailable. Please check server configuration.',
           });
         }
 
@@ -248,8 +248,8 @@ export const openProviderTldRouter = router({
           });
         } catch (authError) {
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'OpenProvider service unavailable. Please check server configuration.',
           });
         }
 
@@ -315,8 +315,8 @@ export const openProviderTldRouter = router({
           });
         } catch (authError) {
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'OpenProvider service unavailable. Please check server configuration.',
           });
         }
 
@@ -393,8 +393,8 @@ export const openProviderTldRouter = router({
           });
         } catch (authError) {
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'OpenProvider service unavailable. Please check server configuration.',
           });
         }
 

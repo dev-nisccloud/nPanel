@@ -1,4 +1,4 @@
-import { formatAmount } from "@nPanel/utils/format";
+import { formatAmount } from "@npanel/ui/utils/format";
 import type { LineItem } from "../../../types";
 import { calculateLineItemTotal } from "../../../utils/calculate";
 import { Description } from "./description";

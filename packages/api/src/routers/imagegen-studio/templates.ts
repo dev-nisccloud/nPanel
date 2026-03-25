@@ -1,8 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../../trpc";
-import prisma from "@nPanel/db";
+import { and, desc, eq, or } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { db } from "@npanel/db";
+import { imageGenTemplate } from "@npanel/db/schema/imagegen-studio";
+import { protectedProcedure, router } from "../../trpc";
 import {
   createTemplateSchema,
   updateTemplateSchema,
@@ -13,7 +15,6 @@ import {
 } from "./schemas";
 
 export const imageGenTemplatesRouter = router({
-  // Create a new template
   create: protectedProcedure
     .input(createTemplateSchema)
     .output(z.object({ data: imageGenTemplateSchema }))
@@ -23,24 +24,34 @@ export const imageGenTemplatesRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      const template = await prisma.imageGenTemplate.create({
-        data: {
-          id: randomUUID(),
-          name: input.name,
-          json: input.json,
-          width: input.width,
-          height: input.height,
-          isPublic: input.isPublic,
-          userId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+      const now = new Date();
+      const id = randomUUID();
+      await db.insert(imageGenTemplate).values({
+        id,
+        name: input.name,
+        json: input.json,
+        width: input.width,
+        height: input.height,
+        isPublic: input.isPublic,
+        userId,
+        thumbnailUrl: null,
+        createdAt: now,
+        updatedAt: now,
       });
+
+      const template = await db.query.imageGenTemplate.findFirst({
+        where: eq(imageGenTemplate.id, id),
+      });
+      if (!template) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create template",
+        });
+      }
 
       return { data: template as any };
     }),
 
-  // Get a single template by ID
   get: protectedProcedure
     .input(getTemplateSchema)
     .output(z.object({ data: imageGenTemplateSchema }))
@@ -50,11 +61,11 @@ export const imageGenTemplatesRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      const template = await prisma.imageGenTemplate.findFirst({
-        where: {
-          id: input.id,
-          OR: [{ isPublic: true }, { userId }],
-        },
+      const template = await db.query.imageGenTemplate.findFirst({
+        where: and(
+          eq(imageGenTemplate.id, input.id),
+          or(eq(imageGenTemplate.isPublic, true), eq(imageGenTemplate.userId, userId)),
+        ),
       });
 
       if (!template) {
@@ -64,7 +75,6 @@ export const imageGenTemplatesRouter = router({
       return { data: template as any };
     }),
 
-  // List public templates with pagination
   list: protectedProcedure
     .input(getTemplatesSchema)
     .output(z.object({ data: z.array(imageGenTemplateSchema) }))
@@ -76,31 +86,28 @@ export const imageGenTemplatesRouter = router({
 
       const { page, limit } = input;
 
-      const templates = await prisma.imageGenTemplate.findMany({
-        where: {
-          isPublic: true,
-        },
-        take: limit,
-        skip: (page - 1) * limit,
-        orderBy: { updatedAt: "desc" },
-        select: {
-          id: true,
-          name: true,
-          width: true,
-          height: true,
-          thumbnailUrl: true,
-          json: true, // Keep json for templates as it's needed when creating a project from template
-          createdAt: true,
-          updatedAt: true,
-          isPublic: true,
-          userId: true,
-        },
-      });
+      const templates = await db
+        .select({
+          id: imageGenTemplate.id,
+          name: imageGenTemplate.name,
+          width: imageGenTemplate.width,
+          height: imageGenTemplate.height,
+          thumbnailUrl: imageGenTemplate.thumbnailUrl,
+          json: imageGenTemplate.json,
+          createdAt: imageGenTemplate.createdAt,
+          updatedAt: imageGenTemplate.updatedAt,
+          isPublic: imageGenTemplate.isPublic,
+          userId: imageGenTemplate.userId,
+        })
+        .from(imageGenTemplate)
+        .where(eq(imageGenTemplate.isPublic, true))
+        .orderBy(desc(imageGenTemplate.updatedAt))
+        .limit(limit)
+        .offset((page - 1) * limit);
 
       return { data: templates as any[] };
     }),
 
-  // Update a template (only owner can update)
   update: protectedProcedure
     .input(updateTemplateSchema)
     .output(z.object({ data: imageGenTemplateSchema }))
@@ -112,12 +119,8 @@ export const imageGenTemplatesRouter = router({
 
       const { id, ...updateData } = input;
 
-      // Check if user owns this template
-      const existingTemplate = await prisma.imageGenTemplate.findFirst({
-        where: {
-          id,
-          userId,
-        },
+      const existingTemplate = await db.query.imageGenTemplate.findFirst({
+        where: and(eq(imageGenTemplate.id, id), eq(imageGenTemplate.userId, userId)),
       });
 
       if (!existingTemplate) {
@@ -127,18 +130,24 @@ export const imageGenTemplatesRouter = router({
         });
       }
 
-      const template = await prisma.imageGenTemplate.update({
-        where: { id },
-        data: {
+      await db
+        .update(imageGenTemplate)
+        .set({
           ...updateData,
           updatedAt: new Date(),
-        },
+        })
+        .where(eq(imageGenTemplate.id, id));
+
+      const template = await db.query.imageGenTemplate.findFirst({
+        where: eq(imageGenTemplate.id, id),
       });
+      if (!template) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
+      }
 
       return { data: template as any };
     }),
 
-  // Delete a template (only owner can delete)
   delete: protectedProcedure
     .input(deleteTemplateSchema)
     .output(z.object({ data: z.object({ id: z.string() }) }))
@@ -148,12 +157,11 @@ export const imageGenTemplatesRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      // Check if user owns this template
-      const existingTemplate = await prisma.imageGenTemplate.findFirst({
-        where: {
-          id: input.id,
-          userId,
-        },
+      const existingTemplate = await db.query.imageGenTemplate.findFirst({
+        where: and(
+          eq(imageGenTemplate.id, input.id),
+          eq(imageGenTemplate.userId, userId),
+        ),
       });
 
       if (!existingTemplate) {
@@ -163,12 +171,8 @@ export const imageGenTemplatesRouter = router({
         });
       }
 
-      await prisma.imageGenTemplate.delete({
-        where: { id: input.id },
-      });
+      await db.delete(imageGenTemplate).where(eq(imageGenTemplate.id, input.id));
 
       return { data: { id: input.id } };
     }),
 });
-
-

@@ -1,7 +1,16 @@
-import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
+import * as crypto from "crypto";
+import { and, count, desc, eq, ilike, or } from "drizzle-orm";
+import { db } from "@npanel/db";
+import {
+  nameserver,
+  nameserverGroup,
+  nameserverGroupActivityLog,
+  tldSettings,
+} from "@npanel/db/schema/nameservers";
+import { domain, domainTransfer } from "@npanel/db/schema/domains";
+import { z } from "zod";
+import { protectedProcedure, router } from "../trpc";
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -130,8 +139,124 @@ const activityLogsResponseSchema = z.object({
 // HELPER FUNCTIONS
 // ============================================================================
 
-function transformNameserverGroup(group: any) {
-  const rawCount = group._count;
+type NameserverGroupWithRelations = {
+  id: string;
+  name: string;
+  description: string | null;
+  userId: string;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  nameservers: {
+    id: string;
+    name: string;
+    ipv4: string | null;
+    ipv6: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  counts: {
+    tldSettings: number;
+    domains: number;
+    domainTransfers: number;
+  };
+};
+
+type NameserverGroupWithTldSettings = NameserverGroupWithRelations & {
+  tldSettings: {
+    id: string;
+    name: string;
+    marginType: string | null;
+    percentageMargin: string | null;
+    fixedMargin: string | null;
+  }[];
+};
+
+async function fetchNameserverGroupById(
+  userId: string,
+  groupId: string,
+): Promise<NameserverGroupWithRelations | null> {
+  const [groupRow] = await db
+    .select()
+    .from(nameserverGroup)
+    .where(and(eq(nameserverGroup.id, groupId), eq(nameserverGroup.userId, userId)))
+    .limit(1);
+
+  if (!groupRow) {
+    return null;
+  }
+
+  const [nameserversRows, tldCountRes, domainsCountRes, transfersCountRes] =
+    await Promise.all([
+      db
+        .select()
+        .from(nameserver)
+        .where(eq(nameserver.nameserverGroupId, groupId))
+        .orderBy(nameserver.createdAt),
+      db
+        .select({ value: count() })
+        .from(tldSettings)
+        .where(eq(tldSettings.nameserverGroupId, groupId)),
+      db
+        .select({ value: count() })
+        .from(domain)
+        .where(eq(domain.nameserverGroupId, groupId)),
+      db
+        .select({ value: count() })
+        .from(domainTransfer)
+        .where(eq(domainTransfer.nameserverGroupId, groupId)),
+    ]);
+
+  return {
+    id: groupRow.id,
+    name: groupRow.name,
+    description: groupRow.description,
+    userId: groupRow.userId,
+    isDefault: groupRow.isDefault,
+    createdAt: groupRow.createdAt,
+    updatedAt: groupRow.updatedAt,
+    nameservers: nameserversRows,
+    counts: {
+      tldSettings: Number(tldCountRes[0]?.value ?? 0),
+      domains: Number(domainsCountRes[0]?.value ?? 0),
+      domainTransfers: Number(transfersCountRes[0]?.value ?? 0),
+    },
+  };
+}
+
+async function fetchNameserverGroupWithTldSettingsById(
+  userId: string,
+  groupId: string,
+): Promise<NameserverGroupWithTldSettings | null> {
+  const base = await fetchNameserverGroupById(userId, groupId);
+  if (!base) return null;
+
+  const tlds = await db
+    .select({
+      id: tldSettings.id,
+      name: tldSettings.name,
+      marginType: tldSettings.marginType,
+      percentageMargin: tldSettings.percentageMargin,
+      fixedMargin: tldSettings.fixedMargin,
+    })
+    .from(tldSettings)
+    .where(eq(tldSettings.nameserverGroupId, groupId))
+    .orderBy(tldSettings.name);
+
+  return {
+    ...base,
+    tldSettings: tlds.map((tld) => ({
+      id: tld.id,
+      name: tld.name,
+      marginType: tld.marginType,
+      percentageMargin: tld.percentageMargin,
+      fixedMargin: tld.fixedMargin,
+    })),
+  };
+}
+
+function transformNameserverGroup(group: NameserverGroupWithRelations) {
+  const rawCount = group.counts;
   return {
     id: group.id,
     name: group.name,
@@ -149,10 +274,12 @@ function transformNameserverGroup(group: any) {
   };
 }
 
-function transformNameserverGroupWithTldSettings(group: any) {
+function transformNameserverGroupWithTldSettings(
+  group: NameserverGroupWithTldSettings,
+) {
   return {
     ...transformNameserverGroup(group),
-    tldSettings: (group.tldSettings || []).map((tld: any) => ({
+    tldSettings: (group.tldSettings || []).map((tld) => ({
       id: tld.id,
       name: tld.name,
       marginType: tld.marginType as string | null,
@@ -179,72 +306,70 @@ export const nameserverGroupsRouter = router({
       const userId = session!.user!.id;
 
       try {
-        // Check if user is trying to set as default and there's already a default
-        if (input.isDefault) {
-          const existingDefault = await prisma.nameserverGroup.findFirst({
-            where: {
-              userId,
-              isDefault: true,
-            },
-          });
+        const now = new Date();
 
-          if (existingDefault) {
-            // Update existing default to false
-            await prisma.nameserverGroup.update({
-              where: { id: existingDefault.id },
-              data: { isDefault: false },
-            });
+        const createdId = await db.transaction(async (tx) => {
+          // If setting as default, clear existing default for this user
+          if (input.isDefault) {
+            await tx
+              .update(nameserverGroup)
+              .set({ isDefault: false, updatedAt: now })
+              .where(and(eq(nameserverGroup.userId, userId), eq(nameserverGroup.isDefault, true)));
           }
-        }
 
-        // Create nameserver group with nameservers
-        const nameserverGroup = await prisma.nameserverGroup.create({
-          data: {
-            id: crypto.randomUUID(),
+          const groupId = crypto.randomUUID();
+
+          await tx.insert(nameserverGroup).values({
+            id: groupId,
             name: input.name,
-            description: input.description,
+            description: input.description ?? null,
             userId,
             isDefault: input.isDefault,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            nameservers: {
-              create: input.nameservers.map(ns => ({
-                id: crypto.randomUUID(),
-                name: ns.name,
-                ipv4: ns.ipv4,
-                ipv6: ns.ipv6,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              })),
-            },
-          },
-          include: {
-            nameservers: true,
-            _count: {
-              select: {
-                tldSettings: true,
-                domains: true,
-                domainTransfers: true,
-              },
-            },
-          },
-        });
+            createdAt: now,
+            updatedAt: now,
+          });
 
-        // Log the activity
-        await prisma.nameserverGroupActivityLog.create({
-          data: {
+          if (input.nameservers.length > 0) {
+            await tx.insert(nameserver).values(
+              input.nameservers.map((ns) => ({
+                id: crypto.randomUUID(),
+                nameserverGroupId: groupId,
+                name: ns.name,
+                ipv4: ns.ipv4 ?? null,
+                ipv6: ns.ipv6 ?? null,
+                createdAt: now,
+                updatedAt: now,
+              })),
+            );
+          }
+
+          await tx.insert(nameserverGroupActivityLog).values({
             id: crypto.randomUUID(),
             userId,
-            nameserverGroupId: nameserverGroup.id,
+            nameserverGroupId: groupId,
             action: "CREATE",
             description: `Created nameserver group "${input.name}" with ${input.nameservers.length} nameservers`,
-            createdAt: new Date(),
-          },
+            metadata: null,
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
+          });
+
+          return groupId;
         });
+
+        const groupWithRelations = await fetchNameserverGroupById(userId, createdId);
+
+        if (!groupWithRelations) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to load created nameserver group",
+          });
+        }
 
         return {
           success: true,
-          data: transformNameserverGroup(nameserverGroup),
+          data: transformNameserverGroup(groupWithRelations),
         };
       } catch (error) {
         console.error("Error creating nameserver group:", error);
@@ -267,33 +392,12 @@ export const nameserverGroupsRouter = router({
       const userId = session!.user!.id;
 
       try {
-        const nameserverGroup = await prisma.nameserverGroup.findFirst({
-          where: {
-            id: input.id,
-            userId,
-          },
-          include: {
-            nameservers: true,
-            tldSettings: {
-              select: {
-                id: true,
-                name: true,
-                marginType: true,
-                percentageMargin: true,
-                fixedMargin: true,
-              },
-            },
-            _count: {
-              select: {
-                tldSettings: true,
-                domains: true,
-                domainTransfers: true,
-              },
-            },
-          },
-        });
+        const groupWithRelations = await fetchNameserverGroupWithTldSettingsById(
+          userId,
+          input.id,
+        );
 
-        if (!nameserverGroup) {
+        if (!groupWithRelations) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Nameserver group not found",
@@ -302,7 +406,7 @@ export const nameserverGroupsRouter = router({
 
         return {
           success: true,
-          data: transformNameserverGroupWithTldSettings(nameserverGroup),
+          data: transformNameserverGroupWithTldSettings(groupWithRelations),
         };
       } catch (error) {
         if (error instanceof TRPCError) {
@@ -325,42 +429,67 @@ export const nameserverGroupsRouter = router({
       const userId = session!.user!.id;
 
       try {
-        const where = {
-          userId,
-          ...(input.search && {
-            OR: [
-              { name: { contains: input.search, mode: "insensitive" as const } },
-              { description: { contains: input.search, mode: "insensitive" as const } },
-            ],
-          }),
-        };
+        const baseConditions: ReturnType<typeof and>[] = [];
 
-        const [nameserverGroups, total] = await Promise.all([
-          prisma.nameserverGroup.findMany({
-            where,
-            include: {
-              nameservers: true,
-              _count: {
-                select: {
-                  tldSettings: true,
-                  domains: true,
-                  domainTransfers: true,
-                },
-              },
-            },
-            orderBy: [
-              { isDefault: "desc" },
-              { createdAt: "desc" },
-            ],
-            take: input.limit,
-            skip: input.offset,
-          }),
-          prisma.nameserverGroup.count({ where }),
+        baseConditions.push(eq(nameserverGroup.userId, userId));
+
+        if (input.search) {
+          const pattern = `%${input.search}%`;
+          baseConditions.push(
+            or(
+              ilike(nameserverGroup.name, pattern),
+              ilike(nameserverGroup.description, pattern),
+            ),
+          );
+        }
+
+        const [groups, totalRes] = await Promise.all([
+          db
+            .select()
+            .from(nameserverGroup)
+            .where(and(...baseConditions))
+            .orderBy(
+              desc(nameserverGroup.isDefault),
+              desc(nameserverGroup.createdAt),
+            )
+            .limit(input.limit)
+            .offset(input.offset),
+          db
+            .select({ value: count() })
+            .from(nameserverGroup)
+            .where(and(...baseConditions)),
         ]);
+
+        const detailedGroups: NameserverGroupWithRelations[] = await Promise.all(
+          groups.map(async (group) => {
+            const base = await fetchNameserverGroupById(userId, group.id);
+            // `fetchNameserverGroupById` already filters by userId, but be safe
+            if (!base) {
+              return {
+                id: group.id,
+                name: group.name,
+                description: group.description,
+                userId: group.userId,
+                isDefault: group.isDefault,
+                createdAt: group.createdAt,
+                updatedAt: group.updatedAt,
+                nameservers: [],
+                counts: {
+                  tldSettings: 0,
+                  domains: 0,
+                  domainTransfers: 0,
+                },
+              };
+            }
+            return base;
+          }),
+        );
+
+        const total = Number(totalRes[0]?.value ?? 0);
 
         return {
           success: true,
-          data: nameserverGroups.map(transformNameserverGroup),
+          data: detailedGroups.map(transformNameserverGroup),
           pagination: {
             total,
             limit: input.limit,
@@ -390,15 +519,7 @@ export const nameserverGroupsRouter = router({
 
       try {
         // Check if nameserver group exists and belongs to user
-        const existingGroup = await prisma.nameserverGroup.findFirst({
-          where: {
-            id: input.id,
-            userId,
-          },
-          include: {
-            nameservers: true,
-          },
-        });
+        const existingGroup = await fetchNameserverGroupById(userId, input.id);
 
         if (!existingGroup) {
           throw new TRPCError({
@@ -408,81 +529,79 @@ export const nameserverGroupsRouter = router({
         }
 
         // Check if user is trying to set as default and there's already a default
-        if (input.isDefault && !existingGroup.isDefault) {
-          const existingDefault = await prisma.nameserverGroup.findFirst({
-            where: {
-              userId,
-              isDefault: true,
-              id: { not: input.id },
-            },
-          });
+        const now = new Date();
 
-          if (existingDefault) {
-            // Update existing default to false
-            await prisma.nameserverGroup.update({
-              where: { id: existingDefault.id },
-              data: { isDefault: false },
-            });
+        await db.transaction(async (tx) => {
+          // Ensure only one default per user
+          if (input.isDefault && !existingGroup.isDefault) {
+            await tx
+              .update(nameserverGroup)
+              .set({ isDefault: false, updatedAt: now })
+              .where(
+              and(eq(nameserverGroup.userId, userId), eq(nameserverGroup.isDefault, true)),
+              );
           }
-        }
 
-        // Prepare update data
-        const updateData: any = {
-          updatedAt: new Date(),
-        };
-
-        if (input.name !== undefined) updateData.name = input.name;
-        if (input.description !== undefined) updateData.description = input.description;
-        if (input.isDefault !== undefined) updateData.isDefault = input.isDefault;
-
-        // Handle nameservers update if provided
-        if (input.nameservers) {
-          // Delete existing nameservers
-          await prisma.nameserver.deleteMany({
-            where: {
-              nameserverGroupId: input.id,
-            },
-          });
-
-          // Create new nameservers
-          updateData.nameservers = {
-            create: input.nameservers.map(ns => ({
-              id: crypto.randomUUID(),
-              name: ns.name,
-              ipv4: ns.ipv4,
-              ipv6: ns.ipv6,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })),
+          const updateData: Partial<typeof nameserverGroup.$inferInsert> = {
+            updatedAt: now,
           };
-        }
 
-        const updatedGroup = await prisma.nameserverGroup.update({
-          where: { id: input.id },
-          data: updateData,
-          include: {
-            nameservers: true,
-            _count: {
-              select: {
-                tldSettings: true,
-                domains: true,
-                domainTransfers: true,
-              },
-            },
-          },
-        });
+          if (input.name !== undefined) updateData.name = input.name;
+          if (input.description !== undefined)
+            updateData.description = input.description;
+          if (input.isDefault !== undefined) updateData.isDefault = input.isDefault;
 
-        // Log the activity
-        await prisma.nameserverGroupActivityLog.create({
-          data: {
+          await tx
+            .update(nameserverGroup)
+            .set(updateData)
+            .where(
+              and(
+                eq(nameserverGroup.id, input.id),
+                eq(nameserverGroup.userId, userId),
+              ),
+            );
+
+          if (input.nameservers) {
+            await tx
+              .delete(nameserver)
+              .where(eq(nameserver.nameserverGroupId, input.id));
+
+            await tx.insert(nameserver).values(
+              input.nameservers.map((ns) => ({
+                id: crypto.randomUUID(),
+                nameserverGroupId: input.id,
+                name: ns.name,
+                ipv4: ns.ipv4 ?? null,
+                ipv6: ns.ipv6 ?? null,
+                createdAt: now,
+                updatedAt: now,
+              })),
+            );
+          }
+
+          await tx.insert(nameserverGroupActivityLog).values({
             id: crypto.randomUUID(),
             userId,
-            nameserverGroupId: updatedGroup.id,
+            nameserverGroupId: input.id,
             action: "UPDATE",
-            description: `Updated nameserver group "${updatedGroup.name}"`,
-            createdAt: new Date(),
-          },
+            description: `Updated nameserver group "${
+              input.name ?? existingGroup.name
+            }"`,
+            metadata: null,
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
+          });
         });
+
+        const updatedGroup = await fetchNameserverGroupById(userId, input.id);
+
+        if (!updatedGroup) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to load updated nameserver group",
+          });
+        }
 
         return {
           success: true,
@@ -513,21 +632,7 @@ export const nameserverGroupsRouter = router({
 
       try {
         // Check if nameserver group exists and belongs to user
-        const existingGroup = await prisma.nameserverGroup.findFirst({
-          where: {
-            id: input.id,
-            userId,
-          },
-          include: {
-            _count: {
-              select: {
-                tldSettings: true,
-                domains: true,
-                domainTransfers: true,
-              },
-            },
-          },
-        });
+        const existingGroup = await fetchNameserverGroupById(userId, input.id);
 
         if (!existingGroup) {
           throw new TRPCError({
@@ -537,9 +642,10 @@ export const nameserverGroupsRouter = router({
         }
 
         // Check if group is being used
-        const totalUsage = existingGroup._count.tldSettings +
-                          existingGroup._count.domains +
-                          existingGroup._count.domainTransfers;
+        const totalUsage =
+          existingGroup.counts.tldSettings +
+          existingGroup.counts.domains +
+          existingGroup.counts.domainTransfers;
 
         if (totalUsage > 0) {
           throw new TRPCError({
@@ -557,20 +663,29 @@ export const nameserverGroupsRouter = router({
         }
 
         // Delete the nameserver group (nameservers will be deleted by cascade)
-        await prisma.nameserverGroup.delete({
-          where: { id: input.id },
-        });
+        const now = new Date();
 
-        // Log the activity
-        await prisma.nameserverGroupActivityLog.create({
-          data: {
+        await db.transaction(async (tx) => {
+          await tx
+            .delete(nameserverGroup)
+            .where(
+              and(
+                eq(nameserverGroup.id, input.id),
+                eq(nameserverGroup.userId, userId),
+              ),
+            );
+
+          await tx.insert(nameserverGroupActivityLog).values({
             id: crypto.randomUUID(),
             userId,
             nameserverGroupId: input.id,
             action: "DELETE",
             description: `Deleted nameserver group "${existingGroup.name}"`,
-            createdAt: new Date(),
-          },
+            metadata: null,
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
+          });
         });
 
         return {
@@ -602,52 +717,63 @@ export const nameserverGroupsRouter = router({
 
       try {
         // Check if nameserver group exists and belongs to user
-        const existingGroup = await prisma.nameserverGroup.findFirst({
-          where: {
-            id: input.id,
-            userId,
-          },
-        });
+        const [existingGroupRow] = await db
+          .select()
+          .from(nameserverGroup)
+          .where(
+            and(
+              eq(nameserverGroup.id, input.id),
+              eq(nameserverGroup.userId, userId),
+            ),
+          )
+          .limit(1);
 
-        if (!existingGroup) {
+        if (!existingGroupRow) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Nameserver group not found",
           });
         }
 
-        // Update existing default to false
-        await prisma.nameserverGroup.updateMany({
-          where: {
-            userId,
-            isDefault: true,
-          },
-          data: { isDefault: false },
-        });
+        const now = new Date();
 
-        // Set new default
-        const updatedGroup = await prisma.nameserverGroup.update({
-          where: { id: input.id },
-          data: { 
-            isDefault: true,
-            updatedAt: new Date(),
-          },
-          include: {
-            nameservers: true,
-          },
-        });
+        await db.transaction(async (tx) => {
+          await tx
+            .update(nameserverGroup)
+            .set({ isDefault: false, updatedAt: now })
+            .where(and(eq(nameserverGroup.userId, userId), eq(nameserverGroup.isDefault, true)));
 
-        // Log the activity
-        await prisma.nameserverGroupActivityLog.create({
-          data: {
+          await tx
+            .update(nameserverGroup)
+            .set({ isDefault: true, updatedAt: now })
+            .where(
+              and(
+                eq(nameserverGroup.id, input.id),
+                eq(nameserverGroup.userId, userId),
+              ),
+            );
+
+          await tx.insert(nameserverGroupActivityLog).values({
             id: crypto.randomUUID(),
             userId,
-            nameserverGroupId: updatedGroup.id,
+            nameserverGroupId: input.id,
             action: "SET_DEFAULT",
-            description: `Set nameserver group "${updatedGroup.name}" as default`,
-            createdAt: new Date(),
-          },
+            description: `Set nameserver group "${existingGroupRow.name}" as default`,
+            metadata: null,
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
+          });
         });
+
+        const updatedGroup = await fetchNameserverGroupById(userId, input.id);
+
+        if (!updatedGroup) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to load updated nameserver group",
+          });
+        }
 
         return {
           success: true,
@@ -675,35 +801,39 @@ export const nameserverGroupsRouter = router({
 
       try {
         // Check if nameserver group exists and belongs to user
-        const existingGroup = await prisma.nameserverGroup.findFirst({
-          where: {
-            id: input.id,
-            userId,
-          },
-        });
+        const existingGroupRow = await db
+          .select({ id: nameserverGroup.id })
+          .from(nameserverGroup)
+          .where(
+            and(
+              eq(nameserverGroup.id, input.id),
+              eq(nameserverGroup.userId, userId),
+            ),
+          )
+          .limit(1);
 
-        if (!existingGroup) {
+        if (!existingGroupRow[0]) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Nameserver group not found",
           });
         }
 
-        const [logs, total] = await Promise.all([
-          prisma.nameserverGroupActivityLog.findMany({
-            where: {
-              nameserverGroupId: input.id,
-            },
-            orderBy: { createdAt: "desc" },
-            take: input.limit,
-            skip: input.offset,
-          }),
-          prisma.nameserverGroupActivityLog.count({
-            where: {
-              nameserverGroupId: input.id,
-            },
-          }),
+        const [logs, totalRes] = await Promise.all([
+          db
+            .select()
+            .from(nameserverGroupActivityLog)
+            .where(eq(nameserverGroupActivityLog.nameserverGroupId, input.id))
+            .orderBy(desc(nameserverGroupActivityLog.createdAt))
+            .limit(input.limit)
+            .offset(input.offset),
+          db
+            .select({ value: count() })
+            .from(nameserverGroupActivityLog)
+            .where(eq(nameserverGroupActivityLog.nameserverGroupId, input.id)),
         ]);
+
+        const total = Number(totalRes[0]?.value ?? 0);
 
         return {
           success: true,

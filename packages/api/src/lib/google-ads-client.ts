@@ -1,5 +1,4 @@
 import { GoogleAdsApi, Customer } from 'google-ads-api';
-import { getGoogleAdsDeveloperToken } from './google-ads-credentials';
 import { GoogleAdsErrorHandler } from './google-ads-error-handler';
 
 export interface GoogleAdsClientConfig {
@@ -129,7 +128,7 @@ export async function getAccessibleCustomers(
 				throw new Error(`Invalid resource name format: ${resourceName}`);
 			}
 
-			const customerId = customerIdMatch[1];
+			const customerId = customerIdMatch[1]!;
 			// Format customer ID as XXX-XXX-XXXX (10 digits)
 			const formattedCustomerId = customerId.length === 10
 				? `${customerId.slice(0, 3)}-${customerId.slice(3, 6)}-${customerId.slice(6)}`

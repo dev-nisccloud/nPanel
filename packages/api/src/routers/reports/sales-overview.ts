@@ -6,7 +6,28 @@ import {
 	subMonths,
 	subYears,
 } from "date-fns";
-import prisma from "@nPanel/db";
+import {
+	and,
+	count,
+	eq,
+	gte,
+	inArray,
+	isNotNull,
+	isNull,
+	lt,
+	lte,
+	notInArray,
+} from "drizzle-orm";
+
+import { db } from "@npanel/db";
+import { creditNote, invoice, invoiceTransaction } from "@npanel/db/schema/invoicing";
+import { niscOrder } from "@npanel/db/schema/nisc-orders";
+import {
+	niscClientSubscription,
+	niscClientSubscriptionRenewal,
+	niscProduct,
+	niscProductPromoRedeem,
+} from "@npanel/db/schema/products";
 import type { SalesReportOverview } from "./sales-overview-schemas";
 
 type BillingCycle = "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
@@ -31,12 +52,12 @@ const CATEGORY_LABELS: Record<NiscProductCategory, string> = {
 /** Normalize subscription price to monthly (MRR). */
 function monthlyValue(
 	priceStr: string | null,
-	billingCycle: BillingCycle | null,
+	billingCycle: string | null,
 ): number {
 	if (!priceStr) return 0;
 	const price = Number.parseFloat(priceStr);
 	if (!Number.isFinite(price) || price <= 0) return 0;
-	switch (billingCycle) {
+	switch (billingCycle as BillingCycle | null) {
 		case "MONTHLY":
 			return price;
 		case "YEARLY":
@@ -65,15 +86,15 @@ export async function computeSalesReportOverview(params: {
 	const endOfPrevMonth = endOfMonth(subMonths(now, 1));
 
 	// --- Active subscriptions for MRR (current: ACTIVE, not upgraded/downgraded) ---
-	const activeSubs = await prisma.niscClientSubscription.findMany({
-		where: {
-			status: ACTIVE,
-			upgradedToSubscriptionId: null,
-			downgradedToSubscriptionId: null,
-		},
-		include: {
-			product: { select: { category: true, serviceType: true, name: true } },
-			team: { select: { id: true, name: true } },
+	const activeSubs = await db.query.niscClientSubscription.findMany({
+		where: and(
+			eq(niscClientSubscription.status, ACTIVE),
+			isNull(niscClientSubscription.upgradedToSubscriptionId),
+			isNull(niscClientSubscription.downgradedToSubscriptionId),
+		),
+		with: {
+			product: { columns: { category: true, serviceType: true, name: true } },
+			team: { columns: { id: true, name: true } },
 		},
 	});
 
@@ -89,7 +110,7 @@ export async function computeSalesReportOverview(params: {
 		}
 		// COMMISSION: no base in DB for now -> 0
 		mrrTotal += mrr;
-		const cat = sub.product.category;
+		const cat = sub.product.category as NiscProductCategory;
 		const existing = mrrByCategoryMap.get(cat) ?? { mrr: 0, count: 0 };
 		mrrByCategoryMap.set(cat, {
 			mrr: existing.mrr + mrr,
@@ -98,14 +119,12 @@ export async function computeSalesReportOverview(params: {
 	}
 
 	// New MRR: subscriptions that started this month (subscriptionDate in range)
-	const newSubs = await prisma.niscClientSubscription.findMany({
-		where: {
-			subscriptionDate: {
-				gte: startOfThisMonth,
-				lte: endOfThisMonth,
-			},
-		},
-		include: { product: { select: { category: true, name: true } } },
+	const newSubs = await db.query.niscClientSubscription.findMany({
+		where: and(
+			gte(niscClientSubscription.subscriptionDate, startOfThisMonth),
+			lte(niscClientSubscription.subscriptionDate, endOfThisMonth),
+		),
+		with: { product: { columns: { category: true, name: true } } },
 	});
 	let newMrr = 0;
 	for (const sub of newSubs) {
@@ -114,11 +133,12 @@ export async function computeSalesReportOverview(params: {
 	}
 
 	// Lost MRR: subscriptions that left (cancelled/expired) this month (updatedAt or expiryDate in range)
-	const churnedSubs = await prisma.niscClientSubscription.findMany({
-		where: {
-			status: { in: [CANCELLED, EXPIRED] },
-			updatedAt: { gte: startOfThisMonth, lte: endOfThisMonth },
-		},
+	const churnedSubs = await db.query.niscClientSubscription.findMany({
+		where: and(
+			inArray(niscClientSubscription.status, [CANCELLED, EXPIRED]),
+			gte(niscClientSubscription.updatedAt, startOfThisMonth),
+			lte(niscClientSubscription.updatedAt, endOfThisMonth),
+		),
 	});
 	let lostMrr = 0;
 	for (const sub of churnedSubs) {
@@ -149,17 +169,20 @@ export async function computeSalesReportOverview(params: {
 		});
 	}
 
-	const invoicesInRange = await prisma.invoice.findMany({
-		where: {
-			createdAt: { gte: trendMonths[0]?.month ?? from, lte: now },
-		},
-		select: {
-			createdAt: true,
-			amount: true,
-			status: true,
-			paidAt: true,
-		},
-	});
+	const invoicesInRange = await db
+		.select({
+			createdAt: invoice.createdAt,
+			amount: invoice.amount,
+			status: invoice.status,
+			paidAt: invoice.paidAt,
+		})
+		.from(invoice)
+		.where(
+			and(
+				gte(invoice.createdAt, trendMonths[0]?.month ?? from),
+				lte(invoice.createdAt, now),
+			),
+		);
 
 	const revenueByMonth = new Map<
 		string,
@@ -212,10 +235,12 @@ export async function computeSalesReportOverview(params: {
 	const teamIdsFromSubs = new Set(
 		activeSubs.map((s) => s.teamId).filter(Boolean) as string[],
 	);
-	const paidInvoices = await prisma.invoice.findMany({
-		where: { status: "PAID", paidAt: { gte: from, lte: to } },
-		select: { teamId: true },
-	});
+	const paidInvoices = await db
+		.select({ teamId: invoice.teamId })
+		.from(invoice)
+		.where(
+			and(eq(invoice.status, "PAID"), gte(invoice.paidAt, from), lte(invoice.paidAt, to)),
+		);
 	for (const inv of paidInvoices) {
 		if (inv.teamId) teamIdsFromSubs.add(inv.teamId);
 	}
@@ -223,12 +248,13 @@ export async function computeSalesReportOverview(params: {
 	const arpc = customerCount > 0 ? mrrTotal / customerCount : 0;
 
 	// Revenue by team (paid amount in period)
-	const invoicesWithTeam = await prisma.invoice.findMany({
-		where: {
-			createdAt: { gte: from, lte: to },
-			status: "PAID",
-		},
-		include: { team: { select: { id: true, name: true } } },
+	const invoicesWithTeam = await db.query.invoice.findMany({
+		where: and(
+			gte(invoice.createdAt, from),
+			lte(invoice.createdAt, to),
+			eq(invoice.status, "PAID"),
+		),
+		with: { team: { columns: { id: true, name: true } } },
 	});
 	const teamAmounts = new Map<string, { name: string; amount: number }>();
 	let totalPaidInPeriod = 0;
@@ -276,34 +302,50 @@ export async function computeSalesReportOverview(params: {
 	for (const sub of activeSubs) {
 		if (sub.hostingType === "WEB_HOSTING") webHosting += 1;
 		if (sub.hostingType === "EMAIL_HOSTING") emailHosting += 1;
-		byCategory[sub.product.category] =
-			(byCategory[sub.product.category] ?? 0) + 1;
+		const pc = sub.product.category as NiscProductCategory;
+		byCategory[pc] = (byCategory[pc] ?? 0) + 1;
 	}
 
 	// Domain renewal rate: due in period vs renewed in period
-	const domainProductIds = (
-		await prisma.niscProduct.findMany({
-			where: {
-				serviceType: { in: ["domain_registration", "domain", "domains"] },
-			},
-			select: { id: true },
-		})
-	).map((p) => p.id);
+	const domainProductRows = await db
+		.select({ id: niscProduct.id })
+		.from(niscProduct)
+		.where(
+			inArray(niscProduct.serviceType, [
+				"domain_registration",
+				"domain",
+				"domains",
+			]),
+		);
+	const domainProductIds = domainProductRows.map((p) => p.id);
 
-	const domainsDueInPeriod = await prisma.niscClientSubscription.count({
-		where: {
-			productId: { in: domainProductIds },
-			status: ACTIVE,
-			nextRenewalDate: { gte: startOfThisMonth, lte: endOfThisMonth },
-		},
-	});
+	let domainsDueInPeriod = 0;
+	if (domainProductIds.length > 0) {
+		const [dueRow] = await db
+			.select({ c: count() })
+			.from(niscClientSubscription)
+			.where(
+				and(
+					inArray(niscClientSubscription.productId, domainProductIds),
+					eq(niscClientSubscription.status, ACTIVE),
+					gte(niscClientSubscription.nextRenewalDate, startOfThisMonth),
+					lte(niscClientSubscription.nextRenewalDate, endOfThisMonth),
+				),
+			);
+		domainsDueInPeriod = Number(dueRow?.c ?? 0);
+	}
 
-	const renewedInPeriod = await prisma.niscClientSubscriptionRenewal.count({
-		where: {
-			renewalType: "DOMAIN",
-			renewalDate: { gte: startOfThisMonth, lte: endOfThisMonth },
-		},
-	});
+	const [renewedRow] = await db
+		.select({ c: count() })
+		.from(niscClientSubscriptionRenewal)
+		.where(
+			and(
+				eq(niscClientSubscriptionRenewal.renewalType, "DOMAIN"),
+				gte(niscClientSubscriptionRenewal.renewalDate, startOfThisMonth),
+				lte(niscClientSubscriptionRenewal.renewalDate, endOfThisMonth),
+			),
+		);
+	const renewedInPeriod = Number(renewedRow?.c ?? 0);
 
 	const dueCount = domainsDueInPeriod;
 	const renewedCount = renewedInPeriod;
@@ -311,10 +353,15 @@ export async function computeSalesReportOverview(params: {
 		dueCount > 0 ? (renewedCount / dueCount) * 100 : 0;
 
 	// Invoicing health: this month
-	const thisMonthInvoices = await prisma.invoice.findMany({
-		where: { createdAt: { gte: startOfThisMonth, lte: endOfThisMonth } },
-		select: { amount: true, status: true },
-	});
+	const thisMonthInvoices = await db
+		.select({ amount: invoice.amount, status: invoice.status })
+		.from(invoice)
+		.where(
+			and(
+				gte(invoice.createdAt, startOfThisMonth),
+				lte(invoice.createdAt, endOfThisMonth),
+			),
+		);
 	let invoicedThisMonth = 0;
 	let paidThisMonth = 0;
 	for (const inv of thisMonthInvoices) {
@@ -323,19 +370,18 @@ export async function computeSalesReportOverview(params: {
 		if (inv.status === "PAID") paidThisMonth += a;
 	}
 
-	const overdueInvoices = await prisma.invoice.count({
-		where: {
-			status: "OVERDUE",
-			dueDate: { lt: now },
-		},
-	});
+	const [overdueRow] = await db
+		.select({ c: count() })
+		.from(invoice)
+		.where(and(eq(invoice.status, "OVERDUE"), lt(invoice.dueDate, now)));
+	const overdueInvoices = Number(overdueRow?.c ?? 0);
 
-	const outstandingInvoices = await prisma.invoice.findMany({
-		where: {
-			status: { notIn: ["PAID", "CANCELLED", "WRITTEN_OFF"] },
-		},
-		select: { amount: true },
-	});
+	const outstandingInvoices = await db
+		.select({ amount: invoice.amount })
+		.from(invoice)
+		.where(
+			notInArray(invoice.status, ["PAID", "CANCELLED", "WRITTEN_OFF"]),
+		);
 	let outstandingAmount = 0;
 	for (const inv of outstandingInvoices) {
 		outstandingAmount += Number.parseFloat(inv.amount ?? "0") || 0;
@@ -352,7 +398,7 @@ export async function computeSalesReportOverview(params: {
 			mrr = monthlyValue(sub.agreedPrice, sub.billingCycle);
 		const pid = sub.productId;
 		const existing = productMrrMap.get(pid);
-		const cat = sub.product.category;
+		const cat = sub.product.category as NiscProductCategory;
 		const pName = sub.product.name ?? sub.productId;
 		if (existing) {
 			existing.mrr += mrr;
@@ -377,15 +423,15 @@ export async function computeSalesReportOverview(params: {
 		.sort((a, b) => b.mrr - a.mrr);
 
 	// --- Revenue by plan (need productPlan from activeSubs) ---
-	const activeSubsWithPlan = await prisma.niscClientSubscription.findMany({
-		where: {
-			status: ACTIVE,
-			upgradedToSubscriptionId: null,
-			downgradedToSubscriptionId: null,
-		},
-		include: {
-			product: { select: { name: true } },
-			productPlan: { select: { id: true, name: true } },
+	const activeSubsWithPlan = await db.query.niscClientSubscription.findMany({
+		where: and(
+			eq(niscClientSubscription.status, ACTIVE),
+			isNull(niscClientSubscription.upgradedToSubscriptionId),
+			isNull(niscClientSubscription.downgradedToSubscriptionId),
+		),
+		with: {
+			product: { columns: { name: true } },
+			productPlan: { columns: { id: true, name: true } },
 		},
 	});
 	const planMrrMap = new Map<
@@ -506,14 +552,14 @@ export async function computeSalesReportOverview(params: {
 		const start = sub.subscriptionDate ?? sub.createdAt;
 		const months = differenceInDays(now, start) / 30;
 		for (let i = 0; i < tenureBuckets.length; i++) {
-			const b = tenureBuckets[i];
+			const b = tenureBuckets[i]!;
 			if (b.monthsMax === null) {
 				if (months >= b.monthsMin) {
-					tenureCounts[i].subscriptionCount += 1;
+					tenureCounts[i]!.subscriptionCount += 1;
 					break;
 				}
 			} else if (months >= b.monthsMin && months < b.monthsMax) {
-				tenureCounts[i].subscriptionCount += 1;
+				tenureCounts[i]!.subscriptionCount += 1;
 				break;
 			}
 		}
@@ -526,19 +572,21 @@ export async function computeSalesReportOverview(params: {
 	}));
 
 	// --- Upgrades / downgrades this month ---
-	const upgrades = await prisma.niscClientSubscription.findMany({
-		where: {
-			status: UPGRADED,
-			upgradedAt: { gte: startOfThisMonth, lte: endOfThisMonth },
-		},
-		include: { product: true },
+	const upgrades = await db.query.niscClientSubscription.findMany({
+		where: and(
+			eq(niscClientSubscription.status, UPGRADED),
+			gte(niscClientSubscription.upgradedAt, startOfThisMonth),
+			lte(niscClientSubscription.upgradedAt, endOfThisMonth),
+		),
+		with: { product: true },
 	});
-	const downgrades = await prisma.niscClientSubscription.findMany({
-		where: {
-			status: DOWNGRADED,
-			downgradedAt: { gte: startOfThisMonth, lte: endOfThisMonth },
-		},
-		include: { product: true },
+	const downgrades = await db.query.niscClientSubscription.findMany({
+		where: and(
+			eq(niscClientSubscription.status, DOWNGRADED),
+			gte(niscClientSubscription.downgradedAt, startOfThisMonth),
+			lte(niscClientSubscription.downgradedAt, endOfThisMonth),
+		),
+		with: { product: true },
 	});
 	let upgradesMrrImpact = 0;
 	let downgradesMrrImpact = 0;
@@ -578,38 +626,59 @@ export async function computeSalesReportOverview(params: {
 	const in30 = addDays(now, 30);
 	const in60 = addDays(now, 60);
 	const in90 = addDays(now, 90);
-	const subsDue30 = await prisma.niscClientSubscription.findMany({
-		where: {
-			status: ACTIVE,
-			upgradedToSubscriptionId: null,
-			downgradedToSubscriptionId: null,
-			nextRenewalDate: { gte: now, lte: in30 },
-		},
-		select: { agreedPrice: true, billingCycle: true, pricingModel: true },
-	});
-	const subsDue60 = await prisma.niscClientSubscription.findMany({
-		where: {
-			status: ACTIVE,
-			upgradedToSubscriptionId: null,
-			downgradedToSubscriptionId: null,
-			nextRenewalDate: { gte: in30, lte: in60 },
-		},
-		select: { agreedPrice: true, billingCycle: true, pricingModel: true },
-	});
-	const subsDue90 = await prisma.niscClientSubscription.findMany({
-		where: {
-			status: ACTIVE,
-			upgradedToSubscriptionId: null,
-			downgradedToSubscriptionId: null,
-			nextRenewalDate: { gte: in60, lte: in90 },
-		},
-		select: { agreedPrice: true, billingCycle: true, pricingModel: true },
-	});
+	const subsDue30 = await db
+		.select({
+			agreedPrice: niscClientSubscription.agreedPrice,
+			billingCycle: niscClientSubscription.billingCycle,
+			pricingModel: niscClientSubscription.pricingModel,
+		})
+		.from(niscClientSubscription)
+		.where(
+			and(
+				eq(niscClientSubscription.status, ACTIVE),
+				isNull(niscClientSubscription.upgradedToSubscriptionId),
+				isNull(niscClientSubscription.downgradedToSubscriptionId),
+				gte(niscClientSubscription.nextRenewalDate, now),
+				lte(niscClientSubscription.nextRenewalDate, in30),
+			),
+		);
+	const subsDue60 = await db
+		.select({
+			agreedPrice: niscClientSubscription.agreedPrice,
+			billingCycle: niscClientSubscription.billingCycle,
+			pricingModel: niscClientSubscription.pricingModel,
+		})
+		.from(niscClientSubscription)
+		.where(
+			and(
+				eq(niscClientSubscription.status, ACTIVE),
+				isNull(niscClientSubscription.upgradedToSubscriptionId),
+				isNull(niscClientSubscription.downgradedToSubscriptionId),
+				gte(niscClientSubscription.nextRenewalDate, in30),
+				lte(niscClientSubscription.nextRenewalDate, in60),
+			),
+		);
+	const subsDue90 = await db
+		.select({
+			agreedPrice: niscClientSubscription.agreedPrice,
+			billingCycle: niscClientSubscription.billingCycle,
+			pricingModel: niscClientSubscription.pricingModel,
+		})
+		.from(niscClientSubscription)
+		.where(
+			and(
+				eq(niscClientSubscription.status, ACTIVE),
+				isNull(niscClientSubscription.upgradedToSubscriptionId),
+				isNull(niscClientSubscription.downgradedToSubscriptionId),
+				gte(niscClientSubscription.nextRenewalDate, in60),
+				lte(niscClientSubscription.nextRenewalDate, in90),
+			),
+		);
 	const mrrForSubs = (list: { agreedPrice: string | null; billingCycle: string | null; pricingModel: string }[]) => {
 		let sum = 0;
 		for (const s of list) {
 			if (s.pricingModel === FIXED && s.agreedPrice)
-				sum += monthlyValue(s.agreedPrice, s.billingCycle as BillingCycle | null);
+				sum += monthlyValue(s.agreedPrice, s.billingCycle);
 		}
 		return sum;
 	};
@@ -621,13 +690,20 @@ export async function computeSalesReportOverview(params: {
 	};
 
 	// --- Expiring soon (next 30 days, no renewal yet) ---
-	const expiringSubs = await prisma.niscClientSubscription.findMany({
-		where: {
-			status: ACTIVE,
-			expiryDate: { gte: now, lte: in30 },
-		},
-		select: { agreedPrice: true, billingCycle: true, pricingModel: true },
-	});
+	const expiringSubs = await db
+		.select({
+			agreedPrice: niscClientSubscription.agreedPrice,
+			billingCycle: niscClientSubscription.billingCycle,
+			pricingModel: niscClientSubscription.pricingModel,
+		})
+		.from(niscClientSubscription)
+		.where(
+			and(
+				eq(niscClientSubscription.status, ACTIVE),
+				gte(niscClientSubscription.expiryDate, now),
+				lte(niscClientSubscription.expiryDate, in30),
+			),
+		);
 	const expiringSoon = {
 		count: expiringSubs.length,
 		mrr: mrrForSubs(expiringSubs),
@@ -636,13 +712,16 @@ export async function computeSalesReportOverview(params: {
 	};
 
 	// --- Payment velocity (paid invoices: days from createdAt/issueDate to paidAt) ---
-	const paidForVelocity = await prisma.invoice.findMany({
-		where: {
-			status: "PAID",
-			paidAt: { gte: subMonths(now, 6) },
-		},
-		select: { createdAt: true, issueDate: true, paidAt: true },
-	});
+	const paidForVelocity = await db
+		.select({
+			createdAt: invoice.createdAt,
+			issueDate: invoice.issueDate,
+			paidAt: invoice.paidAt,
+		})
+		.from(invoice)
+		.where(
+			and(eq(invoice.status, "PAID"), gte(invoice.paidAt, subMonths(now, 6))),
+		);
 	const daysToPay: number[] = [];
 	for (const inv of paidForVelocity) {
 		const fromDate = inv.issueDate ?? inv.createdAt;
@@ -666,13 +745,15 @@ export async function computeSalesReportOverview(params: {
 	};
 
 	// --- Overdue aging (0-30, 31-60, 61-90, 90+ days overdue) ---
-	const overdueInvs = await prisma.invoice.findMany({
-		where: {
-			status: { notIn: ["PAID", "CANCELLED", "WRITTEN_OFF"] },
-			dueDate: { lt: now },
-		},
-		select: { amount: true, dueDate: true },
-	});
+	const overdueInvs = await db
+		.select({ amount: invoice.amount, dueDate: invoice.dueDate })
+		.from(invoice)
+		.where(
+			and(
+				notInArray(invoice.status, ["PAID", "CANCELLED", "WRITTEN_OFF"]),
+				lt(invoice.dueDate, now),
+			),
+		);
 	const agingBuckets = {
 		bucket0_30: { count: 0, amount: 0 },
 		bucket31_60: { count: 0, amount: 0 },
@@ -706,12 +787,12 @@ export async function computeSalesReportOverview(params: {
 	};
 
 	// --- Invoice status mix ---
-	const statusCounts = await prisma.invoice.groupBy({
-		by: ["status"],
-		_count: { id: true },
-	});
+	const statusCounts = await db
+		.select({ status: invoice.status, c: count() })
+		.from(invoice)
+		.groupBy(invoice.status);
 	const statusMap = new Map(
-		statusCounts.map((s) => [s.status, s._count.id]),
+		statusCounts.map((s) => [s.status, Number(s.c)]),
 	);
 	const invoiceStatusMix = {
 		DRAFT: statusMap.get("DRAFT") ?? 0,
@@ -721,38 +802,42 @@ export async function computeSalesReportOverview(params: {
 		OVERDUE: statusMap.get("OVERDUE") ?? 0,
 		CANCELLED: statusMap.get("CANCELLED") ?? 0,
 		WRITTEN_OFF: statusMap.get("WRITTEN_OFF") ?? 0,
-		totalCount: statusCounts.reduce((s, x) => s + x._count.id, 0),
+		totalCount: statusCounts.reduce((s, x) => s + Number(x.c), 0),
 	};
 
 	// --- Tax and credits ---
-	const invoicesForTax = await prisma.invoice.findMany({
-		where: {
-			status: "PAID",
-			paidAt: { gte: startOfThisMonth, lte: endOfThisMonth },
-		},
-		select: { tax: true, discount: true },
-	});
+	const invoicesForTax = await db
+		.select({ tax: invoice.tax, discount: invoice.discount })
+		.from(invoice)
+		.where(
+			and(
+				eq(invoice.status, "PAID"),
+				gte(invoice.paidAt, startOfThisMonth),
+				lte(invoice.paidAt, endOfThisMonth),
+			),
+		);
 	let taxCollectedThisMonth = 0;
 	let discountsThisMonth = 0;
 	for (const inv of invoicesForTax) {
 		taxCollectedThisMonth += Number.parseFloat(inv.tax ?? "0") || 0;
 		discountsThisMonth += Number.parseFloat(inv.discount ?? "0") || 0;
 	}
-	const invoicesTaxPeriod = await prisma.invoice.findMany({
-		where: {
-			status: "PAID",
-			paidAt: { gte: from, lte: to },
-		},
-		select: { tax: true },
-	});
+	const invoicesTaxPeriod = await db
+		.select({ tax: invoice.tax })
+		.from(invoice)
+		.where(
+			and(eq(invoice.status, "PAID"), gte(invoice.paidAt, from), lte(invoice.paidAt, to)),
+		);
 	let taxCollectedPeriod = 0;
 	for (const inv of invoicesTaxPeriod) {
 		taxCollectedPeriod += Number.parseFloat(inv.tax ?? "0") || 0;
 	}
-	const creditNotesPeriod = await prisma.creditNote.findMany({
-		where: { issuedAt: { gte: from, lte: to } },
-		select: { amount: true },
-	});
+	const creditNotesPeriod = await db
+		.select({ amount: creditNote.amount })
+		.from(creditNote)
+		.where(
+			and(gte(creditNote.issuedAt, from), lte(creditNote.issuedAt, to)),
+		);
 	let creditNotesIssuedPeriod = 0;
 	for (const cn of creditNotesPeriod) {
 		creditNotesIssuedPeriod += Number.parseFloat(cn.amount ?? "0") || 0;
@@ -766,10 +851,16 @@ export async function computeSalesReportOverview(params: {
 	};
 
 	// --- Revenue by payment method (from transactions) ---
-	const transactions = await prisma.invoiceTransaction.findMany({
-		where: { status: "COMPLETED", paidAt: { gte: from, lte: to } },
-		select: { method: true, amount: true },
-	});
+	const transactions = await db
+		.select({ method: invoiceTransaction.method, amount: invoiceTransaction.amount })
+		.from(invoiceTransaction)
+		.where(
+			and(
+				eq(invoiceTransaction.status, "COMPLETED"),
+				gte(invoiceTransaction.paidAt, from),
+				lte(invoiceTransaction.paidAt, to),
+			),
+		);
 	const methodMap = new Map<string, { amount: number; count: number }>();
 	for (const t of transactions) {
 		const amt = Number.parseFloat(t.amount ?? "0") || 0;
@@ -794,10 +885,16 @@ export async function computeSalesReportOverview(params: {
 	);
 
 	// --- New customers (teams with first invoice or first sub in period) ---
-	const paidInvoicesByTeam = await prisma.invoice.findMany({
-		where: { status: "PAID", teamId: { not: null }, paidAt: { not: null } },
-		select: { teamId: true, paidAt: true },
-	});
+	const paidInvoicesByTeam = await db
+		.select({ teamId: invoice.teamId, paidAt: invoice.paidAt })
+		.from(invoice)
+		.where(
+			and(
+				eq(invoice.status, "PAID"),
+				isNotNull(invoice.teamId),
+				isNotNull(invoice.paidAt),
+			),
+		);
 	// Sort by paidAt asc so first occurrence per team is earliest
 	paidInvoicesByTeam.sort(
 		(a, b) => (a.paidAt?.getTime() ?? 0) - (b.paidAt?.getTime() ?? 0),
@@ -831,7 +928,7 @@ export async function computeSalesReportOverview(params: {
 	>();
 	for (const sub of newSubs) {
 		const pid = sub.productId;
-		const cat = sub.product.category;
+		const cat = sub.product.category as NiscProductCategory;
 		const name = sub.product.name ?? pid;
 		const existing = newSubsByProductMap.get(pid);
 		if (existing) {
@@ -854,10 +951,10 @@ export async function computeSalesReportOverview(params: {
 	);
 
 	// --- Order pipeline ---
-	const ordersAll = await prisma.niscOrder.findMany({
-		where: { createdAt: { gte: subMonths(now, 3) } },
-		select: { status: true, total: true },
-	});
+	const ordersAll = await db
+		.select({ status: niscOrder.status, total: niscOrder.total })
+		.from(niscOrder)
+		.where(gte(niscOrder.createdAt, subMonths(now, 3)));
 	const orderPipelineMap = new Map<
 		string,
 		{ count: number; value: number }
@@ -871,7 +968,6 @@ export async function computeSalesReportOverview(params: {
 			value: e.value + val,
 		});
 	}
-	const completedOrders = orderPipelineMap.get("COMPLETED")?.value ?? 0;
 	const totalOrderValue = ordersAll.reduce(
 		(s, o) => s + (Number.parseFloat(o.total ?? "0") || 0),
 		0,
@@ -893,39 +989,53 @@ export async function computeSalesReportOverview(params: {
 	};
 
 	// --- Promo effectiveness ---
-	const redeems = await prisma.niscProductPromoRedeem.findMany({
-		where: { redeemedAt: { gte: from, lte: to } },
-		include: { promo: { select: { code: true } } },
+	const redeems = await db.query.niscProductPromoRedeem.findMany({
+		where: and(
+			gte(niscProductPromoRedeem.redeemedAt, from),
+			lte(niscProductPromoRedeem.redeemedAt, to),
+		),
+		with: { promo: { columns: { code: true } } },
 	});
 	const promoCountMap = new Map<string, number>();
 	for (const r of redeems) {
 		const code = r.promo?.code ?? "?";
 		promoCountMap.set(code, (promoCountMap.get(code) ?? 0) + 1);
 	}
-	const ordersWithPromoCount = await prisma.niscOrder.count({
-		where: {
-			niscProductPromoId: { not: null },
-			createdAt: { gte: from, lte: to },
-		},
-	});
-	const ordersWithPromoValue = await prisma.niscOrder.findMany({
-		where: {
-			niscProductPromoId: { not: null },
-			createdAt: { gte: from, lte: to },
-		},
-		select: { total: true },
-	});
+	const [ordersWithPromoCountRow] = await db
+		.select({ c: count() })
+		.from(niscOrder)
+		.where(
+			and(
+				isNotNull(niscOrder.niscProductPromoId),
+				gte(niscOrder.createdAt, from),
+				lte(niscOrder.createdAt, to),
+			),
+		);
+	const ordersWithPromoCount = Number(ordersWithPromoCountRow?.c ?? 0);
+	const ordersWithPromoValue = await db
+		.select({ total: niscOrder.total })
+		.from(niscOrder)
+		.where(
+			and(
+				isNotNull(niscOrder.niscProductPromoId),
+				gte(niscOrder.createdAt, from),
+				lte(niscOrder.createdAt, to),
+			),
+		);
 	const revenueWithPromo = ordersWithPromoValue.reduce(
 		(s, o) => s + (Number.parseFloat(o.total ?? "0") || 0),
 		0,
 	);
-	const ordersNoPromo = await prisma.niscOrder.findMany({
-		where: {
-			niscProductPromoId: null,
-			createdAt: { gte: from, lte: to },
-		},
-		select: { total: true },
-	});
+	const ordersNoPromo = await db
+		.select({ total: niscOrder.total })
+		.from(niscOrder)
+		.where(
+			and(
+				isNull(niscOrder.niscProductPromoId),
+				gte(niscOrder.createdAt, from),
+				lte(niscOrder.createdAt, to),
+			),
+		);
 	const revenueWithoutPromo = ordersNoPromo.reduce(
 		(s, o) => s + (Number.parseFloat(o.total ?? "0") || 0),
 		0,
@@ -944,19 +1054,19 @@ export async function computeSalesReportOverview(params: {
 	};
 
 	// --- Margin by category (revenue - cost) ---
-	const subsWithCost = await prisma.niscClientSubscription.findMany({
-		where: {
-			status: ACTIVE,
-			upgradedToSubscriptionId: null,
-			downgradedToSubscriptionId: null,
-		},
-		select: {
+	const subsWithCost = await db.query.niscClientSubscription.findMany({
+		where: and(
+			eq(niscClientSubscription.status, ACTIVE),
+			isNull(niscClientSubscription.upgradedToSubscriptionId),
+			isNull(niscClientSubscription.downgradedToSubscriptionId),
+		),
+		columns: {
 			agreedPrice: true,
 			billingCycle: true,
 			pricingModel: true,
 			agreedCost: true,
-			product: { select: { category: true } },
 		},
+		with: { product: { columns: { category: true } } },
 	});
 	const marginByCatMap = new Map<
 		NiscProductCategory,
@@ -967,7 +1077,7 @@ export async function computeSalesReportOverview(params: {
 		const cost = sub.agreedCost
 			? monthlyValue(sub.agreedCost, sub.billingCycle)
 			: 0;
-		const cat = sub.product.category;
+		const cat = sub.product.category as NiscProductCategory;
 		const e = marginByCatMap.get(cat) ?? { revenue: 0, cost: 0, count: 0 };
 		marginByCatMap.set(cat, {
 			revenue: e.revenue + mrr,
@@ -1052,10 +1162,16 @@ export async function computeSalesReportOverview(params: {
 	// --- At-risk customers (no payment in 90 days but had/has subs) ---
 	const cutoff90 = subMonths(now, 3);
 	const lastPaymentByTeam = new Map<string, Date>();
-	const paidInvoicesForRisk = await prisma.invoice.findMany({
-		where: { status: "PAID", teamId: { not: null }, paidAt: { not: null } },
-		select: { teamId: true, paidAt: true },
-	});
+	const paidInvoicesForRisk = await db
+		.select({ teamId: invoice.teamId, paidAt: invoice.paidAt })
+		.from(invoice)
+		.where(
+			and(
+				eq(invoice.status, "PAID"),
+				isNotNull(invoice.teamId),
+				isNotNull(invoice.paidAt),
+			),
+		);
 	for (const inv of paidInvoicesForRisk) {
 		if (!inv.teamId || !inv.paidAt) continue;
 		const existing = lastPaymentByTeam.get(inv.teamId);
@@ -1074,26 +1190,32 @@ export async function computeSalesReportOverview(params: {
 
 	// --- Time comparison: MoM, YoY, annual run rate ---
 	const paidThisMonthForCompare = paidThisMonth;
-	const paidPrevMonthInvoices = await prisma.invoice.findMany({
-		where: {
-			status: "PAID",
-			paidAt: { gte: startOfPrevMonth, lte: endOfPrevMonth },
-		},
-		select: { amount: true },
-	});
+	const paidPrevMonthInvoices = await db
+		.select({ amount: invoice.amount })
+		.from(invoice)
+		.where(
+			and(
+				eq(invoice.status, "PAID"),
+				gte(invoice.paidAt, startOfPrevMonth),
+				lte(invoice.paidAt, endOfPrevMonth),
+			),
+		);
 	const paidPrevMonth = paidPrevMonthInvoices.reduce(
 		(s, inv) => s + (Number.parseFloat(inv.amount ?? "0") || 0),
 		0,
 	);
 	const sameMonthLastYear = subYears(startOfThisMonth, 1);
 	const endSameMonthLastYear = endOfMonth(sameMonthLastYear);
-	const paidYoYInvoices = await prisma.invoice.findMany({
-		where: {
-			status: "PAID",
-			paidAt: { gte: sameMonthLastYear, lte: endSameMonthLastYear },
-		},
-		select: { amount: true },
-	});
+	const paidYoYInvoices = await db
+		.select({ amount: invoice.amount })
+		.from(invoice)
+		.where(
+			and(
+				eq(invoice.status, "PAID"),
+				gte(invoice.paidAt, sameMonthLastYear),
+				lte(invoice.paidAt, endSameMonthLastYear),
+			),
+		);
 	const paidYoY = paidYoYInvoices.reduce(
 		(s, inv) => s + (Number.parseFloat(inv.amount ?? "0") || 0),
 		0,

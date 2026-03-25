@@ -1,8 +1,13 @@
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../../trpc";
-import Replicate from "replicate";
-import prisma from "@nPanel/db";
+import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import Replicate from "replicate";
+import { db } from "@npanel/db";
+import {
+  imageGenAiGeneration,
+  imageGenAiGenerationActivityLog,
+} from "@npanel/db/schema/imagegen-studio";
+import { protectedProcedure, router } from "../../trpc";
 import { z } from "zod";
 import {
   generateImageSchema,
@@ -65,7 +70,7 @@ async function runReplicateWithTimeout(
  */
 async function uploadImageToUploadThing(
   imageUrl: string,
-  fileName: string = "generated-image.png"
+  _fileName: string = "generated-image.png"
 ): Promise<{ url: string; key: string; size: number; type: string }> {
   // Download the image
   const response = await fetch(imageUrl);
@@ -149,50 +154,50 @@ export const imageGenAiRouter = router({
         // Save generation to database
         // Note: We'll upload to UploadThing client-side and update the record
         // For now, we save with the Replicate URL
-        const generation = await prisma.imageGenAiGeneration.create({
-          data: {
-            id: randomUUID(),
-            userId,
-            teamId: input.teamId ?? null,
-            prompt: input.prompt,
-            referenceImageUrls: input.referenceImageUrls && input.referenceImageUrls.length > 0 
-              ? input.referenceImageUrls 
-              : undefined,
-            imageUrl: generatedImageUrl, // Will be updated after UploadThing upload
-            imageKey: "", // Will be set after UploadThing upload
-            imageFileName: `ai-generated-${Date.now()}.png`,
-            imageSize: imageData.size,
-            imageMimeType: imageData.type,
-            imageMetadata: {
-              model: "google/nano-banana-pro",
-              resolution: "2K",
-              aspectRatio: "4:3",
-              outputFormat: "png",
-            },
-            modelId: "google/nano-banana-pro",
-            modelName: "Nano Banana Pro",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+        const genId = randomUUID();
+        const genNow = new Date();
+        await db.insert(imageGenAiGeneration).values({
+          id: genId,
+          userId,
+          teamId: input.teamId ?? null,
+          prompt: input.prompt,
+          referenceImageUrls:
+            input.referenceImageUrls && input.referenceImageUrls.length > 0
+              ? input.referenceImageUrls
+              : null,
+          imageUrl: generatedImageUrl,
+          imageKey: "",
+          imageFileName: `ai-generated-${Date.now()}.png`,
+          imageSize: imageData.size,
+          imageMimeType: imageData.type,
+          imageMetadata: {
+            model: "google/nano-banana-pro",
+            resolution: "2K",
+            aspectRatio: "4:3",
+            outputFormat: "png",
           },
+          modelId: "google/nano-banana-pro",
+          modelName: "Nano Banana Pro",
+          createdAt: genNow,
+          updatedAt: genNow,
         });
 
-        // Create activity log
-        await prisma.imageGenAiGenerationActivityLog.create({
-          data: {
-            id: randomUUID(),
-            imageGenAiGenerationId: generation.id,
-            userId,
-            action: "GENERATE",
-            description: `Generated image with prompt: ${input.prompt.substring(0, 100)}${input.prompt.length > 100 ? "..." : ""}`,
-            metadata: {
-              prompt: input.prompt,
-              referenceImageCount: input.referenceImageUrls?.length || 0,
-              model: "google/nano-banana-pro",
-            },
-            ipAddress,
-            userAgent,
-            createdAt: new Date(),
+        const generation = { id: genId };
+
+        await db.insert(imageGenAiGenerationActivityLog).values({
+          id: randomUUID(),
+          imageGenAiGenerationId: generation.id,
+          userId,
+          action: "GENERATE",
+          description: `Generated image with prompt: ${input.prompt.substring(0, 100)}${input.prompt.length > 100 ? "..." : ""}`,
+          metadata: {
+            prompt: input.prompt,
+            referenceImageCount: input.referenceImageUrls?.length || 0,
+            model: "google/nano-banana-pro",
           },
+          ipAddress: ipAddress ?? null,
+          userAgent: userAgent ?? null,
+          createdAt: new Date(),
         });
 
         return {
@@ -228,29 +233,28 @@ export const imageGenAiRouter = router({
       }
 
       // Verify ownership
-      const generation = await prisma.imageGenAiGeneration.findFirst({
-        where: {
-          id: input.generationId,
-          userId,
-        },
+      const generation = await db.query.imageGenAiGeneration.findFirst({
+        where: and(
+          eq(imageGenAiGeneration.id, input.generationId),
+          eq(imageGenAiGeneration.userId, userId),
+        ),
       });
 
       if (!generation) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
       }
 
-      // Update with UploadThing data
-      await prisma.imageGenAiGeneration.update({
-        where: { id: input.generationId },
-        data: {
+      await db
+        .update(imageGenAiGeneration)
+        .set({
           imageUrl: input.imageUrl,
           imageKey: input.imageKey,
           imageFileName: input.imageFileName,
           imageSize: input.imageSize,
           imageMimeType: input.imageMimeType,
           updatedAt: new Date(),
-        },
-      });
+        })
+        .where(eq(imageGenAiGeneration.id, input.generationId));
 
       return { data: { id: input.generationId } };
     }),

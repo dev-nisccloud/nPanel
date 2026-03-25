@@ -1,6 +1,6 @@
 import { Minus, Plus } from "lucide-react";
 import * as React from "react";
-import { cn } from "../utils";
+import { cn } from "@npanel/ui/lib/utils/index";
 
 type Props = {
   value?: number;

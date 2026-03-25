@@ -1,7 +1,17 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, asc, count, desc, eq, ilike, or } from "drizzle-orm";
+
+import { db } from "@npanel/db";
+import {
+	niscClientSubscription,
+	niscProduct,
+	niscProductAddOn,
+	niscProductPlan,
+	niscProductPlanUsage,
+} from "@npanel/db/schema/products";
 import { protectedProcedure, router } from "../trpc";
-import prisma, { Prisma } from "@nPanel/db";
 import {
     getCached,
     setCached,
@@ -70,7 +80,7 @@ const createProductInputSchema = z.object({
     sortOrder: z.number().int().default(0),
     features: z.array(productFeatureSchema).default([]),
     highlights: z.array(z.string()).default([]),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const updateProductInputSchema = createProductInputSchema.partial().extend({
@@ -145,7 +155,7 @@ const basePlanSchema = z.object({
     pleskIpAddress: z.string().optional(),
     hostingType: hostingTypeSchema.optional(),
 
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const createPlanInputSchema = basePlanSchema.superRefine((data, ctx) => {
@@ -400,14 +410,22 @@ export const productsRouter = router({
             const cached = await getCached<z.infer<typeof productOutputSchema>[]>(listKey(cacheInput));
             if (cached != null) return cached;
 
-            const where: Record<string, unknown> = {};
-            if (input?.category !== undefined) where.category = input.category;
-            if (input?.serviceType !== undefined) where.serviceType = input.serviceType;
-            if (input?.isActive !== undefined) where.isActive = input.isActive;
+            const conditions = [];
+            if (input?.category !== undefined) {
+                conditions.push(eq(niscProduct.category, input.category));
+            }
+            if (input?.serviceType !== undefined) {
+                conditions.push(eq(niscProduct.serviceType, input.serviceType));
+            }
+            if (input?.isActive !== undefined) {
+                conditions.push(eq(niscProduct.isActive, input.isActive));
+            }
+            const whereClause =
+                conditions.length > 0 ? and(...conditions) : undefined;
 
-            const products = await prisma.niscProduct.findMany({
-                where,
-                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+            const products = await db.query.niscProduct.findMany({
+                where: whereClause,
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
             });
 
             const result = products.map(mapProduct);
@@ -430,16 +448,19 @@ export const productsRouter = router({
             const cached = await getCached<ReturnType<typeof mapProduct> & { plans?: ReturnType<typeof mapPlan>[] }>(idKey(input.id, input.includePlans));
             if (cached != null) return cached;
 
-            const product = await prisma.niscProduct.findUnique({
-                where: { id: input.id },
-                include: input.includePlans
-                    ? {
+            const product = await db.query.niscProduct.findFirst({
+                where: eq(niscProduct.id, input.id),
+                ...(input.includePlans && {
+                    with: {
                         plans: {
-                            where: { isActive: true },
-                            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                            where: eq(niscProductPlan.isActive, true),
+                            orderBy: (plan, { asc: a }) => [
+                                a(plan.sortOrder),
+                                a(plan.createdAt),
+                            ],
                         },
-                    }
-                    : undefined,
+                    },
+                }),
             });
 
             if (!product) {
@@ -481,15 +502,18 @@ export const productsRouter = router({
             const cached = await getCached<Array<{ product: z.infer<typeof productOutputSchema>; plans: unknown[] }>>(addonsKey(input.baseProductId));
             if (cached != null) return cached;
 
-            const relations = await prisma.niscProductAddOn.findMany({
-                where: { baseProductId: input.baseProductId },
-                orderBy: { sortOrder: "asc" },
-                include: {
+            const relations = await db.query.niscProductAddOn.findMany({
+                where: eq(niscProductAddOn.baseProductId, input.baseProductId),
+                orderBy: asc(niscProductAddOn.sortOrder),
+                with: {
                     addOnProduct: {
-                        include: {
+                        with: {
                             plans: {
-                                where: { isActive: true },
-                                orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                                where: eq(niscProductPlan.isActive, true),
+                                orderBy: (plan, { asc: a }) => [
+                                    a(plan.sortOrder),
+                                    a(plan.createdAt),
+                                ],
                             },
                         },
                     },
@@ -524,16 +548,19 @@ export const productsRouter = router({
             const cached = await getCached<Array<{ product: z.infer<typeof productOutputSchema>; plans: unknown[] }>>(hostingUpsellKey());
             if (cached != null) return cached;
 
-            const products = await prisma.niscProduct.findMany({
-                where: {
-                    isActive: true,
-                    name: { contains: "hosting", mode: "insensitive" },
-                },
-                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-                include: {
+            const products = await db.query.niscProduct.findMany({
+                where: and(
+                    eq(niscProduct.isActive, true),
+                    ilike(niscProduct.name, "%hosting%"),
+                ),
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+                with: {
                     plans: {
-                        where: { isActive: true },
-                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                        where: eq(niscProductPlan.isActive, true),
+                        orderBy: (plan, { asc: a }) => [
+                            a(plan.sortOrder),
+                            a(plan.createdAt),
+                        ],
                     },
                 },
             });
@@ -580,19 +607,25 @@ export const productsRouter = router({
                 });
             }
 
-            const products = await prisma.niscProduct.findMany({
-                where: {
-                    isActive: true,
-                    OR: [
-                        { name: { contains: "web hosting", mode: "insensitive" } },
-                        { name: { contains: "website hosting", mode: "insensitive" } },
-                    ],
-                },
-                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-                include: {
+            const products = await db.query.niscProduct.findMany({
+                where: and(
+                    eq(niscProduct.isActive, true),
+                    or(
+                        ilike(niscProduct.name, "%web hosting%"),
+                        ilike(niscProduct.name, "%website hosting%"),
+                    ),
+                ),
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+                with: {
                     plans: {
-                        where: { isActive: true, pricingModel: "FIXED" },
-                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                        where: and(
+                            eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.pricingModel, "FIXED"),
+                        ),
+                        orderBy: (plan, { asc: a }) => [
+                            a(plan.sortOrder),
+                            a(plan.createdAt),
+                        ],
                     },
                 },
             });
@@ -692,16 +725,22 @@ export const productsRouter = router({
                 });
             }
 
-            const products = await prisma.niscProduct.findMany({
-                where: {
-                    isActive: true,
-                    name: { contains: "email hosting", mode: "insensitive" },
-                },
-                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-                include: {
+            const products = await db.query.niscProduct.findMany({
+                where: and(
+                    eq(niscProduct.isActive, true),
+                    ilike(niscProduct.name, "%email hosting%"),
+                ),
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+                with: {
                     plans: {
-                        where: { isActive: true, pricingModel: "FIXED" },
-                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                        where: and(
+                            eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.pricingModel, "FIXED"),
+                        ),
+                        orderBy: (plan, { asc: a }) => [
+                            a(plan.sortOrder),
+                            a(plan.createdAt),
+                        ],
                     },
                 },
             });
@@ -801,18 +840,22 @@ export const productsRouter = router({
             const slug = input.slug.trim().toLowerCase();
             const searchTerms = getSearchTermsForMarketplaceSlug(slug);
 
-            const products = await prisma.niscProduct.findMany({
-                where: {
-                    isActive: true,
-                    OR: searchTerms.map((term) => ({
-                        name: { contains: term, mode: "insensitive" as const },
-                    })),
-                },
-                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-                include: {
+            const nameMatch = or(
+                ...searchTerms.map((term) => ilike(niscProduct.name, `%${term}%`)),
+            );
+            const products = await db.query.niscProduct.findMany({
+                where: and(eq(niscProduct.isActive, true), nameMatch),
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+                with: {
                     plans: {
-                        where: { isActive: true, pricingModel: "FIXED" },
-                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                        where: and(
+                            eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.pricingModel, "FIXED"),
+                        ),
+                        orderBy: (plan, { asc: a }) => [
+                            a(plan.sortOrder),
+                            a(plan.createdAt),
+                        ],
                     },
                 },
             });
@@ -886,19 +929,28 @@ export const productsRouter = router({
                 });
             }
 
-            const product = await prisma.niscProduct.create({
-                data: {
+            const id = randomUUID();
+            const [product] = await db
+                .insert(niscProduct)
+                .values({
+                    id,
                     name: input.name,
                     description: input.description ?? null,
-                    category: input.category as any,
+                    category: input.category,
                     serviceType: input.serviceType,
                     isActive: input.isActive,
                     sortOrder: input.sortOrder,
-                    features: input.features as any[],
+                    features: input.features as unknown[],
                     highlights: input.highlights,
-                    metadata: input.metadata != null ? (input.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
-                },
-            });
+                    metadata: input.metadata ?? null,
+                })
+                .returning();
+            if (!product) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to create product",
+                });
+            }
 
             await invalidateProductsCache();
             return mapProduct(product);
@@ -917,33 +969,35 @@ export const productsRouter = router({
                 });
             }
 
-            const existing = await prisma.niscProduct.findUnique({
-                where: { id: input.id },
+            const existing = await db.query.niscProduct.findFirst({
+                where: eq(niscProduct.id, input.id),
             });
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
             }
 
             const { id, ...rest } = input;
-            const updated = await prisma.niscProduct.update({
-                where: { id },
-                data: {
-                    ...(rest.name !== undefined && { name: rest.name }),
-                    ...(rest.description !== undefined && { description: rest.description ?? null }),
-                    ...(rest.category !== undefined && { category: rest.category as any }),
-                    ...(rest.serviceType !== undefined && { serviceType: rest.serviceType }),
-                    ...(rest.isActive !== undefined && { isActive: rest.isActive }),
-                    ...(rest.sortOrder !== undefined && { sortOrder: rest.sortOrder }),
-                    ...(rest.features !== undefined && { features: rest.features as any[] }),
-                    ...(rest.highlights !== undefined && { highlights: rest.highlights }),
-                    ...(rest.metadata !== undefined && {
-                        metadata:
-                            rest.metadata != null
-                                ? (rest.metadata as Prisma.InputJsonValue)
-                                : Prisma.JsonNull,
-                    }),
-                },
-            });
+            const set: Record<string, unknown> = {};
+            if (rest.name !== undefined) set.name = rest.name;
+            if (rest.description !== undefined) set.description = rest.description ?? null;
+            if (rest.category !== undefined) set.category = rest.category;
+            if (rest.serviceType !== undefined) set.serviceType = rest.serviceType;
+            if (rest.isActive !== undefined) set.isActive = rest.isActive;
+            if (rest.sortOrder !== undefined) set.sortOrder = rest.sortOrder;
+            if (rest.features !== undefined) set.features = rest.features as unknown[];
+            if (rest.highlights !== undefined) set.highlights = rest.highlights;
+            if (rest.metadata !== undefined) {
+                set.metadata = rest.metadata ?? null;
+            }
+
+            const [updated] = await db
+                .update(niscProduct)
+                .set(set as Partial<typeof niscProduct.$inferInsert>)
+                .where(eq(niscProduct.id, id))
+                .returning();
+            if (!updated) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
+            }
 
             await invalidateProductsCache();
             return mapProduct(updated);
@@ -962,9 +1016,8 @@ export const productsRouter = router({
                 });
             }
 
-            const existing = await prisma.niscProduct.findUnique({
-                where: { id: input.id },
-                include: { _count: { select: { subscriptions: true } } },
+            const existing = await db.query.niscProduct.findFirst({
+                where: eq(niscProduct.id, input.id),
             });
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
@@ -975,16 +1028,19 @@ export const productsRouter = router({
                     message: "Deactivate the product before deleting it",
                 });
             }
-            if (existing._count.subscriptions > 0) {
+            const [subCountRow] = await db
+                .select({ c: count() })
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.productId, input.id));
+            const subscriptionCount = Number(subCountRow?.c ?? 0);
+            if (subscriptionCount > 0) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Cannot delete product that has client subscriptions",
                 });
             }
 
-            await prisma.niscProduct.delete({
-                where: { id: input.id },
-            });
+            await db.delete(niscProduct).where(eq(niscProduct.id, input.id));
 
             await invalidateProductsCache();
             return { success: true };
@@ -1002,19 +1058,22 @@ export const productsRouter = router({
                     message: "You must be logged in to view products",
                 });
             }
-            const plan = await prisma.niscProductPlan.findFirst({
-                where: {
-                    productId: input.productId,
-                    isActive: true,
-                },
-                orderBy: [
-                    { isDefault: "desc" }, // default first
-                    { sortOrder: "asc" },
-                    { createdAt: "asc" },
-                ],
-                select: { id: true },
-            });
-            return plan?.id ?? null;
+            const rows = await db
+                .select({ id: niscProductPlan.id })
+                .from(niscProductPlan)
+                .where(
+                    and(
+                        eq(niscProductPlan.productId, input.productId),
+                        eq(niscProductPlan.isActive, true),
+                    ),
+                )
+                .orderBy(
+                    desc(niscProductPlan.isDefault),
+                    asc(niscProductPlan.sortOrder),
+                    asc(niscProductPlan.createdAt),
+                )
+                .limit(1);
+            return rows[0]?.id ?? null;
         }),
 
     // ── Product Plans ─────────────────────────────────────────────────────────
@@ -1032,8 +1091,8 @@ export const productsRouter = router({
                 });
             }
 
-            const plan = await prisma.niscProductPlan.findUnique({
-                where: { id: input.id },
+            const plan = await db.query.niscProductPlan.findFirst({
+                where: eq(niscProductPlan.id, input.id),
             });
             if (!plan) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
@@ -1056,8 +1115,8 @@ export const productsRouter = router({
             }
 
             // Ensure product exists and fetch its feature master list
-            const product = await prisma.niscProduct.findUnique({
-                where: { id: input.productId },
+            const product = await db.query.niscProduct.findFirst({
+                where: eq(niscProduct.id, input.productId),
             });
             if (!product) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
@@ -1069,26 +1128,34 @@ export const productsRouter = router({
                 input.planFeatures,
             );
 
-            const plan = await prisma.niscProductPlan.create({
-                data: {
+            const planId = randomUUID();
+            const [plan] = await db
+                .insert(niscProductPlan)
+                .values({
+                    id: planId,
                     productId: input.productId,
                     name: input.name,
                     description: input.description ?? null,
-                    pricingModel: input.pricingModel as any,
-                    billingCycle: input.pricingModel === "FIXED" ? (input.billingCycle as any) : null,
+                    pricingModel: input.pricingModel,
+                    billingCycle:
+                        input.pricingModel === "FIXED" ? (input.billingCycle ?? null) : null,
                     price: input.pricingModel === "FIXED" ? (input.price ?? null) : null,
                     currency: input.currency,
                     setupFee: input.pricingModel === "FIXED" ? (input.setupFee ?? null) : null,
                     commissionRate:
-                        input.pricingModel === "COMMISSION" && input.commissionRate !== undefined
-                            ? input.commissionRate
+                        input.pricingModel === "COMMISSION" &&
+                        input.commissionRate !== undefined
+                            ? String(input.commissionRate)
                             : null,
-                    commissionBase: input.pricingModel === "COMMISSION" ? (input.commissionBase ?? null) : null,
+                    commissionBase:
+                        input.pricingModel === "COMMISSION"
+                            ? (input.commissionBase ?? null)
+                            : null,
                     commissionBaseDescription:
                         input.pricingModel === "COMMISSION"
                             ? (input.commissionBaseDescription ?? null)
                             : null,
-                    planFeatures: normalisedFeatures as any[],
+                    planFeatures: normalisedFeatures as unknown[],
                     highlights: input.highlights,
                     isPopular: input.isPopular,
                     isRecommended: input.isRecommended,
@@ -1098,10 +1165,16 @@ export const productsRouter = router({
                     pleskServicePlanId: input.pleskServicePlanId ?? null,
                     pleskFilterId: input.pleskFilterId ?? null,
                     pleskIpAddress: input.pleskIpAddress ?? null,
-                    hostingType: input.hostingType ? (input.hostingType as any) : null,
-                    metadata: input.metadata != null ? (input.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
-                },
-            });
+                    hostingType: input.hostingType ?? null,
+                    metadata: input.metadata ?? null,
+                })
+                .returning();
+            if (!plan) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to create plan",
+                });
+            }
 
             await invalidateProductsCache();
             return mapPlan(plan);
@@ -1120,9 +1193,9 @@ export const productsRouter = router({
                 });
             }
 
-            const existing = await prisma.niscProductPlan.findUnique({
-                where: { id: input.id },
-                include: { product: true },
+            const existing = await db.query.niscProductPlan.findFirst({
+                where: eq(niscProductPlan.id, input.id),
+                with: { product: true },
             });
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
@@ -1139,57 +1212,74 @@ export const productsRouter = router({
 
             const effectivePricingModel = input.pricingModel ?? existing.pricingModel;
 
-            const updated = await prisma.niscProductPlan.update({
-                where: { id: input.id },
-                data: {
-                    ...(input.name !== undefined && { name: input.name }),
-                    ...(input.description !== undefined && { description: input.description ?? null }),
-                    ...(input.pricingModel !== undefined && { pricingModel: input.pricingModel as any }),
-                    ...(input.billingCycle !== undefined && {
-                        billingCycle: effectivePricingModel === "FIXED" ? (input.billingCycle as any) : null,
-                    }),
-                    ...(input.price !== undefined && {
-                        price: effectivePricingModel === "FIXED" ? (input.price ?? null) : null,
-                    }),
-                    ...(input.currency !== undefined && { currency: input.currency }),
-                    ...(input.setupFee !== undefined && {
-                        setupFee: effectivePricingModel === "FIXED" ? (input.setupFee ?? null) : null,
-                    }),
-                    ...(input.commissionRate !== undefined && {
-                        commissionRate: effectivePricingModel === "COMMISSION" ? input.commissionRate : null,
-                    }),
-                    ...(input.commissionBase !== undefined && {
-                        commissionBase: effectivePricingModel === "COMMISSION" ? (input.commissionBase ?? null) : null,
-                    }),
-                    ...(input.commissionBaseDescription !== undefined && {
-                        commissionBaseDescription:
-                            effectivePricingModel === "COMMISSION"
-                                ? (input.commissionBaseDescription ?? null)
-                                : null,
-                    }),
-                    ...(normalisedFeatures !== undefined && { planFeatures: normalisedFeatures as any[] }),
-                    ...(input.highlights !== undefined && { highlights: input.highlights }),
-                    ...(input.isPopular !== undefined && { isPopular: input.isPopular }),
-                    ...(input.isRecommended !== undefined && { isRecommended: input.isRecommended }),
-                    ...(input.isActive !== undefined && { isActive: input.isActive }),
-                    ...(input.isDefault !== undefined && { isDefault: input.isDefault }),
-                    ...(input.sortOrder !== undefined && { sortOrder: input.sortOrder }),
-                    ...(input.pleskServicePlanId !== undefined && {
-                        pleskServicePlanId: input.pleskServicePlanId ?? null,
-                    }),
-                    ...(input.pleskFilterId !== undefined && { pleskFilterId: input.pleskFilterId ?? null }),
-                    ...(input.pleskIpAddress !== undefined && { pleskIpAddress: input.pleskIpAddress ?? null }),
-                    ...(input.hostingType !== undefined && {
-                        hostingType: input.hostingType ? (input.hostingType as any) : null,
-                    }),
-                    ...(input.metadata !== undefined && {
-                        metadata:
-                            input.metadata != null
-                                ? (input.metadata as Prisma.InputJsonValue)
-                                : Prisma.JsonNull,
-                    }),
-                },
-            });
+            const set: Record<string, unknown> = {};
+            if (input.name !== undefined) set.name = input.name;
+            if (input.description !== undefined) set.description = input.description ?? null;
+            if (input.pricingModel !== undefined) set.pricingModel = input.pricingModel;
+            if (input.billingCycle !== undefined) {
+                set.billingCycle =
+                    effectivePricingModel === "FIXED" ? (input.billingCycle ?? null) : null;
+            }
+            if (input.price !== undefined) {
+                set.price =
+                    effectivePricingModel === "FIXED" ? (input.price ?? null) : null;
+            }
+            if (input.currency !== undefined) set.currency = input.currency;
+            if (input.setupFee !== undefined) {
+                set.setupFee =
+                    effectivePricingModel === "FIXED" ? (input.setupFee ?? null) : null;
+            }
+            if (input.commissionRate !== undefined) {
+                set.commissionRate =
+                    effectivePricingModel === "COMMISSION" && input.commissionRate !== undefined
+                        ? String(input.commissionRate)
+                        : null;
+            }
+            if (input.commissionBase !== undefined) {
+                set.commissionBase =
+                    effectivePricingModel === "COMMISSION"
+                        ? (input.commissionBase ?? null)
+                        : null;
+            }
+            if (input.commissionBaseDescription !== undefined) {
+                set.commissionBaseDescription =
+                    effectivePricingModel === "COMMISSION"
+                        ? (input.commissionBaseDescription ?? null)
+                        : null;
+            }
+            if (normalisedFeatures !== undefined) {
+                set.planFeatures = normalisedFeatures as unknown[];
+            }
+            if (input.highlights !== undefined) set.highlights = input.highlights;
+            if (input.isPopular !== undefined) set.isPopular = input.isPopular;
+            if (input.isRecommended !== undefined) set.isRecommended = input.isRecommended;
+            if (input.isActive !== undefined) set.isActive = input.isActive;
+            if (input.isDefault !== undefined) set.isDefault = input.isDefault;
+            if (input.sortOrder !== undefined) set.sortOrder = input.sortOrder;
+            if (input.pleskServicePlanId !== undefined) {
+                set.pleskServicePlanId = input.pleskServicePlanId ?? null;
+            }
+            if (input.pleskFilterId !== undefined) {
+                set.pleskFilterId = input.pleskFilterId ?? null;
+            }
+            if (input.pleskIpAddress !== undefined) {
+                set.pleskIpAddress = input.pleskIpAddress ?? null;
+            }
+            if (input.hostingType !== undefined) {
+                set.hostingType = input.hostingType ?? null;
+            }
+            if (input.metadata !== undefined) {
+                set.metadata = input.metadata ?? null;
+            }
+
+            const [updated] = await db
+                .update(niscProductPlan)
+                .set(set as Partial<typeof niscProductPlan.$inferInsert>)
+                .where(eq(niscProductPlan.id, input.id))
+                .returning();
+            if (!updated) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
+            }
 
             await invalidateProductsCache();
             return mapPlan(updated);
@@ -1208,17 +1298,17 @@ export const productsRouter = router({
                 });
             }
 
-            const existing = await prisma.niscProductPlan.findUnique({
-                where: { id: input.id },
+            const existing = await db.query.niscProductPlan.findFirst({
+                where: eq(niscProductPlan.id, input.id),
             });
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
             }
 
-            await prisma.niscProductPlan.update({
-                where: { id: input.id },
-                data: { isActive: false },
-            });
+            await db
+                .update(niscProductPlan)
+                .set({ isActive: false })
+                .where(eq(niscProductPlan.id, input.id));
 
             await invalidateProductsCache();
             return { success: true };
@@ -1233,13 +1323,27 @@ export const productsRouter = router({
             if (!ctx.session?.user?.id) {
                 throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
             }
-            const where: Record<string, unknown> = {};
-            if (input?.productId) where.productId = input.productId;
-            if (input?.productPlanId) where.productPlanId = input.productPlanId;
-            if (input?.usageKind) where.usageKind = input.usageKind;
-            const rows = await prisma.niscProductPlanUsage.findMany({
-                where,
-                orderBy: [{ productId: "asc" }, { productPlanId: "asc" }, { usageKind: "asc" }],
+            const usageConditions = [];
+            if (input?.productId) {
+                usageConditions.push(eq(niscProductPlanUsage.productId, input.productId));
+            }
+            if (input?.productPlanId) {
+                usageConditions.push(
+                    eq(niscProductPlanUsage.productPlanId, input.productPlanId),
+                );
+            }
+            if (input?.usageKind) {
+                usageConditions.push(eq(niscProductPlanUsage.usageKind, input.usageKind));
+            }
+            const usageWhere =
+                usageConditions.length > 0 ? and(...usageConditions) : undefined;
+            const rows = await db.query.niscProductPlanUsage.findMany({
+                where: usageWhere,
+                orderBy: (u, { asc: a }) => [
+                    a(u.productId),
+                    a(u.productPlanId),
+                    a(u.usageKind),
+                ],
             });
             return rows.map(mapPlanUsage);
         }),
@@ -1251,8 +1355,8 @@ export const productsRouter = router({
             if (!ctx.session?.user?.id) {
                 throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
             }
-            const row = await prisma.niscProductPlanUsage.findUnique({
-                where: { id: input.id },
+            const row = await db.query.niscProductPlanUsage.findFirst({
+                where: eq(niscProductPlanUsage.id, input.id),
             });
             if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Plan usage not found" });
             return mapPlanUsage(row);
@@ -1265,22 +1369,35 @@ export const productsRouter = router({
             if (!ctx.session?.user?.id) {
                 throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
             }
-            const product = await prisma.niscProduct.findUnique({ where: { id: input.productId } });
+            const product = await db.query.niscProduct.findFirst({
+                where: eq(niscProduct.id, input.productId),
+            });
             if (!product) throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
-            const plan = await prisma.niscProductPlan.findUnique({ where: { id: input.productPlanId } });
+            const plan = await db.query.niscProductPlan.findFirst({
+                where: eq(niscProductPlan.id, input.productPlanId),
+            });
             if (!plan) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
-            const row = await prisma.niscProductPlanUsage.create({
-                data: {
+            const usageId = randomUUID();
+            const [row] = await db
+                .insert(niscProductPlanUsage)
+                .values({
+                    id: usageId,
                     productId: input.productId,
                     productPlanId: input.productPlanId,
                     userId: input.userId ?? null,
                     teamId: input.teamId ?? null,
                     usageKind: input.usageKind,
                     limitValue: input.limitValue,
-                    overuse: input.overuse as "HARD" | "SOFT",
+                    overuse: input.overuse,
                     period: input.period ?? null,
-                },
-            });
+                })
+                .returning();
+            if (!row) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to create plan usage",
+                });
+            }
             return mapPlanUsage(row);
         }),
 
@@ -1291,19 +1408,25 @@ export const productsRouter = router({
             if (!ctx.session?.user?.id) {
                 throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
             }
-            const existing = await prisma.niscProductPlanUsage.findUnique({ where: { id: input.id } });
-            if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Plan usage not found" });
-            const row = await prisma.niscProductPlanUsage.update({
-                where: { id: input.id },
-                data: {
-                    ...(input.userId !== undefined && { userId: input.userId }),
-                    ...(input.teamId !== undefined && { teamId: input.teamId }),
-                    ...(input.usageKind !== undefined && { usageKind: input.usageKind }),
-                    ...(input.limitValue !== undefined && { limitValue: input.limitValue }),
-                    ...(input.overuse !== undefined && { overuse: input.overuse as "HARD" | "SOFT" }),
-                    ...(input.period !== undefined && { period: input.period }),
-                },
+            const existing = await db.query.niscProductPlanUsage.findFirst({
+                where: eq(niscProductPlanUsage.id, input.id),
             });
+            if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Plan usage not found" });
+            const usageSet: Record<string, unknown> = {};
+            if (input.userId !== undefined) usageSet.userId = input.userId;
+            if (input.teamId !== undefined) usageSet.teamId = input.teamId;
+            if (input.usageKind !== undefined) usageSet.usageKind = input.usageKind;
+            if (input.limitValue !== undefined) usageSet.limitValue = input.limitValue;
+            if (input.overuse !== undefined) usageSet.overuse = input.overuse;
+            if (input.period !== undefined) usageSet.period = input.period;
+            const [row] = await db
+                .update(niscProductPlanUsage)
+                .set(usageSet as Partial<typeof niscProductPlanUsage.$inferInsert>)
+                .where(eq(niscProductPlanUsage.id, input.id))
+                .returning();
+            if (!row) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Plan usage not found" });
+            }
             return mapPlanUsage(row);
         }),
 
@@ -1314,7 +1437,9 @@ export const productsRouter = router({
             if (!ctx.session?.user?.id) {
                 throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
             }
-            await prisma.niscProductPlanUsage.delete({ where: { id: input.id } });
+            await db
+                .delete(niscProductPlanUsage)
+                .where(eq(niscProductPlanUsage.id, input.id));
             return { success: true };
         }),
 });

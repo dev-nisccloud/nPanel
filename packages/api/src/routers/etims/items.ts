@@ -1,8 +1,10 @@
+import * as crypto from "node:crypto";
 import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
 import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { eTimsConfiguration, eTimsItem } from "@npanel/db/schema/etims";
 
 export const etimsItemsRouter = router({
     /**
@@ -40,7 +42,10 @@ export const etimsItemsRouter = router({
             })
         }))
         .mutation(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -101,12 +106,12 @@ export const etimsItemsRouter = router({
                     // Let's assume we trust the input itemCd or need to parse response?
                     // For now, upsert based on input.itemCd if available.
                     if (input.item.itemCd) {
-                        await prisma.eTimsItem.upsert({
-                            where: {
-                                itemCd: input.item.itemCd
-                            },
-                            create: {
+                        const now = new Date();
+                        await db
+                            .insert(eTimsItem)
+                            .values({
                                 id: crypto.randomUUID(),
+                                localItemId: null,
                                 itemCd: input.item.itemCd,
                                 itemClsCd: input.item.itemClsCd,
                                 itemNm: input.item.itemNm,
@@ -115,20 +120,24 @@ export const etimsItemsRouter = router({
                                 unitPrice: input.item.dftPrc.toString(),
                                 originCountryCd: input.item.orgnNatCd,
                                 quantityUnit: input.item.qtyUnitCd,
-                                packagingUnit: input.item.pkgUnitCd
-                            },
-                            update: {
-                                itemClsCd: input.item.itemClsCd,
-                                itemNm: input.item.itemNm,
-                                taxTyCd: input.item.taxTyCd,
-                                pkgUnitCd: input.item.pkgUnitCd,
-                                unitPrice: input.item.dftPrc.toString(),
-                                originCountryCd: input.item.orgnNatCd,
-                                quantityUnit: input.item.qtyUnitCd,
                                 packagingUnit: input.item.pkgUnitCd,
-                                updatedAt: new Date()
-                            }
-                        });
+                                createdAt: now,
+                                updatedAt: now,
+                            })
+                            .onConflictDoUpdate({
+                                target: eTimsItem.itemCd,
+                                set: {
+                                    itemClsCd: input.item.itemClsCd,
+                                    itemNm: input.item.itemNm,
+                                    taxTyCd: input.item.taxTyCd,
+                                    pkgUnitCd: input.item.pkgUnitCd,
+                                    unitPrice: input.item.dftPrc.toString(),
+                                    originCountryCd: input.item.orgnNatCd,
+                                    quantityUnit: input.item.qtyUnitCd,
+                                    packagingUnit: input.item.pkgUnitCd,
+                                    updatedAt: now,
+                                },
+                            });
                     }
                 }
 
@@ -157,7 +166,10 @@ export const etimsItemsRouter = router({
             bhfId: z.string().optional(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 // Fallback: If no config in DB, check if maybe we can't fetch.
@@ -219,7 +231,10 @@ export const etimsItemsRouter = router({
             })
         }))
         .mutation(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({

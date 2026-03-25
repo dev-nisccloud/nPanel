@@ -1,10 +1,15 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { and, eq } from "drizzle-orm";
 import { router, protectedProcedure } from '../../../trpc';
 import { createLinkedInClient, LinkedInApiError } from '../../../lib/linkedin-client';
-import { getStoredLinkedInAccessToken, getStoredLinkedInPageAccessToken } from '../../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessToken } from '../../../lib/linkedin-credentials';
 import { LinkedInErrorHandler } from '../../../lib/linkedin-error-handler';
-import prisma from '@nPanel/db';
+import { db } from "@npanel/db";
+import {
+	socialMediaIntegration,
+	socialMediaPageToken,
+} from "@npanel/db/schema/social-media-marketing";
 
 // Validation schema for organizations list request
 const OrganizationsListRequestSchema = z.object({
@@ -64,11 +69,11 @@ export const linkedinPagesListRouter = router({
 				// This allows non-agency users to use stored tokens
 				if (transformedOrgs.length > 0 && input.useStoredToken) {
 					try {
-						const integration = await prisma.socialMediaIntegration.findFirst({
-							where: {
-								platform: 'LINKEDIN' as const,
-								status: 'ACTIVE' as const,
-							},
+						const integration = await db.query.socialMediaIntegration.findFirst({
+							where: and(
+								eq(socialMediaIntegration.platform, 'LINKEDIN'),
+								eq(socialMediaIntegration.status, 'ACTIVE'),
+							),
 						});
 
 						if (integration) {
@@ -88,30 +93,33 @@ export const linkedinPagesListRouter = router({
 										// They expire when the parent user token expires
 										const expiresAt = integration.accessTokenExpiresAt || null;
 
-										// Use upsert to handle both create and update cases
-										await prisma.socialMediaPageToken.upsert({
-											where: {
-												integrationId_pageId: {
-													integrationId: integration.id,
-													pageId: org.id,
-												},
-											},
-											update: {
-												platform: integration.platform, // Set platform from integration
-												accessToken: accessToken, // Update with current token
-												accessTokenExpiresAt: expiresAt,
-												pageName: orgInfo.pageName,
-												pageUsername: orgInfo.pageUsername,
-												pagePicture: orgInfo.pagePicture,
-												pageCategory: orgInfo.pageCategory,
-												isActive: true,
-												lastTokenRefreshAt: now,
-												updatedAt: now,
-											},
-											create: {
+										const existingToken = await db.query.socialMediaPageToken.findFirst({
+											where: and(
+												eq(socialMediaPageToken.integrationId, integration.id),
+												eq(socialMediaPageToken.pageId, org.id),
+											),
+										});
+										if (existingToken) {
+											await db
+												.update(socialMediaPageToken)
+												.set({
+													platform: integration.platform,
+													accessToken: accessToken,
+													accessTokenExpiresAt: expiresAt,
+													pageName: orgInfo.pageName,
+													pageUsername: orgInfo.pageUsername,
+													pagePicture: orgInfo.pagePicture,
+													pageCategory: orgInfo.pageCategory,
+													isActive: true,
+													lastTokenRefreshAt: now,
+													updatedAt: now,
+												})
+												.where(eq(socialMediaPageToken.id, existingToken.id));
+										} else {
+											await db.insert(socialMediaPageToken).values({
 												id: `page_token_${integration.id}_${org.id}_${Date.now()}`,
 												integrationId: integration.id,
-												platform: integration.platform, // Set platform from integration
+												platform: integration.platform,
 												pageId: org.id,
 												accessToken: accessToken,
 												accessTokenExpiresAt: expiresAt,
@@ -123,8 +131,8 @@ export const linkedinPagesListRouter = router({
 												lastTokenRefreshAt: now,
 												createdAt: now,
 												updatedAt: now,
-											},
-										});
+											});
+										}
 									} catch (error) {
 										// Log but don't fail the request if storing organization token fails
 										console.warn(`Failed to store organization token for org ${org.id}:`, error);
@@ -212,13 +220,13 @@ export const linkedinPagesListRouter = router({
 		.query(async ({ input }) => {
 			try {
 				// Find the organization token in the database (LinkedIn only)
-				const pageToken = await prisma.socialMediaPageToken.findFirst({
-					where: {
-						pageId: input.pageId,
-						platform: 'LINKEDIN', // Filter by platform
-						isActive: true,
-					},
-					select: {
+				const pageToken = await db.query.socialMediaPageToken.findFirst({
+					where: and(
+						eq(socialMediaPageToken.pageId, input.pageId),
+						eq(socialMediaPageToken.platform, 'LINKEDIN'),
+						eq(socialMediaPageToken.isActive, true),
+					),
+					columns: {
 						id: true,
 						pageId: true,
 						pageName: true,

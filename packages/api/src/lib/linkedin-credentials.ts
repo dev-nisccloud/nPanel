@@ -1,4 +1,9 @@
-import prisma from '@nPanel/db';
+import { and, desc, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import {
+	socialMediaIntegration,
+	socialMediaPageToken,
+} from "@npanel/db/schema/social-media-marketing";
 
 /**
  * Get stored LinkedIn access token (global integration)
@@ -9,15 +14,22 @@ export async function getStoredLinkedInAccessToken(): Promise<{
 	integrationId: string;
 } | null> {
 	try {
-		const integration = await prisma.socialMediaIntegration.findFirst({
-			where: {
-				platform: 'LINKEDIN' as const,
-				status: 'ACTIVE' as const,
-			},
-			orderBy: {
-				createdAt: 'desc',
-			},
-		});
+		const [integration] = await db
+			.select({
+				id: socialMediaIntegration.id,
+				accessToken: socialMediaIntegration.accessToken,
+				accessTokenExpiresAt: socialMediaIntegration.accessTokenExpiresAt,
+				status: socialMediaIntegration.status,
+			})
+			.from(socialMediaIntegration)
+			.where(
+				and(
+					eq(socialMediaIntegration.platform, "LINKEDIN"),
+					eq(socialMediaIntegration.status, "ACTIVE"),
+				),
+			)
+			.orderBy(desc(socialMediaIntegration.createdAt))
+			.limit(1);
 
 		if (!integration || !integration.accessToken) {
 			return null;
@@ -29,10 +41,10 @@ export async function getStoredLinkedInAccessToken(): Promise<{
 			new Date(integration.accessTokenExpiresAt) < new Date()
 		) {
 			// Update status to expired
-			await prisma.socialMediaIntegration.update({
-				where: { id: integration.id },
-				data: { status: 'EXPIRED' as const },
-			});
+			await db
+				.update(socialMediaIntegration)
+				.set({ status: "EXPIRED" })
+				.where(eq(socialMediaIntegration.id, integration.id));
 			return null;
 		}
 
@@ -55,18 +67,30 @@ export async function getStoredLinkedInPageAccessToken(
 	pageId: string
 ): Promise<{ accessToken: string; integrationId: string } | null> {
 	try {
-		const pageToken = await prisma.socialMediaPageToken.findFirst({
-			where: {
-				pageId,
-				platform: 'LINKEDIN', // Filter by platform to ensure correct token
-				isActive: true,
-			},
-			include: {
-				integration: true,
-			},
-		});
+		const [pageToken] = await db
+			.select({
+				id: socialMediaPageToken.id,
+				accessToken: socialMediaPageToken.accessToken,
+				accessTokenExpiresAt: socialMediaPageToken.accessTokenExpiresAt,
+				integrationId: socialMediaPageToken.integrationId,
+				pageIsActive: socialMediaPageToken.isActive,
+				integrationStatus: socialMediaIntegration.status,
+			})
+			.from(socialMediaPageToken)
+			.leftJoin(
+				socialMediaIntegration,
+				eq(socialMediaPageToken.integrationId, socialMediaIntegration.id),
+			)
+			.where(
+				and(
+					eq(socialMediaPageToken.pageId, pageId),
+					eq(socialMediaPageToken.platform, "LINKEDIN"),
+					eq(socialMediaPageToken.isActive, true),
+				),
+			)
+			.limit(1);
 
-		if (!pageToken || pageToken.integration.status !== 'ACTIVE') {
+		if (!pageToken || pageToken.integrationStatus !== "ACTIVE") {
 			return null;
 		}
 
@@ -76,10 +100,10 @@ export async function getStoredLinkedInPageAccessToken(
 			new Date(pageToken.accessTokenExpiresAt) < new Date()
 		) {
 			// Update status to inactive
-			await prisma.socialMediaPageToken.update({
-				where: { id: pageToken.id },
-				data: { isActive: false },
-			});
+			await db
+				.update(socialMediaPageToken)
+				.set({ isActive: false })
+				.where(eq(socialMediaPageToken.id, pageToken.id));
 			return null;
 		}
 

@@ -1,5 +1,7 @@
 import { router, protectedProcedure } from '../../trpc';
-import prisma from '@nPanel/db';
+import { eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
 import { getStoredLinkedInAccessToken } from '../../lib/linkedin-credentials';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -36,8 +38,8 @@ export const linkedInAdsAuthRouter = router({
 			}
 
 			// Get integration details
-			const integration = await prisma.socialMediaIntegration.findUnique({
-				where: { id: tokenData.integrationId },
+			const integration = await db.query.socialMediaIntegration.findFirst({
+				where: eq(socialMediaIntegration.id, tokenData.integrationId),
 			});
 
 			if (!integration) {

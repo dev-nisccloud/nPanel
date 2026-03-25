@@ -1,13 +1,25 @@
 import * as crypto from "crypto";
+import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
+import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+
+import { db } from "@npanel/db";
+import { userProfile } from "@npanel/db/schema/auth-extras";
+import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
+import { niscOrder, niscOrderItem } from "@npanel/db/schema/nisc-orders";
+import {
+	niscClientSubscription,
+	niscProduct,
+	niscProductPlan,
+} from "@npanel/db/schema/products";
+import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
+import { team } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
-import prisma, { Prisma } from "@nPanel/db";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
 import {
 	createFromPaymentInputSchema,
 	createOrderInputSchema,
-	createOrderItemSchema,
 	getAllNiscOrdersInputSchema,
 	getNiscOrderByIdInputSchema,
 	retryNiscOrderInputSchema,
@@ -31,30 +43,35 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			const where: Prisma.NiscOrderWhereInput = {};
-			if (input.userId != null) where.userId = input.userId;
-			if (input.teamId != null) where.teamId = input.teamId;
-			if (input.status != null) where.status = input.status;
+			const conditions = [];
+			if (input.userId != null) conditions.push(eq(niscOrder.userId, input.userId));
+			if (input.teamId != null) conditions.push(eq(niscOrder.teamId, input.teamId));
+			if (input.status != null) conditions.push(eq(niscOrder.status, input.status));
+			const whereClause = conditions.length ? and(...conditions) : undefined;
 
-			const [orders, total] = await Promise.all([
-				prisma.niscOrder.findMany({
-					where,
-					include: {
+			const [orders, totalRow] = await Promise.all([
+				db.query.niscOrder.findMany({
+					where: whereClause,
+					orderBy: [desc(niscOrder.createdAt)],
+					limit: input.limit,
+					offset: input.offset,
+					with: {
 						orderItems: {
-							include: {
-								product: { select: { id: true, name: true, serviceType: true } },
-								productPlan: { select: { id: true, name: true } },
+							with: {
+								product: { columns: { id: true, name: true, serviceType: true } },
+								productPlan: { columns: { id: true, name: true } },
 							},
 						},
-						user: { select: { id: true, name: true, email: true } },
-						team: { select: { id: true, name: true } },
+						user: { columns: { id: true, name: true, email: true } },
+						team: { columns: { id: true, name: true } },
 					},
-					orderBy: { createdAt: "desc" },
-					take: input.limit,
-					skip: input.offset,
 				}),
-				prisma.niscOrder.count({ where }),
+				db
+					.select({ c: count() })
+					.from(niscOrder)
+					.where(whereClause ?? sql`true`),
 			]);
+			const total = Number(totalRow[0]?.c ?? 0);
 
 			return {
 				orders: orders.map((o) => ({
@@ -101,11 +118,11 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			const order = await prisma.niscOrder.findUnique({
-				where: { id: input.id },
-				include: {
+			const order = await db.query.niscOrder.findFirst({
+				where: eq(niscOrder.id, input.id),
+				with: {
 					orderItems: {
-						include: {
+						with: {
 							product: true,
 							productPlan: true,
 							niscClientSubscription: true,
@@ -116,7 +133,7 @@ export const niscServiceOrdersRouter = router({
 					team: true,
 					niscProductPromo: true,
 					processingLogs: {
-						orderBy: { createdAt: "asc" },
+						orderBy: (l, { asc: a }) => [a(l.createdAt)],
 					},
 				},
 			});
@@ -142,18 +159,21 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			const ownerId = input.teamId
-				? (await prisma.team.findUnique({
-						where: { id: input.teamId },
-						select: { createdById: true },
-					}))?.createdById ?? input.userId
-				: input.userId;
+			const teamRow = input.teamId
+				? await db
+						.select({ createdById: team.createdById })
+						.from(team)
+						.where(eq(team.id, input.teamId))
+						.limit(1)
+						.then((r) => r[0])
+				: null;
+			const ownerId = teamRow?.createdById ?? input.userId;
 
 			for (const item of input.items) {
-				const product = await prisma.niscProduct.findUnique({
-					where: { id: item.productId },
-					include: {
-						plans: { where: { id: item.productPlanId } },
+				const product = await db.query.niscProduct.findFirst({
+					where: eq(niscProduct.id, item.productId),
+					with: {
+						plans: { where: eq(niscProductPlan.id, item.productPlanId) },
 					},
 				});
 				if (!product || !product.isActive) {
@@ -181,20 +201,30 @@ export const niscServiceOrdersRouter = router({
 							message: `Hosting item "${product.name}" requires selecting a domain subscription.`,
 						});
 					}
-					const domainSub = await prisma.niscClientSubscription.findFirst({
-						where: {
-							id: domainSubId,
-							product: {
-								OR: [
-									{ serviceType: { contains: "domain", mode: "insensitive" } },
-									{ name: { contains: "domain", mode: "insensitive" } },
-								],
-							},
-							...(input.userId != null && { userId: input.userId }),
-							...(input.teamId != null && { teamId: input.teamId }),
-						},
-						select: { id: true, primaryDomain: true, name: true },
-					});
+					const domainParts = [
+						eq(niscClientSubscription.id, domainSubId),
+						or(
+							ilike(niscProduct.serviceType, "%domain%"),
+							ilike(niscProduct.name, "%domain%"),
+						),
+					];
+					if (input.userId != null) {
+						domainParts.push(eq(niscClientSubscription.userId, input.userId));
+					}
+					if (input.teamId != null) {
+						domainParts.push(eq(niscClientSubscription.teamId, input.teamId));
+					}
+					const domainSubRows = await db
+						.select({
+							id: niscClientSubscription.id,
+							primaryDomain: niscClientSubscription.primaryDomain,
+							name: niscProduct.name,
+						})
+						.from(niscClientSubscription)
+						.innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
+						.where(and(...domainParts))
+						.limit(1);
+					const domainSub = domainSubRows[0];
 					if (!domainSub) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
@@ -232,10 +262,12 @@ export const niscServiceOrdersRouter = router({
 
 			const needsIntegration = await Promise.all(
 				input.items.map(async (i) => {
-					const p = await prisma.niscProduct.findUnique({
-						where: { id: i.productId },
-						select: { serviceType: true },
-					});
+					const pRows = await db
+						.select({ serviceType: niscProduct.serviceType })
+						.from(niscProduct)
+						.where(eq(niscProduct.id, i.productId))
+						.limit(1);
+					const p = pRows[0];
 					return (
 						p?.serviceType === "web_hosting" ||
 						p?.serviceType === "email_hosting" ||
@@ -246,18 +278,19 @@ export const niscServiceOrdersRouter = router({
 			).then((arr) => arr.some(Boolean));
 
 			if (needsIntegration && ownerId) {
-				const user = await prisma.user.findUnique({
-					where: { id: ownerId },
-					include: { profile: true },
-				});
-				if (!user?.profile) {
+				const profileRows = await db
+					.select()
+					.from(userProfile)
+					.where(eq(userProfile.userId, ownerId))
+					.limit(1);
+				const profile = profileRows[0];
+				if (!profile) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message:
 							"Complete your profile information and retry creating an order.",
 					});
 				}
-				const profile = user.profile;
 				const required = [
 					profile.firstName,
 					profile.lastName,
@@ -277,22 +310,26 @@ export const niscServiceOrdersRouter = router({
 			}
 
 			let orderNumber: string;
-			let existing: { id: string } | null;
+			let existing: { id: string } | undefined;
 			do {
 				orderNumber = generateNiscOrderNumber();
-				existing = await prisma.niscOrder.findUnique({
-					where: { orderNumber },
-					select: { id: true },
-				});
+				const rows = await db
+					.select({ id: niscOrder.id })
+					.from(niscOrder)
+					.where(eq(niscOrder.orderNumber, orderNumber))
+					.limit(1);
+				existing = rows[0];
 			} while (existing);
 
 			const currency = "KES";
 			const planPrices = await Promise.all(
 				input.items.map(async (item) => {
-					const plan = await prisma.niscProductPlan.findUnique({
-						where: { id: item.productPlanId },
-						select: { price: true },
-					});
+					const planRows = await db
+						.select({ price: niscProductPlan.price })
+						.from(niscProductPlan)
+						.where(eq(niscProductPlan.id, item.productPlanId))
+						.limit(1);
+					const plan = planRows[0];
 					const price = plan?.price ?? "0";
 					return { price: Number(price) || 0, item };
 				}),
@@ -300,8 +337,10 @@ export const niscServiceOrdersRouter = router({
 			const subtotal = planPrices.reduce((sum, { price }) => sum + price, 0);
 			const total = subtotal;
 
-			const order = await prisma.niscOrder.create({
-				data: {
+			const insertedOrder = await db
+				.insert(niscOrder)
+				.values({
+					id: randomUUID(),
 					orderNumber,
 					userId: input.userId ?? null,
 					teamId: input.teamId ?? null,
@@ -311,8 +350,15 @@ export const niscServiceOrdersRouter = router({
 					total: String(total),
 					currency,
 					notes: input.notes ?? null,
-				},
-			});
+				})
+				.returning();
+			const order = insertedOrder[0];
+			if (!order) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create NISC order",
+				});
+			}
 
 			for (const { price, item } of planPrices) {
 				const priceStr = String(price);
@@ -322,33 +368,38 @@ export const niscServiceOrdersRouter = router({
 						: null;
 				let primaryDomain = item.primaryDomain ?? null;
 				if (item.domainSubscriptionId && !primaryDomain) {
-					const sub = await prisma.niscClientSubscription.findFirst({
-						where: {
-							id: item.domainSubscriptionId,
-							product: {
-								OR: [
-									{ serviceType: { contains: "domain", mode: "insensitive" } },
-									{ name: { contains: "domain", mode: "insensitive" } },
-								],
-							},
-						},
-						select: { primaryDomain: true, name: true },
-					});
+					const subRows = await db
+						.select({
+							primaryDomain: niscClientSubscription.primaryDomain,
+							name: niscProduct.name,
+						})
+						.from(niscClientSubscription)
+						.innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
+						.where(
+							and(
+								eq(niscClientSubscription.id, item.domainSubscriptionId),
+								or(
+									ilike(niscProduct.serviceType, "%domain%"),
+									ilike(niscProduct.name, "%domain%"),
+								),
+							),
+						)
+						.limit(1);
+					const sub = subRows[0];
 					primaryDomain = sub?.primaryDomain ?? sub?.name ?? null;
 				}
-				await prisma.niscOrderItem.create({
-					data: {
-						niscOrderId: order.id,
-						productId: item.productId,
-						productPlanId: item.productPlanId,
-						billingCycle: item.billingCycle ?? null,
-						itemPrice: priceStr,
-						itemSubtotal: priceStr,
-						itemCurrency: currency,
-						primaryDomain,
-						domainSubscriptionId: item.domainSubscriptionId ?? null,
-						metadata: metadata ?? undefined,
-					},
+				await db.insert(niscOrderItem).values({
+					id: randomUUID(),
+					niscOrderId: order.id,
+					productId: item.productId,
+					productPlanId: item.productPlanId,
+					billingCycle: item.billingCycle ?? null,
+					itemPrice: priceStr,
+					itemSubtotal: priceStr,
+					itemCurrency: currency,
+					primaryDomain,
+					domainSubscriptionId: item.domainSubscriptionId ?? null,
+					metadata: metadata ?? null,
 				});
 			}
 
@@ -357,10 +408,12 @@ export const niscServiceOrdersRouter = router({
 				const result = await enqueueNiscOrderProcessing(order.id);
 				qstashMessageId = result.messageId;
 			} catch (err) {
-				await prisma.niscOrder.update({
-					where: { id: order.id },
-					data: { failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500) },
-				});
+				await db
+					.update(niscOrder)
+					.set({
+						failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500),
+					})
+					.where(eq(niscOrder.id, order.id));
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message:
@@ -370,22 +423,22 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			await prisma.niscOrder.update({
-				where: { id: order.id },
-				data: { qstashMessageId },
-			});
+			await db
+				.update(niscOrder)
+				.set({ qstashMessageId })
+				.where(eq(niscOrder.id, order.id));
 
-			return prisma.niscOrder.findUnique({
-				where: { id: order.id },
-				include: {
+			return db.query.niscOrder.findFirst({
+				where: eq(niscOrder.id, order.id),
+				with: {
 					orderItems: {
-						include: {
-							product: { select: { id: true, name: true, serviceType: true } },
-							productPlan: { select: { id: true, name: true } },
+						with: {
+							product: { columns: { id: true, name: true, serviceType: true } },
+							productPlan: { columns: { id: true, name: true } },
 						},
 					},
-					user: { select: { id: true, name: true, email: true } },
-					team: { select: { id: true, name: true } },
+					user: { columns: { id: true, name: true, email: true } },
+					team: { columns: { id: true, name: true } },
 				},
 			});
 		}),
@@ -406,13 +459,18 @@ export const niscServiceOrdersRouter = router({
 			}
 			const userId = session.user.id;
 
-			const transaction = await prisma.paymentTransaction.findFirst({
-				where: {
-					checkoutRequestId: input.checkoutRequestId,
-					userId,
-					status: "SUCCESS",
-				},
-			});
+			const txRows = await db
+				.select()
+				.from(paymentTransaction)
+				.where(
+					and(
+						eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId),
+						eq(paymentTransaction.userId, userId),
+						eq(paymentTransaction.status, "SUCCESS"),
+					),
+				)
+				.limit(1);
+			const transaction = txRows[0];
 			if (!transaction) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
@@ -421,9 +479,12 @@ export const niscServiceOrdersRouter = router({
 			}
 
 			for (const item of input.items) {
-				const product = await prisma.niscProduct.findUnique({
-					where: { id: item.productId },
-				});
+				const productRows = await db
+					.select()
+					.from(niscProduct)
+					.where(eq(niscProduct.id, item.productId))
+					.limit(1);
+				const product = productRows[0];
 				if (!product || !product.isActive) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
@@ -443,10 +504,12 @@ export const niscServiceOrdersRouter = router({
 
 			const needsProfile = await Promise.all(
 				input.items.map(async (i) => {
-					const p = await prisma.niscProduct.findUnique({
-						where: { id: i.productId },
-						select: { serviceType: true },
-					});
+					const pRows = await db
+						.select({ serviceType: niscProduct.serviceType })
+						.from(niscProduct)
+						.where(eq(niscProduct.id, i.productId))
+						.limit(1);
+					const p = pRows[0];
 					return (
 						p?.serviceType === "web_hosting" ||
 						p?.serviceType === "email_hosting" ||
@@ -457,17 +520,18 @@ export const niscServiceOrdersRouter = router({
 			).then((arr) => arr.some(Boolean));
 
 			if (needsProfile) {
-				const user = await prisma.user.findUnique({
-					where: { id: userId },
-					include: { profile: true },
-				});
-				if (!user?.profile) {
+				const payProfileRows = await db
+					.select()
+					.from(userProfile)
+					.where(eq(userProfile.userId, userId))
+					.limit(1);
+				const profile = payProfileRows[0];
+				if (!profile) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "Complete your profile information and retry creating an order.",
 					});
 				}
-				const profile = user.profile;
 				const required = [
 					profile.firstName,
 					profile.lastName,
@@ -494,10 +558,12 @@ export const niscServiceOrdersRouter = router({
 					transferRequestIdsByIndex.push(null);
 					continue;
 				}
-				const product = await prisma.niscProduct.findUnique({
-					where: { id: item.productId },
-					select: { serviceType: true },
-				});
+				const xferProdRows = await db
+					.select({ serviceType: niscProduct.serviceType })
+					.from(niscProduct)
+					.where(eq(niscProduct.id, item.productId))
+					.limit(1);
+				const product = xferProdRows[0];
 				const isDomainService =
 					product?.serviceType === "domain_transfer" ||
 					product?.serviceType === "domain_registration" ||
@@ -523,32 +589,32 @@ export const niscServiceOrdersRouter = router({
 				const domainName = item.primaryDomain.trim();
 				const provider = isKenicDomain(domainName) ? "KENIC" : "OPENPROVIDER";
 				const requestId = crypto.randomUUID();
-				await prisma.domainTransferRequest.create({
-					data: {
-						id: requestId,
-						domainName,
-						authCode,
-						provider,
-						status: "PENDING",
-						customerPriceAmount: item.itemSubtotal ?? null,
-						customerPriceCurrency: input.currency ?? "KES",
-						teamId: input.teamId ?? null,
-						createdById: userId,
-						createdAt: now,
-						updatedAt: now,
-					},
+				await db.insert(domainTransferRequest).values({
+					id: requestId,
+					domainName,
+					authCode,
+					provider,
+					status: "PENDING",
+					customerPriceAmount: item.itemSubtotal ?? null,
+					customerPriceCurrency: input.currency ?? "KES",
+					teamId: input.teamId ?? null,
+					createdById: userId,
+					createdAt: now,
+					updatedAt: now,
 				});
 				transferRequestIdsByIndex.push(requestId);
 			}
 
 			let orderNumber: string;
-			let existing: { id: string } | null;
+			let existing: { id: string } | undefined;
 			do {
 				orderNumber = generateNiscOrderNumber();
-				existing = await prisma.niscOrder.findUnique({
-					where: { orderNumber },
-					select: { id: true },
-				});
+				const rows = await db
+					.select({ id: niscOrder.id })
+					.from(niscOrder)
+					.where(eq(niscOrder.orderNumber, orderNumber))
+					.limit(1);
+				existing = rows[0];
 			} while (existing);
 
 			const subtotalNum = input.items.reduce((sum, i) => sum + parseFloat(i.itemSubtotal || "0"), 0);
@@ -557,8 +623,10 @@ export const niscServiceOrdersRouter = router({
 			const total = String(totalNum);
 			const currency = input.currency || "KES";
 
-			const order = await prisma.niscOrder.create({
-				data: {
+			const payOrderIns = await db
+				.insert(niscOrder)
+				.values({
+					id: randomUUID(),
 					orderNumber,
 					userId: userId,
 					teamId: input.teamId ?? null,
@@ -568,8 +636,15 @@ export const niscServiceOrdersRouter = router({
 					total,
 					currency,
 					paymentTransactionId: transaction.id,
-				},
-			});
+				})
+				.returning();
+			const order = payOrderIns[0];
+			if (!order) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create NISC order",
+				});
+			}
 
 			for (let idx = 0; idx < input.items.length; idx++) {
 				const item = input.items[idx]!;
@@ -582,30 +657,29 @@ export const niscServiceOrdersRouter = router({
 					domainTransferRequestId != null
 						? { ...(metadata ?? {}), domainTransferRequestId }
 						: (metadata ?? undefined);
-				await prisma.niscOrderItem.create({
-					data: {
-						niscOrderId: order.id,
-						productId: item.productId,
-						productPlanId: item.productPlanId ?? null,
-						billingCycle: item.billingCycle ?? null,
-						itemPrice: item.itemPrice,
-						itemSubtotal: item.itemSubtotal,
-						itemCurrency: currency,
-						primaryDomain: item.primaryDomain ?? null,
-						domainSubscriptionId: item.domainSubscriptionId ?? null,
-						description: item.description ?? null,
-						metadata: mergedMetadata ?? undefined,
-					},
+				await db.insert(niscOrderItem).values({
+					id: randomUUID(),
+					niscOrderId: order.id,
+					productId: item.productId,
+					productPlanId: item.productPlanId ?? null,
+					billingCycle: item.billingCycle ?? null,
+					itemPrice: item.itemPrice,
+					itemSubtotal: item.itemSubtotal,
+					itemCurrency: currency,
+					primaryDomain: item.primaryDomain ?? null,
+					domainSubscriptionId: item.domainSubscriptionId ?? null,
+					description: item.description ?? null,
+					metadata: mergedMetadata ?? null,
 				});
 			}
 
 			// Link DomainTransferRequest(s) to this order for tracking
 			for (const requestId of transferRequestIdsByIndex) {
 				if (requestId) {
-					await prisma.domainTransferRequest.update({
-						where: { id: requestId },
-						data: { niscOrder: { connect: { id: order.id } }, updatedAt: new Date() },
-					});
+					await db
+						.update(domainTransferRequest)
+						.set({ niscOrderId: order.id, updatedAt: new Date() })
+						.where(eq(domainTransferRequest.id, requestId));
 				}
 			}
 
@@ -614,10 +688,12 @@ export const niscServiceOrdersRouter = router({
 				const result = await enqueueNiscOrderProcessing(order.id);
 				qstashMessageId = result.messageId;
 			} catch (err) {
-				await prisma.niscOrder.update({
-					where: { id: order.id },
-					data: { failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500) },
-				});
+				await db
+					.update(niscOrder)
+					.set({
+						failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500),
+					})
+					.where(eq(niscOrder.id, order.id));
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message:
@@ -625,23 +701,23 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			await prisma.niscOrder.update({
-				where: { id: order.id },
-				data: { qstashMessageId },
-			});
+			await db
+				.update(niscOrder)
+				.set({ qstashMessageId })
+				.where(eq(niscOrder.id, order.id));
 
 			// Fire-and-forget: send "order received" email to the logged-in user
 			void (async () => {
 				try {
-					const orderWithUser = await prisma.niscOrder.findUnique({
-						where: { id: order.id },
-						include: {
+					const orderWithUser = await db.query.niscOrder.findFirst({
+						where: eq(niscOrder.id, order.id),
+						with: {
 							orderItems: {
-								include: {
-									product: { select: { name: true } },
+								with: {
+									product: { columns: { name: true } },
 								},
 							},
-							user: { select: { id: true, name: true, email: true } },
+							user: { columns: { id: true, name: true, email: true } },
 						},
 					});
 					if (!orderWithUser?.user?.email) return;
@@ -670,17 +746,17 @@ export const niscServiceOrdersRouter = router({
 				}
 			})();
 
-			return prisma.niscOrder.findUnique({
-				where: { id: order.id },
-				include: {
+			return db.query.niscOrder.findFirst({
+				where: eq(niscOrder.id, order.id),
+				with: {
 					orderItems: {
-						include: {
-							product: { select: { id: true, name: true, serviceType: true } },
-							productPlan: { select: { id: true, name: true } },
+						with: {
+							product: { columns: { id: true, name: true, serviceType: true } },
+							productPlan: { columns: { id: true, name: true } },
 						},
 					},
-					user: { select: { id: true, name: true, email: true } },
-					team: { select: { id: true, name: true } },
+					user: { columns: { id: true, name: true, email: true } },
+					team: { columns: { id: true, name: true } },
 				},
 			});
 		}),
@@ -695,9 +771,12 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			const order = await prisma.niscOrder.findUnique({
-				where: { id: input.niscOrderId },
-			});
+			const retryOrderRows = await db
+				.select()
+				.from(niscOrder)
+				.where(eq(niscOrder.id, input.niscOrderId))
+				.limit(1);
+			const order = retryOrderRows[0];
 
 			if (!order) {
 				throw new TRPCError({
@@ -725,24 +804,26 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			await prisma.$transaction([
-				prisma.niscOrder.update({
-					where: { id: order.id },
-					data: {
+			await db.transaction(async (tx) => {
+				await tx
+					.update(niscOrder)
+					.set({
 						status: "PENDING",
 						failureReason: null,
 						processedAt: null,
 						completedAt: null,
-					},
-				}),
-				prisma.niscOrderItem.updateMany({
-					where: {
-						niscOrderId: order.id,
-						status: { in: ["FAILED", "SKIPPED"] },
-					},
-					data: { status: "PENDING", provisioningError: null },
-				}),
-			]);
+					})
+					.where(eq(niscOrder.id, order.id));
+				await tx
+					.update(niscOrderItem)
+					.set({ status: "PENDING", provisioningError: null })
+					.where(
+						and(
+							eq(niscOrderItem.niscOrderId, order.id),
+							inArray(niscOrderItem.status, ["FAILED", "SKIPPED"]),
+						),
+					);
+			});
 
 			return { success: true, niscOrderId: order.id };
 		}),

@@ -1,11 +1,16 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { and, eq } from "drizzle-orm";
 import { router, protectedProcedure } from '../../../trpc';
 import { createMetaClient, MetaApiError } from '../../../lib/meta-client';
 import { getStoredMetaAccessToken, getStoredPageAccessToken } from '../../../lib/meta-credentials';
 import { MetaErrorHandler } from '../../../lib/meta-error-handler';
 import { request } from 'undici';
-import prisma from '@nPanel/db';
+import { db } from "@npanel/db";
+import {
+	socialMediaIntegration,
+	socialMediaPageToken,
+} from "@npanel/db/schema/social-media-marketing";
 
 // Validation schema for pages list request
 const PagesListRequestSchema = z.object({
@@ -51,11 +56,11 @@ export const metaPagesListRouter = router({
 				// This allows non-agency users to use stored tokens
 				if (pages.length > 0 && input.useStoredToken) {
 					try {
-						const integration = await prisma.socialMediaIntegration.findFirst({
-							where: {
-								platform: 'META_FACEBOOK' as const,
-								status: 'ACTIVE' as const,
-							},
+						const integration = await db.query.socialMediaIntegration.findFirst({
+							where: and(
+								eq(socialMediaIntegration.platform, 'META_FACEBOOK'),
+								eq(socialMediaIntegration.status, 'ACTIVE'),
+							),
 						});
 
 						if (integration) {
@@ -76,30 +81,33 @@ export const metaPagesListRouter = router({
 										// as page tokens become invalid if parent user token expires
 										const expiresAt = integration.accessTokenExpiresAt || null;
 
-										// Use upsert to handle both create and update cases
-										await prisma.socialMediaPageToken.upsert({
-											where: {
-												integrationId_pageId: {
-													integrationId: integration.id,
-													pageId: page.id,
-												},
-											},
-											update: {
-												platform: integration.platform, // Set platform from integration
-												accessToken: page.access_token,
-												accessTokenExpiresAt: expiresAt,
-												pageName: pageInfo.pageName,
-												pageUsername: pageInfo.pageUsername,
-												pagePicture: pageInfo.pagePicture,
-												pageCategory: pageInfo.pageCategory,
-												isActive: true,
-												lastTokenRefreshAt: now,
-												updatedAt: now,
-											},
-											create: {
+										const existingToken = await db.query.socialMediaPageToken.findFirst({
+											where: and(
+												eq(socialMediaPageToken.integrationId, integration.id),
+												eq(socialMediaPageToken.pageId, page.id),
+											),
+										});
+										if (existingToken) {
+											await db
+												.update(socialMediaPageToken)
+												.set({
+													platform: integration.platform,
+													accessToken: page.access_token,
+													accessTokenExpiresAt: expiresAt,
+													pageName: pageInfo.pageName,
+													pageUsername: pageInfo.pageUsername,
+													pagePicture: pageInfo.pagePicture,
+													pageCategory: pageInfo.pageCategory,
+													isActive: true,
+													lastTokenRefreshAt: now,
+													updatedAt: now,
+												})
+												.where(eq(socialMediaPageToken.id, existingToken.id));
+										} else {
+											await db.insert(socialMediaPageToken).values({
 												id: `page_token_${integration.id}_${page.id}_${Date.now()}`,
 												integrationId: integration.id,
-												platform: integration.platform, // Set platform from integration
+												platform: integration.platform,
 												pageId: page.id,
 												accessToken: page.access_token,
 												accessTokenExpiresAt: expiresAt,
@@ -111,8 +119,8 @@ export const metaPagesListRouter = router({
 												lastTokenRefreshAt: now,
 												createdAt: now,
 												updatedAt: now,
-											},
-										});
+											});
+										}
 
 									} catch (error) {
 										// Log but don't fail the request if storing page token fails
@@ -203,13 +211,13 @@ export const metaPagesListRouter = router({
 		.query(async ({ input }) => {
 			try {
 				// Find the page token in the database (Meta Facebook only)
-				const pageToken = await prisma.socialMediaPageToken.findFirst({
-					where: {
-						pageId: input.pageId,
-						platform: 'META_FACEBOOK', // Filter by platform
-						isActive: true,
-					},
-					select: {
+				const pageToken = await db.query.socialMediaPageToken.findFirst({
+					where: and(
+						eq(socialMediaPageToken.pageId, input.pageId),
+						eq(socialMediaPageToken.platform, 'META_FACEBOOK'),
+						eq(socialMediaPageToken.isActive, true),
+					),
+					columns: {
 						id: true,
 						pageId: true,
 						pageName: true,

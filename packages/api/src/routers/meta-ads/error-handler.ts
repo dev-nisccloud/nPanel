@@ -1,5 +1,7 @@
 import { TRPCError } from '@trpc/server';
-import prisma from '@nPanel/db';
+import { eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
 import { MetaAdsApiError } from '../../lib/meta-ads-client';
 import { getStoredMetaAccessToken } from '../../lib/meta-credentials';
 
@@ -21,13 +23,13 @@ export async function handleMetaAdsOAuthError(error: unknown): Promise<TRPCError
 			try {
 				const tokenData = await getStoredMetaAccessToken();
 				if (tokenData) {
-					await prisma.socialMediaIntegration.update({
-						where: { id: tokenData.integrationId },
-						data: {
+					await db
+						.update(socialMediaIntegration)
+						.set({
 							status: 'EXPIRED',
 							accessTokenExpiresAt: null,
-						},
-					});
+						})
+						.where(eq(socialMediaIntegration.id, tokenData.integrationId));
 					console.log('Invalidated Meta credentials due to OAuth error');
 				}
 			} catch (deleteError) {

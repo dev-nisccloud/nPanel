@@ -1,5 +1,7 @@
+import { eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
 import { router, protectedProcedure } from '../../trpc';
-import prisma from '@nPanel/db';
 import { getStoredMetaAccessToken } from '../../lib/meta-credentials';
 
 /**
@@ -34,8 +36,8 @@ export const metaAdsAuthRouter = router({
 			}
 
 			// Get integration details
-			const integration = await prisma.socialMediaIntegration.findUnique({
-				where: { id: tokenData.integrationId },
+			const integration = await db.query.socialMediaIntegration.findFirst({
+				where: eq(socialMediaIntegration.id, tokenData.integrationId),
 			});
 
 			if (!integration) {

@@ -5,7 +5,7 @@ import { publicProcedure, router } from '../../trpc';
 
 async function deleteWpThemes(installationId: number, themeSlugs: string[]) {
   const endpoint = `/v1/installations/${installationId}/themes`;
-  const { data, isAuthError, isHostUnreachable, statusCode } = await sendPleskRestRequest(endpoint, 'DELETE', themeSlugs);
+  const { isAuthError, isHostUnreachable, statusCode } = await sendPleskRestRequest(endpoint, 'DELETE', themeSlugs);
   if (isHostUnreachable) throw new TRPCError({ code: 'SERVICE_UNAVAILABLE', message: 'Plesk host is unreachable' });
   if (isAuthError) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid Plesk credentials' });
   if (statusCode === 404) throw new TRPCError({ code: 'NOT_FOUND', message: `WordPress installation ${installationId} not found` });

@@ -1,8 +1,13 @@
+import * as crypto from "node:crypto";
 import { z } from "zod";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { publicProcedure, protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
-import * as crypto from "crypto";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import { userActivityLog } from "@npanel/db/schema/auth-extras";
+import { hostingSubscription } from "@npanel/db/schema/hosting";
+import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import { renderTeamInviteEmail } from "../lib/email-templates";
 import { sendEmail } from "react-email-starter/src/email";
 
@@ -49,18 +54,20 @@ const getInviteInputSchema = z.object({
 
 const getInviteOutputSchema = z.object({
   valid: z.boolean(),
-  invite: z.object({
-    id: z.string(),
-    email: z.string(),
-    role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
-    status: z.enum(["PENDING", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"]),
-    expiresAt: z.date(),
-    team: z.object({
+  invite: z
+    .object({
       id: z.string(),
-      name: z.string(),
-      logoUrl: z.string().nullable(),
-    }),
-  }).optional(),
+      email: z.string(),
+      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
+      status: z.enum(["PENDING", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"]),
+      expiresAt: z.date(),
+      team: z.object({
+        id: z.string(),
+        name: z.string(),
+        logoUrl: z.string().nullable(),
+      }),
+    })
+    .optional(),
   error: z.string().optional(),
 });
 
@@ -85,107 +92,107 @@ export const teamsRouter = router({
     .output(createTeamOutputSchema)
     .mutation(async ({ input, ctx }) => {
       const session = ctx.session;
-      
+
       if (!session?.user?.id) {
         throw new Error("Unauthorized: You must be logged in to create a team");
       }
 
       const userId = session.user.id;
-      
+
       // Generate unique slug from team name
       const baseSlug = input.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
-      
+
       // Check if slug already exists and make it unique
       let slug = baseSlug;
       let counter = 1;
-      
-      while (await prisma.team.findUnique({ where: { slug } })) {
+
+      while (true) {
+        const [existing] = await db.select({ id: team.id }).from(team).where(eq(team.slug, slug)).limit(1);
+        if (!existing) break;
         slug = `${baseSlug}-${counter}`;
         counter++;
       }
 
       // Get user's name for email personalization
-      const inviter = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { name: true, email: true },
-      });
+      const [inviter] = await db
+        .select({ name: user.name, email: user.email })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1);
 
       const inviterName = inviter?.name || inviter?.email || "A team member";
 
       // Create team with transaction to ensure atomicity
-      const result = await prisma.$transaction(async (tx) => {
-        // Create the team
-        const newTeam = await tx.team.create({
-          data: {
+      const result = await db.transaction(async (tx) => {
+        const now = new Date();
+        const [newTeam] = await tx
+          .insert(team)
+          .values({
             id: crypto.randomUUID(),
             name: input.name,
             slug,
             baseCurrency: input.baseCurrency,
             isActive: true,
             createdById: userId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning();
+
+        if (!newTeam) {
+          throw new Error("Failed to create team");
+        }
+
+        await tx.insert(teamMember).values({
+          id: crypto.randomUUID(),
+          teamId: newTeam.id,
+          userId,
+          role: "OWNER",
+          createdAt: now,
+          updatedAt: now,
         });
 
-        // Add creator as team owner
-        await tx.teamMember.create({
-          data: {
-            id: crypto.randomUUID(),
+        await tx
+          .update(user)
+          .set({ lastAccessedTeamId: newTeam.id, updatedAt: new Date() })
+          .where(eq(user.id, userId));
+
+        await tx.insert(userActivityLog).values({
+          id: crypto.randomUUID(),
+          userId,
+          action: "TEAM_CREATED",
+          description: `Created team: ${newTeam.name}`,
+          metadata: {
             teamId: newTeam.id,
-            userId: userId,
-            role: "OWNER",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            teamName: newTeam.name,
+            teamSlug: newTeam.slug,
+            inviteCount: input.inviteEmails?.length || 0,
           },
+          ipAddress: null,
+          userAgent: null,
+          createdAt: now,
         });
 
-        // Update user's lastAccessedTeamId
-        await tx.user.update({
-          where: { id: userId },
-          data: { lastAccessedTeamId: newTeam.id },
-        });
-
-        // Log team creation activity
-        await tx.userActivityLog.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: userId,
-            action: "TEAM_CREATED",
-            description: `Created team: ${newTeam.name}`,
-            metadata: {
-              teamId: newTeam.id,
-              teamName: newTeam.name,
-              teamSlug: newTeam.slug,
-              inviteCount: input.inviteEmails?.length || 0,
-            },
-            createdAt: new Date(),
-          },
-        });
-
-        // Create team invites if emails provided
         const createdInvites: Array<{ email: string; code: string }> = [];
-        
+
         if (input.inviteEmails && input.inviteEmails.length > 0) {
           const invitePromises = input.inviteEmails.map(async (email) => {
             const inviteCode = crypto.randomUUID();
-            
-            await tx.teamInvite.create({
-              data: {
-                id: crypto.randomUUID(),
-                code: inviteCode,
-                teamId: newTeam.id,
-                email: email,
-                role: "MEMBER", // Default role for invited members
-                status: "PENDING",
-                invitedById: userId, // Who sent the invite
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
+
+            await tx.insert(teamInvite).values({
+              id: crypto.randomUUID(),
+              code: inviteCode,
+              teamId: newTeam.id,
+              email,
+              role: "MEMBER",
+              status: "PENDING",
+              invitedById: userId,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+              createdAt: now,
+              updatedAt: now,
             });
 
             createdInvites.push({ email, code: inviteCode });
@@ -197,22 +204,20 @@ export const teamsRouter = router({
         return { team: newTeam, invites: createdInvites };
       });
 
-      const { team, invites } = result;
+      const { team: createdTeam, invites } = result;
 
       // Send invite emails after successful team creation
-      // Email sending is done outside transaction to prevent rollback on email failures
       if (invites.length > 0) {
         const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
-        
-        // Prepare all email data first
+
         const emailsToSend = await Promise.all(
           invites.map(async (invite) => {
             const acceptInviteUrl = `${frontendUrl}/accept-invite?code=${invite.code}`;
-            
+
             const html = await renderTeamInviteEmail({
               invitedUserEmail: invite.email,
-              inviterName: inviterName,
-              teamName: team.name,
+              inviterName,
+              teamName: createdTeam.name,
               teamRole: "Member",
               acceptInviteLink: acceptInviteUrl,
               expiresInDays: 7,
@@ -220,18 +225,16 @@ export const teamsRouter = router({
 
             return {
               to: invite.email,
-              subject: `You've been invited to join ${team.name} on nPanel`,
+              subject: `You've been invited to join ${createdTeam.name} on npanel`,
               html,
               inviteCode: invite.code,
             };
-          })
+          }),
         );
 
-        // Send emails sequentially with rate limiting
         const { sendEmailBatch } = await import("react-email-starter/src/email");
         const results = await sendEmailBatch(emailsToSend);
 
-        // Batch all activity logs in a single transaction to reduce connection usage
         const activityLogs = results
           .map((result) => {
             const invite = invites.find((inv) => inv.email === result.email);
@@ -240,72 +243,76 @@ export const teamsRouter = router({
             if (result.success) {
               return {
                 id: crypto.randomUUID(),
-                userId: userId,
+                userId,
                 action: "TEAM_INVITE_SENT",
                 description: `Sent team invite to ${result.email}`,
                 metadata: {
-                  teamId: team.id,
-                  teamName: team.name,
+                  teamId: createdTeam.id,
+                  teamName: createdTeam.name,
                   invitedEmail: result.email,
-                  inviteCode: invite.code.substring(0, 8) + "...", // Partial code for security
-                },
-                createdAt: new Date(),
-              };
-            } else {
-              // Log email failure but don't throw (team already created)
-              console.error(`Failed to send invite email to ${result.email}: ${result.error}`);
-              return {
-                id: crypto.randomUUID(),
-                userId: userId,
-                action: "TEAM_INVITE_EMAIL_FAILED",
-                description: `Failed to send invite email to ${result.email}`,
-                metadata: {
-                  teamId: team.id,
-                  invitedEmail: result.email,
-                  error: result.error || "Unknown error",
+                  inviteCode: invite.code.substring(0, 8) + "...",
                 },
                 createdAt: new Date(),
               };
             }
+            console.error(`Failed to send invite email to ${result.email}: ${result.error}`);
+            return {
+              id: crypto.randomUUID(),
+              userId,
+              action: "TEAM_INVITE_EMAIL_FAILED",
+              description: `Failed to send invite email to ${result.email}`,
+              metadata: {
+                teamId: createdTeam.id,
+                invitedEmail: result.email,
+                error: result.error || "Unknown error",
+              },
+              createdAt: new Date(),
+            };
           })
           .filter((log): log is NonNullable<typeof log> => log !== null);
 
-        // Batch create all activity logs in a single transaction
         if (activityLogs.length > 0) {
-          await prisma.$transaction(
-            activityLogs.map((log) =>
-              prisma.userActivityLog.create({ data: log })
-            )
-          ).catch((error) => {
-            console.error("Failed to batch log invite email activities:", error);
-          });
+          await db
+            .transaction(async (tx) => {
+              for (const log of activityLogs) {
+                await tx.insert(userActivityLog).values({
+                  id: log.id,
+                  userId: log.userId,
+                  action: log.action,
+                  description: log.description,
+                  metadata: log.metadata,
+                  ipAddress: null,
+                  userAgent: null,
+                  createdAt: log.createdAt,
+                });
+              }
+            })
+            .catch((error) => {
+              console.error("Failed to batch log invite email activities:", error);
+            });
         }
       }
 
       return {
         success: true,
         team: {
-          id: team.id,
-          name: team.name,
-          slug: team.slug,
-          baseCurrency: team.baseCurrency,
+          id: createdTeam.id,
+          name: createdTeam.name,
+          slug: createdTeam.slug,
+          baseCurrency: createdTeam.baseCurrency,
         },
       };
     }),
 
-  /**
-   * Get invite details by code
-   * Public endpoint - no authentication required for viewing invite
-   */
   getInviteByCode: publicProcedure
     .input(getInviteInputSchema)
     .output(getInviteOutputSchema)
     .query(async ({ input }) => {
-      const invite = await prisma.teamInvite.findUnique({
-        where: { code: input.code },
-        include: {
+      const invite = await db.query.teamInvite.findFirst({
+        where: eq(teamInvite.code, input.code),
+        with: {
           team: {
-            select: {
+            columns: {
               id: true,
               name: true,
               logoUrl: true,
@@ -322,7 +329,6 @@ export const teamsRouter = router({
         };
       }
 
-      // Check if team is active
       if (!invite.team.isActive) {
         return {
           valid: false,
@@ -330,7 +336,6 @@ export const teamsRouter = router({
         };
       }
 
-      // Check if invite has expired
       if (invite.expiresAt < new Date()) {
         return {
           valid: false,
@@ -338,7 +343,6 @@ export const teamsRouter = router({
         };
       }
 
-      // Check if invite is already accepted
       if (invite.status === "ACCEPTED") {
         return {
           valid: false,
@@ -346,7 +350,6 @@ export const teamsRouter = router({
         };
       }
 
-      // Check if invite is cancelled
       if (invite.status === "CANCELLED") {
         return {
           valid: false,
@@ -354,7 +357,6 @@ export const teamsRouter = router({
         };
       }
 
-      // Check if invite is declined
       if (invite.status === "DECLINED") {
         return {
           valid: false,
@@ -367,8 +369,8 @@ export const teamsRouter = router({
         invite: {
           id: invite.id,
           email: invite.email,
-          role: invite.role,
-          status: invite.status,
+          role: invite.role as "OWNER" | "ADMIN" | "MEMBER" | "VIEWER",
+          status: invite.status as "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED",
           expiresAt: invite.expiresAt,
           team: {
             id: invite.team.id,
@@ -379,10 +381,6 @@ export const teamsRouter = router({
       };
     }),
 
-  /**
-   * Accept a team invitation
-   * Requires authentication
-   */
   acceptInvite: publicProcedure
     .input(acceptInviteInputSchema)
     .output(acceptInviteOutputSchema)
@@ -399,12 +397,11 @@ export const teamsRouter = router({
       const userId = session.user.id;
       const userEmail = (session.user as { email?: string }).email;
 
-      // Get the invite
-      const invite = await prisma.teamInvite.findUnique({
-        where: { code: input.code },
-        include: {
+      const invite = await db.query.teamInvite.findFirst({
+        where: eq(teamInvite.code, input.code),
+        with: {
           team: {
-            select: {
+            columns: {
               id: true,
               name: true,
               slug: true,
@@ -421,7 +418,6 @@ export const teamsRouter = router({
         };
       }
 
-      // Validate invite email matches user email
       if (invite.email !== userEmail) {
         return {
           success: false,
@@ -429,7 +425,6 @@ export const teamsRouter = router({
         };
       }
 
-      // Check if team is active
       if (!invite.team.isActive) {
         return {
           success: false,
@@ -437,7 +432,6 @@ export const teamsRouter = router({
         };
       }
 
-      // Check if invite has expired
       if (invite.expiresAt < new Date()) {
         return {
           success: false,
@@ -445,7 +439,6 @@ export const teamsRouter = router({
         };
       }
 
-      // Check if invite is already accepted
       if (invite.status === "ACCEPTED") {
         return {
           success: false,
@@ -453,17 +446,13 @@ export const teamsRouter = router({
         };
       }
 
-      // Accept the invitation with transaction (includes membership check)
-      // This batches all related operations and reduces connection usage
       try {
-        const result = await prisma.$transaction(async (tx) => {
-          // Check if user is already a member (inside transaction)
-          const existingMembership = await tx.teamMember.findFirst({
-            where: {
-              teamId: invite.team.id,
-              userId: userId,
-            },
-          });
+        const result = await db.transaction(async (tx) => {
+          const [existingMembership] = await tx
+            .select({ id: teamMember.id })
+            .from(teamMember)
+            .where(and(eq(teamMember.teamId, invite.team.id), eq(teamMember.userId, userId)))
+            .limit(1);
 
           if (existingMembership) {
             throw new TRPCError({
@@ -471,49 +460,41 @@ export const teamsRouter = router({
               message: "You are already a member of this team",
             });
           }
-          // Add user as team member
-          await tx.teamMember.create({
-            data: {
-              id: crypto.randomUUID(),
+
+          const now = new Date();
+          await tx.insert(teamMember).values({
+            id: crypto.randomUUID(),
+            teamId: invite.team.id,
+            userId,
+            role: invite.role,
+            createdAt: now,
+            updatedAt: now,
+          });
+
+          await tx
+            .update(teamInvite)
+            .set({ status: "ACCEPTED", updatedAt: now })
+            .where(eq(teamInvite.id, invite.id));
+
+          await tx
+            .update(user)
+            .set({ lastAccessedTeamId: invite.team.id, updatedAt: new Date() })
+            .where(eq(user.id, userId));
+
+          await tx.insert(userActivityLog).values({
+            id: crypto.randomUUID(),
+            userId,
+            action: "TEAM_JOINED",
+            description: `Joined team: ${invite.team.name}`,
+            metadata: {
               teamId: invite.team.id,
-              userId: userId,
+              teamName: invite.team.name,
               role: invite.role,
-              createdAt: new Date(),
-              updatedAt: new Date(),
+              inviteCode: invite.code.substring(0, 8) + "...",
             },
-          });
-
-          // Update invite status to ACCEPTED
-          await tx.teamInvite.update({
-            where: { id: invite.id },
-            data: { 
-              status: "ACCEPTED",
-              updatedAt: new Date(),
-            },
-          });
-
-          // Always update user's lastAccessedTeamId to the team they just joined
-          // This ensures they're redirected to the newly joined team
-          await tx.user.update({
-            where: { id: userId },
-            data: { lastAccessedTeamId: invite.team.id },
-          });
-
-          // Log the team join activity
-          await tx.userActivityLog.create({
-            data: {
-              id: crypto.randomUUID(),
-              userId: userId,
-              action: "TEAM_JOINED",
-              description: `Joined team: ${invite.team.name}`,
-              metadata: {
-                teamId: invite.team.id,
-                teamName: invite.team.name,
-                role: invite.role,
-                inviteCode: invite.code.substring(0, 8) + "...",
-              },
-              createdAt: new Date(),
-            },
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
           });
 
           return {
@@ -528,124 +509,99 @@ export const teamsRouter = router({
           teamSlug: result.teamSlug,
         };
       } catch (error) {
-        // Handle TRPCError from transaction
         if (error instanceof TRPCError) {
           return {
             success: false,
             error: error.message,
           };
         }
-        // Re-throw other errors
         throw error;
       }
     }),
 
-  /**
-   * Get all teams for the current user
-   */
   getUserTeams: publicProcedure
     .output(z.array(teamMembershipSchema))
     .query(async ({ ctx }) => {
-    const session = ctx.session;
-    
-    if (!session?.user?.id) {
-      throw new Error("Unauthorized: You must be logged in");
-    }
-
-    const userId = session.user.id;
-
-    const teamMemberships = await prisma.teamMember.findMany({
-      where: { userId },
-      include: {
-        team: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            baseCurrency: true,
-            logoUrl: true,
-            isActive: true,
-            createdAt: true,
-            _count: {
-              select: {
-                members: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    return teamMemberships.map((membership) => ({
-      ...membership.team,
-      role: membership.role,
-      memberCount: membership.team._count.members,
-    }));
-  }),
-
-  /**
-   * Check if a team slug is available
-   */
-  checkSlugAvailable: publicProcedure
-    .input(slugCheckInputSchema)
-    .output(slugCheckOutputSchema)
-    .query(async ({ input }) => {
-      const team = await prisma.team.findUnique({
-        where: { slug: input.slug },
-        select: { id: true },
-      });
-
-      return {
-        available: !team,
-      };
-    }),
-
-  /**
-   * Update user's last accessed team
-   */
-  updateLastAccessedTeam: publicProcedure
-    .input(z.object({
-      teamId: z.string(),
-    }))
-    .output(z.object({
-      success: z.boolean(),
-    }))
-    .mutation(async ({ input, ctx }) => {
       const session = ctx.session;
-      
+
       if (!session?.user?.id) {
         throw new Error("Unauthorized: You must be logged in");
       }
 
       const userId = session.user.id;
 
-      // Batch: Verify membership and update lastAccessedTeamId in a single transaction
-      // This reduces connection usage from 2 sequential queries to 1 transaction
-      await prisma.$transaction(async (tx) => {
-        // Verify user is a member of this team
-        const membership = await tx.teamMember.findUnique({
-          where: {
-            teamId_userId: {
-              teamId: input.teamId,
-              userId,
-            },
-          },
-        });
+      const teamMemberships = await db.query.teamMember.findMany({
+        where: eq(teamMember.userId, userId),
+        orderBy: [desc(teamMember.createdAt)],
+        with: {
+          team: true,
+        },
+      });
+
+      const teamIds = [...new Set(teamMemberships.map((m) => m.team.id))];
+      let countByTeam = new Map<string, number>();
+      if (teamIds.length > 0) {
+        const countRows = await db
+          .select({ teamId: teamMember.teamId, n: count(teamMember.id) })
+          .from(teamMember)
+          .where(inArray(teamMember.teamId, teamIds))
+          .groupBy(teamMember.teamId);
+        countByTeam = new Map(countRows.map((r) => [r.teamId, Number(r.n)]));
+      }
+
+      return teamMemberships.map((membership) => ({
+        ...membership.team,
+        role: membership.role as "OWNER" | "ADMIN" | "MEMBER" | "VIEWER",
+        memberCount: countByTeam.get(membership.team.id) ?? 0,
+      }));
+    }),
+
+  checkSlugAvailable: publicProcedure
+    .input(slugCheckInputSchema)
+    .output(slugCheckOutputSchema)
+    .query(async ({ input }) => {
+      const [found] = await db.select({ id: team.id }).from(team).where(eq(team.slug, input.slug)).limit(1);
+
+      return {
+        available: !found,
+      };
+    }),
+
+  updateLastAccessedTeam: publicProcedure
+    .input(
+      z.object({
+        teamId: z.string(),
+      }),
+    )
+    .output(
+      z.object({
+        success: z.boolean(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const session = ctx.session;
+
+      if (!session?.user?.id) {
+        throw new Error("Unauthorized: You must be logged in");
+      }
+
+      const userId = session.user.id;
+
+      await db.transaction(async (tx) => {
+        const [membership] = await tx
+          .select({ id: teamMember.id })
+          .from(teamMember)
+          .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)))
+          .limit(1);
 
         if (!membership) {
           throw new Error("You are not a member of this team");
         }
 
-        // Update lastAccessedTeamId
-        await tx.user.update({
-          where: { id: userId },
-          data: {
-            lastAccessedTeamId: input.teamId,
-          },
-        });
+        await tx
+          .update(user)
+          .set({ lastAccessedTeamId: input.teamId, updatedAt: new Date() })
+          .where(eq(user.id, userId));
       });
 
       return {
@@ -653,26 +609,23 @@ export const teamsRouter = router({
       };
     }),
 
-  // ============================================================================
-  // ADMIN TEAM MANAGEMENT (for agency/admin use)
-  // ============================================================================
-
-  /**
-   * Get all teams (for admin/agency management)
-   */
   getAll: protectedProcedure
-    .output(z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      slug: z.string(),
-      baseCurrency: z.string(),
-      logoUrl: z.string().nullable(),
-      isActive: z.boolean(),
-      createdById: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-      memberCount: z.number(),
-    })))
+    .output(
+      z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          slug: z.string(),
+          baseCurrency: z.string(),
+          logoUrl: z.string().nullable(),
+          isActive: z.boolean(),
+          createdById: z.string(),
+          createdAt: z.date(),
+          updatedAt: z.date(),
+          memberCount: z.number(),
+        }),
+      ),
+    )
     .query(async ({ ctx }) => {
       const session = ctx.session;
       if (!session?.user?.id) {
@@ -682,52 +635,45 @@ export const teamsRouter = router({
         });
       }
 
-      // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!userRole?.includes("AGENCY")) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission to view all teams",
         });
       }
 
-      const teams = await prisma.team.findMany({
-        include: {
-          _count: {
-            select: {
-              members: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+      const teamsList = await db.select().from(team).orderBy(desc(team.createdAt));
 
-      return teams.map((team) => ({
-        id: team.id,
-        name: team.name,
-        slug: team.slug,
-        baseCurrency: team.baseCurrency,
-        logoUrl: team.logoUrl,
-        isActive: team.isActive,
-        createdById: team.createdById,
-        createdAt: team.createdAt,
-        updatedAt: team.updatedAt,
-        memberCount: team._count.members,
+      const countRows = await db
+        .select({ teamId: teamMember.teamId, n: count(teamMember.id) })
+        .from(teamMember)
+        .groupBy(teamMember.teamId);
+      const countByTeam = new Map(countRows.map((r) => [r.teamId, Number(r.n)]));
+
+      return teamsList.map((t) => ({
+        id: t.id,
+        name: t.name,
+        slug: t.slug,
+        baseCurrency: t.baseCurrency,
+        logoUrl: t.logoUrl,
+        isActive: t.isActive,
+        createdById: t.createdById,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+        memberCount: countByTeam.get(t.id) ?? 0,
       }));
     }),
 
-  /**
-   * Get team ID by slug
-   */
   getTeamIdBySlug: protectedProcedure
     .input(z.object({ slug: z.string() }))
-    .output(z.object({
-      id: z.string(),
-      name: z.string(),
-      slug: z.string(),
-    }))
+    .output(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        slug: z.string(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const session = ctx.session;
       if (!session?.user?.id) {
@@ -737,36 +683,28 @@ export const teamsRouter = router({
         });
       }
 
-      // Batch: Fetch team and check membership in parallel to reduce connection usage
-      const [team, membership] = await Promise.all([
-        prisma.team.findUnique({
-          where: { slug: input.slug },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        }),
-        // We need team.id for membership check, so we'll check after team is found
-        null as any,
-      ]);
+      const [teamRow] = await db
+        .select({
+          id: team.id,
+          name: team.name,
+          slug: team.slug,
+        })
+        .from(team)
+        .where(eq(team.slug, input.slug))
+        .limit(1);
 
-      if (!team) {
+      if (!teamRow) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Team not found",
         });
       }
 
-      // Verify user has access to this team (parallel query now that we have team.id)
-      const membershipResult = await prisma.teamMember.findUnique({
-        where: {
-          teamId_userId: {
-            teamId: team.id,
-            userId: session.user.id,
-          },
-        },
-      });
+      const [membershipResult] = await db
+        .select({ id: teamMember.id })
+        .from(teamMember)
+        .where(and(eq(teamMember.teamId, teamRow.id), eq(teamMember.userId, session.user.id)))
+        .limit(1);
 
       if (!membershipResult) {
         throw new TRPCError({
@@ -775,24 +713,24 @@ export const teamsRouter = router({
         });
       }
 
-      return team;
+      return teamRow;
     }),
 
-  /**
-   * Get team members (for current user when they are a member of the team).
-   * Returns members with user name and email for display in company settings.
-   */
   getMembersAsMember: protectedProcedure
     .input(z.object({ teamId: z.string() }))
-    .output(z.array(z.object({
-      id: z.string(),
-      userId: z.string(),
-      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-      userName: z.string().nullable(),
-      userEmail: z.string().nullable(),
-    })))
+    .output(
+      z.array(
+        z.object({
+          id: z.string(),
+          userId: z.string(),
+          role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
+          createdAt: z.date(),
+          updatedAt: z.date(),
+          userName: z.string().nullable(),
+          userEmail: z.string().nullable(),
+        }),
+      ),
+    )
     .query(async ({ ctx, input }) => {
       const session = ctx.session;
       if (!session?.user?.id) {
@@ -802,14 +740,11 @@ export const teamsRouter = router({
         });
       }
 
-      const membership = await prisma.teamMember.findUnique({
-        where: {
-          teamId_userId: {
-            teamId: input.teamId,
-            userId: session.user.id,
-          },
-        },
-      });
+      const [membership] = await db
+        .select({ id: teamMember.id })
+        .from(teamMember)
+        .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, session.user.id)))
+        .limit(1);
 
       if (!membership) {
         throw new TRPCError({
@@ -818,12 +753,12 @@ export const teamsRouter = router({
         });
       }
 
-      const members = await prisma.teamMember.findMany({
-        where: { teamId: input.teamId },
-        orderBy: { createdAt: "desc" },
-        include: {
+      const members = await db.query.teamMember.findMany({
+        where: eq(teamMember.teamId, input.teamId),
+        orderBy: [desc(teamMember.createdAt)],
+        with: {
           user: {
-            select: {
+            columns: {
               name: true,
               email: true,
             },
@@ -834,30 +769,31 @@ export const teamsRouter = router({
       return members.map((m) => ({
         id: m.id,
         userId: m.userId,
-        role: m.role,
+        role: m.role as "OWNER" | "ADMIN" | "MEMBER" | "VIEWER",
         createdAt: m.createdAt,
         updatedAt: m.updatedAt,
-        userName: m.user.name ?? null,
-        userEmail: m.user.email ?? null,
+        userName: m.user?.name ?? null,
+        userEmail: m.user?.email ?? null,
       }));
     }),
 
-  /**
-   * Get team invites (for current user when they are a member of the team).
-   */
   getInvitesAsMember: protectedProcedure
     .input(z.object({ teamId: z.string() }))
-    .output(z.array(z.object({
-      id: z.string(),
-      email: z.string(),
-      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
-      status: z.enum(["PENDING", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"]),
-      invitedById: z.string(),
-      expiresAt: z.date(),
-      acceptedAt: z.date().nullable(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-    })))
+    .output(
+      z.array(
+        z.object({
+          id: z.string(),
+          email: z.string(),
+          role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
+          status: z.enum(["PENDING", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"]),
+          invitedById: z.string(),
+          expiresAt: z.date(),
+          acceptedAt: z.date().nullable(),
+          createdAt: z.date(),
+          updatedAt: z.date(),
+        }),
+      ),
+    )
     .query(async ({ ctx, input }) => {
       const session = ctx.session;
       if (!session?.user?.id) {
@@ -867,14 +803,11 @@ export const teamsRouter = router({
         });
       }
 
-      const membership = await prisma.teamMember.findUnique({
-        where: {
-          teamId_userId: {
-            teamId: input.teamId,
-            userId: session.user.id,
-          },
-        },
-      });
+      const [membership] = await db
+        .select({ id: teamMember.id })
+        .from(teamMember)
+        .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, session.user.id)))
+        .limit(1);
 
       if (!membership) {
         throw new TRPCError({
@@ -883,30 +816,40 @@ export const teamsRouter = router({
         });
       }
 
-      const invites = await prisma.teamInvite.findMany({
-        where: { teamId: input.teamId },
-        orderBy: { createdAt: "desc" },
-      });
+      const invites = await db
+        .select()
+        .from(teamInvite)
+        .where(eq(teamInvite.teamId, input.teamId))
+        .orderBy(desc(teamInvite.createdAt));
 
-      return invites;
+      return invites.map((inv) => ({
+        id: inv.id,
+        email: inv.email,
+        role: inv.role as "OWNER" | "ADMIN" | "MEMBER" | "VIEWER",
+        status: inv.status as "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED",
+        invitedById: inv.invitedById,
+        expiresAt: inv.expiresAt,
+        acceptedAt: inv.acceptedAt,
+        createdAt: inv.createdAt,
+        updatedAt: inv.updatedAt,
+      }));
     }),
 
-  /**
-   * Get team by ID with full details
-   */
   getById: protectedProcedure
     .input(z.object({ teamId: z.string() }))
-    .output(z.object({
-      id: z.string(),
-      name: z.string(),
-      slug: z.string(),
-      baseCurrency: z.string(),
-      logoUrl: z.string().nullable(),
-      isActive: z.boolean(),
-      createdById: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-    }))
+    .output(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        slug: z.string(),
+        baseCurrency: z.string(),
+        logoUrl: z.string().nullable(),
+        isActive: z.boolean(),
+        createdById: z.string(),
+        createdAt: z.date(),
+        updatedAt: z.date(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const session = ctx.session;
       if (!session?.user?.id) {
@@ -924,32 +867,31 @@ export const teamsRouter = router({
         });
       }
 
-      const team = await prisma.team.findUnique({
-        where: { id: input.teamId },
-      });
+      const [teamRow] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
 
-      if (!team) {
+      if (!teamRow) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Team not found",
         });
       }
 
-      return team;
+      return teamRow;
     }),
 
-  /**
-   * Get team members (returns userIds only)
-   */
   getMembers: protectedProcedure
     .input(z.object({ teamId: z.string() }))
-    .output(z.array(z.object({
-      id: z.string(),
-      userId: z.string(),
-      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-    })))
+    .output(
+      z.array(
+        z.object({
+          id: z.string(),
+          userId: z.string(),
+          role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
+          createdAt: z.date(),
+          updatedAt: z.date(),
+        }),
+      ),
+    )
     .query(async ({ ctx, input }) => {
       const session = ctx.session;
       if (!session?.user?.id) {
@@ -967,30 +909,38 @@ export const teamsRouter = router({
         });
       }
 
-      const members = await prisma.teamMember.findMany({
-        where: { teamId: input.teamId },
-        orderBy: { createdAt: "desc" },
-      });
+      const members = await db
+        .select()
+        .from(teamMember)
+        .where(eq(teamMember.teamId, input.teamId))
+        .orderBy(desc(teamMember.createdAt));
 
-      return members;
+      return members.map((m) => ({
+        id: m.id,
+        userId: m.userId,
+        role: m.role as "OWNER" | "ADMIN" | "MEMBER" | "VIEWER",
+        createdAt: m.createdAt,
+        updatedAt: m.updatedAt,
+      }));
     }),
 
-  /**
-   * Get team invites
-   */
   getInvites: protectedProcedure
     .input(z.object({ teamId: z.string() }))
-    .output(z.array(z.object({
-      id: z.string(),
-      email: z.string(),
-      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
-      status: z.enum(["PENDING", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"]),
-      invitedById: z.string(),
-      expiresAt: z.date(),
-      acceptedAt: z.date().nullable(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-    })))
+    .output(
+      z.array(
+        z.object({
+          id: z.string(),
+          email: z.string(),
+          role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
+          status: z.enum(["PENDING", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"]),
+          invitedById: z.string(),
+          expiresAt: z.date(),
+          acceptedAt: z.date().nullable(),
+          createdAt: z.date(),
+          updatedAt: z.date(),
+        }),
+      ),
+    )
     .query(async ({ ctx, input }) => {
       const session = ctx.session;
       if (!session?.user?.id) {
@@ -1008,31 +958,49 @@ export const teamsRouter = router({
         });
       }
 
-      const invites = await prisma.teamInvite.findMany({
-        where: { teamId: input.teamId },
-        orderBy: { createdAt: "desc" },
-      });
+      const invites = await db
+        .select()
+        .from(teamInvite)
+        .where(eq(teamInvite.teamId, input.teamId))
+        .orderBy(desc(teamInvite.createdAt));
 
-      return invites;
+      return invites.map((inv) => ({
+        id: inv.id,
+        email: inv.email,
+        role: inv.role as "OWNER" | "ADMIN" | "MEMBER" | "VIEWER",
+        status: inv.status as "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED",
+        invitedById: inv.invitedById,
+        expiresAt: inv.expiresAt,
+        acceptedAt: inv.acceptedAt,
+        createdAt: inv.createdAt,
+        updatedAt: inv.updatedAt,
+      }));
     }),
 
-  /**
-   * Get team hosting subscriptions
-   */
   getHostingSubscriptions: protectedProcedure
     .input(z.object({ teamId: z.string() }))
-    .output(z.array(z.object({
-      id: z.string(),
-      hostingPlanId: z.string(),
-      primaryDomain: z.string().nullable(),
-      billingCycle: z.enum(["YEARLY", "MONTHLY", "BIENNIALLY", "CUSTOM"]),
-      nextRenewalDate: z.date().nullable(),
-      expiryDate: z.date().nullable(),
-      autoRenew: z.boolean(),
-      hostingType: z.enum(["WEB_HOSTING", "EMAIL_HOSTING", "RESELLER_HOSTING", "VPS_HOSTING", "DEDICATED_HOSTING"]),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-    })))
+    .output(
+      z.array(
+        z.object({
+          id: z.string(),
+          hostingPlanId: z.string(),
+          primaryDomain: z.string().nullable(),
+          billingCycle: z.enum(["YEARLY", "MONTHLY", "BIENNIALLY", "CUSTOM"]),
+          nextRenewalDate: z.date().nullable(),
+          expiryDate: z.date().nullable(),
+          autoRenew: z.boolean(),
+          hostingType: z.enum([
+            "WEB_HOSTING",
+            "EMAIL_HOSTING",
+            "RESELLER_HOSTING",
+            "VPS_HOSTING",
+            "DEDICATED_HOSTING",
+          ]),
+          createdAt: z.date(),
+          updatedAt: z.date(),
+        }),
+      ),
+    )
     .query(async ({ ctx, input }) => {
       const session = ctx.session;
       if (!session?.user?.id) {
@@ -1050,39 +1018,63 @@ export const teamsRouter = router({
         });
       }
 
-      const subscriptions = await prisma.hostingSubscription.findMany({
-        where: { teamId: input.teamId },
-        orderBy: { createdAt: "desc" },
-      });
+      const subscriptions = await db
+        .select()
+        .from(hostingSubscription)
+        .where(eq(hostingSubscription.teamId, input.teamId))
+        .orderBy(desc(hostingSubscription.createdAt));
 
-      return subscriptions;
+      return subscriptions.map((s) => ({
+        id: s.id,
+        hostingPlanId: s.hostingPlanId,
+        primaryDomain: s.primaryDomain,
+        billingCycle: s.billingCycle as "YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM",
+        nextRenewalDate: s.nextRenewalDate,
+        expiryDate: s.expiryDate,
+        autoRenew: s.autoRenew,
+        hostingType: s.hostingType as
+          | "WEB_HOSTING"
+          | "EMAIL_HOSTING"
+          | "RESELLER_HOSTING"
+          | "VPS_HOSTING"
+          | "DEDICATED_HOSTING",
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+      }));
     }),
 
-  /**
-   * Update team (slug not editable)
-   */
   update: protectedProcedure
-    .input(z.object({
-      teamId: z.string(),
-      name: z.string().min(2).optional(),
-      baseCurrency: z.string().length(3).optional(),
-      logoUrl: z.string().nullable().optional(),
-      isActive: z.boolean().optional(),
-    }).refine(
-      (data) => data.name !== undefined || data.baseCurrency !== undefined || data.logoUrl !== undefined || data.isActive !== undefined,
-      { message: "At least one field must be provided for update" }
-    ))
-    .output(z.object({
-      id: z.string(),
-      name: z.string(),
-      slug: z.string(),
-      baseCurrency: z.string(),
-      logoUrl: z.string().nullable(),
-      isActive: z.boolean(),
-      createdById: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-    }))
+    .input(
+      z
+        .object({
+          teamId: z.string(),
+          name: z.string().min(2).optional(),
+          baseCurrency: z.string().length(3).optional(),
+          logoUrl: z.string().nullable().optional(),
+          isActive: z.boolean().optional(),
+        })
+        .refine(
+          (data) =>
+            data.name !== undefined ||
+            data.baseCurrency !== undefined ||
+            data.logoUrl !== undefined ||
+            data.isActive !== undefined,
+          { message: "At least one field must be provided for update" },
+        ),
+    )
+    .output(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        slug: z.string(),
+        baseCurrency: z.string(),
+        logoUrl: z.string().nullable(),
+        isActive: z.boolean(),
+        createdById: z.string(),
+        createdAt: z.date(),
+        updatedAt: z.date(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const session = ctx.session;
       if (!session?.user?.id) {
@@ -1100,9 +1092,7 @@ export const teamsRouter = router({
         });
       }
 
-      const existingTeam = await prisma.team.findUnique({
-        where: { id: input.teamId },
-      });
+      const [existingTeam] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
 
       if (!existingTeam) {
         throw new TRPCError({
@@ -1111,51 +1101,56 @@ export const teamsRouter = router({
         });
       }
 
-      const updateData: any = {
-        updatedAt: new Date(),
+      const now = new Date();
+      const updatePayload: Partial<typeof team.$inferInsert> = {
+        updatedAt: now,
       };
 
-      if (input.name !== undefined) updateData.name = input.name;
-      if (input.baseCurrency !== undefined) updateData.baseCurrency = input.baseCurrency;
-      if (input.logoUrl !== undefined) updateData.logoUrl = input.logoUrl;
-      if (input.isActive !== undefined) updateData.isActive = input.isActive;
+      if (input.name !== undefined) updatePayload.name = input.name;
+      if (input.baseCurrency !== undefined) updatePayload.baseCurrency = input.baseCurrency;
+      if (input.logoUrl !== undefined) updatePayload.logoUrl = input.logoUrl;
+      if (input.isActive !== undefined) updatePayload.isActive = input.isActive;
 
-      // Batch: Update team and log activity in a transaction
-      const changedFields = Object.keys(updateData).filter(key => key !== "updatedAt");
-      const updatedTeam = await prisma.$transaction(async (tx) => {
-        const updated = await tx.team.update({
-          where: { id: input.teamId },
-          data: updateData,
-        });
+      const changedFields = Object.keys(updatePayload).filter((key) => key !== "updatedAt");
 
-        // Log activity
-        await tx.userActivityLog.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: session.user!.id,
-            action: "TEAM_UPDATED_BY_ADMIN",
-            description: `Team updated by admin: ${session.user!.email}`,
-            metadata: {
-              teamId: updated.id,
-              teamName: updated.name,
-              updatedBy: session.user!.id,
-              updatedByEmail: session.user!.email,
-              changedFields,
-              previousValues: {
-                name: existingTeam.name,
-                baseCurrency: existingTeam.baseCurrency,
-                logoUrl: existingTeam.logoUrl,
-                isActive: existingTeam.isActive,
-              },
-              newValues: {
-                name: updated.name,
-                baseCurrency: updated.baseCurrency,
-                logoUrl: updated.logoUrl,
-                isActive: updated.isActive,
-              },
+      const updatedTeam = await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(team)
+          .set(updatePayload)
+          .where(eq(team.id, input.teamId))
+          .returning();
+
+        if (!updated) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update team" });
+        }
+
+        await tx.insert(userActivityLog).values({
+          id: crypto.randomUUID(),
+          userId: session.user!.id,
+          action: "TEAM_UPDATED_BY_ADMIN",
+          description: `Team updated by admin: ${session.user!.email}`,
+          metadata: {
+            teamId: updated.id,
+            teamName: updated.name,
+            updatedBy: session.user!.id,
+            updatedByEmail: session.user!.email,
+            changedFields,
+            previousValues: {
+              name: existingTeam.name,
+              baseCurrency: existingTeam.baseCurrency,
+              logoUrl: existingTeam.logoUrl,
+              isActive: existingTeam.isActive,
             },
-            createdAt: new Date(),
+            newValues: {
+              name: updated.name,
+              baseCurrency: updated.baseCurrency,
+              logoUrl: updated.logoUrl,
+              isActive: updated.isActive,
+            },
           },
+          ipAddress: null,
+          userAgent: null,
+          createdAt: now,
         });
 
         return updated;
@@ -1164,9 +1159,6 @@ export const teamsRouter = router({
       return updatedTeam;
     }),
 
-  /**
-   * Delete team
-   */
   delete: protectedProcedure
     .input(z.object({ teamId: z.string() }))
     .output(z.object({ success: z.boolean() }))
@@ -1187,58 +1179,53 @@ export const teamsRouter = router({
         });
       }
 
-      const team = await prisma.team.findUnique({
-        where: { id: input.teamId },
-      });
+      const [teamRow] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
 
-      if (!team) {
+      if (!teamRow) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Team not found",
         });
       }
 
-      // Batch: Delete team and log activity in a transaction
-      await prisma.$transaction(async (tx) => {
-        // Delete team (cascade will handle related records)
-        await tx.team.delete({
-          where: { id: input.teamId },
-        });
+      const now = new Date();
+      await db.transaction(async (tx) => {
+        await tx.delete(team).where(eq(team.id, input.teamId));
 
-        // Log activity
-        await tx.userActivityLog.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: session.user!.id,
-            action: "TEAM_DELETED_BY_ADMIN",
-            description: `Team deleted by admin: ${session.user!.email}`,
-            metadata: {
-              teamId: team.id,
-              teamName: team.name,
-              deletedBy: session.user!.id,
-              deletedByEmail: session.user!.email,
-            },
-            createdAt: new Date(),
+        await tx.insert(userActivityLog).values({
+          id: crypto.randomUUID(),
+          userId: session.user!.id,
+          action: "TEAM_DELETED_BY_ADMIN",
+          description: `Team deleted by admin: ${session.user!.email}`,
+          metadata: {
+            teamId: teamRow.id,
+            teamName: teamRow.name,
+            deletedBy: session.user!.id,
+            deletedByEmail: session.user!.email,
           },
+          ipAddress: null,
+          userAgent: null,
+          createdAt: now,
         });
       });
 
       return { success: true };
     }),
 
-  /**
-   * Invite member to team
-   */
   inviteMember: protectedProcedure
-    .input(z.object({
-      teamId: z.string(),
-      email: z.string().email(),
-      role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]).default("MEMBER"),
-    }))
-    .output(z.object({
-      success: z.boolean(),
-      inviteId: z.string(),
-    }))
+    .input(
+      z.object({
+        teamId: z.string(),
+        email: z.string().email(),
+        role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]).default("MEMBER"),
+      }),
+    )
+    .output(
+      z.object({
+        success: z.boolean(),
+        inviteId: z.string(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const session = ctx.session;
       if (!session?.user?.id) {
@@ -1251,11 +1238,9 @@ export const teamsRouter = router({
       const userRole = session.user.role;
       const isAgency = userRole === "AGENCY_ADMIN" || userRole === "AGENCY_SUPER_ADMIN";
 
-      const team = await prisma.team.findUnique({
-        where: { id: input.teamId },
-      });
+      const [teamRow] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
 
-      if (!team) {
+      if (!teamRow) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Team not found",
@@ -1263,14 +1248,11 @@ export const teamsRouter = router({
       }
 
       if (!isAgency) {
-        const membership = await prisma.teamMember.findUnique({
-          where: {
-            teamId_userId: {
-              teamId: input.teamId,
-              userId: session.user.id,
-            },
-          },
-        });
+        const [membership] = await db
+          .select({ role: teamMember.role })
+          .from(teamMember)
+          .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, session.user.id)))
+          .limit(1);
         if (!membership || (membership.role !== "OWNER" && membership.role !== "ADMIN")) {
           throw new TRPCError({
             code: "FORBIDDEN",
@@ -1279,31 +1261,33 @@ export const teamsRouter = router({
         }
       }
 
-      // Batch: Check user membership and pending invites in parallel
-      const [existingMember, existingInvite] = await Promise.all([
-        prisma.user.findUnique({
-          where: { email: input.email },
-          include: {
-            teamMemberships: {
-              where: { teamId: input.teamId },
-            },
-          },
-        }),
-        prisma.teamInvite.findFirst({
-          where: {
-            teamId: input.teamId,
-            email: input.email,
-            status: "PENDING",
-          },
-        }),
-      ]);
+      const [userByEmail] = await db.select().from(user).where(eq(user.email, input.email)).limit(1);
 
-      if (existingMember && existingMember.teamMemberships.length > 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User is already a member of this team",
-        });
+      if (userByEmail) {
+        const [existingTm] = await db
+          .select({ id: teamMember.id })
+          .from(teamMember)
+          .where(and(eq(teamMember.userId, userByEmail.id), eq(teamMember.teamId, input.teamId)))
+          .limit(1);
+        if (existingTm) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "User is already a member of this team",
+          });
+        }
       }
+
+      const [existingInvite] = await db
+        .select({ id: teamInvite.id })
+        .from(teamInvite)
+        .where(
+          and(
+            eq(teamInvite.teamId, input.teamId),
+            eq(teamInvite.email, input.email),
+            eq(teamInvite.status, "PENDING"),
+          ),
+        )
+        .limit(1);
 
       if (existingInvite) {
         throw new TRPCError({
@@ -1314,32 +1298,36 @@ export const teamsRouter = router({
 
       const inviteCode = crypto.randomUUID();
       const inviteId = crypto.randomUUID();
+      const now = new Date();
 
-      // Batch: Create invite and get inviter info in parallel
-      const [invite, inviter] = await Promise.all([
-        prisma.teamInvite.create({
-          data: {
-            id: inviteId,
-            code: inviteCode,
-            teamId: input.teamId,
-            email: input.email,
-            role: input.role,
-            status: "PENDING",
-            invitedById: session.user.id,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        }),
-        prisma.user.findUnique({
-          where: { id: session.user.id },
-          select: { name: true, email: true },
-        }),
-      ]);
+      const [invite] = await db
+        .insert(teamInvite)
+        .values({
+          id: inviteId,
+          code: inviteCode,
+          teamId: input.teamId,
+          email: input.email,
+          role: input.role,
+          status: "PENDING",
+          invitedById: session.user.id,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      if (!invite) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create invite" });
+      }
+
+      const [inviter] = await db
+        .select({ name: user.name, email: user.email })
+        .from(user)
+        .where(eq(user.id, session.user.id))
+        .limit(1);
 
       const inviterName = inviter?.name || inviter?.email || "A team member";
 
-      // Send invite email
       try {
         const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
         const acceptInviteUrl = `${frontendUrl}/accept-invite?code=${inviteCode}`;
@@ -1347,7 +1335,7 @@ export const teamsRouter = router({
         const html = await renderTeamInviteEmail({
           invitedUserEmail: input.email,
           inviterName,
-          teamName: team.name,
+          teamName: teamRow.name,
           teamRole: input.role,
           acceptInviteLink: acceptInviteUrl,
           expiresInDays: 7,
@@ -1355,34 +1343,36 @@ export const teamsRouter = router({
 
         await sendEmail({
           to: input.email,
-          subject: `You've been invited to join ${team.name} on Nisc Cloud`,
+          subject: `You've been invited to join ${teamRow.name} on Nisc Cloud`,
           html,
         });
       } catch (emailError) {
         console.error("Failed to send invite email:", emailError);
       }
 
-      // Log activity (non-blocking, done after invite creation)
-      prisma.userActivityLog.create({
-        data: {
+      void db
+        .insert(userActivityLog)
+        .values({
           id: crypto.randomUUID(),
           userId: session.user.id,
           action: "TEAM_MEMBER_INVITED_BY_ADMIN",
           description: `Team member invited by admin: ${session.user.email}`,
           metadata: {
-            teamId: team.id,
-            teamName: team.name,
+            teamId: teamRow.id,
+            teamName: teamRow.name,
             invitedEmail: input.email,
             role: input.role,
             inviteId: invite.id,
             invitedBy: session.user.id,
             invitedByEmail: session.user.email,
           },
+          ipAddress: null,
+          userAgent: null,
           createdAt: new Date(),
-        },
-      }).catch((error) => {
-        console.error("Failed to log team member invite activity:", error);
-      });
+        })
+        .catch((error) => {
+          console.error("Failed to log team member invite activity:", error);
+        });
 
       return {
         success: true,
@@ -1390,14 +1380,13 @@ export const teamsRouter = router({
       };
     }),
 
-  /**
-   * Remove member from team
-   */
   removeMember: protectedProcedure
-    .input(z.object({
-      teamId: z.string(),
-      memberId: z.string(),
-    }))
+    .input(
+      z.object({
+        teamId: z.string(),
+        memberId: z.string(),
+      }),
+    )
     .output(z.object({ success: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       const session = ctx.session;
@@ -1416,12 +1405,12 @@ export const teamsRouter = router({
         });
       }
 
-      const member = await prisma.teamMember.findUnique({
-        where: { id: input.memberId },
-        include: {
+      const member = await db.query.teamMember.findFirst({
+        where: eq(teamMember.id, input.memberId),
+        with: {
           team: true,
           user: {
-            select: {
+            columns: {
               id: true,
               name: true,
               email: true,
@@ -1444,44 +1433,39 @@ export const teamsRouter = router({
         });
       }
 
-      // Batch: Delete member and log activity in a transaction
-      await prisma.$transaction(async (tx) => {
-        // Delete the team member
-        await tx.teamMember.delete({
-          where: { id: input.memberId },
-        });
+      const now = new Date();
+      await db.transaction(async (tx) => {
+        await tx.delete(teamMember).where(eq(teamMember.id, input.memberId));
 
-        // Log activity
-        await tx.userActivityLog.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: session.user!.id,
-            action: "TEAM_MEMBER_REMOVED_BY_ADMIN",
-            description: `Team member removed by admin: ${session.user!.email}`,
-            metadata: {
-              teamId: member.team.id,
-              teamName: member.team.name,
-              removedMemberId: member.userId,
-              removedMemberName: member.user.name,
-              removedMemberEmail: member.user.email,
-              removedBy: session.user!.id,
-              removedByEmail: session.user!.email,
-            },
-            createdAt: new Date(),
+        await tx.insert(userActivityLog).values({
+          id: crypto.randomUUID(),
+          userId: session.user!.id,
+          action: "TEAM_MEMBER_REMOVED_BY_ADMIN",
+          description: `Team member removed by admin: ${session.user!.email}`,
+          metadata: {
+            teamId: member.team.id,
+            teamName: member.team.name,
+            removedMemberId: member.userId,
+            removedMemberName: member.user.name,
+            removedMemberEmail: member.user.email,
+            removedBy: session.user!.id,
+            removedByEmail: session.user!.email,
           },
+          ipAddress: null,
+          userAgent: null,
+          createdAt: now,
         });
       });
 
       return { success: true };
     }),
 
-  /**
-   * Delete invite
-   */
   deleteInvite: protectedProcedure
-    .input(z.object({
-      inviteId: z.string(),
-    }))
+    .input(
+      z.object({
+        inviteId: z.string(),
+      }),
+    )
     .output(z.object({ success: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       const session = ctx.session;
@@ -1500,9 +1484,9 @@ export const teamsRouter = router({
         });
       }
 
-      const invite = await prisma.teamInvite.findUnique({
-        where: { id: input.inviteId },
-        include: {
+      const invite = await db.query.teamInvite.findFirst({
+        where: eq(teamInvite.id, input.inviteId),
+        with: {
           team: true,
         },
       });
@@ -1514,30 +1498,26 @@ export const teamsRouter = router({
         });
       }
 
-      // Batch: Delete invite and log activity in a transaction
-      await prisma.$transaction(async (tx) => {
-        // Delete the invite
-        await tx.teamInvite.delete({
-          where: { id: input.inviteId },
-        });
+      const now = new Date();
+      await db.transaction(async (tx) => {
+        await tx.delete(teamInvite).where(eq(teamInvite.id, input.inviteId));
 
-        // Log activity
-        await tx.userActivityLog.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: session.user!.id,
-            action: "TEAM_INVITE_DELETED_BY_ADMIN",
-            description: `Team invite deleted by admin: ${session.user!.email}`,
-            metadata: {
-              teamId: invite.team.id,
-              teamName: invite.team.name,
-              deletedInviteId: invite.id,
-              deletedInviteEmail: invite.email,
-              deletedBy: session.user!.id,
-              deletedByEmail: session.user!.email,
-            },
-            createdAt: new Date(),
+        await tx.insert(userActivityLog).values({
+          id: crypto.randomUUID(),
+          userId: session.user!.id,
+          action: "TEAM_INVITE_DELETED_BY_ADMIN",
+          description: `Team invite deleted by admin: ${session.user!.email}`,
+          metadata: {
+            teamId: invite.team.id,
+            teamName: invite.team.name,
+            deletedInviteId: invite.id,
+            deletedInviteEmail: invite.email,
+            deletedBy: session.user!.id,
+            deletedByEmail: session.user!.email,
           },
+          ipAddress: null,
+          userAgent: null,
+          createdAt: now,
         });
       });
 

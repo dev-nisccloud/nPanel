@@ -1,9 +1,59 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import { userActivityLog } from "@npanel/db/schema/auth-extras";
+import { domain } from "@npanel/db/schema/domains";
+import {
+	hostingPlan,
+	hostingSubscription,
+	hostingSubscriptionActivityLog,
+	niscServicePlan,
+} from "@npanel/db/schema/hosting";
+import {
+	invoice,
+	invoiceActivityLog,
+	invoiceCounter,
+	invoiceLineItem,
+} from "@npanel/db/schema/invoicing";
+import {
+	order as orderTable,
+	orderActivityLog,
+	orderItem,
+	orderItemActivityLog,
+} from "@npanel/db/schema/orders";
+import { team, teamBillingSettings, teamMember } from "@npanel/db/schema/teams";
 import * as crypto from "crypto";
 import { ensurePleskIntegration, provisionToPlesk } from "../lib/plesk-integration";
+
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type DbLike = typeof db | DbTransaction;
+
+/** Sequential invoice number (same pattern as invoicing router). */
+async function generateNextInvoiceNumber(tx: DbLike): Promise<string> {
+	const now = new Date();
+	const rows = await tx
+		.insert(invoiceCounter)
+		.values({
+			id: "invoice-counter",
+			lastNumber: 1,
+			updatedAt: now,
+		})
+		.onConflictDoUpdate({
+			target: invoiceCounter.id,
+			set: {
+				lastNumber: sql`${invoiceCounter.lastNumber} + 1`,
+				updatedAt: now,
+			},
+		})
+		.returning({ lastNumber: invoiceCounter.lastNumber });
+	const nextNumber = rows[0]?.lastNumber ?? 1;
+	return `INV-${nextNumber.toString().padStart(4, "0")}`;
+}
+
+type NiscServicePlanRow = typeof niscServicePlan.$inferSelect;
 
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
@@ -223,10 +273,11 @@ async function getUserRole(userId: string, sessionUser?: { role?: string }): Pro
 	}
 
 	// Fallback: Query database if role not in session
-	const dbUser = await prisma.user.findUnique({
-		where: { id: userId },
-		select: { role: true },
-	});
+	const [dbUser] = await db
+		.select({ role: user.role })
+		.from(user)
+		.where(eq(user.id, userId))
+		.limit(1);
 
 	if (!dbUser) {
 		throw new TRPCError({
@@ -313,30 +364,30 @@ export const ordersRouter = router({
 				});
 			}
 
-			const where: any = {};
+			const conditions = [];
 			if (input.teamId) {
-				where.teamId = input.teamId;
+				conditions.push(eq(orderTable.teamId, input.teamId));
 			}
 			if (input.status) {
-				where.status = input.status;
+				conditions.push(eq(orderTable.status, input.status));
 			}
 			if (input.type) {
-				where.type = input.type;
+				conditions.push(eq(orderTable.type, input.type));
 			}
+			const whereClause = conditions.length ? and(...conditions) : undefined;
 
-			const [orders, total] = await Promise.all([
-				prisma.order.findMany({
-					where,
-					include: {
+			const [orders, countRows] = await Promise.all([
+				db.query.order.findMany({
+					where: whereClause,
+					orderBy: [desc(orderTable.createdAt)],
+					limit: input.limit,
+					offset: input.offset,
+					with: {
 						team: {
-							select: {
-								id: true,
-								name: true,
-								slug: true,
-							},
+							columns: { id: true, name: true, slug: true },
 						},
 						hostingSubscription: {
-							select: {
+							columns: {
 								id: true,
 								pleskName: true,
 								status: true,
@@ -344,9 +395,9 @@ export const ordersRouter = router({
 							},
 						},
 						orderItems: {
-							include: {
+							with: {
 								niscServicePlan: {
-									select: {
+									columns: {
 										id: true,
 										name: true,
 										planType: true,
@@ -354,7 +405,7 @@ export const ordersRouter = router({
 									},
 								},
 								hostingSubscription: {
-									select: {
+									columns: {
 										id: true,
 										pleskName: true,
 										status: true,
@@ -364,14 +415,13 @@ export const ordersRouter = router({
 							},
 						},
 					},
-					orderBy: {
-						createdAt: "desc",
-					},
-					take: input.limit,
-					skip: input.offset,
 				}),
-				prisma.order.count({ where }),
+				whereClause
+					? db.select({ c: count() }).from(orderTable).where(whereClause)
+					: db.select({ c: count() }).from(orderTable),
 			]);
+
+			const total = Number(countRows[0]?.c ?? 0);
 
 			return {
 				orders: orders.map((order) => {
@@ -399,8 +449,8 @@ export const ordersRouter = router({
 						orderNumber: order.orderNumber,
 						teamId: order.teamId,
 						createdBy: order.createdBy,
-						type: order.type,
-						status: order.status,
+						type: order.type as z.infer<typeof orderTypeSchema>,
+						status: order.status as z.infer<typeof orderStatusSchema>,
 						description: order.description,
 						domainId: order.domainId,
 						hostingSubscriptionId: order.hostingSubscriptionId,
@@ -434,7 +484,7 @@ export const ordersRouter = router({
 						id: item.id,
 						orderId: item.orderId,
 						niscServicePlanId: item.niscServicePlanId,
-						billingCycle: item.billingCycle,
+						billingCycle: item.billingCycle as z.infer<typeof billingCycleSchema>,
 						itemPrice: item.itemPrice,
 						itemSubtotal: item.itemSubtotal,
 						itemCurrency: item.itemCurrency,
@@ -495,16 +545,22 @@ export const ordersRouter = router({
 				});
 			}
 
-			const [total, completed, failed, pending] = await Promise.all([
-				prisma.order.count(),
-				prisma.order.count({ where: { status: "COMPLETED" } }),
-				prisma.order.count({ where: { status: "FAILED" } }),
-				prisma.order.count({
-					where: { status: { in: ["PENDING", "PROCESSING"] } },
-				}),
+			const [totalRows, completedRows, failedRows, pendingRows] = await Promise.all([
+				db.select({ c: count() }).from(orderTable),
+				db.select({ c: count() }).from(orderTable).where(eq(orderTable.status, "COMPLETED")),
+				db.select({ c: count() }).from(orderTable).where(eq(orderTable.status, "FAILED")),
+				db
+					.select({ c: count() })
+					.from(orderTable)
+					.where(inArray(orderTable.status, ["PENDING", "PROCESSING"])),
 			]);
 
-			return { total, completed, failed, pending };
+			return {
+				total: Number(totalRows[0]?.c ?? 0),
+				completed: Number(completedRows[0]?.c ?? 0),
+				failed: Number(failedRows[0]?.c ?? 0),
+				pending: Number(pendingRows[0]?.c ?? 0),
+			};
 		}),
 
 	// Get order summary by team (for customer dashboard – allows CUSTOMER when they belong to the team)
@@ -531,17 +587,22 @@ export const ordersRouter = router({
 			const isAgency = userRole === "AGENCY_ADMIN" || userRole === "AGENCY_SUPER_ADMIN";
 
 			if (!isAgency) {
-				const membership = await prisma.teamMember.findFirst({
-					where: {
-						teamId: input.teamId,
-						userId: session.user.id,
-					},
-				});
-				const team = await prisma.team.findUnique({
-					where: { id: input.teamId },
-					select: { createdById: true },
-				});
-				const isMember = Boolean(membership) || team?.createdById === session.user.id;
+				const [membership] = await db
+					.select({ id: teamMember.id })
+					.from(teamMember)
+					.where(
+						and(
+							eq(teamMember.teamId, input.teamId),
+							eq(teamMember.userId, session.user.id),
+						),
+					)
+					.limit(1);
+				const [teamRow] = await db
+					.select({ createdById: team.createdById })
+					.from(team)
+					.where(eq(team.id, input.teamId))
+					.limit(1);
+				const isMember = Boolean(membership) || teamRow?.createdById === session.user.id;
 				if (!isMember) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
@@ -550,20 +611,31 @@ export const ordersRouter = router({
 				}
 			}
 
-			const where = { teamId: input.teamId };
-			const [total, completed, failed, pending] = await Promise.all([
-				prisma.order.count({ where }),
-				prisma.order.count({ where: { ...where, status: "COMPLETED" } }),
-				prisma.order.count({ where: { ...where, status: "FAILED" } }),
-				prisma.order.count({
-					where: {
-						...where,
-						status: { in: ["PENDING", "PROCESSING"] },
-					},
-				}),
+			const teamCond = eq(orderTable.teamId, input.teamId);
+			const [totalRows, completedRows, failedRows, pendingRows] = await Promise.all([
+				db.select({ c: count() }).from(orderTable).where(teamCond),
+				db
+					.select({ c: count() })
+					.from(orderTable)
+					.where(and(teamCond, eq(orderTable.status, "COMPLETED"))),
+				db
+					.select({ c: count() })
+					.from(orderTable)
+					.where(and(teamCond, eq(orderTable.status, "FAILED"))),
+				db
+					.select({ c: count() })
+					.from(orderTable)
+					.where(
+						and(teamCond, inArray(orderTable.status, ["PENDING", "PROCESSING"])),
+					),
 			]);
 
-			return { total, completed, failed, pending };
+			return {
+				total: Number(totalRows[0]?.c ?? 0),
+				completed: Number(completedRows[0]?.c ?? 0),
+				failed: Number(failedRows[0]?.c ?? 0),
+				pending: Number(pendingRows[0]?.c ?? 0),
+			};
 		}),
 
 	// Get order by ID
@@ -587,18 +659,14 @@ export const ordersRouter = router({
 				});
 			}
 
-			const order = await prisma.order.findUnique({
-				where: { id: input.id },
-				include: {
+			const order = await db.query.order.findFirst({
+				where: eq(orderTable.id, input.id),
+				with: {
 					team: {
-						select: {
-							id: true,
-							name: true,
-							slug: true,
-						},
+						columns: { id: true, name: true, slug: true },
 					},
 					hostingSubscription: {
-						select: {
+						columns: {
 							id: true,
 							pleskName: true,
 							status: true,
@@ -606,9 +674,9 @@ export const ordersRouter = router({
 						},
 					},
 					orderItems: {
-						include: {
+						with: {
 							niscServicePlan: {
-								select: {
+								columns: {
 									id: true,
 									name: true,
 									planType: true,
@@ -616,7 +684,7 @@ export const ordersRouter = router({
 								},
 							},
 							hostingSubscription: {
-								select: {
+								columns: {
 									id: true,
 									pleskName: true,
 									status: true,
@@ -659,8 +727,8 @@ export const ordersRouter = router({
 				orderNumber: order.orderNumber,
 				teamId: order.teamId,
 				createdBy: order.createdBy,
-				type: order.type,
-				status: order.status,
+				type: order.type as z.infer<typeof orderTypeSchema>,
+				status: order.status as z.infer<typeof orderStatusSchema>,
 				description: order.description,
 				domainId: order.domainId ?? null,
 				hostingSubscriptionId: order.hostingSubscriptionId,
@@ -694,7 +762,7 @@ export const ordersRouter = router({
 					id: item.id,
 					orderId: item.orderId,
 					niscServicePlanId: item.niscServicePlanId,
-					billingCycle: item.billingCycle,
+					billingCycle: item.billingCycle as z.infer<typeof billingCycleSchema>,
 					itemPrice: item.itemPrice,
 					itemSubtotal: item.itemSubtotal,
 					itemCurrency: item.itemCurrency,
@@ -751,22 +819,18 @@ export const ordersRouter = router({
 				});
 			}
 
-			const domains = await prisma.domain.findMany({
-				where: {
-					teamId: input.teamId,
-				},
-				select: {
-					id: true,
-					domainName: true,
-				},
-				orderBy: {
-					domainName: "asc",
-				},
-			});
+			const domains = await db
+				.select({
+					id: domain.id,
+					domainName: domain.domainName,
+				})
+				.from(domain)
+				.where(eq(domain.teamId, input.teamId))
+				.orderBy(asc(domain.domainName));
 
-			return domains.map((domain) => ({
-				id: domain.id,
-				domainName: domain.domainName,
+			return domains.map((d) => ({
+				id: d.id,
+				domainName: d.domainName,
 			}));
 		}),
 
@@ -795,25 +859,27 @@ export const ordersRouter = router({
 			const orderNumber = generateOrderNumber();
 
 			// 1. Validate hosting plan
-			const hostingPlan = await prisma.hostingPlan.findUnique({
-				where: { id: input.hostingPlanId },
-			});
+			const [hostingPlanRow] = await db
+				.select()
+				.from(hostingPlan)
+				.where(eq(hostingPlan.id, input.hostingPlanId))
+				.limit(1);
 
-			if (!hostingPlan) {
+			if (!hostingPlanRow) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Hosting plan not found",
 				});
 			}
 
-			if (!hostingPlan.isActive) {
+			if (!hostingPlanRow.isActive) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Hosting plan is not active",
 				});
 			}
 
-			if (!hostingPlan.pleskServicePlanId) {
+			if (!hostingPlanRow.pleskServicePlanId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Hosting plan does not have a Plesk service plan ID configured",
@@ -821,19 +887,21 @@ export const ordersRouter = router({
 			}
 
 			// 2. Validate billing cycle
-			if (!isValidBillingCycle(hostingPlan.billingCycle, input.billingCycle)) {
+			if (!isValidBillingCycle(hostingPlanRow.billingCycle, input.billingCycle)) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: `Billing cycle cannot be shorter than the plan's cycle (${hostingPlan.billingCycle}). You can only upgrade to longer cycles (YEARLY, BIENNIALLY).`,
+					message: `Billing cycle cannot be shorter than the plan's cycle (${hostingPlanRow.billingCycle}). You can only upgrade to longer cycles (YEARLY, BIENNIALLY).`,
 				});
 			}
 
 			// 3. Validate team
-			const team = await prisma.team.findUnique({
-				where: { id: input.teamId },
-			});
+			const [teamRow] = await db
+				.select()
+				.from(team)
+				.where(eq(team.id, input.teamId))
+				.limit(1);
 
-			if (!team) {
+			if (!teamRow) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Team not found",
@@ -841,10 +909,11 @@ export const ordersRouter = router({
 			}
 
 			// 4. Get team owner (createdById)
-			const teamOwner = await prisma.user.findUnique({
-				where: { id: team.createdById },
-				include: { profile: true },
-			});
+			const [teamOwner] = await db
+				.select({ id: user.id })
+				.from(user)
+				.where(eq(user.id, teamRow.createdById))
+				.limit(1);
 
 			if (!teamOwner) {
 				throw new TRPCError({
@@ -854,8 +923,8 @@ export const ordersRouter = router({
 			}
 
 			// 5. Calculate pricing
-			const planMultiplier = getBillingCycleMultiplier(hostingPlan.billingCycle, input.billingCycle);
-			const planPrice = parseFloat(hostingPlan.niscPrice || "0");
+			const planMultiplier = getBillingCycleMultiplier(hostingPlanRow.billingCycle, input.billingCycle);
+			const planPrice = parseFloat(hostingPlanRow.niscPrice || "0");
 			const subtotal = (planPrice * planMultiplier).toString();
 			const total = subtotal; // No discount for now
 
@@ -870,41 +939,37 @@ export const ordersRouter = router({
 
 			// Batch: Log order creation start and Plesk integration check in a transaction
 			// This reduces connection usage from 2 sequential queries to 1 transaction
-			await prisma.$transaction(async (tx) => {
+			await db.transaction(async (tx) => {
 				// Log: Starting order creation process
-				await tx.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: session.user!.id,
-						action: "ORDER_CREATION_STARTED",
-						description: `Starting order creation process for ${orderNumber}`,
-						metadata: {
-							orderNumber: orderNumber,
-							teamId: team.id,
-							teamName: team.name,
-							hostingPlanId: hostingPlan.id,
-							hostingPlanName: hostingPlan.name,
-							domainName: input.domainName,
-							billingCycle: input.billingCycle,
-						},
-						createdAt: now,
+				await tx.insert(userActivityLog).values({
+					id: crypto.randomUUID(),
+					userId: session.user!.id,
+					action: "ORDER_CREATION_STARTED",
+					description: `Starting order creation process for ${orderNumber}`,
+					metadata: {
+						orderNumber: orderNumber,
+						teamId: teamRow.id,
+						teamName: teamRow.name,
+						hostingPlanId: hostingPlanRow.id,
+						hostingPlanName: hostingPlanRow.name,
+						domainName: input.domainName,
+						billingCycle: input.billingCycle,
 					},
+					createdAt: now,
 				});
 
 				// Log: Checking/creating Plesk integration
-				await tx.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: session.user!.id,
-						action: "PLESK_INTEGRATION_CHECK",
-						description: `Checking Plesk integration for team owner (team: ${team.name})`,
-						metadata: {
-							orderNumber: orderNumber,
-							teamId: team.id,
-							teamOwnerId: team.createdById,
-						},
-						createdAt: now,
+				await tx.insert(userActivityLog).values({
+					id: crypto.randomUUID(),
+					userId: session.user!.id,
+					action: "PLESK_INTEGRATION_CHECK",
+					description: `Checking Plesk integration for team owner (team: ${teamRow.name})`,
+					metadata: {
+						orderNumber: orderNumber,
+						teamId: teamRow.id,
+						teamOwnerId: teamRow.createdById,
 					},
+					createdAt: now,
 				});
 			});
 
@@ -918,7 +983,7 @@ export const ordersRouter = router({
 					});
 				}
 				try {
-					pleskOwnerId = await ensurePleskIntegration(team.createdById, session.user.id);
+					pleskOwnerId = await ensurePleskIntegration(teamRow.createdById, session.user.id);
 				} catch (err) {
 					const msg = err instanceof Error ? err.message : String(err);
 					throw new TRPCError({
@@ -929,39 +994,35 @@ export const ordersRouter = router({
 
 				// Batch: Log Plesk integration ready and provisioning started in a transaction
 				// This reduces connection usage from 2 sequential queries to 1 transaction
-				await prisma.$transaction(async (tx) => {
+				await db.transaction(async (tx) => {
 					// Log: Plesk integration ready
-					await tx.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: session.user!.id,
-							action: "PLESK_INTEGRATION_READY",
-							description: `Plesk integration ready for provisioning (owner ID: ${pleskOwnerId})`,
-							metadata: {
-								orderNumber: orderNumber,
-								teamId: team.id,
-								pleskOwnerId: pleskOwnerId,
-							},
-							createdAt: now,
+					await tx.insert(userActivityLog).values({
+						id: crypto.randomUUID(),
+						userId: session.user!.id,
+						action: "PLESK_INTEGRATION_READY",
+						description: `Plesk integration ready for provisioning (owner ID: ${pleskOwnerId})`,
+						metadata: {
+							orderNumber: orderNumber,
+							teamId: teamRow.id,
+							pleskOwnerId: pleskOwnerId,
 						},
+						createdAt: now,
 					});
 
 					// Log: Starting Plesk provisioning
-					await tx.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: session.user!.id,
-							action: "PLESK_PROVISIONING_STARTED",
-							description: `Starting Plesk provisioning for domain ${input.domainName}`,
-							metadata: {
-								orderNumber: orderNumber,
-								teamId: team.id,
-								domainName: input.domainName,
-								pleskServicePlanId: hostingPlan.pleskServicePlanId,
-								pleskOwnerId: pleskOwnerId,
-							},
-							createdAt: now,
+					await tx.insert(userActivityLog).values({
+						id: crypto.randomUUID(),
+						userId: session.user!.id,
+						action: "PLESK_PROVISIONING_STARTED",
+						description: `Starting Plesk provisioning for domain ${input.domainName}`,
+						metadata: {
+							orderNumber: orderNumber,
+							teamId: teamRow.id,
+							domainName: input.domainName,
+							pleskServicePlanId: hostingPlanRow.pleskServicePlanId,
+							pleskOwnerId: pleskOwnerId,
 						},
+						createdAt: now,
 					});
 				});
 
@@ -971,8 +1032,8 @@ export const ordersRouter = router({
 					pleskResult = await provisionToPlesk({
 						domainName: input.domainName,
 						pleskOwnerId,
-						pleskServicePlanId: hostingPlan.pleskServicePlanId!,
-						ipAddress: hostingPlan.pleskIpAddress || undefined,
+						pleskServicePlanId: hostingPlanRow.pleskServicePlanId!,
+						ipAddress: hostingPlanRow.pleskIpAddress || undefined,
 						description: input.description || undefined,
 						adminDescription: input.adminDescription || undefined,
 					});
@@ -992,42 +1053,38 @@ export const ordersRouter = router({
 				pleskGuid = pleskResult.pleskGuid;
 
 				// Log: Plesk provisioning succeeded
-				await prisma.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: session.user.id,
-						action: "PLESK_PROVISIONING_SUCCESS",
-						description: `Plesk provisioning completed successfully for domain ${input.domainName}`,
-						metadata: {
-							orderNumber: orderNumber,
-							teamId: team.id,
-							domainName: input.domainName,
-							pleskServiceId: pleskServiceId,
-							pleskGuid: pleskGuid,
-							pleskStatus: pleskStatus,
-						},
-						createdAt: now,
+				await db.insert(userActivityLog).values({
+					id: crypto.randomUUID(),
+					userId: session.user.id,
+					action: "PLESK_PROVISIONING_SUCCESS",
+					description: `Plesk provisioning completed successfully for domain ${input.domainName}`,
+					metadata: {
+						orderNumber: orderNumber,
+						teamId: teamRow.id,
+						domainName: input.domainName,
+						pleskServiceId: pleskServiceId,
+						pleskGuid: pleskGuid,
+						pleskStatus: pleskStatus,
 					},
+					createdAt: now,
 				});
 			} catch (error) {
 				// Log provisioning failure - NO order created, just log the attempt
 				const errorMessage = error instanceof Error ? error.message : "Unknown error";
 				
-				await prisma.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: session.user.id,
-						action: "PLESK_PROVISIONING_FAILED",
-						description: `Failed to provision hosting to Plesk for domain ${input.domainName}`,
-						metadata: {
-							orderNumber: orderNumber,
-							teamId: team.id,
-							hostingPlanId: hostingPlan.id,
-							domainName: input.domainName,
-							error: errorMessage,
-						},
-						createdAt: now,
+				await db.insert(userActivityLog).values({
+					id: crypto.randomUUID(),
+					userId: session.user.id,
+					action: "PLESK_PROVISIONING_FAILED",
+					description: `Failed to provision hosting to Plesk for domain ${input.domainName}`,
+					metadata: {
+						orderNumber: orderNumber,
+						teamId: teamRow.id,
+						hostingPlanId: hostingPlanRow.id,
+						domainName: input.domainName,
+						error: errorMessage,
 					},
+					createdAt: now,
 				});
 
 				throw new TRPCError({
@@ -1038,79 +1095,78 @@ export const ordersRouter = router({
 
 			// 7. ONLY AFTER successful Plesk provisioning: Create Order and HostingSubscription together
 			try {
-				const result = await prisma.$transaction(async (tx) => {
+				const result = await db.transaction(async (tx) => {
+					const subscriptionId = crypto.randomUUID();
+					const orderId = crypto.randomUUID();
+
 					// Create HostingSubscription with all auto-generated data from Plesk
 					// pleskFilterId must be unique, so we use pleskServiceId (which is unique from Plesk)
-					const subscription = await tx.hostingSubscription.create({
-						data: {
-							id: crypto.randomUUID(),
-							hostingPlanId: hostingPlan.id,
-							teamId: input.teamId,
-							provisionedBy: session.user!.id,
-							pleskFilterId: pleskServiceId, // Use pleskServiceId as unique filter ID
-							pleskOwnerId,
-							pleskServiceId: pleskServiceId,
-							pleskName: input.domainName,
-							pleskStatus,
-							pleskDescription: input.description || null,
-							pleskAdminDescription: input.adminDescription || null,
-							primaryDomain: input.domainName,
-							hostingType: hostingPlan.hostingType,
-							operation: "PROVISION",
-							provisioningMethod: "AUTOMATIC",
-							status: "ACTIVE",
-							billingCycle: input.billingCycle,
-							niscPrice: total,
-							niscCurrency: hostingPlan.niscCurrency || "KES",
-							pleskFtpLogin: pleskFtpLogin,
-							pleskFtpPassword: pleskFtpPassword,
-							notes: input.notes || null,
-							autoRenew: true,
-							createdAt: now,
-							updatedAt: now,
-						},
+					await tx.insert(hostingSubscription).values({
+						id: subscriptionId,
+						hostingPlanId: hostingPlanRow.id,
+						teamId: input.teamId,
+						provisionedBy: session.user!.id,
+						pleskFilterId: pleskServiceId, // Use pleskServiceId as unique filter ID
+						pleskOwnerId,
+						pleskServiceId: pleskServiceId,
+						pleskName: input.domainName,
+						pleskStatus,
+						pleskDescription: input.description || null,
+						pleskAdminDescription: input.adminDescription || null,
+						primaryDomain: input.domainName,
+						hostingType: hostingPlanRow.hostingType,
+						operation: "PROVISION",
+						provisioningMethod: "AUTOMATIC",
+						status: "ACTIVE",
+						billingCycle: input.billingCycle,
+						niscPrice: total,
+						niscCurrency: hostingPlanRow.niscCurrency || "KES",
+						pleskFtpLogin: pleskFtpLogin,
+						pleskFtpPassword: pleskFtpPassword,
+						notes: input.notes || null,
+						autoRenew: true,
+						createdAt: now,
+						updatedAt: now,
 					});
 
 					// Create Order (COMPLETED status) - only after successful provisioning
-					const order = await tx.order.create({
-						data: {
-							id: crypto.randomUUID(),
-							orderNumber,
-							teamId: input.teamId,
-							createdBy: session.user!.id,
-							type: "HOSTING_SUBSCRIPTION",
-							status: "COMPLETED", // Success - provisioning already completed
-							description: input.description || null,
-							hostingSubscriptionId: subscription.id,
-							subtotal,
-							total,
-							currency: hostingPlan.niscCurrency || "KES",
-							notes: input.notes || null,
-							processedBy: session.user!.id,
-							processedAt: now,
-							completedAt: now,
-							metadata: {
-								hostingPlanId: hostingPlan.id,
-								hostingPlanName: hostingPlan.name,
-								domainName: input.domainName,
-								billingCycle: input.billingCycle,
-								planBillingCycle: hostingPlan.billingCycle,
-								pleskServiceId: pleskServiceId,
-								pleskGuid: pleskGuid,
-							},
-							createdAt: now,
-							updatedAt: now,
+					await tx.insert(orderTable).values({
+						id: orderId,
+						orderNumber,
+						teamId: input.teamId,
+						createdBy: session.user!.id,
+						type: "HOSTING_SUBSCRIPTION",
+						status: "COMPLETED", // Success - provisioning already completed
+						description: input.description || null,
+						hostingSubscriptionId: subscriptionId,
+						subtotal,
+						total,
+						currency: hostingPlanRow.niscCurrency || "KES",
+						notes: input.notes || null,
+						processedBy: session.user!.id,
+						processedAt: now,
+						completedAt: now,
+						metadata: {
+							hostingPlanId: hostingPlanRow.id,
+							hostingPlanName: hostingPlanRow.name,
+							domainName: input.domainName,
+							billingCycle: input.billingCycle,
+							planBillingCycle: hostingPlanRow.billingCycle,
+							pleskServiceId: pleskServiceId,
+							pleskGuid: pleskGuid,
 						},
-						include: {
+						createdAt: now,
+						updatedAt: now,
+					});
+
+					const order = await tx.query.order.findFirst({
+						where: eq(orderTable.id, orderId),
+						with: {
 							team: {
-								select: {
-									id: true,
-									name: true,
-									slug: true,
-								},
+								columns: { id: true, name: true, slug: true },
 							},
 							hostingSubscription: {
-								select: {
+								columns: {
 									id: true,
 									pleskName: true,
 									status: true,
@@ -1120,121 +1176,120 @@ export const ordersRouter = router({
 						},
 					});
 
+					const subscription = await tx.query.hostingSubscription.findFirst({
+						where: eq(hostingSubscription.id, subscriptionId),
+					});
+
+					if (!order || !subscription) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to load order after creation",
+						});
+					}
+
 					// Log order creation (after successful provisioning) - UserActivityLog
-					await tx.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: session.user!.id,
-							action: "ORDER_CREATED",
-							description: `Created hosting order ${orderNumber} for team ${team.name}`,
-							metadata: {
-								orderId: order.id,
-								orderNumber: order.orderNumber,
-								teamId: team.id,
-								hostingPlanId: hostingPlan.id,
-								status: "COMPLETED",
-							},
-							createdAt: now,
+					await tx.insert(userActivityLog).values({
+						id: crypto.randomUUID(),
+						userId: session.user!.id,
+						action: "ORDER_CREATED",
+						description: `Created hosting order ${orderNumber} for team ${teamRow.name}`,
+						metadata: {
+							orderId: order.id,
+							orderNumber: order.orderNumber,
+							teamId: teamRow.id,
+							hostingPlanId: hostingPlanRow.id,
+							status: "COMPLETED",
 						},
+						createdAt: now,
 					});
 
 					// Log order creation - OrderActivityLog (order-specific audit trail)
-					await tx.orderActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							orderId: order.id,
-							userId: session.user!.id,
-							action: "CREATE",
-							description: `Order ${orderNumber} created and provisioned successfully`,
-							metadata: {
-								orderNumber: order.orderNumber,
-								teamId: team.id,
-								hostingPlanId: hostingPlan.id,
-								domainName: input.domainName,
-								billingCycle: input.billingCycle,
-								status: "COMPLETED",
-							},
-							createdAt: now,
+					await tx.insert(orderActivityLog).values({
+						id: crypto.randomUUID(),
+						orderId: order.id,
+						userId: session.user!.id,
+						action: "CREATE",
+						description: `Order ${orderNumber} created and provisioned successfully`,
+						metadata: {
+							orderNumber: order.orderNumber,
+							teamId: teamRow.id,
+							hostingPlanId: hostingPlanRow.id,
+							domainName: input.domainName,
+							billingCycle: input.billingCycle,
+							status: "COMPLETED",
 						},
+						createdAt: now,
 					});
 
 					// Log hosting subscription creation - UserActivityLog
-					await tx.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: session.user!.id,
-							action: "HOSTING_SUBSCRIPTION_CREATED",
-							description: `Created hosting subscription for ${input.domainName}`,
-							metadata: {
-								subscriptionId: subscription.id,
-								orderId: order.id,
-								orderNumber: order.orderNumber,
-								teamId: team.id,
-								domainName: input.domainName,
-								pleskServiceId: pleskServiceId,
-							},
-							createdAt: now,
+					await tx.insert(userActivityLog).values({
+						id: crypto.randomUUID(),
+						userId: session.user!.id,
+						action: "HOSTING_SUBSCRIPTION_CREATED",
+						description: `Created hosting subscription for ${input.domainName}`,
+						metadata: {
+							subscriptionId: subscription.id,
+							orderId: order.id,
+							orderNumber: order.orderNumber,
+							teamId: teamRow.id,
+							domainName: input.domainName,
+							pleskServiceId: pleskServiceId,
 						},
+						createdAt: now,
 					});
 
 					// Log hosting subscription creation - HostingSubscriptionActivityLog (subscription-specific audit trail)
-					await tx.hostingSubscriptionActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							hostingSubscriptionId: subscription.id,
-							userId: session.user!.id,
-							action: "PROVISION",
-							description: `Hosting subscription provisioned for ${input.domainName} via order ${orderNumber}`,
-							metadata: {
-								orderId: order.id,
-								orderNumber: order.orderNumber,
-								teamId: team.id,
-								domainName: input.domainName,
-								pleskServiceId: pleskServiceId,
-								pleskGuid: pleskGuid,
-								pleskStatus: pleskStatus,
-								hostingPlanId: hostingPlan.id,
-								billingCycle: input.billingCycle,
-								provisioningMethod: "AUTOMATIC",
-							},
-							createdAt: now,
+					await tx.insert(hostingSubscriptionActivityLog).values({
+						id: crypto.randomUUID(),
+						hostingSubscriptionId: subscription.id,
+						userId: session.user!.id,
+						action: "PROVISION",
+						description: `Hosting subscription provisioned for ${input.domainName} via order ${orderNumber}`,
+						metadata: {
+							orderId: order.id,
+							orderNumber: order.orderNumber,
+							teamId: teamRow.id,
+							domainName: input.domainName,
+							pleskServiceId: pleskServiceId,
+							pleskGuid: pleskGuid,
+							pleskStatus: pleskStatus,
+							hostingPlanId: hostingPlanRow.id,
+							billingCycle: input.billingCycle,
+							provisioningMethod: "AUTOMATIC",
 						},
+						createdAt: now,
 					});
 
 					// Log order completion - UserActivityLog
-					await tx.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: session.user!.id,
-							action: "ORDER_COMPLETED",
-							description: `Order ${orderNumber} completed successfully`,
-							metadata: {
-								orderId: order.id,
-								orderNumber: order.orderNumber,
-								teamId: team.id,
-								hostingSubscriptionId: subscription.id,
-							},
-							createdAt: now,
+					await tx.insert(userActivityLog).values({
+						id: crypto.randomUUID(),
+						userId: session.user!.id,
+						action: "ORDER_COMPLETED",
+						description: `Order ${orderNumber} completed successfully`,
+						metadata: {
+							orderId: order.id,
+							orderNumber: order.orderNumber,
+							teamId: teamRow.id,
+							hostingSubscriptionId: subscription.id,
 						},
+						createdAt: now,
 					});
 
 					// Log order completion - OrderActivityLog
-					await tx.orderActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							orderId: order.id,
-							userId: session.user!.id,
-							action: "COMPLETE",
-							description: `Order ${orderNumber} marked as completed`,
-							metadata: {
-								orderNumber: order.orderNumber,
-								hostingSubscriptionId: subscription.id,
-								processedBy: session.user!.id,
-								processedAt: now,
-								completedAt: now,
-							},
-							createdAt: now,
+					await tx.insert(orderActivityLog).values({
+						id: crypto.randomUUID(),
+						orderId: order.id,
+						userId: session.user!.id,
+						action: "COMPLETE",
+						description: `Order ${orderNumber} marked as completed`,
+						metadata: {
+							orderNumber: order.orderNumber,
+							hostingSubscriptionId: subscription.id,
+							processedBy: session.user!.id,
+							processedAt: now,
+							completedAt: now,
 						},
+						createdAt: now,
 					});
 
 					return {
@@ -1250,13 +1305,15 @@ export const ordersRouter = router({
 						},
 						subscription,
 					};
-				}, { timeout: 10000 });
+				});
 
 				return {
 					success: true,
 					order: {
 						...result.order,
 						domainId: result.order.domainId ?? null,
+						type: result.order.type as z.infer<typeof orderTypeSchema>,
+						status: result.order.status as z.infer<typeof orderStatusSchema>,
 					},
 					hostingSubscription: {
 						id: result.subscription.id,
@@ -1309,9 +1366,11 @@ export const ordersRouter = router({
 				});
 			}
 
-			const billingSettings = await prisma.teamBillingSettings.findUnique({
-				where: { teamId: input.teamId },
-			});
+			const [billingSettings] = await db
+				.select()
+				.from(teamBillingSettings)
+				.where(eq(teamBillingSettings.teamId, input.teamId))
+				.limit(1);
 
 			return {
 				hasBillingSettings: Boolean(billingSettings),
@@ -1391,11 +1450,13 @@ export const ordersRouter = router({
 			const orderNumber = generateOrderNumber();
 
 			// 1. Validate team
-			const team = await prisma.team.findUnique({
-				where: { id: input.teamId },
-			});
+			const [teamRow] = await db
+				.select()
+				.from(team)
+				.where(eq(team.id, input.teamId))
+				.limit(1);
 
-			if (!team) {
+			if (!teamRow) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Team not found",
@@ -1413,14 +1474,15 @@ export const ordersRouter = router({
 			// Optimize: Fetch all service plans in parallel to avoid N+1 queries
 			// This reduces connection usage from N sequential queries to 1 parallel query
 			const planIds = input.items.map(item => item.niscServicePlanId);
-			const plans = await prisma.niscServicePlan.findMany({
-				where: {
-					id: { in: planIds },
-				},
-			});
+			const plans = await db
+				.select()
+				.from(niscServicePlan)
+				.where(inArray(niscServicePlan.id, planIds));
 
 			// Create a map for quick lookup
-			const plansMap = new Map(plans.map(plan => [plan.id, plan]));
+			const plansMap = new Map<string, NiscServicePlanRow>(
+				plans.map((plan): [string, NiscServicePlanRow] => [plan.id, plan]),
+			);
 
 			// Validate and process each item
 			for (const itemInput of input.items) {
@@ -1506,10 +1568,11 @@ export const ordersRouter = router({
 			const hasHostingItems = orderItemsData.some(item => item.plan.planType === "HOSTING");
 			
 			if (hasHostingItems) {
-				const teamOwner = await prisma.user.findUnique({
-					where: { id: team.createdById },
-					include: { profile: true },
-				});
+				const [teamOwner] = await db
+					.select({ id: user.id })
+					.from(user)
+					.where(eq(user.id, teamRow.createdById))
+					.limit(1);
 
 				if (!teamOwner) {
 					throw new TRPCError({
@@ -1520,7 +1583,7 @@ export const ordersRouter = router({
 
 				// Ensure Plesk integration exists
 				try {
-					pleskOwnerId = await ensurePleskIntegration(team.createdById, session.user.id);
+					pleskOwnerId = await ensurePleskIntegration(teamRow.createdById, session.user.id);
 				} catch (err) {
 					const msg = err instanceof Error ? err.message : String(err);
 					throw new TRPCError({
@@ -1536,38 +1599,43 @@ export const ordersRouter = router({
 			// refactored in the future to move external API calls outside the transaction.
 			// For now, this is acceptable as order creation is not a high-frequency operation.
 			try {
-				const result = await prisma.$transaction(async (tx) => {
-					// Create Order
-					const order = await tx.order.create({
-						data: {
-							id: crypto.randomUUID(),
-							orderNumber,
-							teamId: input.teamId,
-							createdBy: session.user!.id,
-							type: orderType,
-							status: hasHostingItems ? "PENDING" : "PENDING", // Will be updated after provisioning
-							description: input.description || null,
-							subtotal: subtotal.toString(),
-							total: total.toString(),
-							currency,
-							notes: input.notes || null,
-							metadata: {
-								itemsCount: orderItemsData.length,
-								hasHostingItems,
-							},
-							createdAt: now,
-							updatedAt: now,
+				const result = await db.transaction(async (tx) => {
+					const orderId = crypto.randomUUID();
+					await tx.insert(orderTable).values({
+						id: orderId,
+						orderNumber,
+						teamId: input.teamId,
+						createdBy: session.user!.id,
+						type: orderType,
+						status: hasHostingItems ? "PENDING" : "PENDING", // Will be updated after provisioning
+						description: input.description || null,
+						subtotal: subtotal.toString(),
+						total: total.toString(),
+						currency,
+						notes: input.notes || null,
+						metadata: {
+							itemsCount: orderItemsData.length,
+							hasHostingItems,
 						},
-						include: {
+						createdAt: now,
+						updatedAt: now,
+					});
+
+					const order = await tx.query.order.findFirst({
+						where: eq(orderTable.id, orderId),
+						with: {
 							team: {
-								select: {
-									id: true,
-									name: true,
-									slug: true,
-								},
+								columns: { id: true, name: true, slug: true },
 							},
 						},
 					});
+
+					if (!order) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to load order after creation",
+						});
+					}
 
 					// Process each order item sequentially (first to last)
 					const createdOrderItems: any[] = [];
@@ -1587,21 +1655,19 @@ export const ordersRouter = router({
 							itemStatus = "PROVISIONING";
 							
 							// Log provisioning start
-							await tx.userActivityLog.create({
-								data: {
-									id: crypto.randomUUID(),
-									userId: session.user!.id,
-									action: "ORDER_ITEM_PROVISIONING_STARTED",
-									description: `Starting provisioning for ${plan.name} (${itemInput.domainName}) in order ${orderNumber}`,
-									metadata: {
-										orderId: order.id,
-										orderNumber: order.orderNumber,
-										planId: plan.id,
-										planName: plan.name,
-										domainName: itemInput.domainName,
-									},
-									createdAt: now,
+							await tx.insert(userActivityLog).values({
+								id: crypto.randomUUID(),
+								userId: session.user!.id,
+								action: "ORDER_ITEM_PROVISIONING_STARTED",
+								description: `Starting provisioning for ${plan.name} (${itemInput.domainName}) in order ${orderNumber}`,
+								metadata: {
+									orderId: order.id,
+									orderNumber: order.orderNumber,
+									planId: plan.id,
+									planName: plan.name,
+									domainName: itemInput.domainName,
 								},
+								createdAt: now,
 							});
 
 							try {
@@ -1627,95 +1693,95 @@ export const ordersRouter = router({
 
 								// ONLY create HostingSubscription if provisioning succeeded
 								// Find or create corresponding HostingPlan for backward compatibility
-								let hostingPlanId: string;
-								const existingHostingPlan = await tx.hostingPlan.findFirst({
-									where: {
-										hostingType: plan.hostingSubType!,
-										pleskServicePlanId: plan.pleskServicePlanId,
-									},
-								});
+								let hostingPlanIdForItem: string;
+								const [existingHostingPlan] = await tx
+									.select()
+									.from(hostingPlan)
+									.where(
+										and(
+											eq(hostingPlan.hostingType, plan.hostingSubType!),
+											eq(hostingPlan.pleskServicePlanId, plan.pleskServicePlanId),
+										),
+									)
+									.limit(1);
 
 								if (existingHostingPlan) {
-									hostingPlanId = existingHostingPlan.id;
+									hostingPlanIdForItem = existingHostingPlan.id;
 								} else {
 									// Create a HostingPlan record for backward compatibility
-									const newHostingPlan = await tx.hostingPlan.create({
-										data: {
-											id: crypto.randomUUID(),
-											name: plan.name,
-											description: plan.description,
-											hostingType: plan.hostingSubType!,
-											pleskServicePlanId: plan.pleskServicePlanId,
-											pleskFilterId: plan.pleskFilterId,
-											pleskIpAddress: plan.pleskIpAddress,
-											features: plan.features,
-											highlights: plan.highlights,
-											isPopular: plan.isPopular,
-											isRecommended: plan.isRecommended,
-											niscPrice: plan.niscPrice,
-											niscCurrency: plan.niscCurrency,
-											billingCycle: plan.billingCycle,
-											setupFee: plan.setupFee,
-											isActive: plan.isActive,
-											isDefault: plan.isDefault,
-											createdAt: now,
-											updatedAt: now,
-										},
+									const newPlanId = crypto.randomUUID();
+									await tx.insert(hostingPlan).values({
+										id: newPlanId,
+										name: plan.name,
+										description: plan.description,
+										hostingType: plan.hostingSubType!,
+										pleskServicePlanId: plan.pleskServicePlanId,
+										pleskFilterId: plan.pleskFilterId,
+										pleskIpAddress: plan.pleskIpAddress,
+										features: plan.features,
+										highlights: plan.highlights,
+										isPopular: plan.isPopular,
+										isRecommended: plan.isRecommended,
+										niscPrice: plan.niscPrice,
+										niscCurrency: plan.niscCurrency,
+										billingCycle: plan.billingCycle,
+										setupFee: plan.setupFee,
+										isActive: plan.isActive,
+										isDefault: plan.isDefault,
+										createdAt: now,
+										updatedAt: now,
 									});
-									hostingPlanId = newHostingPlan.id;
+									hostingPlanIdForItem = newPlanId;
 								}
 
 								// Create HostingSubscription ONLY after successful provisioning
-								const subscription = await tx.hostingSubscription.create({
-									data: {
-										id: crypto.randomUUID(),
-										hostingPlanId: hostingPlanId,
-										teamId: input.teamId,
-										provisionedBy: session.user!.id,
-										pleskFilterId: pleskResult.pleskServiceId,
-										pleskOwnerId: pleskOwnerId!,
-										pleskServiceId: pleskResult.pleskServiceId,
-										pleskName: itemInput.domainName!,
-										pleskStatus: pleskResult.pleskStatus,
-										pleskDescription: itemInput.description || null,
-										pleskAdminDescription: itemInput.adminDescription || null,
-										primaryDomain: itemInput.domainName!,
-										hostingType: plan.hostingSubType!,
-										operation: "PROVISION",
-										provisioningMethod: "AUTOMATIC",
-										status: "ACTIVE",
-										billingCycle: itemInput.billingCycle,
-										niscPrice: itemSubtotal.toString(),
-										niscCurrency: plan.niscCurrency || "KES",
-										pleskFtpLogin: pleskResult.pleskFtpLogin,
-										pleskFtpPassword: pleskResult.pleskFtpPassword,
-										notes: itemInput.notes || null,
-										autoRenew: true,
-										createdAt: now,
-										updatedAt: now,
-									},
+								const subscriptionId = crypto.randomUUID();
+								await tx.insert(hostingSubscription).values({
+									id: subscriptionId,
+									hostingPlanId: hostingPlanIdForItem,
+									teamId: input.teamId,
+									provisionedBy: session.user!.id,
+									pleskFilterId: pleskResult.pleskServiceId,
+									pleskOwnerId: pleskOwnerId!,
+									pleskServiceId: pleskResult.pleskServiceId,
+									pleskName: itemInput.domainName!,
+									pleskStatus: pleskResult.pleskStatus,
+									pleskDescription: itemInput.description || null,
+									pleskAdminDescription: itemInput.adminDescription || null,
+									primaryDomain: itemInput.domainName!,
+									hostingType: plan.hostingSubType!,
+									operation: "PROVISION",
+									provisioningMethod: "AUTOMATIC",
+									status: "ACTIVE",
+									billingCycle: itemInput.billingCycle,
+									niscPrice: itemSubtotal.toString(),
+									niscCurrency: plan.niscCurrency || "KES",
+									pleskFtpLogin: pleskResult.pleskFtpLogin,
+									pleskFtpPassword: pleskResult.pleskFtpPassword,
+									notes: itemInput.notes || null,
+									autoRenew: true,
+									createdAt: now,
+									updatedAt: now,
 								});
 
-								hostingSubscriptionId = subscription.id;
+								hostingSubscriptionId = subscriptionId;
 								itemStatus = "PROVISIONED";
 								isProvisioned = true;
 
 								// Log hosting subscription creation
-								await tx.hostingSubscriptionActivityLog.create({
-									data: {
-										id: crypto.randomUUID(),
-										hostingSubscriptionId: subscription.id,
-										userId: session.user!.id,
-										action: "PROVISION",
-										description: `Hosting subscription provisioned via order ${orderNumber}`,
-										metadata: {
-											orderId: order.id,
-											orderNumber: order.orderNumber,
-											domainName: itemInput.domainName,
-											pleskServiceId: pleskResult.pleskServiceId,
-										},
-										createdAt: now,
+								await tx.insert(hostingSubscriptionActivityLog).values({
+									id: crypto.randomUUID(),
+									hostingSubscriptionId: subscriptionId,
+									userId: session.user!.id,
+									action: "PROVISION",
+									description: `Hosting subscription provisioned via order ${orderNumber}`,
+									metadata: {
+										orderId: order.id,
+										orderNumber: order.orderNumber,
+										domainName: itemInput.domainName,
+										pleskServiceId: pleskResult.pleskServiceId,
 									},
+									createdAt: now,
 								});
 							} catch (error) {
 								// Provisioning failed - log error per item and continue to next item
@@ -1734,9 +1800,11 @@ export const ordersRouter = router({
 						}
 
 						// Create OrderItem with status
-						const orderItem = await tx.orderItem.create({
-							data: {
-								id: crypto.randomUUID(),
+						const orderItemId = crypto.randomUUID();
+						const [orderItemRow] = await tx
+							.insert(orderItem)
+							.values({
+								id: orderItemId,
 								orderId: order.id,
 								niscServicePlanId: plan.id,
 								billingCycle: itemInput.billingCycle,
@@ -1757,90 +1825,82 @@ export const ordersRouter = router({
 								},
 								createdAt: now,
 								updatedAt: now,
-							},
-						});
+							})
+							.returning();
 
 						// Log order item creation
-						await tx.orderItemActivityLog.create({
-							data: {
-								id: crypto.randomUUID(),
-								orderItemId: orderItem.id,
-								userId: session.user!.id,
-								action: "CREATE",
-								description: `Order item created for ${plan.name} with status ${itemStatus}`,
-								metadata: {
-									planId: plan.id,
-									planName: plan.name,
-									planType: plan.planType,
-									status: itemStatus,
-									isProvisioned,
-									provisioningError,
-								},
-								createdAt: now,
+						await tx.insert(orderItemActivityLog).values({
+							id: crypto.randomUUID(),
+							orderItemId: orderItemRow!.id,
+							userId: session.user!.id,
+							action: "CREATE",
+							description: `Order item created for ${plan.name} with status ${itemStatus}`,
+							metadata: {
+								planId: plan.id,
+								planName: plan.name,
+								planType: plan.planType,
+								status: itemStatus,
+								isProvisioned,
+								provisioningError,
 							},
+							createdAt: now,
 						});
 
 						// Log successful provisioning if it succeeded
 						if (itemStatus === "PROVISIONED" && hostingSubscriptionId) {
-							await tx.orderItemActivityLog.create({
-								data: {
-									id: crypto.randomUUID(),
-									orderItemId: orderItem.id,
-									userId: session.user!.id,
-									action: "PROVISION_SUCCESS",
-									description: `Successfully provisioned ${plan.name} to Plesk`,
-									metadata: {
-										orderId: order.id,
-										orderNumber: order.orderNumber,
-										planId: plan.id,
-										planName: plan.name,
-										domainName: itemInput.domainName,
-										hostingSubscriptionId: hostingSubscriptionId,
-									},
-									createdAt: now,
+							await tx.insert(orderItemActivityLog).values({
+								id: crypto.randomUUID(),
+								orderItemId: orderItemRow!.id,
+								userId: session.user!.id,
+								action: "PROVISION_SUCCESS",
+								description: `Successfully provisioned ${plan.name} to Plesk`,
+								metadata: {
+									orderId: order.id,
+									orderNumber: order.orderNumber,
+									planId: plan.id,
+									planName: plan.name,
+									domainName: itemInput.domainName,
+									hostingSubscriptionId: hostingSubscriptionId,
 								},
+								createdAt: now,
 							});
 						}
 
 						// Log provisioning failure if it failed (now we have orderItemId)
 						if (itemStatus === "FAILED") {
-							await tx.orderItemActivityLog.create({
-								data: {
-									id: crypto.randomUUID(),
-									orderItemId: orderItem.id,
-									userId: session.user!.id,
-									action: "PROVISION_FAILED",
-									description: `Failed to provision ${plan.name} to Plesk: ${provisioningError}`,
-									metadata: {
-										orderId: order.id,
-										orderNumber: order.orderNumber,
-										planId: plan.id,
-										planName: plan.name,
-										domainName: itemInput.domainName,
-										error: provisioningError,
-									},
-									createdAt: now,
+							await tx.insert(orderItemActivityLog).values({
+								id: crypto.randomUUID(),
+								orderItemId: orderItemRow!.id,
+								userId: session.user!.id,
+								action: "PROVISION_FAILED",
+								description: `Failed to provision ${plan.name} to Plesk: ${provisioningError}`,
+								metadata: {
+									orderId: order.id,
+									orderNumber: order.orderNumber,
+									planId: plan.id,
+									planName: plan.name,
+									domainName: itemInput.domainName,
+									error: provisioningError,
 								},
+								createdAt: now,
 							});
 
 							// Also log in UserActivityLog for visibility
-							await tx.userActivityLog.create({
-								data: {
-									id: crypto.randomUUID(),
-									userId: session.user!.id,
-									action: "ORDER_ITEM_PROVISIONING_FAILED",
-									description: `Failed to provision ${plan.name} (${itemInput.domainName}) in order ${orderNumber}: ${provisioningError}`,
-									metadata: {
-										orderId: order.id,
-										orderNumber: order.orderNumber,
-										orderItemId: orderItem.id,
-										planId: plan.id,
-										planName: plan.name,
-										domainName: itemInput.domainName,
-										error: provisioningError,
-									},
-									createdAt: now,
+							await tx.insert(userActivityLog).values({
+								id: crypto.randomUUID(),
+								userId: session.user!.id,
+								action: "ORDER_ITEM_PROVISIONING_FAILED",
+								description: `Failed to provision ${plan.name} (${itemInput.domainName}) in order ${orderNumber}: ${provisioningError}`,
+								metadata: {
+									orderId: order.id,
+									orderNumber: order.orderNumber,
+									orderItemId: orderItemRow!.id,
+									planId: plan.id,
+									planName: plan.name,
+									domainName: itemInput.domainName,
+									error: provisioningError,
 								},
+								createdAt: now,
 							});
 						}
 
@@ -1849,12 +1909,12 @@ export const ordersRouter = router({
 							nonProvisionedItems.push({
 								planName: plan.name,
 								planType: plan.planType,
-								orderItemId: orderItem.id,
+								orderItemId: orderItemRow!.id,
 							});
 						}
 
 						createdOrderItems.push({
-							...orderItem,
+							...orderItemRow!,
 							planName: plan.name,
 							planType: plan.planType,
 							status: itemStatus,
@@ -1928,36 +1988,38 @@ export const ordersRouter = router({
 						updateData.taxPercentage = input.taxPercentage;
 					}
 
-					const updatedOrder = await tx.order.update({
-						where: { id: order.id },
-						data: updateData,
-						include: {
+					await tx.update(orderTable).set(updateData).where(eq(orderTable.id, order.id));
+
+					const updatedOrder = await tx.query.order.findFirst({
+						where: eq(orderTable.id, order.id),
+						with: {
 							team: {
-								select: {
-									id: true,
-									name: true,
-									slug: true,
-								},
+								columns: { id: true, name: true, slug: true },
 							},
 						},
 					});
 
+					if (!updatedOrder) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to load order after update",
+						});
+					}
+
 					// Log order creation
-					await tx.orderActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							orderId: updatedOrder.id,
-							userId: session.user!.id,
-							action: "CREATE",
-							description: `Order ${orderNumber} created with ${orderItemsData.length} item(s)`,
-							metadata: {
-								orderNumber: updatedOrder.orderNumber,
-								itemsCount: orderItemsData.length,
-								status: orderStatus,
-								requiresProvisioning,
-							},
-							createdAt: now,
+					await tx.insert(orderActivityLog).values({
+						id: crypto.randomUUID(),
+						orderId: updatedOrder.id,
+						userId: session.user!.id,
+						action: "CREATE",
+						description: `Order ${orderNumber} created with ${orderItemsData.length} item(s)`,
+						metadata: {
+							orderNumber: updatedOrder.orderNumber,
+							itemsCount: orderItemsData.length,
+							status: orderStatus,
+							requiresProvisioning,
 						},
+						createdAt: now,
 					});
 
 					return {
@@ -1966,21 +2028,21 @@ export const ordersRouter = router({
 						requiresProvisioning,
 						nonProvisionedItems,
 					};
-				}, { timeout: 30000 });
+				});
 
 				// Fetch hosting subscription details for response
 				const orderItemsWithDetails = await Promise.all(
 					result.orderItems.map(async (item: any) => {
 						if (item.hostingSubscriptionId) {
-							const subscription = await prisma.hostingSubscription.findUnique({
-								where: { id: item.hostingSubscriptionId },
-								select: {
+							const subscription = await db.query.hostingSubscription.findFirst({
+								columns: {
 									id: true,
 									pleskServiceId: true,
 									pleskName: true,
 									pleskFtpLogin: true,
 									pleskFtpPassword: true,
 								},
+								where: eq(hostingSubscription.id, item.hostingSubscriptionId),
 							});
 
 							if (subscription) {
@@ -2009,15 +2071,17 @@ export const ordersRouter = router({
 				if (input.createInvoice) {
 					try {
 						// Check if team has billing settings
-						const billingSettings = await prisma.teamBillingSettings.findUnique({
-							where: { teamId: input.teamId },
-						});
+						const [billingSettings] = await db
+							.select()
+							.from(teamBillingSettings)
+							.where(eq(teamBillingSettings.teamId, input.teamId))
+							.limit(1);
 
 						if (billingSettings) {
 							// Fetch order items with plan details for invoice line items
-							const orderItemsForInvoice = await prisma.orderItem.findMany({
-								where: { orderId: result.order.id },
-								include: {
+							const orderItemsForInvoice = await db.query.orderItem.findMany({
+								where: eq(orderItem.orderId, result.order.id),
+								with: {
 									niscServicePlan: true,
 								},
 							});
@@ -2139,113 +2203,82 @@ export const ordersRouter = router({
 							const newInvoiceId: string = crypto.randomUUID();
 							const token = crypto.randomUUID();
 
-							await prisma.$transaction(async (tx) => {
-								// Generate invoice number atomically
-								const counter = await tx.invoiceCounter.upsert({
-									where: { id: "invoice-counter" },
-									create: {
-										id: "invoice-counter",
-										lastNumber: 1,
-									},
-									update: {
-										lastNumber: {
-											increment: 1,
-										},
-									},
-									select: {
-										lastNumber: true,
-									},
-								});
-								
-								generatedInvoiceNumber = `INV-${counter.lastNumber.toString().padStart(4, "0")}`;
+							await db.transaction(async (tx) => {
+								generatedInvoiceNumber = await generateNextInvoiceNumber(tx);
 
-								// Build invoice data
-								const invoiceData = {
+								const invoiceNow = new Date();
+								await tx.insert(invoice).values({
 									id: newInvoiceId,
 									token,
 									teamId: input.teamId,
 									customerName: billingSettings.legalName,
 									customerEmail: billingSettings.billingEmail,
 									invoiceNumber: generatedInvoiceNumber,
-									status: "DRAFT" as const, // Changed from "SENT" since we're not sending email
+									status: "DRAFT",
 									amount: total.toString(),
 									subtotal: subtotal.toString(),
 									tax: taxAmount ? taxAmount.toString() : undefined,
-									taxPercentage: result.order.isTaxable && result.order.taxPercentage ? result.order.taxPercentage : undefined,
-									vat: undefined,
+									taxPercentage:
+										result.order.isTaxable && result.order.taxPercentage
+											? result.order.taxPercentage
+											: undefined,
 									discount: result.order.discount || undefined,
 									currency,
 									issueDate,
 									dueDate,
-									sentAt: undefined, // Not sending email, so no sentAt
 									fromDetails,
 									customerDetails,
 									paymentDetails: {
 										...paymentDetails,
 										qrCodeDataUrl,
 									},
-									noteDetails: undefined,
 									template: {
 										logoUrl: companyLogoUrl,
 									},
-									topBlock: undefined,
-									bottomBlock: undefined,
 									createdBy: session.user!.id,
 									updatedBy: session.user!.id,
-									createdAt: new Date(),
-									updatedAt: new Date(),
-								};
-
-								// Create invoice
-								await tx.invoice.create({
-									data: invoiceData,
+									createdAt: invoiceNow,
+									updatedAt: invoiceNow,
 								});
 
-								// Create line items
 								for (const item of lineItems) {
-									await tx.invoiceLineItem.create({
-										data: {
-											id: item.id,
-											invoiceId: newInvoiceId,
-											position: item.position,
-											name: item.name,
-											description: item.description,
-											quantity: item.quantity,
-											unit: item.unit,
-											price: item.price,
-											discount: item.discount,
-											total: item.total,
-											metadata: item.metadata,
-											createdAt: new Date(),
-											updatedAt: new Date(),
-										},
+									await tx.insert(invoiceLineItem).values({
+										id: item.id,
+										invoiceId: newInvoiceId,
+										position: item.position,
+										name: item.name,
+										description: item.description,
+										quantity: item.quantity,
+										unit: item.unit,
+										price: item.price,
+										discount: item.discount,
+										total: item.total,
+										metadata: item.metadata,
+										createdAt: invoiceNow,
+										updatedAt: invoiceNow,
 									});
 								}
 
-								// Log invoice activity
-								await tx.invoiceActivityLog.create({
-									data: {
-										id: crypto.randomUUID(),
-										invoiceId: newInvoiceId,
-										userId: session.user!.id,
-										action: "CREATE",
-										description: "Auto-generated invoice from order",
-										metadata: {
-											orderId: result.order.id,
-											orderNumber: result.order.orderNumber,
-										},
-										createdAt: new Date(),
+								await tx.insert(invoiceActivityLog).values({
+									id: crypto.randomUUID(),
+									invoiceId: newInvoiceId,
+									userId: session.user!.id,
+									action: "CREATE",
+									description: "Auto-generated invoice from order",
+									metadata: {
+										orderId: result.order.id,
+										orderNumber: result.order.orderNumber,
 									},
+									createdAt: invoiceNow,
 								});
 
-								// Link invoice to order
-								await tx.order.update({
-									where: { id: result.order.id },
-									data: {
+								await tx
+									.update(orderTable)
+									.set({
 										invoiceNumber: generatedInvoiceNumber,
 										invoiceId: newInvoiceId,
-									},
-								});
+									})
+									.where(eq(orderTable.id, result.order.id));
 							});
 
 							invoiceCreated = true;
@@ -2259,18 +2292,20 @@ export const ordersRouter = router({
 				}
 
 				// Fetch order items with plan details (used for both email and status reporting)
-				const orderItemsForStatus = await prisma.orderItem.findMany({
-					where: { orderId: result.order.id },
-					include: {
+				const orderItemsForStatus = await db.query.orderItem.findMany({
+					where: eq(orderItem.orderId, result.order.id),
+					with: {
 						niscServicePlan: true,
 					},
 				});
 
 				// Send order confirmation email if billing settings exist
 				try {
-					const billingSettings = await prisma.teamBillingSettings.findUnique({
-						where: { teamId: input.teamId },
-					});
+					const [billingSettings] = await db
+						.select()
+						.from(teamBillingSettings)
+						.where(eq(teamBillingSettings.teamId, input.teamId))
+						.limit(1);
 
 					if (billingSettings && billingSettings.billingEmail) {
 						// Import email utilities
@@ -2365,7 +2400,7 @@ export const ordersRouter = router({
 				const orderItemStatuses = orderItemsForStatus.map((item) => ({
 					planName: item.niscServicePlan?.name || "Unknown",
 					planType: item.niscServicePlan?.planType || "Unknown",
-					status: item.status,
+					status: item.status as z.infer<typeof orderItemStatusSchema>,
 					provisioningError: item.provisioningError,
 					domainName: item.domainName,
 				}));
@@ -2375,6 +2410,8 @@ export const ordersRouter = router({
 					order: {
 						...result.order,
 						domainId: result.order.domainId ?? null,
+						type: result.order.type as z.infer<typeof orderTypeSchema>,
+						status: result.order.status as z.infer<typeof orderStatusSchema>,
 					},
 					orderItems: orderItemsWithDetails,
 					message: invoiceCreated
@@ -2428,14 +2465,11 @@ export const ordersRouter = router({
 			}
 
 			// Check if order exists
-			const order = await prisma.order.findUnique({
-				where: { id: input.orderId },
-				include: {
+			const order = await db.query.order.findFirst({
+				where: eq(orderTable.id, input.orderId),
+				with: {
 					team: {
-						select: {
-							id: true,
-							name: true,
-						},
+						columns: { id: true, name: true },
 					},
 				},
 			});
@@ -2449,9 +2483,9 @@ export const ordersRouter = router({
 
 			// Prevent deletion of completed orders that have active subscriptions
 			if (order.status === "COMPLETED" && order.hostingSubscriptionId) {
-				const subscription = await prisma.hostingSubscription.findUnique({
-					where: { id: order.hostingSubscriptionId },
-					select: { status: true },
+				const subscription = await db.query.hostingSubscription.findFirst({
+					columns: { status: true },
+					where: eq(hostingSubscription.id, order.hostingSubscriptionId),
 				});
 
 				if (subscription && subscription.status === "ACTIVE") {
@@ -2465,89 +2499,78 @@ export const ordersRouter = router({
 			const now = new Date();
 
 			// Log order deletion attempt - UserActivityLog
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: session.user.id,
-					action: "ORDER_DELETION_STARTED",
-					description: `Starting deletion of order ${order.orderNumber}`,
-					metadata: {
-						orderId: order.id,
-						orderNumber: order.orderNumber,
-						orderType: order.type,
-						orderStatus: order.status,
-						teamId: order.teamId,
-						teamName: order.team?.name,
-					},
-					createdAt: now,
+			await db.insert(userActivityLog).values({
+				id: crypto.randomUUID(),
+				userId: session.user.id,
+				action: "ORDER_DELETION_STARTED",
+				description: `Starting deletion of order ${order.orderNumber}`,
+				metadata: {
+					orderId: order.id,
+					orderNumber: order.orderNumber,
+					orderType: order.type,
+					orderStatus: order.status,
+					teamId: order.teamId,
+					teamName: order.team?.name,
 				},
+				createdAt: now,
 			});
 
 			// Log order deletion - OrderActivityLog (before deletion so orderId still exists)
-			await prisma.orderActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					orderId: order.id,
-					userId: session.user.id,
-					action: "DELETE",
-					description: `Order ${order.orderNumber} deleted by admin`,
-					metadata: {
-						orderNumber: order.orderNumber,
-						orderType: order.type,
-						orderStatus: order.status,
-						teamId: order.teamId,
-						teamName: order.team?.name,
-						deletedBy: session.user.id,
-						deletedByEmail: session.user.email,
-						hostingSubscriptionId: order.hostingSubscriptionId,
-					},
-					createdAt: now,
+			await db.insert(orderActivityLog).values({
+				id: crypto.randomUUID(),
+				orderId: order.id,
+				userId: session.user.id,
+				action: "DELETE",
+				description: `Order ${order.orderNumber} deleted by admin`,
+				metadata: {
+					orderNumber: order.orderNumber,
+					orderType: order.type,
+					orderStatus: order.status,
+					teamId: order.teamId,
+					teamName: order.team?.name,
+					deletedBy: session.user.id,
+					deletedByEmail: session.user.email,
+					hostingSubscriptionId: order.hostingSubscriptionId,
 				},
+				createdAt: now,
 			});
 
 			// If order has a hosting subscription, log subscription-related activity
 			if (order.hostingSubscriptionId) {
-				const subscription = await prisma.hostingSubscription.findUnique({
-					where: { id: order.hostingSubscriptionId },
-					select: { id: true, status: true, pleskName: true },
+				const subscription = await db.query.hostingSubscription.findFirst({
+					columns: { id: true, status: true, pleskName: true },
+					where: eq(hostingSubscription.id, order.hostingSubscriptionId),
 				});
 
 				if (subscription) {
 					// Log subscription impact in HostingSubscriptionActivityLog
-					await prisma.hostingSubscriptionActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							hostingSubscriptionId: subscription.id,
-							userId: session.user.id,
-							action: "ORDER_DELETED",
-							description: `Order ${order.orderNumber} deleted - associated subscription may be affected`,
-							metadata: {
-								orderId: order.id,
-								orderNumber: order.orderNumber,
-								subscriptionStatus: subscription.status,
-								deletedBy: session.user.id,
-							},
-							createdAt: now,
+					await db.insert(hostingSubscriptionActivityLog).values({
+						id: crypto.randomUUID(),
+						hostingSubscriptionId: subscription.id,
+						userId: session.user.id,
+						action: "ORDER_DELETED",
+						description: `Order ${order.orderNumber} deleted - associated subscription may be affected`,
+						metadata: {
+							orderId: order.id,
+							orderNumber: order.orderNumber,
+							subscriptionStatus: subscription.status,
+							deletedBy: session.user.id,
 						},
+						createdAt: now,
 					});
 				}
 			}
 
 			// Batch: Delete order and log activity in a transaction
 			// This reduces connection usage from 2 sequential queries to 1 transaction
-			await prisma.$transaction(async (tx) => {
-				// Delete order (cascade will handle related records like activity logs)
-				await tx.order.delete({
-					where: { id: input.orderId },
-				});
+			await db.transaction(async (tx) => {
+				await tx.delete(orderTable).where(eq(orderTable.id, input.orderId));
 
-				// Log order deletion completion - UserActivityLog
-				await tx.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: session.user!.id,
-						action: "ORDER_DELETED",
-						description: `Order ${order.orderNumber} deleted successfully by admin`,
+				await tx.insert(userActivityLog).values({
+					id: crypto.randomUUID(),
+					userId: session.user!.id,
+					action: "ORDER_DELETED",
+					description: `Order ${order.orderNumber} deleted successfully by admin`,
 					metadata: {
 						orderId: order.id,
 						orderNumber: order.orderNumber,
@@ -2557,10 +2580,9 @@ export const ordersRouter = router({
 						teamName: order.team?.name,
 						deletedBy: session.user!.id,
 						deletedByEmail: session.user!.email,
-							hostingSubscriptionId: order.hostingSubscriptionId,
-						},
-						createdAt: now,
+						hostingSubscriptionId: order.hostingSubscriptionId,
 					},
+					createdAt: now,
 				});
 			});
 

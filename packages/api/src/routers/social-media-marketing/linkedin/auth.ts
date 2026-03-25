@@ -1,9 +1,14 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { and, desc, eq } from "drizzle-orm";
 import { router, protectedProcedure } from '../../../trpc';
 import { LinkedInApiError } from '../../../lib/linkedin-client';
 import { LinkedInErrorHandler } from '../../../lib/linkedin-error-handler';
-import prisma from '@nPanel/db';
+import { db } from "@npanel/db";
+import {
+	socialMediaIntegration,
+	socialMediaIntegrationActivityLog,
+} from "@npanel/db/schema/social-media-marketing";
 import { request } from 'undici';
 import { randomUUID } from 'node:crypto';
 
@@ -214,10 +219,8 @@ export const linkedinAuthRouter = router({
 				}
 
 				// Check if integration already exists (only one global integration)
-				const existingIntegration = await prisma.socialMediaIntegration.findFirst({
-					where: {
-						platform: LINKEDIN_PLATFORM,
-					},
+				const existingIntegration = await db.query.socialMediaIntegration.findFirst({
+					where: eq(socialMediaIntegration.platform, LINKEDIN_PLATFORM),
 				});
 
 				let integrationId: string;
@@ -226,9 +229,9 @@ export const linkedinAuthRouter = router({
 
 				if (existingIntegration) {
 					// Update existing integration
-					await prisma.socialMediaIntegration.update({
-						where: { id: existingIntegration.id },
-						data: {
+					await db
+						.update(socialMediaIntegration)
+						.set({
 							userId, // Update userId if different user reconnects
 							accessToken: tokenResponse.access_token,
 							refreshToken: tokenResponse.refresh_token,
@@ -238,14 +241,14 @@ export const linkedinAuthRouter = router({
 							status: ACTIVE_STATUS,
 							lastTokenRefreshAt: now,
 							updatedAt: now,
-						},
-					});
+						})
+						.where(eq(socialMediaIntegration.id, existingIntegration.id));
 					integrationId = existingIntegration.id;
 				} else {
 					// Create new integration
-					const newIntegration = await prisma.socialMediaIntegration.create({
-						data: {
-							id: `linkedin_${Date.now()}`,
+					const newIntegrationId = `linkedin_${Date.now()}`;
+					await db.insert(socialMediaIntegration).values({
+							id: newIntegrationId,
 							platform: LINKEDIN_PLATFORM,
 							userId,
 							accessToken: tokenResponse.access_token,
@@ -256,14 +259,12 @@ export const linkedinAuthRouter = router({
 							status: ACTIVE_STATUS,
 							createdAt: now,
 							updatedAt: now,
-						},
 					});
-					integrationId = newIntegration.id;
+					integrationId = newIntegrationId;
 				}
 
 				// Log activity
-				await prisma.socialMediaIntegrationActivityLog.create({
-					data: {
+				await db.insert(socialMediaIntegrationActivityLog).values({
 						id: randomUUID(),
 						integrationId,
 						userId,
@@ -279,8 +280,9 @@ export const linkedinAuthRouter = router({
 							expiresIn: tokenResponse.expires_in,
 							userInfo,
 						},
+						ipAddress: null,
+						userAgent: null,
 						createdAt: now,
-					},
 				});
 
 				return {
@@ -378,11 +380,11 @@ export const linkedinAuthRouter = router({
 				refreshExpiresAt.setDate(refreshExpiresAt.getDate() + 60);
 
 				// Get the integration
-				const integration = await prisma.socialMediaIntegration.findFirst({
-					where: {
-						platform: LINKEDIN_PLATFORM,
-						status: ACTIVE_STATUS,
-					},
+				const integration = await db.query.socialMediaIntegration.findFirst({
+					where: and(
+						eq(socialMediaIntegration.platform, LINKEDIN_PLATFORM),
+						eq(socialMediaIntegration.status, ACTIVE_STATUS),
+					),
 				});
 
 				if (!integration) {
@@ -394,21 +396,20 @@ export const linkedinAuthRouter = router({
 
 				// Update integration with new tokens
 				const now = new Date();
-				await prisma.socialMediaIntegration.update({
-					where: { id: integration.id },
-					data: {
+				await db
+					.update(socialMediaIntegration)
+					.set({
 						accessToken: tokenResponse.access_token,
 						refreshToken: tokenResponse.refresh_token,
 						accessTokenExpiresAt: expiresAt,
 						refreshTokenExpiresAt: refreshExpiresAt,
 						lastTokenRefreshAt: now,
 						updatedAt: now,
-					},
-				});
+					})
+					.where(eq(socialMediaIntegration.id, integration.id));
 
 				// Log activity
-				await prisma.socialMediaIntegrationActivityLog.create({
-					data: {
+				await db.insert(socialMediaIntegrationActivityLog).values({
 						id: randomUUID(),
 						integrationId: integration.id,
 						userId,
@@ -420,8 +421,9 @@ export const linkedinAuthRouter = router({
 							refreshExpiresAt: refreshExpiresAt.toISOString(),
 							expiresIn: tokenResponse.expires_in,
 						},
+						ipAddress: null,
+						userAgent: null,
 						createdAt: now,
-					},
 				});
 
 				return {
@@ -541,13 +543,9 @@ export const linkedinAuthRouter = router({
 	 */
 	getStoredCredentials: protectedProcedure.query(async () => {
 		try {
-			const integration = await prisma.socialMediaIntegration.findFirst({
-				where: {
-					platform: LINKEDIN_PLATFORM,
-				},
-				orderBy: {
-					createdAt: 'desc',
-				},
+			const integration = await db.query.socialMediaIntegration.findFirst({
+				where: eq(socialMediaIntegration.platform, LINKEDIN_PLATFORM),
+				orderBy: [desc(socialMediaIntegration.createdAt)],
 			});
 
 			if (!integration) {

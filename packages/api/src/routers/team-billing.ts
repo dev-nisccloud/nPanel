@@ -1,8 +1,16 @@
+import * as crypto from "node:crypto";
 import { router, protectedProcedure } from "../trpc";
 import { z } from "zod";
-import prisma from "@nPanel/db";
-import * as crypto from "crypto";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import {
+	team,
+	teamBillingSettings,
+	teamBillingSettingsActivityLog,
+	teamMember,
+} from "@npanel/db/schema/teams";
 
 const billingSettingsBaseSchema = z.object({
 	legalName: z.string().min(1, "Legal name is required"),
@@ -82,21 +90,24 @@ const isBillingSettingsComplete = (
  * Get authenticated user - optimized to use session role when available
  * Falls back to database query if role not in session
  */
-const getAuthenticatedUser = async (session: { user?: { id?: string; role?: string } } | null) => {
+const getAuthenticatedUser = async (
+	session: { user?: { id?: string; role?: string | null | undefined } } | null,
+) => {
 	if (!session?.user?.id) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 
 	// Optimize: Use role from session if available (set by auth hooks)
 	// This avoids unnecessary database queries
-	const sessionRole = session.user.role;
-	
+	const sessionRole = session.user.role ?? undefined;
+
 	if (sessionRole) {
 		// Role is in session, only need to verify user exists
-		const dbUser = await prisma.user.findUnique({
-			where: { id: session.user.id },
-			select: { id: true },
-		});
+		const [dbUser] = await db
+			.select({ id: user.id })
+			.from(user)
+			.where(eq(user.id, session.user.id))
+			.limit(1);
 
 		if (!dbUser) {
 			throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -106,10 +117,11 @@ const getAuthenticatedUser = async (session: { user?: { id?: string; role?: stri
 	}
 
 	// Fallback: Query database for role if not in session
-	const dbUser = await prisma.user.findUnique({
-		where: { id: session.user.id },
-		select: { id: true, role: true },
-	});
+	const [dbUser] = await db
+		.select({ id: user.id, role: user.role })
+		.from(user)
+		.where(eq(user.id, session.user.id))
+		.limit(1);
 
 	if (!dbUser) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -122,10 +134,10 @@ const isAgencyUser = (role: string) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 
 const getAccessibleTeamIds = async (userId: string) => {
-	const memberships = await prisma.teamMember.findMany({
-		where: { userId },
-		select: { teamId: true },
-	});
+	const memberships = await db
+		.select({ teamId: teamMember.teamId })
+		.from(teamMember)
+		.where(eq(teamMember.userId, userId));
 
 	return memberships.map((membership) => membership.teamId);
 };
@@ -135,10 +147,11 @@ const ensureTeamAccess = async (teamId: string, userId: string, role: string) =>
 		return;
 	}
 
-	const membership = await prisma.teamMember.findFirst({
-		where: { teamId, userId },
-		select: { id: true },
-	});
+	const [membership] = await db
+		.select({ id: teamMember.id })
+		.from(teamMember)
+		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+		.limit(1);
 
 	if (!membership) {
 		throw new TRPCError({
@@ -148,49 +161,82 @@ const ensureTeamAccess = async (teamId: string, userId: string, role: string) =>
 	}
 };
 
+/** Drizzle relation is `many`; DB enforces one row per team via unique teamId. */
+function firstBillingSettings(
+	settings: (typeof teamBillingSettings.$inferSelect)[] | undefined,
+): (typeof teamBillingSettings.$inferSelect) | null {
+	if (!settings?.length) return null;
+	return settings[0] ?? null;
+}
+
 export const teamBillingRouter = router({
 	listTeams: protectedProcedure.output(listTeamsOutputSchema).query(async ({ ctx }) => {
-		const user = await getAuthenticatedUser(ctx.session);
+		const userRes = await getAuthenticatedUser(ctx.session);
 
 		// For agency users, return all teams regardless of membership or active status
 		// For regular users, only return teams they are members of
-		const isAgency = isAgencyUser(user.role);
-		
-		let whereClause: Record<string, unknown> = {};
-		
+		const isAgency = isAgencyUser(userRes.role);
+
 		if (!isAgency) {
-			const accessibleTeamIds = await getAccessibleTeamIds(user.id);
-			whereClause = {
-				id: { in: accessibleTeamIds },
-			};
+			const accessibleTeamIds = await getAccessibleTeamIds(userRes.id);
+			if (accessibleTeamIds.length === 0) {
+				return listTeamsOutputSchema.parse({ teams: [] });
+			}
+
+			const teamsList = await db.query.team.findMany({
+				where: inArray(team.id, accessibleTeamIds),
+				orderBy: [asc(team.name)],
+				with: {
+					billingSettings: true,
+				},
+			});
+
+			return listTeamsOutputSchema.parse({
+				teams: teamsList.map((t) => {
+					const billing = firstBillingSettings(t.billingSettings);
+					return {
+						id: t.id,
+						name: t.name,
+						slug: t.slug,
+						hasBillingSettings: Boolean(billing),
+						isBillingComplete: isBillingSettingsComplete(billing ?? undefined),
+						billingSettings: billing
+							? billingSettingsOutputSchema.parse({
+									...billing,
+									createdAt: billing.createdAt,
+									updatedAt: billing.updatedAt,
+								})
+							: null,
+					};
+				}),
+			});
 		}
 
-		const teams = await prisma.team.findMany({
-			where: whereClause,
-			select: {
-				id: true,
-				name: true,
-				slug: true,
+		const teamsList = await db.query.team.findMany({
+			orderBy: [asc(team.name)],
+			with: {
 				billingSettings: true,
 			},
-			orderBy: { name: "asc" },
 		});
 
 		return listTeamsOutputSchema.parse({
-			teams: teams.map((team) => ({
-				id: team.id,
-				name: team.name,
-				slug: team.slug,
-				hasBillingSettings: Boolean(team.billingSettings),
-				isBillingComplete: isBillingSettingsComplete(team.billingSettings ?? undefined),
-				billingSettings: team.billingSettings
-					? billingSettingsOutputSchema.parse({
-							...team.billingSettings,
-							createdAt: team.billingSettings.createdAt,
-							updatedAt: team.billingSettings.updatedAt,
-						})
-					: null,
-			})),
+			teams: teamsList.map((t) => {
+				const billing = firstBillingSettings(t.billingSettings);
+				return {
+					id: t.id,
+					name: t.name,
+					slug: t.slug,
+					hasBillingSettings: Boolean(billing),
+					isBillingComplete: isBillingSettingsComplete(billing ?? undefined),
+					billingSettings: billing
+						? billingSettingsOutputSchema.parse({
+								...billing,
+								createdAt: billing.createdAt,
+								updatedAt: billing.updatedAt,
+							})
+						: null,
+				};
+			}),
 		});
 	}),
 
@@ -202,12 +248,14 @@ export const teamBillingRouter = router({
 		)
 		.output(billingSettingsOutputSchema.nullable())
 		.query(async ({ ctx, input }) => {
-			const user = await getAuthenticatedUser(ctx.session);
-			await ensureTeamAccess(input.teamId, user.id, user.role);
+			const userRes = await getAuthenticatedUser(ctx.session);
+			await ensureTeamAccess(input.teamId, userRes.id, userRes.role);
 
-			const settings = await prisma.teamBillingSettings.findUnique({
-				where: { teamId: input.teamId },
-			});
+			const [settings] = await db
+				.select()
+				.from(teamBillingSettings)
+				.where(eq(teamBillingSettings.teamId, input.teamId))
+				.limit(1);
 
 			if (!settings) {
 				return null;
@@ -220,12 +268,14 @@ export const teamBillingRouter = router({
 		.input(billingSettingsInputSchema)
 		.output(billingSettingsOutputSchema)
 		.mutation(async ({ ctx, input }) => {
-			const user = await getAuthenticatedUser(ctx.session);
-			await ensureTeamAccess(input.teamId, user.id, user.role);
+			const userRes = await getAuthenticatedUser(ctx.session);
+			await ensureTeamAccess(input.teamId, userRes.id, userRes.role);
 
-			const existing = await prisma.teamBillingSettings.findUnique({
-				where: { teamId: input.teamId },
-			});
+			const [existing] = await db
+				.select()
+				.from(teamBillingSettings)
+				.where(eq(teamBillingSettings.teamId, input.teamId))
+				.limit(1);
 
 			const now = new Date();
 			const data = {
@@ -240,55 +290,67 @@ export const teamBillingRouter = router({
 				postalCode: input.postalCode ?? null,
 				taxId: input.taxId ?? null,
 				additionalNotes: input.additionalNotes ?? null,
-				updatedBy: user.id,
+				updatedBy: userRes.id,
 				updatedAt: now,
 			};
 
-			const result = await prisma.$transaction(async (tx) => {
+			const result = await db.transaction(async (tx) => {
 				if (existing) {
-					const updated = await tx.teamBillingSettings.update({
-						where: { id: existing.id },
-						data,
-					});
+					const [updated] = await tx
+						.update(teamBillingSettings)
+						.set(data)
+						.where(eq(teamBillingSettings.id, existing.id))
+						.returning();
 
-					await tx.teamBillingSettingsActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							teamBillingSettingsId: existing.id,
-							userId: user.id,
-							action: "UPDATE",
-							description: "Updated team billing settings",
-							// metadata omitted - use undefined for optional Json fields
-							ipAddress: null,
-							userAgent: null,
-							createdAt: now,
-						},
+					if (!updated) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to update billing settings",
+						});
+					}
+
+					await tx.insert(teamBillingSettingsActivityLog).values({
+						id: crypto.randomUUID(),
+						teamBillingSettingsId: existing.id,
+						userId: userRes.id,
+						action: "UPDATE",
+						description: "Updated team billing settings",
+						metadata: null,
+						ipAddress: null,
+						userAgent: null,
+						createdAt: now,
 					});
 
 					return updated;
 				}
 
-				const created = await tx.teamBillingSettings.create({
-					data: {
+				const [created] = await tx
+					.insert(teamBillingSettings)
+					.values({
 						id: crypto.randomUUID(),
 						teamId: input.teamId,
 						createdAt: now,
 						...data,
-					},
-				});
+					})
+					.returning();
 
-				await tx.teamBillingSettingsActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						teamBillingSettingsId: created.id,
-						userId: user.id,
-						action: "CREATE",
-						description: "Created team billing settings",
-						// metadata omitted - use undefined for optional Json fields
-						ipAddress: null,
-						userAgent: null,
-						createdAt: now,
-					},
+				if (!created) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create billing settings",
+					});
+				}
+
+				await tx.insert(teamBillingSettingsActivityLog).values({
+					id: crypto.randomUUID(),
+					teamBillingSettingsId: created.id,
+					userId: userRes.id,
+					action: "CREATE",
+					description: "Created team billing settings",
+					metadata: null,
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
 
 				return created;
@@ -305,22 +367,24 @@ export const teamBillingRouter = router({
 		)
 		.output(z.array(billingSettingsActivityLogSchema))
 		.query(async ({ ctx, input }) => {
-			const user = await getAuthenticatedUser(ctx.session);
-			await ensureTeamAccess(input.teamId, user.id, user.role);
+			const userRes = await getAuthenticatedUser(ctx.session);
+			await ensureTeamAccess(input.teamId, userRes.id, userRes.role);
 
-			const settings = await prisma.teamBillingSettings.findUnique({
-				where: { teamId: input.teamId },
-				select: { id: true },
-			});
+			const [settings] = await db
+				.select({ id: teamBillingSettings.id })
+				.from(teamBillingSettings)
+				.where(eq(teamBillingSettings.teamId, input.teamId))
+				.limit(1);
 
 			if (!settings) {
 				return [];
 			}
 
-			const logs = await prisma.teamBillingSettingsActivityLog.findMany({
-				where: { teamBillingSettingsId: settings.id },
-				orderBy: { createdAt: "desc" },
-			});
+			const logs = await db
+				.select()
+				.from(teamBillingSettingsActivityLog)
+				.where(eq(teamBillingSettingsActivityLog.teamBillingSettingsId, settings.id))
+				.orderBy(desc(teamBillingSettingsActivityLog.createdAt));
 
 			return logs.map((log) =>
 				billingSettingsActivityLogSchema.parse({
@@ -341,13 +405,14 @@ export const teamBillingRouter = router({
 		)
 		.output(z.object({ success: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
-			const user = await getAuthenticatedUser(ctx.session);
-			await ensureTeamAccess(input.teamId, user.id, user.role);
+			const userRes = await getAuthenticatedUser(ctx.session);
+			await ensureTeamAccess(input.teamId, userRes.id, userRes.role);
 
-			const settings = await prisma.teamBillingSettings.findUnique({
-				where: { teamId: input.teamId },
-				select: { id: true },
-			});
+			const [settings] = await db
+				.select({ id: teamBillingSettings.id })
+				.from(teamBillingSettings)
+				.where(eq(teamBillingSettings.teamId, input.teamId))
+				.limit(1);
 
 			if (!settings) {
 				throw new TRPCError({
@@ -358,27 +423,22 @@ export const teamBillingRouter = router({
 
 			const now = new Date();
 
-			await prisma.$transaction(async (tx) => {
-				await tx.teamBillingSettingsActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						teamBillingSettingsId: settings.id,
-						userId: user.id,
-						action: "DELETE",
-						description: "Deleted team billing settings",
-						// metadata omitted - use undefined for optional Json fields
-						ipAddress: null,
-						userAgent: null,
-						createdAt: now,
-					},
+			await db.transaction(async (tx) => {
+				await tx.insert(teamBillingSettingsActivityLog).values({
+					id: crypto.randomUUID(),
+					teamBillingSettingsId: settings.id,
+					userId: userRes.id,
+					action: "DELETE",
+					description: "Deleted team billing settings",
+					metadata: null,
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
 
-				await tx.teamBillingSettings.delete({
-					where: { id: settings.id },
-				});
+				await tx.delete(teamBillingSettings).where(eq(teamBillingSettings.id, settings.id));
 			});
 
 			return { success: true };
 		}),
 });
-

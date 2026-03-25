@@ -1,7 +1,10 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../../trpc";
-import prisma from "@nPanel/db";
+import { and, count, desc, eq, sql } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { emailCampaign, campaignRecipient, emailEvent } from "@npanel/db/schema/email-marketing";
+import { teamMember } from "@npanel/db/schema/teams";
+import { z } from "zod";
+import { protectedProcedure, router } from "../../trpc";
 import {
 	emailEventListFiltersSchema,
 	emailEventDetailSchema,
@@ -13,6 +16,57 @@ import {
 	emailGlobalEventsInputSchema,
 	emailGlobalEventsResponseSchema,
 } from "./schemas";
+
+async function assertTeamMember(teamId: string, userId: string) {
+	const [member] = await db
+		.select({ id: teamMember.id })
+		.from(teamMember)
+		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+		.limit(1);
+	return member ?? null;
+}
+
+async function assertCampaignAccess(campaignId: string, userId: string) {
+	const [campaign] = await db
+		.select({ id: emailCampaign.id, userId: emailCampaign.userId, teamId: emailCampaign.teamId })
+		.from(emailCampaign)
+		.where(eq(emailCampaign.id, campaignId))
+		.limit(1);
+	if (!campaign) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+	}
+	if (campaign.userId === userId) return campaign;
+	if (campaign.teamId) {
+		const member = await assertTeamMember(campaign.teamId, userId);
+		if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+		return campaign;
+	}
+	throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
+
+async function assertRecipientAccess(recipientId: string, userId: string) {
+	const [row] = await db
+		.select({
+			id: campaignRecipient.id,
+			campaignId: campaignRecipient.campaignId,
+			campaignUserId: emailCampaign.userId,
+			campaignTeamId: emailCampaign.teamId,
+		})
+		.from(campaignRecipient)
+		.innerJoin(emailCampaign, eq(campaignRecipient.campaignId, emailCampaign.id))
+		.where(eq(campaignRecipient.id, recipientId))
+		.limit(1);
+	if (!row) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Recipient not found" });
+	}
+	if (row.campaignUserId === userId) return row;
+	if (row.campaignTeamId) {
+		const member = await assertTeamMember(row.campaignTeamId, userId);
+		if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+		return row;
+	}
+	throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
 
 export const emailMarketingEmailEventsRouter = router({
 	getGlobalEvents: protectedProcedure
@@ -35,27 +89,17 @@ export const emailMarketingEmailEventsRouter = router({
 				});
 			}
 
-			const where: {
-				eventCreatedAt?: {
-					gte?: Date;
-					lte?: Date;
-				};
-			} = {};
+			const conditions = [];
+			if (input.from) conditions.push(sql`${emailEvent.eventCreatedAt} >= ${input.from}`);
+			if (input.to) conditions.push(sql`${emailEvent.eventCreatedAt} <= ${input.to}`);
+			const whereClause =
+				conditions.length > 0 ? and(...conditions) : sql`true`;
 
-			if (input.from || input.to) {
-				where.eventCreatedAt = {};
-				if (input.from) where.eventCreatedAt.gte = input.from;
-				if (input.to) where.eventCreatedAt.lte = input.to;
-			}
-
-			const events = await prisma.emailEvent.findMany({
-				where,
-				select: {
-					type: true,
-					eventCreatedAt: true,
-				},
-				orderBy: { eventCreatedAt: "asc" },
-			});
+			const events = await db
+				.select({ type: emailEvent.type, eventCreatedAt: emailEvent.eventCreatedAt })
+				.from(emailEvent)
+				.where(whereClause)
+				.orderBy(emailEvent.eventCreatedAt);
 
 			return emailGlobalEventsResponseSchema.parse(events);
 		}),
@@ -71,16 +115,26 @@ export const emailMarketingEmailEventsRouter = router({
 				});
 			}
 
-			const event = await prisma.emailEvent.findUnique({
-				where: { id: input.id },
-				include: {
-					campaignRecipient: {
-						include: {
-							campaign: true,
-						},
-					},
-				},
-			});
+			const [event] = await db
+				.select({
+					id: emailEvent.id,
+					campaignRecipientId: emailEvent.campaignRecipientId,
+					type: emailEvent.type,
+					eventCreatedAt: emailEvent.eventCreatedAt,
+					resendEmailId: emailEvent.resendEmailId,
+					data: emailEvent.data,
+					createdAt: emailEvent.createdAt,
+					campaignUserId: emailCampaign.userId,
+					campaignTeamId: emailCampaign.teamId,
+				})
+				.from(emailEvent)
+				.innerJoin(
+					campaignRecipient,
+					eq(emailEvent.campaignRecipientId, campaignRecipient.id),
+				)
+				.innerJoin(emailCampaign, eq(campaignRecipient.campaignId, emailCampaign.id))
+				.where(eq(emailEvent.id, input.id))
+				.limit(1);
 
 			if (!event) {
 				throw new TRPCError({
@@ -89,25 +143,12 @@ export const emailMarketingEmailEventsRouter = router({
 				});
 			}
 
-			const campaign = event.campaignRecipient.campaign;
-			if (campaign.userId !== userId) {
-				if (campaign.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: campaign.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
+			if (event.campaignUserId !== userId) {
+				if (event.campaignTeamId) {
+					const member = await assertTeamMember(event.campaignTeamId, userId);
+					if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
 				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
+					throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
 				}
 			}
 
@@ -129,24 +170,7 @@ export const emailMarketingEmailEventsRouter = router({
 				});
 			}
 
-			const where: {
-				campaignRecipientId?: string;
-				campaignRecipient?: { campaignId: string };
-				type?: "email_bounced" | "email_clicked" | "email_complained" | "email_delivered" | "email_delivery_delayed" | "email_failed" | "email_opened" | "email_received" | "email_scheduled" | "email_sent" | "email_suppressed";
-			} = {};
-
-			if (input.campaignRecipientId) {
-				where.campaignRecipientId = input.campaignRecipientId;
-			}
-			if (input.campaignId) {
-				where.campaignRecipient = { campaignId: input.campaignId };
-			}
-			if (input.type) {
-				where.type = input.type;
-			}
-
-			// Must filter by at least one of campaignRecipientId or campaignId
-			if (!where.campaignRecipientId && !where.campaignRecipient) {
+			if (!input.campaignRecipientId && !input.campaignId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Provide campaignRecipientId or campaignId",
@@ -155,94 +179,59 @@ export const emailMarketingEmailEventsRouter = router({
 
 			// Access check: ensure user can see the campaign
 			if (input.campaignId) {
-				const campaign = await prisma.emailCampaign.findUnique({
-					where: { id: input.campaignId },
-				});
-				if (!campaign) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Campaign not found",
-					});
-				}
-				if (campaign.userId !== userId) {
-					if (campaign.teamId) {
-						const member = await prisma.teamMember.findUnique({
-							where: {
-								teamId_userId: { teamId: campaign.teamId, userId },
-							},
-						});
-						if (!member) {
-							throw new TRPCError({
-								code: "FORBIDDEN",
-								message: "Access denied",
-							});
-						}
-					} else {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				}
+				await assertCampaignAccess(input.campaignId, userId);
 			}
 			if (input.campaignRecipientId) {
-				const recipient = await prisma.campaignRecipient.findUnique({
-					where: { id: input.campaignRecipientId },
-					include: { campaign: true },
-				});
-				if (!recipient) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Recipient not found",
-					});
-				}
-				const c = recipient.campaign;
-				if (c.userId !== userId) {
-					if (c.teamId) {
-						const member = await prisma.teamMember.findUnique({
-							where: {
-								teamId_userId: { teamId: c.teamId, userId },
-							},
-						});
-						if (!member) {
-							throw new TRPCError({
-								code: "FORBIDDEN",
-								message: "Access denied",
-							});
-						}
-					} else {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				}
+				await assertRecipientAccess(input.campaignRecipientId, userId);
 			}
 
-			const [events, total] = await Promise.all([
-				prisma.emailEvent.findMany({
-					where,
-					skip: input.offset,
-					take: input.limit,
-					orderBy: { eventCreatedAt: "desc" },
-					include:
-						input.campaignId
-							? { campaignRecipient: { select: { toEmail: true } } }
-							: undefined,
-				}),
-				prisma.emailEvent.count({ where }),
+			const conditions = [];
+			if (input.campaignRecipientId) {
+				conditions.push(eq(emailEvent.campaignRecipientId, input.campaignRecipientId));
+			}
+			if (input.campaignId) {
+				conditions.push(eq(campaignRecipient.campaignId, input.campaignId));
+			}
+			if (input.type) {
+				conditions.push(eq(emailEvent.type, input.type));
+			}
+
+			const whereClause = and(...conditions);
+
+			const [events, totalRes] = await Promise.all([
+				db
+					.select({
+						id: emailEvent.id,
+						campaignRecipientId: emailEvent.campaignRecipientId,
+						type: emailEvent.type,
+						eventCreatedAt: emailEvent.eventCreatedAt,
+						resendEmailId: emailEvent.resendEmailId,
+						data: emailEvent.data,
+						createdAt: emailEvent.createdAt,
+						recipientEmail: campaignRecipient.toEmail,
+					})
+					.from(emailEvent)
+					.innerJoin(
+						campaignRecipient,
+						eq(emailEvent.campaignRecipientId, campaignRecipient.id),
+					)
+					.where(whereClause)
+					.orderBy(desc(emailEvent.eventCreatedAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ value: count() })
+					.from(emailEvent)
+					.innerJoin(
+						campaignRecipient,
+						eq(emailEvent.campaignRecipientId, campaignRecipient.id),
+					)
+					.where(whereClause),
 			]);
 
-			type EventWithRecipient = (typeof events)[number] & {
-				campaignRecipient?: { toEmail: string } | null;
-			};
+			const total = Number(totalRes[0]?.value ?? 0);
 			return emailEventListResponseSchema.parse({
 				events: events.map((e) => {
-					const rec = (e as EventWithRecipient).campaignRecipient;
-					const recipientEmail =
-						rec != null && typeof rec === "object" && "toEmail" in rec
-							? (rec as { toEmail: string }).toEmail
-							: undefined;
 					return {
 						id: e.id,
 						campaignRecipientId: e.campaignRecipientId,
@@ -251,7 +240,7 @@ export const emailMarketingEmailEventsRouter = router({
 						resendEmailId: e.resendEmailId ?? null,
 						data: e.data,
 						createdAt: e.createdAt,
-						recipientEmail,
+						recipientEmail: e.recipientEmail ?? undefined,
 					};
 				}),
 				total,
@@ -269,61 +258,59 @@ export const emailMarketingEmailEventsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.emailCampaign.findUnique({
-				where: { id: input.campaignId },
-			});
-			if (!campaign) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Campaign not found",
-				});
-			}
-			if (campaign.userId !== userId) {
-				if (campaign.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: campaign.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
+			await assertCampaignAccess(input.campaignId, userId);
 
-			const baseWhere = { campaignRecipient: { campaignId: input.campaignId } } as const;
-
-			const [grouped, totalRecipients, openedUniqueRows, clickedUniqueRows] = await Promise.all([
-				prisma.emailEvent.groupBy({
-					by: ["type"],
-					where: baseWhere,
-					_count: { id: true },
-				}),
-				prisma.campaignRecipient.count({
-					where: { campaignId: input.campaignId },
-				}),
-				prisma.emailEvent.groupBy({
-					by: ["campaignRecipientId"],
-					where: { ...baseWhere, type: "email_opened" },
-				}),
-				prisma.emailEvent.groupBy({
-					by: ["campaignRecipientId"],
-					where: { ...baseWhere, type: "email_clicked" },
-				}),
-			]);
+			const [grouped, totalRecipientsRes, openedUniqueRows, clickedUniqueRows] =
+				await Promise.all([
+					db
+						.select({ type: emailEvent.type, cnt: count(emailEvent.id).as("cnt") })
+						.from(emailEvent)
+						.innerJoin(
+							campaignRecipient,
+							eq(emailEvent.campaignRecipientId, campaignRecipient.id),
+						)
+						.where(eq(campaignRecipient.campaignId, input.campaignId))
+						.groupBy(emailEvent.type),
+					db
+						.select({ value: count() })
+						.from(campaignRecipient)
+						.where(eq(campaignRecipient.campaignId, input.campaignId)),
+					db
+						.select({ campaignRecipientId: emailEvent.campaignRecipientId })
+						.from(emailEvent)
+						.innerJoin(
+							campaignRecipient,
+							eq(emailEvent.campaignRecipientId, campaignRecipient.id),
+						)
+						.where(
+							and(
+								eq(campaignRecipient.campaignId, input.campaignId),
+								eq(emailEvent.type, "email_opened"),
+							),
+						)
+						.groupBy(emailEvent.campaignRecipientId),
+					db
+						.select({ campaignRecipientId: emailEvent.campaignRecipientId })
+						.from(emailEvent)
+						.innerJoin(
+							campaignRecipient,
+							eq(emailEvent.campaignRecipientId, campaignRecipient.id),
+						)
+						.where(
+							and(
+								eq(campaignRecipient.campaignId, input.campaignId),
+								eq(emailEvent.type, "email_clicked"),
+							),
+						)
+						.groupBy(emailEvent.campaignRecipientId),
+				]);
 
 			const byType: Record<string, number> = {};
 			for (const row of grouped) {
-				byType[row.type] = row._count.id;
+				byType[row.type] = Number((row as any).cnt ?? 0);
 			}
+
+			const totalRecipients = Number(totalRecipientsRes[0]?.value ?? 0);
 
 			return campaignEventSummarySchema.parse({
 				delivered: byType["email_delivered"] ?? 0,
@@ -350,43 +337,21 @@ export const emailMarketingEmailEventsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.emailCampaign.findUnique({
-				where: { id: input.campaignId },
-			});
-			if (!campaign) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Campaign not found",
-				});
-			}
-			if (campaign.userId !== userId) {
-				if (campaign.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: campaign.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
+			await assertCampaignAccess(input.campaignId, userId);
 
-			const clickEvents = await prisma.emailEvent.findMany({
-				where: {
-					type: "email_clicked",
-					campaignRecipient: { campaignId: input.campaignId },
-				},
-				select: { data: true },
-			});
+			const clickEvents = await db
+				.select({ data: emailEvent.data })
+				.from(emailEvent)
+				.innerJoin(
+					campaignRecipient,
+					eq(emailEvent.campaignRecipientId, campaignRecipient.id),
+				)
+				.where(
+					and(
+						eq(emailEvent.type, "email_clicked"),
+						eq(campaignRecipient.campaignId, input.campaignId),
+					),
+				);
 
 			/** Extract clicked URL from Resend webhook data (jsonb). Stored shape: { click: { link: "..." }, to, from, ... } */
 			function getLinkFromEventData(rawData: unknown): string | null {

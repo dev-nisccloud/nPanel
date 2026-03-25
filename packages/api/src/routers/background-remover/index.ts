@@ -1,7 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import Replicate from "replicate";
-import prisma, { Prisma } from "@nPanel/db";
+import { and, count, desc, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import {
+  backgroundRemoverGeneration,
+  backgroundRemoverGenerationActivityLog,
+} from "@npanel/db/schema/image-generator";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
@@ -127,13 +133,15 @@ export const backgroundRemoverRouter = router({
       const userId = ctx.session?.user?.id;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { role: true },
-      });
+      const [currentUser] = await db
+        .select({ role: user.role })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1);
       const isCustomer =
-        user?.role === "CUSTOMER" ||
-        (Array.isArray(user?.role) && (user?.role as string[]).includes("CUSTOMER"));
+        currentUser?.role === "CUSTOMER" ||
+        (Array.isArray(currentUser?.role) &&
+          (currentUser?.role as string[]).includes("CUSTOMER"));
 
       if (isCustomer) {
         if (!input.teamId) {
@@ -161,8 +169,7 @@ export const backgroundRemoverRouter = router({
       const now = new Date();
       const id = randomUUID();
 
-      const generation = await prisma.backgroundRemoverGeneration.create({
-        data: {
+      await db.insert(backgroundRemoverGeneration).values({
           id,
           userId,
           teamId: input.teamId ?? null,
@@ -171,13 +178,13 @@ export const backgroundRemoverRouter = router({
           originalImageFileName: input.originalImageFileName ?? `original-${Date.now()}.png`,
           originalImageSize: input.originalImageSize ?? 0,
           originalImageMimeType: input.originalImageMimeType ?? "image/png",
-          originalImageMetadata: Prisma.JsonNull,
+          originalImageMetadata: null,
           processedImageUrl: null,
           processedImageKey: null,
           processedImageFileName: null,
           processedImageSize: null,
           processedImageMimeType: null,
-          processedImageMetadata: Prisma.JsonNull,
+          processedImageMetadata: null,
           modelId: BACKGROUND_REMOVER_MODEL,
           modelName: "851 Labs Background Remover",
           status: "QUEUED",
@@ -187,30 +194,27 @@ export const backgroundRemoverRouter = router({
           completedAt: null,
           createdAt: now,
           updatedAt: now,
-        },
       });
 
-      const { messageId } = await enqueueBackgroundRemoval(generation.id);
-      await prisma.backgroundRemoverGeneration.update({
-        where: { id: generation.id },
-        data: { qstashMessageId: messageId, updatedAt: new Date() },
-      });
+      const { messageId } = await enqueueBackgroundRemoval(id);
+      await db
+        .update(backgroundRemoverGeneration)
+        .set({ qstashMessageId: messageId, updatedAt: new Date() })
+        .where(eq(backgroundRemoverGeneration.id, id));
 
-      await prisma.backgroundRemoverGenerationActivityLog.create({
-        data: {
+      await db.insert(backgroundRemoverGenerationActivityLog).values({
           id: randomUUID(),
-          backgroundRemoverGenerationId: generation.id,
+          backgroundRemoverGenerationId: id,
           userId,
           action: "GENERATE",
           description: "Background removal job enqueued",
           metadata: { model: BACKGROUND_REMOVER_MODEL, qstashMessageId: messageId },
-          ipAddress: undefined,
-          userAgent: undefined,
+          ipAddress: null,
+          userAgent: null,
           createdAt: new Date(),
-        },
       });
 
-      return { generationId: generation.id, status: "QUEUED" as const };
+      return { generationId: id, status: "QUEUED" as const };
     }),
 
   // Legacy: synchronous remove (deprecated; use startBackgroundRemoval)
@@ -255,22 +259,24 @@ export const backgroundRemoverRouter = router({
             console.warn("Failed to download original image for metadata:", e);
           }
         }
-        const generation = await prisma.backgroundRemoverGeneration.create({
-          data: {
-            id: randomUUID(),
+        const generationId = randomUUID();
+        const originalImageFileName = originalImageData
+          ? `original-${Date.now()}.${originalImageData.contentType.split("/")[1] || "png"}`
+          : `original-${Date.now()}.png`;
+        const processedImageFileName = `background-removed-${Date.now()}.png`;
+        await db.insert(backgroundRemoverGeneration).values({
+            id: generationId,
             userId,
             teamId: input.teamId ?? null,
             originalImageUrl: input.image,
             originalImageKey: "",
-            originalImageFileName: originalImageData
-              ? `original-${Date.now()}.${originalImageData.contentType.split("/")[1] || "png"}`
-              : `original-${Date.now()}.png`,
+            originalImageFileName,
             originalImageSize: originalImageData?.size ?? 0,
             originalImageMimeType: originalImageData?.contentType ?? "image/png",
             originalImageMetadata: originalImageData ? { contentType: originalImageData.contentType, size: originalImageData.size } : undefined,
             processedImageUrl,
             processedImageKey: "",
-            processedImageFileName: `background-removed-${Date.now()}.png`,
+            processedImageFileName,
             processedImageSize: processedImageData.size,
             processedImageMimeType: processedImageData.contentType,
             processedImageMetadata: { model: BACKGROUND_REMOVER_MODEL, contentType: processedImageData.contentType, size: processedImageData.size },
@@ -283,22 +289,23 @@ export const backgroundRemoverRouter = router({
             completedAt: now,
             createdAt: now,
             updatedAt: now,
-          },
         });
-        await prisma.backgroundRemoverGenerationActivityLog.create({
-          data: {
+        await db.insert(backgroundRemoverGenerationActivityLog).values({
             id: randomUUID(),
-            backgroundRemoverGenerationId: generation.id,
+            backgroundRemoverGenerationId: generationId,
             userId,
             action: "GENERATE",
-            description: "Removed background from image (sync)",
-            metadata: { originalImageFileName: generation.originalImageFileName, processedImageFileName: generation.processedImageFileName, model: BACKGROUND_REMOVER_MODEL },
-            ipAddress,
-            userAgent,
+            description: "Removed background from image (sync)",            
+            metadata: {
+              originalImageFileName,
+              processedImageFileName,
+              model: BACKGROUND_REMOVER_MODEL,
+            },
+            ipAddress: ipAddress ?? null,
+            userAgent: userAgent ?? null,
             createdAt: now,
-          },
         });
-        return { data: processedImageUrl, generationId: generation.id };
+        return { data: processedImageUrl, generationId };
       } catch (error) {
         console.error("Error removing background:", error);
         throw new TRPCError({
@@ -319,21 +326,25 @@ export const backgroundRemoverRouter = router({
       }
 
       // Verify ownership
-      const generation = await prisma.backgroundRemoverGeneration.findFirst({
-        where: {
-          id: input.generationId,
-          userId,
-        },
-      });
+      const [generation] = await db
+        .select({ id: backgroundRemoverGeneration.id })
+        .from(backgroundRemoverGeneration)
+        .where(
+          and(
+            eq(backgroundRemoverGeneration.id, input.generationId),
+            eq(backgroundRemoverGeneration.userId, userId),
+          ),
+        )
+        .limit(1);
 
       if (!generation) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
       }
 
       // Update with UploadThing data
-      await prisma.backgroundRemoverGeneration.update({
-        where: { id: input.generationId },
-        data: {
+      await db
+        .update(backgroundRemoverGeneration)
+        .set({
           originalImageUrl: input.originalImageUrl,
           originalImageKey: input.originalImageKey,
           originalImageFileName: input.originalImageFileName,
@@ -345,8 +356,8 @@ export const backgroundRemoverRouter = router({
           processedImageSize: input.processedImageSize,
           processedImageMimeType: input.processedImageMimeType,
           updatedAt: new Date(),
-        },
-      });
+        })
+        .where(eq(backgroundRemoverGeneration.id, input.generationId));
 
       return { data: { id: input.generationId } };
     }),
@@ -361,25 +372,27 @@ export const backgroundRemoverRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      const where: any = {
-        userId,
-      };
-
-      if (input.teamId) {
-        where.teamId = input.teamId;
-      }
+      const whereClause = input.teamId
+        ? and(
+            eq(backgroundRemoverGeneration.userId, userId),
+            eq(backgroundRemoverGeneration.teamId, input.teamId),
+          )
+        : eq(backgroundRemoverGeneration.userId, userId);
 
       const [generations, total] = await Promise.all([
-        prisma.backgroundRemoverGeneration.findMany({
-          where,
-          orderBy: {
-            createdAt: "desc",
-          },
-          skip: (input.page - 1) * input.limit,
-          take: input.limit,
-        }),
-        prisma.backgroundRemoverGeneration.count({ where }),
+        db
+          .select()
+          .from(backgroundRemoverGeneration)
+          .where(whereClause)
+          .orderBy(desc(backgroundRemoverGeneration.createdAt))
+          .offset((input.page - 1) * input.limit)
+          .limit(input.limit),
+        db
+          .select({ value: count(backgroundRemoverGeneration.id) })
+          .from(backgroundRemoverGeneration)
+          .where(whereClause),
       ]);
+      const totalCount = Number(total[0]?.value ?? 0);
 
       // Transform Prisma data to clean API response
       return {
@@ -387,8 +400,8 @@ export const backgroundRemoverRouter = router({
         pagination: {
           page: input.page,
           limit: input.limit,
-          total,
-          totalPages: Math.ceil(total / input.limit),
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / input.limit),
         },
       };
     }),
@@ -403,20 +416,23 @@ export const backgroundRemoverRouter = router({
       }
 
       // Check if user has access to this generation
-      const existingGeneration = await prisma.backgroundRemoverGeneration.findFirst({
-        where: {
-          id: input.id,
-          userId,
-        },
-      });
+      const [existingGeneration] = await db
+        .select()
+        .from(backgroundRemoverGeneration)
+        .where(
+          and(
+            eq(backgroundRemoverGeneration.id, input.id),
+            eq(backgroundRemoverGeneration.userId, userId),
+          ),
+        )
+        .limit(1);
 
       if (!existingGeneration) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
       }
 
       // Create activity log before deletion
-      await prisma.backgroundRemoverGenerationActivityLog.create({
-        data: {
+      await db.insert(backgroundRemoverGenerationActivityLog).values({
           id: randomUUID(),
           backgroundRemoverGenerationId: input.id,
           userId,
@@ -428,15 +444,14 @@ export const backgroundRemoverRouter = router({
             originalImageKey: existingGeneration.originalImageKey,
             processedImageKey: existingGeneration.processedImageKey,
           },
-          ipAddress: undefined,
-          userAgent: undefined,
+          ipAddress: null,
+          userAgent: null,
           createdAt: new Date(),
-        },
       });
 
-      await prisma.backgroundRemoverGeneration.delete({
-        where: { id: input.id },
-      });
+      await db
+        .delete(backgroundRemoverGeneration)
+        .where(eq(backgroundRemoverGeneration.id, input.id));
 
       return { data: { id: input.id } };
     }),

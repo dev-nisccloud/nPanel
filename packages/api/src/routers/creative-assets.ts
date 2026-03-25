@@ -1,7 +1,19 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { user as userTable } from "@npanel/db/schema/auth";
+import {
+	creativeAsset,
+	creativeAssetActivityLog,
+	creativeAssetComment,
+	creativeAssetPermission,
+	creativeAssetVersion,
+	creativeAssetVersionActivityLog,
+} from "@npanel/db/schema/creative-assets";
+import { team, teamMember } from "@npanel/db/schema/teams";
+import type { Context } from "../context";
 import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
 
 // ============================================================================
 // TYPESCRIPT TYPES - Independent from Prisma, mirroring database structure
@@ -9,17 +21,15 @@ import prisma from "@nPanel/db";
 
 // Status enums as TypeScript types
 type CreativeAssetStatusType = "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED";
-type VersionApprovalStatusType = "PENDING" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE";
-
-// Database model types (matching Prisma schema structure but independent)
+// Database model types (Drizzle uses text columns; keep as string for row compatibility)
 interface DbCreativeAssetVersion {
   id: string;
   creativeAssetId: string;
   internalVersionNumber: number;
   publicVersionNumber: number | null;
   isPublic: boolean;
-  internalApprovalStatus: VersionApprovalStatusType;
-  publicApprovalStatus: VersionApprovalStatusType;
+  internalApprovalStatus: string;
+  publicApprovalStatus: string;
   fileUrl: string;
   fileKey: string;
   fileName: string;
@@ -59,7 +69,7 @@ interface DbCreativeAsset {
   name: string;
   description: string | null;
   category: string | null;
-  status: CreativeAssetStatusType;
+  status: string;
   currentInternalVersion: number | null;
   currentPublicVersion: number | null;
   isPublic: boolean;
@@ -94,9 +104,11 @@ interface DbCreativeAssetComment {
   userId: string;
   content: string;
   isInternal: boolean;
+  isResolved?: boolean;
   parentCommentId: string | null;
-  mentions: string[];
-  replyCount: number;
+  /** Drizzle jsonb */
+  mentions: unknown;
+  replyCount: number | null;
   createdAt: Date;
   updatedAt: Date;
   replies?: DbCreativeAssetComment[];
@@ -341,7 +353,9 @@ function transformComment(comment: DbCreativeAssetComment): {
     content: comment.content,
     isInternal: comment.isInternal,
     parentCommentId: comment.parentCommentId,
-    mentions: comment.mentions || [],
+    mentions: Array.isArray(comment.mentions)
+      ? (comment.mentions as string[])
+      : [],
     replyCount: comment.replyCount || 0,
     createdAt: comment.createdAt,
     updatedAt: comment.updatedAt,
@@ -353,7 +367,7 @@ function transformComment(comment: DbCreativeAssetComment): {
  * Get authenticated user - optimized to use session data
  * Only queries database for fields not available in session
  */
-async function getAuthenticatedUser(ctx: { session: { user?: { id: string; name?: string; email?: string; role?: string } } | null }) {
+async function getAuthenticatedUser(ctx: Pick<Context, "session">) {
 	const user = ctx.session?.user;
 	if (!user?.id) {
 		throw new TRPCError({
@@ -373,19 +387,17 @@ async function getAuthenticatedUser(ctx: { session: { user?: { id: string; name?
 		return { id: user.id, role: sessionRole };
 	}
 
-	// Fallback: Query database only for missing fields
-	// Build select object based on what's missing
-	const selectFields: { id: boolean; role: boolean; email?: boolean; name?: boolean } = {
-		id: true,
-		role: !sessionRole,
-	};
-	if (!sessionEmail) selectFields.email = true;
-	if (!sessionName) selectFields.name = true;
-
-	const dbUser = await prisma.user.findUnique({
-		where: { id: user.id },
-		select: selectFields,
-	});
+	// Fallback: load user row when session is missing role (or other fields)
+	const [dbUser] = await db
+		.select({
+			id: userTable.id,
+			role: userTable.role,
+			email: userTable.email,
+			name: userTable.name,
+		})
+		.from(userTable)
+		.where(eq(userTable.id, user.id))
+		.limit(1);
 
 	if (!dbUser) {
 		throw new TRPCError({
@@ -394,9 +406,9 @@ async function getAuthenticatedUser(ctx: { session: { user?: { id: string; name?
 		});
 	}
 
-	return { 
-		id: user.id, 
-		role: (sessionRole || dbUser.role) as string 
+	return {
+		id: user.id,
+		role: (sessionRole || dbUser.role) as string,
 	};
 }
 
@@ -434,74 +446,73 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Verify team exists
-			const team = await prisma.team.findUnique({
-				where: { id: input.teamId },
-			});
+			const [teamRow] = await db
+				.select()
+				.from(team)
+				.where(eq(team.id, input.teamId))
+				.limit(1);
 
-			if (!team) {
+			if (!teamRow) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Team not found",
 				});
 			}
 
-			// Batch: Create asset, permission, and log activity in a transaction
-			// This reduces connection usage from 3 sequential queries to 1 transaction
-			const asset = await prisma.$transaction(async (tx) => {
-				const asset = await tx.creativeAsset.create({
-					data: {
-						id: crypto.randomUUID(),
-						teamId: input.teamId,
-						name: input.name,
-						description: input.description,
-						category: input.category,
-						status: input.status || "DRAFT",
-						currentInternalVersion: null,
-						currentPublicVersion: null,
-						isPublic: false,
-						createdBy: user.id,
-						lastModifiedBy: user.id,
-						createdAt: new Date(),
-						updatedAt: new Date(),
-					},
-					include: {
-						team: true,
-					},
+			const assetId = crypto.randomUUID();
+			const now = new Date();
+
+			const asset = await db.transaction(async (tx) => {
+				await tx.insert(creativeAsset).values({
+					id: assetId,
+					teamId: input.teamId,
+					name: input.name,
+					description: input.description ?? null,
+					category: input.category ?? null,
+					status: input.status ?? "DRAFT",
+					currentInternalVersion: null,
+					currentPublicVersion: null,
+					isPublic: false,
+					createdBy: user.id,
+					lastModifiedBy: user.id,
+					createdAt: now,
+					updatedAt: now,
 				});
 
-				// Create permission for creator
-				await tx.creativeAssetPermission.create({
-					data: {
-						id: crypto.randomUUID(),
-						creativeAssetId: asset.id,
-						userId: user.id,
-						canView: true,
-						canEdit: true,
-						canComment: true,
-						canApprove: true,
-						canPublish: true,
-						canDelete: true,
-						grantedBy: user.id,
-						createdAt: new Date(),
-						updatedAt: new Date(),
-					},
+				await tx.insert(creativeAssetPermission).values({
+					id: crypto.randomUUID(),
+					creativeAssetId: assetId,
+					userId: user.id,
+					canView: true,
+					canEdit: true,
+					canComment: true,
+					canApprove: true,
+					canPublish: true,
+					canDelete: true,
+					grantedBy: user.id,
+					createdAt: now,
+					updatedAt: now,
 				});
 
-				// Log activity
-				await tx.creativeAssetActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						creativeAssetId: asset.id,
-						userId: user.id,
-						action: "CREATE",
-						description: `Created creative asset: ${asset.name}`,
-						metadata: { teamId: input.teamId },
-						createdAt: new Date(),
-					},
+				await tx.insert(creativeAssetActivityLog).values({
+					id: crypto.randomUUID(),
+					creativeAssetId: assetId,
+					userId: user.id,
+					action: "CREATE",
+					description: `Created creative asset: ${input.name}`,
+					metadata: { teamId: input.teamId },
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
 
-				return asset;
+				const [row] = await tx
+					.select()
+					.from(creativeAsset)
+					.where(eq(creativeAsset.id, assetId))
+					.limit(1);
+				if (!row) throw new Error("creative asset insert failed");
+				return { ...row, team: teamRow };
 			});
 
 			return transformAsset(asset);
@@ -526,14 +537,13 @@ export const creativeAssetsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			// Get the asset
-			const asset = await prisma.creativeAsset.findUnique({
-				where: { id: input.creativeAssetId },
-				include: {
+			const asset = await db.query.creativeAsset.findFirst({
+				where: eq(creativeAsset.id, input.creativeAssetId),
+				with: {
 					permissions: true,
 					versions: {
-						orderBy: { internalVersionNumber: "desc" },
-						take: 1,
+						orderBy: (v, { desc: d }) => [d(v.internalVersionNumber)],
+						limit: 1,
 					},
 				},
 			});
@@ -566,57 +576,71 @@ export const creativeAssetsRouter = router({
 			const latestVersion = asset.versions[0];
 			const newInternalVersion = (asset.currentInternalVersion ?? 0) + 1;
 
-			// Batch: Create version, update asset, and log activity in a transaction
-			// This reduces connection usage from 3 sequential queries to 1 transaction
-			const version = await prisma.$transaction(async (tx) => {
-				// Create new version
-				const version = await tx.creativeAssetVersion.create({
-					data: {
-						id: crypto.randomUUID(),
-						creativeAssetId: input.creativeAssetId,
-						internalVersionNumber: newInternalVersion,
-						publicVersionNumber: null,
-						isPublic: false,
-						internalApprovalStatus: "PENDING",
-						publicApprovalStatus: "NOT_APPLICABLE",
-						fileUrl: input.fileUrl,
-						fileKey: input.fileKey,
-						fileName: input.fileName,
-						fileSize: input.fileSize,
-						mimeType: input.mimeType,
-						versionNotes: input.versionNotes,
-						changesSummary: input.changesSummary,
-						previousVersionId: latestVersion?.id,
-						createdBy: user.id,
-						createdAt: new Date(),
-						updatedAt: new Date(),
-					},
+			const versionId = crypto.randomUUID();
+			const now = new Date();
+			const version = await db.transaction(async (tx) => {
+				await tx.insert(creativeAssetVersion).values({
+					id: versionId,
+					creativeAssetId: input.creativeAssetId,
+					internalVersionNumber: newInternalVersion,
+					publicVersionNumber: null,
+					isPublic: false,
+					internalApprovalStatus: "PENDING",
+					publicApprovalStatus: "NOT_APPLICABLE",
+					fileUrl: input.fileUrl,
+					fileKey: input.fileKey,
+					fileName: input.fileName,
+					fileSize: input.fileSize,
+					mimeType: input.mimeType,
+					fileMetadata: input.fileMetadata ?? null,
+					versionNotes: input.versionNotes ?? null,
+					changesSummary: input.changesSummary ?? null,
+					previousVersionId: latestVersion?.id ?? null,
+					internalApprovedBy: null,
+					internalApprovedAt: null,
+					internalRejectedBy: null,
+					internalRejectedAt: null,
+					internalRejectionReason: null,
+					publicApprovedBy: null,
+					publicApprovedAt: null,
+					publicRejectedBy: null,
+					publicRejectedAt: null,
+					publicRejectionReason: null,
+					madePublicBy: null,
+					madePublicAt: null,
+					createdBy: user.id,
+					createdAt: now,
+					updatedAt: now,
 				});
 
-				// Update asset's current internal version
-				await tx.creativeAsset.update({
-					where: { id: input.creativeAssetId },
-					data: {
+				await tx
+					.update(creativeAsset)
+					.set({
 						currentInternalVersion: newInternalVersion,
 						lastModifiedBy: user.id,
-						updatedAt: new Date(),
-					},
+						updatedAt: now,
+					})
+					.where(eq(creativeAsset.id, input.creativeAssetId));
+
+				await tx.insert(creativeAssetVersionActivityLog).values({
+					id: crypto.randomUUID(),
+					creativeAssetVersionId: versionId,
+					userId: user.id,
+					action: "CREATE",
+					description: `Uploaded version ${newInternalVersion}`,
+					metadata: { fileName: input.fileName },
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
 
-				// Log activity
-				await tx.creativeAssetVersionActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						creativeAssetVersionId: version.id,
-						userId: user.id,
-						action: "CREATE",
-						description: `Uploaded version ${newInternalVersion}`,
-						metadata: { fileName: input.fileName },
-						createdAt: new Date(),
-					},
-				});
-
-				return version;
+				const [row] = await tx
+					.select()
+					.from(creativeAssetVersion)
+					.where(eq(creativeAssetVersion.id, versionId))
+					.limit(1);
+				if (!row) throw new Error("version insert failed");
+				return row;
 			});
 
 			return transformVersion(version);
@@ -641,13 +665,11 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const version = await prisma.creativeAssetVersion.findUnique({
-				where: { id: input.versionId },
-				include: {
+			const version = await db.query.creativeAssetVersion.findFirst({
+				where: eq(creativeAssetVersion.id, input.versionId),
+				with: {
 					creativeAsset: {
-						include: {
-							permissions: true,
-						},
+						with: { permissions: true },
 					},
 				},
 			});
@@ -670,99 +692,94 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// If version is not already public, make it public and assign public version number
-			let updateVersionData: any = {
-					internalApprovalStatus: "APPROVED",
-					internalApprovedBy: user.id,
-					internalApprovedAt: new Date(),
-					internalRejectedBy: null,
-					internalRejectedAt: null,
-					internalRejectionReason: null,
-					updatedAt: new Date(),
+			const now = new Date();
+			let updateVersionData: Record<string, unknown> = {
+				internalApprovalStatus: "APPROVED",
+				internalApprovedBy: user.id,
+				internalApprovedAt: now,
+				internalRejectedBy: null,
+				internalRejectedAt: null,
+				internalRejectionReason: null,
+				updatedAt: now,
 			};
 
 			if (!version.isPublic) {
-				// Get latest public version to calculate next public version number
-				const latestPublicVersion = await prisma.creativeAssetVersion.findFirst({
-					where: {
-						creativeAssetId: version.creativeAssetId,
-						isPublic: true,
-					},
-					orderBy: { publicVersionNumber: "desc" },
-				});
+				const [latestPublicVersion] = await db
+					.select()
+					.from(creativeAssetVersion)
+					.where(
+						and(
+							eq(creativeAssetVersion.creativeAssetId, version.creativeAssetId),
+							eq(creativeAssetVersion.isPublic, true),
+						),
+					)
+					.orderBy(desc(creativeAssetVersion.publicVersionNumber))
+					.limit(1);
 				const nextPublicVersion = latestPublicVersion
-					? (latestPublicVersion.publicVersionNumber || 0) + 1
+					? (latestPublicVersion.publicVersionNumber ?? 0) + 1
 					: 1;
 
-				// Automatically make it public when approving
 				updateVersionData = {
 					...updateVersionData,
 					isPublic: true,
 					publicVersionNumber: nextPublicVersion,
 					publicApprovalStatus: "PENDING",
 					madePublicBy: user.id,
-					madePublicAt: new Date(),
+					madePublicAt: now,
 				};
 
-				// Batch: Update asset, log activity, and update version in a transaction
-				// This reduces connection usage from 3 sequential queries to 1 transaction
-				await prisma.$transaction(async (tx) => {
-					// Update asset to reflect new public version
-					await tx.creativeAsset.update({
-						where: { id: version.creativeAssetId },
-						data: {
+				await db.transaction(async (tx) => {
+					await tx
+						.update(creativeAsset)
+						.set({
 							isPublic: true,
 							currentPublicVersion: nextPublicVersion,
 							lastModifiedBy: user.id,
-							updatedAt: new Date(),
-						},
+							updatedAt: now,
+						})
+						.where(eq(creativeAsset.id, version.creativeAssetId));
+
+					await tx.insert(creativeAssetVersionActivityLog).values({
+						id: crypto.randomUUID(),
+						creativeAssetVersionId: version.id,
+						userId: user.id,
+						action: "APPROVE_INTERNAL",
+						description: `Approved version ${version.internalVersionNumber} internally and made it public as version ${nextPublicVersion}`,
+						ipAddress: null,
+						userAgent: null,
+						createdAt: now,
 					});
 
-					// Log activity
-					await tx.creativeAssetVersionActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							creativeAssetVersionId: version.id,
-							userId: user.id,
-							action: "APPROVE_INTERNAL",
-							description: `Approved version ${version.internalVersionNumber} internally and made it public as version ${nextPublicVersion}`,
-							createdAt: new Date(),
-						},
-					});
-
-					// Update version
-					await tx.creativeAssetVersion.update({
-						where: { id: input.versionId },
-						data: updateVersionData,
-					});
+					await tx
+						.update(creativeAssetVersion)
+						.set(updateVersionData as Record<string, unknown>)
+						.where(eq(creativeAssetVersion.id, input.versionId));
 				});
 			} else {
-				// Version is already public, batch: log activity and update version in a transaction
-				await prisma.$transaction(async (tx) => {
-					// Log activity
-					await tx.creativeAssetVersionActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							creativeAssetVersionId: version.id,
-							userId: user.id,
-							action: "APPROVE_INTERNAL",
-							description: `Approved version ${version.internalVersionNumber} internally`,
-							createdAt: new Date(),
-						},
+				await db.transaction(async (tx) => {
+					await tx.insert(creativeAssetVersionActivityLog).values({
+						id: crypto.randomUUID(),
+						creativeAssetVersionId: version.id,
+						userId: user.id,
+						action: "APPROVE_INTERNAL",
+						description: `Approved version ${version.internalVersionNumber} internally`,
+						ipAddress: null,
+						userAgent: null,
+						createdAt: now,
 					});
 
-					// Update version
-					await tx.creativeAssetVersion.update({
-						where: { id: input.versionId },
-						data: updateVersionData,
-					});
+					await tx
+						.update(creativeAssetVersion)
+						.set(updateVersionData as Record<string, unknown>)
+						.where(eq(creativeAssetVersion.id, input.versionId));
 				});
 			}
 
-			// Reload updated version
-			const updatedVersion = await prisma.creativeAssetVersion.findUnique({
-				where: { id: input.versionId },
-			});
+			const [updatedVersion] = await db
+				.select()
+				.from(creativeAssetVersion)
+				.where(eq(creativeAssetVersion.id, input.versionId))
+				.limit(1);
 
 			if (!updatedVersion) {
 				throw new TRPCError({
@@ -794,13 +811,11 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const version = await prisma.creativeAssetVersion.findUnique({
-				where: { id: input.versionId },
-				include: {
+			const version = await db.query.creativeAssetVersion.findFirst({
+				where: eq(creativeAssetVersion.id, input.versionId),
+				with: {
 					creativeAsset: {
-						include: {
-							permissions: true,
-						},
+						with: { permissions: true },
 					},
 				},
 			});
@@ -823,31 +838,38 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Update version
-			const updatedVersion = await prisma.creativeAssetVersion.update({
-				where: { id: input.versionId },
-				data: {
+			const now = new Date();
+			const [updatedVersion] = await db
+				.update(creativeAssetVersion)
+				.set({
 					internalApprovalStatus: "REJECTED",
 					internalRejectedBy: user.id,
-					internalRejectedAt: new Date(),
-					internalRejectionReason: input.rejectionReason,
+					internalRejectedAt: now,
+					internalRejectionReason: input.rejectionReason ?? null,
 					internalApprovedBy: null,
 					internalApprovedAt: null,
-					updatedAt: new Date(),
-				},
-			});
+					updatedAt: now,
+				})
+				.where(eq(creativeAssetVersion.id, input.versionId))
+				.returning();
 
-			// Log activity
-			await prisma.creativeAssetVersionActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetVersionId: version.id,
-					userId: user.id,
-					action: "REJECT_INTERNAL",
-					description: `Rejected version ${version.internalVersionNumber} internally`,
-					metadata: { reason: input.rejectionReason },
-					createdAt: new Date(),
-				},
+			if (!updatedVersion) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Version not found",
+				});
+			}
+
+			await db.insert(creativeAssetVersionActivityLog).values({
+				id: crypto.randomUUID(),
+				creativeAssetVersionId: version.id,
+				userId: user.id,
+				action: "REJECT_INTERNAL",
+				description: `Rejected version ${version.internalVersionNumber} internally`,
+				metadata: { reason: input.rejectionReason },
+				ipAddress: null,
+				userAgent: null,
+				createdAt: now,
 			});
 
 			return transformVersion(updatedVersion);
@@ -872,16 +894,16 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const version = await prisma.creativeAssetVersion.findUnique({
-				where: { id: input.versionId },
-				include: {
+			const version = await db.query.creativeAssetVersion.findFirst({
+				where: eq(creativeAssetVersion.id, input.versionId),
+				with: {
 					creativeAsset: {
-						include: {
+						with: {
 							permissions: true,
 							versions: {
-								where: { isPublic: true },
-								orderBy: { publicVersionNumber: "desc" },
-								take: 1,
+								where: (v, { eq: eqFn }) => eqFn(v.isPublic, true),
+								orderBy: (v, { desc: d }) => [d(v.publicVersionNumber)],
+								limit: 1,
 							},
 						},
 					},
@@ -914,46 +936,48 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Get next public version number
 			const latestPublicVersion = version.creativeAsset.versions[0];
 			const nextPublicVersion = latestPublicVersion
-				? (latestPublicVersion.publicVersionNumber || 0) + 1
+				? (latestPublicVersion.publicVersionNumber ?? 0) + 1
 				: 1;
 
-			// Update version
-			const updatedVersion = await prisma.creativeAssetVersion.update({
-				where: { id: input.versionId },
-				data: {
+			const now = new Date();
+			const [updatedVersion] = await db
+				.update(creativeAssetVersion)
+				.set({
 					isPublic: true,
 					publicVersionNumber: nextPublicVersion,
 					publicApprovalStatus: "PENDING",
 					madePublicBy: user.id,
-					madePublicAt: new Date(),
-					updatedAt: new Date(),
-				},
-			});
+					madePublicAt: now,
+					updatedAt: now,
+				})
+				.where(eq(creativeAssetVersion.id, input.versionId))
+				.returning();
 
-			// Update asset
-			await prisma.creativeAsset.update({
-				where: { id: version.creativeAssetId },
-				data: {
+			if (!updatedVersion) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
+			}
+
+			await db
+				.update(creativeAsset)
+				.set({
 					isPublic: true,
 					currentPublicVersion: nextPublicVersion,
 					lastModifiedBy: user.id,
-					updatedAt: new Date(),
-				},
-			});
+					updatedAt: now,
+				})
+				.where(eq(creativeAsset.id, version.creativeAssetId));
 
-			// Log activity
-			await prisma.creativeAssetVersionActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetVersionId: version.id,
-					userId: user.id,
-					action: "MAKE_PUBLIC",
-					description: `Made version ${version.internalVersionNumber} public as version ${nextPublicVersion}`,
-					createdAt: new Date(),
-				},
+			await db.insert(creativeAssetVersionActivityLog).values({
+				id: crypto.randomUUID(),
+				creativeAssetVersionId: version.id,
+				userId: user.id,
+				action: "MAKE_PUBLIC",
+				description: `Made version ${version.internalVersionNumber} public as version ${nextPublicVersion}`,
+				ipAddress: null,
+				userAgent: null,
+				createdAt: now,
 			});
 
 			return transformVersion(updatedVersion);
@@ -978,15 +1002,13 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const version = await prisma.creativeAssetVersion.findUnique({
-				where: { id: input.versionId },
-				include: {
+			const version = await db.query.creativeAssetVersion.findFirst({
+				where: eq(creativeAssetVersion.id, input.versionId),
+				with: {
 					creativeAsset: {
-						include: {
+						with: {
 							team: {
-								include: {
-									members: true,
-								},
+								with: { members: true },
 							},
 						},
 					},
@@ -1019,30 +1041,34 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Update version
-			const updatedVersion = await prisma.creativeAssetVersion.update({
-				where: { id: input.versionId },
-				data: {
+			const now = new Date();
+			const [updatedVersion] = await db
+				.update(creativeAssetVersion)
+				.set({
 					publicApprovalStatus: "APPROVED",
 					publicApprovedBy: user.id,
-					publicApprovedAt: new Date(),
+					publicApprovedAt: now,
 					publicRejectedBy: null,
 					publicRejectedAt: null,
 					publicRejectionReason: null,
-					updatedAt: new Date(),
-				},
-			});
+					updatedAt: now,
+				})
+				.where(eq(creativeAssetVersion.id, input.versionId))
+				.returning();
 
-			// Log activity
-			await prisma.creativeAssetVersionActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetVersionId: version.id,
-					userId: user.id,
-					action: "APPROVE_PUBLIC",
-					description: `Approved public version ${version.publicVersionNumber}`,
-					createdAt: new Date(),
-				},
+			if (!updatedVersion) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
+			}
+
+			await db.insert(creativeAssetVersionActivityLog).values({
+				id: crypto.randomUUID(),
+				creativeAssetVersionId: version.id,
+				userId: user.id,
+				action: "APPROVE_PUBLIC",
+				description: `Approved public version ${version.publicVersionNumber}`,
+				ipAddress: null,
+				userAgent: null,
+				createdAt: now,
 			});
 
 			return transformVersion(updatedVersion);
@@ -1068,15 +1094,13 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const version = await prisma.creativeAssetVersion.findUnique({
-				where: { id: input.versionId },
-				include: {
+			const version = await db.query.creativeAssetVersion.findFirst({
+				where: eq(creativeAssetVersion.id, input.versionId),
+				with: {
 					creativeAsset: {
-						include: {
+						with: {
 							team: {
-								include: {
-									members: true,
-								},
+								with: { members: true },
 							},
 						},
 					},
@@ -1109,31 +1133,35 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Update version
-			const updatedVersion = await prisma.creativeAssetVersion.update({
-				where: { id: input.versionId },
-				data: {
+			const now = new Date();
+			const [updatedVersion] = await db
+				.update(creativeAssetVersion)
+				.set({
 					publicApprovalStatus: "REJECTED",
 					publicRejectedBy: user.id,
-					publicRejectedAt: new Date(),
-					publicRejectionReason: input.rejectionReason,
+					publicRejectedAt: now,
+					publicRejectionReason: input.rejectionReason ?? null,
 					publicApprovedBy: null,
 					publicApprovedAt: null,
-					updatedAt: new Date(),
-				},
-			});
+					updatedAt: now,
+				})
+				.where(eq(creativeAssetVersion.id, input.versionId))
+				.returning();
 
-			// Log activity
-			await prisma.creativeAssetVersionActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetVersionId: version.id,
-					userId: user.id,
-					action: "REJECT_PUBLIC",
-					description: `Rejected public version ${version.publicVersionNumber}`,
-					metadata: { reason: input.rejectionReason },
-					createdAt: new Date(),
-				},
+			if (!updatedVersion) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
+			}
+
+			await db.insert(creativeAssetVersionActivityLog).values({
+				id: crypto.randomUUID(),
+				creativeAssetVersionId: version.id,
+				userId: user.id,
+				action: "REJECT_PUBLIC",
+				description: `Rejected public version ${version.publicVersionNumber}`,
+				metadata: { reason: input.rejectionReason },
+				ipAddress: null,
+				userAgent: null,
+				createdAt: now,
 			});
 
 			return transformVersion(updatedVersion);
@@ -1159,13 +1187,11 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const version = await prisma.creativeAssetVersion.findUnique({
-				where: { id: input.versionId },
-				include: {
+			const version = await db.query.creativeAssetVersion.findFirst({
+				where: eq(creativeAssetVersion.id, input.versionId),
+				with: {
 					creativeAsset: {
-						include: {
-							permissions: true,
-						},
+						with: { permissions: true },
 					},
 				},
 			});
@@ -1188,69 +1214,67 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// If setting to APPROVED, automatically make it public
-			let updateData: any = {
+			const now = new Date();
+			let updateData: Record<string, unknown> = {
 				internalApprovalStatus: input.status,
-				updatedAt: new Date(),
+				updatedAt: now,
 			};
 
 			if (input.status === "APPROVED") {
-				// If version is not already public, make it public and assign public version number
 				if (!version.isPublic) {
-					// Get latest public version to calculate next public version number
-					const latestPublicVersion = await prisma.creativeAssetVersion.findFirst({
-						where: {
-							creativeAssetId: version.creativeAssetId,
-							isPublic: true,
-						},
-						orderBy: { publicVersionNumber: "desc" },
-					});
+					const [latestPublicVersion] = await db
+						.select()
+						.from(creativeAssetVersion)
+						.where(
+							and(
+								eq(creativeAssetVersion.creativeAssetId, version.creativeAssetId),
+								eq(creativeAssetVersion.isPublic, true),
+							),
+						)
+						.orderBy(desc(creativeAssetVersion.publicVersionNumber))
+						.limit(1);
 					const nextPublicVersion = latestPublicVersion
-						? (latestPublicVersion.publicVersionNumber || 0) + 1
+						? (latestPublicVersion.publicVersionNumber ?? 0) + 1
 						: 1;
 
 					updateData = {
 						...updateData,
 						internalApprovedBy: user.id,
-						internalApprovedAt: new Date(),
+						internalApprovedAt: now,
 						internalRejectedBy: null,
 						internalRejectedAt: null,
 						internalRejectionReason: null,
-						// Automatically make it public when approving
 						isPublic: true,
 						publicVersionNumber: nextPublicVersion,
 						publicApprovalStatus: "PENDING",
 						madePublicBy: user.id,
-						madePublicAt: new Date(),
+						madePublicAt: now,
 					};
 
-					// Update asset to reflect new public version
-					await prisma.creativeAsset.update({
-						where: { id: version.creativeAssetId },
-						data: {
+					await db
+						.update(creativeAsset)
+						.set({
 							isPublic: true,
 							currentPublicVersion: nextPublicVersion,
 							lastModifiedBy: user.id,
-							updatedAt: new Date(),
-						},
-					});
+							updatedAt: now,
+						})
+						.where(eq(creativeAsset.id, version.creativeAssetId));
 				} else {
-					// Version is already public, just update approval status
 					updateData = {
 						...updateData,
 						internalApprovedBy: user.id,
-						internalApprovedAt: new Date(),
+						internalApprovedAt: now,
 						internalRejectedBy: null,
 						internalRejectedAt: null,
 						internalRejectionReason: null,
-						// Keep existing public version number
 					};
 				}
 			} else if (input.status === "REJECTED") {
 				updateData = {
 					...updateData,
 					internalRejectedBy: user.id,
-					internalRejectedAt: new Date(),
+					internalRejectedAt: now,
 					internalApprovedBy: null,
 					internalApprovedAt: null,
 				};
@@ -1264,7 +1288,6 @@ export const creativeAssetsRouter = router({
 					internalRejectionReason: null,
 				};
 			} else if (input.status === "NOT_APPLICABLE") {
-				// When archiving (NOT_APPLICABLE), clear approval/rejection fields
 				updateData = {
 					...updateData,
 					internalApprovedBy: null,
@@ -1275,13 +1298,16 @@ export const creativeAssetsRouter = router({
 				};
 			}
 
-			// Update version
-			const updatedVersion = await prisma.creativeAssetVersion.update({
-				where: { id: input.versionId },
-				data: updateData,
-			});
+			const [updatedVersion] = await db
+				.update(creativeAssetVersion)
+				.set(updateData as Record<string, unknown>)
+				.where(eq(creativeAssetVersion.id, input.versionId))
+				.returning();
 
-			// Log activity
+			if (!updatedVersion) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
+			}
+
 			const actionMap: Record<string, string> = {
 				PENDING: "SET_STATUS_PENDING",
 				APPROVED: "APPROVE_INTERNAL",
@@ -1289,15 +1315,15 @@ export const creativeAssetsRouter = router({
 				NOT_APPLICABLE: "ARCHIVE_VERSION",
 			};
 
-			await prisma.creativeAssetVersionActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetVersionId: version.id,
-					userId: user.id,
-					action: actionMap[input.status] || "UPDATE_STATUS",
-					description: `Updated version ${version.internalVersionNumber} status to ${input.status}`,
-					createdAt: new Date(),
-				},
+			await db.insert(creativeAssetVersionActivityLog).values({
+				id: crypto.randomUUID(),
+				creativeAssetVersionId: version.id,
+				userId: user.id,
+				action: actionMap[input.status] || "UPDATE_STATUS",
+				description: `Updated version ${version.internalVersionNumber} status to ${input.status}`,
+				ipAddress: null,
+				userAgent: null,
+				createdAt: now,
 			});
 
 			return transformVersion(updatedVersion);
@@ -1322,13 +1348,11 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const version = await prisma.creativeAssetVersion.findUnique({
-				where: { id: input.versionId },
-				include: {
+			const version = await db.query.creativeAssetVersion.findFirst({
+				where: eq(creativeAssetVersion.id, input.versionId),
+				with: {
 					creativeAsset: {
-						include: {
-							permissions: true,
-						},
+						with: { permissions: true },
 					},
 				},
 			});
@@ -1359,54 +1383,57 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Update version
-			const updatedVersion = await prisma.creativeAssetVersion.update({
-				where: { id: input.versionId },
-				data: {
+			const now = new Date();
+			const [updatedVersion] = await db
+				.update(creativeAssetVersion)
+				.set({
 					isPublic: false,
 					publicVersionNumber: null,
 					publicApprovalStatus: "NOT_APPLICABLE",
 					madePublicBy: null,
 					madePublicAt: null,
-					updatedAt: new Date(),
-				},
-			});
+					updatedAt: now,
+				})
+				.where(eq(creativeAssetVersion.id, input.versionId))
+				.returning();
 
-			// Check if this was the current public version and update asset if needed
-			const asset = await prisma.creativeAsset.findUnique({
-				where: { id: version.creativeAssetId },
-				include: {
+			if (!updatedVersion) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
+			}
+
+			const asset = await db.query.creativeAsset.findFirst({
+				where: eq(creativeAsset.id, version.creativeAssetId),
+				with: {
 					versions: {
-						where: { isPublic: true },
-						orderBy: { publicVersionNumber: "desc" },
-						take: 1,
+						where: (v, { eq: eqFn }) => eqFn(v.isPublic, true),
+						orderBy: (v, { desc: d }) => [d(v.publicVersionNumber)],
+						limit: 1,
 					},
 				},
 			});
 
 			if (asset) {
 				const latestPublicVersion = asset.versions[0];
-				await prisma.creativeAsset.update({
-					where: { id: version.creativeAssetId },
-					data: {
-						isPublic: latestPublicVersion ? true : false,
-						currentPublicVersion: latestPublicVersion?.publicVersionNumber || null,
+				await db
+					.update(creativeAsset)
+					.set({
+						isPublic: !!latestPublicVersion,
+						currentPublicVersion: latestPublicVersion?.publicVersionNumber ?? null,
 						lastModifiedBy: user.id,
-						updatedAt: new Date(),
-					},
-				});
+						updatedAt: now,
+					})
+					.where(eq(creativeAsset.id, version.creativeAssetId));
 			}
 
-			// Log activity
-			await prisma.creativeAssetVersionActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetVersionId: version.id,
-					userId: user.id,
-					action: "MAKE_PRIVATE",
-					description: `Made version ${version.internalVersionNumber} private`,
-					createdAt: new Date(),
-				},
+			await db.insert(creativeAssetVersionActivityLog).values({
+				id: crypto.randomUUID(),
+				creativeAssetVersionId: version.id,
+				userId: user.id,
+				action: "MAKE_PRIVATE",
+				description: `Made version ${version.internalVersionNumber} private`,
+				ipAddress: null,
+				userAgent: null,
+				createdAt: now,
 			});
 
 			return transformVersion(updatedVersion);
@@ -1429,54 +1456,69 @@ export const creativeAssetsRouter = router({
 		.query(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			// Verify user has access to team
-			const teamMember = await prisma.teamMember.findFirst({
-				where: {
-					teamId: input.teamId,
-					userId: user.id,
-				},
-			});
+			const [membership] = await db
+				.select()
+				.from(teamMember)
+				.where(
+					and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, user.id)),
+				)
+				.limit(1);
 
 			const isAgency = isAgencyUser(user.role);
 
-			if (!isAgency && !teamMember) {
+			if (!isAgency && !membership) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You don't have access to this team",
 				});
 			}
 
-			const assets = await prisma.creativeAsset.findMany({
-				where: { teamId: input.teamId },
-				include: {
+			const assets = await db.query.creativeAsset.findMany({
+				where: eq(creativeAsset.teamId, input.teamId),
+				with: {
 					team: true,
-					versions: {
-						where: isAgency
-							? undefined
-							: { isPublic: true }, // Customers only see public versions
-						orderBy: { createdAt: "desc" },
-					},
-					permissions: isAgency ? true : false, // Only agency users need permissions
-					_count: {
-						select: {
-							versions: true,
-						},
-					},
+					versions: isAgency
+						? { orderBy: (v, { desc: d }) => [d(v.createdAt)] }
+						: {
+								where: (v, { eq: eqFn }) => eqFn(v.isPublic, true),
+								orderBy: (v, { desc: d }) => [d(v.createdAt)],
+							},
+					...(isAgency ? { permissions: true } : {}),
 				},
-				orderBy: { createdAt: "desc" },
+				orderBy: (a, { desc: d }) => [d(a.createdAt)],
 			});
 
-			// Filter by permissions for agency users
+			const assetIds = assets.map((a) => a.id);
+			const versionCountRows =
+				assetIds.length > 0
+					? await db
+							.select({
+								creativeAssetId: creativeAssetVersion.creativeAssetId,
+								c: count(),
+							})
+							.from(creativeAssetVersion)
+							.where(inArray(creativeAssetVersion.creativeAssetId, assetIds))
+							.groupBy(creativeAssetVersion.creativeAssetId)
+					: [];
+			const versionCountMap = new Map(
+				versionCountRows.map((r) => [r.creativeAssetId, r.c]),
+			);
+
+			const withCounts = assets.map((a) => ({
+				...a,
+				_count: { versions: versionCountMap.get(a.id) ?? 0 },
+			}));
+
 			if (isAgency) {
-				return assets
+				return withCounts
 					.filter((asset) => {
-						const permission = asset.permissions.find((p) => p.userId === user.id);
+						const permission = asset.permissions?.find((p) => p.userId === user.id);
 						return permission?.canView;
 					})
 					.map(transformAsset);
 			}
 
-			return assets.map(transformAsset);
+			return withCounts.map(transformAsset);
 		}),
 
 	// Get all assets for the current user (across all teams)
@@ -1495,67 +1537,74 @@ export const creativeAssetsRouter = router({
 			let assetIds: string[] = [];
 
 			if (isAgency) {
-				// Agency users: Get all asset IDs they have view permission for
-				const permissions = await prisma.creativeAssetPermission.findMany({
-					where: {
-						userId: user.id,
-						canView: true,
-					},
-					select: {
-						creativeAssetId: true,
-					},
-				});
+				const permissions = await db
+					.select({ creativeAssetId: creativeAssetPermission.creativeAssetId })
+					.from(creativeAssetPermission)
+					.where(
+						and(
+							eq(creativeAssetPermission.userId, user.id),
+							eq(creativeAssetPermission.canView, true),
+						),
+					);
 
 				assetIds = permissions.map((p) => p.creativeAssetId);
 			} else {
-				// Customers: Get asset IDs from teams they're members of
-				const teamMemberships = await prisma.teamMember.findMany({
-					where: { userId: user.id },
-					select: {
-						teamId: true,
-					},
-				});
+				const teamMemberships = await db
+					.select({ teamId: teamMember.teamId })
+					.from(teamMember)
+					.where(eq(teamMember.userId, user.id));
 
 				const teamIds = teamMemberships.map((tm) => tm.teamId);
+				if (teamIds.length === 0) {
+					return [];
+				}
 
-				const customerAssets = await prisma.creativeAsset.findMany({
-					where: {
-						teamId: { in: teamIds },
-					},
-					select: {
-						id: true,
-					},
-				});
+				const customerAssets = await db
+					.select({ id: creativeAsset.id })
+					.from(creativeAsset)
+					.where(inArray(creativeAsset.teamId, teamIds));
 
 				assetIds = customerAssets.map((a) => a.id);
 			}
 
-			// Fetch all assets with their relations
-			const assets = await prisma.creativeAsset.findMany({
-				where: {
-					id: { in: assetIds },
-				},
-				include: {
+			if (assetIds.length === 0) {
+				return [];
+			}
+
+			const assets = await db.query.creativeAsset.findMany({
+				where: inArray(creativeAsset.id, assetIds),
+				with: {
 					team: true,
-					versions: {
-						where: isAgency
-							? undefined
-							: { isPublic: true }, // Customers only see public versions
-						orderBy: { createdAt: "desc" },
-					},
-					permissions: isAgency ? true : false, // Only agency users need permissions
-					_count: {
-						select: {
-							versions: true,
-						},
-					},
+					versions: isAgency
+						? { orderBy: (v, { desc: d }) => [d(v.createdAt)] }
+						: {
+								where: (v, { eq: eqFn }) => eqFn(v.isPublic, true),
+								orderBy: (v, { desc: d }) => [d(v.createdAt)],
+							},
+					...(isAgency ? { permissions: true } : {}),
 				},
-				orderBy: { createdAt: "desc" },
+				orderBy: (a, { desc: d }) => [d(a.createdAt)],
 			});
 
-			// Filter by permissions for agency users (double-check)
+			const versionCountRows = await db
+				.select({
+					creativeAssetId: creativeAssetVersion.creativeAssetId,
+					c: count(),
+				})
+				.from(creativeAssetVersion)
+				.where(inArray(creativeAssetVersion.creativeAssetId, assetIds))
+				.groupBy(creativeAssetVersion.creativeAssetId);
+			const versionCountMap = new Map(
+				versionCountRows.map((r) => [r.creativeAssetId, r.c]),
+			);
+
+			const withCounts = assets.map((a) => ({
+				...a,
+				_count: { versions: versionCountMap.get(a.id) ?? 0 },
+			}));
+
 			if (isAgency) {
-				return assets
+				return withCounts
 					.filter((asset) => {
 						const permission = asset.permissions?.find((p) => p.userId === user.id);
 						return permission?.canView;
@@ -1563,7 +1612,7 @@ export const creativeAssetsRouter = router({
 					.map(transformAsset);
 			}
 
-			return assets.map(transformAsset);
+			return withCounts.map(transformAsset);
 		}),
 
 	// Get asset details
@@ -1588,16 +1637,14 @@ export const creativeAssetsRouter = router({
 		.query(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			const asset = await prisma.creativeAsset.findUnique({
-				where: { id: input.id },
-				include: {
+			const asset = await db.query.creativeAsset.findFirst({
+				where: eq(creativeAsset.id, input.id),
+				with: {
 					team: {
-						include: {
-							members: true,
-						},
+						with: { members: true },
 					},
 					versions: {
-						orderBy: { internalVersionNumber: "desc" },
+						orderBy: (v, { desc: d }) => [d(v.internalVersionNumber)],
 					},
 					permissions: true,
 				},
@@ -1665,16 +1712,14 @@ export const creativeAssetsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			const version = await prisma.creativeAssetVersion.findUnique({
-				where: { id: input.versionId },
-				include: {
+			const version = await db.query.creativeAssetVersion.findFirst({
+				where: eq(creativeAssetVersion.id, input.versionId),
+				with: {
 					creativeAsset: {
-						include: {
+						with: {
 							permissions: true,
 							team: {
-								include: {
-									members: true,
-								},
+								with: { members: true },
 							},
 						},
 					},
@@ -1739,29 +1784,44 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Create comment
-			const comment = await prisma.creativeAssetComment.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetVersionId: input.versionId,
-					userId: user.id,
-					content: input.content,
-					isInternal: input.isInternal,
-					parentCommentId: input.parentCommentId,
-					mentions: input.mentions || [],
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				},
+			const commentId = crypto.randomUUID();
+			const now = new Date();
+			const mentionsPayload = input.mentions ?? [];
+
+			await db.insert(creativeAssetComment).values({
+				id: commentId,
+				creativeAssetVersionId: input.versionId,
+				userId: user.id,
+				content: input.content,
+				isInternal: input.isInternal,
+				parentCommentId: input.parentCommentId ?? null,
+				isResolved: false,
+				resolvedBy: null,
+				resolvedAt: null,
+				replyCount: 0,
+				mentions: mentionsPayload,
+				createdAt: now,
+				updatedAt: now,
+				editedAt: null,
 			});
 
-			// Update parent comment reply count
 			if (input.parentCommentId) {
-				await prisma.creativeAssetComment.update({
-					where: { id: input.parentCommentId },
-					data: {
-						replyCount: { increment: 1 },
-					},
-				});
+				await db
+					.update(creativeAssetComment)
+					.set({
+						replyCount: sql`${creativeAssetComment.replyCount} + 1`,
+					})
+					.where(eq(creativeAssetComment.id, input.parentCommentId));
+			}
+
+			const [comment] = await db
+				.select()
+				.from(creativeAssetComment)
+				.where(eq(creativeAssetComment.id, commentId))
+				.limit(1);
+
+			if (!comment) {
+				throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Comment create failed" });
 			}
 
 			return transformComment(comment);
@@ -1780,16 +1840,14 @@ export const creativeAssetsRouter = router({
 		.query(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			const version = await prisma.creativeAssetVersion.findUnique({
-				where: { id: input.versionId },
-				include: {
+			const version = await db.query.creativeAssetVersion.findFirst({
+				where: eq(creativeAssetVersion.id, input.versionId),
+				with: {
 					creativeAsset: {
-						include: {
+						with: {
 							permissions: true,
 							team: {
-								include: {
-									members: true,
-								},
+								with: { members: true },
 							},
 						},
 					},
@@ -1837,21 +1895,23 @@ export const creativeAssetsRouter = router({
 				}
 			}
 
-			const comments = await prisma.creativeAssetComment.findMany({
-				where: {
-					creativeAssetVersionId: input.versionId,
-					isInternal: isAgency ? undefined : false, // Customers only see public comments
-					parentCommentId: null, // Only get top-level comments
-				},
-				include: {
+			const topWhere = and(
+				eq(creativeAssetComment.creativeAssetVersionId, input.versionId),
+				isNull(creativeAssetComment.parentCommentId),
+				...(isAgency ? [] : [eq(creativeAssetComment.isInternal, false)]),
+			);
+
+			const comments = await db.query.creativeAssetComment.findMany({
+				where: topWhere,
+				with: {
 					replies: {
-						orderBy: { createdAt: "asc" },
-						where: {
-							isInternal: isAgency ? undefined : false, // Customers only see public replies
+						orderBy: (c, { asc: a }) => [a(c.createdAt)],
+						...(isAgency
+							? {}
+							: { where: (c, { eq: eqFn }) => eqFn(c.isInternal, false) }),
 					},
 				},
-				},
-				orderBy: { createdAt: "asc" }, // Oldest first
+				orderBy: (c, { asc: a }) => [a(c.createdAt)],
 			});
 
 			return comments.map(transformComment);
@@ -1869,10 +1929,11 @@ export const creativeAssetsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			// Check if comment exists and user owns it
-			const comment = await prisma.creativeAssetComment.findUnique({
-				where: { id: input.commentId },
-			});
+			const [comment] = await db
+				.select()
+				.from(creativeAssetComment)
+				.where(eq(creativeAssetComment.id, input.commentId))
+				.limit(1);
 
 			if (!comment) {
 				throw new TRPCError({
@@ -1889,15 +1950,20 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Update comment
-			const updatedComment = await prisma.creativeAssetComment.update({
-				where: { id: input.commentId },
-				data: {
+			const now = new Date();
+			const [updatedComment] = await db
+				.update(creativeAssetComment)
+				.set({
 					content: input.content,
-					updatedAt: new Date(),
-					editedAt: new Date(),
-				},
-			});
+					updatedAt: now,
+					editedAt: now,
+				})
+				.where(eq(creativeAssetComment.id, input.commentId))
+				.returning();
+
+			if (!updatedComment) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Comment not found" });
+			}
 
 			return transformComment(updatedComment);
 		}),
@@ -1912,12 +1978,9 @@ export const creativeAssetsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			// Check if comment exists
-			const comment = await prisma.creativeAssetComment.findUnique({
-				where: { id: input.commentId },
-				include: {
-					parentComment: true,
-				},
+			const comment = await db.query.creativeAssetComment.findFirst({
+				where: eq(creativeAssetComment.id, input.commentId),
+				with: { parentComment: true },
 			});
 
 			if (!comment) {
@@ -1935,20 +1998,18 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Decrement parent comment reply count if this is a reply
 			if (comment.parentCommentId) {
-				await prisma.creativeAssetComment.update({
-					where: { id: comment.parentCommentId },
-					data: {
-						replyCount: { decrement: 1 },
-					},
-				});
+				await db
+					.update(creativeAssetComment)
+					.set({
+						replyCount: sql`GREATEST(${creativeAssetComment.replyCount} - 1, 0)`,
+					})
+					.where(eq(creativeAssetComment.id, comment.parentCommentId));
 			}
 
-			// Delete the comment (cascade will delete replies)
-			await prisma.creativeAssetComment.delete({
-				where: { id: input.commentId },
-			});
+			await db
+				.delete(creativeAssetComment)
+				.where(eq(creativeAssetComment.id, input.commentId));
 
 			return { success: true };
 		}),
@@ -1981,64 +2042,86 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Verify the target user is an agency user
-			const targetUser = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			const [targetUserRow] = await db
+				.select()
+				.from(userTable)
+				.where(eq(userTable.id, input.userId))
+				.limit(1);
 
-			if (!targetUser || !isAgencyUser(targetUser.role as string)) {
+			if (!targetUserRow || !isAgencyUser(targetUserRow.role as string)) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Target user must be an agency user",
 				});
 			}
 
-			// Verify asset exists
-			const asset = await prisma.creativeAsset.findUnique({
-				where: { id: input.creativeAssetId },
-			});
+			const [assetRow] = await db
+				.select()
+				.from(creativeAsset)
+				.where(eq(creativeAsset.id, input.creativeAssetId))
+				.limit(1);
 
-			if (!asset) {
+			if (!assetRow) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Asset not found",
 				});
 			}
 
-			// Upsert permissions
-			const permission = await prisma.creativeAssetPermission.upsert({
-				where: {
-					creativeAssetId_userId: {
-						creativeAssetId: input.creativeAssetId,
-						userId: input.userId,
-					},
-				},
-				create: {
-					id: crypto.randomUUID(),
-					creativeAssetId: input.creativeAssetId,
-					userId: input.userId,
-					...input.permissions,
-					grantedBy: user.id,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				},
-				update: {
-					...input.permissions,
-					updatedAt: new Date(),
-				},
-			});
+			const p = input.permissions;
+			const now = new Date();
+			const insertValues = {
+				id: crypto.randomUUID(),
+				creativeAssetId: input.creativeAssetId,
+				userId: input.userId,
+				canView: p.canView ?? true,
+				canEdit: p.canEdit ?? false,
+				canComment: p.canComment ?? true,
+				canApprove: p.canApprove ?? false,
+				canPublish: p.canPublish ?? false,
+				canDelete: p.canDelete ?? false,
+				grantedBy: user.id,
+				createdAt: now,
+				updatedAt: now,
+			};
 
-			// Log activity
-			await prisma.creativeAssetActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetId: input.creativeAssetId,
-					userId: user.id,
-					action: "EDIT_PERMISSIONS",
-					description: `Updated permissions for user ${input.userId}`,
-					metadata: { targetUserId: input.userId, permissions: input.permissions },
-					createdAt: new Date(),
-				},
+			const updateSet: Record<string, unknown> = { updatedAt: now };
+			if (p.canView !== undefined) updateSet.canView = p.canView;
+			if (p.canEdit !== undefined) updateSet.canEdit = p.canEdit;
+			if (p.canComment !== undefined) updateSet.canComment = p.canComment;
+			if (p.canApprove !== undefined) updateSet.canApprove = p.canApprove;
+			if (p.canPublish !== undefined) updateSet.canPublish = p.canPublish;
+			if (p.canDelete !== undefined) updateSet.canDelete = p.canDelete;
+
+			const [permission] = await db
+				.insert(creativeAssetPermission)
+				.values(insertValues)
+				.onConflictDoUpdate({
+					target: [
+						creativeAssetPermission.creativeAssetId,
+						creativeAssetPermission.userId,
+					],
+					set: updateSet as typeof insertValues,
+				})
+				.returning();
+
+			if (!permission) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Permission upsert failed",
+				});
+			}
+
+			await db.insert(creativeAssetActivityLog).values({
+				id: crypto.randomUUID(),
+				creativeAssetId: input.creativeAssetId,
+				userId: user.id,
+				action: "EDIT_PERMISSIONS",
+				description: `Updated permissions for user ${input.userId}`,
+				metadata: { targetUserId: input.userId, permissions: input.permissions },
+				ipAddress: null,
+				userAgent: null,
+				createdAt: now,
 			});
 
 			return permission;
@@ -2068,9 +2151,9 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const asset = await prisma.creativeAsset.findUnique({
-				where: { id: input.id },
-				include: {
+			const asset = await db.query.creativeAsset.findFirst({
+				where: eq(creativeAsset.id, input.id),
+				with: {
 					permissions: true,
 					team: true,
 				},
@@ -2094,11 +2177,13 @@ export const creativeAssetsRouter = router({
 
 			// Verify team exists if teamId is being updated
 			if (input.teamId && input.teamId !== asset.teamId) {
-				const team = await prisma.team.findUnique({
-					where: { id: input.teamId },
-				});
+				const [teamRow] = await db
+					.select()
+					.from(team)
+					.where(eq(team.id, input.teamId))
+					.limit(1);
 
-				if (!team) {
+				if (!teamRow) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "Team not found",
@@ -2126,35 +2211,43 @@ export const creativeAssetsRouter = router({
 			if (input.status !== undefined) updateData.status = input.status as CreativeAssetStatusType;
 			if (input.teamId !== undefined) updateData.teamId = input.teamId;
 
-			// Update asset
-			const updatedAsset = await prisma.creativeAsset.update({
-				where: { id: input.id },
-				data: updateData as any, // Type assertion for enum compatibility
-				include: {
-					team: true,
-				},
+			await db
+				.update(creativeAsset)
+				.set(updateData as Record<string, unknown>)
+				.where(eq(creativeAsset.id, input.id));
+
+			const updatedAsset = await db.query.creativeAsset.findFirst({
+				where: eq(creativeAsset.id, input.id),
+				with: { team: true },
 			});
 
-			// Log activity
-			await prisma.creativeAssetActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetId: asset.id,
-					userId: user.id,
-					action: "UPDATE",
-					description: `Updated creative asset: ${updatedAsset.name}`,
-					metadata: {
-						previousValues: {
-							name: asset.name,
-							description: asset.description,
-							category: asset.category,
-							status: asset.status,
-							teamId: asset.teamId,
-						},
-						newValues: updateData,
+			if (!updatedAsset) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Creative asset not found",
+				});
+			}
+
+			const logNow = new Date();
+			await db.insert(creativeAssetActivityLog).values({
+				id: crypto.randomUUID(),
+				creativeAssetId: asset.id,
+				userId: user.id,
+				action: "UPDATE",
+				description: `Updated creative asset: ${updatedAsset.name}`,
+				metadata: {
+					previousValues: {
+						name: asset.name,
+						description: asset.description,
+						category: asset.category,
+						status: asset.status,
+						teamId: asset.teamId,
 					},
-					createdAt: new Date(),
+					newValues: updateData,
 				},
+				ipAddress: null,
+				userAgent: null,
+				createdAt: logNow,
 			});
 
 			return transformAsset(updatedAsset);
@@ -2179,9 +2272,9 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const asset = await prisma.creativeAsset.findUnique({
-				where: { id: input.id },
-				include: {
+			const asset = await db.query.creativeAsset.findFirst({
+				where: eq(creativeAsset.id, input.id),
+				with: {
 					permissions: true,
 					team: true,
 				},
@@ -2203,30 +2296,38 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Update asset status to ARCHIVED
-			const updatedAsset = await prisma.creativeAsset.update({
-				where: { id: input.id },
-				data: {
+			const now = new Date();
+			await db
+				.update(creativeAsset)
+				.set({
 					status: "ARCHIVED",
 					lastModifiedBy: user.id,
-					updatedAt: new Date(),
-				},
-				include: {
-					team: true,
-				},
+					updatedAt: now,
+				})
+				.where(eq(creativeAsset.id, input.id));
+
+			const updatedAsset = await db.query.creativeAsset.findFirst({
+				where: eq(creativeAsset.id, input.id),
+				with: { team: true },
 			});
 
-			// Log activity
-			await prisma.creativeAssetActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetId: asset.id,
-					userId: user.id,
-					action: "ARCHIVE",
-					description: `Archived creative asset: ${asset.name}`,
-					metadata: { previousStatus: asset.status },
-					createdAt: new Date(),
-				},
+			if (!updatedAsset) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Creative asset not found",
+				});
+			}
+
+			await db.insert(creativeAssetActivityLog).values({
+				id: crypto.randomUUID(),
+				creativeAssetId: asset.id,
+				userId: user.id,
+				action: "ARCHIVE",
+				description: `Archived creative asset: ${asset.name}`,
+				metadata: { previousStatus: asset.status },
+				ipAddress: null,
+				userAgent: null,
+				createdAt: now,
 			});
 
 			return transformAsset(updatedAsset);
@@ -2251,9 +2352,9 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const asset = await prisma.creativeAsset.findUnique({
-				where: { id: input.id },
-				include: {
+			const asset = await db.query.creativeAsset.findFirst({
+				where: eq(creativeAsset.id, input.id),
+				with: {
 					permissions: true,
 					team: true,
 				},
@@ -2283,30 +2384,38 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			// Update asset status to DRAFT
-			const updatedAsset = await prisma.creativeAsset.update({
-				where: { id: input.id },
-				data: {
+			const now = new Date();
+			await db
+				.update(creativeAsset)
+				.set({
 					status: "DRAFT",
 					lastModifiedBy: user.id,
-					updatedAt: new Date(),
-				},
-				include: {
-					team: true,
-				},
+					updatedAt: now,
+				})
+				.where(eq(creativeAsset.id, input.id));
+
+			const updatedAsset = await db.query.creativeAsset.findFirst({
+				where: eq(creativeAsset.id, input.id),
+				with: { team: true },
 			});
 
-			// Log activity
-			await prisma.creativeAssetActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					creativeAssetId: asset.id,
-					userId: user.id,
-					action: "UNARCHIVE",
-					description: `Unarchived creative asset: ${asset.name}`,
-					metadata: { previousStatus: asset.status },
-					createdAt: new Date(),
-				},
+			if (!updatedAsset) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Creative asset not found",
+				});
+			}
+
+			await db.insert(creativeAssetActivityLog).values({
+				id: crypto.randomUUID(),
+				creativeAssetId: asset.id,
+				userId: user.id,
+				action: "UNARCHIVE",
+				description: `Unarchived creative asset: ${asset.name}`,
+				metadata: { previousStatus: asset.status },
+				ipAddress: null,
+				userAgent: null,
+				createdAt: now,
 			});
 
 			return transformAsset(updatedAsset);

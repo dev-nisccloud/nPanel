@@ -1,21 +1,25 @@
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../../trpc";
-import prisma from "@nPanel/db";
+import { and, desc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { db } from "@npanel/db";
+import {
+  imageGenAiGeneration,
+  imageGenAiGenerationActivityLog,
+} from "@npanel/db/schema/imagegen-studio";
+import { protectedProcedure, router } from "../../trpc";
 import {
   getAiGenerationsSchema,
   deleteAiGenerationSchema,
   getAiGenerationsResponseSchema,
   imageGenAiGenerationSchema,
 } from "./schemas";
+import { getUserTeamIds, orUserOrTeamMember, personalScope } from "./team-scope";
 
 /**
- * Transform function to ensure clean data (no Prisma types leak)
- * Converts Prisma types to plain types for API layer
+ * Transform function to ensure clean data (no ORM types leak)
  */
 function transformAiGeneration(gen: any): z.infer<typeof imageGenAiGenerationSchema> {
-  // Parse referenceImageUrls if it's a JSON string
   let referenceImageUrls: string[] = [];
   if (gen.referenceImageUrls) {
     if (typeof gen.referenceImageUrls === "string") {
@@ -46,7 +50,6 @@ function transformAiGeneration(gen: any): z.infer<typeof imageGenAiGenerationSch
 }
 
 export const imageGenAiGenerationsRouter = router({
-  // List AI generations with pagination
   list: protectedProcedure
     .input(getAiGenerationsSchema)
     .output(getAiGenerationsResponseSchema)
@@ -57,50 +60,49 @@ export const imageGenAiGenerationsRouter = router({
       }
 
       const { page, limit, teamId } = input;
+      const userTeamIds = await getUserTeamIds(userId);
 
-      const where = teamId
-        ? {
-          teamId,
-          team: {
-            members: {
-              some: { userId },
-            },
-          },
+      let whereCond;
+      if (teamId) {
+        if (!userTeamIds.includes(teamId)) {
+          return { data: [], nextPage: null };
         }
-        : {
+        whereCond = eq(imageGenAiGeneration.teamId, teamId);
+      } else {
+        whereCond = personalScope(
+          imageGenAiGeneration.userId,
+          imageGenAiGeneration.teamId,
           userId,
-          teamId: null,
-        };
+        );
+      }
 
-      const generations = await prisma.imageGenAiGeneration.findMany({
-        where,
-        take: limit,
-        skip: (page - 1) * limit,
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          prompt: true,
-          referenceImageUrls: true,
-          imageUrl: true,
-          imageFileName: true,
-          imageSize: true,
-          imageMimeType: true,
-          imageMetadata: true,
-          modelId: true,
-          modelName: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+      const generations = await db
+        .select({
+          id: imageGenAiGeneration.id,
+          prompt: imageGenAiGeneration.prompt,
+          referenceImageUrls: imageGenAiGeneration.referenceImageUrls,
+          imageUrl: imageGenAiGeneration.imageUrl,
+          imageFileName: imageGenAiGeneration.imageFileName,
+          imageSize: imageGenAiGeneration.imageSize,
+          imageMimeType: imageGenAiGeneration.imageMimeType,
+          imageMetadata: imageGenAiGeneration.imageMetadata,
+          modelId: imageGenAiGeneration.modelId,
+          modelName: imageGenAiGeneration.modelName,
+          createdAt: imageGenAiGeneration.createdAt,
+          updatedAt: imageGenAiGeneration.updatedAt,
+        })
+        .from(imageGenAiGeneration)
+        .where(whereCond)
+        .orderBy(desc(imageGenAiGeneration.createdAt))
+        .limit(limit)
+        .offset((page - 1) * limit);
 
-      // Transform Prisma data to clean API response
       return {
         data: generations.map(transformAiGeneration),
         nextPage: generations.length === limit ? page + 1 : null,
       };
     }),
 
-  // Delete an AI generation
   delete: protectedProcedure
     .input(deleteAiGenerationSchema)
     .output(z.object({ data: z.object({ id: z.string() }) }))
@@ -110,53 +112,45 @@ export const imageGenAiGenerationsRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      // Note: Request headers are not available in tRPC context
       const ipAddress = undefined;
       const userAgent = undefined;
 
-      // Check if user has access to this generation
-      const existingGeneration = await prisma.imageGenAiGeneration.findFirst({
-        where: {
-          id: input.id,
-          OR: [
-            { userId },
-            {
-              team: {
-                members: {
-                  some: { userId },
-                },
-              },
-            },
-          ],
-        },
+      const userTeamIds = await getUserTeamIds(userId);
+      const existingGeneration = await db.query.imageGenAiGeneration.findFirst({
+        where: and(
+          eq(imageGenAiGeneration.id, input.id),
+          orUserOrTeamMember(
+            imageGenAiGeneration.userId,
+            imageGenAiGeneration.teamId,
+            userId,
+            userTeamIds,
+          ),
+        ),
       });
 
       if (!existingGeneration) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
       }
 
-      // Create activity log before deletion
-      await prisma.imageGenAiGenerationActivityLog.create({
-        data: {
-          id: randomUUID(),
-          imageGenAiGenerationId: input.id,
-          userId,
-          action: "DELETE",
-          description: `Deleted AI generation: ${existingGeneration.imageFileName}`,
-          metadata: {
-            prompt: existingGeneration.prompt,
-            imageFileName: existingGeneration.imageFileName,
-            imageKey: existingGeneration.imageKey,
-          },
-          ipAddress,
-          userAgent,
-          createdAt: new Date(),
+      await db.insert(imageGenAiGenerationActivityLog).values({
+        id: randomUUID(),
+        imageGenAiGenerationId: input.id,
+        userId,
+        action: "DELETE",
+        description: `Deleted AI generation: ${existingGeneration.imageFileName}`,
+        metadata: {
+          prompt: existingGeneration.prompt,
+          imageFileName: existingGeneration.imageFileName,
+          imageKey: existingGeneration.imageKey,
         },
+        ipAddress: ipAddress ?? null,
+        userAgent: userAgent ?? null,
+        createdAt: new Date(),
       });
 
-      await prisma.imageGenAiGeneration.delete({
-        where: { id: input.id },
-      });
+      await db
+        .delete(imageGenAiGeneration)
+        .where(eq(imageGenAiGeneration.id, input.id));
 
       return { data: { id: input.id } };
     }),

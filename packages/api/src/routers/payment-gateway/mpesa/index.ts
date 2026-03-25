@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, eq } from "drizzle-orm";
 import { router, protectedProcedure } from "../../../trpc";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import {
+	paymentTransaction,
+	paymentTransactionActivityLog,
+} from "@npanel/db/schema/payment-transactions";
 import {
 	createMpesaClientFromEnv,
 	MpesaApiError,
@@ -68,8 +73,7 @@ export const mpesaRouter = router({
 
 				// Create payment transaction record
 				const transactionId = crypto.randomUUID();
-				const transaction = await prisma.paymentTransaction.create({
-					data: {
+				await db.insert(paymentTransaction).values({
 						id: transactionId,
 						userId,
 						teamId: input.teamId || null,
@@ -88,12 +92,11 @@ export const mpesaRouter = router({
 						initiatedAt: now,
 						createdAt: now,
 						updatedAt: now,
-					},
 				});
+				const transaction = { id: transactionId };
 
 				// Create activity log for transaction initiation
-				await prisma.paymentTransactionActivityLog.create({
-					data: {
+				await db.insert(paymentTransactionActivityLog).values({
 						id: crypto.randomUUID(),
 						transactionId: transaction.id,
 						userId,
@@ -108,7 +111,6 @@ export const mpesaRouter = router({
 						ipAddress: null, // Can be added later if needed
 						userAgent: null, // Can be added later if needed
 						createdAt: now,
-					},
 				});
 
 
@@ -135,8 +137,7 @@ export const mpesaRouter = router({
 							const now = new Date();
 							const transactionId = crypto.randomUUID();
 
-							await prisma.paymentTransaction.create({
-								data: {
+							await db.insert(paymentTransaction).values({
 									id: transactionId,
 									userId,
 									teamId: input.teamId || null,
@@ -170,12 +171,10 @@ export const mpesaRouter = router({
 									failedAt: now,
 									createdAt: now,
 									updatedAt: now,
-								},
 							});
 
 							// Create activity log for failed transaction
-							await prisma.paymentTransactionActivityLog.create({
-								data: {
+							await db.insert(paymentTransactionActivityLog).values({
 									id: crypto.randomUUID(),
 									transactionId,
 									userId,
@@ -202,7 +201,6 @@ export const mpesaRouter = router({
 									ipAddress: null,
 									userAgent: null,
 									createdAt: now,
-								},
 							});
 						} catch (dbError) {
 							// Log database error but don't fail the request
@@ -267,12 +265,12 @@ export const mpesaRouter = router({
 			if (!ctx.session?.user?.id) {
 				throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required" });
 			}
-			const transaction = await prisma.paymentTransaction.findFirst({
-				where: {
-					checkoutRequestId: input.checkoutRequestId,
-					userId: ctx.session.user.id,
-				},
-				select: {
+			const transaction = await db.query.paymentTransaction.findFirst({
+				where: and(
+					eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId),
+					eq(paymentTransaction.userId, ctx.session.user.id),
+				),
+				columns: {
 					status: true,
 					gatewayStatus: true,
 					gatewayMessage: true,
@@ -321,19 +319,19 @@ export const mpesaRouter = router({
 					checkoutRequestId: true,
 				} as const;
 				const getTransaction = async () =>
-					prisma.paymentTransaction.findFirst({
-						where: {
-							checkoutRequestId: input.checkoutRequestId,
-							userId,
-						},
+					db.query.paymentTransaction.findFirst({
+						where: and(
+							eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId),
+							eq(paymentTransaction.userId, userId),
+						),
 					});
 				const getTransactionForTerminalCheck = () =>
-					prisma.paymentTransaction.findFirst({
-						where: {
-							checkoutRequestId: input.checkoutRequestId,
-							userId,
-						},
-						select: terminalFields,
+					db.query.paymentTransaction.findFirst({
+						where: and(
+							eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId),
+							eq(paymentTransaction.userId, userId),
+						),
+						columns: terminalFields,
 					});
 
 				// Helper: return terminal state from DB (webhook already ran)
@@ -393,8 +391,8 @@ export const mpesaRouter = router({
 
 					let dbTransaction = await getTransaction();
 					if (!dbTransaction) {
-						dbTransaction = await prisma.paymentTransaction.findFirst({
-							where: { checkoutRequestId: input.checkoutRequestId },
+						dbTransaction = await db.query.paymentTransaction.findFirst({
+							where: eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId),
 						});
 					}
 
@@ -402,9 +400,9 @@ export const mpesaRouter = router({
 					if (dbTransaction) {
 						const isSuccess = isTerminalResultCode(resultCodeNum) && resultCodeStr === "0";
 						const isTerminal = isTerminalResultCode(resultCodeNum);
-						await prisma.paymentTransaction.update({
-							where: { id: dbTransaction.id },
-							data: {
+						await db
+							.update(paymentTransaction)
+							.set({
 								rawResponse: isSuccess ? JSON.parse(JSON.stringify(response)) : dbTransaction.rawResponse,
 								rawError: !isSuccess ? JSON.parse(JSON.stringify(response)) : dbTransaction.rawError,
 								gatewayStatus: String(resultCode),
@@ -414,10 +412,9 @@ export const mpesaRouter = router({
 									...(resultCodeStr === "0" ? { processedAt: now } : resultCodeNum === 1032 ? {} : { failedAt: now }),
 								}),
 								updatedAt: now,
-							},
-						});
-						await prisma.paymentTransactionActivityLog.create({
-							data: {
+							})
+							.where(eq(paymentTransaction.id, dbTransaction.id));
+						await db.insert(paymentTransactionActivityLog).values({
 								id: crypto.randomUUID(),
 								transactionId: dbTransaction.id,
 								userId: dbTransaction.userId,
@@ -431,8 +428,9 @@ export const mpesaRouter = router({
 									checkoutRequestId: response.CheckoutRequestID,
 									merchantRequestId: response.MerchantRequestID,
 								},
+								ipAddress: null,
+								userAgent: null,
 								createdAt: now,
-							},
 						});
 					}
 
@@ -492,16 +490,16 @@ export const mpesaRouter = router({
 					// Log API error if we have a transaction (full row needed for id/userId)
 					const txForLog =
 						(await getTransaction()) ??
-						(await prisma.paymentTransaction.findFirst({
-							where: { checkoutRequestId: input.checkoutRequestId },
+						(await db.query.paymentTransaction.findFirst({
+							where: eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId),
 						}));
 					if (txForLog) {
 						const now = new Date();
 						const errorCode = apiError instanceof MpesaApiError ? String(apiError.code) : "UNKNOWN";
 						const errorMessage = apiError instanceof MpesaApiError ? apiError.description : (apiError instanceof Error ? apiError.message : "Unknown error");
-						await prisma.paymentTransaction.update({
-							where: { id: txForLog.id },
-							data: {
+						await db
+							.update(paymentTransaction)
+							.set({
 								rawError: JSON.parse(JSON.stringify({
 									error: errorMessage,
 									code: errorCode,
@@ -511,10 +509,9 @@ export const mpesaRouter = router({
 								gatewayStatus: errorCode,
 								gatewayMessage: errorMessage,
 								updatedAt: now,
-							},
-						});
-						await prisma.paymentTransactionActivityLog.create({
-							data: {
+							})
+							.where(eq(paymentTransaction.id, txForLog.id));
+						await db.insert(paymentTransactionActivityLog).values({
 								id: crypto.randomUUID(),
 								transactionId: txForLog.id,
 								userId: txForLog.userId,
@@ -525,8 +522,9 @@ export const mpesaRouter = router({
 									errorMessage,
 									checkoutRequestId: input.checkoutRequestId,
 								},
+								ipAddress: null,
+								userAgent: null,
 								createdAt: now,
-							},
 						});
 					}
 

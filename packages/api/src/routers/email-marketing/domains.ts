@@ -1,7 +1,11 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../../trpc";
-import prisma from "@nPanel/db";
+import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import * as crypto from "crypto";
+import { db } from "@npanel/db";
+import { emailDomain, emailDomainActivityLog } from "@npanel/db/schema/email-marketing";
+import { teamMember } from "@npanel/db/schema/teams";
+import { z } from "zod";
+import { protectedProcedure, router } from "../../trpc";
 import { getResendClient, handleResendError } from "../../lib/resend-client";
 import {
 	emailDomainCreateInputSchema,
@@ -34,6 +38,39 @@ function mapResendStatusToDbStatus(resendStatus: string | null | undefined): "PE
 	return "PENDING";
 }
 
+async function assertTeamMember(teamId: string, userId: string) {
+	const [member] = await db
+		.select({ id: teamMember.id, role: teamMember.role })
+		.from(teamMember)
+		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+		.limit(1);
+	return member ?? null;
+}
+
+async function assertDomainAccess(domainId: string, userId: string) {
+	const [domain] = await db
+		.select()
+		.from(emailDomain)
+		.where(eq(emailDomain.id, domainId))
+		.limit(1);
+
+	if (!domain) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+	}
+
+	if (domain.userId === userId) return domain;
+
+	if (domain.teamId) {
+		const member = await assertTeamMember(domain.teamId, userId);
+		if (!member) {
+			throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+		}
+		return domain;
+	}
+
+	throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
+
 export const emailMarketingDomainsRouter = router({
 	/**
 	 * Create a new email domain
@@ -52,9 +89,11 @@ export const emailMarketingDomainsRouter = router({
 				}
 
 				// Check if domain already exists
-				const existingDomain = await prisma.emailDomain.findUnique({
-					where: { domainName: input.domainName },
-				});
+				const [existingDomain] = await db
+					.select({ id: emailDomain.id })
+					.from(emailDomain)
+					.where(eq(emailDomain.domainName, input.domainName))
+					.limit(1);
 
 				if (existingDomain) {
 					throw new TRPCError({
@@ -93,35 +132,42 @@ export const emailMarketingDomainsRouter = router({
 
 			// Create domain in database and activity log in a single transaction
 			const now = new Date();
-			const domain = await prisma.$transaction(async (tx) => {
-				const newDomain = await tx.emailDomain.create({
-					data: {
-						id: crypto.randomUUID(),
-						domainName: input.domainName,
-						resendDomainId,
-						status: "PENDING",
-						verificationStatus,
-						dnsRecords,
-						userId,
-						teamId: input.teamId ?? null,
-						createdAt: now,
-						updatedAt: now,
-					},
+			const domainId = crypto.randomUUID();
+			const domain = await db.transaction(async (tx: any) => {
+				await tx.insert(emailDomain).values({
+					id: domainId,
+					domainName: input.domainName,
+					resendDomainId,
+					status: "PENDING",
+					verificationStatus,
+					verificationData: null,
+					dnsRecords,
+					userId,
+					teamId: input.teamId ?? null,
+					createdAt: now,
+					updatedAt: now,
+					verifiedAt: null,
 				});
 
-					await tx.emailDomainActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId,
-							emailDomainId: newDomain.id,
-							action: "CREATE",
-							description: `Domain ${input.domainName} added`,
-							createdAt: now,
-						},
-					});
-
-					return newDomain;
+				await tx.insert(emailDomainActivityLog).values({
+					id: crypto.randomUUID(),
+					userId,
+					emailDomainId: domainId,
+					action: "CREATE",
+					description: `Domain ${input.domainName} added`,
+					metadata: null,
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
+
+				const [created] = await tx
+					.select()
+					.from(emailDomain)
+					.where(eq(emailDomain.id, domainId))
+					.limit(1);
+				return created!;
+			});
 
 				return emailDomainDetailSchema.parse({
 					...domain,
@@ -157,43 +203,7 @@ export const emailMarketingDomainsRouter = router({
 					});
 				}
 
-				const domain = await prisma.emailDomain.findUnique({
-					where: { id: input.id },
-				});
-
-				if (!domain) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Domain not found",
-					});
-				}
-
-				// Check access (user must own it or be in the team)
-				if (domain.userId !== userId) {
-					if (domain.teamId) {
-						// Check if user is in the team
-						const teamMember = await prisma.teamMember.findUnique({
-							where: {
-								teamId_userId: {
-									teamId: domain.teamId,
-									userId,
-								},
-							},
-						});
-
-						if (!teamMember) {
-							throw new TRPCError({
-								code: "FORBIDDEN",
-								message: "Access denied",
-							});
-						}
-					} else {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				}
+				const domain = await assertDomainAccess(input.id, userId);
 
 				// Sync with Resend to get latest verification status
 				if (domain.resendDomainId) {
@@ -233,10 +243,10 @@ export const emailMarketingDomainsRouter = router({
 								updateData.dnsRecords = dnsRecords;
 							}
 
-							await prisma.emailDomain.update({
-								where: { id: domain.id },
-								data: updateData,
-							});
+							await db
+								.update(emailDomain)
+								.set(updateData)
+								.where(eq(emailDomain.id, domain.id));
 
 							// Update local domain object for return
 							domain.status = status;
@@ -283,46 +293,32 @@ export const emailMarketingDomainsRouter = router({
 					});
 				}
 
-				// Build where clause
-				const where: any = {
-					OR: [
-						{ userId },
-						...(input.teamId
-							? [
-									{
-										teamId: input.teamId,
-										team: {
-											members: {
-												some: { userId },
-											},
-										},
-									},
-								]
-							: []),
-					],
-				};
-
-				if (input.status) {
-					where.status = input.status;
+				const accessOr = [eq(emailDomain.userId, userId)];
+				if (input.teamId) {
+					accessOr.push(
+						sql`(${emailDomain.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`,
+					);
 				}
 
-				if (input.search) {
-					where.domainName = {
-						contains: input.search,
-						mode: "insensitive",
-					};
-				}
+				const conditions = [or(...accessOr)];
+				if (input.status) conditions.push(eq(emailDomain.status, input.status));
+				if (input.search)
+					conditions.push(ilike(emailDomain.domainName, `%${input.search}%`));
 
-				// Get domains
-				const [domains, total] = await Promise.all([
-					prisma.emailDomain.findMany({
-						where,
-						skip: input.offset,
-						take: input.limit,
-						orderBy: { createdAt: "desc" },
-					}),
-					prisma.emailDomain.count({ where }),
+				const whereClause = and(...conditions);
+
+				const [domains, totalRes] = await Promise.all([
+					db
+						.select()
+						.from(emailDomain)
+						.where(whereClause)
+						.orderBy(desc(emailDomain.createdAt))
+						.limit(input.limit)
+						.offset(input.offset),
+					db.select({ value: count() }).from(emailDomain).where(whereClause),
 				]);
+
+				const total = Number(totalRes[0]?.value ?? 0);
 
 				return emailDomainListResponseSchema.parse({
 					domains: domains.map((d) => ({
@@ -361,75 +357,46 @@ export const emailMarketingDomainsRouter = router({
 					});
 				}
 
-				const domain = await prisma.emailDomain.findUnique({
-					where: { id: input.id },
-				});
-
-				if (!domain) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Domain not found",
-					});
-				}
-
-				// Check access
-				if (domain.userId !== userId) {
-					if (domain.teamId) {
-						const teamMember = await prisma.teamMember.findUnique({
-							where: {
-								teamId_userId: {
-									teamId: domain.teamId,
-									userId,
-								},
-							},
-						});
-
-						if (!teamMember) {
-							throw new TRPCError({
-								code: "FORBIDDEN",
-								message: "Access denied",
-							});
-						}
-					} else {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				}
+				const domain = await assertDomainAccess(input.id, userId);
 
 				// Update domain and create activity log in a single transaction
-				const updatedDomain = await prisma.$transaction(async (tx) => {
-					const updated = await tx.emailDomain.update({
-						where: { id: input.id },
-						data: {
+				const updatedDomain = await db.transaction(async (tx: any) => {
+					await tx
+						.update(emailDomain)
+						.set({
 							...(input.domainName && { domainName: input.domainName }),
 							...(input.status && { status: input.status }),
 							...(input.verificationStatus !== undefined && {
 								verificationStatus: input.verificationStatus,
 							}),
 							...(input.verificationData !== undefined && {
-								verificationData: input.verificationData ?? undefined,
+								verificationData: input.verificationData ?? null,
 							}),
 							...(input.dnsRecords !== undefined && {
-								dnsRecords: input.dnsRecords ?? undefined,
+								dnsRecords: input.dnsRecords ?? null,
 							}),
 							updatedAt: new Date(),
-						},
+						})
+						.where(eq(emailDomain.id, input.id));
+
+					await tx.insert(emailDomainActivityLog).values({
+						id: crypto.randomUUID(),
+						userId,
+						emailDomainId: domain.id,
+						action: "UPDATE",
+						description: `Domain ${domain.domainName} updated`,
+						metadata: null,
+						ipAddress: null,
+						userAgent: null,
+						createdAt: new Date(),
 					});
 
-					await tx.emailDomainActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId,
-							emailDomainId: domain.id,
-							action: "UPDATE",
-							description: `Domain ${domain.domainName} updated`,
-							createdAt: new Date(),
-						},
-					});
-
-					return updated;
+					const [updated] = await tx
+						.select()
+						.from(emailDomain)
+						.where(eq(emailDomain.id, input.id))
+						.limit(1);
+					return updated!;
 				});
 
 				return emailDomainDetailSchema.parse({
@@ -466,40 +433,11 @@ export const emailMarketingDomainsRouter = router({
 					});
 				}
 
-				const domain = await prisma.emailDomain.findUnique({
-					where: { id: input.id },
-				});
-
-				if (!domain) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Domain not found",
-					});
-				}
-
-				// Check access
-				if (domain.userId !== userId) {
-					if (domain.teamId) {
-						const teamMember = await prisma.teamMember.findUnique({
-							where: {
-								teamId_userId: {
-									teamId: domain.teamId,
-									userId,
-								},
-							},
-						});
-
-						if (!teamMember || teamMember.role !== "OWNER") {
-							throw new TRPCError({
-								code: "FORBIDDEN",
-								message: "Access denied",
-							});
-						}
-					} else {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
+				const domain = await assertDomainAccess(input.id, userId);
+				if (domain.teamId) {
+					const member = await assertTeamMember(domain.teamId, userId);
+					if (!member || member.role !== "OWNER") {
+						throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
 					}
 				}
 
@@ -515,9 +453,7 @@ export const emailMarketingDomainsRouter = router({
 				}
 
 				// Delete from database (cascade will handle related records)
-				await prisma.emailDomain.delete({
-					where: { id: input.id },
-				});
+				await db.delete(emailDomain).where(eq(emailDomain.id, input.id));
 
 				return { success: true };
 			} catch (error) {
@@ -548,9 +484,11 @@ export const emailMarketingDomainsRouter = router({
 					});
 				}
 
-				const domain = await prisma.emailDomain.findUnique({
-					where: { id: input.id },
-				});
+				const [domain] = await db
+					.select()
+					.from(emailDomain)
+					.where(eq(emailDomain.id, input.id))
+					.limit(1);
 
 				if (!domain || !domain.resendDomainId) {
 					throw new TRPCError({
@@ -611,24 +549,30 @@ export const emailMarketingDomainsRouter = router({
 					updateData.dnsRecords = dnsRecords;
 				}
 
-				const updatedDomain = await prisma.$transaction(async (tx) => {
-					const updated = await tx.emailDomain.update({
-						where: { id: input.id },
-						data: updateData,
+				const updatedDomain = await db.transaction(async (tx: any) => {
+					await tx
+						.update(emailDomain)
+						.set(updateData)
+						.where(eq(emailDomain.id, input.id));
+
+					await tx.insert(emailDomainActivityLog).values({
+						id: crypto.randomUUID(),
+						userId,
+						emailDomainId: domain.id,
+						action: "VERIFY",
+						description: `Domain ${domain.domainName} verification checked`,
+						metadata: null,
+						ipAddress: null,
+						userAgent: null,
+						createdAt: new Date(),
 					});
 
-					await tx.emailDomainActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId,
-							emailDomainId: domain.id,
-							action: "VERIFY",
-							description: `Domain ${domain.domainName} verification checked`,
-							createdAt: new Date(),
-						},
-					});
-
-					return updated;
+					const [updated] = await tx
+						.select()
+						.from(emailDomain)
+						.where(eq(emailDomain.id, input.id))
+						.limit(1);
+					return updated!;
 				});
 
 				return emailDomainDetailSchema.parse({

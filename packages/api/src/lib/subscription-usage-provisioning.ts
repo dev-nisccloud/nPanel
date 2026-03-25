@@ -4,7 +4,15 @@
  * Creates NiscClientSubscriptionUsage rows with credits = plan's limitValue
  * and logs each in NiscClientSubscriptionUsageActivityLog.
  */
-import prisma from "@nPanel/db";
+import { and, eq, isNull } from "drizzle-orm";
+import { db } from "@npanel/db";
+import {
+	niscClientSubscriptionActivityLog,
+	niscClientSubscriptionUsage,
+	niscClientSubscriptionUsageActivityLog,
+	niscProductPlanUsage,
+} from "@npanel/db/schema/products";
+import { randomUUID } from "node:crypto";
 
 export type ProvisionInitialUsageCreditsParams = {
   subscriptionId: string;
@@ -23,69 +31,69 @@ export async function provisionInitialUsageCreditsForSubscription(
     return { created: 0 };
   }
 
-  const planUsages = await prisma.niscProductPlanUsage.findMany({
-    where: {
-      productId,
-      productPlanId,
-      userId: null,
-      teamId: null,
-    },
+  const planUsages = await db.query.niscProductPlanUsage.findMany({
+    where: and(
+      eq(niscProductPlanUsage.productId, productId),
+      eq(niscProductPlanUsage.productPlanId, productPlanId),
+      isNull(niscProductPlanUsage.userId),
+      isNull(niscProductPlanUsage.teamId),
+    ),
   });
 
   let created = 0;
   for (const pu of planUsages) {
-    const usage = await prisma.niscClientSubscriptionUsage.upsert({
-      where: {
-        subscriptionId_usageKind: {
-          subscriptionId,
-          usageKind: pu.usageKind,
-        },
-      },
-      create: {
+    const inserted = await db
+      .insert(niscClientSubscriptionUsage)
+      .values({
+        id: randomUUID(),
         subscriptionId,
         usageKind: pu.usageKind,
         credits: pu.limitValue,
-      },
-      update: {
-        credits: pu.limitValue,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: [niscClientSubscriptionUsage.subscriptionId, niscClientSubscriptionUsage.usageKind],
+        set: { credits: pu.limitValue },
+      })
+      .returning({ id: niscClientSubscriptionUsage.id });
 
-    await prisma.niscClientSubscriptionUsageActivityLog.create({
-      data: {
-        subscriptionUsageId: usage.id,
-        userId: performedByUserId,
-        action: "CREDIT_ADD",
-        description: "Initial credits from plan (subscription creation)",
-        metadata: {
-          source: "initial_from_plan",
-          usageKind: pu.usageKind,
-          limitValue: pu.limitValue,
-          productPlanUsageId: pu.id,
-          amount: pu.limitValue,
-          balanceBefore: "0",
-          balanceAfter: pu.limitValue,
-          reason: "initial_creation",
-        },
+    const usage = inserted[0];
+    if (!usage) {
+      throw new Error("Failed to provision subscription usage");
+    }
+
+    await db.insert(niscClientSubscriptionUsageActivityLog).values({
+      id: randomUUID(),
+      subscriptionUsageId: usage.id,
+      userId: performedByUserId,
+      action: "CREDIT_ADD",
+      description: "Initial credits from plan (subscription creation)",
+      metadata: {
+        source: "initial_from_plan",
+        usageKind: pu.usageKind,
+        limitValue: pu.limitValue,
+        productPlanUsageId: pu.id,
+        amount: pu.limitValue,
+        balanceBefore: "0",
+        balanceAfter: pu.limitValue,
+        reason: "initial_creation",
       },
     });
     created += 1;
   }
 
   if (created > 0) {
-    await prisma.niscClientSubscriptionActivityLog.create({
-      data: {
-        subscriptionId,
-        userId: performedByUserId,
-        action: "UPDATE",
-        description: "Initial usage credits provisioned from plan",
-        metadata: {
-          source: "initial_from_plan",
-          productId,
-          productPlanId,
-          usageKinds: planUsages.map((pu) => pu.usageKind),
-          createdCount: created,
-        },
+    await db.insert(niscClientSubscriptionActivityLog).values({
+      id: randomUUID(),
+      subscriptionId,
+      userId: performedByUserId,
+      action: "UPDATE",
+      description: "Initial usage credits provisioned from plan",
+      metadata: {
+        source: "initial_from_plan",
+        productId,
+        productPlanId,
+        usageKinds: planUsages.map((pu) => pu.usageKind),
+        createdCount: created,
       },
     });
   }

@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
+import { and, asc, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import { team } from "@npanel/db/schema/teams";
+import {
+  creativeBrief,
+  creativeBriefActivityLog,
+  creativeBriefReferenceImage,
+} from "@npanel/db/schema/creative-briefs";
 
 // ============================================================================
 // TYPESCRIPT TYPES - Independent from Prisma, mirroring database structure
@@ -41,7 +49,8 @@ interface DbCreativeBrief {
   name: string;
   userId: string;
   teamId: string | null;
-  status: CreativeBriefStatusType;
+  /** Drizzle infers string; narrowed in transform */
+  status: string;
   background: string;
   objectives: string;
   requirements: string;
@@ -271,7 +280,7 @@ function transformBrief(brief: DbCreativeBrief) {
     name: brief.name,
     userId: brief.userId,
     teamId: brief.teamId,
-    status: brief.status as "DRAFT" | "REVIEWING" | "APPROVED" | "REJECTED",
+    status: brief.status as CreativeBriefStatusType,
     background: brief.background,
     objectives: brief.objectives,
     requirements: brief.requirements,
@@ -346,27 +355,6 @@ async function getAuthenticatedUser(ctx: { session: { user?: { id: string } } | 
   return { id: user.id };
 }
 
-// Helper to log activity
-async function logActivity(
-  briefId: string,
-  userId: string,
-  action: string,
-  description?: string | null,
-  metadata?: unknown,
-) {
-  await prisma.creativeBriefActivityLog.create({
-    data: {
-      id: crypto.randomUUID(),
-      creativeBriefId: briefId,
-      userId,
-      action,
-      description: description ?? null,
-      metadata: metadata ?? null,
-      createdAt: new Date(),
-    } as any, // Type assertion for JsonValue compatibility
-  });
-}
-
 export const creativeBriefsRouter = router({
   // Get all creative briefs for the authenticated user
   getAll: protectedProcedure
@@ -374,34 +362,16 @@ export const creativeBriefsRouter = router({
     .query(async ({ ctx }) => {
       const user = await getAuthenticatedUser(ctx);
 
-      const briefs = await prisma.creativeBrief.findMany({
-        where: {
-          userId: user.id,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          team: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
+      const briefs = await db.query.creativeBrief.findMany({
+        where: eq(creativeBrief.userId, user.id),
+        with: {
+          user: true,
+          team: true,
           referenceImages: {
-            orderBy: {
-              createdAt: "asc",
-            },
+            orderBy: (ref, { asc }) => [asc(ref.createdAt)],
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: (cb, { desc }) => [desc(cb.createdAt)],
       });
 
       return briefs.map(transformBrief);
@@ -414,37 +384,14 @@ export const creativeBriefsRouter = router({
     .query(async ({ ctx, input }) => {
       const user = await getAuthenticatedUser(ctx);
 
-      const brief = await prisma.creativeBrief.findFirst({
-        where: {
-          id: input.id,
-          userId: user.id, // Ensure user owns the brief
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          team: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          approver: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+      const brief = await db.query.creativeBrief.findFirst({
+        where: and(eq(creativeBrief.id, input.id), eq(creativeBrief.userId, user.id)),
+        with: {
+          user: true,
+          team: true,
+          approver: true,
           referenceImages: {
-            orderBy: {
-              createdAt: "asc",
-            },
+            orderBy: (ref, { asc }) => [asc(ref.createdAt)],
           },
         },
       });
@@ -468,11 +415,11 @@ export const creativeBriefsRouter = router({
 
       // Batch: Validate team and date range in parallel (if both are needed)
       // This reduces connection usage when both validations are needed
-      const [team, dateRangeValid] = await Promise.all([
+      const [teamRecord, dateRangeValid] = await Promise.all([
         // Only query team if teamId is provided
         input.teamId
-          ? prisma.team.findUnique({
-              where: { id: input.teamId },
+          ? db.query.team.findFirst({
+              where: eq(team.id, input.teamId),
             })
           : Promise.resolve(null),
         // Validate date range (synchronous check, no DB query)
@@ -483,7 +430,7 @@ export const creativeBriefsRouter = router({
         ),
       ]);
 
-      if (input.teamId && !team) {
+      if (input.teamId && !teamRecord) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Team not found",
@@ -499,10 +446,10 @@ export const creativeBriefsRouter = router({
 
       // Batch: Create brief, reference images, and log activity in a transaction
       // This reduces connection usage from 3-4 sequential queries to 1 transaction
-      const brief = await prisma.$transaction(async (tx) => {
-        const brief = await tx.creativeBrief.create({
-          data: {
-            id: crypto.randomUUID(),
+      const brief = await db.transaction(async (tx) => {
+        const briefId = crypto.randomUUID();
+        await tx.insert(creativeBrief).values({
+            id: briefId,
             name: input.name,
             userId: user.id,
             teamId: input.teamId ?? null,
@@ -520,39 +467,13 @@ export const creativeBriefsRouter = router({
             timelineEndDate: input.timelineEndDate ?? null,
             createdAt: new Date(),
             updatedAt: new Date(),
-          } as any,
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-            approver: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            referenceImages: true,
-          } as any,
         });
 
         // Create reference images if provided
         if (input.referenceImages && input.referenceImages.length > 0) {
-          await tx.creativeBriefReferenceImage.createMany({
-            data: input.referenceImages.map((img) => ({
+          await tx.insert(creativeBriefReferenceImage).values(input.referenceImages.map((img) => ({
               id: crypto.randomUUID(),
-              creativeBriefId: brief.id,
+              creativeBriefId: briefId,
               fileUrl: img.fileUrl,
               fileKey: img.fileKey,
               fileName: img.fileName,
@@ -561,62 +482,41 @@ export const creativeBriefsRouter = router({
               fileMetadata: img.fileMetadata ?? null,
               createdAt: new Date(),
               updatedAt: new Date(),
-            })) as any, // Type assertion for JsonValue compatibility
-          });
+            })));
         }
 
         // Log activity
-        await tx.creativeBriefActivityLog.create({
-          data: {
+        await tx.insert(creativeBriefActivityLog).values({
             id: crypto.randomUUID(),
-            creativeBriefId: brief.id,
+            creativeBriefId: briefId,
             userId: user.id,
             action: "CREATE",
-            description: `Created creative brief "${brief.name}"`,
+            description: `Created creative brief "${input.name}"`,
+            comment: null,
             metadata: input.referenceImages && input.referenceImages.length > 0
               ? { referenceImagesCount: input.referenceImages.length }
               : null,
+            ipAddress: null,
+            userAgent: null,
             createdAt: new Date(),
-          } as any,
         });
 
-        // Reload brief with reference images if they were created
-        if (input.referenceImages && input.referenceImages.length > 0) {
-          const updatedBrief = await tx.creativeBrief.findUnique({
-            where: { id: brief.id },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              team: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                },
-              },
-              approver: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              referenceImages: {
-                orderBy: {
-                  createdAt: "asc",
-                },
-              },
+        const createdBrief = await tx.query.creativeBrief.findFirst({
+          where: eq(creativeBrief.id, briefId),
+          with: {
+            user: true,
+            team: true,
+            approver: true,
+            referenceImages: {
+              orderBy: (ref, { asc }) => [asc(ref.createdAt)],
             },
-          } as any);
-          return updatedBrief || brief;
-        }
+          },
+        });
 
-        return brief;
+        if (!createdBrief) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to load created brief" });
+        }
+        return createdBrief;
       });
 
       return transformBrief(brief);
@@ -631,17 +531,14 @@ export const creativeBriefsRouter = router({
 
       // Batch: Check brief existence, validate team, and date range
       // This reduces connection usage by parallelizing independent checks
-      const [existingBrief, team] = await Promise.all([
-        prisma.creativeBrief.findFirst({
-          where: {
-            id: input.id,
-            userId: user.id,
-          },
+      const [existingBrief, teamRecord] = await Promise.all([
+        db.query.creativeBrief.findFirst({
+          where: and(eq(creativeBrief.id, input.id), eq(creativeBrief.userId, user.id)),
         }),
         // Only query team if teamId is provided
         input.teamId
-          ? prisma.team.findUnique({
-              where: { id: input.teamId },
+          ? db.query.team.findFirst({
+              where: eq(team.id, input.teamId),
             })
           : Promise.resolve(null),
       ]);
@@ -653,7 +550,7 @@ export const creativeBriefsRouter = router({
         });
       }
 
-      if (input.teamId && !team) {
+      if (input.teamId && !teamRecord) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Team not found",
@@ -674,11 +571,9 @@ export const creativeBriefsRouter = router({
 
       // Batch: Update brief, handle reference images, and log activity in a transaction
       // This reduces connection usage from 3-4 sequential queries to 1 transaction
-      const updatedBrief = await prisma.$transaction(async (tx) => {
+      const updatedBrief = await db.transaction(async (tx) => {
         // Update brief
-        const updated = await tx.creativeBrief.update({
-          where: { id: input.id },
-          data: {
+        await tx.update(creativeBrief).set({
             ...(input.name !== undefined && { name: input.name }),
             ...(input.teamId !== undefined && { teamId: input.teamId ?? null }),
             ...(input.background !== undefined && { background: input.background }),
@@ -688,22 +583,18 @@ export const creativeBriefsRouter = router({
             ...(input.timelineStartDate !== undefined && { timelineStartDate: input.timelineStartDate ?? null }),
             ...(input.timelineEndDate !== undefined && { timelineEndDate: input.timelineEndDate ?? null }),
             updatedAt: new Date(),
-          },
-        });
+          }).where(eq(creativeBrief.id, input.id));
 
         // Handle reference images update
         if (input.referenceImages !== undefined) {
           // Delete existing reference images
-          await tx.creativeBriefReferenceImage.deleteMany({
-            where: {
-              creativeBriefId: input.id,
-            },
-          });
+          await tx
+            .delete(creativeBriefReferenceImage)
+            .where(eq(creativeBriefReferenceImage.creativeBriefId, input.id));
 
           // Create new reference images
           if (input.referenceImages.length > 0) {
-            await tx.creativeBriefReferenceImage.createMany({
-              data: input.referenceImages.map((img) => ({
+            await tx.insert(creativeBriefReferenceImage).values(input.referenceImages.map((img) => ({
                 id: crypto.randomUUID(),
                 creativeBriefId: input.id,
                 fileUrl: img.fileUrl,
@@ -714,60 +605,46 @@ export const creativeBriefsRouter = router({
                 fileMetadata: img.fileMetadata ?? null,
                 createdAt: new Date(),
                 updatedAt: new Date(),
-              })) as any, // Type assertion for JsonValue compatibility
-            });
+              })));
           }
         }
 
         // Log activity
-        await tx.creativeBriefActivityLog.create({
-          data: {
+        await tx.insert(creativeBriefActivityLog).values({
             id: crypto.randomUUID(),
-            creativeBriefId: updated.id,
+            creativeBriefId: input.id,
             userId: user.id,
             action: "UPDATE",
             description: "Creative brief updated",
+            comment: null,
             metadata: {
               updatedFields: Object.keys(input).filter((key) => key !== "id" && key !== "referenceImages"),
             },
+            ipAddress: null,
+            userAgent: null,
             createdAt: new Date(),
-          } as any,
         });
 
         // Reload brief with updated reference images and relations
-        const reloadedBrief = await tx.creativeBrief.findUnique({
-          where: { id: input.id },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-            approver: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
+        const reloadedBrief = await tx.query.creativeBrief.findFirst({
+          where: eq(creativeBrief.id, input.id),
+          with: {
+            user: true,
+            team: true,
+            approver: true,
             referenceImages: {
-              orderBy: {
-                createdAt: "asc",
-              },
+              orderBy: (ref, { asc }) => [asc(ref.createdAt)],
             },
           },
-        } as any);
+        });
 
-        return reloadedBrief || updated;
+        if (!reloadedBrief) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to reload brief after update",
+          });
+        }
+        return reloadedBrief;
       });
 
       return transformBrief(updatedBrief);
@@ -786,11 +663,8 @@ export const creativeBriefsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const user = await getAuthenticatedUser(ctx);
 
-      const existingBrief = await prisma.creativeBrief.findFirst({
-        where: {
-          id: input.id,
-          userId: user.id,
-        },
+      const existingBrief = await db.query.creativeBrief.findFirst({
+        where: and(eq(creativeBrief.id, input.id), eq(creativeBrief.userId, user.id)),
       });
 
       if (!existingBrief) {
@@ -800,7 +674,7 @@ export const creativeBriefsRouter = router({
         });
       }
 
-      const updatedBrief = await prisma.$transaction(async (tx) => {
+      const updatedBrief = await db.transaction(async (tx) => {
         const updateData: Record<string, unknown> = {
           status: input.status,
           updatedAt: new Date(),
@@ -817,13 +691,9 @@ export const creativeBriefsRouter = router({
           updateData.approvedAt = null;
         }
 
-        const updated = await tx.creativeBrief.update({
-          where: { id: input.id },
-          data: updateData as any,
-        });
+        await tx.update(creativeBrief).set(updateData).where(eq(creativeBrief.id, input.id));
 
-        await tx.creativeBriefActivityLog.create({
-          data: {
+        await tx.insert(creativeBriefActivityLog).values({
             id: crypto.randomUUID(),
             creativeBriefId: input.id,
             userId: user.id,
@@ -831,19 +701,20 @@ export const creativeBriefsRouter = router({
             description: `Status changed to ${input.status}${input.comment ? ": " + input.comment : ""}`,
             comment: input.comment ?? null,
             metadata: { previousStatus: existingBrief.status, newStatus: input.status },
+            ipAddress: null,
+            userAgent: null,
             createdAt: new Date(),
-          } as any,
         });
 
-        const reloaded = await tx.creativeBrief.findUnique({
-          where: { id: input.id },
-          include: {
-            user: { select: { id: true, name: true, email: true } },
-            team: { select: { id: true, name: true, slug: true } },
-            approver: { select: { id: true, name: true, email: true } },
-            referenceImages: { orderBy: { createdAt: "asc" as const } },
+        const reloaded = await tx.query.creativeBrief.findFirst({
+          where: eq(creativeBrief.id, input.id),
+          with: {
+            user: true,
+            team: true,
+            approver: true,
+            referenceImages: { orderBy: (ref, { asc }) => [asc(ref.createdAt)] },
           },
-        } as any);
+        });
         if (!reloaded) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Brief not found after update" });
         return reloaded;
       });
@@ -857,10 +728,10 @@ export const creativeBriefsRouter = router({
     .query(async ({ ctx }) => {
       await getAuthenticatedUser(ctx);
 
-      const users = await prisma.user.findMany({
-        select: { id: true, name: true, email: true },
-        orderBy: { name: "asc" },
-      });
+      const users = await db
+        .select({ id: user.id, name: user.name, email: user.email })
+        .from(user)
+        .orderBy(asc(user.name));
       return users;
     }),
 
@@ -872,11 +743,8 @@ export const creativeBriefsRouter = router({
       const user = await getAuthenticatedUser(ctx);
 
       // Check if brief exists and user owns it
-      const existingBrief = await prisma.creativeBrief.findFirst({
-        where: {
-          id: input.id,
-          userId: user.id,
-        },
+      const existingBrief = await db.query.creativeBrief.findFirst({
+        where: and(eq(creativeBrief.id, input.id), eq(creativeBrief.userId, user.id)),
       });
 
       if (!existingBrief) {
@@ -887,9 +755,7 @@ export const creativeBriefsRouter = router({
       }
 
       // Delete brief (cascade will delete reference images and activity logs)
-      await prisma.creativeBrief.delete({
-        where: { id: input.id },
-      });
+      await db.delete(creativeBrief).where(eq(creativeBrief.id, input.id));
 
       // Log activity (before deletion, but activity log will be deleted by cascade)
       // We can log this in a separate table if needed, but for now we'll skip it

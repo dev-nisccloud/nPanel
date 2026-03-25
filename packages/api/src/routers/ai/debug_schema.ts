@@ -1,6 +1,5 @@
 
 import { z } from "zod";
-import { tool } from "ai";
 import { getSystemNavigationTool } from "./tools";
 
 async function main() {

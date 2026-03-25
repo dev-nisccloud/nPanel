@@ -5,8 +5,14 @@
  * OpenProvider (domain_registration) → ensure integration, verify email, register domain;
  * OpenProvider (domain_transfer) → ensure integration, verify email, transfer domain (auth code in item.metadata).
  */
-import prisma from "@nPanel/db";
-import { Prisma } from "@nPanel/db";
+import { eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+
+import { db } from "@npanel/db";
+import { niscOrder, niscOrderItem } from "@npanel/db/schema/nisc-orders";
+import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
+import { niscClientSubscription } from "@npanel/db/schema/products";
+import { team } from "@npanel/db/schema/teams";
 import { niscLog } from "./nisc-order-logger";
 import { provisionInitialUsageCreditsForSubscription } from "./subscription-usage-provisioning";
 import { isKenicDomain } from "./epp/kenic-tlds";
@@ -54,11 +60,11 @@ export type ProcessNiscOrderResult =
 	| { ok: false; status: "FAILED"; failureReason: string };
 
 export async function processNiscOrder(niscOrderId: string): Promise<ProcessNiscOrderResult> {
-	const order = await prisma.niscOrder.findUnique({
-		where: { id: niscOrderId },
-		include: {
+	const order = await db.query.niscOrder.findFirst({
+		where: eq(niscOrder.id, niscOrderId),
+		with: {
 			orderItems: {
-				include: {
+				with: {
 					product: true,
 					productPlan: true,
 					domainSubscription: true,
@@ -82,10 +88,10 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 	});
 
 	const now = new Date();
-	await prisma.niscOrder.update({
-		where: { id: niscOrderId },
-		data: { status: "PROCESSING", processedAt: now, updatedAt: now },
-	});
+	await db
+		.update(niscOrder)
+		.set({ status: "PROCESSING", processedAt: now, updatedAt: now })
+		.where(eq(niscOrder.id, niscOrderId));
 	await niscLog("processor_order_status_updated", { niscOrderId, status: "PROCESSING" });
 
 	let hasFailure = false;
@@ -114,10 +120,10 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 			hasSuccess = true;
 			continue;
 		}
-		await prisma.niscOrderItem.update({
-			where: { id: item.id },
-			data: { status: "PROCESSING", updatedAt: now },
-		});
+		await db
+			.update(niscOrderItem)
+			.set({ status: "PROCESSING", updatedAt: now })
+			.where(eq(niscOrderItem.id, item.id));
 		await niscLog("processor_item_start", {
 			niscOrderId,
 			orderItemId: item.id,
@@ -143,14 +149,14 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 						call: "provisionToPlesk",
 						rawResponse: result.rawResponse,
 					});
-					await prisma.niscOrderItem.update({
-						where: { id: item.id },
-						data: {
+					await db
+						.update(niscOrderItem)
+						.set({
 							status: "PROVISIONED",
 							niscClientSubscriptionId: result.subscriptionId,
 							updatedAt: now,
-						},
-					});
+						})
+						.where(eq(niscOrderItem.id, item.id));
 					await niscLog("processor_item_success", {
 						niscOrderId,
 						orderItemId: item.id,
@@ -171,15 +177,15 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 						call: "provisionToPlesk",
 						rawResponse: pleskErrorDetails,
 					});
-					await prisma.niscOrderItem.update({
-						where: { id: item.id },
-						data: {
+					await db
+						.update(niscOrderItem)
+						.set({
 							status: "FAILED",
 							provisioningError: result.error,
-							provisioningErrorDetails: pleskErrorDetails as Prisma.InputJsonValue,
+							provisioningErrorDetails: pleskErrorDetails,
 							updatedAt: now,
-						},
-					});
+						})
+						.where(eq(niscOrderItem.id, item.id));
 					await niscLog("processor_item_failed", {
 						niscOrderId,
 						orderItemId: item.id,
@@ -226,15 +232,15 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 				const transferMeta = serviceType === "domain_transfer" ? (item.metadata as DomainTransferItemMetadata) : null;
 				const domainTransferRequestId = transferMeta?.domainTransferRequestId?.trim();
 				if (domainTransferRequestId) {
-					await prisma.domainTransferRequest.update({
-						where: { id: domainTransferRequestId },
-						data: {
+					await db
+						.update(domainTransferRequest)
+						.set({
 							status: "SUBMITTED_TO_PROVIDER",
 							submittedToProviderAt: now,
 							providerResponse: { niscOrderId, orderItemId: item.id },
 							updatedAt: now,
-						},
-					});
+						})
+						.where(eq(domainTransferRequest.id, domainTransferRequestId));
 				}
 
 				const result =
@@ -267,19 +273,19 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 							});
 						}
 					}
-					await prisma.niscOrderItem.update({
-						where: { id: item.id },
-						data: {
+					await db
+						.update(niscOrderItem)
+						.set({
 							status: result.status,
 							niscClientSubscriptionId: result.subscriptionId ?? undefined,
 							provisioningError: result.pendingVerification ? "Pending email verification" : undefined,
 							updatedAt: now,
-						},
-					});
+						})
+						.where(eq(niscOrderItem.id, item.id));
 					if (domainTransferRequestId) {
-						await prisma.domainTransferRequest.update({
-							where: { id: domainTransferRequestId },
-							data: {
+						await db
+							.update(domainTransferRequest)
+							.set({
 								status: "COMPLETED",
 								providerResponse: {
 									subscriptionId: result.subscriptionId ?? null,
@@ -287,8 +293,8 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 									pendingVerification: result.pendingVerification ?? false,
 								},
 								updatedAt: now,
-							},
-						});
+							})
+							.where(eq(domainTransferRequest.id, domainTransferRequestId));
 					}
 					await niscLog("processor_item_success", {
 						niscOrderId,
@@ -314,27 +320,30 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 							rawResponse: rawResponse ?? errDetails,
 						});
 					}
-					await prisma.niscOrderItem.update({
-						where: { id: item.id },
-						data: {
-							status: "FAILED",
-							provisioningError: result.error,
-							provisioningErrorDetails: errDetails != null ? (errDetails as Prisma.InputJsonValue) : undefined,
-							updatedAt: now,
-						},
-					});
+					const updateData: Partial<typeof niscOrderItem.$inferInsert> = {
+						status: "FAILED",
+						provisioningError: result.error,
+						updatedAt: now,
+					};
+					if (errDetails != null) {
+						updateData.provisioningErrorDetails = errDetails;
+					}
+					await db
+						.update(niscOrderItem)
+						.set(updateData)
+						.where(eq(niscOrderItem.id, item.id));
 					if (domainTransferRequestId) {
-						await prisma.domainTransferRequest.update({
-							where: { id: domainTransferRequestId },
-							data: {
+						await db
+							.update(domainTransferRequest)
+							.set({
 								status: "FAILED",
 								providerResponse: {
 									error: result.error,
 									errorDetails: errDetails ?? undefined,
-								} as Prisma.InputJsonValue,
+								},
 								updatedAt: now,
-							},
-						});
+							})
+							.where(eq(domainTransferRequest.id, domainTransferRequestId));
 					}
 					await niscLog("processor_item_failed", {
 						niscOrderId,
@@ -362,14 +371,14 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 				serviceType,
 			});
 			const sub = await createSubscriptionForOrderItem(order, item);
-			await prisma.niscOrderItem.update({
-				where: { id: item.id },
-				data: {
+			await db
+				.update(niscOrderItem)
+				.set({
 					status: "PROVISIONED",
 					niscClientSubscriptionId: sub.id,
 					updatedAt: now,
-				},
-			});
+				})
+				.where(eq(niscOrderItem.id, item.id));
 			await niscLog("processor_item_success", {
 				niscOrderId,
 				orderItemId: item.id,
@@ -392,15 +401,15 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 				errorDetails,
 				rawResponse,
 			});
-			await prisma.niscOrderItem.update({
-				where: { id: item.id },
-				data: {
+			await db
+				.update(niscOrderItem)
+				.set({
 					status: "FAILED",
 					provisioningError: message,
-					provisioningErrorDetails: buildProvisioningErrorDetails(err) as Prisma.InputJsonValue,
+					provisioningErrorDetails: buildProvisioningErrorDetails(err),
 					updatedAt: now,
-				},
-			});
+				})
+				.where(eq(niscOrderItem.id, item.id));
 			hasFailure = true;
 			failureReasons.push(`Item ${item.product.name}: ${message}`);
 		}
@@ -425,15 +434,15 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 		failureReasons,
 	});
 
-	await prisma.niscOrder.update({
-		where: { id: niscOrderId },
-		data: {
+	await db
+		.update(niscOrder)
+		.set({
 			status: orderStatus,
 			failureReason,
 			completedAt: now,
 			updatedAt: now,
-		},
-	});
+		})
+		.where(eq(niscOrder.id, niscOrderId));
 
 	if (orderStatus === "FAILED") {
 		return { ok: false as const, status: "FAILED" as const, failureReason: failureReason ?? "" };
@@ -474,10 +483,14 @@ async function createSubscriptionForOrderItem(
 	const plan = item.productPlan;
 	const name = plan ? `${item.product.name} - ${plan.name}` : item.product.name;
 	const pricingModel = (plan?.pricingModel as "FIXED" | "COMMISSION") ?? "FIXED";
-	const sub = await prisma.niscClientSubscription.create({
-		data: {
+	const now = new Date();
+	const subId = randomUUID();
+	const inserted = await db
+		.insert(niscClientSubscription)
+		.values({
+			id: subId,
 			name,
-			description: item.description ?? undefined,
+			description: item.description ?? null,
 			userId: order.userId,
 			teamId: order.teamId,
 			productId: item.productId,
@@ -486,8 +499,8 @@ async function createSubscriptionForOrderItem(
 			niscOrderId: order.id,
 			subscribedBy: order.createdBy,
 			status: "ACTIVE",
-			subscriptionDate: new Date(),
-			billingCycle: item.billingCycle as any ?? null,
+			subscriptionDate: now,
+			billingCycle: (item.billingCycle as any) ?? null,
 			pricingModel,
 			agreedPrice: item.itemPrice,
 			agreedCurrency: order.currency,
@@ -495,9 +508,15 @@ async function createSubscriptionForOrderItem(
 			agreedCostCurrency: "KES",
 			providerCost: plan?.cost ?? null,
 			providerCostCurrency: "KES",
-			metadata: Prisma.JsonNull,
-		},
-	});
+			agreedCommissionRate: null as any,
+			agreedCommissionBase: null,
+			metadata: null,
+		})
+		.returning();
+	const sub = inserted[0];
+	if (!sub) {
+		throw new Error("Failed to create NISC subscription");
+	}
 
 	if (order.createdBy) {
 		await provisionInitialUsageCreditsForSubscription({
@@ -551,7 +570,13 @@ async function processPleskOrderItem(
 	}
 
 	const teamOwnerId = order.teamId
-		? (await prisma.team.findUnique({ where: { id: order.teamId }, select: { createdById: true } }))?.createdById
+		? (
+				await db
+					.select({ createdById: team.createdById })
+					.from(team)
+					.where(eq(team.id, order.teamId))
+					.limit(1)
+			)[0]?.createdById
 		: order.userId;
 	if (!teamOwnerId || !order.createdBy) {
 		return { ok: false, error: "Order must have a team or user and createdBy for Plesk provisioning." };
@@ -564,7 +589,7 @@ async function processPleskOrderItem(
 
 	try {
 		const { ensurePleskIntegration, provisionToPlesk } = await import(
-			"@nPanel/api/lib/plesk-integration"
+			"@npanel/api/lib/plesk-integration"
 		);
 		const pleskOwnerId = await ensurePleskIntegration(teamOwnerId, order.createdBy);
 		const result = await provisionToPlesk({
@@ -575,8 +600,11 @@ async function processPleskOrderItem(
 		});
 
 		const name = `${item.product.name} - ${item.productPlan.name}`;
-		const sub = await prisma.niscClientSubscription.create({
-			data: {
+		const subId = randomUUID();
+		const inserted = await db
+			.insert(niscClientSubscription)
+			.values({
+				id: subId,
 				name,
 				userId: order.userId,
 				teamId: order.teamId,
@@ -599,13 +627,19 @@ async function processPleskOrderItem(
 				pleskFtpLogin: result.pleskFtpLogin,
 				pleskFtpPassword: result.pleskFtpPassword,
 				hostingType: item.productPlan.hostingType as any ?? null,
-				metadata: Prisma.JsonNull,
-			},
-		});
+				agreedCommissionRate: null as any,
+				agreedCommissionBase: null,
+				metadata: null,
+			})
+			.returning();
+		const sub = inserted[0];
+		if (!sub) {
+			throw new Error("Failed to create NISC subscription");
+		}
 
 		if (order.createdBy) {
 			await provisionInitialUsageCreditsForSubscription({
-				subscriptionId: sub.id,
+				subscriptionId: sub!.id,
 				productId: item.productId,
 				productPlanId: item.productPlanId,
 				performedByUserId: order.createdBy,
@@ -614,7 +648,7 @@ async function processPleskOrderItem(
 
 		return {
 			ok: true,
-			subscriptionId: sub.id,
+			subscriptionId: sub!.id,
 			rawResponse: result.pleskResponseData,
 		};
 	} catch (err) {
@@ -669,7 +703,13 @@ async function processKenicOrderItem(
 		return { ok: false, error: "Primary domain is required for KENIC domain registration." };
 	}
 	const ownerId = order.teamId
-		? (await prisma.team.findUnique({ where: { id: order.teamId }, select: { createdById: true } }))?.createdById
+		? (
+				await db
+					.select({ createdById: team.createdById })
+					.from(team)
+					.where(eq(team.id, order.teamId))
+					.limit(1)
+			)[0]?.createdById
 		: order.userId;
 	if (!ownerId || !order.createdBy) {
 		return {
@@ -693,10 +733,13 @@ async function processKenicOrderItem(
 		const name = item.productPlan
 			? `${item.product.name} - ${item.productPlan.name}`
 			: item.product.name;
-		const sub = await prisma.niscClientSubscription.create({
-			data: {
+		const subId = randomUUID();
+		const inserted = await db
+			.insert(niscClientSubscription)
+			.values({
+				id: subId,
 				name,
-				description: item.description ?? undefined,
+				description: item.description ?? null,
 				userId: order.userId,
 				teamId: order.teamId,
 				productId: item.productId,
@@ -706,7 +749,7 @@ async function processKenicOrderItem(
 				subscribedBy: order.createdBy,
 				status: "ACTIVE",
 				subscriptionDate: new Date(),
-				billingCycle: item.billingCycle as "YEARLY" | "BIENNIALLY" | null ?? null,
+				billingCycle: (item.billingCycle as "YEARLY" | "BIENNIALLY" | null) ?? null,
 				pricingModel: "FIXED",
 				agreedPrice: item.itemPrice,
 				agreedCurrency: order.currency,
@@ -715,13 +758,19 @@ async function processKenicOrderItem(
 				primaryDomain: domain,
 				openProviderId: null,
 				expiryDate: regResult.exDate ? new Date(regResult.exDate) : null,
-				metadata: Prisma.JsonNull,
-			},
-		});
+				agreedCommissionRate: null as any,
+				agreedCommissionBase: null,
+				metadata: null,
+			})
+			.returning();
+		const sub = inserted[0];
+		if (!sub) {
+			throw new Error("Failed to create NISC subscription");
+		}
 
 		if (order.createdBy) {
 			await provisionInitialUsageCreditsForSubscription({
-				subscriptionId: sub.id,
+				subscriptionId: sub!.id,
 				productId: item.productId,
 				productPlanId: item.productPlanId ?? null,
 				performedByUserId: order.createdBy,
@@ -730,7 +779,7 @@ async function processKenicOrderItem(
 
 		return {
 			ok: true,
-			subscriptionId: sub.id,
+			subscriptionId: sub!.id,
 			status: "PROVISIONED",
 		};
 	} catch (err) {
@@ -762,7 +811,13 @@ async function processKenicTransferOrderItem(
 		return { ok: false, error: "Transfer auth code is required. Provide it in the order item metadata (transferAuthCode)." };
 	}
 	const ownerId = order.teamId
-		? (await prisma.team.findUnique({ where: { id: order.teamId }, select: { createdById: true } }))?.createdById
+		? (
+				await db
+					.select({ createdById: team.createdById })
+					.from(team)
+					.where(eq(team.id, order.teamId))
+					.limit(1)
+			)[0]?.createdById
 		: order.userId;
 	if (!ownerId || !order.createdBy) {
 		return {
@@ -780,8 +835,11 @@ async function processKenicTransferOrderItem(
 		const name = item.productPlan
 			? `${item.product.name} - ${item.productPlan.name}`
 			: item.product.name;
-		const sub = await prisma.niscClientSubscription.create({
-			data: {
+		const subId = randomUUID();
+		const inserted = await db
+			.insert(niscClientSubscription)
+			.values({
+				id: subId,
 				name,
 				description: item.description ?? "transfer",
 				userId: order.userId,
@@ -793,7 +851,7 @@ async function processKenicTransferOrderItem(
 				subscribedBy: order.createdBy,
 				status: "ACTIVE",
 				subscriptionDate: new Date(),
-				billingCycle: item.billingCycle as "YEARLY" | "BIENNIALLY" | null ?? null,
+				billingCycle: (item.billingCycle as "YEARLY" | "BIENNIALLY" | null) ?? null,
 				pricingModel: "FIXED",
 				agreedPrice: item.itemPrice,
 				agreedCurrency: order.currency,
@@ -802,13 +860,19 @@ async function processKenicTransferOrderItem(
 				primaryDomain: domain,
 				openProviderId: null,
 				expiryDate: transferResult.exDate ? new Date(transferResult.exDate) : null,
-				metadata: Prisma.JsonNull,
-			},
-		});
+				agreedCommissionRate: null as any,
+				agreedCommissionBase: null,
+				metadata: null,
+			})
+			.returning();
+		const sub = inserted[0];
+		if (!sub) {
+			throw new Error("Failed to create NISC subscription");
+		}
 
 		if (order.createdBy) {
 			await provisionInitialUsageCreditsForSubscription({
-				subscriptionId: sub.id,
+				subscriptionId: sub!.id,
 				productId: item.productId,
 				productPlanId: item.productPlanId ?? null,
 				performedByUserId: order.createdBy,
@@ -817,7 +881,7 @@ async function processKenicTransferOrderItem(
 
 		return {
 			ok: true,
-			subscriptionId: sub.id,
+			subscriptionId: sub!.id,
 			status: transferResult.pending ? "PENDING" : "PROVISIONED",
 			pendingVerification: transferResult.pending,
 			rawResponse: transferResult.raw,
@@ -863,14 +927,20 @@ async function processOpenProviderTransferOrderItem(
 	}
 
 	const ownerId = order.teamId
-		? (await prisma.team.findUnique({ where: { id: order.teamId }, select: { createdById: true } }))?.createdById
+		? (
+				await db
+					.select({ createdById: team.createdById })
+					.from(team)
+					.where(eq(team.id, order.teamId))
+					.limit(1)
+			)[0]?.createdById
 		: order.userId;
 	if (!ownerId || !order.createdBy) {
 		return { ok: false, error: "Order must have a team or user and createdBy for domain transfer." };
 	}
 
 	try {
-		const openProvider = await import("@nPanel/api/lib/openprovider-nisc");
+		const openProvider = await import("@npanel/api/lib/openprovider-nisc");
 		const result = await openProvider.ensureOpenProviderAndTransferDomain({
 			ownerId,
 			createdBy: order.createdBy,
@@ -929,14 +999,20 @@ async function processOpenProviderOrderItem(
 	}
 
 	const ownerId = order.teamId
-		? (await prisma.team.findUnique({ where: { id: order.teamId }, select: { createdById: true } }))?.createdById
+		? (
+				await db
+					.select({ createdById: team.createdById })
+					.from(team)
+					.where(eq(team.id, order.teamId))
+					.limit(1)
+			)[0]?.createdById
 		: order.userId;
 	if (!ownerId || !order.createdBy) {
 		return { ok: false, error: "Order must have a team or user and createdBy for domain registration." };
 	}
 
 	try {
-		const openProvider = await import("@nPanel/api/lib/openprovider-nisc");
+		const openProvider = await import("@npanel/api/lib/openprovider-nisc");
 		const result = await openProvider.ensureOpenProviderAndRegisterDomain({
 			ownerId,
 			createdBy: order.createdBy,

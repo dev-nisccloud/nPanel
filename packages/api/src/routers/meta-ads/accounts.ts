@@ -1,11 +1,15 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { and, desc, eq, type InferSelectModel } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { metaAdsAccount } from "@npanel/db/schema/meta-ads";
+import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
 import { router, protectedProcedure } from '../../trpc';
-import prisma from '@nPanel/db';
-import { randomUUID } from 'node:crypto';
 import { MetaAdsClient } from '../../lib/meta-ads-client';
 import { getStoredMetaAccessToken } from '../../lib/meta-credentials';
 import { handleMetaAdsOAuthError } from './error-handler';
+
+type MetaAdsAccountRow = InferSelectModel<typeof metaAdsAccount>;
 
 /**
  * Get user's Meta integration with valid tokens
@@ -15,14 +19,12 @@ async function getUserIntegration() {
 
 	if (!tokenData) {
 		// Check if there's an expired integration that needs reconnection
-		const expiredIntegration = await prisma.socialMediaIntegration.findFirst({
-			where: {
-				platform: 'META_FACEBOOK' as const,
-				status: 'EXPIRED' as const,
-			},
-			orderBy: {
-				createdAt: 'desc',
-			},
+		const expiredIntegration = await db.query.socialMediaIntegration.findFirst({
+			where: and(
+				eq(socialMediaIntegration.platform, 'META_FACEBOOK'),
+				eq(socialMediaIntegration.status, 'EXPIRED'),
+			),
+			orderBy: [desc(socialMediaIntegration.createdAt)],
 		});
 
 		if (expiredIntegration) {
@@ -96,9 +98,10 @@ export const metaAdsAccountsRouter = router({
 				const { accessToken, integrationId } = await getUserIntegration();
 
 				// 1. Check local database first
-				const existingDbAccounts = await prisma.metaAdsAccount.findMany({
-					where: { integrationId },
-				});
+				const existingDbAccounts: MetaAdsAccountRow[] =
+					await db.query.metaAdsAccount.findMany({
+						where: eq(metaAdsAccount.integrationId, integrationId),
+					});
 
 				// Freshness threshold: 30 minutes
 				const FRESHNESS_THRESHOLD = 30 * 60 * 1000;
@@ -123,7 +126,7 @@ export const metaAdsAccountsRouter = router({
 							updatedAt: acc.updatedAt,
 						})),
 						meta: {
-							retrieved_at: existingDbAccounts[0].updatedAt.toISOString(),
+							retrieved_at: existingDbAccounts[0]!.updatedAt.toISOString(),
 							total_accounts: existingDbAccounts.length,
 							source: 'database',
 						},
@@ -138,8 +141,8 @@ export const metaAdsAccountsRouter = router({
 				const accountResults = [];
 
 				// Normalize Map keys to ensure prefix consistency for lookup
-				const dbAccountMap = new Map();
-				existingDbAccounts.forEach(acc => {
+				const dbAccountMap = new Map<string, MetaAdsAccountRow>();
+				existingDbAccounts.forEach((acc: MetaAdsAccountRow) => {
 					let normalizedId = acc.accountId;
 					if (!normalizedId.startsWith('act_')) {
 						normalizedId = `act_${normalizedId}`;
@@ -169,10 +172,10 @@ export const metaAdsAccountsRouter = router({
 
 						if (hasChanged || !existingAccount.accountId.startsWith('act_')) {
 							accountsToUpdate.push(
-								prisma.metaAdsAccount.update({
-									where: { id: existingAccount.id },
-									data: {
-										accountId: accountId, // Ensure it gets the 'act_' prefix if missing
+								db
+									.update(metaAdsAccount)
+									.set({
+										accountId: accountId,
 										accountName: account.name || existingAccount.accountName,
 										currency: account.currency || existingAccount.currency,
 										timezone: account.timezone_name || existingAccount.timezone,
@@ -181,8 +184,8 @@ export const metaAdsAccountsRouter = router({
 										amountSpent: account.amount_spent || existingAccount.amountSpent,
 										balance: account.balance || existingAccount.balance,
 										updatedAt: now,
-									},
-								})
+									})
+									.where(eq(metaAdsAccount.id, existingAccount.id)),
 							);
 						}
 
@@ -234,7 +237,9 @@ export const metaAdsAccountsRouter = router({
 				// Perform DB operations in parallel
 				await Promise.all([
 					accountsToUpdate.length > 0 ? Promise.all(accountsToUpdate) : Promise.resolve(),
-					newAccounts.length > 0 ? prisma.metaAdsAccount.createMany({ data: newAccounts }) : Promise.resolve(),
+					newAccounts.length > 0
+						? db.insert(metaAdsAccount).values(newAccounts)
+						: Promise.resolve(),
 				]);
 
 				return {

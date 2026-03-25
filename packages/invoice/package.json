@@ -1,5 +1,5 @@
 {
-  "name": "@nPanel/invoice",
+  "name": "@npanel/invoice",
   "private": true,
   "main": "src/index.tsx",
   "scripts": {
@@ -24,8 +24,7 @@
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
-    "@nPanel/ui": "workspace:*",
-    "@nPanel/utils": "workspace:*",
+    "@npanel/ui": "workspace:*",
     "@react-pdf/renderer": "^4.3.0",
     "react": "catalog:",
     "react-dom": "^19.2.3",
