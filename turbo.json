@@ -31,5 +31,24 @@
       "cache": false,
       "persistent": true
     }
-  }
+  },
+  "globalEnv": [
+    "DATABASE_URL",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "CORS_ORIGIN",
+    "VITE_PUBLIC_APP_URL",
+    "RESEND_API_KEY",
+    "UPLOADTHING_TOKEN",
+    "RESEND_FROM_EMAIL",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
+    "OPENAI_API_KEY",
+    "REPLICATE_API_TOKEN",
+    "STABILITY_AI_API_KEY",
+    "GOOGLE_ADS_CLIENT_ID",
+    "GOOGLE_ADS_CLIENT_SECRET",
+    "GOOGLE_ADS_DEVELOPER_TOKEN",
+    "GOOGLE_ADS_REDIRECT_URI"
+  ]
 }
