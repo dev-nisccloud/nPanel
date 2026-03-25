@@ -1,6 +1,6 @@
 "use client";
 
-import { uniqueCurrencies } from "@nPanel/location/currencies";
+import { uniqueCurrencies } from "@npanel/location/currencies";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -9,8 +9,8 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@nPanel/ui/dropdown-menu";
-import { Icons } from "@nPanel/ui/icons";
+} from "@npanel/ui/components/dropdown-menu";
+import { Icons } from "@npanel/ui/components/icons";
 import { useFormContext } from "react-hook-form";
 import { SelectCurrency } from "@/components/npanel-ui/select-currency";
 
@@ -180,3 +180,4 @@ export function SettingsMenu() {
     </DropdownMenu>
   );
 }
+

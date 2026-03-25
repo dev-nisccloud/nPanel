@@ -6,8 +6,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Info, Settings, Construction } from "lucide-react";
-import Link from "next/link";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Link } from "react-router";
+import { Spinner } from "@/components/npanel-ui/spinner";
 
 interface ETimsInitializationGuardProps {
     children: React.ReactNode;
@@ -52,7 +52,7 @@ export function ETimsInitializationGuard({ children }: ETimsInitializationGuardP
                     </CardContent>
                     <CardFooter className="justify-center pt-2 pb-6">
                         <Button asChild className="bg-amber-600 hover:bg-amber-700 text-white border-none shadow-md">
-                            <Link href="/agency/kra-etims/settings">
+                            <Link to="/agency/kra-etims/settings">
                                 <Settings className="mr-2 h-4 w-4" />
                                 Configure eTIMS Now
                             </Link>

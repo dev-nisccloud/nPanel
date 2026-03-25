@@ -261,6 +261,13 @@ export class OpenProviderClient {
       
       if (response.code === 0 && response.data?.token) {
         this.token = response.data.token;
+      } else if (response.code !== 0) {
+        // OpenProvider returned HTTP 200 but with a non-zero application code (e.g. wrong credentials, IP restriction)
+        // We must throw here so callers' catch blocks fire and get the real error message.
+        throw new OpenProviderApiError(
+          response.code,
+          response.desc || `Authentication failed with code ${response.code}`,
+        );
       }
       
       return response;
@@ -732,19 +739,28 @@ let clientInstance: OpenProviderClient | null = null;
 let tokenExpiry: number | null = null;
 
 export function createOpenProviderClient(): OpenProviderClient {
-  // Return existing instance if token is still valid
-  if (clientInstance && tokenExpiry && Date.now() < tokenExpiry) {
+  // Return existing instance only if it is actually authenticated AND the token hasn't expired.
+  // Previously, tokenExpiry was set at instance creation — before auth — so a failed auth would
+  // return an unauthenticated singleton for 47 hours on every subsequent request.
+  if (clientInstance && clientInstance.isAuthenticated() && tokenExpiry && Date.now() < tokenExpiry) {
     return clientInstance;
   }
 
+  // Use env vars — fall back to sensible defaults so misconfigured envs still work
+  const baseUrl = process.env.OPENPROVIDER_BASE_URL || 'https://api.openprovider.eu';
+  const apiVersion = process.env.OPENPROVIDER_API_VERSION || 'v1beta';
+  const timeout = parseInt(process.env.OPENPROVIDER_TIMEOUT || '60000', 10);
+
   // Create new instance
   clientInstance = new OpenProviderClient({
-    baseUrl: 'https://api.openprovider.eu',
-    apiVersion: 'v1beta',
-    timeout: 60000,
+    baseUrl,
+    apiVersion,
+    timeout,
   });
 
-  // Set token expiry to 47 hours (OpenProvider tokens last 48 hours, we refresh 1 hour early)
+  // Note: tokenExpiry is intentionally set here so that after a successful authenticate() call
+  // the singleton will be reused for 47 hours. If authenticate() throws, isAuthenticated()
+  // returns false and a fresh instance will be created on the next request.
   tokenExpiry = Date.now() + (47 * 60 * 60 * 1000);
 
   return clientInstance;

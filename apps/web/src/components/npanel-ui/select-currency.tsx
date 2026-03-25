@@ -1,4 +1,4 @@
-import { ComboboxDropdown } from "@nPanel/ui/combobox-dropdown";
+import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
 
 type Props = {
   value?: string;
@@ -35,3 +35,4 @@ export function SelectCurrency({
     />
   );
 }
+

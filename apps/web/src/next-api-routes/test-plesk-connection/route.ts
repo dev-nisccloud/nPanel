@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const PLESK_XML_ENDPOINT = process.env.PLESK_XML_ENDPOINT;
     const PLESK_SECRET_KEY = process.env.PLESK_SECRET_KEY;
@@ -42,7 +41,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    return Response.json({
       message: "Plesk Connection Test",
       timestamp: new Date().toISOString(),
       environment: envCheck,
@@ -56,7 +55,7 @@ export async function GET(request: NextRequest) {
       ],
     });
   } catch (error: any) {
-    return NextResponse.json(
+    return Response.json(
       {
         error: "Test failed",
         message: error.message,

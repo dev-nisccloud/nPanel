@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createOpenproviderClient, OpenproviderApiError } from '@/lib/openprovider-client';
 import type { OpenproviderTldRequest } from '@/types/openprovider';
@@ -40,7 +39,7 @@ function setCachedData(key: string, data: any) {
   });
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     // Parse and validate query parameters
     const { searchParams } = new URL(request.url);
@@ -52,7 +51,7 @@ export async function GET(request: NextRequest) {
     const cachedData = getCachedData(cacheKey);
     
     if (cachedData) {
-      return NextResponse.json({
+      return Response.json({
         success: true,
         data: cachedData,
         cached: true,
@@ -69,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     if (!authResponse.ok) {
       const errorData = await authResponse.json();
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -107,7 +106,7 @@ export async function GET(request: NextRequest) {
 
     // Check if request was successful
     if (tldResponse.code !== 0) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -123,7 +122,7 @@ export async function GET(request: NextRequest) {
     setCachedData(cacheKey, tldResponse.data);
 
     // Return successful response
-    return NextResponse.json({
+    return Response.json({
       success: true,
       data: tldResponse.data,
       cached: false,
@@ -137,7 +136,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof OpenproviderApiError && 
         (error.description.includes('timeout') || error.originalError?.code === 'ECONNABORTED')) {
       console.warn('TLD request timed out, this may be due to Openprovider API slowness');
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -152,7 +151,7 @@ export async function GET(request: NextRequest) {
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -170,7 +169,7 @@ export async function GET(request: NextRequest) {
 
     // Handle Openprovider API errors
     if (error instanceof OpenproviderApiError) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -183,7 +182,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle unexpected errors
-    return NextResponse.json(
+    return Response.json(
       {
         success: false,
         error: {
@@ -197,7 +196,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Optional: Add a POST method for more complex TLD queries
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     // Parse and validate request body
     const body = await request.json();
@@ -212,7 +211,7 @@ export async function POST(request: NextRequest) {
 
     if (!authResponse.ok) {
       const errorData = await authResponse.json();
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -239,7 +238,7 @@ export async function POST(request: NextRequest) {
     const cachedData = getCachedData(cacheKey);
     
     if (cachedData) {
-      return NextResponse.json({
+      return Response.json({
         success: true,
         data: cachedData,
         cached: true,
@@ -252,7 +251,7 @@ export async function POST(request: NextRequest) {
 
     // Check if request was successful
     if (tldResponse.code !== 0) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -268,7 +267,7 @@ export async function POST(request: NextRequest) {
     setCachedData(cacheKey, tldResponse.data);
 
     // Return successful response
-    return NextResponse.json({
+    return Response.json({
       success: true,
       data: tldResponse.data,
       cached: false,
@@ -282,7 +281,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof OpenproviderApiError && 
         (error.description.includes('timeout') || error.originalError?.code === 'ECONNABORTED')) {
       console.warn('TLD request timed out, this may be due to Openprovider API slowness');
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -297,7 +296,7 @@ export async function POST(request: NextRequest) {
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -315,7 +314,7 @@ export async function POST(request: NextRequest) {
 
     // Handle Openprovider API errors
     if (error instanceof OpenproviderApiError) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -328,7 +327,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle unexpected errors
-    return NextResponse.json(
+    return Response.json(
       {
         success: false,
         error: {

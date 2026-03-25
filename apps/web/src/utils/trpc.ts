@@ -1,8 +1,9 @@
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { createTRPCReact } from "@trpc/react-query";
-import type { AppRouter } from "@nPanel/api";
+import type { AppRouter } from "@npanel/api";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
-import { toast } from "sonner";
+
+import { toast } from "@/components/ui/sonner";
 
 export const queryClient = new QueryClient({
 	queryCache: new QueryCache({

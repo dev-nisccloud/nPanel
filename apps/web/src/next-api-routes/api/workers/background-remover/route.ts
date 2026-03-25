@@ -1,16 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
+import { verifySignatureAppRouter } from "@/lib/qstash-verify";
 import prisma from "@npanel/db";
-import { getQStashSigningKeys } from "@nPanel/api/lib/qstash/client";
-import { deductOneCreditForTeamBackgroundRemover } from "@nPanel/api/lib/background-remover-credits";
+import { getQStashSigningKeys } from "@npanel/api/lib/qstash/client";
+import { deductOneCreditForTeamBackgroundRemover } from "@npanel/api/lib/background-remover-credits";
 import Replicate from "replicate";
 import { UTApi } from "uploadthing/server";
 import { randomUUID } from "node:crypto";
 
 const utapi = new UTApi();
-
-export const runtime = "nodejs";
-export const maxDuration = 300; // 5 min for background removal job
 
 const BACKGROUND_REMOVER_MODEL =
   "851-labs/background-remover:a029dff38972b5fda4ec5d75d7d1cd25aeff621d2cf4946a41055d7db66b80bc";
@@ -32,7 +28,7 @@ function parseOutput(output: unknown): string {
   throw new Error(`Unexpected Replicate output: ${JSON.stringify(output)}`);
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const signingKeys = getQStashSigningKeys();
     await verifySignatureAppRouter(request as any, {
@@ -40,7 +36,7 @@ export async function POST(request: NextRequest) {
       nextSigningKey: signingKeys.next ?? undefined,
     });
   } catch {
-    return NextResponse.json(
+    return Response.json(
       { error: "Invalid QStash signature" },
       { status: 401 },
     );
@@ -50,7 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
+    return Response.json(
       { error: "Invalid JSON body" },
       { status: 400 },
     );
@@ -58,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   const { generationId } = body as BackgroundRemoverPayload;
   if (!generationId) {
-    return NextResponse.json(
+    return Response.json(
       { error: "Missing generationId" },
       { status: 400 },
     );
@@ -69,7 +65,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (!generation) {
-    return NextResponse.json(
+    return Response.json(
       { error: "Generation not found" },
       { status: 404 },
     );
@@ -77,7 +73,7 @@ export async function POST(request: NextRequest) {
 
   const terminal = ["COMPLETED", "FAILED"];
   if (terminal.includes(generation.status)) {
-    return NextResponse.json(
+    return Response.json(
       { message: "Already in terminal state", status: generation.status },
       { status: 200 },
     );
@@ -159,7 +155,7 @@ export async function POST(request: NextRequest) {
       metadata: { generationId },
     });
 
-    return NextResponse.json({
+    return Response.json({
       success: true,
       generationId,
       status: "COMPLETED",
@@ -191,7 +187,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(
+    return Response.json(
       { success: false, generationId, error: message },
       { status: 500 },
     );

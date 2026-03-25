@@ -1,5 +1,5 @@
-import { cn } from "@nPanel/ui/cn";
-import { Input as BaseInput, type InputProps } from "@nPanel/ui/input";
+import { cn } from "@npanel/ui/components/cn";
+import { Input as BaseInput, type InputProps } from "@npanel/ui/components/input";
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 
@@ -52,3 +52,4 @@ export function Input({ className, name, onBlur, onFocus, ...props }: CustomInpu
     </div>
   );
 }
+

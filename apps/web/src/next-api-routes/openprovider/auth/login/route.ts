@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createOpenproviderClient, OpenproviderApiError } from '@/lib/openprovider-client';
 import type { OpenproviderAuthRequest } from '@/types/openprovider';
@@ -18,7 +17,7 @@ const EnvCredentialsSchema = z.object({
   OPENPROVIDER_IP: z.string().regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/).optional(),
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     // Parse and validate request body
     const body = await request.json();
@@ -43,7 +42,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Use credentials from request body
       if (!validatedData.username || !validatedData.password) {
-        return NextResponse.json(
+        return Response.json(
           {
             success: false,
             error: {
@@ -70,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     // Check if authentication was successful
     if (authResponse.code !== 0) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -83,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Return successful authentication response
-    return NextResponse.json({
+    return Response.json({
       success: true,
       data: {
         token: authResponse.data.token,
@@ -96,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -114,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     // Handle Openprovider API errors
     if (error instanceof OpenproviderApiError) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -127,7 +126,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle unexpected errors
-    return NextResponse.json(
+    return Response.json(
       {
         success: false,
         error: {

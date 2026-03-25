@@ -3,11 +3,11 @@
 import { buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useMediaQuery } from "@nPanel/ui/hooks";
+import { useMediaQuery } from "@npanel/ui/components/hooks";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { useState, useRef } from "react";
 import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
@@ -184,7 +184,7 @@ export function Pricing({
               <hr className="w-full my-4" />
 
               <Link
-                href={plan.href as Parameters<typeof Link>[0]["href"]}
+                to={plan.href}
                 className={cn(
                   buttonVariants({
                     variant: "outline",
@@ -208,3 +208,4 @@ export function Pricing({
     </div>
   );
 }
+

@@ -12,7 +12,9 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
+import { NotFoundPage } from "@/components/not-found-page";
 import RootLoading from "@/components/root-loading";
+import { sessionGateClientMiddleware } from "@/middleware/session-gate.client";
 import { GlobalBuyNowDialogWrapper } from "@/components/global-buy-now-dialog-wrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_CONFIG } from "@/config/app-config";
@@ -30,11 +32,23 @@ export const meta: Route.MetaFunction = () => [
   { name: "application-name", content: APP_CONFIG.name },
   { name: "format-detection", content: "telephone=no" },
   { name: "apple-mobile-web-app-capable", content: "yes" },
-  { name: "apple-mobile-web-app-title", content: "Nisc Cloud - nPanel" },
+  { name: "apple-mobile-web-app-title", content: "Nisc Cloud - npanel" },
   { name: "apple-mobile-web-app-status-bar-style", content: "default" },
   { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#ffffff" },
   { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#0a0a0a" },
 ];
+
+/** Runs on client navigations + initial load (see `clientLoader.hydrate`). */
+export const clientMiddleware: Route.ClientMiddlewareFunction[] = [sessionGateClientMiddleware];
+
+async function rootClientLoader() {
+  return null;
+}
+rootClientLoader.hydrate = true;
+export { rootClientLoader as clientLoader };
+
+// Used by React Router while hydrating clientLoader-backed modules.
+export const hydrateFallback = <RootLoading />;
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -45,7 +59,7 @@ export const links: Route.LinksFunction = () => [
   },
   { rel: "icon", href: "/favicon/favicon.ico" },
   { rel: "apple-touch-icon", href: "/favicon/apple-touch-icon.png" },
-  { rel: "manifest", href: "/manifest" },
+  { rel: "manifest", href: "/manifest.webmanifest" },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -91,13 +105,16 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  if (isRouteErrorResponse(error) && error.status === 404) {
+    return <NotFoundPage />;
+  }
+
   let message = "Oops!";
   let details = "An unexpected error occurred.";
   let stack: string | undefined;
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
-    details =
-      error.status === 404 ? "The requested page could not be found." : error.statusText || details;
+    message = "Error";
+    details = error.statusText || details;
   } else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message;
     stack = error.stack;
@@ -114,3 +131,4 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     </main>
   );
 }
+

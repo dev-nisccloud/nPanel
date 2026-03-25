@@ -1,4 +1,4 @@
-// Service Worker for nPanel - Notifications + PWA Caching
+// Service Worker for npanel - Notifications + PWA Caching
 const CACHE_NAME = 'npanel-v2';
 const OFFLINE_URL = '/offline';
 
@@ -151,7 +151,7 @@ self.addEventListener('fetch', (event) => {
                     if (url.startsWith('http') && !url.includes('/api/')) {
                         caches.open(CACHE_NAME).then((cache) => {
                             cache.put(event.request, responseToCache);
-                        }).catch(function () {});
+                        }).catch(function () { });
                     }
 
                     return response;

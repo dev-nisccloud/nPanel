@@ -1,6 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import * as React from "react";
 import type { ReactNode } from "react";
 import { AppSidebar } from "./sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -12,14 +12,14 @@ import { CartSwitcher } from "./sidebar/cart-switcher";
 import { ThemeSwitcher } from "./sidebar/theme-switcher";
 import { PrefetchTeams } from "./prefetch-teams";
 import { NavigationLoader } from "@/components/navigation-loader";
-import {
-  SwitchingTeamOverlay,
-} from "@/contexts/switching-team-context";
+import { SwitchingTeamOverlay } from "@/contexts/switching-team-context";
 
-/** Load only on client so tRPC context is available (avoids "Unable to find tRPC Context" when layout streams before root QueryProvider has mounted). Single chunk ensures switchers never run during SSR. */
-const ClientTrpcSwitchers = dynamic(
-  () => import("./client-trpc-switchers").then((m) => ({ default: m.ClientTrpcSwitchers })),
-  { ssr: false }
+const ClientTrpcSwitchers = React.lazy(() =>
+  import("./client-trpc-switchers").then((m) => ({ default: m.ClientTrpcSwitchers })),
+);
+
+const switchersFallback = (
+  <div className="flex h-9 w-[72px] items-center justify-center" aria-hidden />
 );
 
 export type TeamSidebarLayoutProps = {
@@ -66,7 +66,9 @@ export function TeamSidebarLayout({
               <SearchDialog />
             </div>
             <div className="flex items-center gap-2">
-              <ClientTrpcSwitchers />
+              <React.Suspense fallback={switchersFallback}>
+                <ClientTrpcSwitchers />
+              </React.Suspense>
               <CartSwitcher />
               <ThemeSwitcher />
             </div>

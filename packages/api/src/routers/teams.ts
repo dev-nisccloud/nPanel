@@ -225,7 +225,7 @@ export const teamsRouter = router({
 
             return {
               to: invite.email,
-              subject: `You've been invited to join ${createdTeam.name} on nPanel`,
+              subject: `You've been invited to join ${createdTeam.name} on npanel`,
               html,
               inviteCode: invite.code,
             };
@@ -636,7 +636,7 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!userRole?.includes("AGENCY")) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission to view all teams",

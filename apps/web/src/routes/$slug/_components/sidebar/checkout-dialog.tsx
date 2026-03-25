@@ -29,7 +29,7 @@ import { Card } from "@/components/ui/card";
 import { useCartStore } from "@/stores/cart-store";
 import { CartItemCard } from "./cart-item-card";
 import { trpc } from "@/utils/trpc";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 interface CheckoutDialogProps {
   open: boolean;

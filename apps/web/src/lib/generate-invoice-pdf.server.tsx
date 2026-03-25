@@ -2,10 +2,10 @@
  * Server-only: generate invoice PDF as Buffer. Used by the NISC worker to attach PDF to the Invoice success email.
  */
 import { Document, Page } from "@react-pdf/renderer";
-import { renderToBuffer } from "@nPanel/invoice";
+import { renderToBuffer } from "@npanel/invoice";
 import type { InvoiceForPdfData } from "./invoice-pdf-data";
 import { convertInvoiceToPdfData } from "./invoice-pdf-data";
-import { PdfDetails } from "@/app/(main)/agency/invoices/create/_components/form/pdfDetails";
+import { PdfDetails } from "@/routes/agency.invoices.create._components/form/pdfDetails";
 import { pdfContainers } from "@/lib/pdfStyles";
 
 async function getQrCodeDataUrl(qrCodeValue: string): Promise<string | undefined> {
@@ -46,3 +46,4 @@ export async function generateInvoicePdfBuffer(invoice: InvoiceForPdfData): Prom
 
 	return await renderToBuffer(doc);
 }
+

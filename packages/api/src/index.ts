@@ -5,3 +5,4 @@ export {
   type Session,
   type SessionUser,
 } from "./context";
+export type { AppRouter } from "./routers/index";

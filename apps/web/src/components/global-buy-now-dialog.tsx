@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { HelpCircle, Check, Globe, Mail } from "lucide-react";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Spinner } from "@/components/npanel-ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -34,10 +34,10 @@ import {
 } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/utils/trpc";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { useCartStore } from "@/stores/cart-store";
-import { CartItemCard } from "@/app/(main)/agency/_components/sidebar/cart-item-card";
+import { CartItemCard } from "@/routes/agency/_components/sidebar/cart-item-card";
 
 const formatPrice = (price?: number, currency?: string) => {
   if (price === undefined || price === null || isNaN(price) || !isFinite(price)) {

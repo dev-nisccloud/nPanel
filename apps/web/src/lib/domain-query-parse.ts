@@ -1,4 +1,4 @@
-import { getAllTldExtensions } from "@nPanel/utils";
+import { getAllTldExtensions } from "@/utils";
 
 /** Compound TLDs (e.g. co.ke, co.uk) not in the single-segment TLD list */
 const COMPOUND_TLDS = [
@@ -76,3 +76,4 @@ export function parseQueryWithTld(rawQuery: string): { name: string; extension: 
 
   return null;
 }
+

@@ -3,7 +3,7 @@
  * Must never throw at module load: root layout is loaded for GET "/" and any throw = 500.
  */
 const FALLBACK_CONFIG = {
-  name: "Nisc Cloud - nPanel",
+  name: "Nisc Cloud - npanel",
   version: "1.0.0",
   copyright: "© 2025, Nisc Cloud.",
   meta: { title: "Nisc Cloud", description: "Nisc Cloud" },
@@ -17,7 +17,7 @@ function buildAppConfig(): typeof FALLBACK_CONFIG {
         : "1.0.0";
     const currentYear = new Date().getFullYear();
     return {
-      name: "Nisc Cloud - nPanel",
+      name: "Nisc Cloud - npanel",
       version,
       copyright: `© ${currentYear}, Nisc Cloud.`,
       meta: { title: "Nisc Cloud", description: "Nisc Cloud" },

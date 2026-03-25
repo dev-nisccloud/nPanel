@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 
 import { Search } from "lucide-react";
 
@@ -49,7 +49,7 @@ const searchItems = agencysidebarItems.flatMap((group) =>
 
 export function SearchDialog() {
   const [open, setOpen] = React.useState(false);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleSelect = (item: any) => {
     if (item.comingSoon) return; // Don't navigate if coming soon
@@ -61,7 +61,7 @@ export function SearchDialog() {
       window.open(item.url, '_blank');
     } else {
       // Navigate in same tab
-      router.push(item.url);
+      void navigate(item.url);
     }
   };
 

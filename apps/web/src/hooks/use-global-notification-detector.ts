@@ -1,6 +1,6 @@
 import React from "react";
 import { useNotification } from "./use-notification";
-import type { TicketListItem } from "../app/(main)/agency/_components/tickets/schema";
+import type { TicketListItem } from "@/routes/agency/_components/tickets/schema";
 
 export function useGlobalNotificationDetector(
     tickets: TicketListItem[] | undefined,

@@ -1,7 +1,7 @@
-import { auth } from "@nPanel/auth";
-import { toNextJsHandler } from "better-auth/next-js";
+import { auth } from "@npanel/auth";
 
-// Force Node.js runtime for Better Auth
-export const runtime = 'nodejs';
+async function handle(request: Request) {
+  return auth.handler(request);
+}
 
-export const { GET, POST } = toNextJsHandler(auth.handler);
+export { handle as GET, handle as POST };

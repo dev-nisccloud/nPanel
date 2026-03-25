@@ -1,10 +1,10 @@
 "use client";
 
 // import { InvoiceSuccess } from "@/components/invoice-success";
-import { Form } from "@/app/(main)/agency/_components/invoice/form";
-import { SettingsMenu } from "@/app/(main)/agency/_components/invoice/settings-menu";
+import { Form } from "@/routes/agency/_components/invoice/form";
+import { SettingsMenu } from "@/routes/agency/_components/invoice/settings-menu";
 import { useInvoiceParams } from "@/hooks/use-invoice-params";
-import { SheetContent, SheetHeader } from "@nPanel/ui/sheet";
+import { SheetContent, SheetHeader } from "@npanel/ui/components/sheet";
 import { useFormContext } from "react-hook-form";
 
 export function InvoiceContent() {
@@ -37,3 +37,4 @@ export function InvoiceContent() {
     </SheetContent>
   );
 }
+

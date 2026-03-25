@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import Replicate from "replicate";
 
@@ -51,12 +50,12 @@ function extractTextFromReplicateOutput(output: unknown): string {
   return "";
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = refineImagePromptSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: "Invalid input", details: parsed.error.issues },
         { status: 400 }
       );
@@ -587,20 +586,20 @@ Output ONLY the refined prompt — no other text, no introduction.`;
 
     const refinedPrompt = extractTextFromReplicateOutput(replicateOutput).trim();
     if (!refinedPrompt) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: "Refinement produced empty prompt" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
+    return Response.json({
       success: true,
       refinedPrompt,
     });
   } catch (err) {
     console.error("Refine image prompt error:", err);
     const message = err instanceof Error ? err.message : "Failed to refine prompt";
-    return NextResponse.json(
+    return Response.json(
       { success: false, error: message },
       { status: 500 }
     );

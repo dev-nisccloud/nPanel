@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useLocation, useNavigate } from "react-router";
 
 type NavigationLoadingContextValue = {
   isNavigating: boolean;
@@ -14,7 +14,7 @@ const NavigationLoadingContext = React.createContext<NavigationLoadingContextVal
 const HIDE_DELAY_MS = 0; // Instant transition, no artificial delay
 
 export function NavigationLoadingProvider({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const [isNavigating, setIsNavigating] = React.useState(false);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevPathnameRef = React.useRef(pathname);
@@ -70,16 +70,16 @@ export function useNavigationLoading() {
  * Use this instead of useRouter + router.push for button-triggered navigation.
  */
 export function useAppRouter() {
-  const router = useRouter();
-  const { startNavigation } = useNavigationLoading() ?? { startNavigation: () => { } };
+  const navigate = useNavigate();
+  const { startNavigation } = useNavigationLoading() ?? { startNavigation: () => {} };
 
   const push = React.useCallback(
     (url: string) => {
       startNavigation();
-      router.push(url);
+      navigate(url);
     },
-    [router, startNavigation]
+    [navigate, startNavigation],
   );
 
-  return { ...router, push };
+  return { push };
 }

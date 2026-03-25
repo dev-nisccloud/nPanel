@@ -7,7 +7,7 @@ import {
   addDays,
   getDay,
 } from "date-fns";
-import { Event, events, addEvent as addEventToStore } from "@/mock-data/events";
+import { type Event, events, addEvent as addEventToStore } from "@/mock-data/events";
 
 interface CalendarState {
   currentWeekStart: Date;

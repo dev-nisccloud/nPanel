@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 
 /**
  * Serves the web app manifest with correct Content-Type.
@@ -6,9 +5,9 @@ import { NextResponse } from "next/server";
  */
 export async function GET() {
   const manifest = {
-    name: "Nisc Cloud nPanel",
-    short_name: "nPanel",
-    description: "Nisc Cloud nPanel - Agency Management Platform",
+    name: "Nisc Cloud npanel",
+    short_name: "npanel",
+    description: "Nisc Cloud npanel - Agency Management Platform",
     start_url: "/",
     scope: "/",
     display: "standalone" as const,
@@ -32,7 +31,7 @@ export async function GET() {
     categories: ["business", "productivity"],
   };
 
-  return NextResponse.json(manifest, {
+  return Response.json(manifest, {
     headers: {
       "Content-Type": "application/manifest+json",
       "Cache-Control": "public, max-age=86400",

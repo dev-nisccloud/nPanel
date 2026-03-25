@@ -1,13 +1,13 @@
 "use client";
 
 import { useInvoiceParams } from "@/hooks/use-invoice-params";
-import { cn } from "@nPanel/ui/cn";
+import { cn } from "@npanel/ui/components/cn";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@nPanel/ui/tooltip";
+} from "@npanel/ui/components/tooltip";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { useEffect, useState } from "react";
 import { useFormContext } from "react-hook-form";
@@ -91,3 +91,4 @@ export function InvoiceNo() {
     </div>
   );
 }
+

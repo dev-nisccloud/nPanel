@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { useLocation } from "react-router";
 import { TopProgressBar } from "@/components/top-progress-bar";
 import { useNavigationLoading } from "@/contexts/navigation-loading-context";
 
 const HIDE_DELAY_MS = 400;
 
 export function NavigationLoader() {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const { isNavigating: contextNavigating } = useNavigationLoading() ?? { isNavigating: false };
   const [localLoading, setLocalLoading] = useState(false);
   const previousPathnameRef = useRef(pathname);

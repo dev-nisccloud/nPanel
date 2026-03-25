@@ -1,4 +1,5 @@
-import { calculateTotal } from "@nPanel/invoice/calculate";
+```npanel
+import { calculateTotal } from "@npanel/invoice/calculate";
 import { useCallback, useEffect, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { AnimatedNumber } from "@/components/npanel-ui/animated-number";

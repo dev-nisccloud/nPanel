@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { HelpCircle, Check, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Spinner } from "@/components/npanel-ui/spinner";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -37,7 +37,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { trpc, type RouterInputs } from "@/utils/trpc";
 import type { UseMutationResult } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 export interface ServicePlanDetails {
   planId: string;
@@ -604,7 +604,7 @@ export function BuyNowDialog({
                 <p className="text-sm text-muted-foreground pt-2">
                   Need a domain?{" "}
                   <Link
-                    href={buyDomainHref}
+                    to={buyDomainHref}
                     className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
                   >
                     Buy one

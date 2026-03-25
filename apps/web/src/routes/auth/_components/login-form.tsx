@@ -2,11 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import Link from "next/link";
+import { Link } from "react-router";
+
+import { toast } from "@/components/ui/sonner";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -212,7 +213,7 @@ export function LoginForm() {
         />
         <div className="text-right">
           <Link
-            href="/auth/forgot-password"
+            to="/auth/forgot-password"
             className="text-sm text-primary hover:underline"
           >
             Forgot your password?

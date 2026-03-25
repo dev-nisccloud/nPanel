@@ -1,23 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
+import { verifySignatureAppRouter } from "@/lib/qstash-verify";
 import prisma from "@npanel/db";
-import { getQStashSigningKeys } from "@nPanel/api/lib/qstash/client";
-import { processNiscOrder } from "@nPanel/api/lib/nisc-order-processor";
-import { niscLog } from "@nPanel/api/lib/nisc-order-logger";
+import { getQStashSigningKeys } from "@npanel/api/lib/qstash/client";
+import { processNiscOrder } from "@npanel/api/lib/nisc-order-processor";
+import { niscLog } from "@npanel/api/lib/nisc-order-logger";
 import {
 	renderOrderConfirmationEmail,
 	renderNiscOrderConfirmationEmail,
 	renderNiscOrderFailedEmail,
 	renderInvoiceSuccessEmail,
-} from "@nPanel/api/lib/email-templates";
-import { sendEmail, sendEmailBatch } from "@nPanel/api/lib/email";
+} from "@npanel/api/lib/email-templates";
+import { sendEmail, sendEmailBatch } from "@npanel/api/lib/email";
 import {
 	isTeamBillingComplete,
 	createInvoiceForNiscOrder,
-} from "@nPanel/api/lib/nisc-order-auto-invoice";
+} from "@npanel/api/lib/nisc-order-auto-invoice";
 
-export const runtime = "nodejs";
-export const maxDuration = 300;
 
 interface NiscOrderPayload {
 	niscOrderId: string;
@@ -26,7 +23,7 @@ interface NiscOrderPayload {
 /**
  * QStash worker: process a NISC order (provision items, create subscriptions, send emails).
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
 	await niscLog("worker_request_received", { step: "start" });
 
 	try {
@@ -38,7 +35,7 @@ export async function POST(request: NextRequest) {
 		await niscLog("worker_signature_verified", { step: "signature_ok" });
 	} catch {
 		await niscLog("worker_signature_failed", { step: "signature_invalid" });
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Invalid QStash signature" },
 			{ status: 401 },
 		);
@@ -49,7 +46,7 @@ export async function POST(request: NextRequest) {
 		body = await request.json();
 	} catch {
 		await niscLog("worker_invalid_body", { step: "json_parse_failed" });
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Invalid JSON body" },
 			{ status: 400 },
 		);
@@ -58,7 +55,7 @@ export async function POST(request: NextRequest) {
 	const { niscOrderId } = body as NiscOrderPayload;
 	if (!niscOrderId) {
 		await niscLog("worker_missing_payload", { step: "missing_niscOrderId" });
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Missing niscOrderId" },
 			{ status: 400 },
 		);
@@ -81,7 +78,7 @@ export async function POST(request: NextRequest) {
 
 	if (!order) {
 		await niscLog("worker_order_not_found", { niscOrderId });
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Order not found" },
 			{ status: 404 },
 		);
@@ -95,7 +92,7 @@ export async function POST(request: NextRequest) {
 
 	if (order.status !== "PENDING") {
 		await niscLog("worker_order_skip_not_pending", { niscOrderId, status: order.status });
-		return NextResponse.json(
+		return Response.json(
 			{ message: "Order already processed", status: order.status },
 			{ status: 200 },
 		);
@@ -132,11 +129,11 @@ export async function POST(request: NextRequest) {
 			order.user?.name ??
 			(order.team?.createdById
 				? (
-						await prisma.user.findUnique({
-							where: { id: order.team.createdById },
-							select: { name: true },
-						})
-					)?.name ?? null
+					await prisma.user.findUnique({
+						where: { id: order.team.createdById },
+						select: { name: true },
+					})
+				)?.name ?? null
 				: null) ??
 			"Customer";
 
@@ -144,8 +141,8 @@ export async function POST(request: NextRequest) {
 		if (result.ok && result.status === "COMPLETED" && orderAfter) {
 			const billingSettings = order.teamId
 				? await prisma.teamBillingSettings.findUnique({
-						where: { teamId: order.teamId },
-					})
+					where: { teamId: order.teamId },
+				})
 				: null;
 			const customerEmail =
 				order.user?.email ??
@@ -360,7 +357,7 @@ export async function POST(request: NextRequest) {
 			status: result.status,
 			failureReason: result.failureReason ?? null,
 		});
-		return NextResponse.json({
+		return Response.json({
 			success: true,
 			niscOrderId,
 			status: result.status,
@@ -380,7 +377,7 @@ export async function POST(request: NextRequest) {
 			errorMessage.includes("network") ||
 			errorMessage.includes("ECONNREFUSED");
 
-		return NextResponse.json(
+		return Response.json(
 			{ error: errorMessage, niscOrderId, retryable: isRetryable },
 			{ status: isRetryable ? 500 : 200 },
 		);

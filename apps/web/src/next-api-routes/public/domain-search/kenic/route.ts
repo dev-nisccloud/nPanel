@@ -1,10 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { appRouter } from "@nPanel/api";
+import { appRouter } from "@npanel/api";
 
-export const runtime = "nodejs";
-export const maxDuration = 60;
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
 	try {
 		const input = await request.json();
 
@@ -14,9 +11,9 @@ export async function POST(request: NextRequest) {
 
 		const result = await caller.kenic.domainCheck.check(input);
 
-		return NextResponse.json(result);
+		return Response.json(result);
 	} catch (error) {
-		return NextResponse.json(
+		return Response.json(
 			{
 				success: false,
 				error: error instanceof Error ? error.message : "Unknown error",

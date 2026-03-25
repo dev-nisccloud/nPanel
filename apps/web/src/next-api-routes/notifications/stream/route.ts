@@ -1,10 +1,5 @@
-import { auth } from "@nPanel/auth";
-import { NextRequest } from "next/server";
+import { auth } from "@npanel/auth";
 import prisma from "@npanel/db";
-
-// Force Node.js runtime for SSE
-export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutes for SSE connections
 
 // Store active SSE connections per user
 const activeConnections = new Map<string, Set<ReadableStreamDefaultController>>();
@@ -219,7 +214,7 @@ function startNotificationPoller(userId: string, controller: ReadableStreamDefau
   };
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
     // Authenticate user
     const session = await auth.api.getSession({

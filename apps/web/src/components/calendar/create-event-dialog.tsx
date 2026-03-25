@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/popover";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { cn } from "@/lib/utils";
-import { Event } from "@/mock-data/events";
+import type { Event } from "@/mock-data/events";
 
 interface CreateEventDialogProps {
   open: boolean;

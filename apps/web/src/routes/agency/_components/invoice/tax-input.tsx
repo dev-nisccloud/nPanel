@@ -1,4 +1,4 @@
-import { CurrencyInput } from "@nPanel/ui/currency-input";
+import { CurrencyInput } from "@npanel/ui/components/currency-input";
 import { useRef } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
@@ -44,3 +44,4 @@ export function TaxInput() {
     />
   );
 }
+

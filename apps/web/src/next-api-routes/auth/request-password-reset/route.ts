@@ -1,14 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@nPanel/auth";
+import { auth } from "@npanel/auth";
 import prisma from "@npanel/db";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { email, redirectTo } = body as { email?: string; redirectTo?: string };
 
     if (!email) {
-      return NextResponse.json(
+      return Response.json(
         { error: "Email is required" },
         { status: 400 }
       );
@@ -20,7 +19,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
+      return Response.json(
         {
           error:
             "No account found with this email address. The email may be invalid or not registered. Please check the address or sign up for an account.",
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (result && typeof result === "object" && "error" in result && result.error) {
-      return NextResponse.json(
+      return Response.json(
         {
           error:
             (result.error as Error).message || "Failed to send password reset email",
@@ -46,13 +45,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    return NextResponse.json({ 
-      success: true, 
-      message: "Password reset instructions sent to your email" 
+    return Response.json({
+      success: true,
+      message: "Password reset instructions sent to your email"
     });
 
   } catch (error: unknown) {
-    return NextResponse.json(
+    return Response.json(
       { error: error instanceof Error ? error.message : "Failed to send password reset email" },
       { status: 500 }
     );

@@ -4,7 +4,8 @@ import { createContext, useContext, useRef } from "react";
 
 import { useStore, type StoreApi } from "zustand";
 
-import { createPreferencesStore, PreferencesState } from "./preferences-store";
+import { createPreferencesStore } from "./preferences-store";
+import type { PreferencesState } from "./preferences-store";
 
 const PreferencesStoreContext = createContext<StoreApi<PreferencesState> | null>(null);
 

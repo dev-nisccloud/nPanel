@@ -1,13 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
+import { verifySignatureAppRouter } from "@/lib/qstash-verify";
 import prisma from "@npanel/db";
-import { getQStashSigningKeys } from "@nPanel/api/lib/qstash/client";
-import { executeCampaignSend } from "@nPanel/api/lib/campaign-send-executor";
-import { sendEmail } from "@nPanel/api/lib/email";
-import { renderCampaignCompletedEmail } from "@nPanel/api/lib/email-templates";
-
-export const runtime = "nodejs";
-export const maxDuration = 300; // 5 min for large campaigns
+import { getQStashSigningKeys } from "@npanel/api/lib/qstash/client";
+import { executeCampaignSend } from "@npanel/api/lib/campaign-send-executor";
+import { sendEmail } from "@npanel/api/lib/email";
+import { renderCampaignCompletedEmail } from "@npanel/api/lib/email-templates";
 
 interface CampaignSendPayload {
 	campaignId: string;
@@ -18,7 +14,7 @@ interface CampaignSendPayload {
  * Worker: send campaign emails (immediate or scheduled via QStash).
  * Verifies QStash signature, loads job + campaign, runs send, updates job and campaign status.
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
 	try {
 		const signingKeys = getQStashSigningKeys();
 		await verifySignatureAppRouter(request as any, {
@@ -26,7 +22,7 @@ export async function POST(request: NextRequest) {
 			nextSigningKey: signingKeys.next ?? undefined,
 		});
 	} catch (error) {
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Invalid QStash signature" },
 			{ status: 401 },
 		);
@@ -36,7 +32,7 @@ export async function POST(request: NextRequest) {
 	try {
 		body = await request.json();
 	} catch {
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Invalid JSON body" },
 			{ status: 400 },
 		);
@@ -44,7 +40,7 @@ export async function POST(request: NextRequest) {
 
 	const { campaignId, sendJobId } = body as CampaignSendPayload;
 	if (!campaignId || !sendJobId) {
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Missing campaignId or sendJobId" },
 			{ status: 400 },
 		);
@@ -58,21 +54,21 @@ export async function POST(request: NextRequest) {
 	});
 
 	if (!job) {
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Send job not found" },
 			{ status: 404 },
 		);
 	}
 
 	if (job.campaignId !== campaignId) {
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Campaign ID does not match job" },
 			{ status: 400 },
 		);
 	}
 
 	if (job.status !== "QUEUED") {
-		return NextResponse.json(
+		return Response.json(
 			{ message: "Job already processed", status: job.status },
 			{ status: 200 },
 		);
@@ -89,7 +85,7 @@ export async function POST(request: NextRequest) {
 				updatedAt: now,
 			},
 		});
-		return NextResponse.json(
+		return Response.json(
 			{ message: "Campaign already in terminal state" },
 			{ status: 200 },
 		);
@@ -180,7 +176,7 @@ export async function POST(request: NextRequest) {
 			console.error("Campaign completed notification/email failed:", notifyErr);
 		}
 
-		return NextResponse.json({
+		return Response.json({
 			success: true,
 			campaignId,
 			sendJobId,
@@ -216,7 +212,7 @@ export async function POST(request: NextRequest) {
 			errorMessage.includes("rate") ||
 			errorMessage.includes("timeout") ||
 			errorMessage.includes("network");
-		return NextResponse.json(
+		return Response.json(
 			{
 				error: errorMessage,
 				campaignId,

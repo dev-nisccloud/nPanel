@@ -1,12 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { appRouter } from "@nPanel/api";
+import { appRouter } from "@npanel/api";
 
-export const runtime = "nodejs";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
 	try {
 		const baseCurrency =
-			request.nextUrl.searchParams.get("baseCurrency") ?? undefined;
+			new URL(request.url).searchParams.get("baseCurrency") ?? undefined;
 
 		const caller = appRouter.createCaller({
 			session: null,
@@ -16,9 +14,9 @@ export async function GET(request: NextRequest) {
 			baseCurrency ? { baseCurrency } : undefined,
 		);
 
-		return NextResponse.json(result);
+		return Response.json(result);
 	} catch (error) {
-		return NextResponse.json(
+		return Response.json(
 			{
 				success: false,
 				data: null,

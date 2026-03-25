@@ -1,6 +1,5 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 // Input validation schema
@@ -9,7 +8,7 @@ const generateDomainsSchema = z.object({
   count: z.number().min(1).max(10).default(6),
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { businessDescription, count } = generateDomainsSchema.parse(body);
@@ -65,7 +64,7 @@ Do not include any other text or explanation.`,
       ].slice(0, count);
     }
 
-    return NextResponse.json({
+    return Response.json({
       success: true,
       suggestions: domainSuggestions,
       usage: result.usage,
@@ -75,7 +74,7 @@ Do not include any other text or explanation.`,
     console.error('AI domain generation error:', error);
     
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
+      return Response.json(
         { 
           success: false, 
           error: 'Invalid input', 
@@ -85,7 +84,7 @@ Do not include any other text or explanation.`,
       );
     }
 
-    return NextResponse.json(
+    return Response.json(
       { 
         success: false, 
         error: 'Failed to generate domain suggestions' 

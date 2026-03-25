@@ -2,11 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams } from "react-router";
+
+import { toast } from "@/components/ui/sonner";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -28,7 +29,7 @@ const FormSchema = z
   });
 
 export function RegisterForm() {
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
   const returnUrl = searchParams.get("returnUrl");
   const redirectPath = searchParams.get("redirect");
   const inviteCode = searchParams.get("code");

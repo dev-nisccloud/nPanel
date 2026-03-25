@@ -1,6 +1,6 @@
 "use client";
 
-import { Event } from "@/mock-data/events";
+import type { Event } from "@/mock-data/events";
 import {
   HOURS_24,
   HOUR_HEIGHT,

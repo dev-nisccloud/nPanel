@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useCartStore } from "@/stores/cart-store";
-import { stripKenyanTldFromQuery } from "@/app/(main)/agency/domains/_components/kenic-card-schema";
+import { stripKenyanTldFromQuery } from "@/routes/agency.domains/_components/kenic-card-schema";
 
 // Shared domain search result type
 export interface DomainSearchResult {
@@ -174,3 +174,4 @@ export function useDomainSearch(
     sanitizeDomainName,
   };
 }
+

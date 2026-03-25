@@ -25,7 +25,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { Event } from "@/mock-data/events";
+import type { Event } from "@/mock-data/events";
 import { useState } from "react";
 import { Kbd } from "@/components/ui/kbd";
 

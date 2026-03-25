@@ -1,11 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { Webhook } from "svix";
 import prisma from "@npanel/db";
-import { RESEND_EVENT_TYPE_TO_ENUM } from "@nPanel/api/routers/email-marketing/schemas";
-import type { EmailEventType } from "@nPanel/api/routers/email-marketing/schemas";
+import { RESEND_EVENT_TYPE_TO_ENUM } from "@npanel/api/routers/email-marketing/schemas";
+import type { EmailEventType } from "@npanel/api/routers/email-marketing/schemas";
 
-export const runtime = "nodejs";
-export const maxDuration = 30;
 
 /** Resend webhook payload shape (top-level or inside Svix envelope) */
 interface ResendWebhookPayload {
@@ -31,7 +28,7 @@ interface ResendWebhookPayload {
  *
  * Resend webhook IPs (for allowlisting): 44.228.126.217, 50.112.21.217, 52.24.126.164, 54.148.139.208, 2600:1f24:64:8000::/52
  */
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
 	try {
 		const rawBody = await req.text();
 		let payload: ResendWebhookPayload;
@@ -47,7 +44,7 @@ export async function POST(req: NextRequest) {
 				const wh = new Webhook(secret);
 				payload = wh.verify(rawBody, headers) as ResendWebhookPayload;
 			} catch {
-				return NextResponse.json(
+				return Response.json(
 					{ error: "Invalid webhook signature" },
 					{ status: 401 },
 				);
@@ -67,7 +64,7 @@ export async function POST(req: NextRequest) {
 		const data = eventPayload?.data;
 
 		if (!eventType || !data) {
-			return NextResponse.json(
+			return Response.json(
 				{ received: true, reason: "missing type or data" },
 				{ status: 200 },
 			);
@@ -77,7 +74,7 @@ export async function POST(req: NextRequest) {
 			| EmailEventType
 			| undefined;
 		if (!mappedType) {
-			return NextResponse.json(
+			return Response.json(
 				{ received: true, reason: "unknown event type" },
 				{ status: 200 },
 			);
@@ -86,7 +83,7 @@ export async function POST(req: NextRequest) {
 		// Resend sends data.email_id; accept data.id as fallback
 		const emailId = (data.email_id ?? data.id) as string | undefined;
 		if (!emailId || typeof emailId !== "string") {
-			return NextResponse.json(
+			return Response.json(
 				{ received: true, reason: "missing data.email_id or data.id" },
 				{ status: 200 },
 			);
@@ -102,7 +99,7 @@ export async function POST(req: NextRequest) {
 
 		if (!recipient) {
 			console.warn("[Resend webhook] recipient not found for resendId:", emailId, "eventType:", eventType);
-			return NextResponse.json(
+			return Response.json(
 				{ received: true, reason: "recipient not found", email_id: emailId },
 				{ status: 200 },
 			);
@@ -134,11 +131,11 @@ export async function POST(req: NextRequest) {
 			});
 		});
 
-		return NextResponse.json({ received: true, saved: true }, { status: 200 });
+		return Response.json({ received: true, saved: true }, { status: 200 });
 	} catch (error) {
 		// Always 200 so Resend does not retry; log so you can see why DB save failed
 		console.error("[Resend webhook] failed to save event:", error);
-		return NextResponse.json(
+		return Response.json(
 			{ received: true, reason: "error_handled" },
 			{ status: 200 },
 		);

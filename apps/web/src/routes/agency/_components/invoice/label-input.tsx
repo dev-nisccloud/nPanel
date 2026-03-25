@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@nPanel/ui/cn";
+import { cn } from "@npanel/ui/components/cn";
 import { useFormContext } from "react-hook-form";
 
 type Props = {
@@ -37,3 +37,4 @@ export function LabelInput({ name, className, onSave }: Props) {
     </span>
   );
 }
+

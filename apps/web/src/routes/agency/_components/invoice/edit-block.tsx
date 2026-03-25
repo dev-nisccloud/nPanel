@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@nPanel/ui/cn";
+import { cn } from "@npanel/ui/components/cn";
 import { Controller, useFormContext } from "react-hook-form";
 import { Editor } from "./editor";
 import type { InvoiceFormValues } from "./form-context";
@@ -37,3 +37,4 @@ export function EditBlock({ name }: Props) {
     </div>
   );
 }
+

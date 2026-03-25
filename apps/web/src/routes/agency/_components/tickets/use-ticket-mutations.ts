@@ -1,14 +1,12 @@
 "use client";
 
 import { trpc } from "@/utils/trpc";
-import { useRouter } from "next/navigation";
 
 /**
  * Hook for ticket mutations
  */
 export function useTicketMutations({ currentUserId }: { currentUserId?: string | null } = {}) {
   const utils = trpc.useUtils();
-  const router = useRouter();
 
   const createTicket = trpc.tickets.create.useMutation({
     onSuccess: (data) => {

@@ -1,7 +1,7 @@
 import { useInvoiceParams } from "@/hooks/use-invoice-params";
 import { formatRelativeTime } from "@/utils/format";
-import { ScrollArea } from "@nPanel/ui/scroll-area";
-import { toast } from "sonner";
+import { ScrollArea } from "@npanel/ui/components/scroll-area";
+import { toast } from "@/components/ui/sonner";
 import { useEffect, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useDebounceValue } from "usehooks-ts";
@@ -172,3 +172,4 @@ export function Form() {
     </form>
   );
 }
+

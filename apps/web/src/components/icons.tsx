@@ -1,3 +1,5 @@
+import * as React from "react";
+
 type SVGIconProps = {
     size?: number;
     stroke?: string;

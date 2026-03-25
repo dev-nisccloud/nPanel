@@ -1,6 +1,6 @@
 import { TZDate } from "@date-fns/tz";
-import { Calendar } from "@nPanel/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@nPanel/ui/popover";
+import { Calendar } from "@npanel/ui/components/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@npanel/ui/components/popover";
 import { format } from "date-fns";
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
@@ -68,3 +68,4 @@ export function DueDate() {
     </div>
   );
 }
+

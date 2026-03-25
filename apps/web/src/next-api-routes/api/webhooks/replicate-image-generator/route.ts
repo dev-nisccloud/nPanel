@@ -1,12 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
 import prisma from "@npanel/db";
 import Replicate, { validateWebhook } from "replicate";
 import { UTApi } from "uploadthing/server";
 import { randomUUID } from "node:crypto";
-import { deductOneCreditForTeamImageGenerator } from "@nPanel/api/lib/image-generator-credits";
+import { deductOneCreditForTeamImageGenerator } from "@npanel/api/lib/image-generator-credits";
 
-export const runtime = "nodejs";
-export const maxDuration = 60;
 
 const utapi = new UTApi();
 
@@ -37,7 +34,7 @@ function extractImageUrl(output: unknown): string | null {
 	return null;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
 	let payload: ReplicatePredictionPayload | null = null;
 
 	try {
@@ -47,7 +44,7 @@ export async function POST(request: NextRequest) {
 			const cloned = request.clone();
 			const isValid = await validateWebhook(cloned as any, secret);
 			if (!isValid) {
-				return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+				return Response.json({ error: "Invalid webhook signature" }, { status: 401 });
 			}
 			const rawBody = await request.text();
 			payload = JSON.parse(rawBody) as ReplicatePredictionPayload;
@@ -57,11 +54,11 @@ export async function POST(request: NextRequest) {
 		}
 	} catch (err) {
 		console.error("Error validating Replicate webhook:", err);
-		return NextResponse.json({ error: "Invalid webhook" }, { status: 400 });
+		return Response.json({ error: "Invalid webhook" }, { status: 400 });
 	}
 
 	if (!payload?.id) {
-		return NextResponse.json({ error: "Missing prediction id" }, { status: 400 });
+		return Response.json({ error: "Missing prediction id" }, { status: 400 });
 	}
 
 	const predictionId = payload.id;
@@ -69,7 +66,7 @@ export async function POST(request: NextRequest) {
 
 	// We only care about terminal states here; intermediate events can be ignored.
 	if (status !== "succeeded" && status !== "failed" && status !== "canceled") {
-		return NextResponse.json({ ok: true });
+		return Response.json({ ok: true });
 	}
 
 	const variation = await prisma.imageGeneratorVariation.findFirst({
@@ -79,7 +76,7 @@ export async function POST(request: NextRequest) {
 
 	// If we don't find a matching variation, nothing to do.
 	if (!variation) {
-		return NextResponse.json({ ok: true });
+		return Response.json({ ok: true });
 	}
 
 	const now = new Date();
@@ -211,6 +208,6 @@ export async function POST(request: NextRequest) {
 		});
 	}
 
-	return NextResponse.json({ ok: true });
+	return Response.json({ ok: true });
 }
 

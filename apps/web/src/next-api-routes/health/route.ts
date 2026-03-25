@@ -1,7 +1,5 @@
-import { NextResponse } from "next/server";
 import prisma, { getConnectionPoolMetrics } from "@npanel/db";
 
-export const dynamic = "force-dynamic";
 
 // Cache health check results to reduce database connection usage
 // Health checks are often called frequently by monitoring systems
@@ -20,7 +18,7 @@ export async function GET() {
     lastHealthCheck &&
     now - lastHealthCheck.timestamp < HEALTH_CHECK_CACHE_MS
   ) {
-    return NextResponse.json(
+    return Response.json(
       {
         ...lastHealthCheck.result,
         timestamp: new Date().toISOString(),
@@ -61,7 +59,7 @@ export async function GET() {
       result,
     };
 
-    return NextResponse.json(
+    return Response.json(
       {
         ...result,
         timestamp: new Date().toISOString(),
@@ -88,7 +86,7 @@ export async function GET() {
       console.error("[Health Check] Database connection error:", error);
     }
 
-    return NextResponse.json(
+    return Response.json(
       {
         status: "unhealthy",
         timestamp: new Date().toISOString(),

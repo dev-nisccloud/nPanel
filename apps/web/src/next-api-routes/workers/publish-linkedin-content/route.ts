@@ -1,15 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
+import { verifySignatureAppRouter } from "@/lib/qstash-verify";
 import prisma from '@npanel/db';
-import { createLinkedInClient, LinkedInApiError } from '@nPanel/api/lib/linkedin-client';
-import { getStoredLinkedInPageAccessToken } from '@nPanel/api/lib/linkedin-credentials';
-import { LinkedInErrorHandler } from '@nPanel/api/lib/linkedin-error-handler';
-import { getQStashSigningKeys } from '@nPanel/api/lib/qstash/client';
+import { createLinkedInClient, LinkedInApiError } from '@npanel/api/lib/linkedin-client';
+import { getStoredLinkedInPageAccessToken } from '@npanel/api/lib/linkedin-credentials';
+import { LinkedInErrorHandler } from '@npanel/api/lib/linkedin-error-handler';
+import { getQStashSigningKeys } from '@npanel/api/lib/qstash/client';
 import { randomUUID } from 'node:crypto';
 // Use native fetch instead of undici for better compatibility
 
 // Use Node.js runtime for worker endpoint (required for QStash signature verification)
-export const runtime = 'nodejs';
 
 /**
  * Worker endpoint for publishing scheduled LinkedIn content calendar posts
@@ -18,7 +16,7 @@ export const runtime = 'nodejs';
  * Environment variables required:
  * - QSTASH_CURRENT_SIGNING_KEY or QSTASH_NEXT_SIGNING_KEY
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
 	try {
 		// Verify QStash signature
 		const signingKeys = getQStashSigningKeys();
@@ -32,7 +30,7 @@ export async function POST(request: NextRequest) {
 		const { postId, pageTokenId } = body;
 
 		if (!postId || !pageTokenId) {
-			return NextResponse.json(
+			return Response.json(
 				{ error: 'Missing postId or pageTokenId in request body' },
 				{ status: 400 }
 			);
@@ -55,7 +53,7 @@ export async function POST(request: NextRequest) {
 		});
 
 		if (!post) {
-			return NextResponse.json(
+			return Response.json(
 				{ error: 'Post not found' },
 				{ status: 404 }
 			);
@@ -63,14 +61,14 @@ export async function POST(request: NextRequest) {
 
 		// Validate post is still scheduled and not published
 		if (post.published) {
-			return NextResponse.json(
+			return Response.json(
 				{ error: 'Post already published', postId: post.id },
 				{ status: 200 } // Return 200 to prevent QStash retries
 			);
 		}
 
 		if (post.status !== 'SCHEDULED') {
-			return NextResponse.json(
+			return Response.json(
 				{ error: `Post status is ${post.status}, not SCHEDULED`, postId: post.id },
 				{ status: 200 } // Return 200 to prevent QStash retries
 			);
@@ -82,7 +80,7 @@ export async function POST(request: NextRequest) {
 		const gracePeriod = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 		if (scheduledTime.getTime() > now.getTime() + gracePeriod) {
-			return NextResponse.json(
+			return Response.json(
 				{ error: 'Scheduled time has not been reached yet', postId: post.id },
 				{ status: 200 } // Return 200 to prevent QStash retries
 			);
@@ -127,7 +125,7 @@ export async function POST(request: NextRequest) {
 				},
 			});
 
-			return NextResponse.json(
+			return Response.json(
 				{ error: errorMessage },
 				{ status: 500 } // Return 500 to trigger QStash retry
 			);
@@ -149,7 +147,7 @@ export async function POST(request: NextRequest) {
 					lastRetryAt: now,
 				},
 			});
-			return NextResponse.json(
+			return Response.json(
 				{ error: errorMessage },
 				{ status: 200 } // Don't retry - this is a validation error
 			);
@@ -166,7 +164,7 @@ export async function POST(request: NextRequest) {
 					lastRetryAt: now,
 				},
 			});
-			return NextResponse.json(
+			return Response.json(
 				{ error: errorMessage },
 				{ status: 200 } // Don't retry - this is a validation error
 			);
@@ -232,8 +230,8 @@ export async function POST(request: NextRequest) {
 						const assetUrn = registerResponse.value.asset;
 
 						// Download file from URL and upload to LinkedIn
-					const fileResponse = await fetch(photo.url);
-					const fileBuffer = Buffer.from(await fileResponse.arrayBuffer());
+						const fileResponse = await fetch(photo.url);
+						const fileBuffer = Buffer.from(await fileResponse.arrayBuffer());
 						const contentType = 'image/jpeg'; // Default, could be determined from file
 
 						// Upload to LinkedIn
@@ -255,7 +253,7 @@ export async function POST(request: NextRequest) {
 			});
 
 			// Construct permalink (LinkedIn post URL format)
-			const permalink = response.id 
+			const permalink = response.id
 				? `https://www.linkedin.com/feed/update/${response.id.replace('urn:li:activity:', '')}`
 				: null;
 
@@ -291,7 +289,7 @@ export async function POST(request: NextRequest) {
 				},
 			});
 
-			return NextResponse.json({
+			return Response.json({
 				success: true,
 				postId: post.id,
 				linkedInPostId: response.id,
@@ -308,7 +306,7 @@ export async function POST(request: NextRequest) {
 			if (error instanceof LinkedInApiError) {
 				const errorInfo = LinkedInErrorHandler.handleError(error);
 				errorMessage = errorInfo?.message || error.message;
-				
+
 				// Don't retry on certain errors (e.g., invalid token, permission denied)
 				if (error.status === 401 || error.status === 403) {
 					shouldRetry = false;
@@ -350,7 +348,7 @@ export async function POST(request: NextRequest) {
 
 			// Return appropriate status code
 			// 500 will trigger QStash retry, 200 will not
-			return NextResponse.json(
+			return Response.json(
 				{
 					error: errorMessage,
 					postId: post.id,
@@ -365,13 +363,13 @@ export async function POST(request: NextRequest) {
 
 		// If signature verification fails, return 401
 		if (error instanceof Error && error.message.includes('signature')) {
-			return NextResponse.json(
+			return Response.json(
 				{ error: 'Invalid QStash signature' },
 				{ status: 401 }
 			);
 		}
 
-		return NextResponse.json(
+		return Response.json(
 			{
 				error: error instanceof Error ? error.message : 'Internal server error',
 			},

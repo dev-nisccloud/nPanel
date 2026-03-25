@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
 import prisma from "@npanel/db";
 // Note: These utilities need to be exported from the api package
 // For now, we'll import them directly - in production, export them from packages/api/src/index.ts
@@ -6,15 +5,9 @@ import {
 	validateMpesaCallback,
 	getPaymentStatus,
 	isPaymentSuccessful,
-} from "@nPanel/api/routers/payment-gateway/mpesa/callback";
-import { sendEmail } from "@nPanel/api/lib/email";
-import { renderPaymentReceiptEmail } from "@nPanel/api/lib/email-templates";
-
-// Force Node.js runtime for webhook handling
-export const runtime = "nodejs";
-
-// Configure max duration for webhook processing
-export const maxDuration = 30; // 30 seconds
+} from "@npanel/api/routers/payment-gateway/mpesa/callback";
+import { sendEmail } from "@npanel/api/lib/email";
+import { renderPaymentReceiptEmail } from "@npanel/api/lib/email-templates";
 
 /**
  * M-Pesa Webhook Handler
@@ -25,7 +18,7 @@ export const maxDuration = 30; // 30 seconds
  * 1. IP Whitelist validation (M-Pesa IPs only) - TEMPORARILY DISABLED
  * 2. Request origin validation
  * 3. Payload structure validation
- * 4. Rate limiting (handled by Next.js)
+ * 4. Rate limiting (handled upstream)
  * 5. Logging for audit trail
  * 
  * Note: M-Pesa doesn't provide signature verification in STK Push callbacks,
@@ -35,11 +28,11 @@ export const maxDuration = 30; // 30 seconds
  * - Sandbox: 196.201.214.0/24, 196.201.214.18, 196.201.214.19
  * - Live: 196.201.214.0/24, 196.201.214.18, 196.201.214.19, 196.201.214.20
  */
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
 	try {
 		// Security: Validate request origin (logging only for now)
-		const clientIp = req.headers.get("x-forwarded-for") || 
-			req.headers.get("x-real-ip") || 
+		const clientIp = req.headers.get("x-forwarded-for") ||
+			req.headers.get("x-real-ip") ||
 			"unknown";
 
 		// Log incoming request for audit
@@ -56,7 +49,7 @@ export async function POST(req: NextRequest) {
 		// const allowedIps = process.env.MPESA_ALLOWED_IPS?.split(",") || [];
 		// if (allowedIps.length > 0 && !allowedIps.includes(clientIp) && clientIp !== "unknown") {
 		// 	console.warn(`[M-Pesa Webhook] Rejected request from unauthorized IP: ${clientIp}`);
-		// 	return NextResponse.json(
+		// 	return Response.json(
 		// 		{ error: "Unauthorized" },
 		// 		{ status: 403 }
 		// 	);
@@ -68,11 +61,11 @@ export async function POST(req: NextRequest) {
 		try {
 			// Check if body exists and has content
 			rawBodyText = await req.text();
-			
+
 			if (!rawBodyText || rawBodyText.trim().length === 0) {
 				console.warn("[M-Pesa Webhook] Received empty request body - returning success to prevent retries");
 				// Return success to M-Pesa to prevent retries for empty/test requests
-				return NextResponse.json({
+				return Response.json({
 					ResultCode: 0,
 					ResultDesc: "Empty request received",
 				});
@@ -83,10 +76,10 @@ export async function POST(req: NextRequest) {
 		} catch (parseError) {
 			console.error("[M-Pesa Webhook] Failed to parse request body:", parseError);
 			console.error("[M-Pesa Webhook] Raw body text:", rawBodyText || "Unable to read body");
-			
+
 			// Return success to M-Pesa to prevent retries for malformed requests
 			// Log the error for investigation
-			return NextResponse.json({
+			return Response.json({
 				ResultCode: 0,
 				ResultDesc: "Request body parsing failed",
 			});
@@ -107,7 +100,7 @@ export async function POST(req: NextRequest) {
 				keys: Object.keys(body),
 				bodyKeys: body.Body ? Object.keys(body.Body) : [],
 			});
-			return NextResponse.json(
+			return Response.json(
 				{ error: "Invalid callback structure" },
 				{ status: 400 }
 			);
@@ -120,9 +113,9 @@ export async function POST(req: NextRequest) {
 		// Log callback details (without sensitive data)
 		console.log(
 			`[M-Pesa Webhook] Processing callback - ` +
-				`CheckoutRequestID: ${checkoutRequestId}, ` +
-				`MerchantRequestID: ${merchantRequestId}, ` +
-				`ResultCode: ${stkCallback.ResultCode}`
+			`CheckoutRequestID: ${checkoutRequestId}, ` +
+			`MerchantRequestID: ${merchantRequestId}, ` +
+			`ResultCode: ${stkCallback.ResultCode}`
 		);
 
 		// Get payment status
@@ -133,8 +126,8 @@ export async function POST(req: NextRequest) {
 		if (paymentStatus.resultCodeInfo) {
 			console.log(
 				`[M-Pesa Webhook] Result Code ${paymentStatus.resultCode}: ` +
-					`${paymentStatus.resultCodeInfo.description} - ` +
-					`${paymentStatus.resultCodeInfo.explanation}`
+				`${paymentStatus.resultCodeInfo.description} - ` +
+				`${paymentStatus.resultCodeInfo.explanation}`
 			);
 		}
 
@@ -149,9 +142,9 @@ export async function POST(req: NextRequest) {
 		if (isPaymentSuccessful(validatedCallback)) {
 			console.log(
 				`[M-Pesa Webhook] Payment successful - ` +
-					`Receipt: ${paymentStatus.metadata?.mpesaReceiptNumber}, ` +
-					`Amount: ${paymentStatus.metadata?.amount}, ` +
-					`Phone: ${paymentStatus.metadata?.phoneNumber}`
+				`Receipt: ${paymentStatus.metadata?.mpesaReceiptNumber}, ` +
+				`Amount: ${paymentStatus.metadata?.amount}, ` +
+				`Phone: ${paymentStatus.metadata?.phoneNumber}`
 			);
 
 			// Update transaction if found
@@ -261,14 +254,14 @@ export async function POST(req: NextRequest) {
 			} else {
 				console.warn(
 					`[M-Pesa Webhook] Payment successful but transaction not found - ` +
-						`CheckoutRequestID: ${checkoutRequestId}`
+					`CheckoutRequestID: ${checkoutRequestId}`
 				);
 			}
 		} else {
 			console.warn(
 				`[M-Pesa Webhook] Payment failed - ` +
-					`ResultCode: ${paymentStatus.resultCode}, ` +
-					`ResultDesc: ${paymentStatus.resultDesc}`
+				`ResultCode: ${paymentStatus.resultCode}, ` +
+				`ResultDesc: ${paymentStatus.resultDesc}`
 			);
 
 			// Determine transaction status based on result code
@@ -297,7 +290,7 @@ export async function POST(req: NextRequest) {
 						transactionId: transaction.id,
 						userId: transaction.userId,
 						action: transactionStatus === "CANCELLED" ? "CANCEL" : "FAIL",
-						description: transactionStatus === "CANCELLED" 
+						description: transactionStatus === "CANCELLED"
 							? `Payment cancelled by user: ${paymentStatus.resultDesc}`
 							: `Payment failed: ${paymentStatus.resultDesc}`,
 						metadata: {
@@ -313,7 +306,7 @@ export async function POST(req: NextRequest) {
 			} else {
 				console.warn(
 					`[M-Pesa Webhook] Payment failed but transaction not found - ` +
-						`CheckoutRequestID: ${checkoutRequestId}`
+					`CheckoutRequestID: ${checkoutRequestId}`
 				);
 			}
 
@@ -326,7 +319,7 @@ export async function POST(req: NextRequest) {
 
 		// Always return success to M-Pesa (they will retry if we return error)
 		// Process the callback asynchronously if needed
-		return NextResponse.json({
+		return Response.json({
 			ResultCode: 0,
 			ResultDesc: "Callback processed successfully",
 		});
@@ -335,7 +328,7 @@ export async function POST(req: NextRequest) {
 
 		// Return success to M-Pesa to prevent retries
 		// Log error for investigation
-		return NextResponse.json({
+		return Response.json({
 			ResultCode: 0,
 			ResultDesc: "Callback received",
 		});
@@ -346,7 +339,7 @@ export async function POST(req: NextRequest) {
  * Health check endpoint for webhook
  */
 export async function GET() {
-	return NextResponse.json({
+	return Response.json({
 		status: "ok",
 		service: "M-Pesa Webhook Handler",
 		timestamp: new Date().toISOString(),

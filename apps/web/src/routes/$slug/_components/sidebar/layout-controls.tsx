@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { updateContentLayout } from "@/lib/layout-utils";
 import { updateThemeMode, updateThemePreset } from "@/lib/theme-utils";
-import { setValueToCookie } from "@/server/server-actions";
+import { setClientCookie } from "@/lib/cookies-client";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 import type { SidebarVariant, SidebarCollapsible, ContentLayout } from "@/types/preferences/layout";
 import { THEME_PRESET_OPTIONS, type ThemePreset, type ThemeMode } from "@/types/preferences/theme";
@@ -28,7 +28,7 @@ export function LayoutControls(props: LayoutControlsProps) {
   const themePreset = usePreferencesStore((s) => s.themePreset);
   const setThemePreset = usePreferencesStore((s) => s.setThemePreset);
 
-  const handleValueChange = async (key: string, value: any) => {
+  const handleValueChange = (key: string, value: unknown) => {
     if (key === "theme_mode") {
       updateThemeMode(value);
       setThemeMode(value as ThemeMode);
@@ -42,7 +42,7 @@ export function LayoutControls(props: LayoutControlsProps) {
     if (key === "content_layout") {
       updateContentLayout(value);
     }
-    await setValueToCookie(key, value);
+    setClientCookie(key, String(value));
   };
 
   return (

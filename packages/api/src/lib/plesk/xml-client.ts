@@ -1,8 +1,8 @@
 import { request, Agent } from 'undici';
 // Sentry removed; provide a no-op shim to avoid touching call sites
 const Sentry = {
-  addBreadcrumb: (..._args: any[]) => {},
-  captureException: (..._args: any[]) => {},
+  addBreadcrumb: (..._args: any[]) => { },
+  captureException: (..._args: any[]) => { },
 };
 
 const PLESK_XML_ENDPOINT =
@@ -41,7 +41,7 @@ interface NetworkError extends Error {
 function isHostUnreachableError(error: Error): boolean {
   const message = error.message.toLowerCase();
   const name = error.name.toLowerCase();
-  
+
   return (
     message.includes('econnrefused') ||
     message.includes('econnaborted') ||
@@ -75,7 +75,7 @@ export async function sendPleskXmlRequest(
   // TEMPORARILY COMMENTED OUT - Testing secret key only authentication
   // console.log('Has USERNAME:', !!PLESK_XML_USERNAME);
   // console.log('Has PASSWORD:', !!PLESK_XML_PASSWORD);
-  
+
   const trimmedPayload = xmlPayload.trim();
   if (!trimmedPayload.includes('<packet')) {
     throw new Error('Invalid XML payload: Must contain <packet> element');
@@ -92,14 +92,14 @@ export async function sendPleskXmlRequest(
   //     'Missing required Plesk environment variables. Set either PLESK_SECRET_KEY or both PLESK_XML_USERNAME and PLESK_XML_PASSWORD.'
   //   );
   // }
-  
+
   // SECRET KEY ONLY - No fallback to basic auth
   if (!PLESK_XML_ENDPOINT) {
     throw new Error(
       'PLESK_XML_ENDPOINT environment variable is required'
     );
   }
-  
+
   if (!PLESK_SECRET_KEY) {
     throw new Error(
       'PLESK_SECRET_KEY environment variable is required. Secret key authentication only (basic auth temporarily disabled for testing).'
@@ -136,7 +136,7 @@ export async function sendPleskXmlRequest(
     const headers: Record<string, string> = {
       'Content-Type': 'text/xml',
       'HTTP_PRETTY_PRINT': 'TRUE',
-      'User-Agent': 'nPanel-Server/1.0',
+      'User-Agent': 'npanel-Server/1.0',
     };
 
     // SECRET KEY ONLY - No fallback to basic auth
@@ -147,7 +147,7 @@ export async function sendPleskXmlRequest(
       // This should not happen due to validation above, but kept for safety
       throw new Error('PLESK_SECRET_KEY is required. Basic auth is temporarily disabled for testing.');
     }
-    
+
     // TEMPORARILY COMMENTED OUT - Testing secret key only authentication
     // if (PLESK_SECRET_KEY) {
     //   console.log('Using SECRET_KEY authentication');
@@ -164,7 +164,7 @@ export async function sendPleskXmlRequest(
 
     console.log('Making request to:', PLESK_XML_ENDPOINT);
     const startTime = Date.now();
-    
+
     // Match legacy timeout: 30 seconds (legacy used 30_000ms)
     const response = await request(PLESK_XML_ENDPOINT, {
       method: 'POST',
@@ -231,7 +231,7 @@ export async function sendPleskXmlRequest(
       code: err.code,
       stack: err.stack
     });
-    
+
     const isHostUnreachable = isHostUnreachableError(err);
     const isAuthErrorResult = isAuthError(err);
 

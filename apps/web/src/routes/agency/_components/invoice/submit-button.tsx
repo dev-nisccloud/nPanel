@@ -2,7 +2,7 @@
 
 import { useUserQuery } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@nPanel/ui/calendar";
+import { Calendar } from "@npanel/ui/components/calendar";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -13,9 +13,9 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Icons } from "@nPanel/ui/icons";
-import { Input } from "@nPanel/ui/input";
-import { SubmitButton as BaseSubmitButton } from "@nPanel/ui/submit-button";
+import { Icons } from "@npanel/ui/components/icons";
+import { Input } from "@npanel/ui/components/input";
+import { SubmitButton as BaseSubmitButton } from "@npanel/ui/components/submit-button";
 import {
   addHours,
   addMilliseconds,
@@ -344,3 +344,4 @@ export function SubmitButton({ isSubmitting, disabled }: Props) {
     </div>
   );
 }
+

@@ -1,5 +1,5 @@
 import { trpc } from "@/utils/trpc";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 export function useNotificationPreferences() {
     const utils = trpc.useUtils();

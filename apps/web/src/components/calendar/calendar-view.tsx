@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { useCalendarStore } from "@/stores/calendar-store";
-import { Event } from "@/mock-data/events";
+import type { Event } from "@/mock-data/events";
 import { useEffect, useRef, useState } from "react";
 import { EventSheet } from "./event-sheet";
 import { CalendarWeekHeader } from "./calendar-week-header";

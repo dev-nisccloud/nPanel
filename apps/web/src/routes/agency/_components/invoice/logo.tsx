@@ -2,9 +2,9 @@
 
 import { useUpload } from "@/hooks/use-upload";
 import { useUserQuery } from "@/hooks/use-user";
-import { Icons } from "@nPanel/ui/icons";
-import { Skeleton } from "@nPanel/ui/skeleton";
-import { toast } from "sonner";
+import { Icons } from "@npanel/ui/components/icons";
+import { Skeleton } from "@npanel/ui/components/skeleton";
+import { toast } from "@/components/ui/sonner";
 import { useFormContext } from "react-hook-form";
 
 export function Logo() {
@@ -82,3 +82,4 @@ export function Logo() {
     </div>
   );
 }
+

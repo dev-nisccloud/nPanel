@@ -5,7 +5,7 @@ import { publicProcedure, router } from '../../trpc';
 
 const PLESK_REST_ENDPOINT_V2 =
   process.env.PLESK_REST_ENDPOINT_V2 ??
-  (process.env.PLESK_REST_ENDPOINT 
+  (process.env.PLESK_REST_ENDPOINT
     ? process.env.PLESK_REST_ENDPOINT.replace('/api/modules/wp-toolkit', '') + '/api/v2'
     : undefined) ??
   'https://your-plesk-host:8443/api/v2';
@@ -41,7 +41,7 @@ async function sendPleskV2Request(
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'User-Agent': 'nPanel-Server/1.0',
+      'User-Agent': 'npanel-Server/1.0',
       'X-API-Key': PLESK_SECRET_KEY,
     };
 
@@ -76,7 +76,7 @@ async function sendPleskV2Request(
     };
   } catch (error) {
     const err = error as Error;
-    const isHostUnreachable = 
+    const isHostUnreachable =
       err.message.toLowerCase().includes('econnrefused') ||
       err.message.toLowerCase().includes('econnaborted') ||
       err.message.toLowerCase().includes('enotfound') ||

@@ -1,14 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
+import { verifySignatureAppRouter } from "@/lib/qstash-verify";
 import prisma from '@npanel/db';
-import { createMetaClient, MetaApiError } from '@nPanel/api/lib/meta-client';
-import { getStoredPageAccessToken } from '@nPanel/api/lib/meta-credentials';
-import { MetaErrorHandler } from '@nPanel/api/lib/meta-error-handler';
-import { getQStashSigningKeys } from '@nPanel/api/lib/qstash/client';
+import { createMetaClient, MetaApiError } from '@npanel/api/lib/meta-client';
+import { getStoredPageAccessToken } from '@npanel/api/lib/meta-credentials';
+import { MetaErrorHandler } from '@npanel/api/lib/meta-error-handler';
+import { getQStashSigningKeys } from '@npanel/api/lib/qstash/client';
 import { randomUUID } from 'node:crypto';
 
 // Use Node.js runtime for worker endpoint (required for QStash signature verification)
-export const runtime = 'nodejs';
 
 /**
  * Worker endpoint for publishing scheduled content calendar posts
@@ -17,7 +15,7 @@ export const runtime = 'nodejs';
  * Environment variables required:
  * - QSTASH_CURRENT_SIGNING_KEY or QSTASH_NEXT_SIGNING_KEY
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
 	try {
 		// Verify QStash signature
 		const signingKeys = getQStashSigningKeys();
@@ -31,7 +29,7 @@ export async function POST(request: NextRequest) {
 		const { postId, pageTokenId } = body;
 
 		if (!postId || !pageTokenId) {
-			return NextResponse.json(
+			return Response.json(
 				{ error: 'Missing postId or pageTokenId in request body' },
 				{ status: 400 }
 			);
@@ -54,7 +52,7 @@ export async function POST(request: NextRequest) {
 		});
 
 		if (!post) {
-			return NextResponse.json(
+			return Response.json(
 				{ error: 'Post not found' },
 				{ status: 404 }
 			);
@@ -62,14 +60,14 @@ export async function POST(request: NextRequest) {
 
 		// Validate post is still scheduled and not published
 		if (post.published) {
-			return NextResponse.json(
+			return Response.json(
 				{ error: 'Post already published', postId: post.id },
 				{ status: 200 } // Return 200 to prevent QStash retries
 			);
 		}
 
 		if (post.status !== 'SCHEDULED') {
-			return NextResponse.json(
+			return Response.json(
 				{ error: `Post status is ${post.status}, not SCHEDULED`, postId: post.id },
 				{ status: 200 } // Return 200 to prevent QStash retries
 			);
@@ -81,7 +79,7 @@ export async function POST(request: NextRequest) {
 		const gracePeriod = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 		if (scheduledTime.getTime() > now.getTime() + gracePeriod) {
-			return NextResponse.json(
+			return Response.json(
 				{ error: 'Scheduled time has not been reached yet', postId: post.id },
 				{ status: 200 } // Return 200 to prevent QStash retries
 			);
@@ -126,7 +124,7 @@ export async function POST(request: NextRequest) {
 				},
 			});
 
-			return NextResponse.json(
+			return Response.json(
 				{ error: errorMessage },
 				{ status: 500 } // Return 500 to trigger QStash retry
 			);
@@ -143,9 +141,9 @@ export async function POST(request: NextRequest) {
 		const videos = post.mediaItems?.filter((item) => item.mediaType === 'VIDEO');
 		const video = videos && videos.length > 0
 			? {
-					file_url: videos[0]!.url,
-					description: videos[0]!.description || undefined,
-				}
+				file_url: videos[0]!.url,
+				description: videos[0]!.description || undefined,
+			}
 			: undefined;
 
 		// Publish to Meta API
@@ -190,7 +188,7 @@ export async function POST(request: NextRequest) {
 				},
 			});
 
-			return NextResponse.json({
+			return Response.json({
 				success: true,
 				postId: post.id,
 				facebookPostId: response.id,
@@ -207,7 +205,7 @@ export async function POST(request: NextRequest) {
 			if (error instanceof MetaApiError) {
 				const errorInfo = MetaErrorHandler.handleError(error);
 				errorMessage = errorInfo?.message || error.message;
-				
+
 				// Don't retry on certain errors (e.g., invalid token, permission denied)
 				if (error.code === 190 || error.code === 200) {
 					shouldRetry = false;
@@ -249,7 +247,7 @@ export async function POST(request: NextRequest) {
 
 			// Return appropriate status code
 			// 500 will trigger QStash retry, 200 will not
-			return NextResponse.json(
+			return Response.json(
 				{
 					error: errorMessage,
 					postId: post.id,
@@ -264,13 +262,13 @@ export async function POST(request: NextRequest) {
 
 		// If signature verification fails, return 401
 		if (error instanceof Error && error.message.includes('signature')) {
-			return NextResponse.json(
+			return Response.json(
 				{ error: 'Invalid QStash signature' },
 				{ status: 401 }
 			);
 		}
 
-		return NextResponse.json(
+		return Response.json(
 			{
 				error: error instanceof Error ? error.message : 'Internal server error',
 			},

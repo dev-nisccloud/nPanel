@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { getTodayEvents } from "@/mock-data/events";
-import Link from "next/link";
+import { Link } from "react-router";
 // import { ThemeToggle } from "@/components/theme-toggle";
 import {
   DropdownMenu,
@@ -165,7 +165,7 @@ export function CalendarHeader() {
               {/* <ThemeToggle /> */}
 
               <Link
-                href="https://github.com/ln-dev7/square-ui/tree/master/templates/calendar"
+                to="https://github.com/ln-dev7/square-ui/tree/master/templates/calendar"
                 target="_blank"
                 rel="noopener noreferrer"
               >

@@ -5,17 +5,10 @@ const FALLBACK_REDIRECT = "/auth/login";
 const META_REFRESH_SECONDS = 5;
 
 /**
- * Root path "/" – Server Component returning a 200 OK HTML document.
- * 
- * WHY THIS APPROACH?
- * 1. Service Worker Bug: If we use Next.js `redirect()` it returns a 307. 
- *    Service Workers fail to handle 30X redirects on `navigate` requests, causing an offline/Not Found error.
- * 2. Next.js 15+ Standalone Bug: If we use `"use client"` here, Next.js throws 
- *    `InvariantError: The client reference manifest for route "/" does not exist.`
- * 
- * SOLUTION:
- * Pure Server Component that returns 200 OK and executes a vanilla inline script 
- * to fetch the redirect target and navigate client-side.
+ * Root path "/" – returns 200 OK HTML with a small inline redirect bootstrap.
+ *
+ * Why: avoid 30x navigation issues with service workers and keep "/" resilient even if
+ * client hydration is delayed.
  */
 export default function RootPage() {
   const inlineScript = `
@@ -31,7 +24,16 @@ export default function RootPage() {
     }, ${META_REFRESH_SECONDS * 1000});
 
     fetch("/api/auth/redirect-target", { cache: "no-store", credentials: "include" })
-      .then(function(res) { return res.json(); })
+      .then(function(res) {
+        var contentType = res.headers.get("content-type") || "";
+        if (!res.ok) throw new Error("redirect-target http " + res.status);
+        if (contentType.indexOf("application/json") === -1) {
+          return res.text().then(function(t) {
+            throw new Error("redirect-target non-json: " + t.slice(0, 200));
+          });
+        }
+        return res.json();
+      })
       .then(function(data) {
         if (!cancelled) {
           cancelled = true;

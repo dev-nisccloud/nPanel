@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@nPanel/ui/cn";
-import { Editor as BaseEditor } from "@nPanel/ui/editor";
+import { cn } from "@npanel/ui/components/cn";
+import { Editor as BaseEditor } from "@npanel/ui/components/editor";
 import type { Editor as EditorInstance, JSONContent } from "@tiptap/react";
 import { useCallback, useState } from "react";
 
@@ -69,3 +69,4 @@ export function Editor({
     />
   );
 }
+

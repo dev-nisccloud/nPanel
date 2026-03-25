@@ -8,7 +8,7 @@ import type {
 	InvoiceItemDetails,
 	PaymentDetails,
 	InvoiceTerms,
-} from "@/app/(main)/agency/invoices/create/types";
+} from "@/routes/agency.invoices.create.types";
 
 const COMPANY_LOGO_URL = "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp";
 
@@ -149,3 +149,4 @@ export function convertInvoiceToPdfData(invoice: InvoiceForPdfData): InvoicePdfD
 		invoiceTerms,
 	};
 }
+

@@ -232,8 +232,8 @@ export const openProviderDomainsRouter = router({
               }
             } catch (authError) {
               throw new TRPCError({
-                code: 'UNAUTHORIZED',
-                message: 'OpenProvider authentication failed. Please check your environment credentials.',
+                code: 'INTERNAL_SERVER_ERROR',
+                message: 'OpenProvider service unavailable. Please check your environment credentials.',
               });
             }
           }
@@ -413,9 +413,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -503,9 +506,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -587,9 +593,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -669,9 +678,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -852,9 +864,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -949,9 +964,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -1028,9 +1046,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -1092,9 +1113,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -1159,9 +1183,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -1228,9 +1255,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -1289,9 +1319,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -1370,9 +1403,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 
@@ -1448,9 +1484,12 @@ export const openProviderDomainsRouter = router({
             ip: process.env.OPENPROVIDER_IP,
           });
         } catch (authError) {
+          const errMsg = authError instanceof Error ? authError.message : String(authError);
+          console.error('[OpenProvider] Authentication failed:', errMsg, authError);
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'OpenProvider authentication failed. Please check your environment credentials.',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `OpenProvider authentication failed: ${errMsg}`,
+            cause: authError,
           });
         }
 

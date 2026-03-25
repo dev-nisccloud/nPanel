@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createOpenproviderClient, OpenproviderApiError } from '@/lib/openprovider-client';
 import type { OpenproviderDomainCheckRequest, OpenproviderDomainCheckResponse } from '@/types/openprovider';
@@ -24,7 +23,7 @@ const DomainCheckRequestSchema = z.object({
   message: "Either 'domains' array or 'name' must be provided"
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     // Parse and validate request body
     const body = await request.json();
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     if (!authResponse.ok) {
       const errorData = await authResponse.json();
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
         }));
       } else {
         // If no specific extensions provided, return error
-        return NextResponse.json(
+        return Response.json(
           {
             success: false,
             error: {
@@ -123,7 +122,7 @@ export async function POST(request: NextRequest) {
       for (const batch of batches) {
         const batchResponse = await client.checkDomains(batch);
         if (batchResponse.code !== 0) {
-          return NextResponse.json(
+          return Response.json(
             {
               success: false,
               error: {
@@ -151,7 +150,7 @@ export async function POST(request: NextRequest) {
       
       // Check if request was successful
       if (checkResponse.code !== 0) {
-        return NextResponse.json(
+        return Response.json(
           {
             success: false,
             error: {
@@ -167,7 +166,7 @@ export async function POST(request: NextRequest) {
     // No pagination needed for specific extensions approach
 
     // Return successful response with full data
-    return NextResponse.json({
+    return Response.json({
       success: true,
       data: checkResponse.data,
       meta: {
@@ -187,7 +186,7 @@ export async function POST(request: NextRequest) {
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -205,7 +204,7 @@ export async function POST(request: NextRequest) {
 
     // Handle Openprovider API errors
     if (error instanceof OpenproviderApiError) {
-      return NextResponse.json(
+      return Response.json(
         {
           success: false,
           error: {
@@ -218,7 +217,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle unexpected errors
-    return NextResponse.json(
+    return Response.json(
       {
         success: false,
         error: {

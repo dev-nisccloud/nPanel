@@ -36,7 +36,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
+import { Link } from "react-router";
 import { useState } from "react";
 import {
   Collapsible,
@@ -56,7 +56,7 @@ export function CalendarSidebar({
       <SidebarHeader className="pb-0">
         <div className="px-2 py-1.5">
           <Link
-            href="https://square.lndev.me"
+            to="https://square.lndev.me"
             target="_blank"
             className="flex items-center justify-between mb-4"
           >
@@ -226,7 +226,7 @@ export function CalendarSidebar({
       <SidebarFooter className="p-4">
         <Button className="w-full" asChild>
           <Link
-            href="https://square.lndev.me"
+            to="https://square.lndev.me"
             target="_blank"
             rel="noopener noreferrer"
           >

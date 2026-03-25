@@ -4,7 +4,7 @@ import * as React from "react";
 import { Download, File, Image as ImageIcon, Video, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Spinner } from "@/components/npanel-ui/spinner";
 
 // MIME type constants
 const IMAGE_MIME_TYPES = [

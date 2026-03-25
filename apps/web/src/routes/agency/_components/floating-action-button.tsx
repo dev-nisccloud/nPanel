@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import { Icons } from "@/components/icons";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTicketsList, useTicketMessages } from "./tickets/use-tickets";
@@ -33,7 +32,7 @@ import { authClient } from "@/lib/auth-client";
 import { MessageAttachment } from "@/components/tickets/message-attachment";
 import { uploadFiles } from "@/hooks/use-uploadthing";
 import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { NotificationSettingsBanner } from "@/components/notification-settings-banner";
 import { useNewMessageDetector } from "@/hooks/use-new-message-detector";
 import { useGlobalNotificationDetector } from "@/hooks/use-global-notification-detector";
@@ -629,7 +628,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
               {/* Header with logo - no sign in button */}
               <div className="flex items-center justify-between px-5 pt-5 pb-4">
                 <div className="flex items-center gap-2">
-                  <Image
+                  <img
                     src="/nisclogooriginal.png"
                     alt="Nisc Cloud"
                     width={100}
@@ -950,7 +949,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                         )}
                       >
                         <div className="h-9 w-9 rounded-full overflow-hidden flex-shrink-0 bg-muted">
-                          <Image src="/zepo.png" alt="Zepo" width={36} height={36} className="h-9 w-9 object-cover" />
+                          <img src="/zepo.png" alt="Zepo" width={36} height={36} className="h-9 w-9 object-cover" />
                         </div>
                         <div className="flex flex-col gap-1 pr-8 min-w-0 flex-1">
                           <div className="flex items-center justify-between">
@@ -1317,7 +1316,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                   <div className="flex items-center gap-2">
-                    <Image
+                    <img
                       src="/nisclogooriginal.png"
                       alt="Nisc Cloud"
                       width={80}
@@ -1403,7 +1402,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                   // Welcome View (No Chat ID or New Chat)
                   <div className="flex flex-col items-center justify-center h-full py-12 text-center animate-in fade-in duration-500">
                     <div className="mb-3 flex justify-center">
-                      <Image
+                      <img
                         src="/zepo.png"
                         alt="Zepo"
                         width={160}
@@ -1430,7 +1429,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                       >
                         {msg.type === "assistant" && (
                           <div className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0 mb-1 bg-muted">
-                            <Image src="/zepo.png" alt="Zepo" width={24} height={24} className="h-6 w-6 object-cover" />
+                            <img src="/zepo.png" alt="Zepo" width={24} height={24} className="h-6 w-6 object-cover" />
                           </div>
                         )}
                         <div
@@ -1448,7 +1447,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                     {isSending && (
                       <div className="flex justify-start gap-2">
                         <div className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0 animate-pulse bg-muted">
-                          <Image src="/zepo.png" alt="Zepo" width={24} height={24} className="h-6 w-6 object-cover" />
+                          <img src="/zepo.png" alt="Zepo" width={24} height={24} className="h-6 w-6 object-cover" />
                         </div>
                         <div className="bg-primary/5 rounded-xl px-4 py-2 border border-primary/10 overflow-hidden relative">
                           <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />

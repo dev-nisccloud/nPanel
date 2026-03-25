@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
-import { useRouter, usePathname } from "next/navigation";
+import { useNavigate, useLocation } from "react-router";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,8 @@ import { getInitials } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
 export function TeamSwitcher() {
-  const router = useRouter();
-  const pathname = usePathname();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { startSwitchTeam } = useSwitchingTeam();
 
   // Extract current team slug from URL (first segment after /)
@@ -49,13 +49,12 @@ export function TeamSwitcher() {
     updateLastAccessed.mutate({ teamId });
     const target = `/${teamSlug}/dashboard` as never;
     setTimeout(() => {
-      router.push(target);
-      router.refresh();
+      navigate(target);
     }, 0);
   };
 
   const handleCreateTeam = () => {
-    router.push("/create-team");
+    navigate("/create-team");
   };
 
   // Loading state

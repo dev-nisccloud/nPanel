@@ -1,6 +1,6 @@
 {
-  "name": "Nisc Cloud - nPanel",
-  "short_name": "nPanel",
+  "name": "Nisc Cloud - npanel",
+  "short_name": "npanel",
   "description": "Nisc Cloud & Digital Marketing Management Platform",
   "start_url": "/",
   "scope": "/",
@@ -22,5 +22,8 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "productivity"]
+  "categories": [
+    "business",
+    "productivity"
+  ]
 }

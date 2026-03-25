@@ -1,19 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
-import { appRouter } from "@nPanel/api";
-import { auth } from "@nPanel/auth";
+import { appRouter } from "@npanel/api";
+import { auth } from "@npanel/auth";
 
 /**
- * Next.js API route wrapper for Plesk health check endpoints
- * 
+ * API route for Plesk health check endpoints.
+ *
  * Usage:
  * - GET /api/plesk-health-check?type=xml - Test XML API
  * - GET /api/plesk-health-check?type=rest - Test REST API
  * - GET /api/plesk-health-check?type=all - Test both APIs
  * - GET /api/plesk-health-check - Test both APIs (default)
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const searchParams = request.nextUrl.searchParams;
+    const searchParams = new URL(request.url).searchParams;
     const type = searchParams.get("type") || "all";
 
     // Create tRPC context
@@ -42,7 +41,7 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    return NextResponse.json({
+    return Response.json({
       success: true,
       type: type.toLowerCase(),
       timestamp: new Date().toISOString(),
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Plesk health check error:", error);
-    return NextResponse.json(
+    return Response.json(
       {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",

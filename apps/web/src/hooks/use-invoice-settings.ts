@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { InvoiceFormValues } from "@/app/(main)/agency/_components/invoice/form-context";
+import type { InvoiceFormValues } from "@/routes/agency/_components/invoice/form-context";
 
 // Mock default invoice settings based on the form schema
 const mockDefaultSettings: Partial<InvoiceFormValues> = {

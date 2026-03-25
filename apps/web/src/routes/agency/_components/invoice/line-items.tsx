@@ -1,9 +1,9 @@
 "use client";
 
 import { formatAmount } from "@/utils/format";
-import { calculateLineItemTotal } from "@nPanel/invoice/calculate";
-import { Button } from "@nPanel/ui/button";
-import { Icons } from "@nPanel/ui/icons";
+import { calculateLineItemTotal } from "@npanel/invoice/calculate";
+import { Button } from "@npanel/ui/components/button";
+import { Icons } from "@npanel/ui/components/icons";
 import { Reorder, useDragControls } from "framer-motion";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import type { InvoiceFormValues } from "./form-context";
@@ -254,3 +254,4 @@ function LineItemRow({
     </Reorder.Item>
   );
 }
+

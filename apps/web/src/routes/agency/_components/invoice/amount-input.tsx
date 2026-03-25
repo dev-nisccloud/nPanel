@@ -1,5 +1,5 @@
-import { cn } from "@nPanel/ui/cn";
-import { CurrencyInput } from "@nPanel/ui/currency-input";
+import { cn } from "@npanel/ui/components/cn";
+import { CurrencyInput } from "@npanel/ui/components/currency-input";
 import { useState } from "react";
 import { useController, useFormContext } from "react-hook-form";
 import type { NumericFormatProps } from "react-number-format";
@@ -52,3 +52,4 @@ export function AmountInput({
     </div>
   );
 }
+

@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import * as React from "react";
+import { useLocation } from "react-router";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +14,7 @@ export function AgencyContentArea({
   contentLayout: string;
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const isImageGenStudioEditor = pathname?.includes(IMAGE_GEN_STUDIO_EDITOR_PATH);
 
   return (
@@ -32,7 +33,7 @@ export function AgencyContentArea({
 }
 
 export function AgencyContentInner({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const isImageGenStudioEditor = pathname?.includes(IMAGE_GEN_STUDIO_EDITOR_PATH);
 
   return (

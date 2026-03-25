@@ -155,7 +155,7 @@ export async function sendPleskRestRequest(
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'User-Agent': 'nPanel-Server/1.0',
+      'User-Agent': 'npanel-Server/1.0',
     };
 
     // SECRET KEY ONLY - No fallback to basic auth

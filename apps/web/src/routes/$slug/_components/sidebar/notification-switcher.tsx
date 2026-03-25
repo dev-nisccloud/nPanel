@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Bell, Check, Mail, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,7 @@ const getPriorityColor = (priority: string) => {
 };
 
 export function NotificationSwitcher() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = React.useState(false);
   const [sseUnseenCount, setSseUnseenCount] = React.useState<number | null>(null);
   const [expandedNotifications, setExpandedNotifications] = React.useState<Set<string>>(new Set());
@@ -362,7 +362,7 @@ export function NotificationSwitcher() {
 
     // Navigate if link exists
     if (notification.link) {
-      router.push(notification.link);
+      navigate(notification.link);
       setIsOpen(false);
     }
   };

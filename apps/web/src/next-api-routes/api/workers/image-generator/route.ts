@@ -1,13 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
+import { verifySignatureAppRouter } from "@/lib/qstash-verify";
 import prisma from "@npanel/db";
-import { getQStashSigningKeys } from "@nPanel/api/lib/qstash/client";
+import { getQStashSigningKeys } from "@npanel/api/lib/qstash/client";
 import Replicate from "replicate";
 import { randomUUID } from "node:crypto";
 
-export const runtime = "nodejs";
 // Worker only enqueues Replicate predictions; should finish quickly.
-export const maxDuration = 60;
 
 interface ImageGeneratorPayload {
 	generationId: string;
@@ -43,7 +40,7 @@ function convertOutputFormat(format: string): string {
  * Worker: enqueue async Replicate predictions for each variation.
  * Completion is handled by a separate Replicate webhook.
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
 	try {
 		const signingKeys = getQStashSigningKeys();
 		await verifySignatureAppRouter(request as any, {
@@ -51,7 +48,7 @@ export async function POST(request: NextRequest) {
 			nextSigningKey: signingKeys.next ?? undefined,
 		});
 	} catch (error) {
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Invalid QStash signature" },
 			{ status: 401 },
 		);
@@ -61,7 +58,7 @@ export async function POST(request: NextRequest) {
 	try {
 		body = await request.json();
 	} catch {
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Invalid JSON body" },
 			{ status: 400 },
 		);
@@ -69,7 +66,7 @@ export async function POST(request: NextRequest) {
 
 	const { generationId } = body as ImageGeneratorPayload;
 	if (!generationId) {
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Missing generationId" },
 			{ status: 400 },
 		);
@@ -83,7 +80,7 @@ export async function POST(request: NextRequest) {
 	});
 
 	if (!generation) {
-		return NextResponse.json(
+		return Response.json(
 			{ error: "Generation not found" },
 			{ status: 404 },
 		);
@@ -91,7 +88,7 @@ export async function POST(request: NextRequest) {
 
 	const terminal: string[] = ["COMPLETED", "FAILED"];
 	if (terminal.includes(generation.status)) {
-		return NextResponse.json(
+		return Response.json(
 			{ message: "Generation already in terminal state", status: generation.status },
 			{ status: 200 },
 		);
@@ -111,12 +108,12 @@ export async function POST(request: NextRequest) {
 		? (generation.referenceImageUrls as string[])
 		: typeof generation.referenceImageUrls === "string"
 			? (() => {
-					try {
-						return JSON.parse(generation.referenceImageUrls as string) as string[];
-					} catch {
-						return [];
-					}
-				})()
+				try {
+					return JSON.parse(generation.referenceImageUrls as string) as string[];
+				} catch {
+					return [];
+				}
+			})()
 			: [];
 
 	const replicateClient = new Replicate({
@@ -144,9 +141,9 @@ export async function POST(request: NextRequest) {
 				},
 				...(webhookUrl
 					? {
-							webhook: webhookUrl,
-							webhook_events_filter: ["completed"],
-					  }
+						webhook: webhookUrl,
+						webhook_events_filter: ["completed"],
+					}
 					: {}),
 			});
 
@@ -180,7 +177,7 @@ export async function POST(request: NextRequest) {
 		}
 	}
 
-	return NextResponse.json({
+	return Response.json({
 		success: true,
 		generationId,
 	});

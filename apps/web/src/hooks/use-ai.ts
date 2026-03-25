@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { trpc } from "@/utils/trpc";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 /**
  * Hook to fetch AI chat history

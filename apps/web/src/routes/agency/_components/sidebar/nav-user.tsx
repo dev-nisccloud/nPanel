@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { EllipsisVertical, CircleUser, Settings2, LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useNavigate } from "react-router";
+
+import { toast } from "@/components/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -23,7 +24,7 @@ import { authClient } from "@/lib/auth-client";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
-  const router = useRouter();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session, isPending } = authClient.useSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -69,7 +70,7 @@ export function NavUser() {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton size="lg" onClick={() => router.push("/auth/login")}>
+          <SidebarMenuButton size="lg" onClick={() => navigate("/auth/login")}>
             <Avatar className="h-8 w-8 rounded-lg">
               <AvatarFallback className="rounded-lg">?</AvatarFallback>
             </Avatar>
@@ -128,12 +129,12 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/agency/my-account")}>
+              <DropdownMenuItem onClick={() => void navigate("/agency/my-account")}>
                 <CircleUser />
                 My Account
               </DropdownMenuItem>
               {isSuperAdmin && (
-                <DropdownMenuItem onClick={() => router.push("/agency/agency-roles")}>
+                <DropdownMenuItem onClick={() => void navigate("/agency/agency-roles")}>
                   <Settings2 />
                   Agency Roles
                 </DropdownMenuItem>

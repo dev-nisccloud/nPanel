@@ -1,5 +1,5 @@
-import { cn } from "@nPanel/ui/cn";
-import { QuantityInput as BaseQuantityInput } from "@nPanel/ui/quantity-input";
+import { cn } from "@npanel/ui/components/cn";
+import { QuantityInput as BaseQuantityInput } from "@npanel/ui/components/quantity-input";
 import { useState } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
@@ -45,3 +45,4 @@ export function QuantityInput({
     </div>
   );
 }
+

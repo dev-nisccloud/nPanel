@@ -127,7 +127,7 @@ export const auth = betterAuth<BetterAuthOptions>({
         }
       }
 
-      if (ctx.path === "/sign-in/email") {
+      if (ctx.path === "/sign-in/email" || ctx.path.endsWith("/sign-in/email")) {
         const email = (ctx.body as { email?: string } | undefined)?.email;
         if (email) {
           const rows = await db
@@ -161,32 +161,90 @@ export const auth = betterAuth<BetterAuthOptions>({
       }
     }),
     after: createAuthMiddleware(async (ctx) => {
-      if (ctx.path === "/get-session" && ctx.context.session?.user) {
-        const rows = await db
-          .select({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            emailVerified: user.emailVerified,
-            image: user.image,
-            role: user.role,
-            status: user.status,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-          })
-          .from(user)
-          .where(eq(user.id, ctx.context.session.user.id))
-          .limit(1);
-        const userWithRole = rows[0];
-        if (userWithRole) {
-          ctx.context.session.user = {
-            ...ctx.context.session.user,
-            ...userWithRole,
-          };
+      const isGetSession =
+        // Better Auth may call with different mount-relative paths depending on setup.
+        // We just need to reliably detect the "get-session" endpoint.
+        ctx.path === "/get-session" ||
+        ctx.path.endsWith("/get-session") ||
+        ctx.path.includes("get-session");
+
+      if (isGetSession) {
+        const sessionUser = ctx.context.session?.user;
+        const cookie = ctx.headers?.get("cookie");
+        if (process.env.NODE_ENV !== "production") {
+          console.log("[auth][get-session]", {
+            path: ctx.path,
+            cookiePresent: Boolean(cookie && cookie.length > 0),
+            cookieLen: cookie?.length ?? 0,
+            sessionUserPresent: Boolean(sessionUser),
+            sessionUserKeys: sessionUser
+              ? Object.keys(sessionUser as Record<string, unknown>)
+              : null,
+            sessionUserId: sessionUser ? (sessionUser as any).id : null,
+            sessionUserStatus: sessionUser ? (sessionUser as any).status : null,
+            sessionUserRole: sessionUser ? (sessionUser as any).role : null,
+            sessionUserAgencyRoleId: sessionUser ? (sessionUser as any).agencyRoleId : null,
+          });
         }
       }
 
-      if (ctx.path === "/sign-in/email") {
+      if (ctx.context.session?.user) {
+        const sessionUser = ctx.context.session.user as any;
+
+        // Always enrich DB-backed status+role when we have a session.
+        // This makes session payload consistent even if Better Auth calls the
+        // session endpoint under different internal mount paths.
+        const rows = await db
+          .select({
+            status: user.status,
+            role: user.role,
+            lastAccessedTeamId: user.lastAccessedTeamId,
+          })
+          .from(user)
+          .where(eq(user.id, sessionUser.id))
+          .limit(1);
+
+        const userWithStatusRole = rows[0];
+        if (userWithStatusRole) {
+          const normalizedRole =
+            typeof userWithStatusRole.role === "string"
+              ? userWithStatusRole.role.trim().toUpperCase()
+              : userWithStatusRole.role;
+
+          if (process.env.NODE_ENV !== "production" && isGetSession) {
+            console.log("[auth][get-session][enrich]", {
+              userId: sessionUser.id,
+              before: {
+                status: sessionUser.status,
+                role: sessionUser.role,
+              },
+              after: {
+                status: userWithStatusRole.status,
+                role: normalizedRole,
+              },
+            });
+          }
+
+          const enrichedUser = {
+            ...sessionUser,
+            status: userWithStatusRole.status,
+            role: normalizedRole,
+            lastAccessedTeamId:
+              userWithStatusRole.lastAccessedTeamId ?? sessionUser.lastAccessedTeamId,
+          };
+
+          ctx.context.session.user = enrichedUser;
+
+          // If this is a get-session call, we MUST return the enriched data in the response.
+          // Better Auth's default handler doesn't know about our manual ctx.context.session.user modification
+          // unless we explicitly return the JSON here in the 'after' hook.
+          if (isGetSession && ctx.data && typeof ctx.data === "object") {
+            (ctx.data as any).user = enrichedUser;
+          }
+        }
+      }
+
+      if (ctx.path === "/sign-in/email" || ctx.path.endsWith("/sign-in/email")) {
         const newSession = ctx.context.newSession;
         if (newSession) {
           const rememberMe =
@@ -313,7 +371,7 @@ export const auth = betterAuth<BetterAuthOptions>({
                 signupHeaders?.get("x-real-ip") ||
                 null;
               const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
-              const message = `Your account was successfully created${ipDisplay}. Welcome to nPanel!`;
+              const message = `Your account was successfully created${ipDisplay}. Welcome to npanel!`;
               const nid = crypto.randomUUID();
               await tx.insert(notification).values({
                 id: nid,
@@ -490,7 +548,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 
       await sendEmail({
         to: u.email,
-        subject: "Reset your password - nPanel",
+        subject: "Reset your password - npanel",
         html,
       });
     },
@@ -580,7 +638,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 
         await sendEmail({
           to: u.email,
-          subject: "Password reset successful - nPanel",
+          subject: "Password reset successful - npanel",
           html,
         });
 
@@ -667,7 +725,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 
       await sendEmail({
         to: u.email,
-        subject: "Welcome to nPanel - Verify your email",
+        subject: "Welcome to npanel - Verify your email",
         html,
       });
     },

@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname } from "next/navigation";
+import { useLocation } from "react-router";
 import { TopProgressBar } from "@/components/top-progress-bar";
 
 type SwitchingTeamContextValue = {
@@ -31,7 +31,7 @@ export function SwitchingTeamProvider({ children }: { children: ReactNode }) {
   const [isSwitchingTeam, setIsSwitchingTeam] = useState(false);
   const startSwitchTeam = useCallback(() => setIsSwitchingTeam(true), []);
   const endSwitchTeam = useCallback(() => setIsSwitchingTeam(false), []);
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const prevPathnameRef = useRef(pathname);
 
   useEffect(() => {
