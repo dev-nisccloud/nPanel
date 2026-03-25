@@ -1,8 +1,15 @@
 import { TRPCError } from "@trpc/server";
+import { eq, inArray, desc, asc } from "drizzle-orm";
 import * as crypto from "node:crypto";
 import { z } from "zod";
 
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { user as userTable } from "@npanel/db/schema/auth";
+import {
+	agencyPermission,
+	agencyRole,
+	agencyRolePermission,
+} from "@npanel/db/schema/agency-rbac";
 import { protectedProcedure, router } from "../trpc";
 import { agencyMenuKeySchema, agencyMenuKeys } from "./agency-rbac/menu-keys";
 
@@ -78,7 +85,7 @@ const roleWithPermissionsOutputSchema = agencyRoleOutputSchema.extend({
 	permissionKeys: z.array(agencyMenuKeySchema),
 });
 
-function requireAgencySuperAdmin(userRole: string | undefined) {
+function requireAgencySuperAdmin(userRole: string | null | undefined) {
 	if (userRole !== "AGENCY_SUPER_ADMIN") {
 		throw new TRPCError({ code: "FORBIDDEN", message: "Only AGENCY_SUPER_ADMIN can perform this action" });
 	}
@@ -99,8 +106,8 @@ export const agencyRbacRouter = router({
 	rolesList: protectedProcedure.output(listRolesOutputSchema).query(async ({ ctx }) => {
 		requireAgencySuperAdmin(ctx.session?.user?.role);
 
-		const roles = await prisma.agencyRole.findMany({
-			orderBy: [{ isSystem: "desc" }, { name: "asc" }],
+		const roles = await db.query.agencyRole.findMany({
+			orderBy: [desc(agencyRole.isSystem), asc(agencyRole.name)],
 		});
 
 		return roles.map((r) => ({
@@ -119,13 +126,13 @@ export const agencyRbacRouter = router({
 		.query(async ({ ctx, input }) => {
 			requireAgencySuperAdmin(ctx.session?.user?.role);
 
-			const role = await prisma.agencyRole.findUnique({
-				where: { id: input.roleId },
-				include: {
+			const role = await db.query.agencyRole.findFirst({
+				where: eq(agencyRole.id, input.roleId),
+				with: {
 					permissions: {
-						select: {
+						with: {
 							permission: {
-								select: { key: true },
+								columns: { key: true },
 							},
 						},
 					},
@@ -158,16 +165,21 @@ export const agencyRbacRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			requireAgencySuperAdmin(ctx.session?.user?.role);
 
-			const role = await prisma.agencyRole.create({
-				data: {
+			const [role] = await db
+				.insert(agencyRole)
+				.values({
 					id: crypto.randomUUID(),
 					name: input.name,
 					description: input.description ?? null,
 					isSystem: false,
 					createdAt: new Date(),
 					updatedAt: new Date(),
-				},
-			});
+				})
+				.returning();
+
+			if (!role) {
+				throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create role" });
+			}
 
 			return {
 				id: role.id,
@@ -185,19 +197,26 @@ export const agencyRbacRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			requireAgencySuperAdmin(ctx.session?.user?.role);
 
-			const existing = await prisma.agencyRole.findUnique({ where: { id: input.roleId } });
+			const existing = await db.query.agencyRole.findFirst({
+				where: eq(agencyRole.id, input.roleId),
+			});
 			if (!existing) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
 			}
 
-			const updated = await prisma.agencyRole.update({
-				where: { id: input.roleId },
-				data: {
+			const [updated] = await db
+				.update(agencyRole)
+				.set({
 					name: input.name ?? undefined,
 					description: input.description ?? undefined,
 					updatedAt: new Date(),
-				},
-			});
+				})
+				.where(eq(agencyRole.id, input.roleId))
+				.returning();
+
+			if (!updated) {
+				throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update role" });
+			}
 
 			return {
 				id: updated.id,
@@ -215,7 +234,9 @@ export const agencyRbacRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			requireAgencySuperAdmin(ctx.session?.user?.role);
 
-			const existing = await prisma.agencyRole.findUnique({ where: { id: input.roleId } });
+			const existing = await db.query.agencyRole.findFirst({
+				where: eq(agencyRole.id, input.roleId),
+			});
 			if (!existing) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
 			}
@@ -223,15 +244,15 @@ export const agencyRbacRouter = router({
 				throw new TRPCError({ code: "FORBIDDEN", message: "System roles cannot be deleted" });
 			}
 
-			await prisma.agencyRole.delete({ where: { id: input.roleId } });
+			await db.delete(agencyRole).where(eq(agencyRole.id, input.roleId));
 			return { success: true };
 		}),
 
 	permissionsList: protectedProcedure.output(listPermissionsOutputSchema).query(async ({ ctx }) => {
 		requireAgencySuperAdmin(ctx.session?.user?.role);
 
-		const perms = await prisma.agencyPermission.findMany({
-			orderBy: [{ key: "asc" }],
+		const perms = await db.query.agencyPermission.findMany({
+			orderBy: [asc(agencyPermission.key)],
 		});
 
 		return perms.map((p) => ({
@@ -249,40 +270,34 @@ export const agencyRbacRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			requireAgencySuperAdmin(ctx.session?.user?.role);
 
-			const existing = await prisma.agencyPermission.findUnique({ where: { key: input.key } });
-			if (existing) {
-				const updated = await prisma.agencyPermission.update({
-					where: { id: existing.id },
-					data: {
-						description: input.description ?? null,
-						updatedAt: new Date(),
-					},
-				});
-				return {
-					id: updated.id,
-					key: updated.key as z.infer<typeof agencyMenuKeySchema>,
-					description: updated.description ?? null,
-					createdAt: updated.createdAt,
-					updatedAt: updated.updatedAt,
-				};
-			}
-
-			const created = await prisma.agencyPermission.create({
-				data: {
+			const [upserted] = await db
+				.insert(agencyPermission)
+				.values({
 					id: crypto.randomUUID(),
 					key: input.key,
 					description: input.description ?? null,
 					createdAt: new Date(),
 					updatedAt: new Date(),
-				},
-			});
+				})
+				.onConflictDoUpdate({
+					target: agencyPermission.key,
+					set: {
+						description: input.description ?? null,
+						updatedAt: new Date(),
+					},
+				})
+				.returning();
+
+			if (!upserted) {
+				throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to upsert permission" });
+			}
 
 			return {
-				id: created.id,
-				key: created.key as z.infer<typeof agencyMenuKeySchema>,
-				description: created.description ?? null,
-				createdAt: created.createdAt,
-				updatedAt: created.updatedAt,
+				id: upserted.id,
+				key: upserted.key as z.infer<typeof agencyMenuKeySchema>,
+				description: upserted.description ?? null,
+				createdAt: upserted.createdAt,
+				updatedAt: upserted.updatedAt,
 			};
 		}),
 
@@ -292,51 +307,57 @@ export const agencyRbacRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			requireAgencySuperAdmin(ctx.session?.user?.role);
 
-			const role = await prisma.agencyRole.findUnique({ where: { id: input.roleId } });
+			const role = await db.query.agencyRole.findFirst({
+				where: eq(agencyRole.id, input.roleId),
+			});
 			if (!role) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
 			}
 
 			const uniqueKeys = Array.from(new Set(input.permissionKeys));
 
-			await prisma.$transaction(async (tx) => {
+			await db.transaction(async (tx) => {
 				// ensure all permissions exist
 				for (const key of uniqueKeys) {
-					await tx.agencyPermission.upsert({
-						where: { key },
-						create: {
+					await tx
+						.insert(agencyPermission)
+						.values({
 							id: crypto.randomUUID(),
 							key,
 							description: null,
 							createdAt: new Date(),
 							updatedAt: new Date(),
-						},
-						update: {
-							updatedAt: new Date(),
-						},
-					});
+						})
+						.onConflictDoUpdate({
+							target: agencyPermission.key,
+							set: {
+								updatedAt: new Date(),
+							},
+						});
 				}
 
 				// clear existing mappings
-				await tx.agencyRolePermission.deleteMany({ where: { roleId: input.roleId } });
+				await tx.delete(agencyRolePermission).where(eq(agencyRolePermission.roleId, input.roleId));
 
 				if (uniqueKeys.length === 0) {
 					return;
 				}
 
-				const perms = await tx.agencyPermission.findMany({
-					where: { key: { in: uniqueKeys } },
-					select: { id: true },
+				const perms = await tx.query.agencyPermission.findMany({
+					where: inArray(agencyPermission.key, uniqueKeys),
+					columns: { id: true },
 				});
 
-				await tx.agencyRolePermission.createMany({
-					data: perms.map((p) => ({
-						id: crypto.randomUUID(),
-						roleId: input.roleId,
-						permissionId: p.id,
-						createdAt: new Date(),
-					})),
-				});
+				if (perms.length > 0) {
+					await tx.insert(agencyRolePermission).values(
+						perms.map((p) => ({
+							id: crypto.randomUUID(),
+							roleId: input.roleId,
+							permissionId: p.id,
+							createdAt: new Date(),
+						})),
+					);
+				}
 			});
 
 			return { success: true };
@@ -348,25 +369,32 @@ export const agencyRbacRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			requireAgencySuperAdmin(ctx.session?.user?.role);
 
-			const user = await prisma.user.findUnique({ where: { id: input.userId } });
-			if (!user) {
+			const userRes = await db.query.user.findFirst({
+				where: eq(userTable.id, input.userId),
+			});
+			if (!userRes) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 			}
-			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(user.role)) {
+			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(userRes.role)) {
 				throw new TRPCError({ code: "FORBIDDEN", message: "This user is not an agency user" });
 			}
 
 			if (input.roleId !== null) {
-				const role = await prisma.agencyRole.findUnique({ where: { id: input.roleId } });
+				const role = await db.query.agencyRole.findFirst({
+					where: eq(agencyRole.id, input.roleId),
+				});
 				if (!role) {
 					throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
 				}
 			}
 
-			await prisma.user.update({
-				where: { id: input.userId },
-				data: { agencyRoleId: input.roleId, updatedAt: new Date() },
-			});
+			await db
+				.update(userTable)
+				.set({
+					agencyRoleId: input.roleId,
+					updatedAt: new Date(),
+				})
+				.where(eq(userTable.id, input.userId));
 
 			return { success: true };
 		}),
@@ -378,18 +406,16 @@ export const agencyRbacRouter = router({
 		}
 
 		// Only relevant for agency users; customers get empty keys by default.
-		const user = await prisma.user.findUnique({
-			where: { id: userId },
-			select: {
-				role: true,
-				agencyRoleId: true,
+		const userRes = await db.query.user.findFirst({
+			where: eq(userTable.id, userId),
+			with: {
 				agencyRole: {
-					select: {
-						id: true,
-						name: true,
+					with: {
 						permissions: {
-							select: {
-								permission: { select: { key: true } },
+							with: {
+								permission: {
+									columns: { key: true },
+								},
 							},
 						},
 					},
@@ -397,22 +423,22 @@ export const agencyRbacRouter = router({
 			},
 		});
 
-		if (!user) {
+		if (!userRes) {
 			throw new TRPCError({ code: "UNAUTHORIZED" });
 		}
 
-		if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(user.role)) {
+		if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(userRes.role)) {
 			return { roleId: null, roleName: null, allowedKeys: [] };
 		}
 
 		const keys =
-			user.agencyRole?.permissions
+			userRes.agencyRole?.permissions
 				.map((p) => p.permission.key)
 				.filter((k): k is z.infer<typeof agencyMenuKeySchema> => agencyMenuKeySchema.safeParse(k).success) ?? [];
 
 		return {
-			roleId: user.agencyRole?.id ?? null,
-			roleName: user.agencyRole?.name ?? null,
+			roleId: userRes.agencyRole?.id ?? null,
+			roleName: userRes.agencyRole?.name ?? null,
 			allowedKeys: Array.from(new Set(keys)),
 		};
 	}),

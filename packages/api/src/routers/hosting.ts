@@ -1,7 +1,18 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, eq, or, sql } from "drizzle-orm";
 import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { userActivityLog } from "@npanel/db/schema/auth-extras";
+import {
+	hostingPlan,
+	hostingSubscription,
+	hostingSubscriptionActivityLog,
+	niscServicePlan,
+} from "@npanel/db/schema/hosting";
+import { niscClientSubscription } from "@npanel/db/schema/products";
+import { serviceSubscription } from "@npanel/db/schema/service-subscriptions";
+import { team } from "@npanel/db/schema/teams";
 import { XMLParser } from 'fast-xml-parser';
 import { sendPleskXmlRequest } from '../lib/plesk/xml-client';
 import * as crypto from "crypto";
@@ -153,15 +164,17 @@ export const hostingRouter = router({
 			} else {
 				// CUID path: resolve NiscClientSubscription (customer) or HostingSubscription (agency/legacy)
 				// 1) Try NiscClientSubscription (customer hosting list uses this id); teamId required for ownership
-				const niscSub = await prisma.niscClientSubscription.findUnique({
-					where: { id: input.subscriptionId },
-					select: {
-						teamId: true,
-						serviceRefs: true,
-						pleskFilterId: true,
-						hostingSubscriptionId: true,
-					},
-				});
+				const niscSubRows = await db
+					.select({
+						teamId: niscClientSubscription.teamId,
+						serviceRefs: niscClientSubscription.serviceRefs,
+						pleskFilterId: niscClientSubscription.pleskFilterId,
+						hostingSubscriptionId: niscClientSubscription.hostingSubscriptionId,
+					})
+					.from(niscClientSubscription)
+					.where(eq(niscClientSubscription.id, input.subscriptionId))
+					.limit(1);
+				const niscSub = niscSubRows[0];
 				if (niscSub) {
 					if (!input.teamId) {
 						throw new TRPCError({
@@ -182,10 +195,12 @@ export const hostingRouter = router({
 					}
 					if (!pleskIdStr && niscSub.pleskFilterId) pleskIdStr = niscSub.pleskFilterId;
 					if (!pleskIdStr && niscSub.hostingSubscriptionId) {
-						const hs = await prisma.hostingSubscription.findUnique({
-							where: { id: niscSub.hostingSubscriptionId },
-							select: { pleskFilterId: true },
-						});
+						const hsRows = await db
+							.select({ pleskFilterId: hostingSubscription.pleskFilterId })
+							.from(hostingSubscription)
+							.where(eq(hostingSubscription.id, niscSub.hostingSubscriptionId))
+							.limit(1);
+						const hs = hsRows[0];
 						if (hs?.pleskFilterId) pleskIdStr = hs.pleskFilterId;
 					}
 					const pleskNum = pleskIdStr ? parseInt(pleskIdStr, 10) : NaN;
@@ -198,25 +213,45 @@ export const hostingRouter = router({
 					subscriptionIdNumber = pleskNum;
 				} else {
 					// 2) Fallback: HostingSubscription id (legacy/agency)
-					const hostingSub = await prisma.hostingSubscription.findUnique({
-						where: { id: input.subscriptionId },
-						select: { pleskFilterId: true, teamId: true },
-					});
+					const hostingSubRows = await db
+						.select({
+							pleskFilterId: hostingSubscription.pleskFilterId,
+							teamId: hostingSubscription.teamId,
+						})
+						.from(hostingSubscription)
+						.where(eq(hostingSubscription.id, input.subscriptionId))
+						.limit(1);
+					const hostingSub = hostingSubRows[0];
 					if (!hostingSub?.pleskFilterId) {
 						throw new TRPCError({
 							code: "NOT_FOUND",
 							message: "Hosting subscription not found",
 						});
 					}
-					const hasAccess = await prisma.serviceSubscription.findFirst({
-						where: {
-							teamId: input.teamId,
-							hostingSubscriptionId: input.subscriptionId,
-							niscServicePlan: { planType: "HOSTING" },
-						},
-						select: { id: true },
-					});
-					if (!hasAccess && hostingSub.teamId !== input.teamId) {
+					if (!input.teamId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Team context is required to view this subscription",
+						});
+					}
+					const teamId = input.teamId;
+					const accessRows = await db
+						.select({ id: serviceSubscription.id })
+						.from(serviceSubscription)
+						.innerJoin(
+							niscServicePlan,
+							eq(serviceSubscription.niscServicePlanId, niscServicePlan.id),
+						)
+						.where(
+							and(
+								eq(serviceSubscription.teamId, teamId),
+								eq(serviceSubscription.hostingSubscriptionId, input.subscriptionId),
+								eq(niscServicePlan.planType, "HOSTING"),
+							),
+						)
+						.limit(1);
+					const hasAccess = accessRows[0];
+					if (!hasAccess && hostingSub.teamId !== teamId) {
 						throw new TRPCError({
 							code: "FORBIDDEN",
 							message: "You do not have access to this resource",
@@ -353,49 +388,65 @@ export const hostingRouter = router({
 				const [hasAccessViaServiceSub, hasAccessViaNiscSub] = await Promise.all([
 					// Legacy: HostingSubscription linked via ServiceSubscription (needs pleskFilterId from Plesk response)
 					pleskFilterId
-						? prisma.serviceSubscription.findFirst({
-								where: {
-									teamId: input.teamId,
-									hostingSubscription: { pleskFilterId },
-									niscServicePlan: { planType: "HOSTING" },
-								},
-								select: { id: true },
-							})
-						: null,
+						? db
+								.select({ id: serviceSubscription.id })
+								.from(serviceSubscription)
+								.innerJoin(
+									niscServicePlan,
+									eq(serviceSubscription.niscServicePlanId, niscServicePlan.id),
+								)
+								.innerJoin(
+									hostingSubscription,
+									eq(serviceSubscription.hostingSubscriptionId, hostingSubscription.id),
+								)
+								.where(
+									and(
+										eq(serviceSubscription.teamId, input.teamId),
+										eq(hostingSubscription.pleskFilterId, pleskFilterId),
+										eq(niscServicePlan.planType, "HOSTING"),
+									),
+								)
+								.limit(1)
+								.then((r) => r[0] ?? null)
+						: Promise.resolve(null),
 					// Customer: NiscClientSubscription for this team with this Plesk id (URL id or pleskFilterId from response)
-					prisma.niscClientSubscription.findFirst({
-						where: {
-							teamId: input.teamId,
-							OR: [
-								...(pleskFilterId ? [{ pleskFilterId }] : []),
-								{ pleskFilterId: input.subscriptionId },
-								{ serviceRefs: { path: ["pleskSubscriptionId"], equals: input.subscriptionId } },
-							],
-						},
-						select: { id: true },
-					}),
+					db
+						.select({ id: niscClientSubscription.id })
+						.from(niscClientSubscription)
+						.where(
+							and(
+								eq(niscClientSubscription.teamId, input.teamId),
+								or(
+									...(pleskFilterId
+										? [eq(niscClientSubscription.pleskFilterId, pleskFilterId)]
+										: []),
+									eq(niscClientSubscription.pleskFilterId, input.subscriptionId),
+									sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${input.subscriptionId}`,
+								),
+							),
+						)
+						.limit(1)
+						.then((r) => r[0] ?? null),
 				]);
 
 				const hasAccess = !!hasAccessViaServiceSub || !!hasAccessViaNiscSub;
 
 				if (!hasAccess) {
 					// Log unauthorized access attempt (fire and forget to not affect performance)
-					prisma.userActivityLog.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: session.user.id,
-							action: "UNAUTHORIZED_RESOURCE_ACCESS",
-							description: `Attempted to access hosting subscription ${input.subscriptionId} that does not belong to team ${input.teamId}`,
-							metadata: {
-								resourceType: "hosting_subscription",
-								resourceId: input.subscriptionId,
-								teamId: input.teamId,
-								pleskFilterId: pleskFilterId,
-							},
-							ipAddress: null, // Headers not available in tRPC context
-							userAgent: null, // Headers not available in tRPC context
-							createdAt: new Date(),
+					db.insert(userActivityLog).values({
+						id: crypto.randomUUID(),
+						userId: session.user.id,
+						action: "UNAUTHORIZED_RESOURCE_ACCESS",
+						description: `Attempted to access hosting subscription ${input.subscriptionId} that does not belong to team ${input.teamId}`,
+						metadata: {
+							resourceType: "hosting_subscription",
+							resourceId: input.subscriptionId,
+							teamId: input.teamId,
+							pleskFilterId: pleskFilterId,
 						},
+						ipAddress: null, // Headers not available in tRPC context
+						userAgent: null, // Headers not available in tRPC context
+						createdAt: new Date(),
 					}).catch(() => {
 						// Silently fail logging to not affect performance
 					});
@@ -409,24 +460,45 @@ export const hostingRouter = router({
 
 			// Now fetch subscription link and service subscription if filter ID exists
 			let subscriptionLink = null;
-			let serviceSubscription = null;
+			let linkedServiceSubscription: z.infer<typeof serviceSubscriptionOutputSchema> | null =
+				null;
 
 			if (pleskFilterId && pleskFilterId !== "") {
-				const hostingSub = await prisma.hostingSubscription.findUnique({
-					where: { pleskFilterId },
-					select: {
-						id: true,
-						teamId: true,
-						hostingPlanId: true,
-						primaryDomain: true,
-						billingCycle: true,
-						nextRenewalDate: true,
-						expiryDate: true,
-						notes: true,
-						autoRenew: true,
-						hostingType: true,
-					},
-				}).catch(() => null);
+				let hostingSub:
+					| {
+							id: string;
+							teamId: string | null;
+							hostingPlanId: string;
+							primaryDomain: string | null;
+							billingCycle: string;
+							nextRenewalDate: Date | null;
+							expiryDate: Date | null;
+							notes: string | null;
+							autoRenew: boolean;
+							hostingType: string;
+					  }
+					| undefined;
+				try {
+					const rows = await db
+						.select({
+							id: hostingSubscription.id,
+							teamId: hostingSubscription.teamId,
+							hostingPlanId: hostingSubscription.hostingPlanId,
+							primaryDomain: hostingSubscription.primaryDomain,
+							billingCycle: hostingSubscription.billingCycle,
+							nextRenewalDate: hostingSubscription.nextRenewalDate,
+							expiryDate: hostingSubscription.expiryDate,
+							notes: hostingSubscription.notes,
+							autoRenew: hostingSubscription.autoRenew,
+							hostingType: hostingSubscription.hostingType,
+						})
+						.from(hostingSubscription)
+						.where(eq(hostingSubscription.pleskFilterId, pleskFilterId))
+						.limit(1);
+					hostingSub = rows[0];
+				} catch {
+					hostingSub = undefined;
+				}
 
 				if (hostingSub) {
 					subscriptionLink = {
@@ -444,25 +516,43 @@ export const hostingRouter = router({
 
 					// Fetch ServiceSubscription linked to this HostingSubscription
 					// Accept all hosting subtypes
-					const serviceSub = await prisma.serviceSubscription.findFirst({
-						where: {
-							hostingSubscriptionId: hostingSub.id,
-							niscServicePlan: {
-								planType: "HOSTING",
-							},
-						},
-						select: {
-							id: true,
-							subscriptionDate: true,
-							billingCycle: true,
-							nextRenewalDate: true,
-							status: true,
-							autoRenew: true,
-						},
-					}).catch(() => null);
+					let serviceSub: {
+						id: string;
+						subscriptionDate: Date | null;
+						billingCycle: string;
+						nextRenewalDate: Date | null;
+						status: string;
+						autoRenew: boolean;
+					} | null = null;
+					try {
+						const rows = await db
+							.select({
+								id: serviceSubscription.id,
+								subscriptionDate: serviceSubscription.subscriptionDate,
+								billingCycle: serviceSubscription.billingCycle,
+								nextRenewalDate: serviceSubscription.nextRenewalDate,
+								status: serviceSubscription.status,
+								autoRenew: serviceSubscription.autoRenew,
+							})
+							.from(serviceSubscription)
+							.innerJoin(
+								niscServicePlan,
+								eq(serviceSubscription.niscServicePlanId, niscServicePlan.id),
+							)
+							.where(
+								and(
+									eq(serviceSubscription.hostingSubscriptionId, hostingSub.id),
+									eq(niscServicePlan.planType, "HOSTING"),
+								),
+							)
+							.limit(1);
+						serviceSub = rows[0] ?? null;
+					} catch {
+						serviceSub = null;
+					}
 
 					if (serviceSub) {
-						serviceSubscription = {
+						linkedServiceSubscription = {
 							id: serviceSub.id,
 							subscriptionDate: serviceSub.subscriptionDate?.toISOString() ?? null,
 							billingCycle: serviceSub.billingCycle as "YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM",
@@ -477,7 +567,7 @@ export const hostingRouter = router({
 			return {
 				hosting: pleskData,
 				subscription: subscriptionLink,
-				serviceSubscription: serviceSubscription,
+				serviceSubscription: linkedServiceSubscription,
 			};
 		}),
 
@@ -494,21 +584,23 @@ export const hostingRouter = router({
 				});
 			}
 
-			const subscription = await prisma.hostingSubscription.findUnique({
-				where: { pleskFilterId: input.pleskFilterId },
-				select: {
-					id: true,
-					teamId: true,
-					hostingPlanId: true,
-					primaryDomain: true,
-					billingCycle: true,
-					nextRenewalDate: true,
-					expiryDate: true,
-					notes: true,
-					autoRenew: true,
-					hostingType: true,
-				},
-			});
+			const subRows = await db
+				.select({
+					id: hostingSubscription.id,
+					teamId: hostingSubscription.teamId,
+					hostingPlanId: hostingSubscription.hostingPlanId,
+					primaryDomain: hostingSubscription.primaryDomain,
+					billingCycle: hostingSubscription.billingCycle,
+					nextRenewalDate: hostingSubscription.nextRenewalDate,
+					expiryDate: hostingSubscription.expiryDate,
+					notes: hostingSubscription.notes,
+					autoRenew: hostingSubscription.autoRenew,
+					hostingType: hostingSubscription.hostingType,
+				})
+				.from(hostingSubscription)
+				.where(eq(hostingSubscription.pleskFilterId, input.pleskFilterId))
+				.limit(1);
+			const subscription = subRows[0];
 
 			if (!subscription) {
 				return null;
@@ -596,11 +688,14 @@ export const hostingRouter = router({
 			const userId = session.user.id;
 
 			// Verify team exists
-			const team = await prisma.team.findUnique({
-				where: { id: input.teamId },
-			});
+			const teamRows = await db
+				.select()
+				.from(team)
+				.where(eq(team.id, input.teamId))
+				.limit(1);
+			const teamRow = teamRows[0];
 
-			if (!team) {
+			if (!teamRow) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Team not found",
@@ -608,9 +703,12 @@ export const hostingRouter = router({
 			}
 
 			// Check if subscription with this pleskFilterId already exists
-			const existingSubscription = await prisma.hostingSubscription.findUnique({
-				where: { pleskFilterId: input.pleskFilterId },
-			});
+			const existingRows = await db
+				.select({ id: hostingSubscription.id })
+				.from(hostingSubscription)
+				.where(eq(hostingSubscription.pleskFilterId, input.pleskFilterId))
+				.limit(1);
+			const existingSubscription = existingRows[0];
 
 			if (existingSubscription) {
 				throw new TRPCError({
@@ -624,9 +722,12 @@ export const hostingRouter = router({
 
 			if (input.hostingPlanId) {
 				// Verify the provided plan exists and is active
-				const providedPlan = await prisma.hostingPlan.findUnique({
-					where: { id: input.hostingPlanId },
-				});
+				const planRows = await db
+					.select()
+					.from(hostingPlan)
+					.where(eq(hostingPlan.id, input.hostingPlanId))
+					.limit(1);
+				const providedPlan = planRows[0];
 
 				if (!providedPlan) {
 					throw new TRPCError({
@@ -645,22 +746,32 @@ export const hostingRouter = router({
 				hostingPlanId = providedPlan.id;
 			} else {
 				// Try to find a default plan matching the hosting type
-				const defaultPlan = await prisma.hostingPlan.findFirst({
-					where: {
-						isDefault: true,
-						isActive: true,
-						hostingType: input.hostingType || "WEB_HOSTING",
-					},
-				});
+				const defaultPlanRows = await db
+					.select()
+					.from(hostingPlan)
+					.where(
+						and(
+							eq(hostingPlan.isDefault, true),
+							eq(hostingPlan.isActive, true),
+							eq(hostingPlan.hostingType, input.hostingType || "WEB_HOSTING"),
+						),
+					)
+					.limit(1);
+				const defaultPlan = defaultPlanRows[0];
 
 				if (!defaultPlan) {
 					// If no default plan, get any active plan of the same type
-					const anyPlan = await prisma.hostingPlan.findFirst({
-						where: {
-							isActive: true,
-							hostingType: input.hostingType || "WEB_HOSTING",
-						},
-					});
+					const anyPlanRows = await db
+						.select()
+						.from(hostingPlan)
+						.where(
+							and(
+								eq(hostingPlan.isActive, true),
+								eq(hostingPlan.hostingType, input.hostingType || "WEB_HOSTING"),
+							),
+						)
+						.limit(1);
+					const anyPlan = anyPlanRows[0];
 
 					if (!anyPlan) {
 						throw new TRPCError({
@@ -676,8 +787,9 @@ export const hostingRouter = router({
 			}
 
 			// Create the subscription record
-			const subscription = await prisma.hostingSubscription.create({
-				data: {
+			const insertedSub = await db
+				.insert(hostingSubscription)
+				.values({
 					id: crypto.randomUUID(),
 					hostingPlanId,
 					teamId: input.teamId,
@@ -685,34 +797,39 @@ export const hostingRouter = router({
 					pleskFilterId: input.pleskFilterId,
 					hostingType: input.hostingType || "WEB_HOSTING",
 					billingCycle: input.billingCycle || "MONTHLY",
-					nextRenewalDate: input.nextRenewalDate,
-					expiryDate: input.expiryDate,
-					primaryDomain: input.primaryDomain,
-					notes: input.notes,
+					nextRenewalDate: input.nextRenewalDate ?? null,
+					expiryDate: input.expiryDate ?? null,
+					primaryDomain: input.primaryDomain ?? null,
+					notes: input.notes ?? null,
 					autoRenew: input.autoRenew,
 					status: "ACTIVE", // Default status for linked subscriptions
 					provisioningMethod: "MANUAL", // Since we're manually linking
 					operation: "PROVISION",
 					createdAt: new Date(),
 					updatedAt: new Date(),
-				},
-			});
+				})
+				.returning();
+			const subscription = insertedSub[0];
+			if (!subscription) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create hosting subscription",
+				});
+			}
 
 			// Log activity
-			await prisma.hostingSubscriptionActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					hostingSubscriptionId: subscription.id,
-					userId: userId,
-					action: "LINK_TO_TEAM",
-					description: `Linked subscription to team: ${team.name}`,
-					metadata: {
-						teamId: team.id,
-						teamName: team.name,
-						pleskFilterId: input.pleskFilterId,
-					},
-					createdAt: new Date(),
+			await db.insert(hostingSubscriptionActivityLog).values({
+				id: crypto.randomUUID(),
+				hostingSubscriptionId: subscription.id,
+				userId: userId,
+				action: "LINK_TO_TEAM",
+				description: `Linked subscription to team: ${teamRow.name}`,
+				metadata: {
+					teamId: teamRow.id,
+					teamName: teamRow.name,
+					pleskFilterId: input.pleskFilterId,
 				},
+				createdAt: new Date(),
 			});
 
 			return {
@@ -736,10 +853,10 @@ export const hostingRouter = router({
 
 			const userId = session.user.id;
 
-			// Find the subscription
-			const subscription = await prisma.hostingSubscription.findUnique({
-				where: { id: input.subscriptionId },
-				include: {
+			// Find the subscription (with team name for audit logs)
+			const subscription = await db.query.hostingSubscription.findFirst({
+				where: eq(hostingSubscription.id, input.subscriptionId),
+				with: {
 					team: true,
 				},
 			});
@@ -758,73 +875,65 @@ export const hostingRouter = router({
 				});
 			}
 
-		const teamName = subscription.team?.name || "Unknown Team";
+		const teamName = subscription.team?.name ?? "Unknown Team";
 		const now = new Date();
 
 		// Log activity - UserActivityLog (before deletion)
-		await prisma.userActivityLog.create({
-			data: {
-				id: crypto.randomUUID(),
-				userId: userId,
-				action: "HOSTING_SUBSCRIPTION_DELETION_STARTED",
-				description: `Starting deletion of hosting subscription ${subscription.pleskName || subscription.id}`,
-				metadata: {
-					subscriptionId: subscription.id,
-					teamId: subscription.teamId,
-					teamName: teamName,
-					pleskFilterId: subscription.pleskFilterId,
-					pleskServiceId: subscription.pleskServiceId,
-					status: subscription.status,
-				},
-				createdAt: now,
+		await db.insert(userActivityLog).values({
+			id: crypto.randomUUID(),
+			userId: userId,
+			action: "HOSTING_SUBSCRIPTION_DELETION_STARTED",
+			description: `Starting deletion of hosting subscription ${subscription.pleskName || subscription.id}`,
+			metadata: {
+				subscriptionId: subscription.id,
+				teamId: subscription.teamId,
+				teamName: teamName,
+				pleskFilterId: subscription.pleskFilterId,
+				pleskServiceId: subscription.pleskServiceId,
+				status: subscription.status,
 			},
+			createdAt: now,
 		});
 
 		// Log activity - HostingSubscriptionActivityLog (before deletion so subscription ID exists)
-		await prisma.hostingSubscriptionActivityLog.create({
-			data: {
-				id: crypto.randomUUID(),
-				hostingSubscriptionId: subscription.id,
-				userId: userId,
-				action: "TERMINATE",
-				description: `Subscription terminated and unlinked from team: ${teamName}. Subscription deleted.`,
-				metadata: {
-					previousTeamId: subscription.teamId,
-					previousTeamName: teamName,
-					pleskFilterId: subscription.pleskFilterId,
-					pleskServiceId: subscription.pleskServiceId,
-					pleskName: subscription.pleskName,
-					status: subscription.status,
-					deleted: true,
-					reason: "unlink_from_team",
-				},
-				createdAt: now,
+		await db.insert(hostingSubscriptionActivityLog).values({
+			id: crypto.randomUUID(),
+			hostingSubscriptionId: subscription.id,
+			userId: userId,
+			action: "TERMINATE",
+			description: `Subscription terminated and unlinked from team: ${teamName}. Subscription deleted.`,
+			metadata: {
+				previousTeamId: subscription.teamId,
+				previousTeamName: teamName,
+				pleskFilterId: subscription.pleskFilterId,
+				pleskServiceId: subscription.pleskServiceId,
+				pleskName: subscription.pleskName,
+				status: subscription.status,
+				deleted: true,
+				reason: "unlink_from_team",
 			},
+			createdAt: now,
 		});
 
 		// Delete the subscription entirely so it can be linked to another team later
-		await prisma.hostingSubscription.delete({
-			where: { id: input.subscriptionId },
-		});
+		await db.delete(hostingSubscription).where(eq(hostingSubscription.id, input.subscriptionId));
 
 		// Log activity - UserActivityLog (after deletion)
-		await prisma.userActivityLog.create({
-			data: {
-				id: crypto.randomUUID(),
-				userId: userId,
-				action: "HOSTING_SUBSCRIPTION_DELETED",
-				description: `Hosting subscription ${subscription.pleskName || subscription.id} deleted successfully`,
-				metadata: {
-					subscriptionId: subscription.id,
-					teamId: subscription.teamId,
-					teamName: teamName,
-					pleskFilterId: subscription.pleskFilterId,
-					pleskServiceId: subscription.pleskServiceId,
-					status: subscription.status,
-					deletedBy: userId,
-				},
-				createdAt: now,
+		await db.insert(userActivityLog).values({
+			id: crypto.randomUUID(),
+			userId: userId,
+			action: "HOSTING_SUBSCRIPTION_DELETED",
+			description: `Hosting subscription ${subscription.pleskName || subscription.id} deleted successfully`,
+			metadata: {
+				subscriptionId: subscription.id,
+				teamId: subscription.teamId,
+				teamName: teamName,
+				pleskFilterId: subscription.pleskFilterId,
+				pleskServiceId: subscription.pleskServiceId,
+				status: subscription.status,
+				deletedBy: userId,
 			},
+			createdAt: now,
 		});
 
 		return {
@@ -848,9 +957,12 @@ export const hostingRouter = router({
 			const userId = session.user.id;
 
 			// Find the subscription
-			const existingSubscription = await prisma.hostingSubscription.findUnique({
-				where: { id: input.subscriptionId },
-			});
+			const existingRows = await db
+				.select()
+				.from(hostingSubscription)
+				.where(eq(hostingSubscription.id, input.subscriptionId))
+				.limit(1);
+			const existingSubscription = existingRows[0];
 
 			if (!existingSubscription) {
 				throw new TRPCError({
@@ -866,9 +978,12 @@ export const hostingRouter = router({
 
 			if (input.hostingPlanId !== undefined) {
 				// Verify the plan exists and is active
-				const plan = await prisma.hostingPlan.findUnique({
-					where: { id: input.hostingPlanId },
-				});
+				const planRows = await db
+					.select()
+					.from(hostingPlan)
+					.where(eq(hostingPlan.id, input.hostingPlanId))
+					.limit(1);
+				const plan = planRows[0];
 
 				if (!plan) {
 					throw new TRPCError({
@@ -924,44 +1039,48 @@ export const hostingRouter = router({
 			});
 
 			// Update the subscription
-			const updatedSubscription = await prisma.hostingSubscription.update({
-				where: { id: input.subscriptionId },
-				data: updateData,
-			});
+			const updatedRows = await db
+				.update(hostingSubscription)
+				.set(updateData)
+				.where(eq(hostingSubscription.id, input.subscriptionId))
+				.returning();
+			const updatedSubscription = updatedRows[0];
+			if (!updatedSubscription) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to update hosting subscription",
+				});
+			}
 
 			// Log activity - UserActivityLog
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: userId,
-					action: "HOSTING_SUBSCRIPTION_UPDATED",
-					description: `Updated hosting subscription ${updatedSubscription.pleskName || updatedSubscription.id}`,
-					metadata: {
-						subscriptionId: updatedSubscription.id,
-						teamId: updatedSubscription.teamId,
-						updatedFields,
-						changes: changesMetadata,
-					},
-					createdAt: new Date(),
+			await db.insert(userActivityLog).values({
+				id: crypto.randomUUID(),
+				userId: userId,
+				action: "HOSTING_SUBSCRIPTION_UPDATED",
+				description: `Updated hosting subscription ${updatedSubscription.pleskName || updatedSubscription.id}`,
+				metadata: {
+					subscriptionId: updatedSubscription.id,
+					teamId: updatedSubscription.teamId,
+					updatedFields,
+					changes: changesMetadata,
 				},
+				createdAt: new Date(),
 			});
 
 			// Log activity - HostingSubscriptionActivityLog (subscription-specific audit trail)
-			await prisma.hostingSubscriptionActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					hostingSubscriptionId: updatedSubscription.id,
-					userId: userId,
-					action: "UPDATE",
-					description: `Subscription updated: ${updatedFields.join(", ")}`,
-					metadata: {
-						updatedFields,
-						changes: changesMetadata,
-						previousStatus: existingSubscription.status,
-						newStatus: updatedSubscription.status,
-					},
-					createdAt: new Date(),
+			await db.insert(hostingSubscriptionActivityLog).values({
+				id: crypto.randomUUID(),
+				hostingSubscriptionId: updatedSubscription.id,
+				userId: userId,
+				action: "UPDATE",
+				description: `Subscription updated: ${updatedFields.join(", ")}`,
+				metadata: {
+					updatedFields,
+					changes: changesMetadata,
+					previousStatus: existingSubscription.status,
+					newStatus: updatedSubscription.status,
 				},
+				createdAt: new Date(),
 			});
 
 			return {

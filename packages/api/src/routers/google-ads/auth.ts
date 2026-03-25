@@ -1,9 +1,14 @@
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../../trpc';
-import prisma from '@nPanel/db';
+import { desc, eq } from 'drizzle-orm';
 import { request } from 'undici';
-import { randomUUID } from 'node:crypto';
+import { router, protectedProcedure } from '../../trpc';
+import { db } from '@npanel/db';
+import {
+	googleAdsIntegration,
+	googleAdsIntegrationActivityLog,
+} from '@npanel/db/schema/google-ads';
 import {
 	getGoogleAdsClientId,
 	getGoogleAdsClientSecret,
@@ -16,7 +21,7 @@ import { GoogleAdsErrorHandler } from '../../lib/google-ads-error-handler';
 // ZOD SCHEMAS - Independent from database schema
 // ============================================================================
 
-// Constants for Prisma enum values
+// Integration status values (stored as text in DB)
 const ACTIVE_STATUS = 'ACTIVE' as const;
 const REVOKED_STATUS = 'REVOKED' as const;
 
@@ -193,22 +198,22 @@ export const googleAdsAuthRouter = router({
 				const expiresAt = new Date();
 				expiresAt.setSeconds(expiresAt.getSeconds() + tokenResponse.expires_in);
 
-				// Check if integration already exists for this user
-				const existingIntegration = await prisma.googleAdsIntegration.findFirst({
-					where: {
-						userId,
-					},
-				});
+				// Check if integration already exists for this user (most recent)
+				const [existingIntegration] = await db
+					.select()
+					.from(googleAdsIntegration)
+					.where(eq(googleAdsIntegration.userId, userId))
+					.orderBy(desc(googleAdsIntegration.createdAt))
+					.limit(1);
 
 				let integrationId: string;
 				const isUpdate = !!existingIntegration;
 				const now = new Date();
 
 				if (existingIntegration) {
-					// Update existing integration
-					await prisma.googleAdsIntegration.update({
-						where: { id: existingIntegration.id },
-						data: {
+					await db
+						.update(googleAdsIntegration)
+						.set({
 							refreshToken: tokenResponse.refresh_token,
 							accessToken: tokenResponse.access_token,
 							accessTokenExpiresAt: expiresAt,
@@ -217,46 +222,42 @@ export const googleAdsAuthRouter = router({
 							status: ACTIVE_STATUS,
 							lastTokenRefreshAt: now,
 							updatedAt: now,
-						},
-					});
+						})
+						.where(eq(googleAdsIntegration.id, existingIntegration.id));
 					integrationId = existingIntegration.id;
 				} else {
-					// Create new integration
-					const newIntegration = await prisma.googleAdsIntegration.create({
-						data: {
-							id: `google_ads_${Date.now()}_${randomUUID().substring(0, 8)}`,
-							userId,
-							refreshToken: tokenResponse.refresh_token,
-							accessToken: tokenResponse.access_token,
-							accessTokenExpiresAt: expiresAt,
-							scope: tokenResponse.scope,
-							tokenType: tokenResponse.token_type,
-							status: ACTIVE_STATUS,
-							createdAt: now,
-							updatedAt: now,
-						},
+					integrationId = `google_ads_${Date.now()}_${randomUUID().substring(0, 8)}`;
+					await db.insert(googleAdsIntegration).values({
+						id: integrationId,
+						userId,
+						refreshToken: tokenResponse.refresh_token,
+						accessToken: tokenResponse.access_token,
+						accessTokenExpiresAt: expiresAt,
+						scope: tokenResponse.scope,
+						tokenType: tokenResponse.token_type,
+						status: ACTIVE_STATUS,
+						createdAt: now,
+						updatedAt: now,
 					});
-					integrationId = newIntegration.id;
 				}
 
-				// Log activity
-				await prisma.googleAdsIntegrationActivityLog.create({
-					data: {
-						id: randomUUID(),
-						integrationId,
-						userId,
-						action: isUpdate ? 'TOKEN_REFRESH' : 'CREATE',
-						description: isUpdate
-							? 'Google Ads integration token refreshed'
-							: 'Google Ads integration created and connected',
-						metadata: {
-							expiresAt: expiresAt.toISOString(),
-							scope: tokenResponse.scope,
-							tokenType: tokenResponse.token_type,
-							expiresIn: tokenResponse.expires_in,
-						},
-						createdAt: now,
+				await db.insert(googleAdsIntegrationActivityLog).values({
+					id: randomUUID(),
+					integrationId,
+					userId,
+					action: isUpdate ? 'TOKEN_REFRESH' : 'CREATE',
+					description: isUpdate
+						? 'Google Ads integration token refreshed'
+						: 'Google Ads integration created and connected',
+					metadata: {
+						expiresAt: expiresAt.toISOString(),
+						scope: tokenResponse.scope,
+						tokenType: tokenResponse.token_type,
+						expiresIn: tokenResponse.expires_in,
 					},
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
 
 				return {
@@ -312,14 +313,12 @@ export const googleAdsAuthRouter = router({
 				});
 			}
 
-			const integration = await prisma.googleAdsIntegration.findFirst({
-				where: {
-					userId,
-				},
-				orderBy: {
-					createdAt: 'desc',
-				},
-			});
+			const [integration] = await db
+				.select()
+				.from(googleAdsIntegration)
+				.where(eq(googleAdsIntegration.userId, userId))
+				.orderBy(desc(googleAdsIntegration.createdAt))
+				.limit(1);
 
 			if (!integration) {
 				return {
@@ -350,30 +349,29 @@ export const googleAdsAuthRouter = router({
 					const expiresAt = new Date();
 					expiresAt.setSeconds(expiresAt.getSeconds() + tokenResponse.expires_in);
 
-					await prisma.googleAdsIntegration.update({
-						where: { id: integration.id },
-						data: {
+					await db
+						.update(googleAdsIntegration)
+						.set({
 							accessToken: tokenResponse.access_token,
 							accessTokenExpiresAt: expiresAt,
 							lastTokenRefreshAt: new Date(),
 							updatedAt: new Date(),
-						},
-					});
+						})
+						.where(eq(googleAdsIntegration.id, integration.id));
 
-					// Log activity
-					await prisma.googleAdsIntegrationActivityLog.create({
-						data: {
-							id: randomUUID(),
-							integrationId: integration.id,
-							userId,
-							action: 'TOKEN_REFRESH',
-							description: 'Access token automatically refreshed',
-							metadata: {
-								expiresAt: expiresAt.toISOString(),
-								expiresIn: tokenResponse.expires_in,
-							},
-							createdAt: new Date(),
+					await db.insert(googleAdsIntegrationActivityLog).values({
+						id: randomUUID(),
+						integrationId: integration.id,
+						userId,
+						action: 'TOKEN_REFRESH',
+						description: 'Access token automatically refreshed',
+						metadata: {
+							expiresAt: expiresAt.toISOString(),
+							expiresIn: tokenResponse.expires_in,
 						},
+						ipAddress: null,
+						userAgent: null,
+						createdAt: new Date(),
 					});
 
 					// Return updated integration
@@ -402,13 +400,13 @@ export const googleAdsAuthRouter = router({
 					const errorInfo = GoogleAdsErrorHandler.handleError(refreshError);
 					if (errorInfo.type === 'refresh-token') {
 						// Update status to EXPIRED
-						await prisma.googleAdsIntegration.update({
-							where: { id: integration.id },
-							data: {
+						await db
+							.update(googleAdsIntegration)
+							.set({
 								status: 'EXPIRED',
 								updatedAt: new Date(),
-							},
-						});
+							})
+							.where(eq(googleAdsIntegration.id, integration.id));
 					}
 				}
 			}
@@ -464,11 +462,12 @@ export const googleAdsAuthRouter = router({
 				});
 			}
 
-			const integration = await prisma.googleAdsIntegration.findFirst({
-				where: {
-					userId,
-				},
-			});
+			const [integration] = await db
+				.select()
+				.from(googleAdsIntegration)
+				.where(eq(googleAdsIntegration.userId, userId))
+				.orderBy(desc(googleAdsIntegration.createdAt))
+				.limit(1);
 
 			if (!integration) {
 				throw new TRPCError({
@@ -482,28 +481,26 @@ export const googleAdsAuthRouter = router({
 				await revokeTokens(integration.refreshToken);
 			}
 
-			// Update status to REVOKED
-			await prisma.googleAdsIntegration.update({
-				where: { id: integration.id },
-				data: {
+			await db
+				.update(googleAdsIntegration)
+				.set({
 					status: REVOKED_STATUS,
 					updatedAt: new Date(),
-				},
-			});
+				})
+				.where(eq(googleAdsIntegration.id, integration.id));
 
-			// Log activity
-			await prisma.googleAdsIntegrationActivityLog.create({
-				data: {
-					id: randomUUID(),
-					integrationId: integration.id,
-					userId,
-					action: 'REVOKE',
-					description: 'Google Ads integration revoked and disconnected',
-					metadata: {
-						revokedAt: new Date().toISOString(),
-					},
-					createdAt: new Date(),
+			await db.insert(googleAdsIntegrationActivityLog).values({
+				id: randomUUID(),
+				integrationId: integration.id,
+				userId,
+				action: 'REVOKE',
+				description: 'Google Ads integration revoked and disconnected',
+				metadata: {
+					revokedAt: new Date().toISOString(),
 				},
+				ipAddress: null,
+				userAgent: null,
+				createdAt: new Date(),
 			});
 
 			return {

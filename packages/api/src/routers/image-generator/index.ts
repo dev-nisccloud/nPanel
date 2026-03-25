@@ -1,8 +1,15 @@
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../../trpc";
-import Replicate from "replicate";
-import prisma, { Prisma } from "@nPanel/db";
+import { and, count, desc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import Replicate from "replicate";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import {
+  imageGeneratorGeneration,
+  imageGeneratorGenerationActivityLog,
+  imageGeneratorVariation,
+} from "@npanel/db/schema/image-generator";
+import { protectedProcedure, router } from "../../trpc";
 import { z } from "zod";
 import {
   generateImageSchema,
@@ -201,13 +208,14 @@ export const imageGeneratorRouter = router({
 
       let effectiveVariations = input.variations;
 
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { role: true },
+      const userRow = await db.query.user.findFirst({
+        where: eq(user.id, userId),
+        columns: { role: true },
       });
       const isCustomer =
-        user?.role === "CUSTOMER" ||
-        (Array.isArray(user?.role) && (user?.role as string[]).includes("CUSTOMER"));
+        userRow?.role === "CUSTOMER" ||
+        (Array.isArray(userRow?.role) &&
+          (userRow?.role as string[]).includes("CUSTOMER"));
 
       if (isCustomer) {
         if (!input.teamId) {
@@ -244,92 +252,92 @@ export const imageGeneratorRouter = router({
       const now = new Date();
       const generationId = randomUUID();
 
-      const generation = await prisma.imageGeneratorGeneration.create({
-        data: {
-          id: generationId,
-          userId,
-          teamId: input.teamId ?? null,
-          prompt: input.prompt,
-          referenceImageUrls:
-            input.referenceImageUrls && input.referenceImageUrls.length > 0
-              ? input.referenceImageUrls
-              : undefined,
-          aspectRatio: input.aspectRatio,
-          outputFormat: input.outputFormat,
-          resolution: input.resolution,
-          variationsCount: effectiveVariations,
-          modelId: "google/nano-banana-pro",
-          modelName: "Nano Banana Pro",
-          status: "QUEUED",
-          errorMessage: null,
-          qstashMessageId: null,
-          startedAt: null,
-          completedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        },
+      await db.insert(imageGeneratorGeneration).values({
+        id: generationId,
+        userId,
+        teamId: input.teamId ?? null,
+        prompt: input.prompt,
+        referenceImageUrls:
+          input.referenceImageUrls && input.referenceImageUrls.length > 0
+            ? input.referenceImageUrls
+            : null,
+        aspectRatio: input.aspectRatio,
+        outputFormat: input.outputFormat,
+        resolution: input.resolution,
+        variationsCount: effectiveVariations,
+        modelId: "google/nano-banana-pro",
+        modelName: "Nano Banana Pro",
+        status: "QUEUED",
+        errorMessage: null,
+        qstashMessageId: null,
+        startedAt: null,
+        completedAt: null,
+        createdAt: now,
+        updatedAt: now,
       });
 
-      for (let i = 1; i <= effectiveVariations; i++) {
-        await prisma.imageGeneratorVariation.create({
-          data: {
-            id: randomUUID(),
-            imageGeneratorGenerationId: generation.id,
-            variationIndex: i,
-            status: "PROCESSING",
-            errorMessage: null,
-            imageUrl: null,
-            imageKey: null,
-            imageFileName: null,
-            imageSize: null,
-            imageMimeType: null,
-            imageMetadata: Prisma.JsonNull,
-            createdAt: now,
-            updatedAt: now,
-          },
-        });
+      const generation = { id: generationId };
+
+      const variationRows = Array.from({ length: effectiveVariations }, (_, i) => ({
+        id: randomUUID(),
+        imageGeneratorGenerationId: generation.id,
+        variationIndex: i + 1,
+        status: "PROCESSING" as const,
+        errorMessage: null as string | null,
+        imageUrl: null as string | null,
+        imageKey: null as string | null,
+        imageFileName: null as string | null,
+        imageSize: null as number | null,
+        imageMimeType: null as string | null,
+        imageMetadata: null as unknown,
+        createdAt: now,
+        updatedAt: now,
+      }));
+      if (variationRows.length > 0) {
+        await db.insert(imageGeneratorVariation).values(variationRows);
       }
 
       let qstashMessageId: string | null = null;
       try {
         const result = await enqueueImageGeneration(generation.id);
         qstashMessageId = result.messageId;
-        await prisma.imageGeneratorGeneration.update({
-          where: { id: generation.id },
-          data: { qstashMessageId: result.messageId, updatedAt: new Date() },
-        });
+        await db
+          .update(imageGeneratorGeneration)
+          .set({ qstashMessageId: result.messageId, updatedAt: new Date() })
+          .where(eq(imageGeneratorGeneration.id, generation.id));
       } catch (err) {
         console.error("QStash enqueue failed:", err);
-        await prisma.imageGeneratorGeneration.update({
-          where: { id: generation.id },
-          data: {
+        await db
+          .update(imageGeneratorGeneration)
+          .set({
             status: "FAILED",
-            errorMessage: err instanceof Error ? err.message : "Failed to enqueue job",
+            errorMessage:
+              err instanceof Error ? err.message : "Failed to enqueue job",
             updatedAt: new Date(),
-          },
-        });
+          })
+          .where(eq(imageGeneratorGeneration.id, generation.id));
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: err instanceof Error ? err.message : "Failed to start generation",
         });
       }
 
-      await prisma.imageGeneratorGenerationActivityLog.create({
-        data: {
-          id: randomUUID(),
-          imageGeneratorGenerationId: generation.id,
-          userId,
-          action: "GENERATE",
-          description: `Started generation: ${input.prompt.substring(0, 100)}${input.prompt.length > 100 ? "..." : ""}`,
-          metadata: {
-            prompt: input.prompt,
-            referenceImageCount: input.referenceImageUrls?.length ?? 0,
-            variationsRequested: input.variations,
-            variationsScheduled: effectiveVariations,
-            qstashMessageId,
-          },
-          createdAt: new Date(),
+      await db.insert(imageGeneratorGenerationActivityLog).values({
+        id: randomUUID(),
+        imageGeneratorGenerationId: generation.id,
+        userId,
+        action: "GENERATE",
+        description: `Started generation: ${input.prompt.substring(0, 100)}${input.prompt.length > 100 ? "..." : ""}`,
+        metadata: {
+          prompt: input.prompt,
+          referenceImageCount: input.referenceImageUrls?.length ?? 0,
+          variationsRequested: input.variations,
+          variationsScheduled: effectiveVariations,
+          qstashMessageId,
         },
+        ipAddress: null,
+        userAgent: null,
+        createdAt: new Date(),
       });
 
       return {
@@ -354,25 +362,32 @@ export const imageGeneratorRouter = router({
 
       try {
         // Create generation record first
-        const generation = await prisma.imageGeneratorGeneration.create({
-          data: {
-            id: randomUUID(),
-            userId,
-            teamId: input.teamId ?? null,
-            prompt: input.prompt,
-            referenceImageUrls: input.referenceImageUrls && input.referenceImageUrls.length > 0 
-              ? input.referenceImageUrls 
-              : undefined,
-            aspectRatio: input.aspectRatio,
-            outputFormat: input.outputFormat,
-            resolution: input.resolution,
-            variationsCount: input.variations,
-            modelId: "google/nano-banana-pro",
-            modelName: "Nano Banana Pro",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
+        const legacyGenId = randomUUID();
+        const legacyNow = new Date();
+        await db.insert(imageGeneratorGeneration).values({
+          id: legacyGenId,
+          userId,
+          teamId: input.teamId ?? null,
+          prompt: input.prompt,
+          referenceImageUrls:
+            input.referenceImageUrls && input.referenceImageUrls.length > 0
+              ? input.referenceImageUrls
+              : null,
+          aspectRatio: input.aspectRatio,
+          outputFormat: input.outputFormat,
+          resolution: input.resolution,
+          variationsCount: input.variations,
+          modelId: "google/nano-banana-pro",
+          modelName: "Nano Banana Pro",
+          status: "QUEUED",
+          errorMessage: null,
+          qstashMessageId: null,
+          startedAt: null,
+          completedAt: null,
+          createdAt: legacyNow,
+          updatedAt: legacyNow,
         });
+        const generation = { id: legacyGenId };
 
         // Prepare Replicate input
         const replicateInput: Record<string, any> = {
@@ -435,26 +450,37 @@ export const imageGeneratorRouter = router({
             const contentType = imageResponse.headers.get("content-type") || `image/${input.outputFormat}`;
 
             // Create variation record (will be updated after UploadThing upload)
-            const variation = await prisma.imageGeneratorVariation.create({
-              data: {
-                id: randomUUID(),
-                imageGeneratorGenerationId: generation.id,
-                variationIndex: i + 1,
-                imageUrl: generatedImageUrl, // Replicate URL, will be updated after UploadThing upload
-                imageKey: "", // Will be set after UploadThing upload
-                imageFileName: `ai-generated-${Date.now()}-${i + 1}.${input.outputFormat}`,
-                imageSize: buffer.length,
-                imageMimeType: contentType,
-                imageMetadata: {
-                  model: "google/nano-banana-pro",
-                  resolution: input.resolution,
-                  aspectRatio: input.aspectRatio,
-                  outputFormat: input.outputFormat,
-                },
-                createdAt: new Date(),
-                updatedAt: new Date(),
+            const varNow = new Date();
+            const variationId = randomUUID();
+            const imageFileName = `ai-generated-${Date.now()}-${i + 1}.${input.outputFormat}`;
+            await db.insert(imageGeneratorVariation).values({
+              id: variationId,
+              imageGeneratorGenerationId: generation.id,
+              variationIndex: i + 1,
+              status: "PROCESSING",
+              errorMessage: null,
+              predictionId: null,
+              imageUrl: generatedImageUrl,
+              imageKey: "",
+              imageFileName,
+              imageSize: buffer.length,
+              imageMimeType: contentType,
+              imageMetadata: {
+                model: "google/nano-banana-pro",
+                resolution: input.resolution,
+                aspectRatio: input.aspectRatio,
+                outputFormat: input.outputFormat,
               },
+              createdAt: varNow,
+              updatedAt: varNow,
             });
+            const variation = {
+              id: variationId,
+              variationIndex: i + 1,
+              imageFileName,
+              imageSize: buffer.length,
+              imageMimeType: contentType,
+            };
 
             variations.push({
               id: variation.id,
@@ -472,27 +498,25 @@ export const imageGeneratorRouter = router({
         }
 
         // Create activity log
-        await prisma.imageGeneratorGenerationActivityLog.create({
-          data: {
-            id: randomUUID(),
-            imageGeneratorGenerationId: generation.id,
-            userId,
-            action: "GENERATE",
-            description: `Generated ${variations.length} variation(s) with prompt: ${input.prompt.substring(0, 100)}${input.prompt.length > 100 ? "..." : ""}`,
-            metadata: {
-              prompt: input.prompt,
-              referenceImageCount: input.referenceImageUrls?.length || 0,
-              variationsRequested: input.variations,
-              variationsGenerated: variations.length,
-              model: "google/nano-banana-pro",
-              aspectRatio: input.aspectRatio,
-              resolution: input.resolution,
-              outputFormat: input.outputFormat,
-            },
-            ipAddress,
-            userAgent,
-            createdAt: new Date(),
+        await db.insert(imageGeneratorGenerationActivityLog).values({
+          id: randomUUID(),
+          imageGeneratorGenerationId: generation.id,
+          userId,
+          action: "GENERATE",
+          description: `Generated ${variations.length} variation(s) with prompt: ${input.prompt.substring(0, 100)}${input.prompt.length > 100 ? "..." : ""}`,
+          metadata: {
+            prompt: input.prompt,
+            referenceImageCount: input.referenceImageUrls?.length || 0,
+            variationsRequested: input.variations,
+            variationsGenerated: variations.length,
+            model: "google/nano-banana-pro",
+            aspectRatio: input.aspectRatio,
+            resolution: input.resolution,
+            outputFormat: input.outputFormat,
           },
+          ipAddress: ipAddress ?? null,
+          userAgent: userAgent ?? null,
+          createdAt: new Date(),
         });
 
         return {
@@ -525,31 +549,31 @@ export const imageGeneratorRouter = router({
       }
 
       // Verify ownership through generation
-      const variation = await prisma.imageGeneratorVariation.findFirst({
-        where: {
-          id: input.variationId,
-        },
-        include: {
+      const variation = await db.query.imageGeneratorVariation.findFirst({
+        where: eq(imageGeneratorVariation.id, input.variationId),
+        with: {
           imageGeneratorGeneration: true,
         },
       });
 
-      if (!variation || variation.imageGeneratorGeneration.userId !== userId) {
+      if (
+        !variation ||
+        variation.imageGeneratorGeneration.userId !== userId
+      ) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Variation not found" });
       }
 
-      // Update with UploadThing data
-      await prisma.imageGeneratorVariation.update({
-        where: { id: input.variationId },
-        data: {
+      await db
+        .update(imageGeneratorVariation)
+        .set({
           imageUrl: input.imageUrl,
           imageKey: input.imageKey,
           imageFileName: input.imageFileName,
           imageSize: input.imageSize,
           imageMimeType: input.imageMimeType,
           updatedAt: new Date(),
-        },
-      });
+        })
+        .where(eq(imageGeneratorVariation.id, input.variationId));
 
       return { data: { id: input.variationId } };
     }),
@@ -564,34 +588,34 @@ export const imageGeneratorRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      const where: any = {
-        userId,
-      };
+      const whereCond = input.teamId
+        ? and(
+            eq(imageGeneratorGeneration.userId, userId),
+            eq(imageGeneratorGeneration.teamId, input.teamId),
+          )
+        : eq(imageGeneratorGeneration.userId, userId);
 
-      if (input.teamId) {
-        where.teamId = input.teamId;
-      }
-
-      const [generations, total] = await Promise.all([
-        prisma.imageGeneratorGeneration.findMany({
-          where,
-          include: {
+      const [generations, totalResult] = await Promise.all([
+        db.query.imageGeneratorGeneration.findMany({
+          where: whereCond,
+          with: {
             variations: {
-              orderBy: {
-                variationIndex: "asc",
-              },
+              orderBy: (v, { asc: ascFn }) => [ascFn(v.variationIndex)],
             },
           },
-          orderBy: {
-            createdAt: "desc",
-          },
-          skip: (input.page - 1) * input.limit,
-          take: input.limit,
+          orderBy: [desc(imageGeneratorGeneration.createdAt)],
+          limit: input.limit,
+          offset: (input.page - 1) * input.limit,
         }),
-        prisma.imageGeneratorGeneration.count({ where }),
+        db
+          .select({ total: count() })
+          .from(imageGeneratorGeneration)
+          .where(whereCond),
       ]);
 
-      // Transform Prisma data to clean API response
+      const total = Number(totalResult[0]?.total ?? 0);
+
+      // Transform DB rows to clean API response
       return {
         data: generations.map(transformGeneration),
         pagination: {
@@ -613,14 +637,14 @@ export const imageGeneratorRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      const generation = await prisma.imageGeneratorGeneration.findFirst({
-        where: {
-          id: input.id,
-          userId,
-        },
-        include: {
+      const generation = await db.query.imageGeneratorGeneration.findFirst({
+        where: and(
+          eq(imageGeneratorGeneration.id, input.id),
+          eq(imageGeneratorGeneration.userId, userId),
+        ),
+        with: {
           variations: {
-            orderBy: { variationIndex: "asc" },
+            orderBy: (v, { asc: ascFn }) => [ascFn(v.variationIndex)],
           },
         },
       });
@@ -645,33 +669,32 @@ export const imageGeneratorRouter = router({
       }
 
       // Verify ownership
-      const generation = await prisma.imageGeneratorGeneration.findFirst({
-        where: {
-          id: input.id,
-          userId,
-        },
+      const generation = await db.query.imageGeneratorGeneration.findFirst({
+        where: and(
+          eq(imageGeneratorGeneration.id, input.id),
+          eq(imageGeneratorGeneration.userId, userId),
+        ),
       });
 
       if (!generation) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
       }
 
-      // Delete generation (variations will be cascade deleted)
-      await prisma.imageGeneratorGeneration.delete({
-        where: { id: input.id },
+      await db.insert(imageGeneratorGenerationActivityLog).values({
+        id: randomUUID(),
+        imageGeneratorGenerationId: input.id,
+        userId,
+        action: "DELETE",
+        description: "Deleted generation",
+        metadata: null,
+        ipAddress: null,
+        userAgent: null,
+        createdAt: new Date(),
       });
 
-      // Create activity log
-      await prisma.imageGeneratorGenerationActivityLog.create({
-        data: {
-          id: randomUUID(),
-          imageGeneratorGenerationId: input.id,
-          userId,
-          action: "DELETE",
-          description: "Deleted generation",
-          createdAt: new Date(),
-        },
-      });
+      await db
+        .delete(imageGeneratorGeneration)
+        .where(eq(imageGeneratorGeneration.id, input.id));
 
       return { data: { id: input.id } };
     }),

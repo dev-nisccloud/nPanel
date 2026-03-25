@@ -5,12 +5,7 @@ import type {
 	MpesaStkPushResponse,
 	MpesaStkPushQueryResponse,
 } from "./types";
-import {
-	getMpesaErrorInfo,
-	isRetryableError,
-	getRetryDelay,
-	type MpesaErrorInfo,
-} from "./error-codes";
+import { getMpesaErrorInfo, type MpesaErrorInfo } from "./error-codes";
 
 /**
  * Custom error class for M-Pesa API errors

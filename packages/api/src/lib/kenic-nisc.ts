@@ -4,7 +4,10 @@
  */
 import * as crypto from "crypto";
 import { XMLParser } from "fast-xml-parser";
-import prisma from "@nPanel/db";
+import { and, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import { customerIntegration, userProfile } from "@npanel/db/schema/auth-extras";
 import { createConnection, readFrame, sendFrame } from "./epp/epp-client";
 import {
 	buildLoginXml,
@@ -120,14 +123,40 @@ export async function ensureKenicIntegration(
 	createdBy: string,
 	logContext?: { niscOrderId: string; orderItemId: string },
 ): Promise<EnsureKenicIntegrationResult> {
-	const user = await prisma.user.findUnique({
-		where: { id: ownerId },
-		include: { profile: true },
-	});
-	if (!user?.profile) {
+	const [userRow] = await db
+		.select({
+			id: user.id,
+			email: user.email,
+			profileUserId: userProfile.userId,
+			firstName: userProfile.firstName,
+			lastName: userProfile.lastName,
+			phone: userProfile.phone,
+			address: userProfile.address,
+			city: userProfile.city,
+			state: userProfile.state,
+			country: userProfile.country,
+			postalCode: userProfile.postalCode,
+		})
+		.from(user)
+		.leftJoin(userProfile, eq(userProfile.userId, user.id))
+		.where(eq(user.id, ownerId))
+		.limit(1);
+
+	if (!userRow?.profileUserId) {
 		throw new Error("User or profile not found. Complete your profile information and retry.");
 	}
-	const profile = user.profile;
+
+	const profile = {
+		firstName: userRow.firstName,
+		lastName: userRow.lastName,
+		address: userRow.address,
+		city: userRow.city,
+		state: userRow.state,
+		country: userRow.country,
+		postalCode: userRow.postalCode,
+		phone: userRow.phone,
+	};
+
 	const missing = PROFILE_REQUIRED.filter(
 		(k) => !(profile as Record<string, unknown>)[k] || String((profile as Record<string, unknown>)[k]).trim() === "",
 	);
@@ -137,11 +166,18 @@ export async function ensureKenicIntegration(
 		);
 	}
 
-	let integration = await prisma.customerIntegration.findUnique({
-		where: {
-			userId_platform: { userId: ownerId, platform: "KENIC" },
-		},
-	});
+	const [integrationRow] = await db
+		.select({
+			id: customerIntegration.id,
+			platformCustomerId: customerIntegration.platformCustomerId,
+		})
+		.from(customerIntegration)
+		.where(
+			and(eq(customerIntegration.userId, ownerId), eq(customerIntegration.platform, "KENIC")),
+		)
+		.limit(1);
+
+	let integration = integrationRow ?? null;
 	if (integration?.platformCustomerId) {
 		return { contactId: integration.platformCustomerId };
 	}
@@ -158,7 +194,7 @@ export async function ensureKenicIntegration(
 			state?: string | null;
 			phone: string;
 		},
-		user.email ?? "",
+		userRow.email ?? "",
 		ownerId,
 	);
 
@@ -210,33 +246,31 @@ export async function ensureKenicIntegration(
 		const finalContactId = String(resolvedId ?? contactId);
 
 		if (!integration) {
-			integration = await prisma.customerIntegration.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: ownerId,
-					platform: "KENIC",
-					platformCustomerId: finalContactId,
-					isCreated: true,
-					isActive: true,
-					createdBy,
-					createdAt: now,
-					lastSyncedAt: now,
-					updatedAt: now,
-					platformData: { contactId: finalContactId },
-				},
+			await db.insert(customerIntegration).values({
+				id: crypto.randomUUID(),
+				userId: ownerId,
+				platform: "KENIC",
+				platformCustomerId: finalContactId,
+				isCreated: true,
+				isActive: true,
+				createdBy,
+				createdAt: now,
+				lastSyncedAt: now,
+				updatedAt: now,
+				platformData: { contactId: finalContactId },
 			});
 		} else {
-			await prisma.customerIntegration.update({
-				where: { id: integration.id },
-				data: {
+			await db
+				.update(customerIntegration)
+				.set({
 					platformCustomerId: finalContactId,
 					isCreated: true,
 					isActive: true,
 					lastSyncedAt: now,
 					updatedAt: now,
 					platformData: { contactId: finalContactId },
-				},
-			});
+				})
+				.where(eq(customerIntegration.id, integration.id));
 		}
 
 		return { contactId: finalContactId };

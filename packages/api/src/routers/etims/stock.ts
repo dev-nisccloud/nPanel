@@ -2,7 +2,8 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
 import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { eTimsConfiguration } from "@npanel/db/schema/etims";
 
 export const etimsStockRouter = router({
     /**
@@ -13,7 +14,10 @@ export const etimsStockRouter = router({
             lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -68,7 +72,10 @@ export const etimsStockRouter = router({
             stockData: z.any()
         }))
         .mutation(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -130,7 +137,10 @@ export const etimsStockRouter = router({
             })
         }))
         .mutation(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({

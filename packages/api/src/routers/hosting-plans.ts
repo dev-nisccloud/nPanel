@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+
+import { db } from "@npanel/db";
+import {
+	niscServicePlan,
+	niscServicePlanActivityLog,
+} from "@npanel/db/schema/hosting";
 import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
 
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
@@ -107,6 +114,14 @@ const deleteServicePlanInputSchema = z.object({
 	id: z.string(),
 });
 
+/** JSON / unknown columns from DB → output string arrays */
+function asStringArray(value: unknown): string[] {
+	if (Array.isArray(value)) {
+		return value.filter((x): x is string => typeof x === "string");
+	}
+	return [];
+}
+
 export const hostingPlansRouter = router({
 	// Get all service plans with optional filtering
 	getAll: protectedProcedure
@@ -121,26 +136,22 @@ export const hostingPlansRouter = router({
 				});
 			}
 
-			const where: any = {};
-
+			const conditions = [];
 			if (input?.planType !== undefined) {
-				where.planType = input.planType;
+				conditions.push(eq(niscServicePlan.planType, input.planType));
 			}
-
 			if (input?.hostingSubType !== undefined) {
-				where.hostingSubType = input.hostingSubType;
+				conditions.push(eq(niscServicePlan.hostingSubType, input.hostingSubType));
 			}
-
 			if (input?.isActive !== undefined) {
-				where.isActive = input.isActive;
+				conditions.push(eq(niscServicePlan.isActive, input.isActive));
 			}
 
-			const plans = await prisma.niscServicePlan.findMany({
-				where,
-				orderBy: {
-					createdAt: "desc",
-				},
-			});
+			const plans = await db
+				.select()
+				.from(niscServicePlan)
+				.where(conditions.length ? and(...conditions) : sql`true`)
+				.orderBy(desc(niscServicePlan.createdAt));
 
 			return plans.map((plan) => ({
 				id: plan.id,
@@ -148,8 +159,8 @@ export const hostingPlansRouter = router({
 				description: plan.description,
 				planType: plan.planType as any,
 				hostingSubType: plan.hostingSubType as any,
-				features: plan.features,
-				highlights: plan.highlights,
+				features: asStringArray(plan.features),
+				highlights: asStringArray(plan.highlights),
 				isPopular: plan.isPopular,
 				isRecommended: plan.isRecommended,
 				niscPrice: plan.niscPrice,
@@ -179,9 +190,12 @@ export const hostingPlansRouter = router({
 				});
 			}
 
-			const plan = await prisma.niscServicePlan.findUnique({
-				where: { id: input.id },
-			});
+			const planRows = await db
+				.select()
+				.from(niscServicePlan)
+				.where(eq(niscServicePlan.id, input.id))
+				.limit(1);
+			const plan = planRows[0];
 
 			if (!plan) {
 				throw new TRPCError({
@@ -196,8 +210,8 @@ export const hostingPlansRouter = router({
 				description: plan.description,
 				planType: plan.planType as any,
 				hostingSubType: plan.hostingSubType as any,
-				features: plan.features,
-				highlights: plan.highlights,
+				features: asStringArray(plan.features),
+				highlights: asStringArray(plan.highlights),
 				isPopular: plan.isPopular,
 				isRecommended: plan.isRecommended,
 				niscPrice: plan.niscPrice,
@@ -247,9 +261,10 @@ export const hostingPlansRouter = router({
 
 			const userId = session.user.id;
 
-			const plan = await prisma.niscServicePlan.create({
-				data: {
-					id: crypto.randomUUID(),
+			const inserted = await db
+				.insert(niscServicePlan)
+				.values({
+					id: randomUUID(),
 					name: input.name,
 					description: input.description || null,
 					planType: input.planType as any,
@@ -264,50 +279,56 @@ export const hostingPlansRouter = router({
 					setupFee: input.setupFee || null,
 					isActive: input.isActive,
 					isDefault: input.isDefault,
-					pleskServicePlanId: input.planType === "HOSTING" ? (input.pleskServicePlanId || null) : null,
+					pleskServicePlanId:
+						input.planType === "HOSTING" ? (input.pleskServicePlanId || null) : null,
 					pleskFilterId: input.planType === "HOSTING" ? (input.pleskFilterId || null) : null,
 					pleskIpAddress: input.planType === "HOSTING" ? (input.pleskIpAddress || null) : null,
 					createdAt: new Date(),
 					updatedAt: new Date(),
-				},
-			});
+				})
+				.returning();
+			const plan = inserted[0];
+			if (!plan) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create service plan",
+				});
+			}
 
 			// Log activity - comprehensive logging for CREATE
-			await prisma.niscServicePlanActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					niscServicePlanId: plan.id,
-					userId: userId,
-					action: "CREATE",
-					description: `Created service plan: ${plan.name} (${plan.planType})`,
-					metadata: {
-						planId: plan.id,
-						planName: plan.name,
-						description: plan.description,
-						planType: plan.planType,
-						hostingSubType: plan.hostingSubType,
-						// Pricing information
-						niscPrice: plan.niscPrice,
-						niscCurrency: plan.niscCurrency,
-						setupFee: plan.setupFee,
-						billingCycle: plan.billingCycle,
-						// Status flags
-						isActive: plan.isActive,
-						isDefault: plan.isDefault,
-						isPopular: plan.isPopular,
-						isRecommended: plan.isRecommended,
-						// Features and highlights
-						features: plan.features,
-						featuresCount: plan.features.length,
-						highlights: plan.highlights,
-						highlightsCount: plan.highlights.length,
-						// Plesk integration (if applicable)
-						pleskServicePlanId: plan.pleskServicePlanId,
-						pleskFilterId: plan.pleskFilterId,
-						pleskIpAddress: plan.pleskIpAddress,
-					},
-					createdAt: new Date(),
+			await db.insert(niscServicePlanActivityLog).values({
+				id: randomUUID(),
+				niscServicePlanId: plan.id,
+				userId: userId,
+				action: "CREATE",
+				description: `Created service plan: ${plan.name} (${plan.planType})`,
+				metadata: {
+					planId: plan.id,
+					planName: plan.name,
+					description: plan.description,
+					planType: plan.planType,
+					hostingSubType: plan.hostingSubType,
+					// Pricing information
+					niscPrice: plan.niscPrice,
+					niscCurrency: plan.niscCurrency,
+					setupFee: plan.setupFee,
+					billingCycle: plan.billingCycle,
+					// Status flags
+					isActive: plan.isActive,
+					isDefault: plan.isDefault,
+					isPopular: plan.isPopular,
+					isRecommended: plan.isRecommended,
+					// Features and highlights
+					features: asStringArray(plan.features),
+					featuresCount: asStringArray(plan.features).length,
+					highlights: asStringArray(plan.highlights),
+					highlightsCount: asStringArray(plan.highlights).length,
+					// Plesk integration (if applicable)
+					pleskServicePlanId: plan.pleskServicePlanId,
+					pleskFilterId: plan.pleskFilterId,
+					pleskIpAddress: plan.pleskIpAddress,
 				},
+				createdAt: new Date(),
 			});
 
 			return {
@@ -316,8 +337,8 @@ export const hostingPlansRouter = router({
 				description: plan.description,
 				planType: plan.planType as any,
 				hostingSubType: plan.hostingSubType as any,
-				features: plan.features,
-				highlights: plan.highlights,
+				features: asStringArray(plan.features),
+				highlights: asStringArray(plan.highlights),
 				isPopular: plan.isPopular,
 				isRecommended: plan.isRecommended,
 				niscPrice: plan.niscPrice,
@@ -349,9 +370,12 @@ export const hostingPlansRouter = router({
 
 			const userId = session.user.id;
 
-			const existingPlan = await prisma.niscServicePlan.findUnique({
-				where: { id: input.id },
-			});
+			const existingRows = await db
+				.select()
+				.from(niscServicePlan)
+				.where(eq(niscServicePlan.id, input.id))
+				.limit(1);
+			const existingPlan = existingRows[0];
 
 			if (!existingPlan) {
 				throw new TRPCError({
@@ -434,7 +458,7 @@ export const hostingPlansRouter = router({
 
 			// Handle features array - support adding/removing items
 			if (input.features !== undefined) {
-				if (!arraysEqual(input.features, existingPlan.features)) {
+				if (!arraysEqual(input.features, asStringArray(existingPlan.features))) {
 					updateData.features = input.features;
 					changedFields.push("features");
 				}
@@ -442,7 +466,7 @@ export const hostingPlansRouter = router({
 
 			// Handle highlights array - support adding/removing items
 			if (input.highlights !== undefined) {
-				if (!arraysEqual(input.highlights, existingPlan.highlights)) {
+				if (!arraysEqual(input.highlights, asStringArray(existingPlan.highlights))) {
 					updateData.highlights = input.highlights;
 					changedFields.push("highlights");
 				}
@@ -543,8 +567,8 @@ export const hostingPlansRouter = router({
 					description: existingPlan.description,
 					planType: existingPlan.planType as any,
 					hostingSubType: existingPlan.hostingSubType as any,
-					features: existingPlan.features,
-					highlights: existingPlan.highlights,
+					features: asStringArray(existingPlan.features),
+					highlights: asStringArray(existingPlan.highlights),
 					isPopular: existingPlan.isPopular,
 					isRecommended: existingPlan.isRecommended,
 					niscPrice: existingPlan.niscPrice,
@@ -561,10 +585,18 @@ export const hostingPlansRouter = router({
 				};
 			}
 
-			const updatedPlan = await prisma.niscServicePlan.update({
-				where: { id: input.id },
-				data: updateData,
-			});
+			const updatedRows = await db
+				.update(niscServicePlan)
+				.set(updateData)
+				.where(eq(niscServicePlan.id, input.id))
+				.returning();
+			const updatedPlan = updatedRows[0];
+			if (!updatedPlan) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to update service plan",
+				});
+			}
 
 			// Build previous and new values for changed fields only
 			const previousValues: Record<string, any> = {};
@@ -576,38 +608,36 @@ export const hostingPlansRouter = router({
 			});
 
 			// Log activity - track what fields were actually changed
-			await prisma.niscServicePlanActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					niscServicePlanId: updatedPlan.id,
-					userId: userId,
-					action: "UPDATE",
-					description: `Updated service plan: ${updatedPlan.name} (${changedFields.length} field${changedFields.length > 1 ? "s" : ""} changed)`,
-					metadata: {
-						planId: updatedPlan.id,
-						planName: updatedPlan.name,
+			await db.insert(niscServicePlanActivityLog).values({
+				id: randomUUID(),
+				niscServicePlanId: updatedPlan.id,
+				userId: userId,
+				action: "UPDATE",
+				description: `Updated service plan: ${updatedPlan.name} (${changedFields.length} field${changedFields.length > 1 ? "s" : ""} changed)`,
+				metadata: {
+					planId: updatedPlan.id,
+					planName: updatedPlan.name,
+					planType: updatedPlan.planType,
+					changedFields: changedFields,
+					previousValues: previousValues,
+					newValues: newValues,
+					// Include full plan state for reference
+					currentState: {
+						name: updatedPlan.name,
 						planType: updatedPlan.planType,
-						changedFields: changedFields,
-						previousValues: previousValues,
-						newValues: newValues,
-						// Include full plan state for reference
-						currentState: {
-							name: updatedPlan.name,
-							planType: updatedPlan.planType,
-							hostingSubType: updatedPlan.hostingSubType,
-							isActive: updatedPlan.isActive,
-							isDefault: updatedPlan.isDefault,
-							isPopular: updatedPlan.isPopular,
-							isRecommended: updatedPlan.isRecommended,
-							niscPrice: updatedPlan.niscPrice,
-							niscCurrency: updatedPlan.niscCurrency,
-							billingCycle: updatedPlan.billingCycle,
-							featuresCount: updatedPlan.features.length,
-							highlightsCount: updatedPlan.highlights.length,
-						},
+						hostingSubType: updatedPlan.hostingSubType,
+						isActive: updatedPlan.isActive,
+						isDefault: updatedPlan.isDefault,
+						isPopular: updatedPlan.isPopular,
+						isRecommended: updatedPlan.isRecommended,
+						niscPrice: updatedPlan.niscPrice,
+						niscCurrency: updatedPlan.niscCurrency,
+						billingCycle: updatedPlan.billingCycle,
+						featuresCount: asStringArray(updatedPlan.features).length,
+						highlightsCount: asStringArray(updatedPlan.highlights).length,
 					},
-					createdAt: new Date(),
 				},
+				createdAt: new Date(),
 			});
 
 			return {
@@ -616,8 +646,8 @@ export const hostingPlansRouter = router({
 				description: updatedPlan.description,
 				planType: updatedPlan.planType as any,
 				hostingSubType: updatedPlan.hostingSubType as any,
-				features: updatedPlan.features,
-				highlights: updatedPlan.highlights,
+				features: asStringArray(updatedPlan.features),
+				highlights: asStringArray(updatedPlan.highlights),
 				isPopular: updatedPlan.isPopular,
 				isRecommended: updatedPlan.isRecommended,
 				niscPrice: updatedPlan.niscPrice,
@@ -649,9 +679,12 @@ export const hostingPlansRouter = router({
 
 			const userId = session.user.id;
 
-			const plan = await prisma.niscServicePlan.findUnique({
-				where: { id: input.id },
-			});
+			const planRows = await db
+				.select()
+				.from(niscServicePlan)
+				.where(eq(niscServicePlan.id, input.id))
+				.limit(1);
+			const plan = planRows[0];
 
 			if (!plan) {
 				throw new TRPCError({
@@ -662,50 +695,46 @@ export const hostingPlansRouter = router({
 
 			// Log activity before deletion (since cascade will delete logs)
 			// Capture complete plan details for audit trail
-			await prisma.niscServicePlanActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					niscServicePlanId: plan.id,
-					userId: userId,
-					action: "DELETE",
-					description: `Deleted service plan: ${plan.name} (${plan.planType})`,
-					metadata: {
-						planId: plan.id,
-						planName: plan.name,
-						description: plan.description,
-						planType: plan.planType,
-						hostingSubType: plan.hostingSubType,
-						// Pricing information
-						niscPrice: plan.niscPrice,
-						niscCurrency: plan.niscCurrency,
-						setupFee: plan.setupFee,
-						billingCycle: plan.billingCycle,
-						// Status flags
-						isActive: plan.isActive,
-						isDefault: plan.isDefault,
-						isPopular: plan.isPopular,
-						isRecommended: plan.isRecommended,
-						// Features and highlights
-						features: plan.features,
-						featuresCount: plan.features.length,
-						highlights: plan.highlights,
-						highlightsCount: plan.highlights.length,
-						// Plesk integration (if applicable)
-						pleskServicePlanId: plan.pleskServicePlanId,
-						pleskFilterId: plan.pleskFilterId,
-						pleskIpAddress: plan.pleskIpAddress,
-						// Timestamps
-						createdAt: plan.createdAt,
-						updatedAt: plan.updatedAt,
-						deletedAt: new Date(),
-					},
-					createdAt: new Date(),
+			await db.insert(niscServicePlanActivityLog).values({
+				id: randomUUID(),
+				niscServicePlanId: plan.id,
+				userId: userId,
+				action: "DELETE",
+				description: `Deleted service plan: ${plan.name} (${plan.planType})`,
+				metadata: {
+					planId: plan.id,
+					planName: plan.name,
+					description: plan.description,
+					planType: plan.planType,
+					hostingSubType: plan.hostingSubType,
+					// Pricing information
+					niscPrice: plan.niscPrice,
+					niscCurrency: plan.niscCurrency,
+					setupFee: plan.setupFee,
+					billingCycle: plan.billingCycle,
+					// Status flags
+					isActive: plan.isActive,
+					isDefault: plan.isDefault,
+					isPopular: plan.isPopular,
+					isRecommended: plan.isRecommended,
+					// Features and highlights
+					features: asStringArray(plan.features),
+					featuresCount: asStringArray(plan.features).length,
+					highlights: asStringArray(plan.highlights),
+					highlightsCount: asStringArray(plan.highlights).length,
+					// Plesk integration (if applicable)
+					pleskServicePlanId: plan.pleskServicePlanId,
+					pleskFilterId: plan.pleskFilterId,
+					pleskIpAddress: plan.pleskIpAddress,
+					// Timestamps
+					createdAt: plan.createdAt,
+					updatedAt: plan.updatedAt,
+					deletedAt: new Date(),
 				},
+				createdAt: new Date(),
 			});
 
-			await prisma.niscServicePlan.delete({
-				where: { id: input.id },
-			});
+			await db.delete(niscServicePlan).where(eq(niscServicePlan.id, input.id));
 
 			return { success: true };
 		}),

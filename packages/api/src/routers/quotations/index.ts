@@ -1,7 +1,16 @@
 import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
 import { z } from "zod";
-import prisma from "@nPanel/db";
+import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import {
+	quotation,
+	quotationActivityLog,
+	quotationCounter,
+	quotationLineItem,
+} from "@npanel/db/schema/quotations";
 import { protectedProcedure, router, type Context } from "../../trpc";
 import {
 	quotationActivityLogSchema,
@@ -18,7 +27,8 @@ import {
 } from "./schemas";
 import type { QuotationDetail } from "./schemas";
 
-type DbClient = typeof prisma | Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
+/** DB or transaction — both support query/insert/update used here */
+type DbLike = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const isAgencyUser = (role: string) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
@@ -37,35 +47,39 @@ function stringOrNull(value: unknown): string | null {
 }
 
 async function getAuthenticatedUser(ctx: Context) {
-	const user = ctx.session?.user;
-	if (!user?.id) {
+	const sessionUser = ctx.session?.user;
+	if (!sessionUser?.id) {
 		throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in." });
 	}
-	const sessionRole = (user as { role?: string })?.role;
-	if (sessionRole) return { id: user.id, role: sessionRole };
-	const dbUser = await prisma.user.findUnique({
-		where: { id: user.id },
-		select: { id: true, role: true },
-	});
+	const sessionRole = (sessionUser as { role?: string })?.role;
+	if (sessionRole) return { id: sessionUser.id, role: sessionRole };
+	const dbUserRows = await db
+		.select({ id: user.id, role: user.role })
+		.from(user)
+		.where(eq(user.id, sessionUser.id))
+		.limit(1);
+	const dbUser = dbUserRows[0];
 	if (!dbUser) {
 		throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found." });
 	}
 	return { id: dbUser.id, role: dbUser.role as string };
 }
 
-async function ensureQuotationAccess(db: DbClient, userId: string, role: string, quotationId: string) {
-	const quotation = await db.quotation.findUnique({
-		where: { id: quotationId },
-		select: { createdBy: true },
-	});
-	if (!quotation) {
+async function ensureQuotationAccess(_db: DbLike, userId: string, role: string, quotationId: string) {
+	const rows = await _db
+		.select({ createdBy: quotation.createdBy })
+		.from(quotation)
+		.where(eq(quotation.id, quotationId))
+		.limit(1);
+	const qRow = rows[0];
+	if (!qRow) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Quotation not found." });
 	}
-	if (isAgencyUser(role)) return quotation;
-	if (quotation.createdBy !== userId) {
+	if (isAgencyUser(role)) return qRow;
+	if (qRow.createdBy !== userId) {
 		throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this quotation." });
 	}
-	return quotation;
+	return qRow;
 }
 
 function buildQuotationData(input: z.infer<typeof quotationCreateInputSchema>) {
@@ -238,42 +252,37 @@ function mapQuotationDetail(row: {
 	});
 }
 
-async function fetchQuotationDetail(db: DbClient, quotationId: string) {
-	const quotation = await db.quotation.findUnique({
-		where: { id: quotationId },
-		include: {
-			lineItems: { orderBy: { position: "asc" } },
-			activityLogs: { orderBy: { createdAt: "desc" } },
+async function fetchQuotationDetail(_db: DbLike, quotationId: string) {
+	const q = await _db.query.quotation.findFirst({
+		where: eq(quotation.id, quotationId),
+		with: {
+			lineItems: {
+				orderBy: (li, { asc: a }) => [a(li.position)],
+			},
+			activityLogs: {
+				orderBy: (al, { desc: d }) => [d(al.createdAt)],
+			},
 		},
 	});
-	if (!quotation) {
+	if (!q) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Quotation not found." });
 	}
-	return quotation;
+	return q;
 }
 
 async function logQuotationActivity(
-	db: DbClient,
+	tx: DbLike,
 	params: { quotationId: string; userId: string; action: string; description?: string | null; metadata?: unknown },
 ) {
-	const logData: {
-		id: string;
-		quotationId: string;
-		userId: string;
-		action: string;
-		description: string | null;
-		metadata?: unknown;
-		createdAt: Date;
-	} = {
+	await tx.insert(quotationActivityLog).values({
 		id: crypto.randomUUID(),
 		quotationId: params.quotationId,
 		userId: params.userId,
 		action: params.action,
 		description: params.description ?? null,
+		...(params.metadata != null && { metadata: params.metadata as object }),
 		createdAt: new Date(),
-	};
-	if (params.metadata != null) logData.metadata = params.metadata;
-	await db.quotationActivityLog.create({ data: logData as Parameters<typeof db.quotationActivityLog.create>[0]["data"] });
+	});
 }
 
 function parseQuotationNumber(quotationNumber: string): number | null {
@@ -283,24 +292,41 @@ function parseQuotationNumber(quotationNumber: string): number | null {
 	return Number.isNaN(num) ? null : num;
 }
 
-async function updateQuotationCounter(db: DbClient, quotationNumber: string): Promise<void> {
+async function updateQuotationCounter(tx: DbLike, quotationNumber: string): Promise<void> {
 	const parsed = parseQuotationNumber(quotationNumber);
 	if (!parsed || parsed < 1) return;
-	await db.quotationCounter.upsert({
-		where: { id: "quotation-counter" },
-		create: { id: "quotation-counter", lastNumber: parsed },
-		update: { lastNumber: parsed },
-	});
+	await tx
+		.insert(quotationCounter)
+		.values({
+			id: "quotation-counter",
+			lastNumber: parsed,
+			updatedAt: new Date(),
+		})
+		.onConflictDoUpdate({
+			target: quotationCounter.id,
+			set: { lastNumber: parsed, updatedAt: new Date() },
+		});
 }
 
-async function generateNextQuotationNumber(tx: DbClient): Promise<string> {
-	const counter = await tx.quotationCounter.upsert({
-		where: { id: "quotation-counter" },
-		create: { id: "quotation-counter", lastNumber: 1 },
-		update: { lastNumber: { increment: 1 } },
-		select: { lastNumber: true },
-	});
-	return `QUOT-${counter.lastNumber.toString().padStart(4, "0")}`;
+async function generateNextQuotationNumber(tx: DbLike): Promise<string> {
+	const now = new Date();
+	const rows = await tx
+		.insert(quotationCounter)
+		.values({
+			id: "quotation-counter",
+			lastNumber: 1,
+			updatedAt: now,
+		})
+		.onConflictDoUpdate({
+			target: quotationCounter.id,
+			set: {
+				lastNumber: sql`${quotationCounter.lastNumber} + 1`,
+				updatedAt: now,
+			},
+		})
+		.returning({ lastNumber: quotationCounter.lastNumber });
+	const lastNumber = rows[0]?.lastNumber ?? 1;
+	return `QUOT-${lastNumber.toString().padStart(4, "0")}`;
 }
 
 export const quotationsRouter = router({
@@ -309,44 +335,50 @@ export const quotationsRouter = router({
 		.output(quotationListResponseSchema)
 		.query(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			const filters: Record<string, unknown>[] = [];
+			const conditions = [];
 			if (!isAgencyUser(user.role)) {
-				filters.push({ createdBy: user.id });
+				conditions.push(eq(quotation.createdBy, user.id));
 			}
-			if (input.status) filters.push({ status: input.status });
+			if (input.status) {
+				conditions.push(eq(quotation.status, input.status));
+			}
 			if (input.search?.trim()) {
-				const q = input.search.trim();
-				filters.push({
-					OR: [
-						{ quotationNumber: { contains: q, mode: "insensitive" } },
-						{ customerName: { contains: q, mode: "insensitive" } },
-						{ customerEmail: { contains: q, mode: "insensitive" } },
-						{ status: { equals: q, mode: "insensitive" } },
-					],
-				});
+				const q = `%${input.search.trim()}%`;
+				conditions.push(
+					or(
+						ilike(quotation.quotationNumber, q),
+						ilike(quotation.customerName, q),
+						ilike(quotation.customerEmail, q),
+						ilike(quotation.status, q),
+					),
+				);
 			}
-			const where = filters.length > 0 ? { AND: filters } : undefined;
-			const [quotations, total] = await prisma.$transaction([
-				prisma.quotation.findMany({
-					where,
-					orderBy: { createdAt: "desc" },
-					skip: input.offset,
-					take: input.limit,
-					select: {
-						id: true,
-						quotationNumber: true,
-						customerName: true,
-						customerEmail: true,
-						status: true,
-						amount: true,
-						subtotal: true,
-						currency: true,
-						createdAt: true,
-						updatedAt: true,
-					},
-				}),
-				prisma.quotation.count({ where }),
+			const whereClause = conditions.length ? and(...conditions) : undefined;
+			const [quotations, totalRow] = await Promise.all([
+				db
+					.select({
+						id: quotation.id,
+						quotationNumber: quotation.quotationNumber,
+						customerName: quotation.customerName,
+						customerEmail: quotation.customerEmail,
+						status: quotation.status,
+						amount: quotation.amount,
+						subtotal: quotation.subtotal,
+						currency: quotation.currency,
+						createdAt: quotation.createdAt,
+						updatedAt: quotation.updatedAt,
+					})
+					.from(quotation)
+					.where(whereClause ?? sql`true`)
+					.orderBy(desc(quotation.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ c: count() })
+					.from(quotation)
+					.where(whereClause ?? sql`true`),
 			]);
+			const total = Number(totalRow[0]?.c ?? 0);
 			return quotationListResponseSchema.parse({
 				quotations: quotations.map((q) =>
 					quotationSummarySchema.parse({
@@ -364,18 +396,20 @@ export const quotationsRouter = router({
 		.output(quotationDetailSchema)
 		.query(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureQuotationAccess(prisma, user.id, user.role, input.id);
-			const quotation = await fetchQuotationDetail(prisma, input.id);
-			return mapQuotationDetail(quotation);
+			await ensureQuotationAccess(db, user.id, user.role, input.id);
+			const quotationDetail = await fetchQuotationDetail(db, input.id);
+			return mapQuotationDetail(quotationDetail);
 		}),
 
 	getNextQuotationNumber: protectedProcedure
 		.output(nextQuotationNumberSchema)
 		.query(async () => {
-			const counter = await prisma.quotationCounter.findUnique({
-				where: { id: "quotation-counter" },
-				select: { lastNumber: true },
-			});
+			const counterRows = await db
+				.select({ lastNumber: quotationCounter.lastNumber })
+				.from(quotationCounter)
+				.where(eq(quotationCounter.id, "quotation-counter"))
+				.limit(1);
+			const counter = counterRows[0];
 			const nextNumber = (counter?.lastNumber ?? 0) + 1;
 			return {
 				quotationNumber: `QUOT-${nextNumber.toString().padStart(4, "0")}`,
@@ -391,15 +425,17 @@ export const quotationsRouter = router({
 			const quotationId = input.id ?? crypto.randomUUID();
 			const token = input.token ?? crypto.randomUUID();
 
-			await prisma.$transaction(async (tx) => {
+			await db.transaction(async (tx) => {
 				let quotationNumber = input.quotationNumber;
 				if (!quotationNumber) {
 					quotationNumber = await generateNextQuotationNumber(tx);
 				} else {
-					const existing = await tx.quotation.findFirst({
-						where: { quotationNumber },
-						select: { id: true },
-					});
+					const existingRows = await tx
+						.select({ id: quotation.id })
+						.from(quotation)
+						.where(eq(quotation.quotationNumber, quotationNumber))
+						.limit(1);
+					const existing = existingRows[0];
 					if (existing) {
 						throw new TRPCError({
 							code: "CONFLICT",
@@ -418,15 +454,13 @@ export const quotationsRouter = router({
 					updatedBy: user.id,
 				});
 
-				await tx.quotation.create({
-					data: {
-						...data,
-						id: quotationId,
-						token,
-						createdAt: new Date(),
-						updatedAt: new Date(),
-					} as Parameters<typeof tx.quotation.create>[0]["data"],
-				});
+				await tx.insert(quotation).values({
+					...(data as Record<string, unknown>),
+					id: quotationId,
+					token,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				} as typeof quotation.$inferInsert);
 
 				if (input.lineItems?.length) {
 					for (const [index, item] of input.lineItems.entries()) {
@@ -446,9 +480,9 @@ export const quotationsRouter = router({
 							updatedAt: new Date(),
 						};
 						if (item.metadata != null) lineData.metadata = item.metadata;
-						await tx.quotationLineItem.create({
-							data: lineData as Parameters<typeof tx.quotationLineItem.create>[0]["data"],
-						});
+						await tx.insert(quotationLineItem).values(
+							lineData as typeof quotationLineItem.$inferInsert,
+						);
 					}
 				}
 
@@ -461,8 +495,8 @@ export const quotationsRouter = router({
 				});
 			});
 
-			const quotation = await fetchQuotationDetail(prisma, quotationId);
-			return mapQuotationDetail(quotation);
+			const quotationDetail = await fetchQuotationDetail(db, quotationId);
+			return mapQuotationDetail(quotationDetail);
 		}),
 
 	update: protectedProcedure
@@ -470,26 +504,26 @@ export const quotationsRouter = router({
 		.output(quotationDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureQuotationAccess(prisma, user.id, user.role, input.id);
+			await ensureQuotationAccess(db, user.id, user.role, input.id);
 
-			await prisma.$transaction(async (tx) => {
+			await db.transaction(async (tx) => {
 				const data = buildQuotationUpdateData(input, user.id);
-				await tx.quotation.update({
-					where: { id: input.id },
-					data: data as Parameters<typeof tx.quotation.update>[0]["data"],
-				});
+				await tx
+					.update(quotation)
+					.set(data as Partial<typeof quotation.$inferInsert>)
+					.where(eq(quotation.id, input.id));
 
 				if (input.lineItems) {
-					const existing = await tx.quotationLineItem.findMany({
-						where: { quotationId: input.id },
-						select: { id: true },
-					});
+					const existing = await tx
+						.select({ id: quotationLineItem.id })
+						.from(quotationLineItem)
+						.where(eq(quotationLineItem.quotationId, input.id));
 					const incomingIds = new Set(
 						input.lineItems.filter((item) => item.id).map((item) => item.id as string),
 					);
 					const toDelete = existing.filter((item) => !incomingIds.has(item.id)).map((item) => item.id);
 					if (toDelete.length > 0) {
-						await tx.quotationLineItem.deleteMany({ where: { id: { in: toDelete } } });
+						await tx.delete(quotationLineItem).where(inArray(quotationLineItem.id, toDelete));
 					}
 					for (const [index, item] of input.lineItems.entries()) {
 						const updateData = {
@@ -505,19 +539,17 @@ export const quotationsRouter = router({
 							updatedAt: new Date(),
 						};
 						if (item.id) {
-							await tx.quotationLineItem.update({
-								where: { id: item.id },
-								data: updateData as Parameters<typeof tx.quotationLineItem.update>[0]["data"],
-							});
+							await tx
+								.update(quotationLineItem)
+								.set(updateData as Partial<typeof quotationLineItem.$inferInsert>)
+								.where(eq(quotationLineItem.id, item.id));
 						} else {
-							await tx.quotationLineItem.create({
-								data: {
-									id: crypto.randomUUID(),
-									quotationId: input.id,
-									...updateData,
-									createdAt: new Date(),
-								} as Parameters<typeof tx.quotationLineItem.create>[0]["data"],
-							});
+							await tx.insert(quotationLineItem).values({
+								id: crypto.randomUUID(),
+								quotationId: input.id,
+								...updateData,
+								createdAt: new Date(),
+							} as typeof quotationLineItem.$inferInsert);
 						}
 					}
 				}
@@ -530,8 +562,8 @@ export const quotationsRouter = router({
 				});
 			});
 
-			const quotation = await fetchQuotationDetail(prisma, input.id);
-			return mapQuotationDetail(quotation);
+			const quotationDetail = await fetchQuotationDetail(db, input.id);
+			return mapQuotationDetail(quotationDetail);
 		}),
 
 	updateStatus: protectedProcedure
@@ -545,16 +577,16 @@ export const quotationsRouter = router({
 		.output(quotationDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureQuotationAccess(prisma, user.id, user.role, input.id);
-			await prisma.$transaction(async (tx) => {
-				await tx.quotation.update({
-					where: { id: input.id },
-					data: {
+			await ensureQuotationAccess(db, user.id, user.role, input.id);
+			await db.transaction(async (tx) => {
+				await tx
+					.update(quotation)
+					.set({
 						status: input.status,
 						updatedBy: user.id,
 						updatedAt: new Date(),
-					},
-				});
+					})
+					.where(eq(quotation.id, input.id));
 				await logQuotationActivity(tx, {
 					quotationId: input.id,
 					userId: user.id,
@@ -563,8 +595,8 @@ export const quotationsRouter = router({
 					metadata: input.note ? { note: input.note } : undefined,
 				});
 			});
-			const quotation = await fetchQuotationDetail(prisma, input.id);
-			return mapQuotationDetail(quotation);
+			const quotationDetail = await fetchQuotationDetail(db, input.id);
+			return mapQuotationDetail(quotationDetail);
 		}),
 
 	deleteQuotation: protectedProcedure
@@ -572,25 +604,31 @@ export const quotationsRouter = router({
 		.output(z.object({ success: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureQuotationAccess(prisma, user.id, user.role, input.quotationId);
-			await prisma.$transaction(async (tx) => {
-				const quotation = await tx.quotation.findUnique({
-					where: { id: input.quotationId },
-					select: { id: true, quotationNumber: true },
-				});
-				if (!quotation) {
+			await ensureQuotationAccess(db, user.id, user.role, input.quotationId);
+			await db.transaction(async (tx) => {
+				const qRows = await tx
+					.select({ id: quotation.id, quotationNumber: quotation.quotationNumber })
+					.from(quotation)
+					.where(eq(quotation.id, input.quotationId))
+					.limit(1);
+				const qDel = qRows[0];
+				if (!qDel) {
 					throw new TRPCError({ code: "NOT_FOUND", message: "Quotation not found." });
 				}
 				await logQuotationActivity(tx, {
 					quotationId: input.quotationId,
 					userId: user.id,
 					action: "DELETE",
-					description: `Quotation ${quotation.quotationNumber ?? input.quotationId} deleted`,
-					metadata: { quotationNumber: quotation.quotationNumber },
+					description: `Quotation ${qDel.quotationNumber ?? input.quotationId} deleted`,
+					metadata: { quotationNumber: qDel.quotationNumber },
 				});
-				await tx.quotationActivityLog.deleteMany({ where: { quotationId: input.quotationId } });
-				await tx.quotationLineItem.deleteMany({ where: { quotationId: input.quotationId } });
-				await tx.quotation.delete({ where: { id: input.quotationId } });
+				await tx
+					.delete(quotationActivityLog)
+					.where(eq(quotationActivityLog.quotationId, input.quotationId));
+				await tx
+					.delete(quotationLineItem)
+					.where(eq(quotationLineItem.quotationId, input.quotationId));
+				await tx.delete(quotation).where(eq(quotation.id, input.quotationId));
 			});
 			return { success: true };
 		}),
@@ -600,8 +638,8 @@ export const quotationsRouter = router({
 		.output(z.object({ success: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureQuotationAccess(prisma, user.id, user.role, input.quotationId);
-			const quotation = await fetchQuotationDetail(prisma, input.quotationId);
+			await ensureQuotationAccess(db, user.id, user.role, input.quotationId);
+			const quotationDetail = await fetchQuotationDetail(db, input.quotationId);
 			const { sendEmail } = await import("../../lib/email");
 			const { renderQuotationDeliveryEmail } = await import("../../lib/email-templates");
 
@@ -614,31 +652,31 @@ export const quotationsRouter = router({
 				});
 			};
 
-			const services = quotation.lineItems.map((item) => ({
+			const services = quotationDetail.lineItems.map((item) => ({
 				name: item.name || "Item",
 				description: item.description ?? undefined,
 				quantity: item.quantity ?? undefined,
-				price: item.price ? `${quotation.currency} ${item.price}` : undefined,
+				price: item.price ? `${quotationDetail.currency} ${item.price}` : undefined,
 			}));
 
 			const emailHtml = await renderQuotationDeliveryEmail({
-				customerName: quotation.customerName ?? "Valued Customer",
-				quotationNumber: quotation.quotationNumber ?? "N/A",
-				issueDate: formatDate(quotation.issueDate),
-				totalAmount: quotation.amount ?? "0.00",
-				currency: quotation.currency ?? "KES",
+				customerName: quotationDetail.customerName ?? "Valued Customer",
+				quotationNumber: quotationDetail.quotationNumber ?? "N/A",
+				issueDate: formatDate(quotationDetail.issueDate),
+				totalAmount: quotationDetail.amount ?? "0.00",
+				currency: quotationDetail.currency ?? "KES",
 				services,
 				supportEmail: "billing@nisccloud.com",
 				supportPhone: "+254 748 777 666",
 			});
 
-			const filename = quotation.quotationNumber
-				? `${String(quotation.quotationNumber).replace(/[^a-zA-Z0-9._-]/g, "_")}.pdf`
+			const filename = quotationDetail.quotationNumber
+				? `${String(quotationDetail.quotationNumber).replace(/[^a-zA-Z0-9._-]/g, "_")}.pdf`
 				: "Quotation.pdf";
 
 			await sendEmail({
 				to: input.toEmail,
-				subject: `Quotation ${quotation.quotationNumber ?? ""} from Nisc Cloud Limited`,
+				subject: `Quotation ${quotationDetail.quotationNumber ?? ""} from Nisc Cloud Limited`,
 				html: emailHtml,
 				attachments: [
 					{
@@ -649,7 +687,7 @@ export const quotationsRouter = router({
 				],
 			});
 
-			await logQuotationActivity(prisma, {
+			await logQuotationActivity(db, {
 				quotationId: input.quotationId,
 				userId: user.id,
 				action: "EMAIL_SENT",

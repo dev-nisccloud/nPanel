@@ -6,13 +6,7 @@ node_modules
 # Build outputs
 dist
 build
-**/dist
-**/build
 *.tsbuildinfo
-
-# React Email
-.react-email
-**/.react-email
 
 # Environment variables
 .env
@@ -41,6 +35,7 @@ lerna-debug.log*
 
 # Turbo
 .turbo
+.nx
 
 # Better-T-Stack
 .alchemy
@@ -55,21 +50,5 @@ coverage
 tmp
 temp
 
-# START Ruler Generated Files
-/.cursor/mcp.json
-/.cursor/mcp.json.bak
-/.cursor/rules/ruler_cursor_instructions.mdc
-/.cursor/rules/ruler_cursor_instructions.mdc.bak
-# END Ruler Generated Files
-
-# Samples and plan files
-samples/
-.cursor/plans/
-
-codebase_inspo/
-
-spacing.md
-
-# Submodule conversion backup
-apps/www.nisccloud.com.backup/
-
+/previous_codebase
+/apps/npanel

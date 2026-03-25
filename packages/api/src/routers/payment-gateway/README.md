@@ -1,6 +1,6 @@
 # Payment Gateway Integration
 
-This folder contains payment gateway integrations for the nPanel application.
+This folder contains payment gateway integrations for the npanel application.
 
 ## Current Integrations
 

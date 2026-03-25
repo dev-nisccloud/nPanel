@@ -1,8 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../../trpc";
-import prisma from "@nPanel/db";
+import { and, desc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { db } from "@npanel/db";
+import { imageGenProject } from "@npanel/db/schema/imagegen-studio";
+import { protectedProcedure, router } from "../../trpc";
 import {
   createProjectSchema,
   updateProjectSchema,
@@ -12,9 +14,9 @@ import {
   duplicateProjectSchema,
   imageGenProjectSchema,
 } from "./schemas";
+import { getUserTeamIds, orUserOrTeamMember, personalScope } from "./team-scope";
 
 export const imageGenProjectsRouter = router({
-  // Create a new project
   create: protectedProcedure
     .input(createProjectSchema)
     .output(z.object({ data: imageGenProjectSchema }))
@@ -24,24 +26,34 @@ export const imageGenProjectsRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      const project = await prisma.imageGenProject.create({
-        data: {
-          id: randomUUID(),
-          name: input.name,
-          json: input.json,
-          width: input.width,
-          height: input.height,
-          userId,
-          teamId: input.teamId ?? null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+      const now = new Date();
+      const id = randomUUID();
+      await db.insert(imageGenProject).values({
+        id,
+        name: input.name,
+        json: input.json,
+        width: input.width,
+        height: input.height,
+        userId,
+        teamId: input.teamId ?? null,
+        thumbnailUrl: null,
+        createdAt: now,
+        updatedAt: now,
       });
+
+      const project = await db.query.imageGenProject.findFirst({
+        where: eq(imageGenProject.id, id),
+      });
+      if (!project) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create project",
+        });
+      }
 
       return { data: project as any };
     }),
 
-  // Get a single project by ID
   get: protectedProcedure
     .input(getProjectSchema)
     .output(z.object({ data: imageGenProjectSchema }))
@@ -51,20 +63,17 @@ export const imageGenProjectsRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      const project = await prisma.imageGenProject.findFirst({
-        where: {
-          id: input.id,
-          OR: [
-            { userId },
-            {
-              team: {
-                members: {
-                  some: { userId },
-                },
-              },
-            },
-          ],
-        },
+      const userTeamIds = await getUserTeamIds(userId);
+      const project = await db.query.imageGenProject.findFirst({
+        where: and(
+          eq(imageGenProject.id, input.id),
+          orUserOrTeamMember(
+            imageGenProject.userId,
+            imageGenProject.teamId,
+            userId,
+            userTeamIds,
+          ),
+        ),
       });
 
       if (!project) {
@@ -74,13 +83,14 @@ export const imageGenProjectsRouter = router({
       return { data: project as any };
     }),
 
-  // List projects with pagination
   list: protectedProcedure
     .input(getProjectsSchema)
-    .output(z.object({
-      data: z.array(imageGenProjectSchema.omit({ json: true })),
-      nextPage: z.number().int().nullable(),
-    }))
+    .output(
+      z.object({
+        data: z.array(imageGenProjectSchema.omit({ json: true })),
+        nextPage: z.number().int().nullable(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
       if (!userId) {
@@ -88,39 +98,35 @@ export const imageGenProjectsRouter = router({
       }
 
       const { page, limit, teamId } = input;
+      const userTeamIds = await getUserTeamIds(userId);
 
-      const where = teamId
-        ? {
-          teamId,
-          team: {
-            members: {
-              some: { userId },
-            },
-          },
+      let whereCond;
+      if (teamId) {
+        if (!userTeamIds.includes(teamId)) {
+          return { data: [], nextPage: null };
         }
-        : {
-          userId,
-          teamId: null,
-        };
+        whereCond = eq(imageGenProject.teamId, teamId);
+      } else {
+        whereCond = personalScope(imageGenProject.userId, imageGenProject.teamId, userId);
+      }
 
-      const projects = await prisma.imageGenProject.findMany({
-        where,
-        take: limit,
-        skip: (page - 1) * limit,
-        orderBy: { updatedAt: "desc" },
-        select: {
-          id: true,
-          name: true,
-          width: true,
-          height: true,
-          thumbnailUrl: true,
-          createdAt: true,
-          updatedAt: true,
-          userId: true,
-          teamId: true,
-          // Exclude json field to improve performance
-        },
-      });
+      const projects = await db
+        .select({
+          id: imageGenProject.id,
+          name: imageGenProject.name,
+          width: imageGenProject.width,
+          height: imageGenProject.height,
+          thumbnailUrl: imageGenProject.thumbnailUrl,
+          createdAt: imageGenProject.createdAt,
+          updatedAt: imageGenProject.updatedAt,
+          userId: imageGenProject.userId,
+          teamId: imageGenProject.teamId,
+        })
+        .from(imageGenProject)
+        .where(whereCond)
+        .orderBy(desc(imageGenProject.updatedAt))
+        .limit(limit)
+        .offset((page - 1) * limit);
 
       return {
         data: projects as any[],
@@ -128,7 +134,6 @@ export const imageGenProjectsRouter = router({
       };
     }),
 
-  // Update a project
   update: protectedProcedure
     .input(updateProjectSchema)
     .output(z.object({ data: imageGenProjectSchema }))
@@ -139,40 +144,42 @@ export const imageGenProjectsRouter = router({
       }
 
       const { id, ...updateData } = input;
+      const userTeamIds = await getUserTeamIds(userId);
 
-      // Check if user has access to this project
-      const existingProject = await prisma.imageGenProject.findFirst({
-        where: {
-          id,
-          OR: [
-            { userId },
-            {
-              team: {
-                members: {
-                  some: { userId },
-                },
-              },
-            },
-          ],
-        },
+      const existingProject = await db.query.imageGenProject.findFirst({
+        where: and(
+          eq(imageGenProject.id, id),
+          orUserOrTeamMember(
+            imageGenProject.userId,
+            imageGenProject.teamId,
+            userId,
+            userTeamIds,
+          ),
+        ),
       });
 
       if (!existingProject) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
       }
 
-      const project = await prisma.imageGenProject.update({
-        where: { id },
-        data: {
+      await db
+        .update(imageGenProject)
+        .set({
           ...updateData,
           updatedAt: new Date(),
-        },
+        })
+        .where(eq(imageGenProject.id, id));
+
+      const project = await db.query.imageGenProject.findFirst({
+        where: eq(imageGenProject.id, id),
       });
+      if (!project) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+      }
 
       return { data: project as any };
     }),
 
-  // Delete a project
   delete: protectedProcedure
     .input(deleteProjectSchema)
     .output(z.object({ data: z.object({ id: z.string() }) }))
@@ -182,35 +189,28 @@ export const imageGenProjectsRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      // Check if user has access to this project
-      const existingProject = await prisma.imageGenProject.findFirst({
-        where: {
-          id: input.id,
-          OR: [
-            { userId },
-            {
-              team: {
-                members: {
-                  some: { userId },
-                },
-              },
-            },
-          ],
-        },
+      const userTeamIds = await getUserTeamIds(userId);
+      const existingProject = await db.query.imageGenProject.findFirst({
+        where: and(
+          eq(imageGenProject.id, input.id),
+          orUserOrTeamMember(
+            imageGenProject.userId,
+            imageGenProject.teamId,
+            userId,
+            userTeamIds,
+          ),
+        ),
       });
 
       if (!existingProject) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
       }
 
-      await prisma.imageGenProject.delete({
-        where: { id: input.id },
-      });
+      await db.delete(imageGenProject).where(eq(imageGenProject.id, input.id));
 
       return { data: { id: input.id } };
     }),
 
-  // Duplicate a project
   duplicate: protectedProcedure
     .input(duplicateProjectSchema)
     .output(z.object({ data: imageGenProjectSchema }))
@@ -220,44 +220,48 @@ export const imageGenProjectsRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      // Find the original project
-      const originalProject = await prisma.imageGenProject.findFirst({
-        where: {
-          id: input.id,
-          OR: [
-            { userId },
-            {
-              team: {
-                members: {
-                  some: { userId },
-                },
-              },
-            },
-          ],
-        },
+      const userTeamIds = await getUserTeamIds(userId);
+      const originalProject = await db.query.imageGenProject.findFirst({
+        where: and(
+          eq(imageGenProject.id, input.id),
+          orUserOrTeamMember(
+            imageGenProject.userId,
+            imageGenProject.teamId,
+            userId,
+            userTeamIds,
+          ),
+        ),
       });
 
       if (!originalProject) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
       }
 
-      // Create a duplicate
-      const duplicatedProject = await prisma.imageGenProject.create({
-        data: {
-          id: randomUUID(),
-          name: `Copy of ${originalProject.name}`,
-          json: originalProject.json,
-          width: originalProject.width,
-          height: originalProject.height,
-          userId,
-          teamId: originalProject.teamId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+      const now = new Date();
+      const newId = randomUUID();
+      await db.insert(imageGenProject).values({
+        id: newId,
+        name: `Copy of ${originalProject.name}`,
+        json: originalProject.json,
+        width: originalProject.width,
+        height: originalProject.height,
+        userId,
+        teamId: originalProject.teamId,
+        thumbnailUrl: originalProject.thumbnailUrl,
+        createdAt: now,
+        updatedAt: now,
       });
+
+      const duplicatedProject = await db.query.imageGenProject.findFirst({
+        where: eq(imageGenProject.id, newId),
+      });
+      if (!duplicatedProject) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to duplicate project",
+        });
+      }
 
       return { data: duplicatedProject as any };
     }),
 });
-
-

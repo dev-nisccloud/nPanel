@@ -1,8 +1,11 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
-import * as crypto from "crypto";
+import { eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { hostingPlan, wordPressInstance, wordPressInstanceActivityLog } from "@npanel/db/schema/hosting";
+import { team } from "@npanel/db/schema/teams";
+import * as crypto from "node:crypto";
 
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
@@ -142,10 +145,10 @@ export const wordpressSubscriptionsRouter = router({
 					});
 				}),
 				// Fetch subscription link from database
-				prisma.wordPressInstance
-					.findUnique({
-						where: { installationId: input.installationId },
-						select: {
+				db.query.wordPressInstance
+					.findFirst({
+						where: eq(wordPressInstance.installationId, input.installationId),
+						columns: {
 							id: true,
 							teamId: true,
 							installationId: true,
@@ -214,9 +217,9 @@ export const wordpressSubscriptionsRouter = router({
 				});
 			}
 
-			const subscription = await prisma.wordPressInstance.findUnique({
-				where: { installationId: input.installationId },
-				include: {
+			const subscription = await db.query.wordPressInstance.findFirst({
+				where: eq(wordPressInstance.installationId, input.installationId),
+				with: {
 					team: true,
 				},
 			});
@@ -254,11 +257,11 @@ export const wordpressSubscriptionsRouter = router({
 			const userId = session.user.id;
 
 			// Verify team exists
-			const team = await prisma.team.findUnique({
-				where: { id: input.teamId },
+			const teamRow = await db.query.team.findFirst({
+				where: eq(team.id, input.teamId),
 			});
 
-			if (!team) {
+			if (!teamRow) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Team not found",
@@ -266,8 +269,8 @@ export const wordpressSubscriptionsRouter = router({
 			}
 
 			// Check if WordPress instance with this installationId already exists
-			const existingInstance = await prisma.wordPressInstance.findUnique({
-				where: { installationId: input.installationId },
+			const existingInstance = await db.query.wordPressInstance.findFirst({
+				where: eq(wordPressInstance.installationId, input.installationId),
 			});
 
 			if (existingInstance) {
@@ -282,8 +285,8 @@ export const wordpressSubscriptionsRouter = router({
 
 			if (input.hostingPlanId) {
 				// Verify the provided plan exists and is active
-				const providedPlan = await prisma.hostingPlan.findUnique({
-					where: { id: input.hostingPlanId },
+				const providedPlan = await db.query.hostingPlan.findFirst({
+					where: eq(hostingPlan.id, input.hostingPlanId),
 				});
 
 				if (!providedPlan) {
@@ -304,32 +307,40 @@ export const wordpressSubscriptionsRouter = router({
 			}
 
 			// Create the WordPress instance record
-			const instance = await prisma.wordPressInstance.create({
-				data: {
+			const [instance] = await db
+				.insert(wordPressInstance)
+				.values({
 					id: crypto.randomUUID(),
 					teamId: input.teamId,
 					installationId: input.installationId,
 					hostingSubscriptionId: hostingPlanId, // Link to hosting subscription if provided
 					createdAt: new Date(),
 					updatedAt: new Date(),
-				},
-			});
+				})
+				.returning();
+
+			if (!instance) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create WordPress instance",
+				});
+			}
 
 			// Log activity
-			await prisma.wordPressInstanceActivityLog.create({
-				data: {
+			await db.insert(wordPressInstanceActivityLog).values({
 					id: crypto.randomUUID(),
 					wordpressInstanceId: instance.id,
 					userId: userId,
 					action: "LINK_TO_TEAM",
-					description: `Linked WordPress instance to team: ${team.name}`,
+					description: `Linked WordPress instance to team: ${teamRow.name}`,
 					metadata: {
-						teamId: team.id,
-						teamName: team.name,
+						teamId: teamRow.id,
+						teamName: teamRow.name,
 						installationId: input.installationId,
 					},
+					ipAddress: null,
+					userAgent: null,
 					createdAt: new Date(),
-				},
 			});
 
 			return {
@@ -354,9 +365,9 @@ export const wordpressSubscriptionsRouter = router({
 			const userId = session.user.id;
 
 			// Find the WordPress instance
-			const instance = await prisma.wordPressInstance.findUnique({
-				where: { id: input.subscriptionId },
-				include: {
+			const instance = await db.query.wordPressInstance.findFirst({
+				where: eq(wordPressInstance.id, input.subscriptionId),
+				with: {
 					team: true,
 				},
 			});
@@ -378,8 +389,7 @@ export const wordpressSubscriptionsRouter = router({
 			const teamName = instance.team?.name || "Unknown Team";
 
 			// Log activity before deletion (we need the instance ID)
-			await prisma.wordPressInstanceActivityLog.create({
-				data: {
+			await db.insert(wordPressInstanceActivityLog).values({
 					id: crypto.randomUUID(),
 					wordpressInstanceId: instance.id,
 					userId: userId,
@@ -391,14 +401,13 @@ export const wordpressSubscriptionsRouter = router({
 						installationId: instance.installationId,
 						deleted: true,
 					},
+					ipAddress: null,
+					userAgent: null,
 					createdAt: new Date(),
-				},
 			});
 
 			// Delete the WordPress instance entirely so it can be linked to another team later
-			await prisma.wordPressInstance.delete({
-				where: { id: input.subscriptionId },
-			});
+			await db.delete(wordPressInstance).where(eq(wordPressInstance.id, input.subscriptionId));
 
 			return {
 				success: true,
@@ -421,8 +430,8 @@ export const wordpressSubscriptionsRouter = router({
 			const userId = session.user.id;
 
 			// Find the WordPress instance
-			const existingInstance = await prisma.wordPressInstance.findUnique({
-				where: { id: input.subscriptionId },
+			const existingInstance = await db.query.wordPressInstance.findFirst({
+				where: eq(wordPressInstance.id, input.subscriptionId),
 			});
 
 			if (!existingInstance) {
@@ -439,8 +448,8 @@ export const wordpressSubscriptionsRouter = router({
 
 			if (input.hostingPlanId !== undefined) {
 				// Verify the plan exists and is active
-				const plan = await prisma.hostingPlan.findUnique({
-					where: { id: input.hostingPlanId },
+				const plan = await db.query.hostingPlan.findFirst({
+					where: eq(hostingPlan.id, input.hostingPlanId),
 				});
 
 				if (!plan) {
@@ -461,14 +470,21 @@ export const wordpressSubscriptionsRouter = router({
 			}
 
 			// Update the WordPress instance
-			const updatedInstance = await prisma.wordPressInstance.update({
-				where: { id: input.subscriptionId },
-				data: updateData,
-			});
+			const [updatedInstance] = await db
+				.update(wordPressInstance)
+				.set(updateData)
+				.where(eq(wordPressInstance.id, input.subscriptionId))
+				.returning();
+
+			if (!updatedInstance) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to update WordPress instance",
+				});
+			}
 
 			// Log activity
-			await prisma.wordPressInstanceActivityLog.create({
-				data: {
+			await db.insert(wordPressInstanceActivityLog).values({
 					id: crypto.randomUUID(),
 					wordpressInstanceId: updatedInstance.id,
 					userId: userId,
@@ -477,8 +493,9 @@ export const wordpressSubscriptionsRouter = router({
 					metadata: {
 						updatedFields: Object.keys(updateData).filter(key => key !== "updatedAt"),
 					},
+					ipAddress: null,
+					userAgent: null,
 					createdAt: new Date(),
-				},
 			});
 
 			return {

@@ -1,6 +1,9 @@
 import { z } from "zod";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
+
+import { db } from "@npanel/db";
+import { creativeProductionSnapshot } from "@npanel/db/schema/reporting";
 import { protectedProcedure, router } from "../../trpc";
-import prisma from "@nPanel/db";
 import { aggregateCreative } from "./utils";
 import { subDays } from "date-fns";
 import { creativeProductionSnapshotSchema } from "./schemas";
@@ -17,34 +20,30 @@ export const creativeReportsRouter = router({
             const startDate = input.from || subDays(new Date(), 30);
             const endDate = input.to || new Date();
 
-            const results = await prisma.creativeProductionSnapshot.findMany({
-                where: {
-                    period: "DAILY",
-                    date: {
-                        gte: startDate,
-                        lte: endDate,
-                    },
-                },
-                orderBy: { date: "desc" },
-                take: input.limit,
-            });
+			const snapshotWhere = and(
+				eq(creativeProductionSnapshot.period, "DAILY"),
+				gte(creativeProductionSnapshot.date, startDate),
+				lte(creativeProductionSnapshot.date, endDate),
+			);
 
-            if (results.length === 0) {
-                await aggregateCreative("DAILY");
-                return prisma.creativeProductionSnapshot.findMany({
-                    where: {
-                        period: "DAILY",
-                        date: {
-                            gte: startDate,
-                            lte: endDate,
-                        },
-                    },
-                    orderBy: { date: "desc" },
-                    take: input.limit,
-                });
-            }
+			let results = await db
+				.select()
+				.from(creativeProductionSnapshot)
+				.where(snapshotWhere)
+				.orderBy(desc(creativeProductionSnapshot.date))
+				.limit(input.limit);
 
-            return results;
+			if (results.length === 0) {
+				await aggregateCreative("DAILY");
+				results = await db
+					.select()
+					.from(creativeProductionSnapshot)
+					.where(snapshotWhere)
+					.orderBy(desc(creativeProductionSnapshot.date))
+					.limit(input.limit);
+			}
+
+			return results;
         }),
 
     sync: protectedProcedure

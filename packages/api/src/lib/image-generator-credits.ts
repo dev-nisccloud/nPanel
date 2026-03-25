@@ -3,7 +3,15 @@
  * Used by: startGeneration (tRPC) to cap variations; Replicate webhook to deduct after save.
  * Keeps a single source of truth and minimal DB calls to avoid affecting generation speed.
  */
-import prisma from "@nPanel/db";
+import { and, asc, eq, ilike } from "drizzle-orm";
+import { db } from "@npanel/db";
+import {
+	niscClientSubscription,
+	niscClientSubscriptionUsage,
+	niscClientSubscriptionUsageActivityLog,
+	niscProduct,
+} from "@npanel/db/schema/products";
+import { randomUUID } from "node:crypto";
 
 function parseCredits(value: string): number | null {
   const trimmed = value.trim().toLowerCase();
@@ -26,29 +34,34 @@ export type AiImageGeneratorCreditsResult = {
 export async function getAiImageGeneratorCreditsForTeam(
   teamId: string
 ): Promise<AiImageGeneratorCreditsResult | null> {
-  const sub = await prisma.niscClientSubscription.findFirst({
-    where: {
-      teamId,
-      status: "ACTIVE",
-      product: {
-        name: { contains: "AI Image Generator", mode: "insensitive" },
-      },
-    },
-    select: { id: true },
-  });
-  if (!sub) return null;
+	const subRow = await db
+		.select({ id: niscClientSubscription.id })
+		.from(niscClientSubscription)
+		.leftJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
+		.where(
+			and(
+				eq(niscClientSubscription.teamId, teamId),
+				eq(niscClientSubscription.status, "ACTIVE"),
+				ilike(niscProduct.name, "%AI Image Generator%"),
+			),
+		)
+		.limit(1);
 
-  const usage = await prisma.niscClientSubscriptionUsage.findFirst({
-    where: { subscriptionId: sub.id },
-    orderBy: { usageKind: "asc" },
-  });
-  if (!usage) return null;
+	const sub = subRow[0];
+	if (!sub) return null;
 
-  return {
-    subscriptionId: sub.id,
-    subscriptionUsageId: usage.id,
-    credits: parseCredits(usage.credits),
-  };
+	const usage = await db.query.niscClientSubscriptionUsage.findFirst({
+		where: eq(niscClientSubscriptionUsage.subscriptionId, sub.id),
+		orderBy: asc(niscClientSubscriptionUsage.usageKind),
+	});
+
+	if (!usage) return null;
+
+	return {
+		subscriptionId: sub.id,
+		subscriptionUsageId: usage.id,
+		credits: parseCredits(usage.credits),
+	};
 }
 
 /**
@@ -62,9 +75,9 @@ export async function deductOneImageGeneratorCredit(params: {
   userId: string;
   metadata?: { generationId?: string; variationId?: string };
 }): Promise<void> {
-  const usage = await prisma.niscClientSubscriptionUsage.findUnique({
-    where: { id: params.subscriptionUsageId },
-  });
+	const usage = await db.query.niscClientSubscriptionUsage.findFirst({
+		where: eq(niscClientSubscriptionUsage.id, params.subscriptionUsageId),
+	});
   if (!usage) return;
 
   const current = parseCredits(usage.credits);
@@ -77,26 +90,26 @@ export async function deductOneImageGeneratorCredit(params: {
   const newValue = Math.max(0, current - 1);
   const newCredits = String(newValue);
 
-  await prisma.niscClientSubscriptionUsage.update({
-    where: { id: params.subscriptionUsageId },
-    data: { credits: newCredits },
-  });
+	await db
+		.update(niscClientSubscriptionUsage)
+		.set({ credits: newCredits })
+		.where(eq(niscClientSubscriptionUsage.id, params.subscriptionUsageId));
 
-  await prisma.niscClientSubscriptionUsageActivityLog.create({
-    data: {
-      subscriptionUsageId: params.subscriptionUsageId,
-      userId: params.userId,
-      action: "CREDIT_USE",
-      description: "1 credit used for AI image generation",
-      metadata: {
-        amount: "-1",
-        previousCredits,
-        newCredits,
-        reason: "image_generator_variation",
-        ...params.metadata,
-      },
-    },
-  });
+	await db.insert(niscClientSubscriptionUsageActivityLog).values({
+		id: randomUUID(),
+		subscriptionUsageId: params.subscriptionUsageId,
+		userId: params.userId,
+		action: "CREDIT_USE",
+		description: "1 credit used for AI image generation",
+		metadata: {
+			amount: "-1",
+			previousCredits,
+			newCredits,
+			reason: "image_generator_variation",
+			...params.metadata,
+		},
+		createdAt: new Date(),
+	});
 }
 
 /**

@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 /**
- * Enumerations mirroring the Prisma schema while remaining independent
- * from the generated Prisma types. These are shared across inputs and outputs.
+ * Enumerations mirroring the database schema while remaining independent
+ * from ORM-specific types. These are shared across inputs and outputs.
  */
 export const invoiceStatusSchema = z.enum([
 	"DRAFT",

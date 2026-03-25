@@ -50,8 +50,6 @@ export const linkedinPageContentRouter = router({
 					});
 				}
 
-				const client = createLinkedInClient(accessToken, input.apiVersion);
-
 				// LinkedIn API doesn't have a direct equivalent to Meta's getPageContent
 				// We'll use the UGC Posts API to fetch posts
 				// Note: This requires specific permissions and may not return all posts

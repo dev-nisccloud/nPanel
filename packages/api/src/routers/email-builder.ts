@@ -1,8 +1,15 @@
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
+import { and, asc, eq, exists, isNull } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+
+import { db } from "@npanel/db";
+import {
+  emailBuilderDesign,
+  emailBuilderDesignActivityLog,
+} from "@npanel/db/schema/email-builder-design";
+import { teamMember } from "@npanel/db/schema/teams";
+import { protectedProcedure, router } from "../trpc";
 
 // --- Independent UI/API Schemas ---
 
@@ -54,31 +61,36 @@ export const emailBuilderRouter = router({
                 throw new TRPCError({ code: "UNAUTHORIZED" });
             }
 
-            const design = await prisma.emailBuilderDesign.create({
-                data: {
-                    id: randomUUID(),
-                    name: input.name,
-                    description: input.description,
-                    json: input.json,
-                    thumbnailUrl: input.thumbnailUrl,
-                    isPublic: input.isPublic,
-                    userId,
-                    teamId: input.teamId ?? null,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                },
-            });
+            const now = new Date();
+
+            const [design] = await db.insert(emailBuilderDesign).values({
+                id: randomUUID(),
+                name: input.name,
+                description: input.description ?? null,
+                json: input.json,
+                thumbnailUrl: input.thumbnailUrl ?? null,
+                isPublic: input.isPublic,
+                userId,
+                teamId: input.teamId ?? null,
+                createdAt: now,
+                updatedAt: now,
+            }).returning();
+
+            if (!design) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to create design",
+                });
+            }
 
             // Log activity
-            await prisma.emailBuilderDesignActivityLog.create({
-                data: {
-                    id: randomUUID(),
-                    emailBuilderDesignId: design.id,
-                    userId,
-                    action: "CREATE",
-                    description: "Created email design",
-                    createdAt: new Date(),
-                },
+            await db.insert(emailBuilderDesignActivityLog).values({
+                id: randomUUID(),
+                emailBuilderDesignId: design.id,
+                userId,
+                action: "CREATE",
+                description: "Created email design",
+                createdAt: now,
             });
 
             return { data: design };
@@ -93,29 +105,29 @@ export const emailBuilderRouter = router({
                 throw new TRPCError({ code: "UNAUTHORIZED" });
             }
 
-            const design = await prisma.emailBuilderDesign.findFirst({
-                where: {
-                    id: input.id,
-                    OR: [
-                        { userId },
-                        {
-                            team: {
-                                members: {
-                                    some: { userId },
-                                },
-                            },
-                        },
-                        { isPublic: true },
-                    ],
-                },
-                include: {
-                    user: {
-                        select: {
-                            name: true,
-                            image: true,
-                        }
-                    }
-                }
+            const design = await db.query.emailBuilderDesign.findFirst({
+                where: (ebd, { or: orFn, eq: eqFn }) =>
+                    and(
+                        eqFn(ebd.id, input.id),
+                        orFn(
+                            eqFn(ebd.userId, userId),
+                            eqFn(ebd.isPublic, true),
+                            orFn(
+                                isNull(ebd.teamId),
+                                exists(
+                                    db
+                                        .select()
+                                        .from(teamMember)
+                                        .where(
+                                            and(
+                                                eq(teamMember.teamId, ebd.teamId),
+                                                eq(teamMember.userId, userId),
+                                            ),
+                                        ),
+                                ),
+                            ),
+                        ),
+                    ),
             });
 
             if (!design) {
@@ -136,38 +148,43 @@ export const emailBuilderRouter = router({
 
             const { page, limit, teamId } = input;
 
-            const where = teamId
-                ? {
-                    teamId,
-                    team: {
-                        members: {
-                            some: { userId },
-                        },
-                    },
-                }
-                : {
-                    userId,
-                    teamId: null,
-                };
+            const baseWhere = teamId
+                ? and(
+                    eq(emailBuilderDesign.teamId, teamId),
+                    exists(
+                        db
+                            .select()
+                            .from(teamMember)
+                            .where(
+                                and(
+                                    eq(teamMember.teamId, teamId),
+                                    eq(teamMember.userId, userId),
+                                ),
+                            ),
+                    ),
+                )
+                : and(
+                    eq(emailBuilderDesign.userId, userId),
+                    isNull(emailBuilderDesign.teamId),
+                );
 
-            const designs = await prisma.emailBuilderDesign.findMany({
-                where,
-                take: limit,
-                skip: (page - 1) * limit,
-                orderBy: { updatedAt: "desc" },
-                // We exclude 'json' from list view for performance, mirroring common patterns
-                select: {
-                    id: true,
-                    name: true,
-                    description: true,
-                    thumbnailUrl: true,
-                    isPublic: true,
-                    createdAt: true,
-                    updatedAt: true,
-                    userId: true,
-                    teamId: true,
-                },
-            });
+            const designs = await db
+                .select({
+                    id: emailBuilderDesign.id,
+                    name: emailBuilderDesign.name,
+                    description: emailBuilderDesign.description,
+                    thumbnailUrl: emailBuilderDesign.thumbnailUrl,
+                    isPublic: emailBuilderDesign.isPublic,
+                    createdAt: emailBuilderDesign.createdAt,
+                    updatedAt: emailBuilderDesign.updatedAt,
+                    userId: emailBuilderDesign.userId,
+                    teamId: emailBuilderDesign.teamId,
+                })
+                .from(emailBuilderDesign)
+                .where(baseWhere)
+                .orderBy(asc(emailBuilderDesign.updatedAt))
+                .limit(limit)
+                .offset((page - 1) * limit);
 
             return {
                 data: designs,
@@ -186,44 +203,57 @@ export const emailBuilderRouter = router({
 
             const { id, ...updateData } = input;
 
-            const existingDesign = await prisma.emailBuilderDesign.findFirst({
-                where: {
-                    id,
-                    OR: [
-                        { userId },
-                        {
-                            team: {
-                                members: {
-                                    some: { userId },
-                                },
-                            },
-                        },
-                    ],
-                },
+            const existingDesign = await db.query.emailBuilderDesign.findFirst({
+                where: (ebd, { or: orFn, eq: eqFn }) =>
+                    and(
+                        eqFn(ebd.id, id),
+                        orFn(
+                            eqFn(ebd.userId, userId),
+                            exists(
+                                db
+                                    .select()
+                                    .from(teamMember)
+                                    .where(
+                                        and(
+                                            eq(teamMember.teamId, ebd.teamId),
+                                            eq(teamMember.userId, userId),
+                                        ),
+                                    ),
+                            ),
+                        ),
+                    ),
             });
 
             if (!existingDesign) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Design not found or access denied" });
             }
 
-            const design = await prisma.emailBuilderDesign.update({
-                where: { id },
-                data: {
+            const now = new Date();
+
+            const [design] = await db
+                .update(emailBuilderDesign)
+                .set({
                     ...updateData,
-                    updatedAt: new Date(),
-                },
-            });
+                    updatedAt: now,
+                })
+                .where(eq(emailBuilderDesign.id, id))
+                .returning();
+
+            if (!design) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to update design",
+                });
+            }
 
             // Log activity
-            await prisma.emailBuilderDesignActivityLog.create({
-                data: {
-                    id: randomUUID(),
-                    emailBuilderDesignId: design.id,
-                    userId,
-                    action: "UPDATE",
-                    description: "Updated email design",
-                    createdAt: new Date(),
-                },
+            await db.insert(emailBuilderDesignActivityLog).values({
+                id: randomUUID(),
+                emailBuilderDesignId: design.id,
+                userId,
+                action: "UPDATE",
+                description: "Updated email design",
+                createdAt: now,
             });
 
             return { data: design };
@@ -238,29 +268,34 @@ export const emailBuilderRouter = router({
                 throw new TRPCError({ code: "UNAUTHORIZED" });
             }
 
-            const existingDesign = await prisma.emailBuilderDesign.findFirst({
-                where: {
-                    id: input.id,
-                    OR: [
-                        { userId },
-                        {
-                            team: {
-                                members: {
-                                    some: { userId },
-                                },
-                            },
-                        },
-                    ],
-                },
+            const existingDesign = await db.query.emailBuilderDesign.findFirst({
+                where: (ebd, { or: orFn, eq: eqFn }) =>
+                    and(
+                        eqFn(ebd.id, input.id),
+                        orFn(
+                            eqFn(ebd.userId, userId),
+                            exists(
+                                db
+                                    .select()
+                                    .from(teamMember)
+                                    .where(
+                                        and(
+                                            eq(teamMember.teamId, ebd.teamId),
+                                            eq(teamMember.userId, userId),
+                                        ),
+                                    ),
+                            ),
+                        ),
+                    ),
             });
 
             if (!existingDesign) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Design not found or access denied" });
             }
 
-            await prisma.emailBuilderDesign.delete({
-                where: { id: input.id },
-            });
+            await db
+                .delete(emailBuilderDesign)
+                .where(eq(emailBuilderDesign.id, input.id));
 
             return { data: { id: input.id } };
         }),
@@ -274,52 +309,62 @@ export const emailBuilderRouter = router({
                 throw new TRPCError({ code: "UNAUTHORIZED" });
             }
 
-            const originalDesign = await prisma.emailBuilderDesign.findFirst({
-                where: {
-                    id: input.id,
-                    OR: [
-                        { userId },
-                        {
-                            team: {
-                                members: {
-                                    some: { userId },
-                                },
-                            },
-                        },
-                        { isPublic: true },
-                    ],
-                },
+            const originalDesign = await db.query.emailBuilderDesign.findFirst({
+                where: (ebd, { or: orFn, eq: eqFn }) =>
+                    and(
+                        eqFn(ebd.id, input.id),
+                        orFn(
+                            eqFn(ebd.userId, userId),
+                            eqFn(ebd.isPublic, true),
+                            exists(
+                                db
+                                    .select()
+                                    .from(teamMember)
+                                    .where(
+                                        and(
+                                            eq(teamMember.teamId, ebd.teamId),
+                                            eq(teamMember.userId, userId),
+                                        ),
+                                    ),
+                            ),
+                        ),
+                    ),
             });
 
             if (!originalDesign) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
             }
 
-            const duplicatedDesign = await prisma.emailBuilderDesign.create({
-                data: {
-                    id: randomUUID(),
-                    name: `Copy of ${originalDesign.name}`,
-                    description: originalDesign.description,
-                    json: originalDesign.json,
-                    thumbnailUrl: originalDesign.thumbnailUrl,
-                    isPublic: false, // Duplicates should probably be private by default
-                    userId,
-                    teamId: originalDesign.teamId, // Copy to same team if applicable? Or personal? Stick to user's context usually, but here matching orig is safe for now
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                },
-            });
+            const now = new Date();
+
+            const [duplicatedDesign] = await db.insert(emailBuilderDesign).values({
+                id: randomUUID(),
+                name: `Copy of ${originalDesign.name}`,
+                description: originalDesign.description,
+                json: originalDesign.json,
+                thumbnailUrl: originalDesign.thumbnailUrl,
+                isPublic: false,
+                userId,
+                teamId: originalDesign.teamId,
+                createdAt: now,
+                updatedAt: now,
+            }).returning();
+
+            if (!duplicatedDesign) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to duplicate design",
+                });
+            }
 
             // Log activity
-            await prisma.emailBuilderDesignActivityLog.create({
-                data: {
-                    id: randomUUID(),
-                    emailBuilderDesignId: duplicatedDesign.id,
-                    userId,
-                    action: "DUPLICATE",
-                    description: `Duplicated from ${originalDesign.id}`,
-                    createdAt: new Date(),
-                },
+            await db.insert(emailBuilderDesignActivityLog).values({
+                id: randomUUID(),
+                emailBuilderDesignId: duplicatedDesign.id,
+                userId,
+                action: "DUPLICATE",
+                description: `Duplicated from ${originalDesign.id}`,
+                createdAt: now,
             });
 
             return { data: duplicatedDesign };

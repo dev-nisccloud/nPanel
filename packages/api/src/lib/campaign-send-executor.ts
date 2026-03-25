@@ -1,4 +1,10 @@
-import prisma from "@nPanel/db";
+import { asc, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import {
+	campaignRecipient,
+	emailCampaign,
+	emailDomain,
+} from "@npanel/db/schema/email-marketing";
 import { getResendClient } from "./resend-client";
 
 const BATCH_SIZE = 100;
@@ -25,10 +31,19 @@ export async function executeCampaignSend(
 	campaignId: string,
 	options?: ExecuteCampaignSendOptions,
 ): Promise<ExecuteCampaignSendResult> {
-	const campaign = await prisma.emailCampaign.findUnique({
-		where: { id: campaignId },
-		include: { recipients: true },
-	});
+	const [campaign] = await db
+		.select({
+			id: emailCampaign.id,
+			subject: emailCampaign.subject,
+			fromEmail: emailCampaign.fromEmail,
+			fromName: emailCampaign.fromName,
+			htmlContent: emailCampaign.htmlContent,
+			textContent: emailCampaign.textContent,
+			emailDomainId: emailCampaign.emailDomainId,
+		})
+		.from(emailCampaign)
+		.where(eq(emailCampaign.id, campaignId))
+		.limit(1);
 
 	if (!campaign) {
 		throw new Error("Campaign not found");
@@ -39,15 +54,28 @@ export async function executeCampaignSend(
 	}
 
 	if (campaign.emailDomainId) {
-		const domain = await prisma.emailDomain.findUnique({
-			where: { id: campaign.emailDomainId },
-		});
+		const [domain] = await db
+			.select({
+				id: emailDomain.id,
+				status: emailDomain.status,
+			})
+			.from(emailDomain)
+			.where(eq(emailDomain.id, campaign.emailDomainId))
+			.limit(1);
 		if (!domain || domain.status !== "VERIFIED") {
 			throw new Error("Email domain must be verified");
 		}
 	}
 
-	const recipients = campaign.recipients;
+	const recipients = await db
+		.select({
+			id: campaignRecipient.id,
+			toEmail: campaignRecipient.toEmail,
+		})
+		.from(campaignRecipient)
+		.where(eq(campaignRecipient.campaignId, campaignId))
+		.orderBy(asc(campaignRecipient.createdAt));
+
 	if (recipients.length === 0) {
 		throw new Error("Campaign has no recipients");
 	}
@@ -109,19 +137,23 @@ export async function executeCampaignSend(
 			}
 
 			const now = new Date();
-			// Safe to map by index: results[j] is the Resend id for batch[j] (same-order guarantee + length check).
-			await prisma.$transaction(
-				batch.map((recipient, j) => {
+
+			// Safe to map by index: results[j] is the Resend id for batch[j]
+			// (same-order guarantee + length check).
+			await db.transaction(async (tx) => {
+				for (let j = 0; j < batch.length; j++) {
+					const recipient = batch[j]!;
 					const result = results[j];
 					const resendId = result?.id ?? null;
 					if (resendId) sentCount++;
 					else failedCount++;
-					return prisma.campaignRecipient.update({
-						where: { id: recipient.id },
-						data: { resendId, updatedAt: now },
-					});
-				}),
-			);
+
+					await tx
+						.update(campaignRecipient)
+						.set({ resendId, updatedAt: now })
+						.where(eq(campaignRecipient.id, recipient.id));
+				}
+			});
 
 			if (i + BATCH_SIZE < recipients.length) {
 				await new Promise((resolve) => setTimeout(resolve, 100));

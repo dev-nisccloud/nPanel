@@ -1,8 +1,17 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../../../trpc';
-import prisma from '@nPanel/db';
+import { and, asc, count, desc, eq, inArray, or, type SQL } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import { db } from '@npanel/db';
+import { user } from '@npanel/db/schema/auth';
+import {
+	metaContentCalendar,
+	metaContentCalendarActivityLog,
+	metaContentCalendarMedia,
+	socialMediaPageToken,
+} from '@npanel/db/schema/social-media-marketing';
+import { teamMember } from '@npanel/db/schema/teams';
+import { router, protectedProcedure, type Context } from '../../../trpc';
 import {
 	schedulePublish,
 	cancelPublish,
@@ -210,28 +219,24 @@ function isAgencyUser(role: string): boolean {
  * Get authenticated user - optimized to use session role when available
  * Falls back to database query if role not in session
  */
-async function getAuthenticatedUser(ctx: { session?: { user?: { id: string; role?: string } } | null }) {
-	const user = ctx.session?.user;
-	if (!user?.id) {
+async function getAuthenticatedUser(ctx: Context) {
+	const sessionUser = ctx.session?.user;
+	if (!sessionUser?.id) {
 		throw new TRPCError({
 			code: 'UNAUTHORIZED',
 			message: 'You must be logged in',
 		});
 	}
 
-	// Optimize: Use role from session if available (set by auth hooks)
-	// This avoids unnecessary database queries
-	const sessionRole = user.role;
-	
+	const sessionRole = sessionUser.role;
+
 	if (sessionRole) {
-		// Role is in session, no need to query database
-		return { id: user.id, role: sessionRole };
+		return { id: sessionUser.id, role: sessionRole };
 	}
 
-	// Fallback: Query database only if role not in session
-	const dbUser = await prisma.user.findUnique({
-		where: { id: user.id },
-		select: { id: true, role: true },
+	const dbUser = await db.query.user.findFirst({
+		where: eq(user.id, sessionUser.id),
+		columns: { id: true, role: true },
 	});
 
 	if (!dbUser) {
@@ -254,9 +259,9 @@ async function ensurePageTokenAccess(
 	role: string,
 	pageTokenId: string
 ): Promise<{ id: string; teamId: string | null }> {
-	const pageToken = await prisma.socialMediaPageToken.findUnique({
-		where: { id: pageTokenId },
-		select: { id: true, teamId: true, platform: true },
+	const pageToken = await db.query.socialMediaPageToken.findFirst({
+		where: eq(socialMediaPageToken.id, pageTokenId),
+		columns: { id: true, teamId: true, platform: true },
 	});
 
 	// Ensure this is a Meta Facebook page token
@@ -287,12 +292,9 @@ async function ensurePageTokenAccess(
 		});
 	}
 
-	const membership = await prisma.teamMember.findFirst({
-		where: {
-			teamId: pageToken.teamId,
-			userId,
-		},
-		select: { id: true },
+	const membership = await db.query.teamMember.findFirst({
+		where: and(eq(teamMember.teamId, pageToken.teamId), eq(teamMember.userId, userId)),
+		columns: { id: true },
 	});
 
 	if (!membership) {
@@ -315,9 +317,9 @@ async function ensureCalendarPostAccess(
 	role: string,
 	postId: string
 ): Promise<{ id: string; pageTokenId: string | null; createdBy: string }> {
-	const post = await prisma.metaContentCalendar.findUnique({
-		where: { id: postId },
-		select: { id: true, pageTokenId: true, createdBy: true },
+	const post = await db.query.metaContentCalendar.findFirst({
+		where: eq(metaContentCalendar.id, postId),
+		columns: { id: true, pageTokenId: true, createdBy: true },
 	});
 
 	if (!post) {
@@ -344,9 +346,9 @@ async function ensureCalendarPostAccess(
 	}
 
 	// Check team membership for the page
-	const pageToken = await prisma.socialMediaPageToken.findUnique({
-		where: { id: post.pageTokenId },
-		select: { teamId: true, platform: true },
+	const pageToken = await db.query.socialMediaPageToken.findFirst({
+		where: eq(socialMediaPageToken.id, post.pageTokenId),
+		columns: { teamId: true, platform: true },
 	});
 
 	// Ensure this is a Meta Facebook page token
@@ -376,12 +378,9 @@ async function ensureCalendarPostAccess(
 	}
 
 	// Check team membership
-	const membership = await prisma.teamMember.findFirst({
-		where: {
-			teamId: pageToken.teamId,
-			userId,
-		},
-		select: { id: true },
+	const membership = await db.query.teamMember.findFirst({
+		where: and(eq(teamMember.teamId, pageToken.teamId), eq(teamMember.userId, userId)),
+		columns: { id: true },
 	});
 
 	if (!membership) {
@@ -406,18 +405,16 @@ async function createActivityLog(
 	ipAddress?: string | null,
 	userAgent?: string | null
 ) {
-	await prisma.metaContentCalendarActivityLog.create({
-		data: {
-			id: `activity_${randomUUID()}`,
-			userId,
-			calendarPostId,
-			action,
-			description: description || null,
-			metadata: metadata || null,
-			ipAddress: ipAddress || null,
-			userAgent: userAgent || null,
-			createdAt: new Date(),
-		},
+	await db.insert(metaContentCalendarActivityLog).values({
+		id: `activity_${randomUUID()}`,
+		userId,
+		calendarPostId,
+		action,
+		description: description ?? null,
+		metadata: metadata ?? null,
+		ipAddress: ipAddress ?? null,
+		userAgent: userAgent ?? null,
+		createdAt: new Date(),
 	});
 }
 
@@ -437,6 +434,7 @@ async function transformCalendarPost(post: {
 	lastError: string | null;
 	retryCount: number;
 	lastRetryAt: Date | null;
+	qstashJobId?: string | null;
 	createdBy: string;
 	createdAt: Date;
 	updatedAt: Date;
@@ -455,17 +453,17 @@ async function transformCalendarPost(post: {
 	}>;
 }) {
 	// Fetch user information
-	const user = await prisma.user.findUnique({
-		where: { id: post.createdBy },
-		select: { id: true, name: true, email: true, image: true },
+	const author = await db.query.user.findFirst({
+		where: eq(user.id, post.createdBy),
+		columns: { id: true, name: true, email: true, image: true },
 	});
 
 	// Fetch page information
 	let pageName: string | null = null;
 	if (post.pageTokenId) {
-		const pageToken = await prisma.socialMediaPageToken.findUnique({
-			where: { id: post.pageTokenId },
-			select: { pageName: true, platform: true },
+		const pageToken = await db.query.socialMediaPageToken.findFirst({
+			where: eq(socialMediaPageToken.id, post.pageTokenId),
+			columns: { pageName: true, platform: true },
 		});
 		// Only use page name if it's a Meta Facebook page token
 		if (pageToken && pageToken.platform === 'META_FACEBOOK') {
@@ -488,24 +486,24 @@ async function transformCalendarPost(post: {
 		retryCount: post.retryCount,
 		lastRetryAt: post.lastRetryAt,
 		createdBy: post.createdBy,
-		creator: user
+		creator: author
 			? {
-					id: user.id,
-					name: user.name,
-					email: user.email,
-					image: user.image,
+					id: author.id,
+					name: author.name,
+					email: author.email,
+					image: author.image,
 				}
 			: undefined,
 		createdAt: post.createdAt,
 		updatedAt: post.updatedAt,
-		qstashJobId: (post as any).qstashJobId || null,
+		qstashJobId: post.qstashJobId ?? null,
 		mediaItems: post.mediaItems?.map((item) => ({
 			id: item.id,
 			calendarPostId: item.calendarPostId,
 			mediaType: item.mediaType as z.infer<typeof MetaContentMediaTypeEnum>,
 			url: item.url,
-			fileName: (item as any).fileName || null,
-			fileSize: (item as any).fileSize || null,
+			fileName: item.fileName ?? null,
+			fileSize: item.fileSize ?? null,
 			caption: item.caption,
 			description: item.description,
 			order: item.order,
@@ -546,25 +544,21 @@ export const metaContentCalendarRouter = router({
 			const now = new Date();
 			const postId = `calendar_${randomUUID()}`;
 
-			// Create calendar post
-			const post = await prisma.metaContentCalendar.create({
-				data: {
-					id: postId,
-					pageTokenId: input.pageTokenId,
-					message: input.message || null,
-					scheduledPublishTime: input.scheduledPublishTime,
-					status: 'SCHEDULED',
-					published: false,
-					createdBy: user.id,
-					createdAt: now,
-					updatedAt: now,
-				},
+			await db.insert(metaContentCalendar).values({
+				id: postId,
+				pageTokenId: input.pageTokenId,
+				message: input.message || null,
+				scheduledPublishTime: input.scheduledPublishTime,
+				status: 'SCHEDULED',
+				published: false,
+				createdBy: user.id,
+				createdAt: now,
+				updatedAt: now,
 			});
 
-			// Create media items if provided
 			if (input.mediaItems && input.mediaItems.length > 0) {
-				await prisma.metaContentCalendarMedia.createMany({
-					data: input.mediaItems.map((item, index) => ({
+				await db.insert(metaContentCalendarMedia).values(
+					input.mediaItems.map((item, index) => ({
 						id: `media_${randomUUID()}`,
 						calendarPostId: postId,
 						mediaType: item.mediaType,
@@ -576,8 +570,8 @@ export const metaContentCalendarRouter = router({
 						order: item.order ?? index,
 						createdAt: now,
 						updatedAt: now,
-					})),
-				});
+					}))
+				);
 			}
 
 			// Schedule QStash job for publishing
@@ -594,22 +588,20 @@ export const metaContentCalendarRouter = router({
 				// The post will be created but may need manual scheduling
 				console.error('Failed to schedule QStash job:', error);
 				// Update post with error in lastError field
-				await prisma.metaContentCalendar.update({
-					where: { id: postId },
-					data: {
+				await db
+					.update(metaContentCalendar)
+					.set({
 						lastError: `Failed to schedule publish job: ${error instanceof Error ? error.message : 'Unknown error'}`,
-					},
-				});
+					})
+					.where(eq(metaContentCalendar.id, postId));
 			}
 
 			// Update post with QStash job ID if scheduled successfully
 			if (qstashJobId) {
-				await prisma.metaContentCalendar.update({
-					where: { id: postId },
-					data: {
-						qstashJobId,
-					},
-				});
+				await db
+					.update(metaContentCalendar)
+					.set({ qstashJobId })
+					.where(eq(metaContentCalendar.id, postId));
 			}
 
 			// Create activity log
@@ -630,11 +622,11 @@ export const metaContentCalendarRouter = router({
 			);
 
 			// Fetch created post with media items
-			const createdPost = await prisma.metaContentCalendar.findUnique({
-				where: { id: postId },
-				include: {
+			const createdPost = await db.query.metaContentCalendar.findFirst({
+				where: eq(metaContentCalendar.id, postId),
+				with: {
 					mediaItems: {
-						orderBy: { order: 'asc' },
+						orderBy: (m, { asc: ascCol }) => [ascCol(m.order)],
 					},
 				},
 			});
@@ -658,66 +650,79 @@ export const metaContentCalendarRouter = router({
 		.query(async ({ input, ctx }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			// Build where clause
-			const where: any = {};
+			const conditions: SQL[] = [];
 
-			// Filter by page token if provided
 			if (input.pageTokenId) {
-				// Ensure user has access to this page
 				await ensurePageTokenAccess(user.id, user.role, input.pageTokenId);
-				where.pageTokenId = input.pageTokenId;
+				conditions.push(eq(metaContentCalendar.pageTokenId, input.pageTokenId));
 			} else if (!isAgencyUser(user.role)) {
-				// For non-admin users, only show posts for pages they have access to
-				// Get all teams the user is a member of
-				const memberships = await prisma.teamMember.findMany({
-					where: { userId: user.id },
-					select: { teamId: true },
+				const memberships = await db.query.teamMember.findMany({
+					where: eq(teamMember.userId, user.id),
+					columns: { teamId: true },
 				});
 
 				const teamIds = memberships.map((m) => m.teamId);
 
-				// Get page tokens for these teams (Meta Facebook only)
-				const pageTokens = await prisma.socialMediaPageToken.findMany({
-					where: {
-						teamId: { in: teamIds },
-						platform: 'META_FACEBOOK', // Filter by platform
-					},
-					select: { id: true },
-				});
+				const pageTokens =
+					teamIds.length > 0
+						? await db.query.socialMediaPageToken.findMany({
+								where: and(
+									inArray(socialMediaPageToken.teamId, teamIds),
+									eq(socialMediaPageToken.platform, 'META_FACEBOOK')
+								),
+								columns: { id: true },
+							})
+						: [];
 
 				const pageTokenIds = pageTokens.map((pt) => pt.id);
 
-				// Also include posts created by the user (even if page has no team)
-				where.OR = [
-					{ pageTokenId: { in: pageTokenIds } },
-					{ createdBy: user.id },
-				];
+				if (pageTokenIds.length === 0) {
+					conditions.push(eq(metaContentCalendar.createdBy, user.id));
+				} else {
+					conditions.push(
+						or(
+							inArray(metaContentCalendar.pageTokenId, pageTokenIds),
+							eq(metaContentCalendar.createdBy, user.id)
+						)!
+					);
+				}
 			}
 
-			// Filter by status if provided
 			if (input.status) {
-				where.status = input.status;
+				conditions.push(eq(metaContentCalendar.status, input.status));
 			}
 
-			// Get posts
-			const [posts, total] = await Promise.all([
-				prisma.metaContentCalendar.findMany({
-					where,
-					include: {
+			const whereClause =
+				conditions.length === 0
+					? undefined
+					: conditions.length === 1
+						? conditions[0]
+						: and(...conditions);
+
+			const [posts, countRows] = await Promise.all([
+				db.query.metaContentCalendar.findMany({
+					where: whereClause,
+					with: {
 						mediaItems: {
-							orderBy: { order: 'asc' },
+							orderBy: (m, { asc: ascCol }) => [ascCol(m.order)],
 						},
 					},
-					orderBy: { scheduledPublishTime: 'asc' },
-					take: input.limit,
-					skip: input.offset,
+					orderBy: [asc(metaContentCalendar.scheduledPublishTime)],
+					limit: input.limit,
+					offset: input.offset,
 				}),
-				prisma.metaContentCalendar.count({ where }),
+				whereClause
+					? db
+							.select({ total: count() })
+							.from(metaContentCalendar)
+							.where(whereClause)
+					: db.select({ total: count() }).from(metaContentCalendar),
 			]);
 
-			// Transform all posts with user and page information
+			const total = Number(countRows[0]?.total ?? 0);
+
 			const transformedPosts = await Promise.all(
-				posts.map((post) => transformCalendarPost(post))
+				posts.map((calendarPost) => transformCalendarPost(calendarPost))
 			);
 
 			return {
@@ -738,23 +743,23 @@ export const metaContentCalendarRouter = router({
 			// Ensure user has access to this post
 			await ensureCalendarPostAccess(user.id, user.role, input.id);
 
-			const post = await prisma.metaContentCalendar.findUnique({
-				where: { id: input.id },
-				include: {
+			const calendarPost = await db.query.metaContentCalendar.findFirst({
+				where: eq(metaContentCalendar.id, input.id),
+				with: {
 					mediaItems: {
-						orderBy: { order: 'asc' },
+						orderBy: (m, { asc: ascCol }) => [ascCol(m.order)],
 					},
 				},
 			});
 
-			if (!post) {
+			if (!calendarPost) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
 					message: 'Calendar post not found',
 				});
 			}
 
-			return await transformCalendarPost(post);
+			return await transformCalendarPost(calendarPost);
 		}),
 
 	/**
@@ -771,9 +776,9 @@ export const metaContentCalendarRouter = router({
 			await ensureCalendarPostAccess(user.id, user.role, input.id);
 
 			// Get existing post with QStash job ID
-			const existingPost = await prisma.metaContentCalendar.findUnique({
-				where: { id: input.id },
-				select: {
+			const existingPost = await db.query.metaContentCalendar.findFirst({
+				where: eq(metaContentCalendar.id, input.id),
+				columns: {
 					published: true,
 					status: true,
 					qstashJobId: true,
@@ -823,23 +828,26 @@ export const metaContentCalendarRouter = router({
 			// Track if media items are being updated
 			const hasMediaUpdate = input.mediaItems !== undefined;
 			const previousMediaCount = hasMediaUpdate
-				? await prisma.metaContentCalendarMedia.count({
-						where: { calendarPostId: input.id },
-					})
+				? Number(
+						(
+							await db
+								.select({ c: count() })
+								.from(metaContentCalendarMedia)
+								.where(eq(metaContentCalendarMedia.calendarPostId, input.id))
+						)[0]?.c ?? 0
+					)
 				: 0;
 
 			// Update media items if provided
 			if (hasMediaUpdate) {
-				// Delete existing media items
-				await prisma.metaContentCalendarMedia.deleteMany({
-					where: { calendarPostId: input.id },
-				});
+				await db
+					.delete(metaContentCalendarMedia)
+					.where(eq(metaContentCalendarMedia.calendarPostId, input.id));
 
-			// Create new media items
-			if (input.mediaItems && input.mediaItems.length > 0) {
-				const now = new Date();
-				await prisma.metaContentCalendarMedia.createMany({
-					data: input.mediaItems.map((item, index) => ({
+				if (input.mediaItems && input.mediaItems.length > 0) {
+					const now = new Date();
+					await db.insert(metaContentCalendarMedia).values(
+						input.mediaItems.map((item, index) => ({
 							id: `media_${randomUUID()}`,
 							calendarPostId: input.id,
 							mediaType: item.mediaType,
@@ -851,8 +859,8 @@ export const metaContentCalendarRouter = router({
 							order: item.order ?? index,
 							createdAt: now,
 							updatedAt: now,
-						})),
-					});
+						}))
+					);
 				}
 			}
 
@@ -917,11 +925,10 @@ export const metaContentCalendarRouter = router({
 				updateData.qstashJobId = newQstashJobId;
 			}
 
-			// Update post
-			await prisma.metaContentCalendar.update({
-				where: { id: input.id },
-				data: updateData,
-			});
+			await db
+				.update(metaContentCalendar)
+				.set(updateData)
+				.where(eq(metaContentCalendar.id, input.id));
 
 			// Create activity log
 			// If only media items were updated (no other fields), log as ADD_MEDIA or UPDATE_MEDIA
@@ -968,11 +975,11 @@ export const metaContentCalendarRouter = router({
 			}
 
 			// Fetch updated post with media items
-			const updatedPost = await prisma.metaContentCalendar.findUnique({
-				where: { id: input.id },
-				include: {
+			const updatedPost = await db.query.metaContentCalendar.findFirst({
+				where: eq(metaContentCalendar.id, input.id),
+				with: {
 					mediaItems: {
-						orderBy: { order: 'asc' },
+						orderBy: (m, { asc: ascCol }) => [ascCol(m.order)],
 					},
 				},
 			});
@@ -1001,9 +1008,9 @@ export const metaContentCalendarRouter = router({
 			await ensureCalendarPostAccess(user.id, user.role, input.id);
 
 			// Get existing post with QStash job ID
-			const existingPost = await prisma.metaContentCalendar.findUnique({
-				where: { id: input.id },
-				select: { published: true, status: true, qstashJobId: true },
+			const existingPost = await db.query.metaContentCalendar.findFirst({
+				where: eq(metaContentCalendar.id, input.id),
+				columns: { published: true, status: true, qstashJobId: true },
 			});
 
 			if (!existingPost) {
@@ -1039,10 +1046,7 @@ export const metaContentCalendarRouter = router({
 				null
 			);
 
-			// Delete post (media items will be cascade deleted)
-			await prisma.metaContentCalendar.delete({
-				where: { id: input.id },
-			});
+			await db.delete(metaContentCalendar).where(eq(metaContentCalendar.id, input.id));
 
 			return {
 				success: true,
@@ -1062,9 +1066,9 @@ export const metaContentCalendarRouter = router({
 			// Ensure user has access to this post
 			await ensureCalendarPostAccess(user.id, user.role, input.calendarPostId);
 
-			const logs = await prisma.metaContentCalendarActivityLog.findMany({
-				where: { calendarPostId: input.calendarPostId },
-				orderBy: { createdAt: 'desc' },
+			const logs = await db.query.metaContentCalendarActivityLog.findMany({
+				where: eq(metaContentCalendarActivityLog.calendarPostId, input.calendarPostId),
+				orderBy: [desc(metaContentCalendarActivityLog.createdAt)],
 			});
 
 			return logs.map((log) => ({
@@ -1096,9 +1100,9 @@ export const metaContentCalendarRouter = router({
 			const user = await getAuthenticatedUser(ctx);
 
 			// Get media item and its post
-			const mediaItem = await prisma.metaContentCalendarMedia.findUnique({
-				where: { id: input.mediaItemId },
-				include: { calendarPost: true },
+			const mediaItem = await db.query.metaContentCalendarMedia.findFirst({
+				where: eq(metaContentCalendarMedia.id, input.mediaItemId),
+				with: { calendarPost: true },
 			});
 
 			if (!mediaItem) {
@@ -1124,15 +1128,24 @@ export const metaContentCalendarRouter = router({
 			const oldDescription = mediaItem.description;
 			const updatedFields: string[] = [];
 
-			// Update media item
-			const updated = await prisma.metaContentCalendarMedia.update({
-				where: { id: input.mediaItemId },
-				data: {
-					caption: input.caption !== undefined ? input.caption || null : undefined,
-					description: input.description !== undefined ? input.description || null : undefined,
+			const [updated] = await db
+				.update(metaContentCalendarMedia)
+				.set({
+					...(input.caption !== undefined ? { caption: input.caption || null } : {}),
+					...(input.description !== undefined
+						? { description: input.description || null }
+						: {}),
 					updatedAt: new Date(),
-				},
-			});
+				})
+				.where(eq(metaContentCalendarMedia.id, input.mediaItemId))
+				.returning();
+
+			if (!updated) {
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Failed to update media item',
+				});
+			}
 
 			// Determine what was updated
 			if (input.caption !== undefined) {
@@ -1155,7 +1168,7 @@ export const metaContentCalendarRouter = router({
 				{
 					mediaItemId: input.mediaItemId,
 					mediaType: updated.mediaType,
-					fileName: (updated as any).fileName || null,
+					fileName: updated.fileName || null,
 					updatedFields,
 					...(input.caption !== undefined && {
 						caption: {
@@ -1179,8 +1192,8 @@ export const metaContentCalendarRouter = router({
 				calendarPostId: updated.calendarPostId,
 				mediaType: updated.mediaType as z.infer<typeof MetaContentMediaTypeEnum>,
 				url: updated.url,
-				fileName: (updated as any).fileName || null,
-				fileSize: (updated as any).fileSize || null,
+				fileName: updated.fileName || null,
+				fileSize: updated.fileSize ?? null,
 				caption: updated.caption,
 				description: updated.description,
 				order: updated.order,
@@ -1199,9 +1212,9 @@ export const metaContentCalendarRouter = router({
 			const user = await getAuthenticatedUser(ctx);
 
 			// Get media item and its post
-			const mediaItem = await prisma.metaContentCalendarMedia.findUnique({
-				where: { id: input.mediaItemId },
-				include: { calendarPost: true },
+			const mediaItem = await db.query.metaContentCalendarMedia.findFirst({
+				where: eq(metaContentCalendarMedia.id, input.mediaItemId),
+				with: { calendarPost: true },
 			});
 
 			if (!mediaItem) {
@@ -1227,12 +1240,12 @@ export const metaContentCalendarRouter = router({
 				user.id,
 				mediaItem.calendarPostId,
 				'DELETE_MEDIA',
-				`Media item deleted: ${(mediaItem as any).fileName || `Media ${mediaItem.order + 1}`}`,
+				`Media item deleted: ${mediaItem.fileName || `Media ${mediaItem.order + 1}`}`,
 				{
 					mediaItemId: input.mediaItemId,
 					mediaType: mediaItem.mediaType,
-					fileName: (mediaItem as any).fileName || null,
-					fileSize: (mediaItem as any).fileSize || null,
+					fileName: mediaItem.fileName || null,
+					fileSize: mediaItem.fileSize ?? null,
 					url: mediaItem.url,
 					caption: mediaItem.caption,
 					description: mediaItem.description,
@@ -1242,10 +1255,9 @@ export const metaContentCalendarRouter = router({
 				null
 			);
 
-			// Delete media item
-			await prisma.metaContentCalendarMedia.delete({
-				where: { id: input.mediaItemId },
-			});
+			await db
+				.delete(metaContentCalendarMedia)
+				.where(eq(metaContentCalendarMedia.id, input.mediaItemId));
 
 			return {
 				success: true,

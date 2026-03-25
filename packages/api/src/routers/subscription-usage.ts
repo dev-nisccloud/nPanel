@@ -1,7 +1,14 @@
+import * as crypto from "node:crypto";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import { protectedProcedure, router } from "../trpc";
-import prisma, { Prisma } from "@nPanel/db";
+import { db } from "@npanel/db";
+import {
+  niscClientSubscription,
+  niscClientSubscriptionUsage,
+  niscClientSubscriptionUsageActivityLog,
+} from "@npanel/db/schema/products";
 
 // ============================================================================
 // ZOD SCHEMAS — independent from the database schema layer
@@ -31,7 +38,7 @@ const setCreditsInputSchema = z.object({
   subscriptionUsageId: z.string(),
   credits: z.string(),
   description: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const creditActionSchema = z.enum(["CREDIT_USE", "CREDIT_ADD", "CREDIT_RESET", "CREDIT_ADJUST"]);
@@ -41,7 +48,7 @@ const addCreditsInputSchema = z.object({
   delta: z.string(), // positive to add, negative to subtract (e.g. "-1" for one use)
   action: creditActionSchema,
   description: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const listActivityLogsInputSchema = z.object({
@@ -131,28 +138,39 @@ export const subscriptionUsageRouter = router({
       if (!ctx.session?.user?.id) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
       }
-      const existing = await prisma.niscClientSubscriptionUsage.findUnique({
-        where: {
-          subscriptionId_usageKind: {
-            subscriptionId: input.subscriptionId,
-            usageKind: input.usageKind,
-          },
-        },
-      });
+      const [existing] = await db
+        .select()
+        .from(niscClientSubscriptionUsage)
+        .where(
+          and(
+            eq(niscClientSubscriptionUsage.subscriptionId, input.subscriptionId),
+            eq(niscClientSubscriptionUsage.usageKind, input.usageKind),
+          ),
+        )
+        .limit(1);
       if (existing) return mapSubscriptionUsage(existing);
-      const subscription = await prisma.niscClientSubscription.findUnique({
-        where: { id: input.subscriptionId },
-      });
+
+      const [subscription] = await db
+        .select({ id: niscClientSubscription.id })
+        .from(niscClientSubscription)
+        .where(eq(niscClientSubscription.id, input.subscriptionId))
+        .limit(1);
       if (!subscription) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
       }
-      const created = await prisma.niscClientSubscriptionUsage.create({
-        data: {
+
+      const [created] = await db
+        .insert(niscClientSubscriptionUsage)
+        .values({
+          id: crypto.randomUUID(),
           subscriptionId: input.subscriptionId,
           usageKind: input.usageKind,
           credits: input.initialCredits ?? "0",
-        },
-      });
+        })
+        .returning();
+      if (!created) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create usage row" });
+      }
       return mapSubscriptionUsage(created);
     }),
 
@@ -164,9 +182,11 @@ export const subscriptionUsageRouter = router({
       if (!ctx.session?.user?.id) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
       }
-      const row = await prisma.niscClientSubscriptionUsage.findUnique({
-        where: { id: input.id },
-      });
+      const [row] = await db
+        .select()
+        .from(niscClientSubscriptionUsage)
+        .where(eq(niscClientSubscriptionUsage.id, input.id))
+        .limit(1);
       if (!row) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Subscription usage not found" });
       }
@@ -181,10 +201,11 @@ export const subscriptionUsageRouter = router({
       if (!ctx.session?.user?.id) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
       }
-      const rows = await prisma.niscClientSubscriptionUsage.findMany({
-        where: { subscriptionId: input.subscriptionId },
-        orderBy: { usageKind: "asc" },
-      });
+      const rows = await db
+        .select()
+        .from(niscClientSubscriptionUsage)
+        .where(eq(niscClientSubscriptionUsage.subscriptionId, input.subscriptionId))
+        .orderBy(asc(niscClientSubscriptionUsage.usageKind));
       return rows.map(mapSubscriptionUsage);
     }),
 
@@ -196,34 +217,38 @@ export const subscriptionUsageRouter = router({
       if (!ctx.session?.user?.id) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
       }
-      const usage = await prisma.niscClientSubscriptionUsage.findUnique({
-        where: { id: input.subscriptionUsageId },
-      });
+      const [usage] = await db
+        .select()
+        .from(niscClientSubscriptionUsage)
+        .where(eq(niscClientSubscriptionUsage.id, input.subscriptionUsageId))
+        .limit(1);
       if (!usage) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Subscription usage not found" });
       }
       const previousCredits = usage.credits;
-      const updated = await prisma.niscClientSubscriptionUsage.update({
-        where: { id: input.subscriptionUsageId },
-        data: {
+      const [updated] = await db
+        .update(niscClientSubscriptionUsage)
+        .set({
           credits: input.credits,
-          metadata:
-            input.metadata != null
-              ? (input.metadata as Prisma.InputJsonValue)
-              : undefined,
-        },
-      });
-      await prisma.niscClientSubscriptionUsageActivityLog.create({
-        data: {
-          subscriptionUsageId: input.subscriptionUsageId,
-          userId: ctx.session.user.id,
-          action: "CREDIT_ADJUST",
-          description: input.description ?? `Credits set to ${input.credits}`,
-          metadata:
-            input.metadata != null
-              ? ({ ...input.metadata, previousCredits, newCredits: input.credits } as Prisma.InputJsonValue)
-              : ({ previousCredits, newCredits: input.credits } as Prisma.InputJsonValue),
-        },
+          ...(input.metadata != null ? { metadata: input.metadata } : {}),
+        })
+        .where(eq(niscClientSubscriptionUsage.id, input.subscriptionUsageId))
+        .returning();
+      if (!updated) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update usage" });
+      }
+      await db.insert(niscClientSubscriptionUsageActivityLog).values({
+        id: crypto.randomUUID(),
+        subscriptionUsageId: input.subscriptionUsageId,
+        userId: ctx.session.user.id,
+        action: "CREDIT_ADJUST",
+        description: input.description ?? `Credits set to ${input.credits}`,
+        metadata:
+          input.metadata != null
+            ? { ...input.metadata, previousCredits, newCredits: input.credits }
+            : { previousCredits, newCredits: input.credits },
+        ipAddress: null,
+        userAgent: null,
       });
       return mapSubscriptionUsage(updated);
     }),
@@ -236,15 +261,17 @@ export const subscriptionUsageRouter = router({
         usage: subscriptionUsageOutputSchema,
         previousCredits: z.string(),
         newCredits: z.string(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
       }
-      const usage = await prisma.niscClientSubscriptionUsage.findUnique({
-        where: { id: input.subscriptionUsageId },
-      });
+      const [usage] = await db
+        .select()
+        .from(niscClientSubscriptionUsage)
+        .where(eq(niscClientSubscriptionUsage.id, input.subscriptionUsageId))
+        .limit(1);
       if (!usage) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Subscription usage not found" });
       }
@@ -261,21 +288,26 @@ export const subscriptionUsageRouter = router({
         newValue = Math.max(0, current + delta);
       }
       const newCredits = String(newValue);
-      const updated = await prisma.niscClientSubscriptionUsage.update({
-        where: { id: input.subscriptionUsageId },
-        data: { credits: newCredits },
-      });
-      await prisma.niscClientSubscriptionUsageActivityLog.create({
-        data: {
-          subscriptionUsageId: input.subscriptionUsageId,
-          userId: ctx.session.user.id,
-          action: input.action,
-          description: input.description ?? undefined,
-          metadata:
-            input.metadata != null
-              ? ({ ...input.metadata, amount: input.delta, previousCredits, newCredits } as Prisma.InputJsonValue)
-              : ({ amount: input.delta, previousCredits, newCredits } as Prisma.InputJsonValue),
-        },
+      const [updated] = await db
+        .update(niscClientSubscriptionUsage)
+        .set({ credits: newCredits })
+        .where(eq(niscClientSubscriptionUsage.id, input.subscriptionUsageId))
+        .returning();
+      if (!updated) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update usage" });
+      }
+      await db.insert(niscClientSubscriptionUsageActivityLog).values({
+        id: crypto.randomUUID(),
+        subscriptionUsageId: input.subscriptionUsageId,
+        userId: ctx.session.user.id,
+        action: input.action,
+        description: input.description ?? null,
+        metadata:
+          input.metadata != null
+            ? { ...input.metadata, amount: input.delta, previousCredits, newCredits }
+            : { amount: input.delta, previousCredits, newCredits },
+        ipAddress: null,
+        userAgent: null,
       });
       return {
         usage: mapSubscriptionUsage(updated),
@@ -291,26 +323,32 @@ export const subscriptionUsageRouter = router({
       z.object({
         items: z.array(activityLogOutputSchema),
         total: z.number(),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
       }
-      const [items, total] = await Promise.all([
-        prisma.niscClientSubscriptionUsageActivityLog.findMany({
-          where: { subscriptionUsageId: input.subscriptionUsageId },
-          orderBy: { createdAt: "desc" },
-          take: input.limit,
-          skip: input.offset,
-        }),
-        prisma.niscClientSubscriptionUsageActivityLog.count({
-          where: { subscriptionUsageId: input.subscriptionUsageId },
-        }),
+      const whereUsage = eq(
+        niscClientSubscriptionUsageActivityLog.subscriptionUsageId,
+        input.subscriptionUsageId,
+      );
+      const [items, totalRow] = await Promise.all([
+        db
+          .select()
+          .from(niscClientSubscriptionUsageActivityLog)
+          .where(whereUsage)
+          .orderBy(desc(niscClientSubscriptionUsageActivityLog.createdAt))
+          .limit(input.limit)
+          .offset(input.offset),
+        db
+          .select({ value: count(niscClientSubscriptionUsageActivityLog.id) })
+          .from(niscClientSubscriptionUsageActivityLog)
+          .where(whereUsage),
       ]);
       return {
         items: items.map(mapActivityLog),
-        total,
+        total: Number(totalRow[0]?.value ?? 0),
       };
     }),
 });

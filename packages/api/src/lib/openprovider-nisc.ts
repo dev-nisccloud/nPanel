@@ -3,8 +3,11 @@
  * Used by the NISC order processor for domain_registration and domain_transfer items.
  */
 import * as crypto from "crypto";
-import prisma from "@nPanel/db";
-import { Prisma } from "@nPanel/db";
+import { and, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { user as userTable } from "@npanel/db/schema/auth";
+import { customerIntegration, userProfile } from "@npanel/db/schema/auth-extras";
+import { niscClientSubscription } from "@npanel/db/schema/products";
 import {
 	createOpenProviderClient,
 	OpenProviderApiError,
@@ -65,14 +68,47 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 	itemPrice: string;
 	currency: string;
 }): Promise<EnsureOpenProviderResult> {
-	const user = await prisma.user.findUnique({
-		where: { id: params.ownerId },
-		include: { profile: true },
-	});
-	if (!user?.profile) {
+	const [userRow] = await db
+		.select({
+			id: userTable.id,
+			name: userTable.name,
+			email: userTable.email,
+			firstName: userProfile.firstName,
+			lastName: userProfile.lastName,
+			phone: userProfile.phone,
+			address: userProfile.address,
+			city: userProfile.city,
+			state: userProfile.state,
+			country: userProfile.country,
+			postalCode: userProfile.postalCode,
+			profileUserId: userProfile.userId,
+		})
+		.from(userTable)
+		.leftJoin(userProfile, eq(userProfile.userId, userTable.id))
+		.where(eq(userTable.id, params.ownerId))
+		.limit(1);
+
+	if (!userRow?.profileUserId) {
 		throw new Error("User or profile not found. Complete your profile information and retry creating an order.");
 	}
-	const profile = user.profile;
+
+	const ownerUser = {
+		id: userRow.id,
+		name: userRow.name,
+		email: userRow.email,
+		profile: {
+			firstName: userRow.firstName ?? "",
+			lastName: userRow.lastName ?? "",
+			address: userRow.address ?? "",
+			city: userRow.city ?? "",
+			country: userRow.country ?? "",
+			postalCode: userRow.postalCode ?? "",
+			state: userRow.state ?? null,
+			phone: userRow.phone ?? "",
+		},
+	};
+
+	const profile = ownerUser.profile;
 	const missing = PROFILE_REQUIRED.filter(
 		(k) => !(profile as Record<string, unknown>)[k] || String((profile as Record<string, unknown>)[k]).trim() === "",
 	);
@@ -82,12 +118,28 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 		);
 	}
 
-	let integration = await prisma.customerIntegration.findUnique({
-		where: {
-			userId_platform: { userId: params.ownerId, platform: "OPENPROVIDER" },
-		},
-		include: { user: true },
-	});
+	const [integrationRow] = await db
+		.select({
+			id: customerIntegration.id,
+			platformCustomerId: customerIntegration.platformCustomerId,
+		})
+		.from(customerIntegration)
+		.where(
+			and(
+				eq(customerIntegration.userId, params.ownerId),
+				eq(customerIntegration.platform, "OPENPROVIDER"),
+			),
+		)
+		.limit(1);
+
+	let integration: { id: string; platformCustomerId: string; user: { email: string; name: string } } | null =
+		integrationRow
+			? {
+					id: integrationRow.id,
+					platformCustomerId: integrationRow.platformCustomerId ?? "",
+					user: { email: ownerUser.email, name: ownerUser.name },
+				}
+			: null;
 
 	const client = createOpenProviderClient();
 	const authResponse = await client.authenticate({
@@ -102,11 +154,11 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 		rawResponse: authResponse,
 	});
 
-	if (!integration) {
+		if (!integration) {
 		// Create customer on OpenProvider and integration record (profile already validated for required fields)
 		const openProviderData = buildOpenProviderCustomerRequest(
 			profile as { firstName: string; lastName: string; address: string; city: string; country: string; postalCode: string; state?: string; phone: string },
-			user.email ?? "",
+			ownerUser.email ?? "",
 		);
 		const response = await client.createCustomer(openProviderData);
 		logOpenProviderResponse({
@@ -126,28 +178,36 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 		const handle = response.data?.handle;
 		if (!handle) throw new Error("OpenProvider did not return customer handle");
 
-		const now = new Date();
-		integration = await prisma.customerIntegration.create({
-			data: {
-				id: crypto.randomUUID(),
-				userId: params.ownerId,
-				platform: "OPENPROVIDER",
-				platformCustomerId: handle,
-				isCreated: true,
-				isActive: true,
-				createdBy: params.createdBy,
-				createdAt: now,
-				lastSyncedAt: now,
-				updatedAt: now,
-				platformData: response.data ?? undefined,
-			},
-			include: { user: true },
-		});
+			const now = new Date();
+			const inserted = await db
+				.insert(customerIntegration)
+				.values({
+					id: crypto.randomUUID(),
+					userId: params.ownerId,
+					platform: "OPENPROVIDER",
+					platformCustomerId: handle,
+					isCreated: true,
+					isActive: true,
+					createdBy: params.createdBy,
+					createdAt: now,
+					lastSyncedAt: now,
+					updatedAt: now,
+					platformData: response.data ?? null,
+				})
+				.returning();
+
+			const createdRow = inserted[0];
+			if (!createdRow) throw new Error("Failed to create OpenProvider integration");
+			integration = {
+				id: createdRow.id,
+				platformCustomerId: createdRow.platformCustomerId ?? "",
+				user: { email: ownerUser.email, name: ownerUser.name },
+			};
 
 		let alreadyVerified = false;
 		try {
 			const startVerifyResp = await client.startEmailVerification({
-				email: user.email ?? "",
+				email: ownerUser.email ?? "",
 				handle,
 				language: "en",
 			});
@@ -180,7 +240,7 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 				domainName: params.domainName,
 			});
 			await sendEmail({
-				to: user.email!,
+				to: ownerUser.email!,
 				subject: "Verify your email to complete domain purchase",
 				html,
 			});
@@ -355,14 +415,47 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 	nameServers?: Array<{ name: string; ip?: string }>;
 	period?: number;
 }): Promise<EnsureOpenProviderTransferResult> {
-	const user = await prisma.user.findUnique({
-		where: { id: params.ownerId },
-		include: { profile: true },
-	});
-	if (!user?.profile) {
+	const [userRow] = await db
+		.select({
+			id: userTable.id,
+			name: userTable.name,
+			email: userTable.email,
+			firstName: userProfile.firstName,
+			lastName: userProfile.lastName,
+			phone: userProfile.phone,
+			address: userProfile.address,
+			city: userProfile.city,
+			state: userProfile.state,
+			country: userProfile.country,
+			postalCode: userProfile.postalCode,
+			profileUserId: userProfile.userId,
+		})
+		.from(userTable)
+		.leftJoin(userProfile, eq(userProfile.userId, userTable.id))
+		.where(eq(userTable.id, params.ownerId))
+		.limit(1);
+
+	if (!userRow?.profileUserId) {
 		throw new Error("User or profile not found. Complete your profile information and retry.");
 	}
-	const profile = user.profile;
+
+	const ownerUser = {
+		id: userRow.id,
+		name: userRow.name,
+		email: userRow.email,
+		profile: {
+			firstName: userRow.firstName ?? "",
+			lastName: userRow.lastName ?? "",
+			phone: userRow.phone ?? "",
+			address: userRow.address ?? "",
+			city: userRow.city ?? "",
+			state: userRow.state ?? null,
+			country: userRow.country ?? "",
+			postalCode: userRow.postalCode ?? "",
+		},
+	};
+
+	const profile = ownerUser.profile;
 	const missing = PROFILE_REQUIRED.filter(
 		(k) => !(profile as Record<string, unknown>)[k] || String((profile as Record<string, unknown>)[k]).trim() === "",
 	);
@@ -372,12 +465,28 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 		);
 	}
 
-	let integration = await prisma.customerIntegration.findUnique({
-		where: {
-			userId_platform: { userId: params.ownerId, platform: "OPENPROVIDER" },
-		},
-		include: { user: true },
-	});
+	const [integrationRow] = await db
+		.select({
+			id: customerIntegration.id,
+			platformCustomerId: customerIntegration.platformCustomerId,
+		})
+		.from(customerIntegration)
+		.where(
+			and(
+				eq(customerIntegration.userId, params.ownerId),
+				eq(customerIntegration.platform, "OPENPROVIDER"),
+			),
+		)
+		.limit(1);
+
+	let integration: { id: string; platformCustomerId: string; user: { email: string; name: string } } | null =
+		integrationRow
+			? {
+					id: integrationRow.id,
+					platformCustomerId: integrationRow.platformCustomerId ?? "",
+					user: { email: ownerUser.email, name: ownerUser.name },
+				}
+			: null;
 
 	const client = createOpenProviderClient();
 	const authResponse = await client.authenticate({
@@ -395,7 +504,7 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 	if (!integration) {
 		const openProviderData = buildOpenProviderCustomerRequest(
 			profile as { firstName: string; lastName: string; address: string; city: string; country: string; postalCode: string; state?: string; phone: string },
-			user.email ?? "",
+			ownerUser.email ?? "",
 		);
 		const response = await client.createCustomer(openProviderData);
 		logOpenProviderResponse({
@@ -416,8 +525,9 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 		if (!handle) throw new Error("OpenProvider did not return customer handle");
 
 		const now = new Date();
-		integration = await prisma.customerIntegration.create({
-			data: {
+		const inserted = await db
+			.insert(customerIntegration)
+			.values({
 				id: crypto.randomUUID(),
 				userId: params.ownerId,
 				platform: "OPENPROVIDER",
@@ -428,15 +538,22 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 				createdAt: now,
 				lastSyncedAt: now,
 				updatedAt: now,
-				platformData: response.data ?? undefined,
-			},
-			include: { user: true },
-		});
+				platformData: response.data ?? null,
+			})
+			.returning();
+
+		const createdRow = inserted[0];
+		if (!createdRow) throw new Error("Failed to create OpenProvider integration");
+		integration = {
+			id: createdRow.id,
+			platformCustomerId: createdRow.platformCustomerId ?? "",
+			user: { email: ownerUser.email, name: ownerUser.name },
+		};
 
 		let alreadyVerified = false;
 		try {
 			const startVerifyResp = await client.startEmailVerification({
-				email: user.email ?? "",
+				email: ownerUser.email ?? "",
 				handle,
 				language: "en",
 			});
@@ -469,7 +586,7 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 				domainName: params.domainName,
 			});
 			await sendEmail({
-				to: user.email!,
+				to: ownerUser.email!,
 				subject: "Verify your email to complete domain transfer",
 				html,
 			});
@@ -684,10 +801,13 @@ async function createDomainSubscription(
 	openProviderId: number | null,
 	status: "PENDING" | "ACTIVE",
 ) {
-	return prisma.niscClientSubscription.create({
-		data: {
+	const subId = crypto.randomUUID();
+	const [sub] = await db
+		.insert(niscClientSubscription)
+		.values({
+			id: subId,
 			name: primaryDomain,
-			description: params.description ?? undefined,
+			description: params.description ?? null,
 			userId: params.userId,
 			teamId: params.teamId,
 			productId: params.productId,
@@ -696,13 +816,18 @@ async function createDomainSubscription(
 			subscribedBy: params.createdBy,
 			status,
 			subscriptionDate: new Date(),
-			billingCycle: params.billingCycle as any ?? null,
+			billingCycle: (params.billingCycle as any) ?? null,
 			pricingModel: "FIXED",
 			agreedPrice: params.itemPrice,
 			agreedCurrency: params.currency,
 			primaryDomain,
 			openProviderId,
-			metadata: Prisma.JsonNull,
-		},
-	});
+			agreedCommissionRate: null as any,
+			agreedCommissionBase: null,
+			metadata: null,
+		})
+		.returning();
+
+	if (!sub) throw new Error("Failed to create OpenProvider domain subscription");
+	return sub;
 }

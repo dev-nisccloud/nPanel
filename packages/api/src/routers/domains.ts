@@ -1,8 +1,16 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, desc, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { user as userTable } from "@npanel/db/schema/auth";
+import { team, teamMember } from "@npanel/db/schema/teams";
+import { domain, domainActivityLog } from "@npanel/db/schema/domains";
+import {
+  notification,
+  notificationActivityLog,
+} from "@npanel/db/schema/notifications";
 import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
@@ -136,28 +144,120 @@ async function getAuthenticatedUser(ctx: { session: { user?: { id: string } } | 
   if (!uid) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in to view domains" });
   }
-  const user = await prisma.user.findUnique({
-    where: { id: uid },
-    select: { id: true, role: true },
-  });
-  if (!user) {
+  const [u] = await db
+    .select({ id: userTable.id, role: userTable.role })
+    .from(userTable)
+    .where(eq(userTable.id, uid))
+    .limit(1);
+  if (!u) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found" });
   }
-  return user as { id: string; role: string };
+  return u as { id: string; role: string };
 }
 
 async function ensureTeamAccess(teamId: string, userId: string, role: string) {
   if (isAgencyUser(role)) return;
-  const m = await prisma.teamMember.findFirst({
-    where: { teamId, userId },
-    select: { id: true },
-  });
+  const [m] = await db
+    .select({ id: teamMember.id })
+    .from(teamMember)
+    .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+    .limit(1);
   if (!m) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "You do not have access to this team.",
     });
   }
+}
+
+type DomainWithRelations = z.infer<typeof domainOutputSchema>;
+
+async function fetchDomainById(id: string): Promise<DomainWithRelations | null> {
+  const [row] = await db
+    .select({
+      id: domain.id,
+      domainName: domain.domainName,
+      userId: domain.userId,
+      teamId: domain.teamId,
+      openProviderId: domain.openProviderId,
+      activationDate: domain.activationDate,
+      expirationDate: domain.expirationDate,
+      renewalDate: domain.renewalDate,
+      registrationDate: domain.registrationDate,
+      openProviderPrice: domain.openProviderPrice,
+      niscPrice: domain.niscPrice,
+      notes: domain.notes,
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
+      user: {
+        id: userTable.id,
+        name: userTable.name,
+        email: userTable.email,
+      },
+      team: {
+        id: team.id,
+        name: team.name,
+        slug: team.slug,
+      },
+    })
+    .from(domain)
+    .leftJoin(userTable, eq(domain.userId, userTable.id))
+    .leftJoin(team, eq(domain.teamId, team.id))
+    .where(eq(domain.id, id))
+    .limit(1);
+
+  if (!row) return null;
+
+  return {
+    ...row,
+    user: row.user?.id ? row.user : undefined,
+    team: row.team?.id ? row.team : null,
+  } as DomainWithRelations;
+}
+
+async function fetchDomainByDomainName(
+  domainName: string,
+): Promise<DomainWithRelations | null> {
+  const [row] = await db
+    .select({
+      id: domain.id,
+      domainName: domain.domainName,
+      userId: domain.userId,
+      teamId: domain.teamId,
+      openProviderId: domain.openProviderId,
+      activationDate: domain.activationDate,
+      expirationDate: domain.expirationDate,
+      renewalDate: domain.renewalDate,
+      registrationDate: domain.registrationDate,
+      openProviderPrice: domain.openProviderPrice,
+      niscPrice: domain.niscPrice,
+      notes: domain.notes,
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
+      user: {
+        id: userTable.id,
+        name: userTable.name,
+        email: userTable.email,
+      },
+      team: {
+        id: team.id,
+        name: team.name,
+        slug: team.slug,
+      },
+    })
+    .from(domain)
+    .leftJoin(userTable, eq(domain.userId, userTable.id))
+    .leftJoin(team, eq(domain.teamId, team.id))
+    .where(eq(domain.domainName, domainName))
+    .limit(1);
+
+  if (!row) return null;
+
+  return {
+    ...row,
+    user: row.user?.id ? row.user : undefined,
+    team: row.team?.id ? row.team : null,
+  } as DomainWithRelations;
 }
 
 // ============================================================================
@@ -183,9 +283,7 @@ export const domainsRouter = router({
 
       try {
         // Check if domain already exists
-        const existingDomain = await prisma.domain.findUnique({
-          where: { domainName: input.domainName },
-        });
+        const existingDomain = await fetchDomainByDomainName(input.domainName);
 
         if (existingDomain) {
           throw new TRPCError({
@@ -195,24 +293,31 @@ export const domainsRouter = router({
         }
 
         // Verify team exists and get team owner
-        const team = await prisma.team.findUnique({
-          where: { id: input.teamId },
-          include: {
-            members: {
-              where: { role: "OWNER" },
-              include: { user: true },
-            },
-          },
-        });
+        const [teamRow] = await db
+          .select({ id: team.id, name: team.name, slug: team.slug })
+          .from(team)
+          .where(eq(team.id, input.teamId))
+          .limit(1);
 
-        if (!team) {
+        if (!teamRow) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Team not found",
           });
         }
 
-        const teamOwner = team.members[0]?.user;
+        const [teamOwner] = await db
+          .select({
+            id: userTable.id,
+            name: userTable.name,
+            email: userTable.email,
+          })
+          .from(teamMember)
+          .innerJoin(team, eq(teamMember.teamId, team.id))
+          .innerJoin(userTable, eq(teamMember.userId, userTable.id))
+          .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.role, "OWNER")))
+          .limit(1);
+
         if (!teamOwner) {
           throw new TRPCError({
             code: "NOT_FOUND",
@@ -221,106 +326,92 @@ export const domainsRouter = router({
         }
 
         // Use transaction for atomicity
-        const result = await prisma.$transaction(async (tx) => {
-          // Create domain record
+        const createdDomainId = await db.transaction(async (tx: any) => {
           const now = new Date();
-          const domain = await tx.domain.create({
-            data: {
-              id: randomUUID(),
+          const domainId = randomUUID();
+
+          await tx.insert(domain).values({
+            id: domainId,
+            domainName: input.domainName,
+            userId,
+            teamId: input.teamId,
+            openProviderId: input.openProviderId,
+            activationDate: input.activationDate ?? null,
+            expirationDate: input.expirationDate ?? null,
+            renewalDate: input.renewalDate ?? null,
+            registrationDate: input.registrationDate,
+            openProviderPrice: input.openProviderPrice ?? null,
+            niscPrice: input.niscPrice ?? null,
+            notes: input.notes ?? null,
+            createdAt: now,
+            updatedAt: now,
+          });
+
+          await tx.insert(domainActivityLog).values({
+            id: randomUUID(),
+            userId,
+            domainId,
+            teamId: input.teamId,
+            action: "LINK_TEAM",
+            description: `Domain linked to team: ${teamRow.name}`,
+            metadata: {
+              teamId: input.teamId,
+              teamName: teamRow.name,
+              linkedBy: userId,
+            },
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
+          });
+
+          const notificationId = randomUUID();
+          await tx.insert(notification).values({
+            id: notificationId,
+            userId: teamOwner.id,
+            teamId: input.teamId,
+            type: "DOMAIN",
+            priority: "NORMAL",
+            title: "Domain Added to Team",
+            message: `Domain ${input.domainName} has been added to your team "${teamRow.name}" successfully. You can now manage it and perform other operations.`,
+            link: `/agency/domains-portfolio`,
+            metadata: {
+              domainId,
               domainName: input.domainName,
-              userId,
+              linkedBy: userId,
+            },
+            seen: false,
+            readAt: null,
+            createdAt: now,
+            updatedAt: now,
+          });
+
+          await tx.insert(notificationActivityLog).values({
+            id: randomUUID(),
+            userId: teamOwner.id,
+            notificationId,
+            action: "CREATE",
+            description: `Notification created for domain link: ${input.domainName}`,
+            metadata: {
+              domainId,
+              domainName: input.domainName,
               teamId: input.teamId,
-              openProviderId: input.openProviderId,
-              activationDate: input.activationDate ?? null,
-              expirationDate: input.expirationDate ?? null,
-              renewalDate: input.renewalDate ?? null,
-              registrationDate: input.registrationDate,
-              openProviderPrice: input.openProviderPrice ?? null,
-              niscPrice: input.niscPrice ?? null,
-              notes: input.notes ?? null,
-              createdAt: now,
-              updatedAt: now,
             },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              team: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                },
-              },
-            },
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
           });
 
-          // Create activity log for linking operation
-          await tx.domainActivityLog.create({
-            data: {
-              id: randomUUID(),
-              userId,
-              domainId: domain.id,
-              action: "LINK_TEAM",
-              description: `Domain linked to team: ${team.name}`,
-              metadata: {
-                teamId: input.teamId,
-                teamName: team.name,
-                linkedBy: userId,
-              },
-              ipAddress: null, // Headers not available in tRPC context
-              userAgent: null, // Headers not available in tRPC context
-              createdAt: new Date(),
-            },
-          });
-
-          // Create notification for team owner
-          const notification = await tx.notification.create({
-            data: {
-              id: randomUUID(),
-              userId: teamOwner.id,
-              teamId: input.teamId,
-              type: "DOMAIN",
-              priority: "NORMAL",
-              title: "Domain Added to Team",
-              message: `Domain ${input.domainName} has been added to your team "${team.name}" successfully. You can now manage it and perform other operations.`,
-              link: `/agency/domains-portfolio`,
-              metadata: {
-                domainId: domain.id,
-                domainName: input.domainName,
-                linkedBy: userId,
-              },
-              seen: false,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-          });
-
-          // Create notification activity log
-          await tx.notificationActivityLog.create({
-            data: {
-              id: randomUUID(),
-              userId: teamOwner.id,
-              notificationId: notification.id,
-              action: "CREATE",
-              description: `Notification created for domain link: ${input.domainName}`,
-              metadata: {
-                domainId: domain.id,
-                domainName: input.domainName,
-                teamId: input.teamId,
-              },
-              ipAddress: null, // Headers not available in tRPC context
-              userAgent: null, // Headers not available in tRPC context
-              createdAt: new Date(),
-            },
-          });
-
-          return domain;
+          return domainId;
         });
+
+        const result = await fetchDomainById(createdDomainId);
+
+        if (!result) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Created domain could not be fetched",
+          });
+        }
 
         return {
           success: true,
@@ -350,47 +441,29 @@ export const domainsRouter = router({
     .input(getDomainByIdInputSchema)
     .output(getDomainByIdOutputSchema)
     .query(async ({ input, ctx }) => {
-      const user = await getAuthenticatedUser(ctx);
+        const authenticatedUser = await getAuthenticatedUser(ctx);
 
       try {
-        const domain = await prisma.domain.findUnique({
-          where: { id: input.id },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        });
+        const domainRow = await fetchDomainById(input.id);
 
-        if (!domain) {
+        if (!domainRow) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Domain not found",
           });
         }
 
-        if (!isAgencyUser(user.role)) {
-          if (!domain.teamId) {
+        if (!isAgencyUser(authenticatedUser.role)) {
+          if (!domainRow.teamId) {
             throw new TRPCError({
               code: "FORBIDDEN",
               message: "You do not have access to this domain.",
             });
           }
-          await ensureTeamAccess(domain.teamId, user.id, user.role);
+          await ensureTeamAccess(domainRow.teamId, authenticatedUser.id, authenticatedUser.role);
         }
 
-        return domain;
+        return domainRow;
       } catch (error) {
         console.error("Get domain by ID error:", error);
 
@@ -422,27 +495,7 @@ export const domainsRouter = router({
       }
 
       try {
-        const domain = await prisma.domain.findUnique({
-          where: { domainName: input.domainName },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        });
-
-        return domain;
+        return await fetchDomainByDomainName(input.domainName);
       } catch (error) {
         console.error("Get domain by domain name error:", error);
 
@@ -465,32 +518,48 @@ export const domainsRouter = router({
     .input(getDomainsByTeamInputSchema)
     .output(getDomainsByTeamOutputSchema)
     .query(async ({ input, ctx }) => {
-      const user = await getAuthenticatedUser(ctx);
-      await ensureTeamAccess(input.teamId, user.id, user.role);
+        const authenticatedUser = await getAuthenticatedUser(ctx);
+        await ensureTeamAccess(input.teamId, authenticatedUser.id, authenticatedUser.role);
 
       try {
-        const domains = await prisma.domain.findMany({
-          where: { teamId: input.teamId },
-          include: {
+        const rows = await db
+          .select({
+            id: domain.id,
+            domainName: domain.domainName,
+            userId: domain.userId,
+            teamId: domain.teamId,
+            openProviderId: domain.openProviderId,
+            activationDate: domain.activationDate,
+            expirationDate: domain.expirationDate,
+            renewalDate: domain.renewalDate,
+            registrationDate: domain.registrationDate,
+            openProviderPrice: domain.openProviderPrice,
+            niscPrice: domain.niscPrice,
+            notes: domain.notes,
+            createdAt: domain.createdAt,
+            updatedAt: domain.updatedAt,
             user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
+              id: userTable.id,
+              name: userTable.name,
+              email: userTable.email,
             },
             team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
+              id: team.id,
+              name: team.name,
+              slug: team.slug,
             },
-          },
-          orderBy: { createdAt: "desc" },
-        });
+          })
+          .from(domain)
+          .leftJoin(userTable, eq(domain.userId, userTable.id))
+          .leftJoin(team, eq(domain.teamId, team.id))
+          .where(eq(domain.teamId, input.teamId))
+          .orderBy(desc(domain.createdAt));
 
-        return domains;
+        return rows.map((r) => ({
+          ...r,
+          user: r.user?.id ? r.user : undefined,
+          team: r.team?.id ? r.team : null,
+        })) as DomainWithRelations[];
       } catch (error) {
         console.error("Get domains by team error:", error);
 
@@ -517,28 +586,44 @@ export const domainsRouter = router({
       }
 
       try {
-        const domains = await prisma.domain.findMany({
-          where: { userId },
-          include: {
+        const rows = await db
+          .select({
+            id: domain.id,
+            domainName: domain.domainName,
+            userId: domain.userId,
+            teamId: domain.teamId,
+            openProviderId: domain.openProviderId,
+            activationDate: domain.activationDate,
+            expirationDate: domain.expirationDate,
+            renewalDate: domain.renewalDate,
+            registrationDate: domain.registrationDate,
+            openProviderPrice: domain.openProviderPrice,
+            niscPrice: domain.niscPrice,
+            notes: domain.notes,
+            createdAt: domain.createdAt,
+            updatedAt: domain.updatedAt,
             user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
+              id: userTable.id,
+              name: userTable.name,
+              email: userTable.email,
             },
             team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
+              id: team.id,
+              name: team.name,
+              slug: team.slug,
             },
-          },
-          orderBy: { createdAt: "desc" },
-        });
+          })
+          .from(domain)
+          .leftJoin(userTable, eq(domain.userId, userTable.id))
+          .leftJoin(team, eq(domain.teamId, team.id))
+          .where(eq(domain.userId, userId))
+          .orderBy(desc(domain.createdAt));
 
-        return domains;
+        return rows.map((r) => ({
+          ...r,
+          user: r.user?.id ? r.user : undefined,
+          team: r.team?.id ? r.team : null,
+        })) as DomainWithRelations[];
       } catch (error) {
         console.error("Get domains by user error:", error);
 
@@ -565,52 +650,31 @@ export const domainsRouter = router({
       }
 
       try {
-        const domain = await prisma.$transaction(async (tx) => {
-          const updatedDomain = await tx.domain.update({
-            where: { id: input.id },
-            data: {
-              notes: input.notes ?? null,
-              updatedAt: new Date(),
-            },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              team: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                },
-              },
-            },
-          });
+        await db.transaction(async (tx: any) => {
+          await tx
+            .update(domain)
+            .set({ notes: input.notes ?? null, updatedAt: new Date() })
+            .where(eq(domain.id, input.id));
 
-          // Create activity log
-          await tx.domainActivityLog.create({
-            data: {
-              id: randomUUID(),
-              userId,
-              domainId: input.id,
-              action: "UPDATE_NOTES",
-              description: "Domain notes updated",
-              metadata: {
-                notes: input.notes,
-              },
-              ipAddress: null, // Headers not available in tRPC context
-              userAgent: null, // Headers not available in tRPC context
-              createdAt: new Date(),
-            },
+          await tx.insert(domainActivityLog).values({
+            id: randomUUID(),
+            userId,
+            domainId: input.id,
+            teamId: null,
+            action: "UPDATE_NOTES",
+            description: "Domain notes updated",
+            metadata: { notes: input.notes },
+            ipAddress: null,
+            userAgent: null,
+            createdAt: new Date(),
           });
-
-          return updatedDomain;
         });
 
-        return domain;
+        const updated = await fetchDomainById(input.id);
+        if (!updated) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+        }
+        return updated;
       } catch (error) {
         console.error("Update domain notes error:", error);
 
@@ -641,73 +705,42 @@ export const domainsRouter = router({
       }
 
       try {
-        const domain = await prisma.$transaction(async (tx) => {
-          // Get domain with team info
-          const existingDomain = await tx.domain.findUnique({
-            where: { id: input.id },
-            include: {
-              team: true,
+        const existing = await fetchDomainById(input.id);
+        if (!existing) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+        }
+
+        await db.transaction(async (tx: any) => {
+          await tx
+            .update(domain)
+            .set({ teamId: null, updatedAt: new Date() })
+            .where(eq(domain.id, input.id));
+
+          await tx.insert(domainActivityLog).values({
+            id: randomUUID(),
+            userId,
+            domainId: input.id,
+            teamId: existing.teamId,
+            action: "UNLINK_TEAM",
+            description: existing.teamId
+              ? `Domain unlinked from team: ${existing.team?.name ?? ""}`.trim()
+              : "Domain unlinked from team",
+            metadata: {
+              previousTeamId: existing.teamId,
+              previousTeamName: existing.team?.name ?? null,
+              unlinkedBy: userId,
             },
+            ipAddress: null,
+            userAgent: null,
+            createdAt: new Date(),
           });
-
-          if (!existingDomain) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Domain not found",
-            });
-          }
-
-          const teamId = existingDomain.teamId;
-          const teamName = existingDomain.team?.name;
-
-          // Update domain to remove team link
-          const updatedDomain = await tx.domain.update({
-            where: { id: input.id },
-            data: {
-              teamId: null,
-              updatedAt: new Date(),
-            },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              team: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                },
-              },
-            },
-          });
-
-          // Create activity log
-          await tx.domainActivityLog.create({
-            data: {
-              id: randomUUID(),
-              userId,
-              domainId: input.id,
-              action: "UNLINK_TEAM",
-              description: teamId ? `Domain unlinked from team: ${teamName}` : "Domain unlinked from team",
-              metadata: {
-                previousTeamId: teamId,
-                previousTeamName: teamName,
-                unlinkedBy: userId,
-              },
-              ipAddress: null, // Headers not available in tRPC context
-              userAgent: null, // Headers not available in tRPC context
-              createdAt: new Date(),
-            },
-          });
-
-          return updatedDomain;
         });
 
-        return domain;
+        const updated = await fetchDomainById(input.id);
+        if (!updated) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+        }
+        return updated;
       } catch (error) {
         console.error("Unlink domain from team error:", error);
 
@@ -739,109 +772,92 @@ export const domainsRouter = router({
       }
 
       try {
-        const team = await prisma.team.findUnique({
-          where: { id: input.teamId },
-          include: {
-            members: {
-              where: { role: "OWNER" },
-              include: { user: true },
-            },
-          },
-        });
+        const [teamRow] = await db
+          .select({ id: team.id, name: team.name, slug: team.slug })
+          .from(team)
+          .where(eq(team.id, input.teamId))
+          .limit(1);
 
-        if (!team) {
+        if (!teamRow) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Team not found",
           });
         }
 
-        const domain = await prisma.$transaction(async (tx) => {
-          const existingDomain = await tx.domain.findUnique({
-            where: { id: input.id },
-            include: { team: true },
-          });
+        const existingDomain = await fetchDomainById(input.id);
+        if (!existingDomain) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+        }
 
-          if (!existingDomain) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Domain not found",
-            });
-          }
+        const [teamOwner] = await db
+          .select({ id: userTable.id })
+          .from(teamMember)
+          .innerJoin(userTable, eq(teamMember.userId, userTable.id))
+          .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.role, "OWNER")))
+          .limit(1);
 
-          const updatedDomain = await tx.domain.update({
-            where: { id: input.id },
-            data: {
+        const now = new Date();
+
+        await db.transaction(async (tx: any) => {
+          await tx
+            .update(domain)
+            .set({
               teamId: input.teamId,
-              ...(input.openProviderPrice !== undefined && { openProviderPrice: input.openProviderPrice ?? null }),
+              ...(input.openProviderPrice !== undefined && {
+                openProviderPrice: input.openProviderPrice ?? null,
+              }),
               ...(input.niscPrice !== undefined && { niscPrice: input.niscPrice ?? null }),
               ...(input.notes !== undefined && { notes: input.notes ?? null }),
-              updatedAt: new Date(),
+              updatedAt: now,
+            })
+            .where(eq(domain.id, input.id));
+
+          await tx.insert(domainActivityLog).values({
+            id: randomUUID(),
+            userId,
+            domainId: input.id,
+            teamId: input.teamId,
+            action: "LINK_TEAM",
+            description: `Domain linked to team: ${teamRow.name}`,
+            metadata: {
+              teamId: input.teamId,
+              teamName: teamRow.name,
+              linkedBy: userId,
             },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              team: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                },
-              },
-            },
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
           });
 
-          await tx.domainActivityLog.create({
-            data: {
+          if (teamOwner) {
+            await tx.insert(notification).values({
               id: randomUUID(),
-              userId,
-              domainId: input.id,
-              action: "LINK_TEAM",
-              description: `Domain linked to team: ${team.name}`,
+              userId: teamOwner.id,
+              teamId: input.teamId,
+              type: "DOMAIN",
+              priority: "NORMAL",
+              title: "Domain Linked to Team",
+              message: `Domain ${existingDomain.domainName} has been linked to your team "${teamRow.name}".`,
+              link: "/agency/domains-portfolio",
               metadata: {
-                teamId: input.teamId,
-                teamName: team.name,
+                domainId: input.id,
+                domainName: existingDomain.domainName,
                 linkedBy: userId,
               },
-              ipAddress: null,
-              userAgent: null,
-              createdAt: new Date(),
-            },
-          });
-
-          const teamOwner = team.members[0]?.user;
-          if (teamOwner) {
-            await tx.notification.create({
-              data: {
-                id: randomUUID(),
-                userId: teamOwner.id,
-                teamId: input.teamId,
-                type: "DOMAIN",
-                priority: "NORMAL",
-                title: "Domain Linked to Team",
-                message: `Domain ${existingDomain.domainName} has been linked to your team "${team.name}".`,
-                link: "/agency/domains-portfolio",
-                metadata: {
-                  domainId: input.id,
-                  domainName: existingDomain.domainName,
-                  linkedBy: userId,
-                },
-                seen: false,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
+              seen: false,
+              readAt: null,
+              createdAt: now,
+              updatedAt: now,
             });
           }
-
-          return updatedDomain;
         });
 
-        return domain;
+        const updated = await fetchDomainById(input.id);
+        if (!updated) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+        }
+        return updated;
       } catch (error) {
         console.error("Update domain team error:", error);
 

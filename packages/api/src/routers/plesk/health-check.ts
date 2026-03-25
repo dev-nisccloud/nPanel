@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { XMLParser } from "fast-xml-parser";
 import { publicProcedure, router } from "../../trpc";
 import { sendPleskXmlRequest } from "../../lib/plesk/xml-client";

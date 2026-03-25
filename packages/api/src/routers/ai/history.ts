@@ -1,12 +1,14 @@
 import { TRPCError } from "@trpc/server";
+import { and, desc, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { aiChat } from "@npanel/db/schema/ai";
+import { user } from "@npanel/db/schema/auth";
 import { protectedProcedure, router } from "../../trpc";
-import prisma from "@nPanel/db";
 import {
     getAiChatHistorySchema,
     getAiChatByIdSchema,
     aiChatListItemSchema,
     aiChatSchema,
-    aiChatMessageSchema
 } from "./schemas";
 import { z } from "zod";
 
@@ -66,34 +68,24 @@ export const aiHistoryRouter = router({
         .query(async ({ ctx, input }) => {
             const userId = ctx.session.user.id;
 
-            const where: any = {
-                userId,
-            };
-
+            const conditions = [eq(aiChat.userId, userId)];
             if (input.teamId) {
-                where.teamId = input.teamId;
+                conditions.push(eq(aiChat.teamId, input.teamId));
             }
 
-            const chats = await prisma.aiChat.findMany({
-                where,
-                include: {
+            const chats = await db.query.aiChat.findMany({
+                where: and(...conditions),
+                orderBy: [desc(aiChat.updatedAt)],
+                limit: input.limit,
+                offset: input.offset,
+                with: {
                     messages: {
-                        orderBy: {
-                            createdAt: "desc",
-                        },
-                        take: 1,
-                        where: {
-                            role: {
-                                in: ["user", "assistant"],
-                            },
-                        },
+                        where: (m, { inArray: inArr }) =>
+                            inArr(m.role, ["user", "assistant"]),
+                        orderBy: (m, { desc: descCol }) => [descCol(m.createdAt)],
+                        limit: 1,
                     },
                 },
-                orderBy: {
-                    updatedAt: "desc",
-                },
-                take: input.limit,
-                skip: input.offset,
             });
 
             return chats.map(transformAiChatListItem);
@@ -106,15 +98,11 @@ export const aiHistoryRouter = router({
         .query(async ({ ctx, input }) => {
             const userId = ctx.session.user.id;
 
-            const chat = await prisma.aiChat.findUnique({
-                where: {
-                    id: input.id,
-                },
-                include: {
+            const chat = await db.query.aiChat.findFirst({
+                where: eq(aiChat.id, input.id),
+                with: {
                     messages: {
-                        orderBy: {
-                            createdAt: "asc",
-                        },
+                        orderBy: (m, { asc: ascFn }) => [ascFn(m.createdAt)],
                     },
                 },
             });
@@ -129,12 +117,12 @@ export const aiHistoryRouter = router({
             // Security: verify user owns the chat
             if (chat.userId !== userId) {
                 // Check if it's an agency user (optional, but good practice if agency can see customer chats)
-                const user = await prisma.user.findUnique({
-                    where: { id: userId },
-                    select: { role: true }
+                const agencyUser = await db.query.user.findFirst({
+                    where: eq(user.id, userId),
+                    columns: { role: true },
                 });
 
-                if (!user?.role?.includes("AGENCY")) {
+                if (!agencyUser?.role?.includes("AGENCY")) {
                     throw new TRPCError({
                         code: "FORBIDDEN",
                         message: "You do not have permission to view this chat history",

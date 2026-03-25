@@ -1,8 +1,12 @@
 import * as crypto from "crypto";
 import { TRPCError } from "@trpc/server";
+import { db } from "@npanel/db";
+import { webDesignQuoteRequest } from "@npanel/db/schema/web-design-quotes";
+import { count, desc, eq } from "drizzle-orm";
 import { protectedProcedure, router } from "../../trpc";
-import prisma from "@nPanel/db";
 import {
+	apiWebDesignProjectTypeSchema,
+	apiWebDesignQuoteStatusSchema,
 	webDesignQuoteCreateInputSchema,
 	webDesignQuoteCreateOutputSchema,
 	webDesignQuoteListInputSchema,
@@ -24,8 +28,9 @@ export const webDesignQuotesRouter = router({
 
 			const id = crypto.randomUUID();
 
-			const record = await prisma.webDesignQuoteRequest.create({
-				data: {
+			const [record] = await db
+				.insert(webDesignQuoteRequest)
+				.values({
 					id,
 					name: input.name,
 					email: input.email,
@@ -37,9 +42,18 @@ export const webDesignQuotesRouter = router({
 					budget: input.budget,
 					targetLaunchDate: input.targetLaunchDate ?? null,
 					submittedById: userId,
-				},
-				select: { id: true, createdAt: true },
-			});
+				})
+				.returning({
+					id: webDesignQuoteRequest.id,
+					createdAt: webDesignQuoteRequest.createdAt,
+				});
+
+			if (!record) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create quote request",
+				});
+			}
 
 			return {
 				id: record.id,
@@ -59,31 +73,37 @@ export const webDesignQuotesRouter = router({
 				});
 			}
 
-			const where = input.status ? { status: input.status } : {};
+			const whereClause = input.status
+				? eq(webDesignQuoteRequest.status, input.status)
+				: undefined;
+
 			const [items, total] = await Promise.all([
-				prisma.webDesignQuoteRequest.findMany({
-					where,
-					orderBy: { createdAt: "desc" },
-					take: input.limit,
-					skip: input.offset,
-					select: {
-						id: true,
-						name: true,
-						email: true,
-						phone: true,
-						companyName: true,
-						domain: true,
-						projectType: true,
-						projectDescription: true,
-						budget: true,
-						targetLaunchDate: true,
-						status: true,
-						submittedById: true,
-						createdAt: true,
-						updatedAt: true,
-					},
-				}),
-				prisma.webDesignQuoteRequest.count({ where }),
+				db
+					.select({
+						id: webDesignQuoteRequest.id,
+						name: webDesignQuoteRequest.name,
+						email: webDesignQuoteRequest.email,
+						phone: webDesignQuoteRequest.phone,
+						companyName: webDesignQuoteRequest.companyName,
+						domain: webDesignQuoteRequest.domain,
+						projectType: webDesignQuoteRequest.projectType,
+						projectDescription: webDesignQuoteRequest.projectDescription,
+						budget: webDesignQuoteRequest.budget,
+						targetLaunchDate: webDesignQuoteRequest.targetLaunchDate,
+						status: webDesignQuoteRequest.status,
+						submittedById: webDesignQuoteRequest.submittedById,
+						createdAt: webDesignQuoteRequest.createdAt,
+						updatedAt: webDesignQuoteRequest.updatedAt,
+					})
+					.from(webDesignQuoteRequest)
+					.where(whereClause)
+					.orderBy(desc(webDesignQuoteRequest.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ total: count() })
+					.from(webDesignQuoteRequest)
+					.where(whereClause),
 			]);
 
 			return {
@@ -94,16 +114,16 @@ export const webDesignQuotesRouter = router({
 					phone: r.phone,
 					companyName: r.companyName,
 					domain: r.domain,
-					projectType: r.projectType,
+					projectType: apiWebDesignProjectTypeSchema.parse(r.projectType),
 					projectDescription: r.projectDescription,
 					budget: r.budget,
 					targetLaunchDate: r.targetLaunchDate,
-					status: r.status,
+					status: apiWebDesignQuoteStatusSchema.parse(r.status),
 					submittedById: r.submittedById,
 					createdAt: r.createdAt,
 					updatedAt: r.updatedAt,
 				})),
-				total,
+				total: total[0]?.total ?? 0,
 			};
 		}),
 });

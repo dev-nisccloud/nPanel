@@ -1,30 +1,26 @@
 {
-  "name": "@nPanel/auth",
+  "name": "@npanel/auth",
+  "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
     },
     "./*": {
-      "types": "./dist/*.d.ts",
       "default": "./src/*.ts"
     }
   },
-  "type": "module",
-  "scripts": {
-    "build": "tsdown"
-  },
-  "devDependencies": {
-    "tsdown": "catalog:"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
+  "scripts": {},
   "dependencies": {
+    "@npanel/db": "workspace:*",
+    "@npanel/env": "workspace:*",
+    "react-email-starter": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
-    "zod": "catalog:",
-    "@nPanel/db": "workspace:*",
-    "react-email-starter": "workspace:*"
+    "drizzle-orm": "^0.45.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@npanel/config": "workspace:*",
+    "typescript": "^5"
   }
 }

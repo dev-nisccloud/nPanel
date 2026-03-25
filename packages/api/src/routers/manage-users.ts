@@ -1,9 +1,13 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
-import * as crypto from "crypto";
-import { auth } from "@nPanel/auth";
+import { desc, eq, inArray } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+
+import { db } from "@npanel/db";
+import { session as sessionTable, user } from "@npanel/db/schema/auth";
+import { userActivityLog, userProfile } from "@npanel/db/schema/auth-extras";
+import { auth } from "@npanel/auth";
 import { renderAgencyUserCreatedEmail } from "../lib/email-templates";
 import { sendEmail } from "react-email-starter/src/email";
 
@@ -138,6 +142,8 @@ const updateProfileOutputSchema = z.object({
 	message: z.string().optional(),
 });
 
+type AgencyUserOutput = z.infer<typeof userOutputSchema>;
+
 // ============================================================================
 // tRPC ROUTER
 // ============================================================================
@@ -147,7 +153,7 @@ export const manageUsersRouter = router({
 	getAll: protectedProcedure
 		.input(getAllUsersInputSchema)
 		.output(getAllUsersOutputSchema)
-		.query(async ({ ctx, input }) => {
+		.query(async ({ ctx, input: _input }) => {
 			const session = ctx.session;
 			if (!session?.user?.id) {
 				throw new TRPCError({
@@ -165,29 +171,28 @@ export const manageUsersRouter = router({
 				});
 			}
 
-			const users = await prisma.user.findMany({
-				where: {
-					role: {
-						in: ["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"],
-					},
-				},
-				orderBy: {
-					createdAt: "desc",
-				},
-			});
+			const users = await db
+				.select()
+				.from(user)
+				.where(
+					inArray(user.role, ["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]),
+				)
+				.orderBy(desc(user.createdAt));
 
-			return users.map((user) => ({
-				id: user.id,
-				name: user.name,
-				email: user.email,
-				emailVerified: user.emailVerified,
-				role: user.role,
-				status: user.status,
-				image: user.image,
-				lastLoginAt: user.lastLoginAt,
-				createdAt: user.createdAt,
-				updatedAt: user.updatedAt,
-			}));
+			return users.map((row) =>
+				userOutputSchema.parse({
+					id: row.id,
+					name: row.name,
+					email: row.email,
+					emailVerified: row.emailVerified,
+					role: row.role,
+					status: row.status,
+					image: row.image,
+					lastLoginAt: row.lastLoginAt,
+					createdAt: row.createdAt,
+					updatedAt: row.updatedAt,
+				}),
+			);
 		}),
 
 	// Get user by ID
@@ -212,11 +217,14 @@ export const manageUsersRouter = router({
 				});
 			}
 
-			const user = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			const userRows = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
+			const userRow = userRows[0];
 
-			if (!user) {
+			if (!userRow) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
@@ -224,7 +232,7 @@ export const manageUsersRouter = router({
 			}
 
 			// Only return agency users
-			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(user.role)) {
+			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(userRow.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "This user is not an agency user",
@@ -232,16 +240,16 @@ export const manageUsersRouter = router({
 			}
 
 			return {
-				id: user.id,
-				name: user.name,
-				email: user.email,
-				emailVerified: user.emailVerified,
-				role: user.role,
-				status: user.status,
-				image: user.image,
-				lastLoginAt: user.lastLoginAt,
-				createdAt: user.createdAt,
-				updatedAt: user.updatedAt,
+				id: userRow.id,
+				name: userRow.name,
+				email: userRow.email,
+				emailVerified: userRow.emailVerified,
+				role: userRow.role as AgencyUserOutput["role"],
+				status: userRow.status as AgencyUserOutput["status"],
+				image: userRow.image,
+				lastLoginAt: userRow.lastLoginAt,
+				createdAt: userRow.createdAt,
+				updatedAt: userRow.updatedAt,
 			};
 		}),
 
@@ -270,9 +278,12 @@ export const manageUsersRouter = router({
 			const userId = session.user.id;
 
 			// Check if user with this email already exists
-			const existingUser = await prisma.user.findUnique({
-				where: { email: input.email },
-			});
+			const existingRows = await db
+				.select({ id: user.id })
+				.from(user)
+				.where(eq(user.email, input.email))
+				.limit(1);
+			const existingUser = existingRows[0];
 
 			if (existingUser) {
 				throw new TRPCError({
@@ -310,9 +321,12 @@ export const manageUsersRouter = router({
 
 			// Batch: Get user, update role, and return updated user
 			// This reduces connection usage from 3 sequential queries to 1-2 queries
-			let updatedUser = await prisma.user.findUnique({
-				where: { email: input.email },
-			});
+			const createdRows = await db
+				.select()
+				.from(user)
+				.where(eq(user.email, input.email))
+				.limit(1);
+			let updatedUser = createdRows[0];
 
 			if (!updatedUser) {
 				throw new TRPCError({
@@ -322,12 +336,12 @@ export const manageUsersRouter = router({
 			}
 
 			// Update user role to the specified role (Better Auth defaults to CUSTOMER)
-			updatedUser = await prisma.user.update({
-				where: { id: updatedUser.id },
-				data: {
-					role: input.role,
-				},
-			});
+			const afterRoleRows = await db
+				.update(user)
+				.set({ role: input.role })
+				.where(eq(user.id, updatedUser.id))
+				.returning();
+			updatedUser = afterRoleRows[0];
 
 			if (!updatedUser) {
 				throw new TRPCError({
@@ -359,19 +373,17 @@ export const manageUsersRouter = router({
 			}
 
 			// Log activity
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: updatedUser.id,
-					action: "AGENCY_USER_CREATED_BY_ADMIN",
-					description: `Agency user account created by admin: ${session.user.email}`,
-					metadata: {
-						createdBy: userId,
-						createdByEmail: session.user.email,
-						role: input.role,
-					},
-					createdAt: new Date(),
+			await db.insert(userActivityLog).values({
+				id: randomUUID(),
+				userId: updatedUser.id,
+				action: "AGENCY_USER_CREATED_BY_ADMIN",
+				description: `Agency user account created by admin: ${session.user.email}`,
+				metadata: {
+					createdBy: userId,
+					createdByEmail: session.user.email,
+					role: input.role,
 				},
+				createdAt: new Date(),
 			});
 
 			return {
@@ -379,8 +391,8 @@ export const manageUsersRouter = router({
 				name: updatedUser.name,
 				email: updatedUser.email,
 				emailVerified: updatedUser.emailVerified,
-				role: updatedUser.role,
-				status: updatedUser.status,
+				role: updatedUser.role as AgencyUserOutput["role"],
+				status: updatedUser.status as AgencyUserOutput["status"],
 				image: updatedUser.image,
 				lastLoginAt: updatedUser.lastLoginAt,
 				createdAt: updatedUser.createdAt,
@@ -414,17 +426,22 @@ export const manageUsersRouter = router({
 
 			// Batch: Find user and check email availability in parallel (if email is being changed)
 			const [existingUser, emailExists] = await Promise.all([
-				prisma.user.findUnique({
-					where: { id: input.userId },
-				}),
-				// Only check email if it's being changed
+				db
+					.select()
+					.from(user)
+					.where(eq(user.id, input.userId))
+					.limit(1)
+					.then((rows) => rows[0]),
 				input.email
-					? prisma.user
-							.findUnique({
-								where: { email: input.email },
-								select: { id: true },
+					? db
+							.select({ id: user.id })
+							.from(user)
+							.where(eq(user.email, input.email))
+							.limit(1)
+							.then((rows) => {
+								const r = rows[0];
+								return r != null && r.id !== input.userId;
 							})
-							.then((user) => user !== null)
 							.catch(() => false)
 					: Promise.resolve(false),
 			]);
@@ -471,36 +488,42 @@ export const manageUsersRouter = router({
 
 			// Batch: Update user and log activity in a transaction
 			const changedFields = Object.keys(updateData).filter(key => key !== "updatedAt");
-			const updatedUser = await prisma.$transaction(async (tx) => {
-				const updated = await tx.user.update({
-					where: { id: input.userId },
-					data: updateData,
-				});
+			const updatedUser = await db.transaction(async (tx) => {
+				const updatedRows = await tx
+					.update(user)
+					.set(updateData)
+					.where(eq(user.id, input.userId))
+					.returning();
+				const updated = updatedRows[0];
+				if (!updated) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to update user",
+					});
+				}
 
 				// Log activity
-				await tx.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: updated.id,
+				await tx.insert(userActivityLog).values({
+					id: randomUUID(),
+					userId: updated.id,
 					action: "AGENCY_USER_UPDATED_BY_ADMIN",
 					description: `Agency user account updated by admin: ${session.user!.email}`,
 					metadata: {
 						updatedBy: userId,
 						updatedByEmail: session.user!.email,
-							changedFields,
-							previousValues: {
-								name: existingUser.name,
-								email: existingUser.email,
-								role: existingUser.role,
-							},
-							newValues: {
-								name: updated.name,
-								email: updated.email,
-								role: updated.role,
-							},
+						changedFields,
+						previousValues: {
+							name: existingUser.name,
+							email: existingUser.email,
+							role: existingUser.role,
 						},
-						createdAt: new Date(),
+						newValues: {
+							name: updated.name,
+							email: updated.email,
+							role: updated.role,
+						},
 					},
+					createdAt: new Date(),
 				});
 
 				return updated;
@@ -511,8 +534,8 @@ export const manageUsersRouter = router({
 				name: updatedUser.name,
 				email: updatedUser.email,
 				emailVerified: updatedUser.emailVerified,
-				role: updatedUser.role,
-				status: updatedUser.status,
+				role: updatedUser.role as AgencyUserOutput["role"],
+				status: updatedUser.status as AgencyUserOutput["status"],
 				image: updatedUser.image,
 				lastLoginAt: updatedUser.lastLoginAt,
 				createdAt: updatedUser.createdAt,
@@ -545,9 +568,12 @@ export const manageUsersRouter = router({
 			const userId = session.user.id;
 
 			// Find the user
-			const existingUser = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			const statusUserRows = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
+			const existingUser = statusUserRows[0];
 
 			if (!existingUser) {
 				throw new TRPCError({
@@ -589,30 +615,36 @@ export const manageUsersRouter = router({
 			}
 
 			// Batch: Update status and log activity in a transaction
-			await prisma.$transaction(async (tx) => {
-				const updated = await tx.user.update({
-					where: { id: input.userId },
-					data: {
+			await db.transaction(async (tx) => {
+				const updatedRows = await tx
+					.update(user)
+					.set({
 						status: input.status,
 						updatedAt: new Date(),
-					},
-				});
+					})
+					.where(eq(user.id, input.userId))
+					.returning();
+				const updated = updatedRows[0];
+				if (!updated) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to update user status",
+					});
+				}
 
 				// Log activity with specific action type
-				await tx.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: updated.id,
-						action: actionType,
-						description: actionDescription,
-						metadata: {
-							changedBy: userId,
-							changedByEmail: session.user!.email,
-							previousStatus: existingUser.status,
-							newStatus: input.status,
-						},
-						createdAt: new Date(),
+				await tx.insert(userActivityLog).values({
+					id: randomUUID(),
+					userId: updated.id,
+					action: actionType,
+					description: actionDescription,
+					metadata: {
+						changedBy: userId,
+						changedByEmail: session.user!.email,
+						previousStatus: existingUser.status,
+						newStatus: input.status,
 					},
+					createdAt: new Date(),
 				});
 			});
 
@@ -644,11 +676,14 @@ export const manageUsersRouter = router({
 			}
 
 			// Find the user
-			const user = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			const resetUserRows = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
+			const targetUser = resetUserRows[0];
 
-			if (!user) {
+			if (!targetUser) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
@@ -656,7 +691,7 @@ export const manageUsersRouter = router({
 			}
 
 			// Verify it's an agency user
-			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(user.role)) {
+			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(targetUser.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "This user is not an agency user",
@@ -665,31 +700,29 @@ export const manageUsersRouter = router({
 
 			// Request password reset using Better Auth
 			try {
-				const result = await auth.api.requestPasswordReset({
+				await auth.api.requestPasswordReset({
 					body: {
-						email: user.email,
+						email: targetUser.email,
 					},
 				});
 
 				// Log activity
-				await prisma.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: user.id,
-						action: "AGENCY_USER_PASSWORD_RESET_REQUESTED_BY_ADMIN",
-						description: `Password reset requested for agency user by admin: ${session.user.email}`,
-						metadata: {
-							requestedBy: session.user.id,
-							requestedByEmail: session.user.email,
-						},
-						createdAt: new Date(),
+				await db.insert(userActivityLog).values({
+					id: randomUUID(),
+					userId: targetUser.id,
+					action: "AGENCY_USER_PASSWORD_RESET_REQUESTED_BY_ADMIN",
+					description: `Password reset requested for agency user by admin: ${session.user.email}`,
+					metadata: {
+						requestedBy: session.user.id,
+						requestedByEmail: session.user.email,
 					},
+					createdAt: new Date(),
 				});
 
 				return {
 					success: true,
 				};
-			} catch (error) {
+			} catch (_error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to send password reset email",
@@ -720,18 +753,21 @@ export const manageUsersRouter = router({
 			}
 
 			// Verify the user exists and is an agency user
-			const user = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			const sessUserRows = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
+			const sessUser = sessUserRows[0];
 
-			if (!user) {
+			if (!sessUser) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
 				});
 			}
 
-			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(user.role)) {
+			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(sessUser.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "This user is not an agency user",
@@ -739,23 +775,20 @@ export const manageUsersRouter = router({
 			}
 
 			// Get all sessions for the user
-			const sessions = await prisma.session.findMany({
-				where: {
-					userId: input.userId,
-				},
-				orderBy: {
-					createdAt: "desc",
-				},
-			});
+			const sessions = await db
+				.select()
+				.from(sessionTable)
+				.where(eq(sessionTable.userId, input.userId))
+				.orderBy(desc(sessionTable.createdAt));
 
-			return sessions.map((session) => ({
-				id: session.id,
-				token: session.token.substring(0, 20) + "...", // Only show partial token for security
-				expiresAt: session.expiresAt,
-				createdAt: session.createdAt,
-				updatedAt: session.updatedAt,
-				ipAddress: session.ipAddress,
-				userAgent: session.userAgent,
+			return sessions.map((sess) => ({
+				id: sess.id,
+				token: sess.token.substring(0, 20) + "...", // Only show partial token for security
+				expiresAt: sess.expiresAt,
+				createdAt: sess.createdAt,
+				updatedAt: sess.updatedAt,
+				ipAddress: sess.ipAddress,
+				userAgent: sess.userAgent,
 			}));
 		}),
 
@@ -782,36 +815,43 @@ export const manageUsersRouter = router({
 			}
 
 			// Verify the user exists and is an agency user
-			const user = await prisma.user.findUnique({
-				where: { id: input.userId },
-				include: {
-					profile: true,
-				},
-			});
+			const profileUserRows = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
+			const profileUser = profileUserRows[0];
 
-			if (!user) {
+			if (!profileUser) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
 				});
 			}
 
-			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(user.role)) {
+			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(profileUser.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "This user is not an agency user",
 				});
 			}
 
+			const profileRows = await db
+				.select()
+				.from(userProfile)
+				.where(eq(userProfile.userId, input.userId))
+				.limit(1);
+			const prof = profileRows[0];
+
 			return {
-				firstName: user.profile?.firstName || null,
-				lastName: user.profile?.lastName || null,
-				phone: user.profile?.phone || null,
-				address: user.profile?.address || null,
-				city: user.profile?.city || null,
-				state: user.profile?.state || null,
-				country: user.profile?.country || null,
-				postalCode: user.profile?.postalCode || null,
+				firstName: prof?.firstName ?? null,
+				lastName: prof?.lastName ?? null,
+				phone: prof?.phone ?? null,
+				address: prof?.address ?? null,
+				city: prof?.city ?? null,
+				state: prof?.state ?? null,
+				country: prof?.country ?? null,
+				postalCode: prof?.postalCode ?? null,
 			};
 		}),
 
@@ -839,13 +879,12 @@ export const manageUsersRouter = router({
 
 			const userId = session.user.id;
 
-			// Find the user
-			const existingUser = await prisma.user.findUnique({
-				where: { id: input.userId },
-				include: {
-					profile: true,
-				},
-			});
+			const updUserRows = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
+			const existingUser = updUserRows[0];
 
 			if (!existingUser) {
 				throw new TRPCError({
@@ -861,20 +900,27 @@ export const manageUsersRouter = router({
 				});
 			}
 
+			const updProfileRows = await db
+				.select()
+				.from(userProfile)
+				.where(eq(userProfile.userId, input.userId))
+				.limit(1);
+			const existingProfile = updProfileRows[0];
+
 			// Batch: Update user name, profile, and log activity in a transaction
 			const { name, firstName, lastName, phone, address, city, state, country, postalCode } = input;
-			const changedFields = Object.keys(input).filter(key => key !== "userId");
+			const changedFields = Object.keys(input).filter((key) => key !== "userId");
 
-			await prisma.$transaction(async (tx) => {
+			await db.transaction(async (tx) => {
 				// Update user name if provided
 				if (name) {
-					await tx.user.update({
-						where: { id: input.userId },
-						data: {
+					await tx
+						.update(user)
+						.set({
 							name,
 							updatedAt: new Date(),
-						},
-					});
+						})
+						.where(eq(user.id, input.userId));
 				}
 
 				// Prepare profile data
@@ -891,47 +937,43 @@ export const manageUsersRouter = router({
 				};
 
 				// Update or create profile
-				if (existingUser.profile) {
-					await tx.userProfile.update({
-						where: { userId: input.userId },
-						data: profileData,
-					});
+				if (existingProfile) {
+					await tx
+						.update(userProfile)
+						.set(profileData)
+						.where(eq(userProfile.userId, input.userId));
 				} else {
-					await tx.userProfile.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: input.userId,
-							...profileData,
-							createdAt: new Date(),
-						},
+					await tx.insert(userProfile).values({
+						id: randomUUID(),
+						userId: input.userId,
+						...profileData,
+						createdAt: new Date(),
 					});
 				}
 
 				// Log activity
-				await tx.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: input.userId,
+				await tx.insert(userActivityLog).values({
+					id: randomUUID(),
+					userId: input.userId,
 					action: "AGENCY_USER_PROFILE_UPDATED_BY_ADMIN",
 					description: `Agency user profile updated by admin: ${session.user!.email}`,
 					metadata: {
 						updatedBy: userId,
 						updatedByEmail: session.user!.email,
-							changedFields,
-							previousValues: {
-								name: existingUser.name,
-								firstName: existingUser.profile?.firstName || null,
-								lastName: existingUser.profile?.lastName || null,
-								phone: existingUser.profile?.phone || null,
-								address: existingUser.profile?.address || null,
-								city: existingUser.profile?.city || null,
-								state: existingUser.profile?.state || null,
-								country: existingUser.profile?.country || null,
-								postalCode: existingUser.profile?.postalCode || null,
-							},
+						changedFields,
+						previousValues: {
+							name: existingUser.name,
+							firstName: existingProfile?.firstName ?? null,
+							lastName: existingProfile?.lastName ?? null,
+							phone: existingProfile?.phone ?? null,
+							address: existingProfile?.address ?? null,
+							city: existingProfile?.city ?? null,
+							state: existingProfile?.state ?? null,
+							country: existingProfile?.country ?? null,
+							postalCode: existingProfile?.postalCode ?? null,
 						},
-						createdAt: new Date(),
 					},
+					createdAt: new Date(),
 				});
 			});
 

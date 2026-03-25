@@ -1,24 +1,13 @@
-import type * as React from "react";
-import { cn } from "../utils";
+import { cn } from "@npanel/ui/lib/utils/index"
 
-function Skeleton({
-  className,
-  animate = true,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement> & { animate?: boolean }) {
+function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn(
-        "relative overflow-hidden",
-        "bg-gradient-to-r from-transparent via-primary/10 to-transparent dark:via-primary/10",
-        "bg-[length:200%_100%]",
-        "rounded-none",
-        animate && "animate-shimmer",
-        className,
-      )}
+      data-slot="skeleton"
+      className={cn("animate-pulse rounded-none bg-muted", className)}
       {...props}
     />
-  );
+  )
 }
 
-export { Skeleton };
+export { Skeleton }

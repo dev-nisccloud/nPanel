@@ -1,8 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { and, asc, count, desc, eq, inArray, isNull, like, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
-import { randomUUID } from "node:crypto";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import {
+  ticket,
+  ticketActivityLog,
+  ticketAttachment,
+  ticketMessage,
+} from "@npanel/db/schema/tickets";
 
 // ============================================================================
 // TYPESCRIPT TYPES - Independent from Prisma, mirroring database structure
@@ -335,31 +343,54 @@ function transformTicketListItem(ticket: any, isAgency: boolean) {
 // ============================================================================
 
 async function getAuthenticatedUser(ctx: { session: { user?: { id: string } } | null }) {
-  const user = ctx.session?.user;
-  if (!user?.id) {
+  const sessionUser = ctx.session?.user;
+  if (!sessionUser?.id) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "You must be logged in",
     });
   }
-  return { id: user.id };
+  return { id: sessionUser.id };
 }
+
+async function fetchUserRole(userId: string): Promise<string | null> {
+  const [row] = await db.select({ role: user.role }).from(user).where(eq(user.id, userId)).limit(1);
+  return row?.role ?? null;
+}
+
+function roleIsAgency(role: string | null | undefined): boolean {
+  return (role ?? "").includes("AGENCY");
+}
+
+const ticketWithRelations = {
+  createdBy: { columns: { id: true, name: true, email: true } as const },
+  team: { columns: { id: true, name: true, slug: true } as const },
+  assignedTo: { columns: { id: true, name: true, email: true } as const },
+} as const;
+
+const messageWithRelations = {
+  sender: { columns: { id: true, name: true, email: true } as const },
+  attachments: {
+    columns: {
+      id: true,
+      fileName: true,
+      fileSize: true,
+      mimeType: true,
+      fileUrl: true,
+    } as const,
+  },
+} as const;
 
 async function generateTicketNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `TKT-${year}-`;
 
-  // Find the highest ticket number for this year
-  const lastTicket = await prisma.ticket.findFirst({
-    where: {
-      ticketNumber: {
-        startsWith: prefix,
-      },
-    },
-    orderBy: {
-      ticketNumber: "desc",
-    },
-  });
+  const [lastTicket] = await db
+    .select()
+    .from(ticket)
+    .where(like(ticket.ticketNumber, `${prefix}%`))
+    .orderBy(desc(ticket.ticketNumber))
+    .limit(1);
 
   let sequence = 1;
   if (lastTicket) {
@@ -382,18 +413,18 @@ async function logTicketActivity(
   metadata?: unknown,
 ) {
   try {
-    await prisma.ticketActivityLog.create({
-      data: {
-        id: randomUUID(),
-        ticketId,
-        userId,
-        action,
-        description: description ?? null,
-        oldValue: oldValue as any,
-        newValue: newValue as any,
-        metadata: metadata as any,
-        createdAt: new Date(),
-      } as any,
+    await db.insert(ticketActivityLog).values({
+      id: randomUUID(),
+      ticketId,
+      userId,
+      action,
+      description: description ?? null,
+      oldValue: oldValue as any,
+      newValue: newValue as any,
+      metadata: metadata as any,
+      ipAddress: null,
+      userAgent: null,
+      createdAt: new Date(),
     });
   } catch (error) {
     // Log error but don't fail the main operation
@@ -411,71 +442,47 @@ export const ticketsRouter = router({
     .input(getTicketsInputSchema)
     .output(z.array(ticketListItemSchema))
     .query(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
-      // Check if user is agency or customer
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
+      const userRole = await fetchUserRole(sessionUser.id);
+      const isAgency = roleIsAgency(userRole);
 
-      const isAgency = userRecord?.role?.includes("AGENCY") ?? false;
-
-      const where: any = {};
-
+      const conds = [];
       if (isAgency) {
-        // Agency users see tickets assigned to them or unassigned
         if (input.assignedToId) {
-          where.assignedToId = input.assignedToId;
-        } else {
-          // Show all tickets (can be filtered by status, priority, etc.)
+          conds.push(eq(ticket.assignedToId, input.assignedToId));
         }
       } else {
-        // Customer users see only their own tickets
-        where.createdById = user.id;
+        conds.push(eq(ticket.createdById, sessionUser.id));
         if (input.teamId) {
-          where.teamId = input.teamId;
+          conds.push(eq(ticket.teamId, input.teamId));
         }
       }
 
       if (input.status) {
-        where.status = input.status;
+        conds.push(eq(ticket.status, input.status));
       }
 
       if (input.priority) {
-        where.priority = input.priority;
+        conds.push(eq(ticket.priority, input.priority));
       }
 
       if (input.type) {
-        where.type = input.type;
+        conds.push(eq(ticket.type, input.type));
       }
 
-      const tickets = await prisma.ticket.findMany({
-        where,
-        include: {
-          createdBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          assignedTo: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+      const ticketsList = await db.query.ticket.findMany({
+        where: conds.length ? and(...conds) : undefined,
+        orderBy: [desc(ticket.lastMessageAt)],
+        limit: input.limit,
+        offset: input.offset,
+        with: {
+          createdBy: { columns: { id: true, name: true, email: true } },
+          assignedTo: { columns: { id: true, name: true, email: true } },
         },
-        orderBy: {
-          lastMessageAt: "desc",
-        },
-        take: input.limit,
-        skip: input.offset,
       });
 
-      return tickets.map(ticket => transformTicketListItem(ticket, isAgency));
+      return ticketsList.map((t) => transformTicketListItem(t, isAgency));
     }),
 
   // Get single ticket by ID
@@ -483,59 +490,29 @@ export const ticketsRouter = router({
     .input(z.object({ id: z.string() }))
     .output(ticketSchema)
     .query(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
+      const userRole = await fetchUserRole(sessionUser.id);
+      const isAgency = roleIsAgency(userRole);
 
-      const isAgency = userRecord?.role?.includes("AGENCY") ?? false;
-
-      const where: any = {
-        id: input.id,
-      };
-
+      const conds = [eq(ticket.id, input.id)];
       if (!isAgency) {
-        // Customer can only see their own tickets
-        where.createdById = user.id;
+        conds.push(eq(ticket.createdById, sessionUser.id));
       }
 
-      const ticket = await prisma.ticket.findFirst({
-        where,
-        include: {
-          createdBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          team: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          assignedTo: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
+      const ticketRow = await db.query.ticket.findFirst({
+        where: and(...conds),
+        with: ticketWithRelations,
       });
 
-      if (!ticket) {
+      if (!ticketRow) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found",
         });
       }
 
-      return transformTicket(ticket);
+      return transformTicket(ticketRow);
     }),
 
   // Create new ticket
@@ -543,73 +520,57 @@ export const ticketsRouter = router({
     .input(createTicketInputSchema)
     .output(ticketSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
       const ticketNumber = await generateTicketNumber();
+      const id = randomUUID();
+      const now = new Date();
 
-      const ticket = await prisma.$transaction(async (tx) => {
-        const newTicket = await tx.ticket.create({
-          data: {
-            id: randomUUID(),
-            ticketNumber,
-            subject: input.subject ?? null,
-            description: input.description ?? null,
-            type: input.type,
-            priority: input.priority,
-            status: "OPEN",
-            source: input.source,
-            createdById: user.id,
-            teamId: input.teamId ?? null,
-            assignedToId: null,
-            lastMessageId: null,
-            lastMessageAt: null,
-            lastMessagePreview: null,
-            unreadCount: 0,
-            customerUnreadCount: 0,
-            metadata: input.metadata as any,
-            internalNotes: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          } as any,
-          include: {
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-            assignedTo: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        });
-
-        // Log activity
-        await logTicketActivity(
-          newTicket.id,
-          user.id,
-          "CREATE",
-          `Ticket ${ticketNumber} created`,
-          null,
-          { status: "OPEN", type: input.type, priority: input.priority },
-        );
-
-        return newTicket;
+      await db.insert(ticket).values({
+        id,
+        ticketNumber,
+        subject: input.subject ?? null,
+        description: input.description ?? null,
+        type: input.type,
+        priority: input.priority,
+        status: "OPEN",
+        source: input.source,
+        createdById: sessionUser.id,
+        teamId: input.teamId ?? null,
+        assignedToId: null,
+        lastMessageId: null,
+        lastMessageAt: null,
+        lastMessagePreview: null,
+        unreadCount: 0,
+        customerUnreadCount: 0,
+        metadata: input.metadata as any,
+        internalNotes: null,
+        createdAt: now,
+        updatedAt: now,
       });
 
-      return transformTicket(ticket);
+      await logTicketActivity(
+        id,
+        sessionUser.id,
+        "CREATE",
+        `Ticket ${ticketNumber} created`,
+        null,
+        { status: "OPEN", type: input.type, priority: input.priority },
+      );
+
+      const full = await db.query.ticket.findFirst({
+        where: eq(ticket.id, id),
+        with: ticketWithRelations,
+      });
+
+      if (!full) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to load created ticket",
+        });
+      }
+
+      return transformTicket(full);
     }),
 
   // Update ticket
@@ -617,21 +578,21 @@ export const ticketsRouter = router({
     .input(updateTicketInputSchema)
     .output(ticketSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
+      const userRole = await fetchUserRole(sessionUser.id);
+      const isAgency = roleIsAgency(userRole);
 
-      const isAgency = userRecord?.role?.includes("AGENCY") ?? false;
+      const accessConds = [eq(ticket.id, input.id)];
+      if (!isAgency) {
+        accessConds.push(eq(ticket.createdById, sessionUser.id));
+      }
 
-      const existingTicket = await prisma.ticket.findFirst({
-        where: {
-          id: input.id,
-          ...(isAgency ? {} : { createdById: user.id }), // Agency can update any, customer only their own
-        },
-      });
+      const [existingTicket] = await db
+        .select()
+        .from(ticket)
+        .where(and(...accessConds))
+        .limit(1);
 
       if (!existingTicket) {
         throw new TRPCError({
@@ -640,11 +601,11 @@ export const ticketsRouter = router({
         });
       }
 
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         updatedAt: new Date(),
       };
 
-      const oldValues: any = {};
+      const oldValues: Record<string, unknown> = {};
 
       if (input.subject !== undefined) {
         oldValues.subject = existingTicket.subject;
@@ -666,7 +627,6 @@ export const ticketsRouter = router({
         oldValues.status = existingTicket.status;
         updateData.status = input.status;
 
-        // Update timestamps based on status
         if (input.status === "RESOLVED" && !existingTicket.resolvedAt) {
           updateData.resolvedAt = new Date();
         }
@@ -679,7 +639,6 @@ export const ticketsRouter = router({
         updateData.assignedToId = input.assignedToId;
       }
       if (input.internalNotes !== undefined && isAgency) {
-        // Only agency can update internal notes
         oldValues.internalNotes = existingTicket.internalNotes;
         updateData.internalNotes = input.internalNotes;
       }
@@ -688,49 +647,30 @@ export const ticketsRouter = router({
         updateData.metadata = input.metadata as any;
       }
 
-      const updatedTicket = await prisma.$transaction(async (tx) => {
-        const ticket = await tx.ticket.update({
-          where: { id: input.id },
-          data: updateData,
-          include: {
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-            assignedTo: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        });
+      await db.update(ticket).set(updateData as any).where(eq(ticket.id, input.id));
 
-        // Log activity
-        await logTicketActivity(
-          ticket.id,
-          user.id,
-          "UPDATE",
-          "Ticket updated",
-          oldValues,
-          updateData,
-        );
+      await logTicketActivity(
+        input.id,
+        sessionUser.id,
+        "UPDATE",
+        "Ticket updated",
+        oldValues,
+        updateData,
+      );
 
-        return ticket;
+      const updatedRow = await db.query.ticket.findFirst({
+        where: eq(ticket.id, input.id),
+        with: ticketWithRelations,
       });
 
-      return transformTicket(updatedTicket);
+      if (!updatedRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        });
+      }
+
+      return transformTicket(updatedRow);
     }),
 
   // Get messages for a ticket
@@ -741,73 +681,49 @@ export const ticketsRouter = router({
       total: z.number(),
     }))
     .query(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
+      const userRole = await fetchUserRole(sessionUser.id);
+      const isAgency = roleIsAgency(userRole);
 
-      const isAgency = userRecord?.role?.includes("AGENCY") ?? false;
+      const ticketConds = [eq(ticket.id, input.ticketId)];
+      if (!isAgency) {
+        ticketConds.push(eq(ticket.createdById, sessionUser.id));
+      }
 
-      // Verify ticket access
-      const ticket = await prisma.ticket.findFirst({
-        where: {
-          id: input.ticketId,
-          ...(isAgency ? {} : { createdById: user.id }), // Agency can see all, customer only their own
-        },
-      });
+      const [ticketRow] = await db
+        .select({ id: ticket.id })
+        .from(ticket)
+        .where(and(...ticketConds))
+        .limit(1);
 
-      if (!ticket) {
+      if (!ticketRow) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found",
         });
       }
 
-      const where: any = {
-        ticketId: input.ticketId,
-        deletedAt: null,
-      };
-
-      // Filter out internal messages for customers
+      const msgConds = [eq(ticketMessage.ticketId, input.ticketId), isNull(ticketMessage.deletedAt)];
       if (!isAgency) {
-        where.isInternal = false;
+        msgConds.push(eq(ticketMessage.isInternal, false));
       }
+      const msgWhere = and(...msgConds);
 
-      const [messages, total] = await Promise.all([
-        prisma.ticketMessage.findMany({
-          where,
-          include: {
-            sender: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            attachments: {
-              select: {
-                id: true,
-                fileName: true,
-                fileSize: true,
-                mimeType: true,
-                fileUrl: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-          take: input.limit,
-          skip: input.offset,
+      const [messages, totalRow] = await Promise.all([
+        db.query.ticketMessage.findMany({
+          where: msgWhere,
+          orderBy: [asc(ticketMessage.createdAt)],
+          limit: input.limit,
+          offset: input.offset,
+          with: messageWithRelations,
         }),
-        prisma.ticketMessage.count({ where }),
+        db.select({ n: count(ticketMessage.id) }).from(ticketMessage).where(msgWhere),
       ]);
 
       return {
         messages: messages.map(transformTicketMessage),
-        total,
+        total: Number(totalRow[0]?.n ?? 0),
       };
     }),
 
@@ -816,31 +732,29 @@ export const ticketsRouter = router({
     .input(createMessageInputSchema)
     .output(ticketMessageSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
+      const userRole = await fetchUserRole(sessionUser.id);
+      const isAgency = roleIsAgency(userRole);
 
-      const isAgency = userRecord?.role?.includes("AGENCY") ?? false;
+      const ticketConds = [eq(ticket.id, input.ticketId)];
+      if (!isAgency) {
+        ticketConds.push(eq(ticket.createdById, sessionUser.id));
+      }
 
-      // Verify ticket access
-      const ticket = await prisma.ticket.findFirst({
-        where: {
-          id: input.ticketId,
-          ...(isAgency ? {} : { createdById: user.id }), // Agency can message any, customer only their own
-        },
-      });
+      const [ticketRow] = await db
+        .select()
+        .from(ticket)
+        .where(and(...ticketConds))
+        .limit(1);
 
-      if (!ticket) {
+      if (!ticketRow) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found",
         });
       }
 
-      // Customers cannot send internal messages
       if (input.isInternal && !isAgency) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -848,52 +762,43 @@ export const ticketsRouter = router({
         });
       }
 
-      const result = await prisma.$transaction(async (tx) => {
-        // Create message
-        const message = await tx.ticketMessage.create({
-          data: {
-            id: randomUUID(),
+      const result = await db.transaction(async (tx) => {
+        const now = new Date();
+        const messageId = randomUUID();
+
+        const [messageRow] = await tx
+          .insert(ticketMessage)
+          .values({
+            id: messageId,
             ticketId: input.ticketId,
-            senderId: user.id,
+            senderId: sessionUser.id,
             content: input.content,
             isInternal: input.isInternal,
             isSystem: false,
             readStatus: "SENT",
             readAt: null,
             metadata: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: now,
+            updatedAt: now,
             editedAt: null,
             deletedAt: null,
-          } as any,
-          include: {
-            sender: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            attachments: {
-              select: {
-                id: true,
-                fileName: true,
-                fileSize: true,
-                mimeType: true,
-                fileUrl: true,
-              },
-            },
-          },
-        });
+          })
+          .returning();
 
-        // Create attachments if provided
+        if (!messageRow) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create message",
+          });
+        }
+
         if (input.attachments && input.attachments.length > 0) {
-          await tx.ticketAttachment.createMany({
-            data: input.attachments.map(att => ({
+          await tx.insert(ticketAttachment).values(
+            input.attachments.map((att) => ({
               id: randomUUID(),
               ticketId: input.ticketId,
-              messageId: message.id,
-              uploadedById: user.id,
+              messageId: messageRow.id,
+              uploadedById: sessionUser.id,
               fileName: att.fileName,
               fileSize: att.fileSize,
               mimeType: att.mimeType,
@@ -901,95 +806,61 @@ export const ticketsRouter = router({
               storageKey: att.storageKey ?? null,
               description: null,
               metadata: null,
-              createdAt: new Date(),
-            })) as any,
-          });
+              createdAt: now,
+            })),
+          );
         }
 
-        // Update ticket metadata
-        // For internal messages: do NOT update lastMessage* (customers never see them; list would
-        // show internal as "last" but getMessages excludes internal, so the chat would not show it)
-        const preview = input.content.length > 100
-          ? input.content.substring(0, 100) + "..."
-          : input.content;
-
+        const preview =
+          input.content.length > 100 ? `${input.content.substring(0, 100)}...` : input.content;
         const isInternal = input.isInternal === true;
 
-        await tx.ticket.update({
-          where: { id: input.ticketId },
-          data: {
-            updatedAt: new Date(),
-            lastResponseAt: new Date(),
-            // Only update last-message fields for customer-visible (non-internal) messages
-            ...(isInternal
-              ? {}
-              : {
-                lastMessageId: message.id,
-                lastMessageAt: new Date(),
-                lastMessagePreview: preview,
-              }
-            ),
-            // Unread: customers must not be notified for internal messages
-            ...(isAgency && !isInternal
-              ? { customerUnreadCount: { increment: 1 } }
-              : !isAgency
-                ? { unreadCount: { increment: 1 } }
-                : {}
-            ),
-            // First response / agent response only for customer-visible messages
-            ...(ticket.firstResponseAt === null && isAgency && !isInternal
-              ? { firstResponseAt: new Date() }
-              : {}
-            ),
-            ...(isAgency && !isInternal
-              ? { lastAgentResponseAt: new Date() }
-              : !isAgency
-                ? { lastCustomerResponseAt: new Date() }
-                : {}
-            ),
-            // Move to IN_PROGRESS only when agency sends a real (non-internal) reply
-            ...(ticket.status === "OPEN" && isAgency && !isInternal
-              ? { status: "IN_PROGRESS" }
-              : {}
-            ),
-            ...(ticket.status === "WAITING" && !isAgency
-              ? { status: "IN_PROGRESS" }
-              : {}
-            ),
-          } as any,
-        });
+        const ticketUpdate: Record<string, unknown> = {
+          updatedAt: now,
+          lastResponseAt: now,
+        };
 
-        // Log activity
+        if (!isInternal) {
+          ticketUpdate.lastMessageId = messageRow.id;
+          ticketUpdate.lastMessageAt = now;
+          ticketUpdate.lastMessagePreview = preview;
+        }
+
+        if (isAgency && !isInternal) {
+          ticketUpdate.customerUnreadCount = ticketRow.customerUnreadCount + 1;
+        } else if (!isAgency) {
+          ticketUpdate.unreadCount = ticketRow.unreadCount + 1;
+        }
+
+        if (ticketRow.firstResponseAt === null && isAgency && !isInternal) {
+          ticketUpdate.firstResponseAt = now;
+        }
+        if (isAgency && !isInternal) {
+          ticketUpdate.lastAgentResponseAt = now;
+        } else if (!isAgency) {
+          ticketUpdate.lastCustomerResponseAt = now;
+        }
+        if (ticketRow.status === "OPEN" && isAgency && !isInternal) {
+          ticketUpdate.status = "IN_PROGRESS";
+        }
+        if (ticketRow.status === "WAITING" && !isAgency) {
+          ticketUpdate.status = "IN_PROGRESS";
+        }
+
+        await tx.update(ticket).set(ticketUpdate as any).where(eq(ticket.id, input.ticketId));
+
         await logTicketActivity(
           input.ticketId,
-          user.id,
+          sessionUser.id,
           "MESSAGE",
           "New message sent",
           null,
-          { messageId: message.id, isInternal: input.isInternal },
+          { messageId: messageRow.id, isInternal: input.isInternal },
         );
 
-        // Reload message with attachments
-        const messageWithAttachments = await tx.ticketMessage.findUnique({
-          where: { id: message.id },
-          include: {
-            sender: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            attachments: {
-              select: {
-                id: true,
-                fileName: true,
-                fileSize: true,
-                mimeType: true,
-                fileUrl: true,
-              },
-            },
-          },
+        const messageWithAttachments = await tx.query.ticketMessage.findFirst({
+          where: eq(ticketMessage.id, messageRow.id),
+          with: messageWithRelations,
         });
 
         return messageWithAttachments!;
@@ -1003,18 +874,18 @@ export const ticketsRouter = router({
     .input(markMessageReadInputSchema)
     .output(ticketMessageSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
-      const message = await prisma.ticketMessage.findFirst({
-        where: {
-          id: input.messageId,
-        },
-        include: {
+      const message = await db.query.ticketMessage.findFirst({
+        where: eq(ticketMessage.id, input.messageId),
+        with: {
           ticket: {
-            select: {
+            columns: {
               id: true,
               createdById: true,
               assignedToId: true,
+              unreadCount: true,
+              customerUnreadCount: true,
             },
           },
         },
@@ -1027,16 +898,11 @@ export const ticketsRouter = router({
         });
       }
 
-      // Verify user has access to this ticket
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
-
-      const isAgency = userRecord?.role?.includes("AGENCY") ?? false;
+      const userRole = await fetchUserRole(sessionUser.id);
+      const isAgency = roleIsAgency(userRole);
       const hasAccess = isAgency
-        ? message.ticket.assignedToId === user.id || message.ticket.assignedToId === null
-        : message.ticket.createdById === user.id;
+        ? message.ticket.assignedToId === sessionUser.id || message.ticket.assignedToId === null
+        : message.ticket.createdById === sessionUser.id;
 
       if (!hasAccess) {
         throw new TRPCError({
@@ -1045,44 +911,44 @@ export const ticketsRouter = router({
         });
       }
 
-      const updatedMessage = await prisma.$transaction(async (tx) => {
-        const msg = await tx.ticketMessage.update({
-          where: { id: input.messageId },
-          data: {
+      const updatedMessage = await db.transaction(async (tx) => {
+        const now = new Date();
+        await tx
+          .update(ticketMessage)
+          .set({
             readStatus: input.readStatus,
-            readAt: input.readStatus === "READ" ? new Date() : null,
-            updatedAt: new Date(),
-          } as any,
-          include: {
-            sender: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            attachments: {
-              select: {
-                id: true,
-                fileName: true,
-                fileSize: true,
-                mimeType: true,
-                fileUrl: true,
-              },
-            },
-          },
+            readAt: input.readStatus === "READ" ? now : null,
+            updatedAt: now,
+          })
+          .where(eq(ticketMessage.id, input.messageId));
+
+        if (input.readStatus === "READ") {
+          const t = message.ticket;
+          await tx
+            .update(ticket)
+            .set(
+              isAgency
+                ? {
+                    unreadCount: Math.max(0, t.unreadCount - 1),
+                    updatedAt: now,
+                  }
+                : {
+                    customerUnreadCount: Math.max(0, t.customerUnreadCount - 1),
+                    updatedAt: now,
+                  },
+            )
+            .where(eq(ticket.id, t.id));
+        }
+
+        const msg = await tx.query.ticketMessage.findFirst({
+          where: eq(ticketMessage.id, input.messageId),
+          with: messageWithRelations,
         });
 
-        // Update ticket unread count
-        if (input.readStatus === "READ") {
-          await tx.ticket.update({
-            where: { id: message.ticket.id },
-            data: {
-              ...(isAgency
-                ? { unreadCount: { decrement: 1 } }
-                : { customerUnreadCount: { decrement: 1 } }
-              ),
-            } as any,
+        if (!msg) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Message not found",
           });
         }
 
@@ -1097,14 +963,10 @@ export const ticketsRouter = router({
     .input(assignTicketInputSchema)
     .output(ticketSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
-
-      const isAgency = userRecord?.role?.includes("AGENCY") ?? false;
+      const userRole = await fetchUserRole(sessionUser.id);
+      const isAgency = roleIsAgency(userRole);
 
       if (!isAgency) {
         throw new TRPCError({
@@ -1113,9 +975,11 @@ export const ticketsRouter = router({
         });
       }
 
-      const existingTicket = await prisma.ticket.findFirst({
-        where: { id: input.ticketId },
-      });
+      const [existingTicket] = await db
+        .select()
+        .from(ticket)
+        .where(eq(ticket.id, input.ticketId))
+        .limit(1);
 
       if (!existingTicket) {
         throw new TRPCError({
@@ -1124,12 +988,12 @@ export const ticketsRouter = router({
         });
       }
 
-      // Verify assigned user exists and is agency
       if (input.assignedToId) {
-        const assignedUser = await prisma.user.findUnique({
-          where: { id: input.assignedToId },
-          select: { id: true, role: true },
-        });
+        const [assignedUser] = await db
+          .select({ id: user.id, role: user.role })
+          .from(user)
+          .where(eq(user.id, input.assignedToId))
+          .limit(1);
 
         if (!assignedUser) {
           throw new TRPCError({
@@ -1146,54 +1010,33 @@ export const ticketsRouter = router({
         }
       }
 
-      const updatedTicket = await prisma.$transaction(async (tx) => {
-        const ticket = await tx.ticket.update({
-          where: { id: input.ticketId },
-          data: {
-            assignedToId: input.assignedToId,
-            updatedAt: new Date(),
-          } as any,
-          include: {
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-            assignedTo: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        });
+      const now = new Date();
+      await db
+        .update(ticket)
+        .set({ assignedToId: input.assignedToId, updatedAt: now })
+        .where(eq(ticket.id, input.ticketId));
 
-        // Log activity
-        await logTicketActivity(
-          ticket.id,
-          user.id,
-          "ASSIGN",
-          input.assignedToId
-            ? `Ticket assigned to user ${input.assignedToId}`
-            : "Ticket unassigned",
-          { assignedToId: existingTicket.assignedToId },
-          { assignedToId: input.assignedToId },
-        );
+      await logTicketActivity(
+        input.ticketId,
+        sessionUser.id,
+        "ASSIGN",
+        input.assignedToId
+          ? `Ticket assigned to user ${input.assignedToId}`
+          : "Ticket unassigned",
+        { assignedToId: existingTicket.assignedToId },
+        { assignedToId: input.assignedToId },
+      );
 
-        return ticket;
+      const updatedRow = await db.query.ticket.findFirst({
+        where: eq(ticket.id, input.ticketId),
+        with: ticketWithRelations,
       });
 
-      return transformTicket(updatedTicket);
+      if (!updatedRow) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Ticket not found" });
+      }
+
+      return transformTicket(updatedRow);
     }),
 
   // Update ticket status
@@ -1201,21 +1044,21 @@ export const ticketsRouter = router({
     .input(updateTicketStatusInputSchema)
     .output(ticketSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
+      const role = await fetchUserRole(sessionUser.id);
+      const isAgency = roleIsAgency(role);
 
-      const isAgency = userRecord?.role?.includes("AGENCY") ?? false;
+      const accessConds = [eq(ticket.id, input.ticketId)];
+      if (!isAgency) {
+        accessConds.push(eq(ticket.createdById, sessionUser.id));
+      }
 
-      const existingTicket = await prisma.ticket.findFirst({
-        where: {
-          id: input.ticketId,
-          ...(isAgency ? {} : { createdById: user.id }), // Agency can update any, customer only their own
-        },
-      });
+      const [existingTicket] = await db
+        .select()
+        .from(ticket)
+        .where(and(...accessConds))
+        .limit(1);
 
       if (!existingTicket) {
         throw new TRPCError({
@@ -1224,12 +1067,11 @@ export const ticketsRouter = router({
         });
       }
 
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         status: input.status,
         updatedAt: new Date(),
       };
 
-      // Update timestamps based on status
       if (input.status === "RESOLVED" && !existingTicket.resolvedAt) {
         updateData.resolvedAt = new Date();
       }
@@ -1237,49 +1079,27 @@ export const ticketsRouter = router({
         updateData.closedAt = new Date();
       }
 
-      const updatedTicket = await prisma.$transaction(async (tx) => {
-        const ticket = await tx.ticket.update({
-          where: { id: input.ticketId },
-          data: updateData,
-          include: {
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-            assignedTo: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        });
+      await db.update(ticket).set(updateData as any).where(eq(ticket.id, input.ticketId));
 
-        // Log activity
-        await logTicketActivity(
-          ticket.id,
-          user.id,
-          "STATUS_CHANGE",
-          `Ticket status changed to ${input.status}`,
-          { status: existingTicket.status },
-          { status: input.status },
-        );
+      await logTicketActivity(
+        input.ticketId,
+        sessionUser.id,
+        "STATUS_CHANGE",
+        `Ticket status changed to ${input.status}`,
+        { status: existingTicket.status },
+        { status: input.status },
+      );
 
-        return ticket;
+      const updatedRow = await db.query.ticket.findFirst({
+        where: eq(ticket.id, input.ticketId),
+        with: ticketWithRelations,
       });
 
-      return transformTicket(updatedTicket);
+      if (!updatedRow) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Ticket not found" });
+      }
+
+      return transformTicket(updatedRow);
     }),
 
   // Archive ticket (soft delete by setting status to CLOSED)
@@ -1287,14 +1107,10 @@ export const ticketsRouter = router({
     .input(z.object({ ticketId: z.string() }))
     .output(ticketSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
-
-      const isAgency = userRecord?.role?.includes("AGENCY") ?? false;
+      const userRole = await fetchUserRole(sessionUser.id);
+      const isAgency = roleIsAgency(userRole);
 
       if (!isAgency) {
         throw new TRPCError({
@@ -1303,9 +1119,11 @@ export const ticketsRouter = router({
         });
       }
 
-      const existingTicket = await prisma.ticket.findFirst({
-        where: { id: input.ticketId },
-      });
+      const [existingTicket] = await db
+        .select()
+        .from(ticket)
+        .where(eq(ticket.id, input.ticketId))
+        .limit(1);
 
       if (!existingTicket) {
         throw new TRPCError({
@@ -1314,53 +1132,35 @@ export const ticketsRouter = router({
         });
       }
 
-      const updatedTicket = await prisma.$transaction(async (tx) => {
-        const ticket = await tx.ticket.update({
-          where: { id: input.ticketId },
-          data: {
-            status: "CLOSED",
-            closedAt: new Date(),
-            updatedAt: new Date(),
-          } as any,
-          include: {
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-            assignedTo: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        });
+      const now = new Date();
+      await db
+        .update(ticket)
+        .set({
+          status: "CLOSED",
+          closedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(ticket.id, input.ticketId));
 
-        // Log activity
-        await logTicketActivity(
-          ticket.id,
-          user.id,
-          "ARCHIVE",
-          "Ticket archived",
-          { status: existingTicket.status },
-          { status: "CLOSED" },
-        );
+      await logTicketActivity(
+        input.ticketId,
+        sessionUser.id,
+        "ARCHIVE",
+        "Ticket archived",
+        { status: existingTicket.status },
+        { status: "CLOSED" },
+      );
 
-        return ticket;
+      const updatedRow = await db.query.ticket.findFirst({
+        where: eq(ticket.id, input.ticketId),
+        with: ticketWithRelations,
       });
 
-      return transformTicket(updatedTicket);
+      if (!updatedRow) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Ticket not found" });
+      }
+
+      return transformTicket(updatedRow);
     }),
 
   // Mark all messages in a ticket as read (WhatsApp-style)
@@ -1371,58 +1171,51 @@ export const ticketsRouter = router({
       ticket: ticketSchema,
     }))
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const sessionUser = await getAuthenticatedUser(ctx);
 
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
+      const userRole = await fetchUserRole(sessionUser.id);
+      const isAgency = roleIsAgency(userRole);
 
-      const isAgency = userRecord?.role?.includes("AGENCY") ?? false;
+      const ticketConds = [eq(ticket.id, input.ticketId)];
+      if (!isAgency) {
+        ticketConds.push(eq(ticket.createdById, sessionUser.id));
+      }
 
-      // Verify ticket access
-      const ticket = await prisma.ticket.findFirst({
-        where: {
-          id: input.ticketId,
-          ...(isAgency ? {} : { createdById: user.id }),
-        },
-      });
+      const [ticketRow] = await db
+        .select({ id: ticket.id })
+        .from(ticket)
+        .where(and(...ticketConds))
+        .limit(1);
 
-      if (!ticket) {
+      if (!ticketRow) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ticket not found",
         });
       }
 
-      const result = await prisma.$transaction(async (tx) => {
-        // Find all unread messages in this ticket that were NOT sent by the current user
-        const unreadMessages = await tx.ticketMessage.findMany({
-          where: {
-            ticketId: input.ticketId,
-            senderId: { not: user.id }, // Don't mark own messages as read
-            readStatus: { not: "READ" },
-            deletedAt: null,
-            ...(isAgency ? {} : { isInternal: false }), // Customers can't see internal messages
-          },
-          select: { id: true },
-        });
+      const result = await db.transaction(async (tx) => {
+        const now = new Date();
+        const unreadConds = [
+          eq(ticketMessage.ticketId, input.ticketId),
+          ne(ticketMessage.senderId, sessionUser.id),
+          ne(ticketMessage.readStatus, "READ"),
+          isNull(ticketMessage.deletedAt),
+        ];
+        if (!isAgency) {
+          unreadConds.push(eq(ticketMessage.isInternal, false));
+        }
+        const unreadWhere = and(...unreadConds);
+
+        const unreadMessages = await tx
+          .select({ id: ticketMessage.id })
+          .from(ticketMessage)
+          .where(unreadWhere);
 
         if (unreadMessages.length === 0) {
-          // No messages to mark as read
-          const updatedTicket = await tx.ticket.findFirst({
-            where: { id: input.ticketId },
-            include: {
-              createdBy: {
-                select: { id: true, name: true, email: true },
-              },
-              team: {
-                select: { id: true, name: true, slug: true },
-              },
-              assignedTo: {
-                select: { id: true, name: true, email: true },
-              },
-            },
+          const updatedTicket = await tx.query.ticket.findFirst({
+            where: eq(ticket.id, input.ticketId),
+            with: ticketWithRelations,
           });
 
           return {
@@ -1431,44 +1224,37 @@ export const ticketsRouter = router({
           };
         }
 
-        // Mark all messages as read
-        await tx.ticketMessage.updateMany({
-          where: {
-            id: { in: unreadMessages.map(m => m.id) },
-          },
-          data: {
+        await tx
+          .update(ticketMessage)
+          .set({
             readStatus: "READ",
-            readAt: new Date(),
-            updatedAt: new Date(),
-          } as any,
-        });
-
-        // Update ticket unread count to 0
-        const updatedTicket = await tx.ticket.update({
-          where: { id: input.ticketId },
-          data: {
-            ...(isAgency
-              ? { unreadCount: 0 }
-              : { customerUnreadCount: 0 }
+            readAt: now,
+            updatedAt: now,
+          })
+          .where(
+            inArray(
+              ticketMessage.id,
+              unreadMessages.map((m) => m.id),
             ),
-            updatedAt: new Date(),
-          } as any,
-          include: {
-            createdBy: {
-              select: { id: true, name: true, email: true },
-            },
-            team: {
-              select: { id: true, name: true, slug: true },
-            },
-            assignedTo: {
-              select: { id: true, name: true, email: true },
-            },
-          },
+          );
+
+        await tx
+          .update(ticket)
+          .set(
+            isAgency
+              ? { unreadCount: 0, updatedAt: now }
+              : { customerUnreadCount: 0, updatedAt: now },
+          )
+          .where(eq(ticket.id, input.ticketId));
+
+        const updatedTicket = await tx.query.ticket.findFirst({
+          where: eq(ticket.id, input.ticketId),
+          with: ticketWithRelations,
         });
 
         return {
           markedCount: unreadMessages.length,
-          ticket: updatedTicket,
+          ticket: updatedTicket!,
         };
       });
 

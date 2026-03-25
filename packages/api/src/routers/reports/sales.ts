@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc";
-import prisma from "@nPanel/db";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { db } from "@npanel/db";
+import {
+	salesReportSnapshot,
+	revenueByServiceSnapshot,
+	revenueByTeamSnapshot,
+} from "@npanel/db/schema/reporting";
 import { subDays } from "date-fns";
 import { aggregateSales } from "./utils";
 import { computeSalesReportOverview } from "./sales-overview";
@@ -79,31 +85,27 @@ export const salesReportsRouter = router({
             const startDate = input.from || subDays(new Date(), 30);
             const endDate = input.to || new Date();
 
-            const results = await prisma.salesReportSnapshot.findMany({
-                where: {
-                    period: "DAILY",
-                    date: {
-                        gte: startDate,
-                        lte: endDate,
-                    },
-                },
-                orderBy: { date: "desc" },
-                take: input.limit,
+            const results = await db.query.salesReportSnapshot.findMany({
+                where: and(
+                    eq(salesReportSnapshot.period, "DAILY"),
+                    gte(salesReportSnapshot.date, startDate),
+                    lte(salesReportSnapshot.date, endDate),
+                ),
+                orderBy: [desc(salesReportSnapshot.date)],
+                limit: input.limit,
             });
 
             // If empty, try to aggregate daily snapshots
             if (results.length === 0) {
                 await aggregateSales("DAILY");
-                const newResults = await prisma.salesReportSnapshot.findMany({
-                    where: {
-                        period: "DAILY",
-                        date: {
-                            gte: startDate,
-                            lte: endDate,
-                        },
-                    },
-                    orderBy: { date: "desc" },
-                    take: input.limit,
+                const newResults = await db.query.salesReportSnapshot.findMany({
+                    where: and(
+                        eq(salesReportSnapshot.period, "DAILY"),
+                        gte(salesReportSnapshot.date, startDate),
+                        lte(salesReportSnapshot.date, endDate),
+                    ),
+                    orderBy: [desc(salesReportSnapshot.date)],
+                    limit: input.limit,
                 });
                 return newResults.map(r => ({
                     ...r,
@@ -138,30 +140,26 @@ export const salesReportsRouter = router({
             const startDate = input.from || subDays(new Date(), 30);
             const endDate = input.to || new Date();
 
-            const results = await prisma.revenueByServiceSnapshot.findMany({
-                where: {
-                    period: "DAILY",
-                    date: {
-                        gte: startDate,
-                        lte: endDate,
-                    },
-                },
-                orderBy: { date: "desc" },
-                take: input.limit,
+            const results = await db.query.revenueByServiceSnapshot.findMany({
+                where: and(
+                    eq(revenueByServiceSnapshot.period, "DAILY"),
+                    gte(revenueByServiceSnapshot.date, startDate),
+                    lte(revenueByServiceSnapshot.date, endDate),
+                ),
+                orderBy: [desc(revenueByServiceSnapshot.date)],
+                limit: input.limit,
             });
 
             if (results.length === 0) {
                 await aggregateSales("DAILY");
-                const newResults = await prisma.revenueByServiceSnapshot.findMany({
-                    where: {
-                        period: "DAILY",
-                        date: {
-                            gte: startDate,
-                            lte: endDate,
-                        },
-                    },
-                    orderBy: { date: "desc" },
-                    take: input.limit,
+                const newResults = await db.query.revenueByServiceSnapshot.findMany({
+                    where: and(
+                        eq(revenueByServiceSnapshot.period, "DAILY"),
+                        gte(revenueByServiceSnapshot.date, startDate),
+                        lte(revenueByServiceSnapshot.date, endDate),
+                    ),
+                    orderBy: [desc(revenueByServiceSnapshot.date)],
+                    limit: input.limit,
                 });
                 return newResults.map(r => ({
                     ...r,
@@ -186,28 +184,24 @@ export const salesReportsRouter = router({
             const startDate = input.from || subDays(new Date(), 30);
             const endDate = input.to || new Date();
 
-            const results = await prisma.revenueByTeamSnapshot.findMany({
-                where: {
-                    period: "DAILY",
-                    date: {
-                        gte: startDate,
-                        lte: endDate,
-                    },
-                },
-                orderBy: { date: "desc" },
+            const results = await db.query.revenueByTeamSnapshot.findMany({
+                where: and(
+                    eq(revenueByTeamSnapshot.period, "DAILY"),
+                    gte(revenueByTeamSnapshot.date, startDate),
+                    lte(revenueByTeamSnapshot.date, endDate),
+                ),
+                orderBy: [desc(revenueByTeamSnapshot.date)],
             });
 
             if (results.length === 0) {
                 await aggregateSales("DAILY");
-                const newResults = await prisma.revenueByTeamSnapshot.findMany({
-                    where: {
-                        period: "DAILY",
-                        date: {
-                            gte: startDate,
-                            lte: endDate,
-                        },
-                    },
-                    orderBy: { date: "desc" },
+                const newResults = await db.query.revenueByTeamSnapshot.findMany({
+                    where: and(
+                        eq(revenueByTeamSnapshot.period, "DAILY"),
+                        gte(revenueByTeamSnapshot.date, startDate),
+                        lte(revenueByTeamSnapshot.date, endDate),
+                    ),
+                    orderBy: [desc(revenueByTeamSnapshot.date)],
                 });
                 return aggregateRevenueByTeam(newResults, input.limit);
             }

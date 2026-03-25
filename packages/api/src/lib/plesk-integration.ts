@@ -11,43 +11,81 @@
  */
 import * as crypto from "crypto";
 import { XMLParser } from "fast-xml-parser";
-import prisma from "@nPanel/db";
+import { and, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import { customerIntegration, customerIntegrationActivityLog, userProfile } from "@npanel/db/schema/auth-extras";
 import { sendPleskXmlRequest } from "./plesk/xml-client";
 
 export async function ensurePleskIntegration(
 	teamOwnerId: string,
 	createdBy: string,
 ): Promise<string> {
-	let integration = await prisma.customerIntegration.findUnique({
-		where: {
-			userId_platform: {
-				userId: teamOwnerId,
-				platform: "PLESK",
-			},
-		},
-		include: {
-			user: { include: { profile: true } },
-		},
-	});
+	const [integrationRow] = await db
+		.select({
+			id: customerIntegration.id,
+			platformCustomerId: customerIntegration.platformCustomerId,
+			isCreated: customerIntegration.isCreated,
+		})
+		.from(customerIntegration)
+		.where(
+			and(
+				eq(customerIntegration.userId, teamOwnerId),
+				eq(customerIntegration.platform, "PLESK"),
+			),
+		)
+		.limit(1);
 
-	if (integration?.isCreated && integration.platformCustomerId) {
-		return integration.platformCustomerId;
+	if (integrationRow?.isCreated && integrationRow.platformCustomerId) {
+		return integrationRow.platformCustomerId;
 	}
 
-	const user = await prisma.user.findUnique({
-		where: { id: teamOwnerId },
-		include: { profile: true },
-	});
-	if (!user) {
+	const [userRow] = await db
+		.select({
+			id: user.id,
+			name: user.name,
+			email: user.email,
+			firstName: userProfile.firstName,
+			lastName: userProfile.lastName,
+			phone: userProfile.phone,
+			address: userProfile.address,
+			city: userProfile.city,
+			state: userProfile.state,
+			country: userProfile.country,
+			postalCode: userProfile.postalCode,
+			profileUserId: userProfile.userId,
+		})
+		.from(user)
+		.leftJoin(userProfile, eq(userProfile.userId, user.id))
+		.where(eq(user.id, teamOwnerId))
+		.limit(1);
+
+	if (!userRow) {
 		throw new Error("Team owner not found");
 	}
-	if (!user.profile) {
+
+	if (!userRow.profileUserId) {
 		throw new Error(
 			"Team owner profile is incomplete. Please ask the customer to complete their profile information.",
 		);
 	}
 
-	const profile = user.profile;
+	const ownerUser = {
+		name: userRow.name,
+		email: userRow.email,
+		profile: {
+			firstName: userRow.firstName ?? "",
+			lastName: userRow.lastName ?? "",
+			phone: userRow.phone ?? "",
+			address: userRow.address ?? "",
+			city: userRow.city ?? "",
+			state: userRow.state ?? null,
+			country: userRow.country ?? "",
+			postalCode: userRow.postalCode ?? "",
+		},
+	};
+
+	const profile = ownerUser.profile;
 	const requiredFields = [
 		profile.firstName,
 		profile.lastName,
@@ -82,7 +120,7 @@ export async function ensurePleskIntegration(
 
 	const login = generateRandomLogin();
 	const password = Math.random().toString(36).slice(-12) + "A1!";
-	const personName = user.name || `${profile.firstName} ${profile.lastName}`;
+	const personName = ownerUser.name || `${profile.firstName} ${profile.lastName}`;
 
 	// gen_info element order aligned with customers-create.ts (buildCustomerCreateXml)
 	const pleskXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -94,7 +132,7 @@ export async function ensurePleskIntegration(
         <pname>${escapeXml(personName)}</pname>
         <login>${escapeXml(login)}</login>
         <passwd>${escapeXml(password)}</passwd>
-        <email>${escapeXml(user.email ?? "")}</email>
+        <email>${escapeXml(ownerUser.email ?? "")}</email>
         ${profile.address ? `<address>${escapeXml(profile.address)}</address>` : "<address></address>"}
         ${profile.city ? `<city>${escapeXml(profile.city)}</city>` : "<city></city>"}
         ${profile.state ? `<state>${escapeXml(profile.state)}</state>` : "<state></state>"}
@@ -135,22 +173,25 @@ export async function ensurePleskIntegration(
 
 	const now = new Date();
 	let integrationId: string;
-	if (integration) {
-		await prisma.customerIntegration.update({
-			where: { id: integration.id },
-			data: {
+	if (integrationRow?.id) {
+		const updated = await db
+			.update(customerIntegration)
+			.set({
 				platformCustomerId: String(customerId),
 				isCreated: true,
 				isActive: true,
 				lastSyncedAt: now,
 				updatedAt: now,
 				platformData: parsed,
-			},
-		});
-		integrationId = integration.id;
+			})
+			.where(eq(customerIntegration.id, integrationRow.id))
+			.returning({ id: customerIntegration.id });
+
+		integrationId = updated[0]?.id ?? integrationRow.id;
 	} else {
-		const created = await prisma.customerIntegration.create({
-			data: {
+		const inserted = await db
+			.insert(customerIntegration)
+			.values({
 				id: crypto.randomUUID(),
 				userId: teamOwnerId,
 				platform: "PLESK",
@@ -162,21 +203,20 @@ export async function ensurePleskIntegration(
 				lastSyncedAt: now,
 				updatedAt: now,
 				platformData: parsed,
-			},
-		});
-		integrationId = created.id;
+			})
+			.returning({ id: customerIntegration.id });
+
+		integrationId = inserted[0]?.id ?? crypto.randomUUID();
 	}
 
-	await prisma.customerIntegrationActivityLog.create({
-		data: {
-			id: crypto.randomUUID(),
-			userId: teamOwnerId,
-			customerIntegrationId: integrationId,
-			action: "CREATED",
-			description: "Plesk customer integration created (e.g. during order creation)",
-			metadata: { customerId: String(customerId), createdBy },
-			createdAt: now,
-		},
+	await db.insert(customerIntegrationActivityLog).values({
+		id: crypto.randomUUID(),
+		userId: teamOwnerId,
+		customerIntegrationId: integrationId,
+		action: "CREATED",
+		description: "Plesk customer integration created (e.g. during order creation)",
+		metadata: { customerId: String(customerId), createdBy },
+		createdAt: now,
 	});
 
 	return String(customerId);

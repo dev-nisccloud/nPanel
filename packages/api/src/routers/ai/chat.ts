@@ -1,7 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../../trpc";
-import prisma from "@nPanel/db";
+import { asc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import { db } from "@npanel/db";
+import { aiChat, aiChatMessage } from "@npanel/db/schema/ai";
+import { protectedProcedure, router } from "../../trpc";
 import OpenAI from "openai";
 import {
     startAiChatSchema,
@@ -24,9 +26,9 @@ import { z } from "zod";
 // ============================================================================
 
 async function getChatHistory(chatId: string) {
-    return await prisma.aiChatMessage.findMany({
-        where: { chatId },
-        orderBy: { createdAt: "asc" },
+    return await db.query.aiChatMessage.findMany({
+        where: eq(aiChatMessage.chatId, chatId),
+        orderBy: [asc(aiChatMessage.createdAt)],
     });
 }
 
@@ -73,23 +75,25 @@ async function runAiChatLoop(params: {
             tools: toolsDefinition.length > 0 ? (toolsDefinition as any) : undefined,
         });
 
-        const assistantMessage = response.choices[0].message;
+        const choice = response.choices[0];
+        const assistantMessage = choice?.message;
+        if (!assistantMessage) {
+            break;
+        }
 
         // Save assistant message to DB
-        await prisma.aiChatMessage.create({
-            data: {
-                id: randomUUID(),
-                chatId: chatId,
-                role: "assistant",
-                content: assistantMessage.content || "",
-                toolCalls: assistantMessage.tool_calls as any,
-                metadata: {
-                    usage: response.usage,
-                    finishReason: response.choices[0].finish_reason,
-                    iteration
-                } as any,
-                createdAt: new Date(),
-            }
+        await db.insert(aiChatMessage).values({
+            id: randomUUID(),
+            chatId: chatId,
+            role: "assistant",
+            content: assistantMessage.content || "",
+            toolCalls: assistantMessage.tool_calls as any,
+            metadata: {
+                usage: response.usage,
+                finishReason: choice.finish_reason,
+                iteration
+            } as any,
+            createdAt: new Date(),
         });
 
         // Add to local context for potential next iteration
@@ -116,15 +120,13 @@ async function runAiChatLoop(params: {
             const toolResultString = typeof result === 'string' ? result : JSON.stringify(result);
 
             // Save tool result to DB
-            await prisma.aiChatMessage.create({
-                data: {
-                    id: randomUUID(),
-                    chatId: chatId,
-                    role: "tool",
-                    content: toolResultString,
-                    toolCallId: toolCall.id,
-                    createdAt: new Date(),
-                }
+            await db.insert(aiChatMessage).values({
+                id: randomUUID(),
+                chatId: chatId,
+                role: "tool",
+                content: toolResultString,
+                toolCallId: toolCall.id,
+                createdAt: new Date(),
             });
 
             // Add to local context
@@ -203,7 +205,7 @@ export const aiChatRouter = router({
             const indexedCatalog = getCachedCatalog();
             const allowedFunctions = filterCatalogByAccess(
                 indexedCatalog.catalog.functions,
-                userRole
+                userRole ?? undefined
             );
             const toolsSummary = createToolsSummary(
                 allowedFunctions,
@@ -238,34 +240,58 @@ Objectives:
 
             let chat;
             try {
-                chat = await prisma.aiChat.create({
-                    data: {
+                const now = new Date();
+                const title = input.initialMessage
+                    ? input.initialMessage.slice(0, 50) +
+                      (input.initialMessage.length > 50 ? "..." : "")
+                    : "New Chat";
+
+                await db.transaction(async (tx) => {
+                    await tx.insert(aiChat).values({
                         id: chatId,
                         userId,
-                        teamId: input.teamId || null,
-                        title: input.initialMessage ? (input.initialMessage.slice(0, 50) + (input.initialMessage.length > 50 ? "..." : "")) : "New Chat",
+                        teamId: input.teamId ?? null,
+                        title,
                         status: "ACTIVE",
-                        messages: {
-                            create: [
-                                {
-                                    id: randomUUID(),
-                                    role: "system",
-                                    content: systemPrompt,
-                                    createdAt: new Date(),
-                                },
-                                ...(input.initialMessage ? [{
-                                    id: randomUUID(),
-                                    role: "user",
-                                    content: input.initialMessage,
-                                    createdAt: new Date(),
-                                }] : [])
-                            ]
-                        }
-                    },
-                    include: {
-                        messages: { orderBy: { createdAt: "asc" } }
+                        createdAt: now,
+                        updatedAt: now,
+                    });
+
+                    const seedMessages: (typeof aiChatMessage.$inferInsert)[] = [
+                        {
+                            id: randomUUID(),
+                            chatId,
+                            role: "system",
+                            content: systemPrompt,
+                            createdAt: now,
+                        },
+                    ];
+                    if (input.initialMessage) {
+                        seedMessages.push({
+                            id: randomUUID(),
+                            chatId,
+                            role: "user",
+                            content: input.initialMessage,
+                            createdAt: now,
+                        });
                     }
+                    await tx.insert(aiChatMessage).values(seedMessages);
                 });
+
+                chat = await db.query.aiChat.findFirst({
+                    where: eq(aiChat.id, chatId),
+                    with: {
+                        messages: {
+                            orderBy: [asc(aiChatMessage.createdAt)],
+                        },
+                    },
+                });
+                if (!chat) {
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: "Failed to create chat",
+                    });
+                }
 
                 if (input.initialMessage) {
                     const createCaller = ctx.createCaller;
@@ -347,16 +373,25 @@ Objectives:
                     });
 
                     // Update chat's updatedAt
-                    await prisma.aiChat.update({
-                        where: { id: chatId },
-                        data: { updatedAt: new Date() }
-                    });
+                    await db
+                        .update(aiChat)
+                        .set({ updatedAt: new Date() })
+                        .where(eq(aiChat.id, chatId));
 
-                    // Fetch updated chat
-                    const updatedChat = await prisma.aiChat.findUnique({
-                        where: { id: chatId },
-                        include: { messages: { orderBy: { createdAt: "asc" } } }
+                    const updatedChat = await db.query.aiChat.findFirst({
+                        where: eq(aiChat.id, chatId),
+                        with: {
+                            messages: {
+                                orderBy: [asc(aiChatMessage.createdAt)],
+                            },
+                        },
                     });
+                    if (!updatedChat) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Chat not found after update",
+                        });
+                    }
                     return transformAiChat(updatedChat);
                 }
 
@@ -366,7 +401,7 @@ Objectives:
                 console.error("[AI CHAT START ERROR]", error);
                 if (chat) {
                     try {
-                        await prisma.aiChat.delete({ where: { id: chatId } });
+                        await db.delete(aiChat).where(eq(aiChat.id, chatId));
                     } catch (e) { }
                 }
                 throw error;
@@ -384,12 +419,12 @@ Objectives:
             const userId = ctx.session.user.id;
             const userRole = ctx.session.user.role;
 
-            const chat = await prisma.aiChat.findUnique({
-                where: { id: input.chatId },
-                select: { userId: true, teamId: true }
+            const chatSend = await db.query.aiChat.findFirst({
+                where: eq(aiChat.id, input.chatId),
+                columns: { userId: true, teamId: true },
             });
 
-            if (!chat || chat.userId !== userId) {
+            if (!chatSend || chatSend.userId !== userId) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "Access denied.",
@@ -397,21 +432,22 @@ Objectives:
             }
 
             // Save user message
-            await prisma.aiChatMessage.create({
-                data: {
-                    id: randomUUID(),
-                    chatId: input.chatId,
-                    role: "user",
-                    content: input.content,
-                    createdAt: new Date(),
-                }
+            await db.insert(aiChatMessage).values({
+                id: randomUUID(),
+                chatId: input.chatId,
+                role: "user",
+                content: input.content,
+                createdAt: new Date(),
             });
 
             const history = await getChatHistory(input.chatId);
             const messages = mapToAiMessages(history);
 
             const indexedCatalog = getCachedCatalog();
-            const allowedFunctions = filterCatalogByAccess(indexedCatalog.catalog.functions, userRole);
+            const allowedFunctions = filterCatalogByAccess(
+                indexedCatalog.catalog.functions,
+                userRole ?? undefined
+            );
             const createCaller = ctx.createCaller;
             if (!createCaller) {
                 throw new TRPCError({
@@ -489,10 +525,10 @@ Objectives:
             });
 
             // Update chat's updatedAt
-            await prisma.aiChat.update({
-                where: { id: input.chatId },
-                data: { updatedAt: new Date() }
-            });
+            await db
+                .update(aiChat)
+                .set({ updatedAt: new Date() })
+                .where(eq(aiChat.id, input.chatId));
 
             // Return the last assistant message
             const finalHistory = await getChatHistory(input.chatId);
@@ -521,12 +557,12 @@ Objectives:
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.session.user.id;
 
-            const chat = await prisma.aiChat.findUnique({
-                where: { id: input.chatId },
-                select: { userId: true, teamId: true }
+            const chatEscalate = await db.query.aiChat.findFirst({
+                where: eq(aiChat.id, input.chatId),
+                columns: { userId: true, teamId: true },
             });
 
-            if (!chat || chat.userId !== userId) {
+            if (!chatEscalate || chatEscalate.userId !== userId) {
                 throw new TRPCError({ code: "FORBIDDEN", message: "Access denied." });
             }
 
@@ -535,16 +571,16 @@ Objectives:
                 subject: "Escalation from AI Chat",
                 summary: input.reason || "User requested human agent.",
                 priority: "NORMAL",
-                teamId: chat.teamId,
+                teamId: chatEscalate.teamId,
             });
 
-            await prisma.aiChat.update({
-                where: { id: input.chatId },
-                data: {
+            await db
+                .update(aiChat)
+                .set({
                     status: "CLOSED",
                     closedAt: new Date(),
-                }
-            });
+                })
+                .where(eq(aiChat.id, input.chatId));
 
             return {
                 success: result.success,
@@ -559,17 +595,16 @@ Objectives:
         .output(z.object({ success: z.boolean() }))
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.session.user.id;
-            const chat = await prisma.aiChat.findUnique({
-                where: { id: input.id },
-                select: { userId: true }
+            const chatDelete = await db.query.aiChat.findFirst({
+                where: eq(aiChat.id, input.id),
+                columns: { userId: true },
             });
 
-            if (!chat || chat.userId !== userId) {
+            if (!chatDelete || chatDelete.userId !== userId) {
                 throw new TRPCError({ code: "FORBIDDEN", message: "Access denied." });
             }
 
-            await prisma.aiChatMessage.deleteMany({ where: { chatId: input.id } });
-            await prisma.aiChat.delete({ where: { id: input.id } });
+            await db.delete(aiChat).where(eq(aiChat.id, input.id));
 
             return { success: true };
         }),

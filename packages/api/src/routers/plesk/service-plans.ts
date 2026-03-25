@@ -38,8 +38,7 @@ export const servicePlansRouter = router({
   // Get all service plans
   getAll: publicProcedure
     .input(z.object({}).optional().default({}))
-    .query(async ({ input = {} }) => {
-      
+    .query(async () => {
       try {
         // Check if required environment variables are set
         if (!process.env.PLESK_XML_ENDPOINT) {

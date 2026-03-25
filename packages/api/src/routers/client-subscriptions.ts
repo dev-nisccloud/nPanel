@@ -1,7 +1,19 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, type SQL, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { user as userTable } from "@npanel/db/schema/auth";
+import { hostingSubscription } from "@npanel/db/schema/hosting";
+import {
+	niscClientSubscription,
+	niscClientSubscriptionActivityLog,
+	niscClientSubscriptionRenewal,
+	niscCommissionEntry,
+	niscProduct,
+	niscProductPlan,
+} from "@npanel/db/schema/products";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
-import prisma, { Prisma } from "@nPanel/db";
 
 // ============================================================================
 // ZOD SCHEMAS — independent from the database schema layer
@@ -20,6 +32,8 @@ const subscriptionStatusSchema = z.enum([
     "UPGRADED",
     "DOWNGRADED",
 ]);
+
+type SubscriptionStatus = z.infer<typeof subscriptionStatusSchema>;
 
 const pricingModelSchema = z.enum(["FIXED", "COMMISSION"]);
 
@@ -51,7 +65,7 @@ const commissionEntryStatusSchema = z.enum([
 // A free-form map of string → string | string[] for cross-table references.
 // Examples: { socialMediaPageTokenId: "x" } | { creativeBriefIds: ["a","b"] }
 const serviceRefsSchema = z
-    .record(z.union([z.string(), z.array(z.string())]))
+    .record(z.string(), z.union([z.string(), z.array(z.string())]))
     .optional();
 
 // --- Create subscription schema ----------------------------------------------
@@ -114,7 +128,7 @@ const createSubscriptionInputSchema = z
         hostingSubscriptionId: z.string().optional(),
 
         notes: z.string().optional(),
-        metadata: z.record(z.unknown()).optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
     })
     .superRefine((data, ctx) => {
         if (data.pricingModel === "FIXED" && !data.billingCycle) {
@@ -164,7 +178,7 @@ const updateSubscriptionInputSchema = z.object({
     wpInstallationId: z.number().int().optional(),
     serviceRefs: serviceRefsSchema,
     notes: z.string().optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const cancelSubscriptionInputSchema = z.object({
@@ -371,6 +385,38 @@ function mapCommissionEntry(entry: any): z.infer<typeof commissionEntryOutputSch
     };
 }
 
+function buildListSubscriptionFilters(
+    input: z.infer<typeof getSubscriptionsInputSchema> | undefined,
+) {
+    const parts: SQL[] = [];
+    if (input?.userId !== undefined) parts.push(eq(niscClientSubscription.userId, input.userId));
+    if (input?.teamId !== undefined) parts.push(eq(niscClientSubscription.teamId, input.teamId));
+    if (input?.productId !== undefined) parts.push(eq(niscClientSubscription.productId, input.productId));
+    if (input?.productPlanId !== undefined)
+        parts.push(eq(niscClientSubscription.productPlanId, input.productPlanId));
+    if (input?.pricingModel !== undefined)
+        parts.push(eq(niscClientSubscription.pricingModel, input.pricingModel));
+    if (input?.status !== undefined) parts.push(eq(niscClientSubscription.status, input.status));
+    if (input?.fromDate)
+        parts.push(gte(niscClientSubscription.subscriptionDate, input.fromDate));
+    if (input?.toDate) parts.push(lte(niscClientSubscription.subscriptionDate, input.toDate));
+    return parts;
+}
+
+async function getTeamIdBySlug(slug: string) {
+    const [row] = await db.select({ id: team.id }).from(team).where(eq(team.slug, slug)).limit(1);
+    return row?.id ?? null;
+}
+
+async function isTeamMember(teamId: string, userId: string) {
+    const [m] = await db
+        .select({ id: teamMember.id })
+        .from(teamMember)
+        .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+        .limit(1);
+    return !!m;
+}
+
 // ============================================================================
 // ROUTER
 // ============================================================================
@@ -391,27 +437,14 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const where: Record<string, unknown> = {};
-            if (input?.userId !== undefined) where.userId = input.userId;
-            if (input?.teamId !== undefined) where.teamId = input.teamId;
-            if (input?.productId !== undefined) where.productId = input.productId;
-            if (input?.productPlanId !== undefined) where.productPlanId = input.productPlanId;
-            if (input?.pricingModel !== undefined) where.pricingModel = input.pricingModel;
-            if (input?.status !== undefined) where.status = input.status;
-
-            if (input?.fromDate || input?.toDate) {
-                where.subscriptionDate = {
-                    ...(input.fromDate && { gte: input.fromDate }),
-                    ...(input.toDate && { lte: input.toDate }),
-                };
-            }
-
-            const subs = await prisma.niscClientSubscription.findMany({
-                where,
-                orderBy: { createdAt: "desc" },
-                take: input?.limit ?? 50,
-                skip: input?.offset ?? 0,
-            });
+            const filters = buildListSubscriptionFilters(input);
+            const subs = await db
+                .select()
+                .from(niscClientSubscription)
+                .where(filters.length ? and(...filters) : sql`true`)
+                .orderBy(desc(niscClientSubscription.createdAt))
+                .limit(input?.limit ?? 50)
+                .offset(input?.offset ?? 0);
 
             return subs.map(mapSubscription);
         }),
@@ -448,39 +481,40 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const where: { productId?: { in: string[] } } = {};
+            let productIdFilter: string[] | undefined;
             if (input?.productFilter === "hosting") {
-                const hostingProducts = await prisma.niscProduct.findMany({
-                    where: { name: { contains: "hosting", mode: "insensitive" }, isActive: true },
-                    select: { id: true },
-                });
+                const hostingProducts = await db
+                    .select({ id: niscProduct.id })
+                    .from(niscProduct)
+                    .where(and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%hosting%")));
                 const ids = hostingProducts.map((p) => p.id);
-                if (ids.length > 0) where.productId = { in: ids };
-                else {
-                    // No hosting products: return empty list
-                    return [];
-                }
+                if (ids.length === 0) return [];
+                productIdFilter = ids;
             }
 
-            const subs = await prisma.niscClientSubscription.findMany({
-                where,
-                orderBy: { createdAt: "desc" },
-                take: input?.limit ?? 100,
-                skip: input?.offset ?? 0,
-                include: {
-                    product: { select: { name: true } },
-                    productPlan: { select: { name: true } },
-                    team: { select: { name: true } },
+            const subs = await db.query.niscClientSubscription.findMany({
+                where: productIdFilter ? inArray(niscClientSubscription.productId, productIdFilter) : undefined,
+                orderBy: (s, { desc: d }) => [d(s.createdAt)],
+                limit: input?.limit ?? 100,
+                offset: input?.offset ?? 0,
+                with: {
+                    product: { columns: { name: true } },
+                    productPlan: { columns: { name: true } },
+                    team: { columns: { name: true } },
                 },
             });
 
             const userIds = [...new Set(subs.map((s) => s.userId).filter(Boolean))] as string[];
             const users =
                 userIds.length > 0
-                    ? await prisma.user.findMany({
-                          where: { id: { in: userIds } },
-                          select: { id: true, name: true, email: true },
-                      })
+                    ? await db
+                          .select({
+                              id: userTable.id,
+                              name: userTable.name,
+                              email: userTable.email,
+                          })
+                          .from(userTable)
+                          .where(inArray(userTable.id, userIds))
                     : [];
             const userMap = new Map(users.map((u) => [u.id, u.name ?? u.email ?? u.id]));
 
@@ -527,50 +561,43 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const team = await prisma.team.findUnique({
-                where: { slug: input.teamSlug },
-                select: { id: true },
-            });
-            if (!team) {
+            const teamId = await getTeamIdBySlug(input.teamSlug);
+            if (!teamId) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
                     message: "Team not found",
                 });
             }
 
-            const membership = await prisma.teamMember.findUnique({
-                where: {
-                    teamId_userId: { teamId: team.id, userId: session.user.id },
-                },
-                select: { id: true },
-            });
-            if (!membership) {
+            if (!(await isTeamMember(teamId, session.user.id))) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "You do not have access to this team",
                 });
             }
 
-            const hostingProducts = await prisma.niscProduct.findMany({
-                where: {
-                    isActive: true,
-                    OR: [
-                        { name: { contains: "web hosting", mode: "insensitive" } },
-                        { name: { contains: "website hosting", mode: "insensitive" } },
-                    ],
-                },
-                select: { id: true },
-            });
+            const hostingProducts = await db
+                .select({ id: niscProduct.id })
+                .from(niscProduct)
+                .where(
+                    and(
+                        eq(niscProduct.isActive, true),
+                        or(
+                            ilike(niscProduct.name, "%web hosting%"),
+                            ilike(niscProduct.name, "%website hosting%"),
+                        ),
+                    ),
+                );
             const productIds = hostingProducts.map((p) => p.id);
             if (productIds.length === 0) return [];
 
-            const subs = await prisma.niscClientSubscription.findMany({
-                where: {
-                    teamId: team.id,
-                    productId: { in: productIds },
-                },
-                orderBy: { createdAt: "desc" },
-                select: {
+            const subs = await db.query.niscClientSubscription.findMany({
+                where: and(
+                    eq(niscClientSubscription.teamId, teamId),
+                    inArray(niscClientSubscription.productId, productIds),
+                ),
+                orderBy: (s, { desc: d }) => [d(s.createdAt)],
+                columns: {
                     id: true,
                     name: true,
                     status: true,
@@ -580,18 +607,20 @@ export const clientSubscriptionsRouter = router({
                     serviceRefs: true,
                     pleskFilterId: true,
                     hostingSubscriptionId: true,
-                    product: { select: { name: true } },
-                    productPlan: { select: { name: true } },
+                },
+                with: {
+                    product: { columns: { name: true } },
+                    productPlan: { columns: { name: true } },
                 },
             });
 
             const hostingSubIds = [...new Set(subs.map((s) => s.hostingSubscriptionId).filter(Boolean))] as string[];
             const hostingPleskMap = new Map<string, string>();
             if (hostingSubIds.length > 0) {
-                const hsList = await prisma.hostingSubscription.findMany({
-                    where: { id: { in: hostingSubIds } },
-                    select: { id: true, pleskFilterId: true },
-                });
+                const hsList = await db
+                    .select({ id: hostingSubscription.id, pleskFilterId: hostingSubscription.pleskFilterId })
+                    .from(hostingSubscription)
+                    .where(inArray(hostingSubscription.id, hostingSubIds));
                 for (const hs of hsList) {
                     if (hs.pleskFilterId) hostingPleskMap.set(hs.id, hs.pleskFilterId);
                 }
@@ -609,7 +638,7 @@ export const clientSubscriptionsRouter = router({
                     id: sub.id,
                     pleskSubscriptionId: pleskId,
                     subscriptionName: sub.name ?? null,
-                    status: sub.status,
+                    status: sub.status as SubscriptionStatus,
                     productName: sub.product.name,
                     productPlanName: sub.productPlan?.name ?? null,
                     subscriptionDate: sub.subscriptionDate,
@@ -646,47 +675,35 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const team = await prisma.team.findUnique({
-                where: { slug: input.teamSlug },
-                select: { id: true },
-            });
-            if (!team) {
+            const teamId = await getTeamIdBySlug(input.teamSlug);
+            if (!teamId) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
                     message: "Team not found",
                 });
             }
 
-            const membership = await prisma.teamMember.findUnique({
-                where: {
-                    teamId_userId: { teamId: team.id, userId: session.user.id },
-                },
-                select: { id: true },
-            });
-            if (!membership) {
+            if (!(await isTeamMember(teamId, session.user.id))) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "You do not have access to this team",
                 });
             }
 
-            const emailHostingProducts = await prisma.niscProduct.findMany({
-                where: {
-                    isActive: true,
-                    name: { contains: "email hosting", mode: "insensitive" },
-                },
-                select: { id: true },
-            });
+            const emailHostingProducts = await db
+                .select({ id: niscProduct.id })
+                .from(niscProduct)
+                .where(and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%email hosting%")));
             const productIds = emailHostingProducts.map((p) => p.id);
             if (productIds.length === 0) return [];
 
-            const subs = await prisma.niscClientSubscription.findMany({
-                where: {
-                    teamId: team.id,
-                    productId: { in: productIds },
-                },
-                orderBy: { createdAt: "desc" },
-                select: {
+            const subs = await db.query.niscClientSubscription.findMany({
+                where: and(
+                    eq(niscClientSubscription.teamId, teamId),
+                    inArray(niscClientSubscription.productId, productIds),
+                ),
+                orderBy: (s, { desc: d }) => [d(s.createdAt)],
+                columns: {
                     id: true,
                     name: true,
                     status: true,
@@ -696,18 +713,20 @@ export const clientSubscriptionsRouter = router({
                     serviceRefs: true,
                     pleskFilterId: true,
                     hostingSubscriptionId: true,
-                    product: { select: { name: true } },
-                    productPlan: { select: { name: true } },
+                },
+                with: {
+                    product: { columns: { name: true } },
+                    productPlan: { columns: { name: true } },
                 },
             });
 
             const hostingSubIds = [...new Set(subs.map((s) => s.hostingSubscriptionId).filter(Boolean))] as string[];
             const hostingPleskMap = new Map<string, string>();
             if (hostingSubIds.length > 0) {
-                const hsList = await prisma.hostingSubscription.findMany({
-                    where: { id: { in: hostingSubIds } },
-                    select: { id: true, pleskFilterId: true },
-                });
+                const hsList = await db
+                    .select({ id: hostingSubscription.id, pleskFilterId: hostingSubscription.pleskFilterId })
+                    .from(hostingSubscription)
+                    .where(inArray(hostingSubscription.id, hostingSubIds));
                 for (const hs of hsList) {
                     if (hs.pleskFilterId) hostingPleskMap.set(hs.id, hs.pleskFilterId);
                 }
@@ -725,7 +744,7 @@ export const clientSubscriptionsRouter = router({
                     id: sub.id,
                     pleskSubscriptionId: pleskId,
                     subscriptionName: sub.name ?? null,
-                    status: sub.status,
+                    status: sub.status as SubscriptionStatus,
                     productName: sub.product.name,
                     productPlanName: sub.productPlan?.name ?? null,
                     subscriptionDate: sub.subscriptionDate,
@@ -762,47 +781,35 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const team = await prisma.team.findUnique({
-                where: { slug: input.teamSlug },
-                select: { id: true },
-            });
-            if (!team) {
+            const teamId = await getTeamIdBySlug(input.teamSlug);
+            if (!teamId) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
                     message: "Team not found",
                 });
             }
 
-            const membership = await prisma.teamMember.findUnique({
-                where: {
-                    teamId_userId: { teamId: team.id, userId: session.user.id },
-                },
-                select: { id: true },
-            });
-            if (!membership) {
+            if (!(await isTeamMember(teamId, session.user.id))) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "You do not have access to this team",
                 });
             }
 
-            const domainProducts = await prisma.niscProduct.findMany({
-                where: {
-                    isActive: true,
-                    name: { contains: "domains", mode: "insensitive" },
-                },
-                select: { id: true },
-            });
+            const domainProducts = await db
+                .select({ id: niscProduct.id })
+                .from(niscProduct)
+                .where(and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%domains%")));
             const productIds = domainProducts.map((p) => p.id);
             if (productIds.length === 0) return [];
 
-            const subs = await prisma.niscClientSubscription.findMany({
-                where: {
-                    teamId: team.id,
-                    productId: { in: productIds },
-                },
-                orderBy: { createdAt: "desc" },
-                select: {
+            const subs = await db.query.niscClientSubscription.findMany({
+                where: and(
+                    eq(niscClientSubscription.teamId, teamId),
+                    inArray(niscClientSubscription.productId, productIds),
+                ),
+                orderBy: (s, { desc: d }) => [d(s.createdAt)],
+                columns: {
                     id: true,
                     name: true,
                     status: true,
@@ -811,8 +818,10 @@ export const clientSubscriptionsRouter = router({
                     primaryDomain: true,
                     serviceRefs: true,
                     pleskFilterId: true,
-                    product: { select: { name: true } },
-                    productPlan: { select: { name: true } },
+                },
+                with: {
+                    product: { columns: { name: true } },
+                    productPlan: { columns: { name: true } },
                 },
             });
 
@@ -827,7 +836,7 @@ export const clientSubscriptionsRouter = router({
                     id: sub.id,
                     pleskSubscriptionId: pleskId,
                     subscriptionName: sub.name ?? null,
-                    status: sub.status,
+                    status: sub.status as SubscriptionStatus,
                     productName: sub.product.name,
                     productPlanName: sub.productPlan?.name ?? null,
                     subscriptionDate: sub.subscriptionDate,
@@ -862,42 +871,35 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const team = await prisma.team.findUnique({
-                where: { slug: input.teamSlug },
-                select: { id: true },
-            });
-            if (!team) {
+            const teamId = await getTeamIdBySlug(input.teamSlug);
+            if (!teamId) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
                     message: "Team not found",
                 });
             }
 
-            const membership = await prisma.teamMember.findUnique({
-                where: {
-                    teamId_userId: { teamId: team.id, userId: session.user.id },
-                },
-                select: { id: true },
-            });
-            if (!membership) {
+            if (!(await isTeamMember(teamId, session.user.id))) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "You do not have access to this team",
                 });
             }
 
-            const subs = await prisma.niscClientSubscription.findMany({
-                where: { teamId: team.id },
-                orderBy: { createdAt: "desc" },
-                select: {
+            const subs = await db.query.niscClientSubscription.findMany({
+                where: eq(niscClientSubscription.teamId, teamId),
+                orderBy: (s, { desc: d }) => [d(s.createdAt)],
+                columns: {
                     id: true,
                     status: true,
                     subscriptionDate: true,
                     nextRenewalDate: true,
                     expiryDate: true,
                     name: true,
-                    product: { select: { name: true } },
-                    productPlan: { select: { name: true } },
+                },
+                with: {
+                    product: { columns: { name: true } },
+                    productPlan: { columns: { name: true } },
                 },
             });
 
@@ -908,7 +910,7 @@ export const clientSubscriptionsRouter = router({
                 subscriptionDate: sub.subscriptionDate,
                 nextRenewalDate: sub.nextRenewalDate,
                 expiryDate: sub.expiryDate,
-                status: sub.status,
+                status: sub.status as SubscriptionStatus,
             }));
         }),
 
@@ -924,17 +926,17 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const sub = await prisma.niscClientSubscription.findUnique({
-                where: { id: input.id },
-                include: {
+            const sub = await db.query.niscClientSubscription.findFirst({
+                where: eq(niscClientSubscription.id, input.id),
+                with: {
                     product: true,
                     productPlan: true,
                     team: true,
                     ...(input.includeRenewals && {
-                        renewals: { orderBy: { renewalDate: "desc" } },
+                        renewals: { orderBy: (r, { desc: d }) => [d(r.renewalDate)] },
                     }),
                     ...(input.includeCommissions && {
-                        commissionEntries: { orderBy: { period: "desc" } },
+                        commissionEntries: { orderBy: (c, { desc: d }) => [d(c.period)] },
                     }),
                 },
             });
@@ -947,29 +949,20 @@ export const clientSubscriptionsRouter = router({
             }
 
             if (input.teamSlug) {
-                const team = await prisma.team.findUnique({
-                    where: { slug: input.teamSlug },
-                    select: { id: true },
-                });
-                if (!team) {
+                const slugTeamId = await getTeamIdBySlug(input.teamSlug);
+                if (!slugTeamId) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
                         message: "Team not found",
                     });
                 }
-                const membership = await prisma.teamMember.findUnique({
-                    where: {
-                        teamId_userId: { teamId: team.id, userId: session.user.id },
-                    },
-                    select: { id: true },
-                });
-                if (!membership) {
+                if (!(await isTeamMember(slugTeamId, session.user.id))) {
                     throw new TRPCError({
                         code: "FORBIDDEN",
                         message: "You do not have access to this team",
                     });
                 }
-                if (sub.teamId !== team.id) {
+                if (sub.teamId !== slugTeamId) {
                     throw new TRPCError({
                         code: "FORBIDDEN",
                         message: "You do not have access to this subscription",
@@ -979,12 +972,18 @@ export const clientSubscriptionsRouter = router({
 
             let userName: string | null = null;
             if (sub.userId) {
-                const u = await prisma.user.findUnique({
-                    where: { id: sub.userId },
-                    select: { name: true, email: true },
-                });
+                const [u] = await db
+                    .select({ name: userTable.name, email: userTable.email })
+                    .from(userTable)
+                    .where(eq(userTable.id, sub.userId))
+                    .limit(1);
                 userName = u ? (u.name ?? u.email ?? null) : null;
             }
+
+            const renewals = input.includeRenewals ? sub.renewals : undefined;
+            const commissionEntries = input.includeCommissions
+                ? sub.commissionEntries?.map(mapCommissionEntry)
+                : undefined;
 
             return {
                 ...mapSubscription(sub),
@@ -992,34 +991,28 @@ export const clientSubscriptionsRouter = router({
                 productPlan: sub.productPlan ?? null,
                 team: sub.team ?? null,
                 userName,
-                ...((sub as any).renewals && { renewals: (sub as any).renewals }),
-                ...((sub as any).commissionEntries && {
-                    commissionEntries: (sub as any).commissionEntries.map(mapCommissionEntry),
-                }),
+                ...(renewals && { renewals }),
+                ...(commissionEntries && { commissionEntries }),
             };
         }),
 
     /** Resolve product ID for "Domains" product (name contains "domain", case-insensitive). Used when creating domain subscriptions from portfolio. */
     getDomainsProductId: protectedProcedure.query(async () => {
-        const product = await prisma.niscProduct.findFirst({
-            where: {
-                name: { contains: "domain", mode: "insensitive" },
-                isActive: true,
-            },
-            select: { id: true },
-        });
+        const [product] = await db
+            .select({ id: niscProduct.id })
+            .from(niscProduct)
+            .where(and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%domain%")))
+            .limit(1);
         return product?.id ?? null;
     }),
 
     /** Resolve product ID for domain transfer (serviceType domain_transfer). Used for transfer checkout → createFromPayment. */
     getTransferProductId: protectedProcedure.query(async () => {
-        const product = await prisma.niscProduct.findFirst({
-            where: {
-                serviceType: "domain_transfer",
-                isActive: true,
-            },
-            select: { id: true, name: true },
-        });
+        const [product] = await db
+            .select({ id: niscProduct.id, name: niscProduct.name })
+            .from(niscProduct)
+            .where(and(eq(niscProduct.isActive, true), eq(niscProduct.serviceType, "domain_transfer")))
+            .limit(1);
         return product ? { id: product.id, name: product.name } : null;
     }),
 
@@ -1034,9 +1027,11 @@ export const clientSubscriptionsRouter = router({
                     message: "You must be logged in to view subscriptions",
                 });
             }
-            const sub = await prisma.niscClientSubscription.findFirst({
-                where: { openProviderId: input.openProviderId },
-            });
+            const [sub] = await db
+                .select()
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.openProviderId, input.openProviderId))
+                .limit(1);
             return sub ? mapSubscription(sub) : null;
         }),
 
@@ -1053,10 +1048,10 @@ export const clientSubscriptionsRouter = router({
                 });
             }
             if (input.openProviderIds.length === 0) return [];
-            const subs = await prisma.niscClientSubscription.findMany({
-                where: { openProviderId: { in: input.openProviderIds } },
-                select: { openProviderId: true },
-            });
+            const subs = await db
+                .select({ openProviderId: niscClientSubscription.openProviderId })
+                .from(niscClientSubscription)
+                .where(inArray(niscClientSubscription.openProviderId, input.openProviderIds));
             return subs
                 .map((s) => s.openProviderId)
                 .filter((id): id is number => id != null);
@@ -1075,12 +1070,11 @@ export const clientSubscriptionsRouter = router({
                 });
             }
             const idStr = String(input.pleskSubscriptionId);
-            const sub = await prisma.niscClientSubscription.findFirst({
-                where: {
-                    serviceRefs: { path: ["pleskSubscriptionId"], equals: idStr },
-                },
-                select: { id: true },
-            });
+            const [sub] = await db
+                .select({ id: niscClientSubscription.id })
+                .from(niscClientSubscription)
+                .where(sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${idStr}`)
+                .limit(1);
             return { hasLinked: !!sub };
         }),
 
@@ -1098,14 +1092,16 @@ export const clientSubscriptionsRouter = router({
             }
             if (input.pleskSubscriptionIds.length === 0) return [];
             const idStrs = [...new Set(input.pleskSubscriptionIds.map((id) => String(id)))];
-            const subs = await prisma.niscClientSubscription.findMany({
-                where: {
-                    OR: idStrs.map((id) => ({
-                        serviceRefs: { path: ["pleskSubscriptionId"], equals: id },
-                    })),
-                },
-                select: { serviceRefs: true },
-            });
+            const subs = await db
+                .select({ serviceRefs: niscClientSubscription.serviceRefs })
+                .from(niscClientSubscription)
+                .where(
+                    or(
+                        ...idStrs.map(
+                            (id) => sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${id}`,
+                        ),
+                    ),
+                );
             const found = new Set<string>();
             for (const sub of subs) {
                 const refs = sub.serviceRefs as Record<string, unknown> | null;
@@ -1129,20 +1125,26 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            // Verify product exists
-            const product = await prisma.niscProduct.findUnique({
-                where: { id: input.productId },
-                include: { plans: { where: { id: input.productPlanId ?? "" } } },
-            });
+            const [product] = await db
+                .select({ id: niscProduct.id })
+                .from(niscProduct)
+                .where(eq(niscProduct.id, input.productId))
+                .limit(1);
             if (!product) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
             }
 
-            // If a plan is specified, verify it belongs to the product
             if (input.productPlanId) {
-                const plan = await prisma.niscProductPlan.findFirst({
-                    where: { id: input.productPlanId, productId: input.productId },
-                });
+                const [plan] = await db
+                    .select({ id: niscProductPlan.id })
+                    .from(niscProductPlan)
+                    .where(
+                        and(
+                            eq(niscProductPlan.id, input.productPlanId),
+                            eq(niscProductPlan.productId, input.productId),
+                        ),
+                    )
+                    .limit(1);
                 if (!plan) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
@@ -1151,8 +1153,11 @@ export const clientSubscriptionsRouter = router({
                 }
             }
 
-            const sub = await prisma.niscClientSubscription.create({
-                data: {
+            const subId = crypto.randomUUID();
+            const [sub] = await db
+                .insert(niscClientSubscription)
+                .values({
+                    id: subId,
                     name: input.name ?? null,
                     userId: input.userId ?? null,
                     teamId: input.teamId ?? null,
@@ -1161,58 +1166,62 @@ export const clientSubscriptionsRouter = router({
                     orderId: input.orderId ?? null,
                     subscribedBy: input.subscribedBy ?? null,
                     recordedBy: input.recordedBy ?? session.user.id,
-                    status: input.status as any,
+                    status: input.status,
                     subscriptionDate: input.subscriptionDate ?? null,
-                    billingCycle: input.billingCycle ? (input.billingCycle as any) : null,
+                    billingCycle: input.billingCycle ?? null,
                     nextRenewalDate: input.nextRenewalDate ?? null,
                     expiryDate: input.expiryDate ?? null,
                     autoRenew: input.autoRenew,
-                    pricingModel: input.pricingModel as any,
+                    pricingModel: input.pricingModel,
                     agreedPrice: input.agreedPrice ?? null,
                     agreedCurrency: input.agreedCurrency,
                     agreedCost: input.agreedCost ?? null,
                     agreedCostCurrency: input.agreedCostCurrency ?? null,
                     providerCost: input.providerCost ?? null,
                     providerCostCurrency: input.providerCostCurrency ?? null,
-                    agreedCommissionRate: input.agreedCommissionRate ?? null,
+                    agreedCommissionRate:
+                        input.agreedCommissionRate != null
+                            ? String(input.agreedCommissionRate)
+                            : null,
                     agreedCommissionBase: input.agreedCommissionBase ?? null,
                     primaryDomain: input.primaryDomain ?? null,
                     pleskFilterId: input.pleskFilterId ?? null,
                     pleskOwnerId: input.pleskOwnerId ?? null,
                     pleskFtpLogin: input.pleskFtpLogin ?? null,
                     pleskFtpPassword: input.pleskFtpPassword ?? null,
-                    hostingType: input.hostingType ? (input.hostingType as any) : null,
+                    hostingType: input.hostingType ?? null,
                     openProviderId: input.openProviderId ?? null,
                     domainAuthCode: input.domainAuthCode ?? null,
                     nameserverGroupId: input.nameserverGroupId ?? null,
                     wpInstallationId: input.wpInstallationId ?? null,
-                    serviceRefs:
-                        input.serviceRefs != null
-                            ? (input.serviceRefs as Prisma.InputJsonValue)
-                            : Prisma.JsonNull,
+                    serviceRefs: input.serviceRefs ?? null,
                     hostingSubscriptionId: input.hostingSubscriptionId ?? null,
                     notes: input.notes ?? null,
-                    metadata:
-                        input.metadata != null
-                            ? (input.metadata as Prisma.InputJsonValue)
-                            : Prisma.JsonNull,
-                },
-            });
+                    metadata: input.metadata ?? null,
+                })
+                .returning();
 
-            // Activity log
-            await prisma.niscClientSubscriptionActivityLog.create({
-                data: {
-                    subscriptionId: sub.id,
-                    userId: session.user.id,
-                    action: "CREATE",
-                    description: `Created ${sub.pricingModel} subscription for product ${input.productId}`,
-                    metadata: {
-                        productId: input.productId,
-                        productPlanId: input.productPlanId ?? null,
-                        pricingModel: input.pricingModel,
-                        status: input.status,
-                    },
+            if (!sub) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to create subscription",
+                });
+            }
+
+            await db.insert(niscClientSubscriptionActivityLog).values({
+                id: crypto.randomUUID(),
+                subscriptionId: sub.id,
+                userId: session.user.id,
+                action: "CREATE",
+                description: `Created ${sub.pricingModel} subscription for product ${input.productId}`,
+                metadata: {
+                    productId: input.productId,
+                    productPlanId: input.productPlanId ?? null,
+                    pricingModel: input.pricingModel,
+                    status: input.status,
                 },
+                ipAddress: null,
+                userAgent: null,
             });
 
             return mapSubscription(sub);
@@ -1231,74 +1240,65 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const existing = await prisma.niscClientSubscription.findUnique({
-                where: { id: input.id },
-            });
+            const [existing] = await db
+                .select()
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.id, input.id))
+                .limit(1);
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
             }
 
             const { id, ...rest } = input;
-            const updated = await prisma.niscClientSubscription.update({
-                where: { id },
-                data: {
-                    ...(rest.status !== undefined && { status: rest.status as any }),
-                    ...(rest.subscriptionDate !== undefined && { subscriptionDate: rest.subscriptionDate }),
-                    ...(rest.billingCycle !== undefined && { billingCycle: rest.billingCycle as any }),
-                    ...(rest.nextRenewalDate !== undefined && { nextRenewalDate: rest.nextRenewalDate }),
-                    ...(rest.expiryDate !== undefined && { expiryDate: rest.expiryDate }),
-                    ...(rest.autoRenew !== undefined && { autoRenew: rest.autoRenew }),
-                    ...(rest.agreedPrice !== undefined && { agreedPrice: rest.agreedPrice ?? null }),
-                    ...(rest.agreedCurrency !== undefined && { agreedCurrency: rest.agreedCurrency }),
-                    ...(rest.agreedCommissionRate !== undefined && {
-                        agreedCommissionRate: rest.agreedCommissionRate ?? null,
-                    }),
-                    ...(rest.agreedCommissionBase !== undefined && {
-                        agreedCommissionBase: rest.agreedCommissionBase ?? null,
-                    }),
-                    ...(rest.primaryDomain !== undefined && { primaryDomain: rest.primaryDomain ?? null }),
-                    ...(rest.pleskFilterId !== undefined && { pleskFilterId: rest.pleskFilterId ?? null }),
-                    ...(rest.pleskOwnerId !== undefined && { pleskOwnerId: rest.pleskOwnerId ?? null }),
-                    ...(rest.pleskFtpLogin !== undefined && { pleskFtpLogin: rest.pleskFtpLogin ?? null }),
-                    ...(rest.pleskFtpPassword !== undefined && {
-                        pleskFtpPassword: rest.pleskFtpPassword ?? null,
-                    }),
-                    ...(rest.hostingType !== undefined && {
-                        hostingType: rest.hostingType ? (rest.hostingType as any) : null,
-                    }),
-                    ...(rest.openProviderId !== undefined && { openProviderId: rest.openProviderId ?? null }),
-                    ...(rest.domainAuthCode !== undefined && { domainAuthCode: rest.domainAuthCode ?? null }),
-                    ...(rest.nameserverGroupId !== undefined && {
-                        nameserverGroupId: rest.nameserverGroupId ?? null,
-                    }),
-                    ...(rest.wpInstallationId !== undefined && {
-                        wpInstallationId: rest.wpInstallationId ?? null,
-                    }),
-                    ...(rest.serviceRefs !== undefined && {
-                        serviceRefs:
-                            rest.serviceRefs != null
-                                ? (rest.serviceRefs as Prisma.InputJsonValue)
-                                : Prisma.JsonNull,
-                    }),
-                    ...(rest.notes !== undefined && { notes: rest.notes ?? null }),
-                    ...(rest.metadata !== undefined && {
-                        metadata:
-                            rest.metadata != null
-                                ? (rest.metadata as Prisma.InputJsonValue)
-                                : Prisma.JsonNull,
-                    }),
-                },
-            });
+            const patch: Record<string, unknown> = {};
+            if (rest.status !== undefined) patch.status = rest.status;
+            if (rest.subscriptionDate !== undefined) patch.subscriptionDate = rest.subscriptionDate;
+            if (rest.billingCycle !== undefined) patch.billingCycle = rest.billingCycle;
+            if (rest.nextRenewalDate !== undefined) patch.nextRenewalDate = rest.nextRenewalDate;
+            if (rest.expiryDate !== undefined) patch.expiryDate = rest.expiryDate;
+            if (rest.autoRenew !== undefined) patch.autoRenew = rest.autoRenew;
+            if (rest.agreedPrice !== undefined) patch.agreedPrice = rest.agreedPrice ?? null;
+            if (rest.agreedCurrency !== undefined) patch.agreedCurrency = rest.agreedCurrency;
+            if (rest.agreedCommissionRate !== undefined)
+                patch.agreedCommissionRate =
+                    rest.agreedCommissionRate != null ? String(rest.agreedCommissionRate) : null;
+            if (rest.agreedCommissionBase !== undefined)
+                patch.agreedCommissionBase = rest.agreedCommissionBase ?? null;
+            if (rest.primaryDomain !== undefined) patch.primaryDomain = rest.primaryDomain ?? null;
+            if (rest.pleskFilterId !== undefined) patch.pleskFilterId = rest.pleskFilterId ?? null;
+            if (rest.pleskOwnerId !== undefined) patch.pleskOwnerId = rest.pleskOwnerId ?? null;
+            if (rest.pleskFtpLogin !== undefined) patch.pleskFtpLogin = rest.pleskFtpLogin ?? null;
+            if (rest.pleskFtpPassword !== undefined) patch.pleskFtpPassword = rest.pleskFtpPassword ?? null;
+            if (rest.hostingType !== undefined) patch.hostingType = rest.hostingType ?? null;
+            if (rest.openProviderId !== undefined) patch.openProviderId = rest.openProviderId ?? null;
+            if (rest.domainAuthCode !== undefined) patch.domainAuthCode = rest.domainAuthCode ?? null;
+            if (rest.nameserverGroupId !== undefined)
+                patch.nameserverGroupId = rest.nameserverGroupId ?? null;
+            if (rest.wpInstallationId !== undefined) patch.wpInstallationId = rest.wpInstallationId ?? null;
+            if (rest.serviceRefs !== undefined) patch.serviceRefs = rest.serviceRefs ?? null;
+            if (rest.notes !== undefined) patch.notes = rest.notes ?? null;
+            if (rest.metadata !== undefined) patch.metadata = rest.metadata ?? null;
 
-            // Activity log
-            await prisma.niscClientSubscriptionActivityLog.create({
-                data: {
-                    subscriptionId: id,
-                    userId: session.user.id,
-                    action: "UPDATE",
-                    description: `Updated subscription`,
-                    metadata: { previousStatus: existing.status, newStatus: rest.status ?? existing.status },
-                },
+            const [updated] = await db
+                .update(niscClientSubscription)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .set(patch as any)
+                .where(eq(niscClientSubscription.id, id))
+                .returning();
+
+            if (!updated) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+
+            await db.insert(niscClientSubscriptionActivityLog).values({
+                id: crypto.randomUUID(),
+                subscriptionId: id,
+                userId: session.user.id,
+                action: "UPDATE",
+                description: `Updated subscription`,
+                metadata: { previousStatus: existing.status, newStatus: rest.status ?? existing.status },
+                ipAddress: null,
+                userAgent: null,
             });
 
             return mapSubscription(updated);
@@ -1317,9 +1317,11 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const existing = await prisma.niscClientSubscription.findUnique({
-                where: { id: input.id },
-            });
+            const [existing] = await db
+                .select()
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.id, input.id))
+                .limit(1);
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
             }
@@ -1330,21 +1332,27 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const updated = await prisma.niscClientSubscription.update({
-                where: { id: input.id },
-                data: { status: "CANCELLED" },
-            });
+            const [updated] = await db
+                .update(niscClientSubscription)
+                .set({ status: "CANCELLED" })
+                .where(eq(niscClientSubscription.id, input.id))
+                .returning();
 
-            await prisma.niscClientSubscriptionActivityLog.create({
-                data: {
-                    subscriptionId: input.id,
-                    userId: session.user.id,
-                    action: "CANCEL",
-                    description: input.reason
-                        ? `Cancelled subscription: ${input.reason}`
-                        : "Cancelled subscription",
-                    metadata: { previousStatus: existing.status, reason: input.reason ?? null },
-                },
+            if (!updated) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+
+            await db.insert(niscClientSubscriptionActivityLog).values({
+                id: crypto.randomUUID(),
+                subscriptionId: input.id,
+                userId: session.user.id,
+                action: "CANCEL",
+                description: input.reason
+                    ? `Cancelled subscription: ${input.reason}`
+                    : "Cancelled subscription",
+                metadata: { previousStatus: existing.status, reason: input.reason ?? null },
+                ipAddress: null,
+                userAgent: null,
             });
 
             return mapSubscription(updated);
@@ -1374,9 +1382,12 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const sub = await prisma.niscClientSubscription.findUnique({
-                where: { id: input.subscriptionId },
-                include: { product: { select: { name: true } }, productPlan: { select: { name: true } } },
+            const sub = await db.query.niscClientSubscription.findFirst({
+                where: eq(niscClientSubscription.id, input.subscriptionId),
+                with: {
+                    product: { columns: { name: true } },
+                    productPlan: { columns: { name: true } },
+                },
             });
             if (!sub) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
@@ -1416,25 +1427,26 @@ export const clientSubscriptionsRouter = router({
                 bcc,
             });
 
-            await prisma.niscClientSubscriptionActivityLog.create({
-                data: {
-                    subscriptionId: input.subscriptionId,
-                    userId: session.user.id,
-                    action: "SEND_RENEWAL_REMINDER",
-                    description: `Sent renewal reminder email to ${input.to}`,
-                    metadata: {
-                        to: input.to,
-                        cc: cc ?? null,
-                        bcc: bcc ?? null,
-                        subject,
-                        serviceName: serviceNameLabel,
-                        subscriptionName: subscriptionName ?? null,
-                        subscriptionDate: subscriptionDateStr,
-                        expiryDate: expiryDateStr,
-                        gracePeriodText,
-                        sentAt: new Date().toISOString(),
-                    },
+            await db.insert(niscClientSubscriptionActivityLog).values({
+                id: crypto.randomUUID(),
+                subscriptionId: input.subscriptionId,
+                userId: session.user.id,
+                action: "SEND_RENEWAL_REMINDER",
+                description: `Sent renewal reminder email to ${input.to}`,
+                metadata: {
+                    to: input.to,
+                    cc: cc ?? null,
+                    bcc: bcc ?? null,
+                    subject,
+                    serviceName: serviceNameLabel,
+                    subscriptionName: subscriptionName ?? null,
+                    subscriptionDate: subscriptionDateStr,
+                    expiryDate: expiryDateStr,
+                    gracePeriodText,
+                    sentAt: new Date().toISOString(),
                 },
+                ipAddress: null,
+                userAgent: null,
             });
 
             return { sent: true };
@@ -1458,58 +1470,69 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const existing = await prisma.niscClientSubscription.findUnique({
-                where: { id: input.subscriptionId },
-            });
+            const [existing] = await db
+                .select()
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.id, input.subscriptionId))
+                .limit(1);
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
             }
 
-            // Create the renewal record + update subscription dates in a transaction
-            const [renewal, updatedSub] = await prisma.$transaction([
-                prisma.niscClientSubscriptionRenewal.create({
-                    data: {
-                        subscriptionId: input.subscriptionId,
-                        renewalType: input.renewalType as any,
-                        renewedBy: input.renewedBy ?? session.user.id,
-                        renewalDate: input.renewalDate,
-                        newExpiryDate: input.newExpiryDate ?? null,
-                        newNextRenewalDate: input.newNextRenewalDate ?? null,
-                        billingCycle: input.billingCycle ? (input.billingCycle as any) : null,
-                        status: input.status as any,
-                        renewalPrice: input.renewalPrice ?? null,
-                        renewalCurrency: input.renewalCurrency,
-                        orderId: input.orderId ?? null,
-                        notes: input.notes ?? null,
-                    },
-                }),
-                prisma.niscClientSubscription.update({
-                    where: { id: input.subscriptionId },
-                    data: {
-                        ...(input.newNextRenewalDate && { nextRenewalDate: input.newNextRenewalDate }),
-                        ...(input.newExpiryDate && { expiryDate: input.newExpiryDate }),
-                        status: "ACTIVE",
-                    },
-                }),
-            ]);
-
-            await prisma.niscClientSubscriptionActivityLog.create({
-                data: {
+            const renewalId = crypto.randomUUID();
+            const updatedSub = await db.transaction(async (tx) => {
+                await tx.insert(niscClientSubscriptionRenewal).values({
+                    id: renewalId,
                     subscriptionId: input.subscriptionId,
-                    userId: session.user.id,
-                    action: "RENEW",
-                    description: `Renewed subscription (${input.renewalType})`,
-                    metadata: {
-                        renewalId: renewal.id,
-                        renewalType: input.renewalType,
-                        renewalDate: input.renewalDate,
-                        newExpiryDate: input.newExpiryDate ?? null,
-                    },
+                    renewalType: input.renewalType,
+                    renewedBy: input.renewedBy ?? session.user.id,
+                    renewalDate: input.renewalDate,
+                    newExpiryDate: input.newExpiryDate ?? null,
+                    newNextRenewalDate: input.newNextRenewalDate ?? null,
+                    billingCycle: input.billingCycle ?? null,
+                    status: input.status,
+                    renewalPrice: input.renewalPrice ?? null,
+                    renewalCurrency: input.renewalCurrency,
+                    orderId: input.orderId ?? null,
+                    notes: input.notes ?? null,
+                });
+                const subPatch: Record<string, unknown> = { status: "ACTIVE" };
+                if (input.newNextRenewalDate) subPatch.nextRenewalDate = input.newNextRenewalDate;
+                if (input.newExpiryDate) subPatch.expiryDate = input.newExpiryDate;
+                const [row] = await tx
+                    .update(niscClientSubscription)
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    .set(subPatch as any)
+                    .where(eq(niscClientSubscription.id, input.subscriptionId))
+                    .returning();
+                return row;
+            });
+
+            if (!updatedSub) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Renewal failed",
+                });
+            }
+
+            await db.insert(niscClientSubscriptionActivityLog).values({
+                id: crypto.randomUUID(),
+                subscriptionId: input.subscriptionId,
+                userId: session.user.id,
+                action: "RENEW",
+                description: `Renewed subscription (${input.renewalType})`,
+                metadata: {
+                    renewalId: renewalId,
+                    renewalType: input.renewalType,
+                    renewalDate: input.renewalDate,
+                    newExpiryDate: input.newExpiryDate ?? null,
                 },
+                ipAddress: null,
+                userAgent: null,
             });
 
             return {
-                renewalId: renewal.id,
+                renewalId: renewalId,
                 subscription: mapSubscription(updatedSub),
             };
         }),
@@ -1529,9 +1552,11 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const sub = await prisma.niscClientSubscription.findUnique({
-                where: { id: input.subscriptionId },
-            });
+            const [sub] = await db
+                .select()
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.id, input.subscriptionId))
+                .limit(1);
             if (!sub) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
             }
@@ -1554,27 +1579,35 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            // Compute commission: baseAmount × rate / 100
             const rate = Number(sub.agreedCommissionRate);
             const commissionAmount = (input.baseAmount * rate) / 100;
 
-            // NiscCommissionEntry model may not exist in schema yet; cast to satisfy types until migration is added
-            const entry = await (prisma as any).niscCommissionEntry.create({
-                data: {
+            const entryId = crypto.randomUUID();
+            const [entry] = await db
+                .insert(niscCommissionEntry)
+                .values({
+                    id: entryId,
                     subscriptionId: input.subscriptionId,
                     productPlanId: sub.productPlanId,
                     teamId: sub.teamId ?? null,
                     period: input.period,
-                    baseAmount: input.baseAmount,
+                    baseAmount: String(input.baseAmount),
                     baseAmountDescription: input.baseAmountDescription ?? null,
-                    commissionRate: rate,
-                    commissionAmount,
+                    commissionRate: String(rate),
+                    commissionAmount: String(commissionAmount),
                     currency: input.currency,
                     status: "DRAFT",
                     notes: input.notes ?? null,
                     createdBy: session.user.id,
-                },
-            });
+                })
+                .returning();
+
+            if (!entry) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to record commission entry",
+                });
+            }
 
             return mapCommissionEntry(entry);
         }),
@@ -1592,22 +1625,19 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const where: Record<string, unknown> = {};
-            if (input?.subscriptionId !== undefined) where.subscriptionId = input.subscriptionId;
-            if (input?.teamId !== undefined) where.teamId = input.teamId;
-            if (input?.status !== undefined) where.status = input.status;
+            const parts: SQL[] = [];
+            if (input?.subscriptionId !== undefined)
+                parts.push(eq(niscCommissionEntry.subscriptionId, input.subscriptionId));
+            if (input?.teamId !== undefined) parts.push(eq(niscCommissionEntry.teamId, input.teamId));
+            if (input?.status !== undefined) parts.push(eq(niscCommissionEntry.status, input.status));
+            if (input?.periodFrom) parts.push(gte(niscCommissionEntry.period, input.periodFrom));
+            if (input?.periodTo) parts.push(lte(niscCommissionEntry.period, input.periodTo));
 
-            if (input?.periodFrom || input?.periodTo) {
-                where.period = {
-                    ...(input.periodFrom && { gte: input.periodFrom }),
-                    ...(input.periodTo && { lte: input.periodTo }),
-                };
-            }
-
-            const entries = await (prisma as any).niscCommissionEntry.findMany({
-                where,
-                orderBy: { period: "desc" },
-            });
+            const entries = await db
+                .select()
+                .from(niscCommissionEntry)
+                .where(parts.length ? and(...parts) : sql`true`)
+                .orderBy(desc(niscCommissionEntry.period));
 
             return entries.map(mapCommissionEntry);
         }),
@@ -1625,14 +1655,15 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const existing = await (prisma as any).niscCommissionEntry.findUnique({
-                where: { id: input.id },
-            });
+            const [existing] = await db
+                .select()
+                .from(niscCommissionEntry)
+                .where(eq(niscCommissionEntry.id, input.id))
+                .limit(1);
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Commission entry not found" });
             }
 
-            // Validate status transition
             const validTransitions: Record<string, string[]> = {
                 DRAFT: ["INVOICED", "WAIVED"],
                 INVOICED: ["PAID", "WAIVED"],
@@ -1647,14 +1678,20 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const updated = await (prisma as any).niscCommissionEntry.update({
-                where: { id: input.id },
-                data: {
-                    status: input.status as any,
-                    ...(input.invoiceId !== undefined && { invoiceId: input.invoiceId ?? null }),
-                    ...(input.notes !== undefined && { notes: input.notes ?? null }),
-                },
-            });
+            const patch: Record<string, unknown> = { status: input.status };
+            if (input.invoiceId !== undefined) patch.invoiceId = input.invoiceId ?? null;
+            if (input.notes !== undefined) patch.notes = input.notes ?? null;
+
+            const [updated] = await db
+                .update(niscCommissionEntry)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .set(patch as any)
+                .where(eq(niscCommissionEntry.id, input.id))
+                .returning();
+
+            if (!updated) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Commission entry not found" });
+            }
 
             return mapCommissionEntry(updated);
         }),
@@ -1687,22 +1724,25 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            const where: Prisma.NiscClientSubscriptionWhereInput = {
-                product: {
-                    OR: [
-                        { serviceType: { contains: "domain", mode: "insensitive" } },
-                        { name: { contains: "domain", mode: "insensitive" } },
-                    ],
-                },
-            };
-            if (input.userId != null) where.userId = input.userId;
-            if (input.teamId != null) where.teamId = input.teamId;
+            const domainParts: SQL[] = [
+                or(
+                    ilike(niscProduct.serviceType, "%domain%"),
+                    ilike(niscProduct.name, "%domain%"),
+                ) as SQL,
+            ];
+            if (input.userId != null) domainParts.push(eq(niscClientSubscription.userId, input.userId));
+            if (input.teamId != null) domainParts.push(eq(niscClientSubscription.teamId, input.teamId));
 
-            const subs = await prisma.niscClientSubscription.findMany({
-                where,
-                select: { id: true, name: true, primaryDomain: true },
-                orderBy: { createdAt: "desc" },
-            });
+            const subs = await db
+                .select({
+                    id: niscClientSubscription.id,
+                    name: niscClientSubscription.name,
+                    primaryDomain: niscClientSubscription.primaryDomain,
+                })
+                .from(niscClientSubscription)
+                .innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
+                .where(and(...domainParts))
+                .orderBy(desc(niscClientSubscription.createdAt));
 
             return subs.map((s) => ({
                 id: s.id,

@@ -1,4 +1,4 @@
-import { ScrollArea } from "@nPanel/ui/scroll-area";
+import { ScrollArea } from "@npanel/ui/components/ui/scroll-area";
 import type { Invoice } from "../../types";
 import { EditorContent } from "./components/editor-content";
 import { LineItems } from "./components/line-items";

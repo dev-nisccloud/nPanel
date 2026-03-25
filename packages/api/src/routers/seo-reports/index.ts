@@ -1,11 +1,15 @@
 import * as crypto from "crypto";
 import { TRPCError } from "@trpc/server";
+import { and, count, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { user as userTable } from "@npanel/db/schema/auth";
+import { seoReport, seoReportActivityLog } from "@npanel/db/schema/seo-reports";
+import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router, type Context } from "../../trpc";
 import { GoogleSearchConsoleClient } from "../../lib/google-search-console-client";
 import { GoogleAnalyticsClient } from "../../lib/google-analytics-client";
-import { countries } from "@nPanel/location";
+import { countries } from "@npanel/location";
 import {
   seoReportCreateInputSchema,
   seoReportDetailSchema,
@@ -27,9 +31,9 @@ async function getAuthenticatedUser(ctx: Context) {
   }
   const sessionRole = (user as { role?: string })?.role;
   if (sessionRole) return { id: user.id, role: sessionRole };
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { id: true, role: true },
+  const dbUser = await db.query.user.findFirst({
+    where: eq(userTable.id, user.id),
+    columns: { id: true, role: true },
   });
   if (!dbUser) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found." });
@@ -49,45 +53,13 @@ async function ensureAccess(userId: string, role: string, report: { userId: stri
   if (isAgencyUser(role)) return;
   if (report.userId === userId) return;
   if (report.teamId) {
-    const m = await prisma.teamMember.findFirst({
-      where: { teamId: report.teamId, userId },
-      select: { id: true },
+    const m = await db.query.teamMember.findFirst({
+      where: and(eq(teamMember.teamId, report.teamId), eq(teamMember.userId, userId)),
+      columns: { id: true },
     });
     if (m) return;
   }
   throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this report." });
-}
-
-function buildReportData(
-  input: z.infer<typeof seoReportCreateInputSchema>,
-  overwrite: { userId: string; teamId?: string | null }
-) {
-  const o: Record<string, unknown> = {
-    ...overwrite,
-    reportName: input.reportName,
-    reportMonth: input.reportMonth,
-    reportYear: input.reportYear,
-    websiteUrl: str(input.websiteUrl),
-    status: input.status ?? "DRAFT",
-    recommendations: str(input.recommendations),
-    sessions: str(input.sessions),
-    totalWebTraffic: str(input.totalWebTraffic),
-    totalViews: str(input.totalViews),
-    bounceRate: str(input.bounceRate),
-    users: str(input.users),
-    returningUsers: str(input.returningUsers),
-    eventCount: str(input.eventCount),
-    conversions: str(input.conversions),
-    sessionDuration: str(input.sessionDuration),
-    engagedSessions: str(input.engagedSessions),
-    sessionsDesktop: str(input.sessionsDesktop),
-    sessionsMobile: str(input.sessionsMobile),
-    sessionsTablet: str(input.sessionsTablet),
-    formSubmissions: str(input.formSubmissions),
-    impressions: str(input.impressions),
-    clicks: str(input.clicks),
-  };
-  return o as Record<string, string | null>;
 }
 
 function mapToDetail(r: any): SeoReportDetail {
@@ -753,48 +725,47 @@ export const seoReportsRouter = router({
     .output(seoReportListResponseSchema)
     .query(async ({ ctx, input }) => {
       const user = await getAuthenticatedUser(ctx);
-      const filters: Record<string, unknown>[] = [];
+      const filters: SQL[] = [];
 
       if (!isAgencyUser(user.role)) {
-        const memberships = await prisma.teamMember.findMany({
-          where: { userId: user.id },
-          select: { teamId: true },
+        const memberships = await db.query.teamMember.findMany({
+          where: eq(teamMember.userId, user.id),
+          columns: { teamId: true },
         });
         const teamIds = memberships.map((m) => m.teamId);
-        filters.push({
-          OR: [
-            { userId: user.id },
-            ...(teamIds.length ? [{ teamId: { in: teamIds } }] : []),
-          ],
-        });
+        filters.push(
+          teamIds.length
+            ? or(eq(seoReport.userId, user.id), or(...teamIds.map((teamId) => eq(seoReport.teamId, teamId))))!
+            : eq(seoReport.userId, user.id),
+        );
       }
 
-      if (input.teamId) filters.push({ teamId: input.teamId });
-      if (input.status) filters.push({ status: input.status });
-      if (input.reportName) filters.push({ reportName: { contains: input.reportName, mode: "insensitive" } });
-      if (input.reportYear) filters.push({ reportYear: input.reportYear });
-      if (input.reportMonth) filters.push({ reportMonth: input.reportMonth });
+      if (input.teamId) filters.push(eq(seoReport.teamId, input.teamId));
+      if (input.status) filters.push(eq(seoReport.status, input.status));
+      if (input.reportName) filters.push(ilike(seoReport.reportName, `%${input.reportName}%`));
+      if (input.reportYear) filters.push(eq(seoReport.reportYear, input.reportYear));
+      if (input.reportMonth) filters.push(eq(seoReport.reportMonth, input.reportMonth));
       if (input.search?.trim()) {
         const q = input.search.trim();
-        filters.push({
-          OR: [
-            { reportName: { contains: q, mode: "insensitive" } },
-            { reportYear: { contains: q, mode: "insensitive" } },
-            { reportMonth: { contains: q, mode: "insensitive" } },
-            { websiteUrl: { contains: q, mode: "insensitive" } },
-          ],
-        });
+        filters.push(
+          or(
+            ilike(seoReport.reportName, `%${q}%`),
+            ilike(seoReport.reportYear, `%${q}%`),
+            ilike(seoReport.reportMonth, `%${q}%`),
+            ilike(seoReport.websiteUrl, `%${q}%`),
+          )!,
+        );
       }
 
-      const where = filters.length ? { AND: filters } : undefined;
+      const whereClause = filters.length === 0 ? undefined : filters.length === 1 ? filters[0] : and(...filters);
 
       const [reports, total] = await Promise.all([
-        prisma.seoReport.findMany({
-          where,
-          orderBy: [{ reportYear: "desc" }, { reportMonth: "desc" }, { createdAt: "desc" }],
-          skip: input.offset,
-          take: input.limit,
-          select: {
+        db.query.seoReport.findMany({
+          where: whereClause,
+          orderBy: [desc(seoReport.reportYear), desc(seoReport.reportMonth), desc(seoReport.createdAt)],
+          offset: input.offset,
+          limit: input.limit,
+          columns: {
             id: true,
             reportName: true,
             reportMonth: true,
@@ -812,12 +783,14 @@ export const seoReportsRouter = router({
             conversions: true,
           },
         }),
-        prisma.seoReport.count({ where }),
+        whereClause
+          ? db.select({ total: count() }).from(seoReport).where(whereClause)
+          : db.select({ total: count() }).from(seoReport),
       ]);
 
       return {
         reports: reports.map((r) => seoReportSummarySchema.parse(r)),
-        total,
+        total: Number(total[0]?.total ?? 0),
       };
     }),
 
@@ -826,8 +799,8 @@ export const seoReportsRouter = router({
     .output(seoReportDetailSchema)
     .query(async ({ ctx, input }) => {
       const user = await getAuthenticatedUser(ctx);
-      const r = await prisma.seoReport.findUnique({
-        where: { id: input.id },
+      const r = await db.query.seoReport.findFirst({
+        where: eq(seoReport.id, input.id),
       });
       if (!r) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found." });
       await ensureAccess(user.id, user.role, r);
@@ -840,29 +813,47 @@ export const seoReportsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const user = await getAuthenticatedUser(ctx);
       const id = crypto.randomUUID();
-      const data = buildReportData(input, { userId: user.id, teamId: input.teamId ?? null });
 
-      await prisma.$transaction(async (tx) => {
-        await tx.seoReport.create({
-          data: {
-            id,
-            ...data,
-          } as any,
+      await db.transaction(async (tx) => {
+        await tx.insert(seoReport).values({
+          id,
+          userId: user.id,
+          teamId: input.teamId ?? null,
+          reportName: input.reportName,
+          reportMonth: input.reportMonth,
+          reportYear: input.reportYear,
+          websiteUrl: str(input.websiteUrl),
+          status: input.status ?? "DRAFT",
+          recommendations: str(input.recommendations),
+          sessions: str(input.sessions),
+          totalWebTraffic: str(input.totalWebTraffic),
+          totalViews: str(input.totalViews),
+          bounceRate: str(input.bounceRate),
+          users: str(input.users),
+          returningUsers: str(input.returningUsers),
+          eventCount: str(input.eventCount),
+          conversions: str(input.conversions),
+          sessionDuration: str(input.sessionDuration),
+          engagedSessions: str(input.engagedSessions),
+          sessionsDesktop: str(input.sessionsDesktop),
+          sessionsMobile: str(input.sessionsMobile),
+          sessionsTablet: str(input.sessionsTablet),
+          formSubmissions: str(input.formSubmissions),
+          impressions: str(input.impressions),
+          clicks: str(input.clicks),
         });
-        await tx.seoReportActivityLog.create({
-          data: {
-            id: crypto.randomUUID(),
-            seoReportId: id,
-            userId: user.id,
-            action: "CREATE",
-            description: "Created SEO report",
-            createdAt: new Date(),
-          },
+        await tx.insert(seoReportActivityLog).values({
+          id: crypto.randomUUID(),
+          seoReportId: id,
+          userId: user.id,
+          action: "CREATE",
+          description: "Created SEO report",
+          createdAt: new Date(),
         });
       });
 
-      const created = await prisma.seoReport.findUnique({
-        where: { id },
+      const created = await db.query.seoReport.findFirst({
+        where: eq(seoReport.id, id),
       });
       if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Report not found after create." });
       return mapToDetail(created);
