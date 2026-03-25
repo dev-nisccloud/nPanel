@@ -1473,20 +1473,21 @@ export const creativeAssetsRouter = router({
 				});
 			}
 
-			const assets = await db.query.creativeAsset.findMany({
+			const assets = (await db.query.creativeAsset.findMany({
 				where: eq(creativeAsset.teamId, input.teamId),
 				with: {
 					team: true,
 					versions: isAgency
 						? { orderBy: (v, { desc: d }) => [d(v.createdAt)] }
-						: {
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						: ({
 								where: (v, { eq: eqFn }) => eqFn(v.isPublic, true),
 								orderBy: (v, { desc: d }) => [d(v.createdAt)],
-							},
+							} as any),
 					...(isAgency ? { permissions: true } : {}),
 				},
 				orderBy: (a, { desc: d }) => [d(a.createdAt)],
-			});
+			})) as unknown as DbCreativeAsset[];
 
 			const assetIds = assets.map((a) => a.id);
 			const versionCountRows =
@@ -1504,7 +1505,7 @@ export const creativeAssetsRouter = router({
 				versionCountRows.map((r) => [r.creativeAssetId, r.c]),
 			);
 
-			const withCounts = assets.map((a) => ({
+			const withCounts: DbCreativeAsset[] = assets.map((a) => ({
 				...a,
 				_count: { versions: versionCountMap.get(a.id) ?? 0 },
 			}));
@@ -1571,20 +1572,21 @@ export const creativeAssetsRouter = router({
 				return [];
 			}
 
-			const assets = await db.query.creativeAsset.findMany({
+			const assets = (await db.query.creativeAsset.findMany({
 				where: inArray(creativeAsset.id, assetIds),
 				with: {
 					team: true,
 					versions: isAgency
 						? { orderBy: (v, { desc: d }) => [d(v.createdAt)] }
-						: {
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						: ({
 								where: (v, { eq: eqFn }) => eqFn(v.isPublic, true),
 								orderBy: (v, { desc: d }) => [d(v.createdAt)],
-							},
+							} as any),
 					...(isAgency ? { permissions: true } : {}),
 				},
 				orderBy: (a, { desc: d }) => [d(a.createdAt)],
-			});
+			})) as unknown as DbCreativeAsset[];
 
 			const versionCountRows = await db
 				.select({
@@ -1598,7 +1600,7 @@ export const creativeAssetsRouter = router({
 				versionCountRows.map((r) => [r.creativeAssetId, r.c]),
 			);
 
-			const withCounts = assets.map((a) => ({
+			const withCounts: DbCreativeAsset[] = assets.map((a) => ({
 				...a,
 				_count: { versions: versionCountMap.get(a.id) ?? 0 },
 			}));
@@ -1901,18 +1903,19 @@ export const creativeAssetsRouter = router({
 				...(isAgency ? [] : [eq(creativeAssetComment.isInternal, false)]),
 			);
 
-			const comments = await db.query.creativeAssetComment.findMany({
+			const comments = (await db.query.creativeAssetComment.findMany({
 				where: topWhere,
 				with: {
-					replies: {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					replies: ({
 						orderBy: (c, { asc: a }) => [a(c.createdAt)],
 						...(isAgency
 							? {}
 							: { where: (c, { eq: eqFn }) => eqFn(c.isInternal, false) }),
-					},
+					} as any),
 				},
 				orderBy: (c, { asc: a }) => [a(c.createdAt)],
-			});
+			})) as unknown as DbCreativeAssetComment[];
 
 			return comments.map(transformComment);
 		}),
