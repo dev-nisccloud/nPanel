@@ -1,0 +1,578 @@
+import { z } from "zod";
+import { publicProcedure, protectedProcedure, router } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import prisma from "@npanel/db";
+
+// Zod schemas for API - independent from database schema
+const userInfoOutputSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  emailVerified: z.boolean(),
+  image: z.string().nullable(),
+  role: z.enum(["CUSTOMER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]),
+  status: z.enum(["ACTIVE", "SUSPENDED", "BANNED", "DEACTIVATED"]),
+  lastLoginAt: z.date().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  profile: z.object({
+    firstName: z.string().nullable(),
+    lastName: z.string().nullable(),
+    phone: z.string().nullable(),
+    address: z.string().nullable(),
+    city: z.string().nullable(),
+    state: z.string().nullable(),
+    country: z.string().nullable(),
+    postalCode: z.string().nullable(),
+  }).nullable(),
+});
+
+const updateProfileInputSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  firstName: z.string().min(1).max(50).optional(),
+  lastName: z.string().min(1).max(50).optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  postalCode: z.string().optional(),
+});
+
+const updateProfileOutputSchema = z.object({
+  success: z.boolean(),
+  message: z.string().optional(),
+});
+
+const sessionSchema = z.object({
+  id: z.string(),
+  token: z.string(),
+  ipAddress: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  expiresAt: z.date(),
+  isCurrent: z.boolean(),
+});
+
+const sessionsOutputSchema = z.array(sessionSchema);
+
+const revokeSessionInputSchema = z.object({
+  sessionId: z.string(),
+});
+
+const revokeSessionOutputSchema = z.object({
+  success: z.boolean(),
+  message: z.string().optional(),
+});
+
+// Schema for getUserById input
+const getUserByIdInputSchema = z.object({
+  userId: z.string(),
+  fields: z.array(z.enum([
+    "id",
+    "name",
+    "email",
+    "emailVerified",
+    "image",
+    "role",
+    "status",
+    "lastLoginAt",
+    "createdAt",
+    "updatedAt",
+    "profile",
+  ])).optional(),
+});
+
+// Schema for batch getUsersByIds
+const getUsersByIdsInputSchema = z.object({
+  userIds: z.array(z.string()).min(1).max(100), // Limit to 100 users per batch
+  fields: z.array(z.enum([
+    "id",
+    "name",
+    "email",
+    "emailVerified",
+    "image",
+    "role",
+    "status",
+    "lastLoginAt",
+    "createdAt",
+    "updatedAt",
+    "profile",
+  ])).optional(),
+});
+
+const getUsersByIdsOutputSchema = z.record(z.string(), z.any()); // userId -> user data map
+
+export const userProfileRouter = router({
+  /**
+   * Get current user's full profile information
+   */
+  getUserInfo: publicProcedure
+    .output(userInfoOutputSchema)
+    .query(async ({ ctx }) => {
+      const session = ctx.session;
+      
+      if (!session?.user?.id) {
+        throw new Error("Unauthorized: You must be logged in");
+      }
+
+      const userId = session.user.id;
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          profile: true,
+        },
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        image: user.image,
+        role: user.role as "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER",
+        status: user.status as "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED",
+        lastLoginAt: user.lastLoginAt,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        profile: user.profile ? {
+          firstName: user.profile.firstName,
+          lastName: user.profile.lastName,
+          phone: user.profile.phone,
+          address: user.profile.address,
+          city: user.profile.city,
+          state: user.profile.state,
+          country: user.profile.country,
+          postalCode: user.profile.postalCode,
+        } : null,
+      };
+    }),
+
+  /**
+   * Update user profile information
+   */
+  updateProfile: publicProcedure
+    .input(updateProfileInputSchema)
+    .output(updateProfileOutputSchema)
+    .mutation(async ({ input, ctx }) => {
+      const session = ctx.session;
+      
+      if (!session?.user?.id) {
+        throw new Error("Unauthorized: You must be logged in");
+      }
+
+      const userId = session.user.id;
+
+      // Batch: Update user name, profile, and log activity in a transaction
+      // This reduces connection usage from 3-4 sequential queries to 1 transaction
+      const { name, firstName, lastName, phone, address, city, state, country, postalCode } = input;
+
+      await prisma.$transaction(async (tx) => {
+        // Update user name if provided
+        if (name) {
+          await tx.user.update({
+            where: { id: userId },
+            data: { 
+              name,
+              updatedAt: new Date(),
+            },
+          });
+        }
+
+        // Check if profile exists
+        const existingProfile = await tx.userProfile.findUnique({
+          where: { userId },
+        });
+
+        const profileData = {
+          firstName,
+          lastName,
+          phone,
+          address,
+          city,
+          state,
+          country,
+          postalCode,
+          updatedAt: new Date(),
+        };
+
+        if (existingProfile) {
+          // Update existing profile
+          await tx.userProfile.update({
+            where: { userId },
+            data: profileData,
+          });
+        } else {
+          // Create new profile
+          await tx.userProfile.create({
+            data: {
+              id: crypto.randomUUID(),
+              userId,
+              ...profileData,
+              createdAt: new Date(),
+            },
+          });
+        }
+
+        // Log the profile update
+        await tx.userActivityLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            userId,
+            action: "PROFILE_UPDATED",
+            description: "User updated their profile information",
+            metadata: {
+              updatedFields: Object.keys(input),
+            },
+            createdAt: new Date(),
+          },
+        });
+      });
+
+      return {
+        success: true,
+        message: "Profile updated successfully",
+      };
+    }),
+
+  /**
+   * Get all active sessions for current user
+   */
+  getSessions: publicProcedure
+    .output(sessionsOutputSchema)
+    .query(async ({ ctx }) => {
+      const session = ctx.session;
+      
+      if (!session?.user?.id) {
+        throw new Error("Unauthorized: You must be logged in");
+      }
+
+      const userId = session.user.id;
+
+      // Get all active sessions in a single query
+      const sessions = await prisma.session.findMany({
+        where: { 
+          userId,
+          expiresAt: {
+            gt: new Date(), // Only return non-expired sessions
+          },
+        },
+        orderBy: {
+          updatedAt: "desc", // Most recently updated first
+        },
+      });
+
+      // The first session (most recently updated) is likely the current one
+      // This is more efficient than doing a separate query
+      const currentSessionToken = sessions.length > 0 ? sessions[0].token : null;
+
+      return sessions.map((s, index) => ({
+        id: s.id,
+        token: s.token.substring(0, 10) + "...", // Only show partial token for security
+        ipAddress: s.ipAddress,
+        userAgent: s.userAgent,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        expiresAt: s.expiresAt,
+        // Mark the most recently updated session as current
+        isCurrent: index === 0 && s.token === currentSessionToken,
+      }));
+    }),
+
+  /**
+   * Revoke a specific session
+   */
+  revokeSession: publicProcedure
+    .input(revokeSessionInputSchema)
+    .output(revokeSessionOutputSchema)
+    .mutation(async ({ input, ctx }) => {
+      const session = ctx.session;
+      
+      if (!session?.user?.id) {
+        throw new Error("Unauthorized: You must be logged in");
+      }
+
+      const userId = session.user.id;
+
+      // Batch: Find session, verify access, check current session, delete, and log in a transaction
+      // This reduces connection usage from 4 sequential queries to 1 transaction
+      await prisma.$transaction(async (tx) => {
+        // Find the session to revoke
+        const sessionToRevoke = await tx.session.findUnique({
+          where: { id: input.sessionId },
+        });
+
+        if (!sessionToRevoke) {
+          throw new Error("Session not found");
+        }
+
+        // Verify session belongs to current user
+        if (sessionToRevoke.userId !== userId) {
+          throw new Error("You can only revoke your own sessions");
+        }
+
+        // Get the most recent session to prevent revoking current one
+        const currentSession = await tx.session.findFirst({
+          where: {
+            userId,
+            expiresAt: {
+              gt: new Date(),
+            },
+          },
+          orderBy: {
+            updatedAt: "desc",
+          },
+        });
+
+        // Prevent revoking current session
+        if (currentSession && sessionToRevoke.token === currentSession.token) {
+          throw new Error("You cannot revoke your current session. Please log out instead.");
+        }
+
+        // Delete the session
+        await tx.session.delete({
+          where: { id: input.sessionId },
+        });
+
+        // Log the session revocation
+        await tx.userActivityLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            userId,
+            action: "SESSION_REVOKED",
+            description: "User revoked a session",
+            metadata: {
+              sessionId: input.sessionId,
+              ipAddress: sessionToRevoke.ipAddress,
+            },
+            createdAt: new Date(),
+          },
+        });
+      });
+
+      return {
+        success: true,
+        message: "Session revoked successfully",
+      };
+    }),
+
+  /**
+   * Get user information by ID with optional field selection
+   * This is useful for cases where you only need specific user fields
+   */
+  getUserById: protectedProcedure
+    .input(getUserByIdInputSchema)
+    .query(async ({ input }) => {
+      const { userId, fields } = input;
+      
+      // Build Prisma select object based on requested fields
+      const selectFields: Record<string, boolean> = {};
+      const includeProfile = fields?.includes("profile") ?? false;
+      
+      // If no fields specified, get all fields
+      if (!fields || fields.length === 0) {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          include: {
+            profile: true,
+          },
+        });
+
+        if (!user) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "User not found",
+          });
+        }
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          emailVerified: user.emailVerified,
+          image: user.image,
+          role: user.role as "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER",
+          status: user.status as "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED",
+          lastLoginAt: user.lastLoginAt,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          profile: user.profile ? {
+            firstName: user.profile.firstName,
+            lastName: user.profile.lastName,
+            phone: user.profile.phone,
+            address: user.profile.address,
+            city: user.profile.city,
+            state: user.profile.state,
+            country: user.profile.country,
+            postalCode: user.profile.postalCode,
+          } : null,
+        };
+      }
+
+      // Build select based on requested fields
+      // Always include id since we need it for the response mapping
+      selectFields.id = true;
+      if (fields.includes("name")) selectFields.name = true;
+      if (fields.includes("email")) selectFields.email = true;
+      if (fields.includes("emailVerified")) selectFields.emailVerified = true;
+      if (fields.includes("image")) selectFields.image = true;
+      if (fields.includes("role")) selectFields.role = true;
+      if (fields.includes("status")) selectFields.status = true;
+      if (fields.includes("lastLoginAt")) selectFields.lastLoginAt = true;
+      if (fields.includes("createdAt")) selectFields.createdAt = true;
+      if (fields.includes("updatedAt")) selectFields.updatedAt = true;
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          ...selectFields,
+          ...(includeProfile && {
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phone: true,
+                address: true,
+                city: true,
+                state: true,
+                country: true,
+                postalCode: true,
+              },
+            },
+          }),
+        },
+      }) as any; // Type assertion needed due to dynamic select
+
+      if (!user) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found",
+        });
+      }
+
+      // Build response object based on requested fields
+      const response: Record<string, any> = {};
+      
+      // Always include id in response (we always fetch it)
+      if (fields.includes("id")) response.id = user.id;
+      if (fields.includes("name")) response.name = user.name;
+      if (fields.includes("email")) response.email = user.email;
+      if (fields.includes("emailVerified")) response.emailVerified = user.emailVerified;
+      if (fields.includes("image")) response.image = user.image;
+      if (fields.includes("role")) response.role = user.role as "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+      if (fields.includes("status")) response.status = user.status as "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
+      if (fields.includes("lastLoginAt")) response.lastLoginAt = user.lastLoginAt;
+      if (fields.includes("createdAt")) response.createdAt = user.createdAt;
+      if (fields.includes("updatedAt")) response.updatedAt = user.updatedAt;
+      if (fields.includes("profile")) {
+        response.profile = user.profile ? {
+          firstName: user.profile.firstName,
+          lastName: user.profile.lastName,
+          phone: user.profile.phone,
+          address: user.profile.address,
+          city: user.profile.city,
+          state: user.profile.state,
+          country: user.profile.country,
+          postalCode: user.profile.postalCode,
+        } : null;
+      }
+
+      return response;
+    }),
+
+  /**
+   * Get multiple users by IDs in a single request (batched)
+   * Returns a map of userId -> user data for efficient lookups
+   */
+  getUsersByIds: protectedProcedure
+    .input(getUsersByIdsInputSchema)
+    .output(getUsersByIdsOutputSchema)
+    .query(async ({ input }) => {
+      const { userIds, fields } = input;
+      
+      // Get unique user IDs
+      const uniqueUserIds = Array.from(new Set(userIds));
+      
+      // Build Prisma select object based on requested fields
+      const selectFields: Record<string, boolean> = {};
+      const includeProfile = fields?.includes("profile") ?? false;
+      
+      // Always include id
+      selectFields.id = true;
+      if (!fields || fields.length === 0 || fields.includes("name")) selectFields.name = true;
+      if (!fields || fields.length === 0 || fields.includes("email")) selectFields.email = true;
+      if (!fields || fields.length === 0 || fields.includes("emailVerified")) selectFields.emailVerified = true;
+      if (!fields || fields.length === 0 || fields.includes("image")) selectFields.image = true;
+      if (!fields || fields.length === 0 || fields.includes("role")) selectFields.role = true;
+      if (!fields || fields.length === 0 || fields.includes("status")) selectFields.status = true;
+      if (!fields || fields.length === 0 || fields.includes("lastLoginAt")) selectFields.lastLoginAt = true;
+      if (!fields || fields.length === 0 || fields.includes("createdAt")) selectFields.createdAt = true;
+      if (!fields || fields.length === 0 || fields.includes("updatedAt")) selectFields.updatedAt = true;
+
+      // Fetch all users in parallel
+      const users = await prisma.user.findMany({
+        where: {
+          id: { in: uniqueUserIds },
+        },
+        select: {
+          ...selectFields,
+          ...(includeProfile && {
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phone: true,
+                address: true,
+                city: true,
+                state: true,
+                country: true,
+                postalCode: true,
+              },
+            },
+          }),
+        },
+      });
+
+      // Build response map: userId -> user data
+      const usersMap: Record<string, any> = {};
+      
+      for (const user of users) {
+        const userData: Record<string, any> = {};
+        const userAny = user as any; // Type assertion needed because Prisma select types are complex
+        
+        if (!fields || fields.length === 0 || fields.includes("id")) userData.id = userAny.id;
+        if (!fields || fields.length === 0 || fields.includes("name")) userData.name = userAny.name;
+        if (!fields || fields.length === 0 || fields.includes("email")) userData.email = userAny.email;
+        if (!fields || fields.length === 0 || fields.includes("emailVerified")) userData.emailVerified = userAny.emailVerified;
+        if (!fields || fields.length === 0 || fields.includes("image")) userData.image = userAny.image;
+        if (!fields || fields.length === 0 || fields.includes("role")) userData.role = userAny.role;
+        if (!fields || fields.length === 0 || fields.includes("status")) userData.status = userAny.status;
+        if (!fields || fields.length === 0 || fields.includes("lastLoginAt")) userData.lastLoginAt = userAny.lastLoginAt;
+        if (!fields || fields.length === 0 || fields.includes("createdAt")) userData.createdAt = userAny.createdAt;
+        if (!fields || fields.length === 0 || fields.includes("updatedAt")) userData.updatedAt = userAny.updatedAt;
+        if (includeProfile) {
+          userData.profile = userAny.profile ? {
+            firstName: userAny.profile.firstName,
+            lastName: userAny.profile.lastName,
+            phone: userAny.profile.phone,
+            address: userAny.profile.address,
+            city: userAny.profile.city,
+            state: userAny.profile.state,
+            country: userAny.profile.country,
+            postalCode: userAny.profile.postalCode,
+          } : null;
+        }
+        
+        usersMap[userAny.id] = userData;
+      }
+      
+      return usersMap;
+    }),
+});
+

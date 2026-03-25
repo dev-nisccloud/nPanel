@@ -1,0 +1,46 @@
+{
+  "name": "nPanel",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "ruler:apply": "pnpm dlx @intellectronica/ruler@latest apply --local-only",
+    "dev": "turbo dev",
+    "dev:npanel": "turbo dev --filter=npanel",
+    "dev:www.nisccloud.com": "turbo dev --filter=www.nisccloud.com",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:native": "turbo -F native dev",
+    "dev:web": "turbo -F web dev",
+    "db:push": "turbo -F @npanel/db db:push",
+    "db:studio": "turbo -F @npanel/db db:studio",
+    "db:generate": "turbo -F @npanel/db db:generate",
+    "db:migrate": "turbo -F @npanel/db db:migrate",
+    "apphosting:secrets": "node scripts/set-apphosting-secrets.mjs apps/npanel/.env.production",
+    "apphosting:secrets:grant": "node scripts/grant-apphosting-secrets-access.mjs"
+  },
+  "dependencies": {
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@tiptap/extension-link": "^3.9.0",
+    "@tiptap/extension-placeholder": "^2.26.3",
+    "@tiptap/extension-underline": "^3.9.0",
+    "@tiptap/starter-kit": "^3.9.0",
+    "dotenv": "^17.2.2",
+    "prettier": "^3.6.2",
+    "react-icons": "^5.5.0",
+    "tippy.js": "^6.3.7",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.11",
+    "tsdown": "^0.15.5",
+    "turbo": "^2.5.4"
+  },
+  "overrides": {
+    "canvas": "npm:@napi-rs/canvas@0.1.69"
+  },
+  "packageManager": "pnpm@10.16.1"
+}

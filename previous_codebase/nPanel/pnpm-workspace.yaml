@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+
+catalog:
+  '@prisma/client': ^6.15.0
+  '@trpc/client': ^11.5.0
+  '@trpc/server': ^11.5.0
+  better-auth: ^1.3.13
+  dotenv: ^17.2.2
+  next: 16.1.6
+  react: ^19.2.3
+  tsdown: ^0.15.5
+  zod: 3.25.76

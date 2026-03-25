@@ -1,0 +1,46 @@
+{
+  "name": "@nPanel/invoice",
+  "private": true,
+  "main": "src/index.tsx",
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.tsx",
+    "./token": "./src/token/index.ts",
+    "./number": "./src/utils/number.ts",
+    "./templates/html": "./src/templates/html/index.tsx",
+    "./templates/pdf": "./src/templates/pdf/index.tsx",
+    "./templates/og": "./src/templates/og/index.tsx",
+    "./editor": "./src/editor/index.tsx",
+    "./calculate": "./src/utils/calculate.ts",
+    "./format-to-html": "./src/templates/html/format.tsx",
+    "./content": "./src/utils/content.ts",
+    "./types": "./src/types.ts",
+    "./utils": "./src/utils/transform.ts"
+  },
+  "dependencies": {
+    "@date-fns/tz": "^1.4.1",
+    "@nPanel/ui": "workspace:*",
+    "@nPanel/utils": "workspace:*",
+    "@react-pdf/renderer": "^4.3.0",
+    "react": "catalog:",
+    "react-dom": "^19.2.3",
+    "@react-pdf/types": "^2.9.1",
+    "@tiptap/core": "^3.6.6",
+    "@tiptap/extension-link": "^2.26.3",
+    "@tiptap/extension-underline": "^2.26.3",
+    "@tiptap/starter-kit": "^2.26.3",
+    "date-fns": "^4.1.0",
+    "jose": "^6.0.11",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "19.2.3"
+  }
+}

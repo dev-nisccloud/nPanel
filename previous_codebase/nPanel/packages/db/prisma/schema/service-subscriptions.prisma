@@ -1,0 +1,129 @@
+// Service Subscriptions Schema
+// Tracks purchased/subscribed service subscriptions for billing and lifecycle management
+// Supports all service types: Hosting, SEO, Visual Creative, Social Media Marketing, PPC
+
+enum ServiceSubscriptionStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+  PROCESSING
+  FAILED
+}
+
+// Main service subscription tracking model
+// Tracks subscription lifecycle (when created, billing cycle, next renewal)
+// All pricing and invoice information stays on the Order model
+model ServiceSubscription {
+  id                String  @id @map("_id")
+  niscServicePlanId String // Reference to NISC service plan associated with the subscription
+  teamId            String? // Team that owns this subscription
+  orderId           String? // Order that created this subscription (nullable for manual connections)
+  subscribedBy      String? // User ID who purchased/subscribed
+
+  // Subscription Lifecycle
+  subscriptionDate DateTime? // When subscription was created/purchased
+  billingCycle     BillingCycle // Billing cycle (YEARLY, MONTHLY, BIENNIALLY, CUSTOM)
+  nextRenewalDate  DateTime? // When next renewal is due
+  status           ServiceSubscriptionStatus
+  autoRenew        Boolean                   @default(false)
+
+  // Service-Specific Fields (optional, for hosting subscriptions)
+  hostingSubscriptionId String? @unique // Link to actual provisioned HostingSubscription if applicable
+
+  // Additional Info
+  notes    String? // Additional notes
+  metadata Json? // Flexible data storage
+
+  // Timestamps
+  createdAt DateTime
+  updatedAt DateTime
+
+  // Relations
+  niscServicePlan     NiscServicePlan                  @relation(fields: [niscServicePlanId], references: [id], onDelete: Restrict)
+  team                Team?                            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  order               Order?                           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  hostingSubscription HostingSubscription?             @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
+  renewals            ServiceSubscriptionRenewal[]
+  activityLogs        ServiceSubscriptionActivityLog[]
+
+  @@index([niscServicePlanId])
+  @@index([teamId])
+  @@index([orderId])
+  @@index([status])
+  @@index([nextRenewalDate])
+  @@index([subscriptionDate])
+  @@index([hostingSubscriptionId])
+  @@map("service_subscription")
+}
+
+// Individual renewal records for service subscriptions
+// Tracks renewal history with billing cycle and next renewal date
+// All pricing and invoice information stays on the Order model
+model ServiceSubscriptionRenewal {
+  id                    String                    @id @map("_id")
+  serviceSubscriptionId String // Reference to service subscription
+  orderId               String? // Order that created this renewal (nullable for manual renewals)
+  renewedBy             String? // User ID who renewed the subscription
+  renewalDate           DateTime // When renewal was processed
+  billingCycle          BillingCycle // Billing cycle for this renewal
+  nextRenewalDate       DateTime? // New next renewal date after this renewal
+  status                ServiceSubscriptionStatus
+  notes                 String? // Additional notes
+
+  // Timestamps
+  createdAt DateTime
+  updatedAt DateTime
+
+  // Relations
+  serviceSubscription ServiceSubscription                     @relation(fields: [serviceSubscriptionId], references: [id], onDelete: Cascade)
+  order               Order?                                  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  activityLogs        ServiceSubscriptionRenewalActivityLog[]
+
+  @@index([serviceSubscriptionId])
+  @@index([orderId])
+  @@index([renewalDate])
+  @@index([nextRenewalDate])
+  @@map("service_subscription_renewal")
+}
+
+// Activity logging for service subscription lifecycle actions
+model ServiceSubscriptionActivityLog {
+  id                    String              @id @map("_id")
+  serviceSubscriptionId String
+  serviceSubscription   ServiceSubscription @relation(fields: [serviceSubscriptionId], references: [id], onDelete: Cascade)
+  userId                String
+  action                String // e.g., "CREATE", "UPDATE", "SUSPEND", "CANCEL", "RENEW", "ACTIVATE", "EXPIRE"
+  description           String?
+  metadata              Json? // Additional data about the action
+  ipAddress             String?
+  userAgent             String?
+  createdAt             DateTime
+
+  @@index([serviceSubscriptionId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("service_subscription_activity_log")
+}
+
+// Activity logging for service subscription renewal actions
+model ServiceSubscriptionRenewalActivityLog {
+  id                           String                     @id @map("_id")
+  serviceSubscriptionRenewalId String
+  serviceSubscriptionRenewal   ServiceSubscriptionRenewal @relation(fields: [serviceSubscriptionRenewalId], references: [id], onDelete: Cascade)
+  userId                       String
+  action                       String // e.g., "RENEW", "CANCEL", "UPDATE", "REFUND"
+  description                  String?
+  metadata                     Json? // Additional data about the action
+  ipAddress                    String?
+  userAgent                    String?
+  createdAt                    DateTime
+
+  @@index([serviceSubscriptionRenewalId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("service_subscription_renewal_activity_log")
+}

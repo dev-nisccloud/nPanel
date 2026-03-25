@@ -1,0 +1,900 @@
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { protectedProcedure, router } from "../trpc";
+import prisma from "@npanel/db";
+
+// ============================================================================
+// TYPESCRIPT TYPES - Independent from Prisma, mirroring database structure
+// ============================================================================
+
+// Status enums as TypeScript types
+type CreativeBriefStatusType = "DRAFT" | "REVIEWING" | "APPROVED" | "REJECTED";
+
+// Database model types (matching Prisma schema structure but independent)
+interface DbCreativeBriefReferenceImage {
+  id: string;
+  creativeBriefId: string;
+  fileUrl: string;
+  fileKey: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileMetadata?: unknown | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface DbTeam {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface DbUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface DbCreativeBrief {
+  id: string;
+  name: string;
+  userId: string;
+  teamId: string | null;
+  status: CreativeBriefStatusType;
+  background: string;
+  objectives: string;
+  requirements: string;
+  comments: string | null;
+  style?: string | null;
+  copy?: string | null;
+  mandatoryElements?: string | null;
+  designPreference?: string | null;
+  approverUserId?: string | null;
+  approvedBy: string | null;
+  approvedAt: Date | null;
+  rejectedBy: string | null;
+  rejectedAt: Date | null;
+  timelineStartDate: Date | null;
+  timelineEndDate: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  user?: DbUser;
+  team?: DbTeam | null;
+  approver?: DbUser | null;
+  referenceImages?: DbCreativeBriefReferenceImage[];
+}
+
+// ============================================================================
+// ZOD SCHEMAS - Independent from database schema (no shared types)
+// ============================================================================
+
+// Reference image schema
+const creativeBriefReferenceImageSchema = z.object({
+  id: z.string(),
+  creativeBriefId: z.string(),
+  fileUrl: z.string(),
+  fileKey: z.string(),
+  fileName: z.string(),
+  fileSize: z.number(),
+  mimeType: z.string(),
+  fileMetadata: z.unknown().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+// Response schemas
+const creativeBriefSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  userId: z.string(),
+  teamId: z.string().nullable(),
+  status: z.enum(["DRAFT", "REVIEWING", "APPROVED", "REJECTED"]),
+  background: z.string(),
+  objectives: z.string(),
+  requirements: z.string(),
+  comments: z.string().nullable(),
+  style: z.string().nullable(),
+  copy: z.string().nullable(),
+  mandatoryElements: z.string().nullable(),
+  designPreference: z.string().nullable(),
+  approverUserId: z.string().nullable(),
+  approvedBy: z.string().nullable(),
+  approvedAt: z.date().nullable(),
+  rejectedBy: z.string().nullable(),
+  rejectedAt: z.date().nullable(),
+  timelineStartDate: z.date().nullable(),
+  timelineEndDate: z.date().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  user: z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string(),
+  }).optional(),
+  team: z.object({
+    id: z.string(),
+    name: z.string(),
+    slug: z.string(),
+  }).nullable().optional(),
+  approver: z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string(),
+  }).nullable().optional(),
+  referenceImages: z.array(creativeBriefReferenceImageSchema).optional(),
+});
+
+// Input schemas
+// Note: Dates come as strings from tRPC serialization, so we need to convert them
+const createCreativeBriefInputSchema = z.object({
+  name: z.string().min(1).max(255),
+  teamId: z.string().optional(),
+  approverUserId: z.string().optional(),
+  background: z.string().min(1),
+  objectives: z.string().min(1),
+  requirements: z.string().min(1),
+  comments: z.string().optional(),
+  style: z.string().optional(),
+  copy: z.string().optional(),
+  mandatoryElements: z.string().optional(),
+  designPreference: z.string().optional(),
+  timelineStartDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
+  timelineEndDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
+  referenceImages: z.array(z.object({
+    fileUrl: z.string(),
+    fileKey: z.string(),
+    fileName: z.string(),
+    fileSize: z.number(),
+    mimeType: z.string(),
+    fileMetadata: z.unknown().optional(),
+  })).optional(),
+});
+
+const updateCreativeBriefInputSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(255).optional(),
+  teamId: z.string().optional(),
+  background: z.string().min(1).optional(),
+  objectives: z.string().min(1).optional(),
+  requirements: z.string().min(1).optional(),
+  comments: z.string().optional(),
+  style: z.string().optional(),
+  copy: z.string().optional(),
+  mandatoryElements: z.string().optional(),
+  designPreference: z.string().optional(),
+  timelineStartDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
+  timelineEndDate: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === "") return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
+  referenceImages: z.array(z.object({
+    fileUrl: z.string(),
+    fileKey: z.string(),
+    fileName: z.string(),
+    fileSize: z.number(),
+    mimeType: z.string(),
+    fileMetadata: z.unknown().optional(),
+  })).optional(),
+});
+
+// ============================================================================
+// TRANSFORM FUNCTIONS - Convert DB types to API response types
+// ============================================================================
+
+function transformReferenceImage(image: DbCreativeBriefReferenceImage) {
+  return {
+    id: image.id,
+    creativeBriefId: image.creativeBriefId,
+    fileUrl: image.fileUrl,
+    fileKey: image.fileKey,
+    fileName: image.fileName,
+    fileSize: image.fileSize,
+    mimeType: image.mimeType,
+    fileMetadata: image.fileMetadata ?? null,
+    createdAt: image.createdAt,
+    updatedAt: image.updatedAt,
+  };
+}
+
+function transformBrief(brief: DbCreativeBrief) {
+  const result: {
+    id: string;
+    name: string;
+    userId: string;
+    teamId: string | null;
+    status: "DRAFT" | "REVIEWING" | "APPROVED" | "REJECTED";
+    background: string;
+    objectives: string;
+    requirements: string;
+    comments: string | null;
+    style: string | null;
+    copy: string | null;
+    mandatoryElements: string | null;
+    designPreference: string | null;
+    approverUserId: string | null;
+    approvedBy: string | null;
+    approvedAt: Date | null;
+    rejectedBy: string | null;
+    rejectedAt: Date | null;
+    timelineStartDate: Date | null;
+    timelineEndDate: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    user?: { id: string; name: string; email: string };
+    team?: { id: string; name: string; slug: string } | null;
+    approver?: { id: string; name: string; email: string } | null;
+    referenceImages?: ReturnType<typeof transformReferenceImage>[];
+  } = {
+    id: brief.id,
+    name: brief.name,
+    userId: brief.userId,
+    teamId: brief.teamId,
+    status: brief.status as "DRAFT" | "REVIEWING" | "APPROVED" | "REJECTED",
+    background: brief.background,
+    objectives: brief.objectives,
+    requirements: brief.requirements,
+    comments: brief.comments,
+    style: brief.style ?? null,
+    copy: brief.copy ?? null,
+    mandatoryElements: brief.mandatoryElements ?? null,
+    designPreference: brief.designPreference ?? null,
+    approverUserId: brief.approverUserId ?? null,
+    approvedBy: brief.approvedBy,
+    approvedAt: brief.approvedAt,
+    rejectedBy: brief.rejectedBy,
+    rejectedAt: brief.rejectedAt,
+    timelineStartDate: brief.timelineStartDate,
+    timelineEndDate: brief.timelineEndDate,
+    createdAt: brief.createdAt,
+    updatedAt: brief.updatedAt,
+  };
+
+  if (brief.user) {
+    result.user = {
+      id: brief.user.id,
+      name: brief.user.name,
+      email: brief.user.email,
+    };
+  }
+
+  if (brief.team !== undefined) {
+    result.team = brief.team ? {
+      id: brief.team.id,
+      name: brief.team.name,
+      slug: brief.team.slug,
+    } : null;
+  }
+
+  if (brief.approver !== undefined) {
+    result.approver = brief.approver ? {
+      id: brief.approver.id,
+      name: brief.approver.name,
+      email: brief.approver.email,
+    } : null;
+  }
+
+  if (brief.referenceImages !== undefined) {
+    result.referenceImages = brief.referenceImages.map(transformReferenceImage);
+  }
+
+  return result;
+}
+
+/**
+ * Get authenticated user - optimized to use session data
+ * Only queries database to verify user exists if needed
+ */
+async function getAuthenticatedUser(ctx: { session: { user?: { id: string } } | null }) {
+  const user = ctx.session?.user;
+  if (!user?.id) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "You must be logged in",
+    });
+  }
+
+  // Optimize: If user.id is in session, we can trust it (set by auth hooks)
+  // Only need to verify user exists if we're doing additional validation
+  // For most cases, we can just return the session user id
+  // If we need to verify existence, we can query, but it's usually not necessary
+  // since the session is already authenticated by the auth middleware
+  
+  // Return session user id directly - no need to query database
+  // The session is already validated by the auth middleware
+  return { id: user.id };
+}
+
+// Helper to log activity
+async function logActivity(
+  briefId: string,
+  userId: string,
+  action: string,
+  description?: string | null,
+  metadata?: unknown,
+) {
+  await prisma.creativeBriefActivityLog.create({
+    data: {
+      id: crypto.randomUUID(),
+      creativeBriefId: briefId,
+      userId,
+      action,
+      description: description ?? null,
+      metadata: metadata ?? null,
+      createdAt: new Date(),
+    } as any, // Type assertion for JsonValue compatibility
+  });
+}
+
+export const creativeBriefsRouter = router({
+  // Get all creative briefs for the authenticated user
+  getAll: protectedProcedure
+    .output(z.array(creativeBriefSchema))
+    .query(async ({ ctx }) => {
+      const user = await getAuthenticatedUser(ctx);
+
+      const briefs = await prisma.creativeBrief.findMany({
+        where: {
+          userId: user.id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          team: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          referenceImages: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      return briefs.map(transformBrief);
+    }),
+
+  // Get a single creative brief by ID
+  getById: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .output(creativeBriefSchema)
+    .query(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+
+      const brief = await prisma.creativeBrief.findFirst({
+        where: {
+          id: input.id,
+          userId: user.id, // Ensure user owns the brief
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          team: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          approver: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          referenceImages: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+      });
+
+      if (!brief) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Creative brief not found",
+        });
+      }
+
+      return transformBrief(brief);
+    }),
+
+  // Create a new creative brief
+  create: protectedProcedure
+    .input(createCreativeBriefInputSchema)
+    .output(creativeBriefSchema)
+    .mutation(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+
+      // Batch: Validate team and date range in parallel (if both are needed)
+      // This reduces connection usage when both validations are needed
+      const [team, dateRangeValid] = await Promise.all([
+        // Only query team if teamId is provided
+        input.teamId
+          ? prisma.team.findUnique({
+              where: { id: input.teamId },
+            })
+          : Promise.resolve(null),
+        // Validate date range (synchronous check, no DB query)
+        Promise.resolve(
+          input.timelineStartDate && input.timelineEndDate
+            ? input.timelineEndDate >= input.timelineStartDate
+            : true
+        ),
+      ]);
+
+      if (input.teamId && !team) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team not found",
+        });
+      }
+
+      if (!dateRangeValid) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "End date must be after start date",
+        });
+      }
+
+      // Batch: Create brief, reference images, and log activity in a transaction
+      // This reduces connection usage from 3-4 sequential queries to 1 transaction
+      const brief = await prisma.$transaction(async (tx) => {
+        const brief = await tx.creativeBrief.create({
+          data: {
+            id: crypto.randomUUID(),
+            name: input.name,
+            userId: user.id,
+            teamId: input.teamId ?? null,
+            status: "DRAFT",
+            background: input.background,
+            objectives: input.objectives,
+            requirements: input.requirements,
+            comments: input.comments ?? null,
+            style: input.style ?? null,
+            copy: input.copy ?? null,
+            mandatoryElements: input.mandatoryElements ?? null,
+            designPreference: input.designPreference ?? null,
+            approverUserId: input.approverUserId ?? null,
+            timelineStartDate: input.timelineStartDate ?? null,
+            timelineEndDate: input.timelineEndDate ?? null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as any,
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            team: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+            approver: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            referenceImages: true,
+          } as any,
+        });
+
+        // Create reference images if provided
+        if (input.referenceImages && input.referenceImages.length > 0) {
+          await tx.creativeBriefReferenceImage.createMany({
+            data: input.referenceImages.map((img) => ({
+              id: crypto.randomUUID(),
+              creativeBriefId: brief.id,
+              fileUrl: img.fileUrl,
+              fileKey: img.fileKey,
+              fileName: img.fileName,
+              fileSize: img.fileSize,
+              mimeType: img.mimeType,
+              fileMetadata: img.fileMetadata ?? null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            })) as any, // Type assertion for JsonValue compatibility
+          });
+        }
+
+        // Log activity
+        await tx.creativeBriefActivityLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            creativeBriefId: brief.id,
+            userId: user.id,
+            action: "CREATE",
+            description: `Created creative brief "${brief.name}"`,
+            metadata: input.referenceImages && input.referenceImages.length > 0
+              ? { referenceImagesCount: input.referenceImages.length }
+              : null,
+            createdAt: new Date(),
+          } as any,
+        });
+
+        // Reload brief with reference images if they were created
+        if (input.referenceImages && input.referenceImages.length > 0) {
+          const updatedBrief = await tx.creativeBrief.findUnique({
+            where: { id: brief.id },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              team: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+              approver: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              referenceImages: {
+                orderBy: {
+                  createdAt: "asc",
+                },
+              },
+            },
+          } as any);
+          return updatedBrief || brief;
+        }
+
+        return brief;
+      });
+
+      return transformBrief(brief);
+    }),
+
+  // Update a creative brief
+  update: protectedProcedure
+    .input(updateCreativeBriefInputSchema)
+    .output(creativeBriefSchema)
+    .mutation(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+
+      // Batch: Check brief existence, validate team, and date range
+      // This reduces connection usage by parallelizing independent checks
+      const [existingBrief, team] = await Promise.all([
+        prisma.creativeBrief.findFirst({
+          where: {
+            id: input.id,
+            userId: user.id,
+          },
+        }),
+        // Only query team if teamId is provided
+        input.teamId
+          ? prisma.team.findUnique({
+              where: { id: input.teamId },
+            })
+          : Promise.resolve(null),
+      ]);
+
+      if (!existingBrief) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Creative brief not found",
+        });
+      }
+
+      if (input.teamId && !team) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team not found",
+        });
+      }
+
+      // Validate date range (synchronous check, no DB query)
+      const timelineStartDate = input.timelineStartDate ?? existingBrief.timelineStartDate;
+      const timelineEndDate = input.timelineEndDate ?? existingBrief.timelineEndDate;
+      if (timelineStartDate && timelineEndDate) {
+        if (timelineEndDate < timelineStartDate) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "End date must be after start date",
+          });
+        }
+      }
+
+      // Batch: Update brief, handle reference images, and log activity in a transaction
+      // This reduces connection usage from 3-4 sequential queries to 1 transaction
+      const updatedBrief = await prisma.$transaction(async (tx) => {
+        // Update brief
+        const updated = await tx.creativeBrief.update({
+          where: { id: input.id },
+          data: {
+            ...(input.name !== undefined && { name: input.name }),
+            ...(input.teamId !== undefined && { teamId: input.teamId ?? null }),
+            ...(input.background !== undefined && { background: input.background }),
+            ...(input.objectives !== undefined && { objectives: input.objectives }),
+            ...(input.requirements !== undefined && { requirements: input.requirements }),
+            ...(input.comments !== undefined && { comments: input.comments ?? null }),
+            ...(input.timelineStartDate !== undefined && { timelineStartDate: input.timelineStartDate ?? null }),
+            ...(input.timelineEndDate !== undefined && { timelineEndDate: input.timelineEndDate ?? null }),
+            updatedAt: new Date(),
+          },
+        });
+
+        // Handle reference images update
+        if (input.referenceImages !== undefined) {
+          // Delete existing reference images
+          await tx.creativeBriefReferenceImage.deleteMany({
+            where: {
+              creativeBriefId: input.id,
+            },
+          });
+
+          // Create new reference images
+          if (input.referenceImages.length > 0) {
+            await tx.creativeBriefReferenceImage.createMany({
+              data: input.referenceImages.map((img) => ({
+                id: crypto.randomUUID(),
+                creativeBriefId: input.id,
+                fileUrl: img.fileUrl,
+                fileKey: img.fileKey,
+                fileName: img.fileName,
+                fileSize: img.fileSize,
+                mimeType: img.mimeType,
+                fileMetadata: img.fileMetadata ?? null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              })) as any, // Type assertion for JsonValue compatibility
+            });
+          }
+        }
+
+        // Log activity
+        await tx.creativeBriefActivityLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            creativeBriefId: updated.id,
+            userId: user.id,
+            action: "UPDATE",
+            description: "Creative brief updated",
+            metadata: {
+              updatedFields: Object.keys(input).filter((key) => key !== "id" && key !== "referenceImages"),
+            },
+            createdAt: new Date(),
+          } as any,
+        });
+
+        // Reload brief with updated reference images and relations
+        const reloadedBrief = await tx.creativeBrief.findUnique({
+          where: { id: input.id },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            team: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+            approver: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            referenceImages: {
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+          },
+        } as any);
+
+        return reloadedBrief || updated;
+      });
+
+      return transformBrief(updatedBrief);
+    }),
+
+  // Update brief status (rejection/approval/needs-revision) with optional comment logged to activity
+  updateStatus: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        status: z.enum(["DRAFT", "REVIEWING", "APPROVED", "REJECTED"]),
+        comment: z.string().optional(),
+      })
+    )
+    .output(creativeBriefSchema)
+    .mutation(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+
+      const existingBrief = await prisma.creativeBrief.findFirst({
+        where: {
+          id: input.id,
+          userId: user.id,
+        },
+      });
+
+      if (!existingBrief) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Creative brief not found",
+        });
+      }
+
+      const updatedBrief = await prisma.$transaction(async (tx) => {
+        const updateData: Record<string, unknown> = {
+          status: input.status,
+          updatedAt: new Date(),
+        };
+        if (input.status === "APPROVED") {
+          updateData.approvedBy = user.id;
+          updateData.approvedAt = new Date();
+          updateData.rejectedBy = null;
+          updateData.rejectedAt = null;
+        } else if (input.status === "REJECTED") {
+          updateData.rejectedBy = user.id;
+          updateData.rejectedAt = new Date();
+          updateData.approvedBy = null;
+          updateData.approvedAt = null;
+        }
+
+        const updated = await tx.creativeBrief.update({
+          where: { id: input.id },
+          data: updateData as any,
+        });
+
+        await tx.creativeBriefActivityLog.create({
+          data: {
+            id: crypto.randomUUID(),
+            creativeBriefId: input.id,
+            userId: user.id,
+            action: "STATUS_CHANGE",
+            description: `Status changed to ${input.status}${input.comment ? ": " + input.comment : ""}`,
+            comment: input.comment ?? null,
+            metadata: { previousStatus: existingBrief.status, newStatus: input.status },
+            createdAt: new Date(),
+          } as any,
+        });
+
+        const reloaded = await tx.creativeBrief.findUnique({
+          where: { id: input.id },
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            team: { select: { id: true, name: true, slug: true } },
+            approver: { select: { id: true, name: true, email: true } },
+            referenceImages: { orderBy: { createdAt: "asc" as const } },
+          },
+        } as any);
+        if (!reloaded) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Brief not found after update" });
+        return reloaded;
+      });
+
+      return transformBrief(updatedBrief);
+    }),
+
+  // List users for approver combobox (all users in system)
+  listUsersForApprover: protectedProcedure
+    .output(z.array(z.object({ id: z.string(), name: z.string(), email: z.string() })))
+    .query(async ({ ctx }) => {
+      await getAuthenticatedUser(ctx);
+
+      const users = await prisma.user.findMany({
+        select: { id: true, name: true, email: true },
+        orderBy: { name: "asc" },
+      });
+      return users;
+    }),
+
+  // Delete a creative brief
+  delete: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+
+      // Check if brief exists and user owns it
+      const existingBrief = await prisma.creativeBrief.findFirst({
+        where: {
+          id: input.id,
+          userId: user.id,
+        },
+      });
+
+      if (!existingBrief) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Creative brief not found",
+        });
+      }
+
+      // Delete brief (cascade will delete reference images and activity logs)
+      await prisma.creativeBrief.delete({
+        where: { id: input.id },
+      });
+
+      // Log activity (before deletion, but activity log will be deleted by cascade)
+      // We can log this in a separate table if needed, but for now we'll skip it
+      // since the activity log will be deleted by cascade
+
+      return { success: true };
+    }),
+});

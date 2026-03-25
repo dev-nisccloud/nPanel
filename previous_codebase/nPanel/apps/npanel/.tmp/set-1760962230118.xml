@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<packet>
+  <mail>
+    <update>
+      <set>
+        <filter>
+          <site-id>4</site-id>
+        </filter>
+        <values>
+          <mailname>
+            <name>npaneltest</name>
+            <antivir>inout</antivir><outgoing-messages-mbox-limit>100</outgoing-messages-mbox-limit><description>3@@4bD2mPJxMB9u</description><mailbox><enabled>true</enabled><quota>53687091200</quota></mailbox>
+          </mailname>
+        </values>
+      </set>
+    </update>
+  </mail>
+</packet>

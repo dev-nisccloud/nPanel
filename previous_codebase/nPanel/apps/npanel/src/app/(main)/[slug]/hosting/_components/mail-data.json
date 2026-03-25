@@ -1,0 +1,251 @@
+[
+  {
+    "id": 570,
+    "name": "abuse",
+    "mailbox": {
+      "enabled": true,
+      "quota": -1,
+      "usage": 6315982
+    },
+    "forwarding": {
+      "enabled": false
+    },
+    "autoresponder": {
+      "enabled": false,
+      "subject": "Re: <request_subject>",
+      "content_type": "text/plain",
+      "charset": "UTF-8"
+    },
+    "password": {
+      "value": "",
+      "type": "sym"
+    },
+    "antivir": "off",
+    "description": ""
+  },
+  {
+    "id": 571,
+    "name": "accounts",
+    "mailbox": {
+      "enabled": true,
+      "quota": -1,
+      "usage": 326568804
+    },
+    "forwarding": {
+      "enabled": false
+    },
+    "autoresponder": {
+      "enabled": false,
+      "subject": "Re: <request_subject>",
+      "content_type": "text/plain",
+      "charset": "UTF-8"
+    },
+    "password": {
+      "value": "",
+      "type": "sym"
+    },
+    "antivir": "off",
+    "description": ""
+  },
+  {
+    "id": 572,
+    "name": "ads",
+    "mailbox": {
+      "enabled": true,
+      "quota": -1,
+      "usage": 22869122
+    },
+    "forwarding": {
+      "enabled": false
+    },
+    "autoresponder": {
+      "enabled": false,
+      "subject": "Re: <request_subject>",
+      "content_type": "text/plain",
+      "charset": "UTF-8"
+    },
+    "password": {
+      "value": "",
+      "type": "sym"
+    },
+    "antivir": "off",
+    "description": "0r@Ad6kwGf4zzSjz4"
+  },
+  {
+    "id": 41,
+    "name": "alex",
+    "mailbox": {
+      "enabled": true,
+      "quota": -1,
+      "usage": 163373490
+    },
+    "forwarding": {
+      "enabled": false
+    },
+    "autoresponder": {
+      "enabled": false,
+      "subject": "Re: <request_subject>",
+      "content_type": "text/plain",
+      "charset": "UTF-8"
+    },
+    "password": {
+      "value": "",
+      "type": "sym"
+    },
+    "antivir": "off",
+    "description": "",
+    "user-guid": "80988df2-b82c-62d9-a19c-60686fd35f5a"
+  },
+  {
+    "id": 796,
+    "name": "apitest",
+    "mailbox": {
+      "enabled": true,
+      "quota": -1,
+      "usage": 4096
+    },
+    "forwarding": {
+      "enabled": true,
+      "address": ["finey@nisccloud.com", "support@nisccloud.com"]
+    },
+    "alias": ["apitypes", "testingapi"],
+    "autoresponder": {
+      "enabled": true,
+      "subject": "Re: EMAIL FROM API TEST",
+      "content_type": "text/plain",
+      "charset": "UTF-8",
+      "text": "This is a test message from the API email",
+      "end_date": "2025-10-10"
+    },
+    "password": {
+      "value": "",
+      "type": "sym"
+    },
+    "antivir": "inout",
+    "description": "38iwhk59uclHHlSz_"
+  },
+  {
+    "id": 575,
+    "name": "contact",
+    "mailbox": {
+      "enabled": true,
+      "quota": -1,
+      "usage": 50661405
+    },
+    "forwarding": {
+      "enabled": true,
+      "address": ["support@nisccloud.com", "customers-support-aaaarffxaa7nhxsr3n7rcgle3a@nisc-cloud-ke.slack.com"]
+    },
+    "autoresponder": {
+      "enabled": false,
+      "subject": "Re: <request_subject>",
+      "content_type": "text/plain",
+      "charset": "UTF-8"
+    },
+    "password": {
+      "value": "",
+      "type": "sym"
+    },
+    "antivir": "off",
+    "description": ""
+  },
+  {
+    "id": 576,
+    "name": "content",
+    "mailbox": {
+      "enabled": true,
+      "quota": 1073741824,
+      "usage": 258424017
+    },
+    "forwarding": {
+      "enabled": false
+    },
+    "autoresponder": {
+      "enabled": false,
+      "subject": "Re: <request_subject>",
+      "content_type": "text/plain",
+      "charset": "UTF-8"
+    },
+    "password": {
+      "value": "",
+      "type": "sym"
+    },
+    "antivir": "off",
+    "description": "s_6lA9hnTklb5ko9F"
+  },
+  {
+    "id": 577,
+    "name": "creatives",
+    "mailbox": {
+      "enabled": true,
+      "quota": -1,
+      "usage": 2594384638
+    },
+    "forwarding": {
+      "enabled": true,
+      "address": ["ibrahim@nisccloud.com", "dennis@nisccloud.com"]
+    },
+    "autoresponder": {
+      "enabled": false,
+      "subject": "Re: <request_subject>",
+      "content_type": "text/plain",
+      "charset": "UTF-8"
+    },
+    "password": {
+      "value": "",
+      "type": "sym"
+    },
+    "antivir": "off",
+    "description": "uU69dekqwcYh6#0oU"
+  },
+  {
+    "id": 606,
+    "name": "support",
+    "mailbox": {
+      "enabled": true,
+      "quota": -1,
+      "usage": 74183910
+    },
+    "forwarding": {
+      "enabled": true,
+      "address": "customers-support-aaaarffxaa7nhxsr3n7rcgle3a@nisc-cloud-ke.slack.com"
+    },
+    "autoresponder": {
+      "enabled": false,
+      "subject": "Re: <request_subject>",
+      "content_type": "text/plain",
+      "charset": "UTF-8"
+    },
+    "password": {
+      "value": "",
+      "type": "sym"
+    },
+    "antivir": "off",
+    "description": "cn*sG31kQ6ptJsev3"
+  },
+  {
+    "id": 605,
+    "name": "sales",
+    "mailbox": {
+      "enabled": true,
+      "quota": -1,
+      "usage": 827470967
+    },
+    "forwarding": {
+      "enabled": true,
+      "address": "sales-aaaarfkfitkelg7flgsdrx6nv4@nisc-cloud-ke.slack.com"
+    },
+    "autoresponder": {
+      "enabled": false,
+      "subject": "Re: <request_subject>",
+      "content_type": "text/plain",
+      "charset": "UTF-8"
+    },
+    "password": {
+      "value": "",
+      "type": "sym"
+    },
+    "antivir": "off",
+    "description": "e8I1#ac8FcnhspMa0"
+  }
+]
