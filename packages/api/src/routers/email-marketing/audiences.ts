@@ -1,7 +1,14 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../../trpc";
-import prisma, { Prisma } from "@nPanel/db";
+import { and, count, desc, eq, ilike, sql } from "drizzle-orm";
+import * as crypto from "crypto";
+import { db } from "@npanel/db";
+import {
+  emailAudience,
+  emailAudienceContact,
+} from "@npanel/db/schema/email-marketing";
+import { teamMember } from "@npanel/db/schema/teams";
+import { z } from "zod";
+import { protectedProcedure, router } from "../../trpc";
 import {
 	audienceCreateInputSchema,
 	audienceUpdateInputSchema,
@@ -25,7 +32,7 @@ function mapAudience(
 		teamId: string | null;
 		createdAt: Date;
 		updatedAt: Date;
-		_count: { contacts: number };
+		contactsCount: number;
 	},
 	subscribedCount = 0,
 	unsubscribedCount = 0,
@@ -38,9 +45,84 @@ function mapAudience(
 		teamId: audience.teamId ?? null,
 		createdAt: audience.createdAt,
 		updatedAt: audience.updatedAt,
-		contactsCount: audience._count.contacts,
+		contactsCount: audience.contactsCount,
 		subscribedCount,
 		unsubscribedCount,
+	});
+}
+
+async function assertTeamMember(teamId: string, userId: string) {
+	const [member] = await db
+		.select({ id: teamMember.id })
+		.from(teamMember)
+		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+		.limit(1);
+	if (!member) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You do not have access to this team",
+		});
+	}
+}
+
+async function fetchAudienceWithCounts(id: string) {
+	const [row] = await db
+		.select({
+			id: emailAudience.id,
+			name: emailAudience.name,
+			description: emailAudience.description,
+			userId: emailAudience.userId,
+			teamId: emailAudience.teamId,
+			createdAt: emailAudience.createdAt,
+			updatedAt: emailAudience.updatedAt,
+			contactsCount: count(emailAudienceContact.id).as("contactsCount"),
+		})
+		.from(emailAudience)
+		.leftJoin(emailAudienceContact, eq(emailAudienceContact.audienceId, emailAudience.id))
+		.where(eq(emailAudience.id, id))
+		.groupBy(
+			emailAudience.id,
+			emailAudience.name,
+			emailAudience.description,
+			emailAudience.userId,
+			emailAudience.teamId,
+			emailAudience.createdAt,
+			emailAudience.updatedAt,
+		)
+		.limit(1);
+	return row ?? null;
+}
+
+async function assertAudienceAccess(audienceId: string, userId: string) {
+	const [audience] = await db
+		.select({
+			id: emailAudience.id,
+			userId: emailAudience.userId,
+			teamId: emailAudience.teamId,
+		})
+		.from(emailAudience)
+		.where(eq(emailAudience.id, audienceId))
+		.limit(1);
+
+	if (!audience) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Audience not found",
+		});
+	}
+
+	if (audience.userId === userId) {
+		return audience;
+	}
+
+	if (audience.teamId) {
+		await assertTeamMember(audience.teamId, userId);
+		return audience;
+	}
+
+	throw new TRPCError({
+		code: "FORBIDDEN",
+		message: "Access denied",
 	});
 }
 
@@ -60,35 +142,22 @@ export const emailMarketingAudiencesRouter = router({
 
 			// If teamId is provided, ensure user is a member of the team
 			if (input.teamId) {
-				const member = await prisma.teamMember.findUnique({
-					where: {
-						teamId_userId: { teamId: input.teamId, userId },
-					},
-				});
-				if (!member) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "You do not have access to this team",
-					});
-				}
+				await assertTeamMember(input.teamId, userId);
 			}
 
-			const audience = await prisma.emailAudience.create({
-				data: {
-					id: crypto.randomUUID(),
-					name: input.name,
-					description: input.description ?? null,
-					userId,
-					teamId: input.teamId ?? null,
-					createdAt: now,
-					updatedAt: now,
-				},
+			const id = crypto.randomUUID();
+
+			await db.insert(emailAudience).values({
+				id,
+				name: input.name,
+				description: input.description ?? null,
+				userId,
+				teamId: input.teamId ?? null,
+				createdAt: now,
+				updatedAt: now,
 			});
 
-			const withCount = await prisma.emailAudience.findUnique({
-				where: { id: audience.id },
-				include: { _count: { select: { contacts: true } } },
-			});
+			const withCount = await fetchAudienceWithCounts(id);
 
 			if (!withCount) {
 				throw new TRPCError({
@@ -111,49 +180,41 @@ export const emailMarketingAudiencesRouter = router({
 				});
 			}
 
-			const audience = await prisma.emailAudience.findUnique({
-				where: { id: input.id },
-				include: { _count: { select: { contacts: true } } },
-			});
+			await assertAudienceAccess(input.id, userId);
 
-			if (!audience) {
+			const withCount = await fetchAudienceWithCounts(input.id);
+
+			if (!withCount) {
 				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Audience not found",
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to load audience",
 				});
 			}
 
-			if (audience.userId !== userId) {
-				if (audience.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: audience.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
-
 			const [subscribedCount, unsubscribedCount] = await Promise.all([
-				prisma.emailAudienceContact.count({
-					where: { audienceId: input.id, status: "SUBSCRIBED" },
-				}),
-				prisma.emailAudienceContact.count({
-					where: { audienceId: input.id, status: "UNSUBSCRIBED" },
-				}),
+				db
+					.select({ value: count() })
+					.from(emailAudienceContact)
+					.where(
+						and(
+							eq(emailAudienceContact.audienceId, input.id),
+							eq(emailAudienceContact.status, "SUBSCRIBED"),
+						),
+					)
+					.then((rows) => Number(rows[0]?.value ?? 0)),
+				db
+					.select({ value: count() })
+					.from(emailAudienceContact)
+					.where(
+						and(
+							eq(emailAudienceContact.audienceId, input.id),
+							eq(emailAudienceContact.status, "UNSUBSCRIBED"),
+						),
+					)
+					.then((rows) => Number(rows[0]?.value ?? 0)),
 			]);
 
-			return mapAudience(audience, subscribedCount, unsubscribedCount);
+			return mapAudience(withCount, subscribedCount, unsubscribedCount);
 		}),
 
 	list: protectedProcedure
@@ -169,32 +230,58 @@ export const emailMarketingAudiencesRouter = router({
 
 			// Agency-side listing: show all audiences (no creator filter),
 			// with optional filters for teamId and name search.
-			const where: {
-				teamId?: string | null;
-				name?: { contains: string; mode: "insensitive" };
-			} = {};
+			const conditions = [];
 
 			if (input.teamId) {
-				where.teamId = input.teamId;
+				conditions.push(eq(emailAudience.teamId, input.teamId));
 			}
 
 			if (input.search) {
-				where.name = {
-					contains: input.search,
-					mode: "insensitive",
-				};
+				conditions.push(ilike(emailAudience.name, `%${input.search}%`));
 			}
 
-			const [audiences, total] = await Promise.all([
-				prisma.emailAudience.findMany({
-					where,
-					skip: input.offset,
-					take: input.limit,
-					orderBy: { createdAt: "desc" },
-					include: { _count: { select: { contacts: true } } },
-				}),
-				prisma.emailAudience.count({ where }),
+			const whereClause =
+				conditions.length > 0
+					? and(...conditions)
+					: sql`true`;
+
+			const [audiences, totalRes] = await Promise.all([
+				db
+					.select({
+						id: emailAudience.id,
+						name: emailAudience.name,
+						description: emailAudience.description,
+						userId: emailAudience.userId,
+						teamId: emailAudience.teamId,
+						createdAt: emailAudience.createdAt,
+						updatedAt: emailAudience.updatedAt,
+						contactsCount: count(emailAudienceContact.id).as("contactsCount"),
+					})
+					.from(emailAudience)
+					.leftJoin(
+						emailAudienceContact,
+						eq(emailAudienceContact.audienceId, emailAudience.id),
+					)
+					.where(whereClause)
+					.groupBy(
+						emailAudience.id,
+						emailAudience.name,
+						emailAudience.description,
+						emailAudience.userId,
+						emailAudience.teamId,
+						emailAudience.createdAt,
+						emailAudience.updatedAt,
+					)
+					.orderBy(desc(emailAudience.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ value: count() })
+					.from(emailAudience)
+					.where(whereClause),
 			]);
+
+			const total = Number(totalRes[0]?.value ?? 0);
 
 			return audienceListResponseSchema.parse({
 				audiences: audiences.map((a) => mapAudience(a)),
@@ -213,55 +300,22 @@ export const emailMarketingAudiencesRouter = router({
 				});
 			}
 
-			const audience = await prisma.emailAudience.findUnique({
-				where: { id: input.id },
-			});
-
-			if (!audience) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Audience not found",
-				});
-			}
-
-			if (audience.userId !== userId) {
-				if (audience.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: audience.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
+			await assertAudienceAccess(input.id, userId);
 
 			const now = new Date();
 
-			const updated = await prisma.emailAudience.update({
-				where: { id: input.id },
-				data: {
+			await db
+				.update(emailAudience)
+				.set({
 					...(input.name !== undefined && { name: input.name }),
 					...(input.description !== undefined && {
 						description: input.description,
 					}),
 					updatedAt: now,
-				},
-			});
+				})
+				.where(eq(emailAudience.id, input.id));
 
-			const withCount = await prisma.emailAudience.findUnique({
-				where: { id: updated.id },
-				include: { _count: { select: { contacts: true } } },
-			});
+			const withCount = await fetchAudienceWithCounts(input.id);
 
 			if (!withCount) {
 				throw new TRPCError({
@@ -271,12 +325,26 @@ export const emailMarketingAudiencesRouter = router({
 			}
 
 			const [subscribedCount, unsubscribedCount] = await Promise.all([
-				prisma.emailAudienceContact.count({
-					where: { audienceId: updated.id, status: "SUBSCRIBED" },
-				}),
-				prisma.emailAudienceContact.count({
-					where: { audienceId: updated.id, status: "UNSUBSCRIBED" },
-				}),
+				db
+					.select({ value: count() })
+					.from(emailAudienceContact)
+					.where(
+						and(
+							eq(emailAudienceContact.audienceId, input.id),
+							eq(emailAudienceContact.status, "SUBSCRIBED"),
+						),
+					)
+					.then((rows) => Number(rows[0]?.value ?? 0)),
+				db
+					.select({ value: count() })
+					.from(emailAudienceContact)
+					.where(
+						and(
+							eq(emailAudienceContact.audienceId, input.id),
+							eq(emailAudienceContact.status, "UNSUBSCRIBED"),
+						),
+					)
+					.then((rows) => Number(rows[0]?.value ?? 0)),
 			]);
 
 			return mapAudience(withCount, subscribedCount, unsubscribedCount);
@@ -293,41 +361,9 @@ export const emailMarketingAudiencesRouter = router({
 				});
 			}
 
-			const audience = await prisma.emailAudience.findUnique({
-				where: { id: input.id },
-			});
+			await assertAudienceAccess(input.id, userId);
 
-			if (!audience) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Audience not found",
-				});
-			}
-
-			if (audience.userId !== userId) {
-				if (audience.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: audience.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
-
-			await prisma.emailAudience.delete({
-				where: { id: input.id },
-			});
+			await db.delete(emailAudience).where(eq(emailAudience.id, input.id));
 
 			return { success: true };
 		}),
@@ -344,54 +380,37 @@ export const emailMarketingAudiencesRouter = router({
 				});
 			}
 
-			const audience = await prisma.emailAudience.findUnique({
-				where: { id: input.audienceId },
-			});
-
-			if (!audience) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Audience not found",
-				});
-			}
-
-			if (audience.userId !== userId) {
-				if (audience.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: audience.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
+			await assertAudienceAccess(input.audienceId, userId);
 
 			const now = new Date();
 
-			const contact = await prisma.emailAudienceContact.create({
-				data: {
-					id: crypto.randomUUID(),
-					audienceId: input.audienceId,
-					name: input.name ?? null,
-					phoneNumber: input.phoneNumber ?? null,
-					emailAddress: input.emailAddress ?? null,
-					description: input.description ?? null,
-					company: input.company ?? null,
-					status: input.status ?? "SUBSCRIBED",
-					createdAt: now,
-					updatedAt: now,
-				},
+			const id = crypto.randomUUID();
+
+			await db.insert(emailAudienceContact).values({
+				id,
+				audienceId: input.audienceId,
+				name: input.name ?? null,
+				phoneNumber: input.phoneNumber ?? null,
+				emailAddress: input.emailAddress ?? null,
+				description: input.description ?? null,
+				company: input.company ?? null,
+				status: (input.status ?? "SUBSCRIBED") as "SUBSCRIBED" | "UNSUBSCRIBED" | null,
+				createdAt: now,
+				updatedAt: now,
 			});
+
+			const [contact] = await db
+				.select()
+				.from(emailAudienceContact)
+				.where(eq(emailAudienceContact.id, id))
+				.limit(1);
+
+			if (!contact) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to load created contact",
+				});
+			}
 
 			return audienceContactSummarySchema.parse({
 				...contact,
@@ -415,42 +434,12 @@ export const emailMarketingAudiencesRouter = router({
 				});
 			}
 
-			const audience = await prisma.emailAudience.findUnique({
-				where: { id: input.audienceId },
-			});
-
-			if (!audience) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Audience not found",
-				});
-			}
-
-			if (audience.userId !== userId) {
-				if (audience.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: audience.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
+			await assertAudienceAccess(input.audienceId, userId);
 
 			const now = new Date();
 
 			// Prepare rows, defaulting status to SUBSCRIBED when not specified
-			const rows = input.contacts.map((c, index) => ({
+			const rows = input.contacts.map((c) => ({
 				id: crypto.randomUUID(),
 				audienceId: input.audienceId,
 				name: c.name ?? null,
@@ -471,10 +460,8 @@ export const emailMarketingAudiencesRouter = router({
 			for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
 				const chunk = rows.slice(i, i + CHUNK_SIZE);
 				if (chunk.length === 0) continue;
-				const result = await prisma.emailAudienceContact.createMany({
-					data: chunk,
-				});
-				added += result.count;
+				await db.insert(emailAudienceContact).values(chunk);
+				added += chunk.length;
 			}
 
 			return { added };
@@ -491,43 +478,13 @@ export const emailMarketingAudiencesRouter = router({
 				});
 			}
 
-			const audience = await prisma.emailAudience.findUnique({
-				where: { id: input.audienceId },
-			});
-
-			if (!audience) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Audience not found",
-				});
-			}
-
-			if (audience.userId !== userId) {
-				if (audience.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: audience.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
+			await assertAudienceAccess(input.audienceId, userId);
 
 			const now = new Date();
 
-			const updated = await prisma.emailAudienceContact.update({
-				where: { id: input.id },
-				data: {
+			await db
+				.update(emailAudienceContact)
+				.set({
 					...(input.name !== undefined && { name: input.name }),
 					...(input.phoneNumber !== undefined && {
 						phoneNumber: input.phoneNumber,
@@ -541,8 +498,21 @@ export const emailMarketingAudiencesRouter = router({
 					...(input.company !== undefined && { company: input.company }),
 					...(input.status !== undefined && { status: input.status ?? null }),
 					updatedAt: now,
-				},
-			});
+				})
+				.where(eq(emailAudienceContact.id, input.id));
+
+			const [updated] = await db
+				.select()
+				.from(emailAudienceContact)
+				.where(eq(emailAudienceContact.id, input.id))
+				.limit(1);
+
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Contact not found",
+				});
+			}
 
 			return audienceContactSummarySchema.parse({
 				...updated,
@@ -566,41 +536,11 @@ export const emailMarketingAudiencesRouter = router({
 				});
 			}
 
-			const audience = await prisma.emailAudience.findUnique({
-				where: { id: input.audienceId },
-			});
+			await assertAudienceAccess(input.audienceId, userId);
 
-			if (!audience) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Audience not found",
-				});
-			}
-
-			if (audience.userId !== userId) {
-				if (audience.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: audience.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
-
-			await prisma.emailAudienceContact.delete({
-				where: { id: input.id },
-			});
+			await db
+				.delete(emailAudienceContact)
+				.where(eq(emailAudienceContact.id, input.id));
 
 			return { success: true };
 		}),
@@ -616,43 +556,14 @@ export const emailMarketingAudiencesRouter = router({
 				});
 			}
 
-			const audience = await prisma.emailAudience.findUnique({
-				where: { id: input.audienceId },
-			});
+			await assertAudienceAccess(input.audienceId, userId);
 
-			if (!audience) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Audience not found",
-				});
-			}
+			const result = await db
+				.delete(emailAudienceContact)
+				.where(eq(emailAudienceContact.audienceId, input.audienceId))
+				.returning({ id: emailAudienceContact.id });
 
-			if (audience.userId !== userId) {
-				if (audience.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: audience.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
-
-			const result = await prisma.emailAudienceContact.deleteMany({
-				where: { audienceId: input.audienceId },
-			});
-
-			return { deleted: result.count };
+			return { deleted: result.length };
 		}),
 
 	listContacts: protectedProcedure
@@ -666,76 +577,52 @@ export const emailMarketingAudiencesRouter = router({
 				});
 			}
 
-			const audience = await prisma.emailAudience.findUnique({
-				where: { id: input.audienceId },
-			});
+			await assertAudienceAccess(input.audienceId, userId);
 
-			if (!audience) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Audience not found",
-				});
-			}
+			const conditions = [eq(emailAudienceContact.audienceId, input.audienceId)];
 
-			if (audience.userId !== userId) {
-				if (audience.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: audience.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
-
-			const where: Prisma.EmailAudienceContactWhereInput = {
-				audienceId: input.audienceId,
-			};
-
-			if (input.status) {
-				where.status =
-					input.status === "SUBSCRIBED" || input.status === "UNSUBSCRIBED"
-						? input.status
-						: undefined;
+			if (
+				input.status === "SUBSCRIBED" ||
+				input.status === "UNSUBSCRIBED"
+			) {
+				conditions.push(eq(emailAudienceContact.status, input.status));
 			}
 
 			if (input.search) {
-				where.OR = [
-					{ name: { contains: input.search, mode: "insensitive" } },
-					{ emailAddress: { contains: input.search, mode: "insensitive" } },
-					{ company: { contains: input.search, mode: "insensitive" } },
-				];
+				const pattern = `%${input.search}%`;
+				conditions.push(
+					sql`(
+            ${emailAudienceContact.name} ILIKE ${pattern}
+            OR ${emailAudienceContact.emailAddress} ILIKE ${pattern}
+            OR ${emailAudienceContact.company} ILIKE ${pattern}
+          )`,
+				);
 			}
 
-			if (input.from || input.to) {
-				where.createdAt = {};
-				if (input.from) {
-					where.createdAt.gte = input.from;
-				}
-				if (input.to) {
-					where.createdAt.lte = input.to;
-				}
+			if (input.from) {
+				conditions.push(sql`${emailAudienceContact.createdAt} >= ${input.from}`);
+			}
+			if (input.to) {
+				conditions.push(sql`${emailAudienceContact.createdAt} <= ${input.to}`);
 			}
 
-			const [contacts, total] = await Promise.all([
-				prisma.emailAudienceContact.findMany({
-					where,
-					skip: input.offset,
-					take: input.limit,
-					orderBy: { createdAt: "desc" },
-				}),
-				prisma.emailAudienceContact.count({ where }),
+			const whereClause = and(...conditions);
+
+			const [contacts, totalRes] = await Promise.all([
+				db
+					.select()
+					.from(emailAudienceContact)
+					.where(whereClause)
+					.orderBy(desc(emailAudienceContact.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ value: count() })
+					.from(emailAudienceContact)
+					.where(whereClause),
 			]);
+
+			const total = Number(totalRes[0]?.value ?? 0);
 
 			return audienceContactListResponseSchema.parse({
 				contacts: contacts.map((c) =>

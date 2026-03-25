@@ -2,7 +2,8 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
 import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { eTimsConfiguration } from "@npanel/db/schema/etims";
 
 export const etimsDataRouter = router({
     /**
@@ -59,7 +60,10 @@ export const etimsDataRouter = router({
             bhfId: z.string().optional(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -119,7 +123,10 @@ export const etimsDataRouter = router({
         }))
         .query(async ({ input }) => {
             // 1. Fetch global eTIMS Configuration
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -179,7 +186,10 @@ export const etimsDataRouter = router({
             lastReqDt: z.string(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -233,7 +243,10 @@ export const etimsDataRouter = router({
             lastReqDt: z.string(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -287,7 +300,10 @@ export const etimsDataRouter = router({
             lastReqDt: z.string(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({

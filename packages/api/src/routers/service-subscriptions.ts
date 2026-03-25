@@ -1,7 +1,18 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, desc, eq, isNull } from "drizzle-orm";
+import * as crypto from "node:crypto";
 import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import {
+	hostingPlan,
+	hostingSubscription,
+	hostingSubscriptionActivityLog,
+	niscServicePlan,
+} from "@npanel/db/schema/hosting";
+import { serviceSubscription, serviceSubscriptionActivityLog } from "@npanel/db/schema/service-subscriptions";
+import { team } from "@npanel/db/schema/teams";
 
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
@@ -156,12 +167,12 @@ export const serviceSubscriptionsRouter = router({
 			}
 
 			// Check user role - only agency admins can link subscriptions
-			const user = await prisma.user.findUnique({
-				where: { id: session.user.id },
-				select: { role: true },
+			const userRes = await db.query.user.findFirst({
+				where: eq(user.id, session.user.id),
+				columns: { role: true },
 			});
 
-			if (!user || (user.role !== "AGENCY_ADMIN" && user.role !== "AGENCY_SUPER_ADMIN")) {
+			if (!userRes || (userRes.role !== "AGENCY_ADMIN" && userRes.role !== "AGENCY_SUPER_ADMIN")) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to link subscriptions",
@@ -169,42 +180,42 @@ export const serviceSubscriptionsRouter = router({
 			}
 
 			// Find or create hosting subscription by pleskFilterId
-			let hostingSubscription = await prisma.hostingSubscription.findUnique({
-				where: { pleskFilterId: input.pleskFilterId },
+			let hostingSubscriptionRes = await db.query.hostingSubscription.findFirst({
+				where: eq(hostingSubscription.pleskFilterId, input.pleskFilterId),
 			});
 
 			// If hosting subscription doesn't exist, create it
-			if (!hostingSubscription) {
+			if (!hostingSubscriptionRes) {
 				// Get hosting plan - find or create from NiscServicePlan
 				let hostingPlanId: string;
 
 				// First, try to find existing HostingPlan by ID
-				let hostingPlan = await prisma.hostingPlan.findUnique({
-					where: { id: input.hostingPlanId },
+				const existingHostingPlanById = await db.query.hostingPlan.findFirst({
+					where: eq(hostingPlan.id, input.hostingPlanId),
 				});
 
-				if (hostingPlan) {
-					if (!hostingPlan.isActive) {
+				if (existingHostingPlanById) {
+					if (!existingHostingPlanById.isActive) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: "Selected hosting plan is not active",
 						});
 					}
-					hostingPlanId = hostingPlan.id;
+					hostingPlanId = existingHostingPlanById.id;
 				} else {
 					// HostingPlan doesn't exist, try to find matching NiscServicePlan
-					const niscServicePlan = await prisma.niscServicePlan.findUnique({
-						where: { id: input.hostingPlanId },
+					const niscPlan = await db.query.niscServicePlan.findFirst({
+						where: eq(niscServicePlan.id, input.hostingPlanId),
 					});
 
-					if (!niscServicePlan) {
+					if (!niscPlan) {
 						throw new TRPCError({
 							code: "NOT_FOUND",
 							message: "Service plan not found",
 						});
 					}
 
-					if (niscServicePlan.planType !== "HOSTING") {
+					if (niscPlan.planType !== "HOSTING") {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: "Selected service plan is not a hosting plan",
@@ -212,47 +223,59 @@ export const serviceSubscriptionsRouter = router({
 					}
 
 					// Find or create corresponding HostingPlan for backward compatibility
-					const existingHostingPlan = await prisma.hostingPlan.findFirst({
-						where: {
-							hostingType: niscServicePlan.hostingSubType!,
-							pleskServicePlanId: niscServicePlan.pleskServicePlanId,
-						},
+					const pleskPlanMatch =
+						niscPlan.pleskServicePlanId == null
+							? isNull(hostingPlan.pleskServicePlanId)
+							: eq(hostingPlan.pleskServicePlanId, niscPlan.pleskServicePlanId);
+					const existingHostingPlan = await db.query.hostingPlan.findFirst({
+						where: and(
+							eq(hostingPlan.hostingType, niscPlan.hostingSubType ?? "WEB_HOSTING"),
+							pleskPlanMatch,
+						),
 					});
 
 					if (existingHostingPlan) {
 						hostingPlanId = existingHostingPlan.id;
 					} else {
 						// Create a HostingPlan record for backward compatibility
-						const newHostingPlan = await prisma.hostingPlan.create({
-							data: {
+						const [newHostingPlan] = await db
+							.insert(hostingPlan)
+							.values({
 								id: crypto.randomUUID(),
-								name: niscServicePlan.name,
-								description: niscServicePlan.description,
-								hostingType: niscServicePlan.hostingSubType!,
-								pleskServicePlanId: niscServicePlan.pleskServicePlanId,
-								pleskFilterId: niscServicePlan.pleskFilterId,
-								pleskIpAddress: niscServicePlan.pleskIpAddress,
-								features: niscServicePlan.features,
-								highlights: niscServicePlan.highlights,
-								isPopular: niscServicePlan.isPopular,
-								isRecommended: niscServicePlan.isRecommended,
-								niscPrice: niscServicePlan.niscPrice,
-								niscCurrency: niscServicePlan.niscCurrency,
-								billingCycle: niscServicePlan.billingCycle,
-								setupFee: niscServicePlan.setupFee,
-								isActive: niscServicePlan.isActive,
-								isDefault: niscServicePlan.isDefault,
+								name: niscPlan.name,
+								description: niscPlan.description,
+								hostingType: niscPlan.hostingSubType ?? "WEB_HOSTING",
+								pleskServicePlanId: niscPlan.pleskServicePlanId,
+								pleskFilterId: niscPlan.pleskFilterId,
+								pleskIpAddress: niscPlan.pleskIpAddress,
+								features: niscPlan.features,
+								highlights: niscPlan.highlights,
+								isPopular: niscPlan.isPopular,
+								isRecommended: niscPlan.isRecommended,
+								niscPrice: niscPlan.niscPrice,
+								niscCurrency: niscPlan.niscCurrency,
+								billingCycle: niscPlan.billingCycle,
+								setupFee: niscPlan.setupFee,
+								isActive: niscPlan.isActive,
+								isDefault: niscPlan.isDefault,
 								createdAt: new Date(),
 								updatedAt: new Date(),
-							},
-						});
+							})
+							.returning();
+						if (!newHostingPlan) {
+							throw new TRPCError({
+								code: "INTERNAL_SERVER_ERROR",
+								message: "Failed to create hosting plan",
+							});
+						}
 						hostingPlanId = newHostingPlan.id;
 					}
 				}
 
 				// Create the hosting subscription
-				hostingSubscription = await prisma.hostingSubscription.create({
-					data: {
+				const [createdHostingSubscription] = await db
+					.insert(hostingSubscription)
+					.values({
 						id: crypto.randomUUID(),
 						hostingPlanId: hostingPlanId,
 						teamId: input.teamId,
@@ -269,14 +292,20 @@ export const serviceSubscriptionsRouter = router({
 						operation: "PROVISION",
 						createdAt: new Date(),
 						updatedAt: new Date(),
-					},
-				});
+					})
+					.returning();
+				if (!createdHostingSubscription) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create hosting subscription",
+					});
+				}
+				hostingSubscriptionRes = createdHostingSubscription;
 
 				// Log activity for hosting subscription creation
-				await prisma.hostingSubscriptionActivityLog.create({
-					data: {
+				await db.insert(hostingSubscriptionActivityLog).values({
 						id: crypto.randomUUID(),
-						hostingSubscriptionId: hostingSubscription.id,
+						hostingSubscriptionId: hostingSubscriptionRes.id,
 						userId: session.user.id,
 						action: "CREATE",
 						description: `Created hosting subscription and linked to service subscription`,
@@ -286,12 +315,11 @@ export const serviceSubscriptionsRouter = router({
 							teamId: input.teamId,
 						},
 						createdAt: new Date(),
-					},
 				});
 			} else {
 				// Check if already linked to a service subscription
-				const existingLink = await prisma.serviceSubscription.findUnique({
-					where: { hostingSubscriptionId: hostingSubscription.id },
+				const existingLink = await db.query.serviceSubscription.findFirst({
+					where: eq(serviceSubscription.hostingSubscriptionId, hostingSubscriptionRes.id),
 				});
 
 				if (existingLink) {
@@ -302,9 +330,16 @@ export const serviceSubscriptionsRouter = router({
 				}
 			}
 
+			if (!hostingSubscriptionRes) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Hosting subscription is missing",
+				});
+			}
+
 			// Verify service plan exists and get plan details
-			const servicePlan = await prisma.niscServicePlan.findUnique({
-				where: { id: input.niscServicePlanId },
+			const servicePlan = await db.query.niscServicePlan.findFirst({
+				where: eq(niscServicePlan.id, input.niscServicePlanId),
 			});
 
 			if (!servicePlan) {
@@ -315,11 +350,11 @@ export const serviceSubscriptionsRouter = router({
 			}
 
 			// Verify team exists
-			const team = await prisma.team.findUnique({
-				where: { id: input.teamId },
+			const teamRes = await db.query.team.findFirst({
+				where: eq(team.id, input.teamId),
 			});
 
-			if (!team) {
+			if (!teamRes) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Team not found",
@@ -333,8 +368,9 @@ export const serviceSubscriptionsRouter = router({
 			);
 
 			// Create service subscription
-			const serviceSubscription = await prisma.serviceSubscription.create({
-				data: {
+			const [serviceSubscriptionRes] = await db
+				.insert(serviceSubscription)
+				.values({
 					id: crypto.randomUUID(),
 					niscServicePlanId: input.niscServicePlanId,
 					teamId: input.teamId,
@@ -345,23 +381,28 @@ export const serviceSubscriptionsRouter = router({
 					nextRenewalDate,
 					status: input.status,
 					autoRenew: input.autoRenew,
-					hostingSubscriptionId: hostingSubscription.id,
+					hostingSubscriptionId: hostingSubscriptionRes.id,
 					notes: input.notes || null,
 					createdAt: new Date(),
 					updatedAt: new Date(),
-				},
-			});
+				})
+				.returning();
+			if (!serviceSubscriptionRes) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create service subscription",
+				});
+			}
 
 			// Log activity
-			await prisma.serviceSubscriptionActivityLog.create({
-				data: {
+			await db.insert(serviceSubscriptionActivityLog).values({
 					id: crypto.randomUUID(),
-					serviceSubscriptionId: serviceSubscription.id,
+					serviceSubscriptionId: serviceSubscriptionRes.id,
 					userId: session.user.id,
 					action: "CREATE",
 					description: `Created service subscription and linked to hosting subscription`,
 					metadata: {
-						hostingSubscriptionId: hostingSubscription.id,
+						hostingSubscriptionId: hostingSubscriptionRes.id,
 						niscServicePlanId: input.niscServicePlanId,
 						teamId: input.teamId,
 						billingCycle: input.billingCycle,
@@ -369,23 +410,22 @@ export const serviceSubscriptionsRouter = router({
 						pleskFilterId: input.pleskFilterId,
 					},
 					createdAt: new Date(),
-				},
 			});
 
 			return {
-				id: serviceSubscription.id,
-				niscServicePlanId: serviceSubscription.niscServicePlanId,
-				teamId: serviceSubscription.teamId,
-				orderId: serviceSubscription.orderId,
-				subscriptionDate: serviceSubscription.subscriptionDate,
-				billingCycle: serviceSubscription.billingCycle as any,
-				nextRenewalDate: serviceSubscription.nextRenewalDate,
-				status: serviceSubscription.status as any,
-				autoRenew: serviceSubscription.autoRenew,
-				hostingSubscriptionId: serviceSubscription.hostingSubscriptionId,
-				notes: serviceSubscription.notes,
-				createdAt: serviceSubscription.createdAt,
-				updatedAt: serviceSubscription.updatedAt,
+				id: serviceSubscriptionRes.id,
+				niscServicePlanId: serviceSubscriptionRes.niscServicePlanId,
+				teamId: serviceSubscriptionRes.teamId,
+				orderId: serviceSubscriptionRes.orderId,
+				subscriptionDate: serviceSubscriptionRes.subscriptionDate,
+				billingCycle: serviceSubscriptionRes.billingCycle as any,
+				nextRenewalDate: serviceSubscriptionRes.nextRenewalDate,
+				status: serviceSubscriptionRes.status as any,
+				autoRenew: serviceSubscriptionRes.autoRenew,
+				hostingSubscriptionId: serviceSubscriptionRes.hostingSubscriptionId,
+				notes: serviceSubscriptionRes.notes,
+				createdAt: serviceSubscriptionRes.createdAt,
+				updatedAt: serviceSubscriptionRes.updatedAt,
 				planType: servicePlan.planType as any,
 				hostingSubType: servicePlan.hostingSubType as any,
 			};
@@ -404,42 +444,42 @@ export const serviceSubscriptionsRouter = router({
 				});
 			}
 
-			const serviceSubscription = await prisma.serviceSubscription.findUnique({
-				where: { hostingSubscriptionId: input.hostingSubscriptionId },
-				include: {
+			const serviceSubscriptionRes = await db.query.serviceSubscription.findFirst({
+				where: eq(serviceSubscription.hostingSubscriptionId, input.hostingSubscriptionId),
+				with: {
 					niscServicePlan: {
-						select: {
+						columns: {
 							name: true,
 							planType: true,
 							hostingSubType: true,
 						},
 					},
-					team: { select: { name: true } },
+					team: { columns: { name: true } },
 				},
 			});
 
-			if (!serviceSubscription) {
+			if (!serviceSubscriptionRes) {
 				return null;
 			}
 
 			return {
-				id: serviceSubscription.id,
-				niscServicePlanId: serviceSubscription.niscServicePlanId,
-				teamId: serviceSubscription.teamId,
-				teamName: serviceSubscription.team?.name ?? null,
-				orderId: serviceSubscription.orderId,
-				subscriptionDate: serviceSubscription.subscriptionDate,
-				billingCycle: serviceSubscription.billingCycle as any,
-				nextRenewalDate: serviceSubscription.nextRenewalDate,
-				status: serviceSubscription.status as any,
-				autoRenew: serviceSubscription.autoRenew,
-				hostingSubscriptionId: serviceSubscription.hostingSubscriptionId,
-				notes: serviceSubscription.notes,
-				createdAt: serviceSubscription.createdAt,
-				updatedAt: serviceSubscription.updatedAt,
-				planType: serviceSubscription.niscServicePlan.planType as any,
-				hostingSubType: serviceSubscription.niscServicePlan.hostingSubType as any,
-				planName: serviceSubscription.niscServicePlan.name,
+				id: serviceSubscriptionRes.id,
+				niscServicePlanId: serviceSubscriptionRes.niscServicePlanId,
+				teamId: serviceSubscriptionRes.teamId,
+				teamName: serviceSubscriptionRes.team?.name ?? null,
+				orderId: serviceSubscriptionRes.orderId,
+				subscriptionDate: serviceSubscriptionRes.subscriptionDate,
+				billingCycle: serviceSubscriptionRes.billingCycle as any,
+				nextRenewalDate: serviceSubscriptionRes.nextRenewalDate,
+				status: serviceSubscriptionRes.status as any,
+				autoRenew: serviceSubscriptionRes.autoRenew,
+				hostingSubscriptionId: serviceSubscriptionRes.hostingSubscriptionId,
+				notes: serviceSubscriptionRes.notes,
+				createdAt: serviceSubscriptionRes.createdAt,
+				updatedAt: serviceSubscriptionRes.updatedAt,
+				planType: serviceSubscriptionRes.niscServicePlan.planType as any,
+				hostingSubType: serviceSubscriptionRes.niscServicePlan.hostingSubType as any,
+				planName: serviceSubscriptionRes.niscServicePlan.name,
 			};
 		}),
 
@@ -456,49 +496,43 @@ export const serviceSubscriptionsRouter = router({
 				});
 			}
 
-			const where: any = {};
+			const whereConditions = [];
+			if (input?.teamId) whereConditions.push(eq(serviceSubscription.teamId, input.teamId));
+			if (input?.status) whereConditions.push(eq(serviceSubscription.status, input.status));
+			if (input?.planType) whereConditions.push(eq(niscServicePlan.planType, input.planType));
+			if (input?.hostingSubType) whereConditions.push(eq(niscServicePlan.hostingSubType, input.hostingSubType));
 
-			if (input?.teamId) {
-				where.teamId = input.teamId;
-			}
+			const rows = await db
+				.select({
+					id: serviceSubscription.id,
+					niscServicePlanId: serviceSubscription.niscServicePlanId,
+					teamId: serviceSubscription.teamId,
+					teamName: team.name,
+					orderId: serviceSubscription.orderId,
+					subscriptionDate: serviceSubscription.subscriptionDate,
+					billingCycle: serviceSubscription.billingCycle,
+					nextRenewalDate: serviceSubscription.nextRenewalDate,
+					status: serviceSubscription.status,
+					autoRenew: serviceSubscription.autoRenew,
+					hostingSubscriptionId: serviceSubscription.hostingSubscriptionId,
+					notes: serviceSubscription.notes,
+					createdAt: serviceSubscription.createdAt,
+					updatedAt: serviceSubscription.updatedAt,
+					planType: niscServicePlan.planType,
+					hostingSubType: niscServicePlan.hostingSubType,
+					planName: niscServicePlan.name,
+				})
+				.from(serviceSubscription)
+				.innerJoin(niscServicePlan, eq(serviceSubscription.niscServicePlanId, niscServicePlan.id))
+				.leftJoin(team, eq(serviceSubscription.teamId, team.id))
+				.where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+				.orderBy(desc(serviceSubscription.createdAt));
 
-			if (input?.status) {
-				where.status = input.status;
-			}
-
-			// Filter by plan type and hosting sub-type through the relation
-			if (input?.planType || input?.hostingSubType) {
-				where.niscServicePlan = {};
-				if (input.planType) {
-					where.niscServicePlan.planType = input.planType;
-				}
-				if (input.hostingSubType) {
-					where.niscServicePlan.hostingSubType = input.hostingSubType;
-				}
-			}
-
-			const serviceSubscriptions = await prisma.serviceSubscription.findMany({
-				where,
-				include: {
-					niscServicePlan: {
-						select: {
-							name: true,
-							planType: true,
-							hostingSubType: true,
-						},
-					},
-					team: { select: { name: true } },
-				},
-				orderBy: {
-					createdAt: "desc",
-				},
-			});
-
-			return serviceSubscriptions.map((subscription) => ({
+			return rows.map((subscription) => ({
 				id: subscription.id,
 				niscServicePlanId: subscription.niscServicePlanId,
 				teamId: subscription.teamId,
-				teamName: subscription.team?.name ?? null,
+				teamName: subscription.teamName ?? null,
 				orderId: subscription.orderId,
 				subscriptionDate: subscription.subscriptionDate,
 				billingCycle: subscription.billingCycle as any,
@@ -509,9 +543,9 @@ export const serviceSubscriptionsRouter = router({
 				notes: subscription.notes,
 				createdAt: subscription.createdAt,
 				updatedAt: subscription.updatedAt,
-				planType: subscription.niscServicePlan.planType as any,
-				hostingSubType: subscription.niscServicePlan.hostingSubType as any,
-				planName: subscription.niscServicePlan.name,
+				planType: subscription.planType as any,
+				hostingSubType: subscription.hostingSubType as any,
+				planName: subscription.planName,
 			}));
 		}),
 });

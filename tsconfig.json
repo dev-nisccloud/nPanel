@@ -1,3 +1,3 @@
 {
-	"extends": "./tsconfig.base.json"
+  "extends": "@npanel/config/tsconfig.base.json"
 }

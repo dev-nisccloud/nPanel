@@ -1,7 +1,21 @@
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
 import * as crypto from "crypto";
 import { z } from "zod";
+import { and, count, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import {
+	creditNote,
+	creditNoteActivityLog,
+	invoice,
+	invoiceActivityLog,
+	invoiceCounter,
+	invoiceLineItem,
+	invoiceTransaction,
+	invoiceTransactionActivityLog,
+} from "@npanel/db/schema/invoicing";
+import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router, type Context } from "../../trpc";
 import {
 	activityLogSchema,
@@ -25,9 +39,8 @@ import {
 } from "./schemas";
 import type { InvoiceDetail } from "./schemas";
 
-// Type that accepts both PrismaClient instance and transaction client
-// Uses typeof to avoid importing Prisma types directly - maintains API layer independence
-type DbClient = typeof prisma | Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type DbLike = typeof db | DbTransaction;
 
 const isAgencyUser = (role: string) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
@@ -56,28 +69,26 @@ function stringOrNull(value: unknown) {
 }
 
 async function getAuthenticatedUser(ctx: Context) {
-	const user = ctx.session?.user;
-	if (!user?.id) {
+	const sessionUser = ctx.session?.user;
+	if (!sessionUser?.id) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
 			message: "You must be logged in.",
 		});
 	}
 
-	// Optimize: Use role from session if available (set by auth hooks)
-	// This avoids an unnecessary database query
-	const sessionRole = (user as { role?: string })?.role;
+	const sessionRole = (sessionUser as { role?: string })?.role;
 
 	if (sessionRole) {
-		// Role is in session, no need to query database
-		return { id: user.id, role: sessionRole };
+		return { id: sessionUser.id, role: sessionRole };
 	}
 
-	// Fallback: Query database if role not in session (shouldn't happen with proper auth hooks)
-	const dbUser = await prisma.user.findUnique({
-		where: { id: user.id },
-		select: { id: true, role: true },
-	});
+	const dbUserRows = await db
+		.select({ id: user.id, role: user.role })
+		.from(user)
+		.where(eq(user.id, sessionUser.id))
+		.limit(1);
+	const dbUser = dbUserRows[0];
 
 	if (!dbUser) {
 		throw new TRPCError({
@@ -91,7 +102,7 @@ async function getAuthenticatedUser(ctx: Context) {
 
 
 
-async function ensureTeamAccess(db: DbClient, userId: string, role: string, teamId: string | null | undefined) {
+async function ensureTeamAccess(_db: DbLike, userId: string, role: string, teamId: string | null | undefined) {
 	if (!teamId) {
 		if (isAgencyUser(role)) {
 			return;
@@ -107,12 +118,9 @@ async function ensureTeamAccess(db: DbClient, userId: string, role: string, team
 		return;
 	}
 
-	const membership = await db.teamMember.findFirst({
-		where: {
-			teamId,
-			userId,
-		},
-		select: { id: true },
+	const membership = await db.query.teamMember.findFirst({
+		where: and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)),
+		columns: { id: true },
 	});
 
 	if (!membership) {
@@ -123,12 +131,12 @@ async function ensureTeamAccess(db: DbClient, userId: string, role: string, team
 	}
 }
 
-async function ensureInvoiceAccess(db: DbClient, userId: string, role: string, invoiceId: string) {
-	const invoice = await db.invoice.findUnique({
-		where: { id: invoiceId },
-		select: { teamId: true, createdBy: true },
+async function ensureInvoiceAccess(_db: DbLike, userId: string, role: string, invoiceId: string) {
+	const invAcc = await db.query.invoice.findFirst({
+		where: eq(invoice.id, invoiceId),
+		columns: { teamId: true, createdBy: true },
 	});
-	if (!invoice) {
+	if (!invAcc) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Invoice not found.",
@@ -136,25 +144,25 @@ async function ensureInvoiceAccess(db: DbClient, userId: string, role: string, i
 	}
 
 	if (isAgencyUser(role)) {
-		return invoice;
+		return invAcc;
 	}
 
 	// Batch: Check team access if invoice has teamId, otherwise check createdBy
 	// This reduces connection usage by combining the access check
-	if (invoice.teamId) {
+	if (invAcc.teamId) {
 		// ensureTeamAccess will throw if access denied
-		await ensureTeamAccess(db, userId, role, invoice.teamId);
-		return invoice;
+		await ensureTeamAccess(db, userId, role, invAcc.teamId);
+		return invAcc;
 	}
 
-	if (invoice.createdBy !== userId) {
+	if (invAcc.createdBy !== userId) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
 			message: "You do not have access to this invoice.",
 		});
 	}
 
-	return invoice;
+	return invAcc;
 }
 
 function buildInvoiceData(input: z.infer<typeof invoiceCreateInputSchema>) {
@@ -409,46 +417,46 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 	});
 }
 
-async function fetchInvoiceDetail(db: DbClient, invoiceId: string) {
-	const invoice = await db.invoice.findUnique({
-		where: { id: invoiceId },
-		include: {
+async function fetchInvoiceDetail(tx: DbLike, invoiceId: string) {
+	const inv = await tx.query.invoice.findFirst({
+		where: eq(invoice.id, invoiceId),
+		with: {
 			lineItems: {
-				orderBy: { position: "asc" },
+				orderBy: (li, { asc: a }) => [a(li.position)],
 			},
 			transactions: {
-				orderBy: { createdAt: "desc" },
-				include: {
+				orderBy: (t, { desc: d }) => [d(t.createdAt)],
+				with: {
 					activityLogs: {
-						orderBy: { createdAt: "desc" },
+						orderBy: (log, { desc: d }) => [d(log.createdAt)],
 					},
 				},
 			},
 			creditNote: {
-				include: {
+				with: {
 					activityLogs: {
-						orderBy: { createdAt: "desc" },
+						orderBy: (log, { desc: d }) => [d(log.createdAt)],
 					},
 				},
 			},
 			activityLogs: {
-				orderBy: { createdAt: "desc" },
+				orderBy: (log, { desc: d }) => [d(log.createdAt)],
 			},
 		},
 	});
 
-	if (!invoice) {
+	if (!inv) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Invoice not found.",
 		});
 	}
 
-	return invoice;
+	return inv;
 }
 
 async function logInvoiceActivity(
-	db: DbClient,
+	tx: DbLike,
 	params: {
 		invoiceId: string;
 		userId: string;
@@ -478,13 +486,21 @@ async function logInvoiceActivity(
 		logData.metadata = params.metadata;
 	}
 
-	await db.invoiceActivityLog.create({
-		data: logData as any, // Type assertion for JsonValue compatibility
+	await tx.insert(invoiceActivityLog).values({
+		id: logData.id,
+		invoiceId: logData.invoiceId,
+		userId: logData.userId,
+		action: logData.action,
+		description: logData.description,
+		createdAt: logData.createdAt,
+		...(params.metadata !== undefined && params.metadata !== null
+			? { metadata: params.metadata as object }
+			: {}),
 	});
 }
 
 async function logTransactionActivity(
-	db: DbClient,
+	tx: DbLike,
 	params: {
 		transactionId: string;
 		userId: string;
@@ -514,13 +530,21 @@ async function logTransactionActivity(
 		logData.metadata = params.metadata;
 	}
 
-	await db.invoiceTransactionActivityLog.create({
-		data: logData as any, // Type assertion for JsonValue compatibility
+	await tx.insert(invoiceTransactionActivityLog).values({
+		id: logData.id,
+		invoiceTransactionId: logData.invoiceTransactionId,
+		userId: logData.userId,
+		action: logData.action,
+		description: logData.description,
+		createdAt: logData.createdAt,
+		...(params.metadata !== undefined && params.metadata !== null
+			? { metadata: params.metadata as object }
+			: {}),
 	});
 }
 
 async function logCreditNoteActivity(
-	db: DbClient,
+	tx: DbLike,
 	params: {
 		creditNoteId: string;
 		userId: string;
@@ -550,8 +574,16 @@ async function logCreditNoteActivity(
 		logData.metadata = params.metadata;
 	}
 
-	await db.creditNoteActivityLog.create({
-		data: logData as any, // Type assertion for JsonValue compatibility
+	await tx.insert(creditNoteActivityLog).values({
+		id: logData.id,
+		creditNoteId: logData.creditNoteId,
+		userId: logData.userId,
+		action: logData.action,
+		description: logData.description,
+		createdAt: logData.createdAt,
+		...(params.metadata !== undefined && params.metadata !== null
+			? { metadata: params.metadata as object }
+			: {}),
 	});
 }
 
@@ -571,22 +603,22 @@ function parseInvoiceNumber(invoiceNumber: string): number | null {
  * This ensures the counter always tracks the highest invoice number used
  * Should be called within a transaction to ensure consistency
  */
-async function updateInvoiceCounter(db: DbClient, invoiceNumber: string): Promise<void> {
+async function updateInvoiceCounter(tx: DbLike, invoiceNumber: string): Promise<void> {
 	const parsedNumber = parseInvoiceNumber(invoiceNumber);
 	if (!parsedNumber || parsedNumber < 1) return;
 
-	// Always update the counter to the provided number (if it's valid)
-	// This ensures the counter reflects the actual last used number
-	await db.invoiceCounter.upsert({
-		where: { id: "invoice-counter" },
-		create: {
+	const now = new Date();
+	await tx
+		.insert(invoiceCounter)
+		.values({
 			id: "invoice-counter",
 			lastNumber: parsedNumber,
-		},
-		update: {
-			lastNumber: parsedNumber,
-		},
-	});
+			updatedAt: now,
+		})
+		.onConflictDoUpdate({
+			target: invoiceCounter.id,
+			set: { lastNumber: parsedNumber, updatedAt: now },
+		});
 }
 
 /**
@@ -594,31 +626,24 @@ async function updateInvoiceCounter(db: DbClient, invoiceNumber: string): Promis
  * Should be called within a transaction context (tx) to ensure thread-safety
  * Uses upsert with increment to atomically get and increment the counter
  */
-async function generateNextInvoiceNumber(tx: DbClient): Promise<string> {
-	// Use upsert to atomically get and increment the counter
-	// This ensures thread-safety by using database-level locking
-	const counter = await tx.invoiceCounter.upsert({
-		where: { id: "invoice-counter" },
-		create: {
+async function generateNextInvoiceNumber(tx: DbLike): Promise<string> {
+	const now = new Date();
+	const rows = await tx
+		.insert(invoiceCounter)
+		.values({
 			id: "invoice-counter",
-			lastNumber: 1, // Start at 1 for the first invoice
-		},
-		update: {
-			lastNumber: {
-				increment: 1,
+			lastNumber: 1,
+			updatedAt: now,
+		})
+		.onConflictDoUpdate({
+			target: invoiceCounter.id,
+			set: {
+				lastNumber: sql`${invoiceCounter.lastNumber} + 1`,
+				updatedAt: now,
 			},
-		},
-		select: {
-			lastNumber: true,
-		},
-	});
-
-	// The counter.lastNumber contains the next number to use
-	// If created: lastNumber = 1 (first invoice)
-	// If updated: lastNumber = previous + 1 (next invoice)
-	const nextNumber = counter.lastNumber;
-
-	// Return formatted invoice number with 4-digit zero-padding (e.g., INV-0001)
+		})
+		.returning({ lastNumber: invoiceCounter.lastNumber });
+	const nextNumber = rows[0]?.lastNumber ?? 1;
 	return `INV-${nextNumber.toString().padStart(4, "0")}`;
 }
 
@@ -630,76 +655,73 @@ export const invoicingRouter = router({
 		.query(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			const filters: Record<string, unknown>[] = [];
+			const conditions = [];
 
 			if (input.teamId) {
-				await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
-				filters.push({ teamId: input.teamId });
+				await ensureTeamAccess(db, user.id, user.role, input.teamId);
+				conditions.push(eq(invoice.teamId, input.teamId));
 			} else if (!isAgencyUser(user.role)) {
-				const memberships = await prisma.teamMember.findMany({
-					where: { userId: user.id },
-					select: { teamId: true },
-				});
+				const memberships = await db
+					.select({ teamId: teamMember.teamId })
+					.from(teamMember)
+					.where(eq(teamMember.userId, user.id));
 
-				const accessibleTeams = memberships.map((membership) => membership.teamId);
-				const accessConditions: Record<string, unknown>[] = [];
-
+				const accessibleTeams = memberships
+					.map((m) => m.teamId)
+					.filter((id): id is string => id != null);
+				const orParts = [];
 				if (accessibleTeams.length > 0) {
-					accessConditions.push({ teamId: { in: accessibleTeams } });
+					orParts.push(inArray(invoice.teamId, accessibleTeams));
 				}
-
-				accessConditions.push({
-					AND: [{ teamId: null }, { createdBy: user.id }],
-				});
-
-				filters.push({ OR: accessConditions });
+				orParts.push(and(isNull(invoice.teamId), eq(invoice.createdBy, user.id)));
+				conditions.push(or(...orParts)!);
 			}
 
 			if (input.status) {
-				filters.push({ status: input.status });
+				conditions.push(eq(invoice.status, input.status));
 			}
 
-			if (input.search) {
-				const searchQuery = input.search.trim();
-				if (searchQuery) {
-					filters.push({
-						OR: [
-							{ invoiceNumber: { contains: searchQuery, mode: "insensitive" } },
-							{ customerName: { contains: searchQuery, mode: "insensitive" } },
-							{ customerEmail: { contains: searchQuery, mode: "insensitive" } },
-						],
-					});
-				}
+			if (input.search?.trim()) {
+				const q = `%${input.search.trim()}%`;
+				conditions.push(
+					or(
+						ilike(invoice.invoiceNumber, q),
+						ilike(invoice.customerName, q),
+						ilike(invoice.customerEmail, q),
+					)!,
+				);
 			}
 
-			const where = filters.length > 0 ? { AND: filters } : undefined;
+			const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-			const [invoices, total] = await prisma.$transaction([
-				prisma.invoice.findMany({
-					where,
-					orderBy: { createdAt: "desc" },
-					skip: input.offset,
-					take: input.limit,
-					select: {
-						id: true,
-						invoiceNumber: true,
-						customerName: true,
-						customerEmail: true,
-						status: true,
-						amount: true,
-						currency: true,
-						dueDate: true,
-						createdAt: true,
-						updatedAt: true,
-					},
-				}),
-				prisma.invoice.count({ where }),
+			const [items, totalRow] = await Promise.all([
+				db
+					.select({
+						id: invoice.id,
+						invoiceNumber: invoice.invoiceNumber,
+						customerName: invoice.customerName,
+						customerEmail: invoice.customerEmail,
+						status: invoice.status,
+						amount: invoice.amount,
+						currency: invoice.currency,
+						dueDate: invoice.dueDate,
+						createdAt: invoice.createdAt,
+						updatedAt: invoice.updatedAt,
+					})
+					.from(invoice)
+					.where(whereClause)
+					.orderBy(desc(invoice.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db.select({ c: count() }).from(invoice).where(whereClause),
 			]);
 
+			const total = Number(totalRow[0]?.c ?? 0);
+
 			const payload = {
-				invoices: invoices.map((invoice) =>
+				invoices: items.map((inv) =>
 					invoiceSummarySchema.parse({
-						...invoice,
+						...inv,
 					}),
 				),
 				total,
@@ -717,12 +739,12 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.query(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(prisma, user.id, user.role, input.id);
-			const invoice = await fetchInvoiceDetail(prisma, input.id);
+			await ensureInvoiceAccess(db, user.id, user.role, input.id);
+			const invoiceDetail = await fetchInvoiceDetail(db, input.id);
 
 			const mapped = mapInvoiceDetail({
-				...invoice,
-				lineItems: invoice.lineItems.map((item) => ({
+				...invoiceDetail,
+				lineItems: invoiceDetail.lineItems.map((item) => ({
 					id: item.id,
 					invoiceId: item.invoiceId,
 					position: item.position,
@@ -737,7 +759,7 @@ export const invoicingRouter = router({
 					createdAt: item.createdAt,
 					updatedAt: item.updatedAt,
 				})),
-				transactions: invoice.transactions.map((transaction) => ({
+				transactions: invoiceDetail.transactions.map((transaction) => ({
 					id: transaction.id,
 					invoiceId: transaction.invoiceId,
 					reference: transaction.reference,
@@ -756,13 +778,13 @@ export const invoicingRouter = router({
 					updatedAt: transaction.updatedAt,
 					activityLogs: transaction.activityLogs,
 				})),
-				creditNote: invoice.creditNote
+				creditNote: invoiceDetail.creditNote
 					? creditNoteOutputSchema.parse({
-						...invoice.creditNote,
-						activityLogs: invoice.creditNote.activityLogs,
+						...invoiceDetail.creditNote,
+						activityLogs: invoiceDetail.creditNote.activityLogs,
 					})
 					: null,
-				activityLogs: invoice.activityLogs,
+				activityLogs: invoiceDetail.activityLogs,
 			});
 
 			return mapped;
@@ -773,59 +795,65 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(prisma, user.id, user.role, input.invoiceId);
+			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
 
-			const invoice = await prisma.invoice.findUnique({
-				where: { id: input.invoiceId },
-				select: { id: true, status: true, amount: true, currency: true },
-			});
-			if (!invoice) {
+			const invRows = await db
+				.select({
+					id: invoice.id,
+					status: invoice.status,
+					amount: invoice.amount,
+					currency: invoice.currency,
+				})
+				.from(invoice)
+				.where(eq(invoice.id, input.invoiceId))
+				.limit(1);
+			const inv = invRows[0];
+			if (!inv) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
 			}
-			if (invoice.status === "PAID") {
+			if (inv.status === "PAID") {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Invoice is already fully paid.",
 				});
 			}
 
-			const totalAmount = invoice.amount ?? "0";
+			const totalAmount = inv.amount ?? "0";
 			const amountToRecord = input.type === "COMPLETE" ? totalAmount : (input.amountPaid ?? "0").trim();
 
-			await prisma.$transaction(async (tx) => {
+			await db.transaction(async (tx) => {
+				const now = new Date();
 				if (input.type === "COMPLETE") {
-					await tx.invoice.update({
-						where: { id: input.invoiceId },
-						data: {
+					await tx
+						.update(invoice)
+						.set({
 							status: "PAID",
-							paidAt: new Date(),
-							updatedAt: new Date(),
-						},
-					});
+							paidAt: now,
+							updatedAt: now,
+						})
+						.where(eq(invoice.id, input.invoiceId));
 				} else {
-					await tx.invoice.update({
-						where: { id: input.invoiceId },
-						data: {
+					await tx
+						.update(invoice)
+						.set({
 							status: "PARTIALLY_PAID",
-							updatedAt: new Date(),
-						},
-					});
+							updatedAt: now,
+						})
+						.where(eq(invoice.id, input.invoiceId));
 				}
 
 				const transactionId = crypto.randomUUID();
-				await tx.invoiceTransaction.create({
-					data: {
-						id: transactionId,
-						invoiceId: input.invoiceId,
-						status: "COMPLETED",
-						method: "OTHER",
-						amount: amountToRecord,
-						currency: invoice.currency ?? "KES",
-						paidAt: new Date(),
-						recordedBy: user.id,
-						createdAt: new Date(),
-						updatedAt: new Date(),
-					},
+				await tx.insert(invoiceTransaction).values({
+					id: transactionId,
+					invoiceId: input.invoiceId,
+					status: "COMPLETED",
+					method: "OTHER",
+					amount: amountToRecord,
+					currency: inv.currency ?? "KES",
+					paidAt: now,
+					recordedBy: user.id,
+					createdAt: now,
+					updatedAt: now,
 				});
 
 				await logInvoiceActivity(tx, {
@@ -834,13 +862,13 @@ export const invoicingRouter = router({
 					action: input.type === "COMPLETE" ? "PAYMENT_COMPLETE" : "PAYMENT_PARTIAL",
 					description:
 						input.type === "COMPLETE"
-							? `Full payment recorded: ${invoice.currency ?? "KES"} ${amountToRecord}`
-							: `Partial payment recorded: ${invoice.currency ?? "KES"} ${amountToRecord}`,
+							? `Full payment recorded: ${inv.currency ?? "KES"} ${amountToRecord}`
+							: `Partial payment recorded: ${inv.currency ?? "KES"} ${amountToRecord}`,
 					metadata: { type: input.type, amount: amountToRecord },
 				});
 			});
 
-			const updated = await fetchInvoiceDetail(prisma, input.invoiceId);
+			const updated = await fetchInvoiceDetail(db, input.invoiceId);
 			return mapInvoiceDetail({
 				...updated,
 				lineItems: updated.lineItems.map((item) => ({
@@ -892,10 +920,12 @@ export const invoicingRouter = router({
 		.query(async () => {
 			// Peek at the next invoice number without incrementing
 			// This allows the frontend to preview the number before creating
-			const counter = await prisma.invoiceCounter.findUnique({
-				where: { id: "invoice-counter" },
-				select: { lastNumber: true },
-			});
+			const counterRows = await db
+				.select({ lastNumber: invoiceCounter.lastNumber })
+				.from(invoiceCounter)
+				.where(eq(invoiceCounter.id, "invoice-counter"))
+				.limit(1);
+			const counter = counterRows[0];
 
 			const nextNumber = (counter?.lastNumber ?? 0) + 1;
 			// Format with 4-digit zero-padding (e.g., INV-0001)
@@ -914,26 +944,28 @@ export const invoicingRouter = router({
 			const user = await getAuthenticatedUser(ctx);
 
 			if (input.teamId) {
-				await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
+				await ensureTeamAccess(db, user.id, user.role, input.teamId);
 			}
 
 			const invoiceId = input.id ?? crypto.randomUUID();
 			const token = input.token ?? crypto.randomUUID();
 
-			await prisma.$transaction(async (tx) => {
+			await db.transaction(async (tx) => {
 				// Auto-generate invoice number if not provided
 				let invoiceNumber = input.invoiceNumber;
 				if (!invoiceNumber) {
 					invoiceNumber = await generateNextInvoiceNumber(tx);
 				} else {
-					// Validate uniqueness if manually provided
-					const existing = await tx.invoice.findFirst({
-						where: {
-							invoiceNumber,
-							teamId: input.teamId ?? null,
-						},
-						select: { id: true },
-					});
+					const teamCond =
+						input.teamId == null
+							? isNull(invoice.teamId)
+							: eq(invoice.teamId, input.teamId);
+					const existingRows = await tx
+						.select({ id: invoice.id })
+						.from(invoice)
+						.where(and(eq(invoice.invoiceNumber, invoiceNumber), teamCond))
+						.limit(1);
+					const existing = existingRows[0];
 
 					if (existing) {
 						throw new TRPCError({
@@ -942,7 +974,6 @@ export const invoicingRouter = router({
 						});
 					}
 
-					// Update counter to reflect the manually provided invoice number
 					await updateInvoiceCounter(tx, invoiceNumber);
 				}
 
@@ -955,18 +986,17 @@ export const invoicingRouter = router({
 					updatedBy: user.id,
 				});
 
-				await tx.invoice.create({
-					data: {
-						...invoiceData,
-						id: invoiceId,
-						createdAt: new Date(),
-						updatedAt: new Date(),
-					} as any, // Type assertion for JsonValue compatibility
-				});
+				const now = new Date();
+				await tx.insert(invoice).values({
+					...invoiceData,
+					id: invoiceId,
+					createdAt: now,
+					updatedAt: now,
+				} as typeof invoice.$inferInsert);
 
 				if (input.lineItems && input.lineItems.length > 0) {
 					for (const [index, item] of input.lineItems.entries()) {
-						const lineItemData: any = {
+						const lineItemData: Record<string, unknown> = {
 							id: item.id ?? crypto.randomUUID(),
 							invoiceId,
 							position: item.position ?? index,
@@ -977,22 +1007,20 @@ export const invoicingRouter = router({
 							price: stringOrNull(item.price),
 							discount: stringOrNull(item.discount),
 							total: stringOrNull(item.total),
-							createdAt: new Date(),
-							updatedAt: new Date(),
+							createdAt: now,
+							updatedAt: now,
 						};
 						if (item.metadata !== undefined && item.metadata !== null) {
 							lineItemData.metadata = item.metadata;
 						}
-						await tx.invoiceLineItem.create({
-							data: lineItemData,
-						});
+						await tx.insert(invoiceLineItem).values(lineItemData as typeof invoiceLineItem.$inferInsert);
 					}
 				}
 
 				if (input.transactions && input.transactions.length > 0) {
 					for (const transaction of input.transactions) {
 						const transactionId = transaction.id ?? crypto.randomUUID();
-						const transactionData: any = {
+						const transactionData: Record<string, unknown> = {
 							id: transactionId,
 							invoiceId,
 							reference: stringOrNull(transaction.reference),
@@ -1006,15 +1034,13 @@ export const invoicingRouter = router({
 							balanceBefore: stringOrNull(transaction.balanceBefore),
 							balanceAfter: stringOrNull(transaction.balanceAfter),
 							recordedBy: stringOrNull(transaction.recordedBy) ?? user.id,
-							createdAt: new Date(),
-							updatedAt: new Date(),
+							createdAt: now,
+							updatedAt: now,
 						};
 						if (transaction.metadata !== undefined && transaction.metadata !== null) {
 							transactionData.metadata = transaction.metadata;
 						}
-						await tx.invoiceTransaction.create({
-							data: transactionData,
-						});
+						await tx.insert(invoiceTransaction).values(transactionData as typeof invoiceTransaction.$inferInsert);
 
 						await logTransactionActivity(tx, {
 							transactionId,
@@ -1027,7 +1053,7 @@ export const invoicingRouter = router({
 
 				if (input.creditNote) {
 					const creditNoteId = input.creditNote.id ?? crypto.randomUUID();
-					const creditNoteData: any = {
+					const creditNoteRow: Record<string, unknown> = {
 						id: creditNoteId,
 						invoiceId,
 						teamId: input.creditNote.teamId ?? input.teamId ?? null,
@@ -1041,15 +1067,13 @@ export const invoicingRouter = router({
 						appliedAt: parseDate(input.creditNote.appliedAt),
 						createdBy: input.creditNote.createdBy ?? user.id,
 						updatedBy: input.creditNote.updatedBy ?? user.id,
-						createdAt: new Date(),
-						updatedAt: new Date(),
+						createdAt: now,
+						updatedAt: now,
 					};
 					if (input.creditNote.metadata !== undefined && input.creditNote.metadata !== null) {
-						creditNoteData.metadata = input.creditNote.metadata;
+						creditNoteRow.metadata = input.creditNote.metadata;
 					}
-					await tx.creditNote.create({
-						data: creditNoteData,
-					});
+					await tx.insert(creditNote).values(creditNoteRow as typeof creditNote.$inferInsert);
 
 					await logCreditNoteActivity(tx, {
 						creditNoteId,
@@ -1070,12 +1094,12 @@ export const invoicingRouter = router({
 				});
 			});
 
-			const invoice = await fetchInvoiceDetail(prisma, invoiceId);
+			const invoiceDetail = await fetchInvoiceDetail(db, invoiceId);
 
 			return mapInvoiceDetail({
-				...invoice,
-				transactions: invoice.transactions,
-				creditNote: invoice.creditNote,
+				...invoiceDetail,
+				transactions: invoiceDetail.transactions,
+				creditNote: invoiceDetail.creditNote,
 			});
 		}),
 
@@ -1084,25 +1108,25 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			const invoiceRecord = await ensureInvoiceAccess(prisma, user.id, user.role, input.id);
+			const invoiceRecord = await ensureInvoiceAccess(db, user.id, user.role, input.id);
 
-			await prisma.$transaction(async (tx) => {
+			await db.transaction(async (tx) => {
 				if (input.teamId && input.teamId !== invoiceRecord.teamId) {
 					await ensureTeamAccess(tx, user.id, user.role, input.teamId);
 				}
 
 				const data = buildInvoiceUpdateData(input, user.id);
 
-				await tx.invoice.update({
-					where: { id: input.id },
-					data,
-				});
+				await tx
+					.update(invoice)
+					.set(data as Partial<typeof invoice.$inferInsert>)
+					.where(eq(invoice.id, input.id));
 
 				if (input.lineItems) {
-					const existingItems = await tx.invoiceLineItem.findMany({
-						where: { invoiceId: input.id },
-						select: { id: true },
-					});
+					const existingItems = await tx
+						.select({ id: invoiceLineItem.id })
+						.from(invoiceLineItem)
+						.where(eq(invoiceLineItem.invoiceId, input.id));
 
 					const incomingIds = new Set(
 						input.lineItems.filter((item) => item.id).map((item) => item.id as string),
@@ -1113,13 +1137,12 @@ export const invoicingRouter = router({
 						.map((item) => item.id);
 
 					if (toDelete.length > 0) {
-						await tx.invoiceLineItem.deleteMany({
-							where: { id: { in: toDelete } },
-						});
+						await tx.delete(invoiceLineItem).where(inArray(invoiceLineItem.id, toDelete));
 					}
 
+					const now = new Date();
 					for (const [index, item] of input.lineItems.entries()) {
-						const lineItemData: any = {
+						const lineItemData: Record<string, unknown> = {
 							position: item.position ?? index,
 							name: stringOrNull(item.name),
 							description: stringOrNull(item.description),
@@ -1128,27 +1151,25 @@ export const invoicingRouter = router({
 							price: stringOrNull(item.price),
 							discount: stringOrNull(item.discount),
 							total: stringOrNull(item.total),
-							updatedAt: new Date(),
+							updatedAt: now,
 						};
 						if (item.metadata !== undefined && item.metadata !== null) {
 							lineItemData.metadata = item.metadata;
 						}
 
 						if (item.id) {
-							await tx.invoiceLineItem.update({
-								where: { id: item.id },
-								data: lineItemData,
-							});
+							await tx
+								.update(invoiceLineItem)
+								.set(lineItemData as Partial<typeof invoiceLineItem.$inferInsert>)
+								.where(eq(invoiceLineItem.id, item.id));
 						} else {
-							const createData = {
+							await tx.insert(invoiceLineItem).values({
 								...lineItemData,
 								id: crypto.randomUUID(),
 								invoiceId: input.id,
-								createdAt: new Date(),
-							};
-							await tx.invoiceLineItem.create({
-								data: createData,
-							});
+								createdAt: now,
+								updatedAt: now,
+							} as typeof invoiceLineItem.$inferInsert);
 						}
 					}
 				}
@@ -1161,9 +1182,9 @@ export const invoicingRouter = router({
 				});
 			});
 
-			const invoice = await fetchInvoiceDetail(prisma, input.id);
+			const invoiceDetail = await fetchInvoiceDetail(db, input.id);
 
-			return mapInvoiceDetail(invoice);
+			return mapInvoiceDetail(invoiceDetail);
 		}),
 
 	updateStatus: protectedProcedure
@@ -1177,17 +1198,18 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(prisma, user.id, user.role, input.id);
+			await ensureInvoiceAccess(db, user.id, user.role, input.id);
 
-			await prisma.$transaction(async (tx) => {
-				await tx.invoice.update({
-					where: { id: input.id },
-					data: {
+			await db.transaction(async (tx) => {
+				const now = new Date();
+				await tx
+					.update(invoice)
+					.set({
 						status: input.status,
 						updatedBy: user.id,
-						updatedAt: new Date(),
-					},
-				});
+						updatedAt: now,
+					})
+					.where(eq(invoice.id, input.id));
 
 				await logInvoiceActivity(tx, {
 					invoiceId: input.id,
@@ -1198,8 +1220,8 @@ export const invoicingRouter = router({
 				});
 			});
 
-			const invoice = await fetchInvoiceDetail(prisma, input.id);
-			return mapInvoiceDetail(invoice);
+			const invoiceDetail = await fetchInvoiceDetail(db, input.id);
+			return mapInvoiceDetail(invoiceDetail);
 		}),
 
 	recordTransaction: protectedProcedure
@@ -1207,12 +1229,13 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(prisma, user.id, user.role, input.invoiceId);
+			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
 
 			const transactionId = input.id ?? crypto.randomUUID();
 
-			await prisma.$transaction(async (tx) => {
-				const data: any = {
+			await db.transaction(async (tx) => {
+				const now = new Date();
+				const data: Record<string, unknown> = {
 					invoiceId: input.invoiceId,
 					reference: stringOrNull(input.reference),
 					providerReference: stringOrNull(input.providerReference),
@@ -1225,17 +1248,17 @@ export const invoicingRouter = router({
 					balanceBefore: stringOrNull(input.balanceBefore),
 					balanceAfter: stringOrNull(input.balanceAfter),
 					recordedBy: stringOrNull(input.recordedBy) ?? user.id,
-					updatedAt: new Date(),
+					updatedAt: now,
 				};
 				if (input.metadata !== undefined && input.metadata !== null) {
 					data.metadata = input.metadata;
 				}
 
 				if (input.id) {
-					await tx.invoiceTransaction.update({
-						where: { id: input.id },
-						data,
-					});
+					await tx
+						.update(invoiceTransaction)
+						.set(data as Partial<typeof invoiceTransaction.$inferInsert>)
+						.where(eq(invoiceTransaction.id, input.id));
 
 					await logTransactionActivity(tx, {
 						transactionId,
@@ -1244,13 +1267,11 @@ export const invoicingRouter = router({
 						description: "Updated invoice transaction",
 					});
 				} else {
-					await tx.invoiceTransaction.create({
-						data: {
-							id: transactionId,
-							createdAt: new Date(),
-							...data,
-						},
-					});
+					await tx.insert(invoiceTransaction).values({
+						id: transactionId,
+						createdAt: now,
+						...data,
+					} as typeof invoiceTransaction.$inferInsert);
 
 					await logTransactionActivity(tx, {
 						transactionId,
@@ -1274,9 +1295,9 @@ export const invoicingRouter = router({
 				});
 			});
 
-			const invoice = await fetchInvoiceDetail(prisma, input.invoiceId);
+			const invoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
 
-			return mapInvoiceDetail(invoice);
+			return mapInvoiceDetail(invoiceDetail);
 		}),
 
 	deleteTransaction: protectedProcedure
@@ -1289,13 +1310,15 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(prisma, user.id, user.role, input.invoiceId);
+			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
 
-			await prisma.$transaction(async (tx) => {
-				const transaction = await tx.invoiceTransaction.findUnique({
-					where: { id: input.id },
-					select: { id: true },
-				});
+			await db.transaction(async (tx) => {
+				const transRows = await tx
+					.select({ id: invoiceTransaction.id })
+					.from(invoiceTransaction)
+					.where(eq(invoiceTransaction.id, input.id!))
+					.limit(1);
+				const transaction = transRows[0];
 
 				if (!transaction) {
 					throw new TRPCError({
@@ -1304,16 +1327,14 @@ export const invoicingRouter = router({
 					});
 				}
 
-				await tx.invoiceTransaction.delete({
-					where: { id: input.id },
-				});
-
 				await logTransactionActivity(tx, {
 					transactionId: input.id!,
 					userId: user.id,
 					action: "DELETE_PAYMENT",
 					description: "Deleted invoice transaction",
 				});
+
+				await tx.delete(invoiceTransaction).where(eq(invoiceTransaction.id, input.id!));
 
 				await logInvoiceActivity(tx, {
 					invoiceId: input.invoiceId,
@@ -1324,8 +1345,8 @@ export const invoicingRouter = router({
 				});
 			});
 
-			const invoice = await fetchInvoiceDetail(prisma, input.invoiceId);
-			return mapInvoiceDetail(invoice);
+			const invoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
+			return mapInvoiceDetail(invoiceDetail);
 		}),
 
 	upsertCreditNote: protectedProcedure
@@ -1333,12 +1354,13 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(prisma, user.id, user.role, input.invoiceId);
+			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
 
 			const creditNoteId = input.id ?? crypto.randomUUID();
 
-			await prisma.$transaction(async (tx) => {
-				const data: any = {
+			await db.transaction(async (tx) => {
+				const now = new Date();
+				const data: Record<string, unknown> = {
 					invoiceId: input.invoiceId,
 					teamId: input.teamId ?? null,
 					creditNumber: stringOrNull(input.creditNumber),
@@ -1351,22 +1373,24 @@ export const invoicingRouter = router({
 					appliedAt: parseDate(input.appliedAt),
 					createdBy: input.createdBy,
 					updatedBy: input.updatedBy ?? user.id,
-					updatedAt: new Date(),
+					updatedAt: now,
 				};
 				if (input.metadata !== undefined && input.metadata !== null) {
 					data.metadata = input.metadata;
 				}
 
-				const existing = await tx.creditNote.findUnique({
-					where: { invoiceId: input.invoiceId },
-					select: { id: true },
-				});
+				const existingRows = await tx
+					.select({ id: creditNote.id })
+					.from(creditNote)
+					.where(eq(creditNote.invoiceId, input.invoiceId))
+					.limit(1);
+				const existing = existingRows[0];
 
 				if (existing) {
-					await tx.creditNote.update({
-						where: { id: existing.id },
-						data: data as any, // Type assertion for JsonValue compatibility
-					});
+					await tx
+						.update(creditNote)
+						.set(data as Partial<typeof creditNote.$inferInsert>)
+						.where(eq(creditNote.id, existing.id));
 
 					await logCreditNoteActivity(tx, {
 						creditNoteId: existing.id,
@@ -1375,13 +1399,11 @@ export const invoicingRouter = router({
 						description: "Updated credit note",
 					});
 				} else {
-					await tx.creditNote.create({
-						data: {
-							id: creditNoteId,
-							createdAt: new Date(),
-							...data,
-						} as any, // Type assertion for JsonValue compatibility
-					});
+					await tx.insert(creditNote).values({
+						id: creditNoteId,
+						createdAt: now,
+						...data,
+					} as typeof creditNote.$inferInsert);
 
 					await logCreditNoteActivity(tx, {
 						creditNoteId,
@@ -1403,8 +1425,8 @@ export const invoicingRouter = router({
 				});
 			});
 
-			const invoice = await fetchInvoiceDetail(prisma, input.invoiceId);
-			return mapInvoiceDetail(invoice);
+			const invoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
+			return mapInvoiceDetail(invoiceDetail);
 		}),
 
 	deleteCreditNote: protectedProcedure
@@ -1416,13 +1438,15 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(prisma, user.id, user.role, input.invoiceId);
+			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
 
-			await prisma.$transaction(async (tx) => {
-				const existing = await tx.creditNote.findUnique({
-					where: { invoiceId: input.invoiceId },
-					select: { id: true },
-				});
+			await db.transaction(async (tx) => {
+				const existingRows = await tx
+					.select({ id: creditNote.id })
+					.from(creditNote)
+					.where(eq(creditNote.invoiceId, input.invoiceId))
+					.limit(1);
+				const existing = existingRows[0];
 
 				if (!existing) {
 					throw new TRPCError({
@@ -1431,16 +1455,14 @@ export const invoicingRouter = router({
 					});
 				}
 
-				await tx.creditNote.delete({
-					where: { id: existing.id },
-				});
-
 				await logCreditNoteActivity(tx, {
 					creditNoteId: existing.id,
 					userId: user.id,
 					action: "DELETE",
 					description: "Deleted credit note",
 				});
+
+				await tx.delete(creditNote).where(eq(creditNote.id, existing.id));
 
 				await logInvoiceActivity(tx, {
 					invoiceId: input.invoiceId,
@@ -1450,18 +1472,18 @@ export const invoicingRouter = router({
 				});
 			});
 
-			const invoice = await fetchInvoiceDetail(prisma, input.invoiceId);
-			return mapInvoiceDetail(invoice);
+			const invoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
+			return mapInvoiceDetail(invoiceDetail);
 		}),
 
 	submitInvoice: protectedProcedure
 		.input(submitInvoiceSchema)
 		.output(invoiceDetailSchema)
-		.		mutation(async ({ ctx, input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
 			if (input.teamId) {
-				await ensureTeamAccess(prisma, user.id, user.role, input.teamId);
+				await ensureTeamAccess(db, user.id, user.role, input.teamId);
 			}
 
 			const invoiceId = input.id ?? crypto.randomUUID();
@@ -1470,7 +1492,7 @@ export const invoicingRouter = router({
 			let savedInvoice: any;
 			let invoiceNumber: string;
 
-			await prisma.$transaction(async (tx) => {
+			await db.transaction(async (tx) => {
 				// Always generate the next invoice number FIRST to ensure counter is incremented atomically
 				// This ensures thread-safety and prevents counter from getting out of sync
 				const generatedNumber = await generateNextInvoiceNumber(tx);
@@ -1484,14 +1506,18 @@ export const invoicingRouter = router({
 					if (providedParsed !== null && generatedParsed !== null && providedParsed === generatedParsed) {
 						invoiceNumber = input.invoiceNumber;
 					} else if (providedParsed !== null && generatedParsed !== null && providedParsed > generatedParsed) {
-						// Provided number is higher - validate uniqueness and use it
-						const existing = await tx.invoice.findFirst({
-							where: {
-								invoiceNumber: input.invoiceNumber,
-								teamId: input.teamId ?? null,
-							},
-							select: { id: true },
-						});
+						const teamCond =
+							input.teamId == null
+								? isNull(invoice.teamId)
+								: eq(invoice.teamId, input.teamId);
+						const existingRows = await tx
+							.select({ id: invoice.id })
+							.from(invoice)
+							.where(
+								and(eq(invoice.invoiceNumber, input.invoiceNumber), teamCond),
+							)
+							.limit(1);
+						const existing = existingRows[0];
 
 						if (existing) {
 							throw new TRPCError({
@@ -1500,28 +1526,25 @@ export const invoicingRouter = router({
 							});
 						}
 
-						// Use provided number and update counter to reflect it
 						invoiceNumber = input.invoiceNumber;
 						await updateInvoiceCounter(tx, invoiceNumber);
 					} else {
-						// Provided number is invalid or lower - use generated
 						invoiceNumber = generatedNumber;
 					}
 				} else {
-					// No invoice number provided - use generated
 					invoiceNumber = generatedNumber;
 				}
 
-				// Use hardcoded company logo URL
 				const companyLogoUrl = "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp";
 
-				// Build invoice data with company logo in template
-				const templateData = input.template ? {
-					...input.template,
-					logoUrl: companyLogoUrl,
-				} : {
-					logoUrl: companyLogoUrl,
-				};
+				const templateData = input.template
+					? {
+							...input.template,
+							logoUrl: companyLogoUrl,
+						}
+					: {
+							logoUrl: companyLogoUrl,
+						};
 
 				const invoiceData = buildInvoiceData({
 					...input,
@@ -1534,18 +1557,17 @@ export const invoicingRouter = router({
 					status: "DRAFT", // Saved only; send from invoice details when verified
 				});
 
-				await tx.invoice.create({
-					data: {
-						...invoiceData,
-						id: invoiceId,
-						createdAt: new Date(),
-						updatedAt: new Date(),
-					} as any, // Type assertion for JsonValue compatibility
-				});
+				const now = new Date();
+				await tx.insert(invoice).values({
+					...invoiceData,
+					id: invoiceId,
+					createdAt: now,
+					updatedAt: now,
+				} as typeof invoice.$inferInsert);
 
 				if (input.lineItems && input.lineItems.length > 0) {
 					for (const [index, item] of input.lineItems.entries()) {
-						const lineItemData: any = {
+						const lineItemData: Record<string, unknown> = {
 							id: item.id ?? crypto.randomUUID(),
 							invoiceId,
 							position: item.position ?? index,
@@ -1556,15 +1578,13 @@ export const invoicingRouter = router({
 							price: stringOrNull(item.price),
 							discount: stringOrNull(item.discount),
 							total: stringOrNull(item.total),
-							createdAt: new Date(),
-							updatedAt: new Date(),
+							createdAt: now,
+							updatedAt: now,
 						};
 						if (item.metadata !== undefined && item.metadata !== null) {
 							lineItemData.metadata = item.metadata;
 						}
-						await tx.invoiceLineItem.create({
-							data: lineItemData,
-						});
+						await tx.insert(invoiceLineItem).values(lineItemData as typeof invoiceLineItem.$inferInsert);
 					}
 				}
 
@@ -1579,7 +1599,6 @@ export const invoicingRouter = router({
 					},
 				});
 
-				// Fetch the saved invoice to return
 				savedInvoice = await fetchInvoiceDetail(tx, invoiceId);
 			});
 
@@ -1595,49 +1614,44 @@ export const invoicingRouter = router({
 		.output(z.object({ success: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(prisma, user.id, user.role, input.invoiceId);
+			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
 
-			await prisma.$transaction(async (tx) => {
-				const invoice = await tx.invoice.findUnique({
-					where: { id: input.invoiceId },
-					select: { id: true, invoiceNumber: true },
-				});
+			await db.transaction(async (tx) => {
+				const invRows = await tx
+					.select({ id: invoice.id, invoiceNumber: invoice.invoiceNumber })
+					.from(invoice)
+					.where(eq(invoice.id, input.invoiceId))
+					.limit(1);
+				const inv = invRows[0];
 
-				if (!invoice) {
+				if (!inv) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "Invoice not found.",
 					});
 				}
 
-				// Log activity BEFORE deleting (so we have a record of the deletion)
 				await logInvoiceActivity(tx, {
 					invoiceId: input.invoiceId,
 					userId: user.id,
 					action: "DELETE",
-					description: `Invoice ${invoice.invoiceNumber || input.invoiceId} deleted`,
+					description: `Invoice ${inv.invoiceNumber || input.invoiceId} deleted`,
 					metadata: {
-						invoiceNumber: invoice.invoiceNumber,
+						invoiceNumber: inv.invoiceNumber,
 					},
 				});
 
-				// Delete related records (cascade will handle line items, but we need to handle others)
-				await tx.invoiceTransaction.deleteMany({
-					where: { invoiceId: input.invoiceId },
-				});
+				await tx
+					.delete(invoiceTransaction)
+					.where(eq(invoiceTransaction.invoiceId, input.invoiceId));
 
-				await tx.invoiceActivityLog.deleteMany({
-					where: { invoiceId: input.invoiceId },
-				});
+				await tx
+					.delete(invoiceActivityLog)
+					.where(eq(invoiceActivityLog.invoiceId, input.invoiceId));
 
-				await tx.creditNote.deleteMany({
-					where: { invoiceId: input.invoiceId },
-				});
+				await tx.delete(creditNote).where(eq(creditNote.invoiceId, input.invoiceId));
 
-				// Delete the invoice (line items will be deleted via cascade)
-				await tx.invoice.delete({
-					where: { id: input.invoiceId },
-				});
+				await tx.delete(invoice).where(eq(invoice.id, input.invoiceId));
 			});
 
 			return { success: true };
@@ -1656,11 +1670,11 @@ export const invoicingRouter = router({
 			const { sendEmail } = await import("../../lib/email");
 			const { renderInvoiceDeliveryEmail } = await import("../../lib/email-templates");
 
-			await ensureInvoiceAccess(prisma, user.id, user.role, input.invoiceId);
+			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
 
-			const invoice = await fetchInvoiceDetail(prisma, input.invoiceId);
+			const invoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
 
-			if (!invoice.customerEmail) {
+			if (!invoiceDetail.customerEmail) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Invoice does not have a customer email address.",
@@ -1668,11 +1682,11 @@ export const invoicingRouter = router({
 			}
 
 			// Prepare services list for email
-			const services = invoice.lineItems.map((item: any) => ({
+			const services = invoiceDetail.lineItems.map((item: any) => ({
 				name: item.name || "Service",
 				description: item.description || undefined,
 				quantity: item.quantity || undefined,
-				price: item.price ? `${invoice.currency} ${item.price}` : undefined,
+				price: item.price ? `${invoiceDetail.currency} ${item.price}` : undefined,
 			}));
 
 			// Format dates for email
@@ -1687,12 +1701,12 @@ export const invoicingRouter = router({
 
 			// Render email template
 			const emailHtml = await renderInvoiceDeliveryEmail({
-				customerName: invoice.customerName || "Valued Customer",
-				invoiceNumber: invoice.invoiceNumber || "N/A",
-				issueDate: formatDate(invoice.issueDate),
-				dueDate: formatDate(invoice.dueDate),
-				totalAmount: invoice.amount || "0.00",
-				currency: invoice.currency || "KES",
+				customerName: invoiceDetail.customerName || "Valued Customer",
+				invoiceNumber: invoiceDetail.invoiceNumber || "N/A",
+				issueDate: formatDate(invoiceDetail.issueDate),
+				dueDate: formatDate(invoiceDetail.dueDate),
+				totalAmount: invoiceDetail.amount || "0.00",
+				currency: invoiceDetail.currency || "KES",
 				services,
 				supportEmail: "billing@nisccloud.com",
 				supportPhone: "+254 748 777 666",
@@ -1702,8 +1716,8 @@ export const invoicingRouter = router({
 			const sanitizeFilename = (name: string): string => {
 				return name.replace(/[^a-zA-Z0-9._-]/g, "_");
 			};
-			const pdfFilename = invoice.invoiceNumber
-				? `${sanitizeFilename(invoice.invoiceNumber)}.pdf`
+			const pdfFilename = invoiceDetail.invoiceNumber
+				? `${sanitizeFilename(invoiceDetail.invoiceNumber)}.pdf`
 				: "Invoice.pdf";
 
 			// Prepare PDF attachment
@@ -1716,35 +1730,33 @@ export const invoicingRouter = router({
 			// Send email with PDF attachment
 			try {
 				await sendEmail({
-					to: invoice.customerEmail,
-					subject: `Invoice Reminder: ${invoice.invoiceNumber || "Invoice"} from Nisc Cloud Limited`,
+					to: invoiceDetail.customerEmail,
+					subject: `Invoice Reminder: ${invoiceDetail.invoiceNumber || "Invoice"} from Nisc Cloud Limited`,
 					html: emailHtml,
 					attachments,
 				});
 
 				// Batch: Update reminderSentAt timestamp and log activity in a transaction
 				// This reduces connection usage from 2 sequential queries to 1 transaction
-				await prisma.$transaction(async (tx) => {
-					// Update reminderSentAt timestamp
-					await tx.invoice.update({
-						where: { id: input.invoiceId },
-						data: { reminderSentAt: new Date() },
-					});
+				await db.transaction(async (tx) => {
+					await tx
+						.update(invoice)
+						.set({ reminderSentAt: new Date() })
+						.where(eq(invoice.id, input.invoiceId));
 
-					// Log activity
 					await logInvoiceActivity(tx, {
 						invoiceId: input.invoiceId,
 						userId: user.id,
 						action: "REMINDER_SENT",
 						description: "Email reminder sent",
 						metadata: {
-							sentTo: invoice.customerEmail,
+							sentTo: invoiceDetail.customerEmail,
 						},
 					});
 				});
 			} catch (emailError) {
 				console.error("Failed to send invoice reminder email:", emailError);
-				await logInvoiceActivity(prisma, {
+				await logInvoiceActivity(db, {
 					invoiceId: input.invoiceId,
 					userId: user.id,
 					action: "EMAIL_ERROR",
@@ -1759,8 +1771,8 @@ export const invoicingRouter = router({
 				});
 			}
 
-			const updatedInvoice = await fetchInvoiceDetail(prisma, input.invoiceId);
-			return mapInvoiceDetail(updatedInvoice);
+			const updatedInvoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
+			return mapInvoiceDetail(updatedInvoiceDetail);
 		}),
 
 	listTransactions: protectedProcedure
@@ -1784,58 +1796,67 @@ export const invoicingRouter = router({
 		.query(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			const filters: Record<string, unknown>[] = [];
+			const conditions = [];
 
-			// For agency users, show all transactions
-			// For customers, filter by their accessible invoices
 			if (!isAgencyUser(user.role)) {
-				const memberships = await prisma.teamMember.findMany({
-					where: { userId: user.id },
-					select: { teamId: true },
-				});
+				const memberships = await db
+					.select({ teamId: teamMember.teamId })
+					.from(teamMember)
+					.where(eq(teamMember.userId, user.id));
 
-				const accessibleTeams = memberships.map((membership) => membership.teamId);
-				const accessConditions: Record<string, unknown>[] = [];
-
+				const accessibleTeams = memberships
+					.map((m) => m.teamId)
+					.filter((id): id is string => id != null);
+				const orParts = [];
 				if (accessibleTeams.length > 0) {
-					accessConditions.push({
-						invoice: {
-							teamId: { in: accessibleTeams },
-						},
-					});
+					orParts.push(inArray(invoice.teamId, accessibleTeams));
 				}
-
-				accessConditions.push({
-					invoice: {
-						AND: [{ teamId: null }, { createdBy: user.id }],
-					},
-				});
-
-				filters.push({ OR: accessConditions });
+				orParts.push(and(isNull(invoice.teamId), eq(invoice.createdBy, user.id)));
+				conditions.push(or(...orParts)!);
 			}
 
 			if (input.status) {
-				filters.push({ status: input.status });
+				conditions.push(eq(invoiceTransaction.status, input.status));
 			}
 
-			const where = filters.length > 0 ? { AND: filters } : undefined;
+			const joinOn = eq(invoiceTransaction.invoiceId, invoice.id);
+			const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-			const [transactions, total] = await prisma.$transaction([
-				prisma.invoiceTransaction.findMany({
-					where,
-					include: {
-						invoice: {
-							select: {
-								invoiceNumber: true,
-							},
-						},
-					},
-					orderBy: { createdAt: "desc" },
-					skip: input.offset,
-					take: input.limit,
-				}),
-				prisma.invoiceTransaction.count({ where }),
+			const [transactions, totalRow] = await Promise.all([
+				db
+					.select({
+						id: invoiceTransaction.id,
+						invoiceId: invoiceTransaction.invoiceId,
+						reference: invoiceTransaction.reference,
+						providerReference: invoiceTransaction.providerReference,
+						status: invoiceTransaction.status,
+						method: invoiceTransaction.method,
+						amount: invoiceTransaction.amount,
+						currency: invoiceTransaction.currency,
+						paidAt: invoiceTransaction.paidAt,
+						notes: invoiceTransaction.notes,
+						metadata: invoiceTransaction.metadata,
+						balanceBefore: invoiceTransaction.balanceBefore,
+						balanceAfter: invoiceTransaction.balanceAfter,
+						recordedBy: invoiceTransaction.recordedBy,
+						createdAt: invoiceTransaction.createdAt,
+						updatedAt: invoiceTransaction.updatedAt,
+						invoiceNumber: invoice.invoiceNumber,
+					})
+					.from(invoiceTransaction)
+					.innerJoin(invoice, joinOn)
+					.where(whereClause ?? sql`true`)
+					.orderBy(desc(invoiceTransaction.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ c: count() })
+					.from(invoiceTransaction)
+					.innerJoin(invoice, joinOn)
+					.where(whereClause ?? sql`true`),
 			]);
+
+			const total = Number(totalRow[0]?.c ?? 0);
 
 			return {
 				transactions: transactions.map((t) => ({
@@ -1857,7 +1878,7 @@ export const invoicingRouter = router({
 						createdAt: t.createdAt,
 						updatedAt: t.updatedAt,
 					}),
-					invoiceNumber: t.invoice.invoiceNumber,
+					invoiceNumber: t.invoiceNumber,
 				})),
 				total,
 			};

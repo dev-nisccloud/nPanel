@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
-import prisma from '@nPanel/db';
 import {
 	createGoogleAdsClient,
 	getCustomerInstance,
@@ -12,69 +11,7 @@ import {
 	getGoogleAdsDeveloperToken,
 } from '../../lib/google-ads-credentials';
 import { GoogleAdsErrorHandler } from '../../lib/google-ads-error-handler';
-
-/**
- * Get user's Google Ads integration with valid tokens
- */
-async function getUserIntegration(userId: string) {
-	const integration = await prisma.googleAdsIntegration.findFirst({
-		where: {
-			userId,
-			status: 'ACTIVE',
-		},
-	});
-
-	if (!integration) {
-		throw new TRPCError({
-			code: 'BAD_REQUEST',
-			message: 'No active Google Ads integration found. Please connect your account first.',
-		});
-	}
-
-	// Check if access token is expired and refresh if needed
-	const isExpired =
-		integration.accessTokenExpiresAt &&
-		new Date(integration.accessTokenExpiresAt) < new Date();
-
-	if (isExpired && integration.refreshToken) {
-		const { refreshAccessToken } = await import('../../lib/google-ads-client');
-		const clientId = getGoogleAdsClientId();
-		const clientSecret = getGoogleAdsClientSecret();
-
-		try {
-			const tokenResponse = await refreshAccessToken(
-				integration.refreshToken,
-				clientId,
-				clientSecret
-			);
-
-			const expiresAt = new Date();
-			expiresAt.setSeconds(expiresAt.getSeconds() + tokenResponse.expires_in);
-
-			await prisma.googleAdsIntegration.update({
-				where: { id: integration.id },
-				data: {
-					accessToken: tokenResponse.access_token,
-					accessTokenExpiresAt: expiresAt,
-					lastTokenRefreshAt: new Date(),
-					updatedAt: new Date(),
-				},
-			});
-
-			// Update integration object for return
-			integration.accessToken = tokenResponse.access_token;
-			integration.accessTokenExpiresAt = expiresAt;
-		} catch (error) {
-			const errorInfo = GoogleAdsErrorHandler.handleError(error);
-			throw new TRPCError({
-				code: 'UNAUTHORIZED',
-				message: `Failed to refresh access token: ${errorInfo.message}`,
-			});
-		}
-	}
-
-	return integration;
-}
+import { getUserGoogleAdsIntegration } from '../../lib/google-ads-user-integration';
 
 /**
  * Format date for Google Ads API (YYYYMMDD format)
@@ -114,7 +51,7 @@ export const googleAdsAdsRouter = router({
 					});
 				}
 
-				const integration = await getUserIntegration(userId);
+				const integration = await getUserGoogleAdsIntegration(userId);
 
 				// Remove dashes from customer ID for API call
 				const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
@@ -312,7 +249,7 @@ export const googleAdsAdsRouter = router({
 					// Generate ad name from headlines or parts
 					let adName = `Ad ${ad.id}`;
 					if (ad.headlines && ad.headlines.length > 0) {
-						adName = ad.headlines[0];
+						adName = ad.headlines[0] ?? adName;
 					} else if (ad.headline_part1) {
 						adName = ad.headline_part1;
 					}

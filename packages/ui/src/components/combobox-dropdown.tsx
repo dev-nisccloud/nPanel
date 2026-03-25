@@ -4,16 +4,16 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 
 import { CommandList } from "cmdk";
-import { cn } from "../utils";
-import { Button } from "./button";
+import { cn } from "@npanel/ui/lib/utils/index";
+import { Button } from "@npanel/ui/components/button";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-} from "./command";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+} from "@npanel/ui/components/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@npanel/ui/components/popover";
 
 export type ComboboxItem = {
   id: string;

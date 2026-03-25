@@ -3,7 +3,9 @@
  * - Console: prefixed with [NISC] for Vercel/hosting log aggregation.
  * - DB: when niscOrderId is in payload, writes to NiscOrderProcessingLog for debugging in the order view.
  */
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { niscOrderProcessingLog } from "@npanel/db/schema/nisc-orders";
+import { randomUUID } from "node:crypto";
 
 const PREFIX = "[NISC]";
 
@@ -28,12 +30,11 @@ export async function niscLog(step: string, payload: NiscLogPayload): Promise<vo
 	if (!niscOrderId) return;
 
 	try {
-		await prisma.niscOrderProcessingLog.create({
-			data: {
-				niscOrderId,
-				step,
-				payload: payload as object,
-			},
+		await db.insert(niscOrderProcessingLog).values({
+			id: randomUUID(),
+			niscOrderId,
+			step,
+			payload: payload as object,
 		});
 	} catch (err) {
 		// Do not fail order processing if log write fails

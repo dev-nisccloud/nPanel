@@ -2,7 +2,8 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
 import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { eTimsConfiguration } from "@npanel/db/schema/etims";
 
 export const etimsSalesRouter = router({
     /**
@@ -13,7 +14,10 @@ export const etimsSalesRouter = router({
             transaction: z.any() // Using any for large complex object, ideally should be strictly typed
         }))
         .mutation(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -75,7 +79,10 @@ export const etimsSalesRouter = router({
             bhfId: z.string().optional(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({
@@ -138,7 +145,10 @@ export const etimsSalesRouter = router({
             invcNo: z.string(),
         }))
         .query(async ({ input }) => {
-            const config = await prisma.eTimsConfiguration.findFirst();
+            const [config] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
 
             if (!config || !config.cmcKey) {
                 throw new TRPCError({

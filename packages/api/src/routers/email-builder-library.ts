@@ -1,6 +1,9 @@
 import { TRPCError } from "@trpc/server";
+import { and, desc, eq, ilike, isNull, type SQL } from "drizzle-orm";
 import { router, protectedProcedure } from "../trpc";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { emailBuilderLibrary } from "@npanel/db/schema/email-builder-design";
+import { teamMember } from "@npanel/db/schema/teams";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
@@ -62,11 +65,8 @@ export const emailBuilderLibraryRouter = router({
 
       // If teamId is provided, ensure the user is a member of that team
       if (teamId) {
-        const membership = await prisma.teamMember.findFirst({
-          where: {
-            teamId,
-            userId,
-          },
+        const membership = await db.query.teamMember.findFirst({
+          where: and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)),
         });
 
         if (!membership) {
@@ -77,9 +77,11 @@ export const emailBuilderLibraryRouter = router({
         }
       }
 
-      const item = await prisma.emailBuilderLibrary.create({
-        data: {
-          id: randomUUID(),
+      const id = randomUUID();
+      const [item] = await db
+        .insert(emailBuilderLibrary)
+        .values({
+          id,
           userId,
           teamId: teamId ?? null,
           fileName: rest.fileName,
@@ -91,8 +93,15 @@ export const emailBuilderLibraryRouter = router({
           // Store arbitrary JSON metadata without leaking Prisma types into the API layer schema
           metadata: (rest.metadata as unknown) ?? undefined,
           createdAt: new Date(),
-        },
-      });
+        })
+        .returning();
+
+      if (!item) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create library item",
+        });
+      }
 
       return {
         data: item,
@@ -121,11 +130,8 @@ export const emailBuilderLibraryRouter = router({
 
       // If teamId is provided, ensure the user is a member of that team
       if (teamId) {
-        const membership = await prisma.teamMember.findFirst({
-          where: {
-            teamId,
-            userId,
-          },
+        const membership = await db.query.teamMember.findFirst({
+          where: and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)),
         });
 
         if (!membership) {
@@ -136,36 +142,31 @@ export const emailBuilderLibraryRouter = router({
         }
       }
 
-      const where: Record<string, unknown> = {
-        // Personal library when no team is set; otherwise team-scoped
-          ...(teamId
-            ? { teamId }
-            : {
-                userId,
-                teamId: null,
-              }),
-      };
+      const whereConditions: SQL[] = [];
+
+      if (teamId) {
+        whereConditions.push(eq(emailBuilderLibrary.teamId, teamId));
+      } else {
+        whereConditions.push(eq(emailBuilderLibrary.userId, userId));
+        whereConditions.push(isNull(emailBuilderLibrary.teamId));
+      }
 
       if (onlyImages) {
-        where.mimeType = {
-          startsWith: "image/",
-        };
+        whereConditions.push(ilike(emailBuilderLibrary.mimeType, "image/%"));
       }
 
       if (search && search.trim().length > 0) {
-        where.fileName = {
-          contains: search.trim(),
-          mode: "insensitive",
-        };
+        whereConditions.push(ilike(emailBuilderLibrary.fileName, `%${search.trim()}%`));
       }
 
-      const items = await prisma.emailBuilderLibrary.findMany({
-        where,
-        take: limit,
-        skip: (page - 1) * limit,
-        orderBy: {
-          createdAt: "desc",
-        },
+      const whereClause =
+        whereConditions.length === 1 ? whereConditions[0] : and(...whereConditions);
+
+      const items = await db.query.emailBuilderLibrary.findMany({
+        where: whereClause,
+        limit,
+        offset: (page - 1) * limit,
+        orderBy: [desc(emailBuilderLibrary.createdAt)],
       });
 
       return {

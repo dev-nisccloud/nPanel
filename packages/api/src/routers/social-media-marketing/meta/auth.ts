@@ -1,9 +1,16 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { and, desc, eq } from "drizzle-orm";
 import { router, protectedProcedure } from '../../../trpc';
 import { MetaApiError } from '../../../lib/meta-client';
 import { MetaErrorHandler } from '../../../lib/meta-error-handler';
-import prisma from '@nPanel/db';
+import { db } from "@npanel/db";
+import {
+	socialMediaIntegration,
+	socialMediaIntegrationActivityLog,
+	socialMediaPageToken,
+	socialMediaPageTokenActivityLog,
+} from "@npanel/db/schema/social-media-marketing";
 import { request } from 'undici';
 import { randomUUID } from 'node:crypto';
 
@@ -239,10 +246,8 @@ export const metaAuthRouter = router({
 				}
 
 				// Check if integration already exists (only one global integration)
-				const existingIntegration = await prisma.socialMediaIntegration.findFirst({
-					where: {
-						platform: META_FACEBOOK_PLATFORM,
-					},
+				const existingIntegration = await db.query.socialMediaIntegration.findFirst({
+					where: eq(socialMediaIntegration.platform, META_FACEBOOK_PLATFORM),
 				});
 
 				let integrationId: string;
@@ -251,9 +256,9 @@ export const metaAuthRouter = router({
 
 				if (existingIntegration) {
 					// Update existing integration
-					await prisma.socialMediaIntegration.update({
-						where: { id: existingIntegration.id },
-						data: {
+					await db
+						.update(socialMediaIntegration)
+						.set({
 							userId, // Update userId if different user reconnects
 							accessToken: longLivedToken.access_token,
 							accessTokenExpiresAt: expiresAt,
@@ -261,14 +266,14 @@ export const metaAuthRouter = router({
 							status: ACTIVE_STATUS,
 							lastTokenRefreshAt: now,
 							updatedAt: now,
-						},
-					});
+						})
+						.where(eq(socialMediaIntegration.id, existingIntegration.id));
 					integrationId = existingIntegration.id;
 				} else {
 					// Create new integration
-					const newIntegration = await prisma.socialMediaIntegration.create({
-						data: {
-							id: `meta_${Date.now()}`,
+					const newIntegrationId = `meta_${Date.now()}`;
+					await db.insert(socialMediaIntegration).values({
+							id: newIntegrationId,
 							platform: META_FACEBOOK_PLATFORM,
 							userId,
 							accessToken: longLivedToken.access_token,
@@ -277,14 +282,12 @@ export const metaAuthRouter = router({
 							status: ACTIVE_STATUS,
 							createdAt: now,
 							updatedAt: now,
-						},
 					});
-					integrationId = newIntegration.id;
+					integrationId = newIntegrationId;
 				}
 
 				// Log activity
-				await prisma.socialMediaIntegrationActivityLog.create({
-					data: {
+				await db.insert(socialMediaIntegrationActivityLog).values({
 						id: randomUUID(),
 						integrationId,
 						userId,
@@ -299,8 +302,9 @@ export const metaAuthRouter = router({
 							tokenType: longLivedToken.token_type,
 							expiresIn: validExpiresIn,
 						},
+						ipAddress: null,
+						userAgent: null,
 						createdAt: now,
-					},
 				});
 
 				return {
@@ -417,11 +421,11 @@ export const metaAuthRouter = router({
 				}
 
 				// Get the integration (should exist)
-				const integration = await prisma.socialMediaIntegration.findFirst({
-					where: {
-						platform: META_FACEBOOK_PLATFORM,
-						status: ACTIVE_STATUS,
-					},
+				const integration = await db.query.socialMediaIntegration.findFirst({
+					where: and(
+						eq(socialMediaIntegration.platform, META_FACEBOOK_PLATFORM),
+						eq(socialMediaIntegration.status, ACTIVE_STATUS),
+					),
 				});
 
 				if (!integration) {
@@ -432,13 +436,11 @@ export const metaAuthRouter = router({
 				}
 
 				// Save or update page token
-				const existingPageToken = await prisma.socialMediaPageToken.findUnique({
-					where: {
-						integrationId_pageId: {
-							integrationId: integration.id,
-							pageId: input.pageId,
-						},
-					},
+				const existingPageToken = await db.query.socialMediaPageToken.findFirst({
+					where: and(
+						eq(socialMediaPageToken.integrationId, integration.id),
+						eq(socialMediaPageToken.pageId, input.pageId),
+					),
 				});
 
 				const now = new Date();
@@ -455,9 +457,9 @@ export const metaAuthRouter = router({
 				const expiresAt = integration.accessTokenExpiresAt || null;
 
 				if (existingPageToken) {
-					await prisma.socialMediaPageToken.update({
-						where: { id: existingPageToken.id },
-						data: {
+					await db
+						.update(socialMediaPageToken)
+						.set({
 							platform: integration.platform, // Set platform from integration
 							accessToken: pageToken.access_token,
 							accessTokenExpiresAt: expiresAt,
@@ -469,13 +471,13 @@ export const metaAuthRouter = router({
 							isActive: true,
 							lastTokenRefreshAt: now,
 							updatedAt: now,
-						},
-					});
+						})
+						.where(eq(socialMediaPageToken.id, existingPageToken.id));
 					pageTokenId = existingPageToken.id;
 				} else {
-					const newPageToken = await prisma.socialMediaPageToken.create({
-						data: {
-							id: `page_token_${integration.id}_${input.pageId}_${Date.now()}`,
+					const newPageTokenId = `page_token_${integration.id}_${input.pageId}_${Date.now()}`;
+					await db.insert(socialMediaPageToken).values({
+							id: newPageTokenId,
 							integrationId: integration.id,
 							platform: integration.platform, // Set platform from integration
 							pageId: input.pageId,
@@ -490,14 +492,12 @@ export const metaAuthRouter = router({
 							lastTokenRefreshAt: now,
 							createdAt: now,
 							updatedAt: now,
-						},
 					});
-					pageTokenId = newPageToken.id;
+					pageTokenId = newPageTokenId;
 				}
 
 				// Log activity
-				await prisma.socialMediaPageTokenActivityLog.create({
-					data: {
+				await db.insert(socialMediaPageTokenActivityLog).values({
 						id: randomUUID(),
 						pageTokenId,
 						userId,
@@ -523,8 +523,9 @@ export const metaAuthRouter = router({
 							previousTeamId: previousTeamId || null,
 							integrationId: integration.id,
 						},
+						ipAddress: null,
+						userAgent: null,
 						createdAt: now,
-					},
 				});
 
 				return {
@@ -648,13 +649,9 @@ export const metaAuthRouter = router({
 	 */
 		getStoredCredentials: protectedProcedure.query(async () => {
 		try {
-			const integration = await prisma.socialMediaIntegration.findFirst({
-				where: {
-					platform: META_FACEBOOK_PLATFORM,
-				},
-				orderBy: {
-					createdAt: 'desc',
-				},
+			const integration = await db.query.socialMediaIntegration.findFirst({
+				where: eq(socialMediaIntegration.platform, META_FACEBOOK_PLATFORM),
+				orderBy: [desc(socialMediaIntegration.createdAt)],
 			});
 
 			if (!integration) {

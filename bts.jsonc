@@ -1,29 +1,31 @@
-// Better-T-Stack configuration file
-// safe to delete
+// Better-T-Stack
+//
+// Website: https://www.better-t-stack.dev/
+// Stack Builder: https://www.better-t-stack.dev/new
+// Analytics: https://www.better-t-stack.dev/analytics
+// Showcase: https://www.better-t-stack.dev/showcase
+// Sponsor: https://github.com/sponsors/AmanVarshney01
+//
+// Add new addons with: bun create better-t-stack add
+// This file is safe to delete
 
 {
   "$schema": "https://r2.better-t-stack.dev/schema.json",
-  "version": "3.0.9",
-  "createdAt": "2025-10-08T06:04:48.809Z",
+  "version": "3.25.5",
+  "createdAt": "2026-03-18T12:39:49.323Z",
+  "reproducibleCommand": "bun create better-t-stack@latest npanel --frontend react-router --backend hono --runtime bun --database postgres --orm drizzle --api trpc --auth better-auth --payments none --addons fumadocs pwa turborepo --examples none --db-setup supabase --web-deploy none --server-deploy none --no-git --package-manager bun --no-install",
   "database": "postgres",
-  "orm": "prisma",
-  "backend": "self",
-  "runtime": "none",
-  "frontend": [
-    "next"
-  ],
-  "addons": [
-    "fumadocs",
-    "pwa",
-    "ruler",
-    "tauri",
-    "turborepo"
-  ],
+  "orm": "drizzle",
+  "backend": "hono",
+  "runtime": "bun",
+  "frontend": ["react-router"],
+  "addons": ["fumadocs", "pwa", "turborepo"],
   "examples": [],
   "auth": "better-auth",
-  "packageManager": "pnpm",
+  "payments": "none",
+  "packageManager": "bun",
   "dbSetup": "supabase",
   "api": "trpc",
   "webDeploy": "none",
-  "serverDeploy": "none"
+  "serverDeploy": "none",
 }

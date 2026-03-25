@@ -1,4 +1,4 @@
-import type { FunctionCatalogEntry, SchemaDefinition, SchemaProperty } from './catalog-types';
+import type { FunctionCatalogEntry } from './catalog-types';
 import { smartFormat } from './response-formatter';
 
 /**

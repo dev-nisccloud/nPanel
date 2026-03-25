@@ -1,8 +1,11 @@
+import * as crypto from "node:crypto";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { router, protectedProcedure } from "../../trpc";
 import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { eTimsConfiguration } from "@npanel/db/schema/etims";
 
 export const etimsInitializationRouter = router({
     /**
@@ -115,21 +118,26 @@ export const etimsInitializationRouter = router({
                 }
 
                 // 5. Upsert single global Configuration
-                const existingConfig = await prisma.eTimsConfiguration.findFirst();
+                const [existingConfig] = await db
+                    .select({ id: eTimsConfiguration.id })
+                    .from(eTimsConfiguration)
+                    .limit(1);
+
+                const now = new Date();
 
                 if (existingConfig) {
-                    await prisma.eTimsConfiguration.update({
-                        where: { id: existingConfig.id },
-                        data: {
+                    await db
+                        .update(eTimsConfiguration)
+                        .set({
                             kraPin: input.tin,
                             branchId: input.bhfId,
                             deviceSerialNumber: input.dvcSrlNo,
-                            cmcKey: cmcKey,
+                            cmcKey,
                             isInitialized: true,
                             isSandbox: input.isSandbox,
-                            updatedAt: new Date()
-                        }
-                    });
+                            updatedAt: now,
+                        })
+                        .where(eq(eTimsConfiguration.id, existingConfig.id));
                     return {
                         success: true,
                         data: {
@@ -137,26 +145,29 @@ export const etimsInitializationRouter = router({
                             configId: existingConfig.id
                         },
                     };
-                } else {
-                    const newConfig = await prisma.eTimsConfiguration.create({
-                        data: {
-                            id: crypto.randomUUID(),
-                            kraPin: input.tin,
-                            branchId: input.bhfId,
-                            deviceSerialNumber: input.dvcSrlNo,
-                            cmcKey: cmcKey,
-                            isInitialized: true,
-                            isSandbox: input.isSandbox
-                        }
-                    });
-                    return {
-                        success: true,
-                        data: {
-                            ...result,
-                            configId: newConfig.id
-                        },
-                    };
                 }
+
+                const newId = crypto.randomUUID();
+                await db.insert(eTimsConfiguration).values({
+                    id: newId,
+                    kraPin: input.tin,
+                    branchId: input.bhfId,
+                    branchName: null,
+                    deviceSerialNumber: input.dvcSrlNo,
+                    cmcKey,
+                    isSandbox: input.isSandbox,
+                    isInitialized: true,
+                    lastSyncAt: null,
+                    createdAt: now,
+                    updatedAt: now,
+                });
+                return {
+                    success: true,
+                    data: {
+                        ...result,
+                        configId: newId
+                    },
+                };
 
             } catch (error: unknown) {
                 if (error instanceof TRPCError) throw error;

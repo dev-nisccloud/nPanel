@@ -1,9 +1,13 @@
 import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, eq } from "drizzle-orm";
+
+import { db } from "@npanel/db";
+import { hostingSubscription, niscServicePlan } from "@npanel/db/schema/hosting";
+import { serviceSubscription } from "@npanel/db/schema/service-subscriptions";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
 import { publicProcedure, protectedProcedure, router } from '../../trpc';
-import prisma from '@nPanel/db';
 
 /**
  * Build XML request to fetch all subscriptions
@@ -55,7 +59,7 @@ export const subscriptionsRouter = router({
   // Get all subscriptions
   getAll: publicProcedure
     .input(z.object({}).optional().default({}))
-    .query(async ({ input = {} }) => {
+    .query(async () => {
       
       try {
         // Check if required environment variables are set
@@ -252,30 +256,30 @@ export const subscriptionsRouter = router({
       try {
         // Optimized: Query with filters at database level to reduce data transfer
         // Filter by hostingSubType if provided, otherwise show all hosting types
-        const whereClause: any = {
-          teamId: input.teamId,
-          niscServicePlan: {
-            planType: "HOSTING",
-          },
-        };
-        
-        // Add hostingSubType filter if specified
+        const conditions = [
+          eq(serviceSubscription.teamId, input.teamId),
+          eq(niscServicePlan.planType, "HOSTING"),
+        ];
         if (input.hostingSubType) {
-          whereClause.niscServicePlan.hostingSubType = input.hostingSubType;
+          conditions.push(eq(niscServicePlan.hostingSubType, input.hostingSubType));
         }
-        
-        const serviceSubscriptions = await prisma.serviceSubscription.findMany({
-          where: whereClause,
-          select: {
-            id: true,
-            hostingSubscriptionId: true,
-            hostingSubscription: {
-              select: {
-                pleskFilterId: true,
-              },
-            },
-          },
-        });
+
+        const serviceSubscriptions = await db
+          .select({
+            id: serviceSubscription.id,
+            hostingSubscriptionId: serviceSubscription.hostingSubscriptionId,
+            pleskFilterId: hostingSubscription.pleskFilterId,
+          })
+          .from(serviceSubscription)
+          .innerJoin(
+            niscServicePlan,
+            eq(serviceSubscription.niscServicePlanId, niscServicePlan.id),
+          )
+          .leftJoin(
+            hostingSubscription,
+            eq(serviceSubscription.hostingSubscriptionId, hostingSubscription.id),
+          )
+          .where(and(...conditions));
 
         // Check if team has any hosting subscriptions
         const hasServiceSubscriptions = serviceSubscriptions.length > 0;
@@ -303,7 +307,7 @@ export const subscriptionsRouter = router({
         const pleskFilterIdStringSet = new Set<string>();
         
         for (const sub of serviceSubscriptions) {
-          const filterId = sub.hostingSubscription?.pleskFilterId;
+          const filterId = sub.pleskFilterId;
           if (filterId) {
             const numId = Number(filterId);
             if (!isNaN(numId)) {

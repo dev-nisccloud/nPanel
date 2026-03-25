@@ -11,13 +11,13 @@ async function getWpUpdatesInfo(installationId: number) {
   if (installStatus === 404) throw new TRPCError({ code: 'NOT_FOUND', message: `WordPress installation ${installationId} not found` });
 
   const settingsEndpoint = `/v1/installations/${installationId}/features/updates/settings`;
-  const { data: settingsData, isAuthError: settingsAuthError, isHostUnreachable: settingsHostError, statusCode: settingsStatus } = await sendPleskRestRequest(settingsEndpoint, 'GET');
+  const { data: settingsData, isAuthError: settingsAuthError, isHostUnreachable: settingsHostError } = await sendPleskRestRequest(settingsEndpoint, 'GET');
 
   const pluginsEndpoint = `/v1/installations/${installationId}/plugins`;
-  const { data: pluginsData, isAuthError: pluginsAuthError, isHostUnreachable: pluginsHostError, statusCode: pluginsStatus } = await sendPleskRestRequest(pluginsEndpoint, 'GET');
+  const { data: pluginsData, isAuthError: pluginsAuthError, isHostUnreachable: pluginsHostError } = await sendPleskRestRequest(pluginsEndpoint, 'GET');
 
   const themesEndpoint = `/v1/installations/${installationId}/themes`;
-  const { data: themesData, isAuthError: themesAuthError, isHostUnreachable: themesHostError, statusCode: themesStatus } = await sendPleskRestRequest(themesEndpoint, 'GET');
+  const { data: themesData, isAuthError: themesAuthError, isHostUnreachable: themesHostError } = await sendPleskRestRequest(themesEndpoint, 'GET');
 
   if (settingsHostError || pluginsHostError || themesHostError) throw new TRPCError({ code: 'SERVICE_UNAVAILABLE', message: 'Plesk host is unreachable' });
   if (settingsAuthError || pluginsAuthError || themesAuthError) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid Plesk credentials' });

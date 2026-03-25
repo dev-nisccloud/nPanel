@@ -338,9 +338,12 @@ export function parseSrvRecord(opt: string | number | undefined): { priority: nu
   const parts = optStr.split(' ');
   if (parts.length !== 3) return null;
 
-  const priority = parseInt(parts[0], 10);
-  const weight = parseInt(parts[1], 10);
-  const port = parseInt(parts[2], 10);
+  const [p0, p1, p2] = parts;
+  if (p0 === undefined || p1 === undefined || p2 === undefined) return null;
+
+  const priority = parseInt(p0, 10);
+  const weight = parseInt(p1, 10);
+  const port = parseInt(p2, 10);
 
   if (isNaN(priority) || isNaN(weight) || isNaN(port)) return null;
 
@@ -363,8 +366,9 @@ export function parseSpfRecord(value: string | undefined): { mechanisms: string[
 
   parts.forEach(part => {
     if (part.startsWith('+') || part.startsWith('-') || part.startsWith('~') || part.startsWith('?')) {
-      qualifiers.push(part[0]);
-      mechanisms.push(part.substring(1));
+      const first = part.charAt(0);
+      qualifiers.push(first);
+      mechanisms.push(part.slice(1));
     } else {
       qualifiers.push('+');
       mechanisms.push(part);

@@ -1,7 +1,15 @@
-import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
+import * as crypto from "crypto";
+import { and, count, desc, eq, ilike, inArray, ne } from "drizzle-orm";
+import { db } from "@npanel/db";
+import {
+  nameserver,
+  nameserverGroup,
+  tldSettings,
+  tldSettingsActivityLog,
+} from "@npanel/db/schema/nameservers";
+import { z } from "zod";
+import { protectedProcedure, router } from "../trpc";
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -127,7 +135,105 @@ const activityLogsResponseSchema = z.object({
 // HELPER FUNCTIONS
 // ============================================================================
 
-function transformTldSetting(tldSetting: any) {
+type NameserverGroupReference = {
+  id: string;
+  name: string;
+  description: string | null;
+  isDefault: boolean;
+  nameservers: {
+    id: string;
+    name: string;
+    ipv4: string | null;
+    ipv6: string | null;
+  }[];
+};
+
+type TldSettingWithRelations = {
+  id: string;
+  name: string;
+  userId: string;
+  nameserverGroupId: string | null;
+  marginType: string | null;
+  percentageMargin: string | null;
+  fixedMargin: string | null;
+  roundOff: string | null;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  nameserverGroup: NameserverGroupReference | null;
+  counts: {
+    activityLogs: number;
+  };
+};
+
+async function fetchNameserverGroupReference(
+  groupId: string,
+): Promise<NameserverGroupReference | null> {
+  const [groupRow] = await db
+    .select({
+      id: nameserverGroup.id,
+      name: nameserverGroup.name,
+      description: nameserverGroup.description,
+      isDefault: nameserverGroup.isDefault,
+    })
+    .from(nameserverGroup)
+    .where(eq(nameserverGroup.id, groupId))
+    .limit(1);
+
+  if (!groupRow) return null;
+
+  const nameservers = await db
+    .select({
+      id: nameserver.id,
+      name: nameserver.name,
+      ipv4: nameserver.ipv4,
+      ipv6: nameserver.ipv6,
+    })
+    .from(nameserver)
+    .where(eq(nameserver.nameserverGroupId, groupId))
+    .orderBy(nameserver.createdAt);
+
+  return {
+    ...groupRow,
+    nameservers,
+  };
+}
+
+async function fetchTldSettingById(
+  id: string,
+): Promise<TldSettingWithRelations | null> {
+  const [row] = await db.select().from(tldSettings).where(eq(tldSettings.id, id)).limit(1);
+
+  if (!row) return null;
+
+  const [groupRef, logsCountRes] = await Promise.all([
+    row.nameserverGroupId ? fetchNameserverGroupReference(row.nameserverGroupId) : Promise.resolve(null),
+    db
+      .select({ value: count() })
+      .from(tldSettingsActivityLog)
+      .where(eq(tldSettingsActivityLog.tldSettingId, id)),
+  ]);
+
+  return {
+    id: row.id,
+    name: row.name,
+    userId: row.userId,
+    nameserverGroupId: row.nameserverGroupId,
+    marginType: row.marginType,
+    percentageMargin: row.percentageMargin,
+    fixedMargin: row.fixedMargin,
+    roundOff: row.roundOff,
+    isDefault: row.isDefault,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    nameserverGroup: groupRef,
+    counts: {
+      activityLogs: Number(logsCountRes[0]?.value ?? 0),
+    },
+  };
+}
+
+function transformTldSetting(tldSetting: TldSettingWithRelations) {
   return {
     id: tldSetting.id,
     name: tldSetting.name,
@@ -147,8 +253,8 @@ function transformTldSetting(tldSetting: any) {
       isDefault: tldSetting.nameserverGroup.isDefault,
       nameservers: tldSetting.nameserverGroup.nameservers || [],
     } : null,
-    _count: tldSetting._count || {
-      activityLogs: 0,
+    _count: {
+      activityLogs: tldSetting.counts.activityLogs ?? 0,
     },
   };
 }
@@ -186,12 +292,11 @@ export const tldSettingsRouter = router({
         }
 
         // Check if TLD setting already exists for this user
-        const existingTld = await prisma.tldSettings.findFirst({
-          where: {
-            name: input.name,
-            userId,
-          },
-        });
+        const [existingTld] = await db
+          .select({ id: tldSettings.id })
+          .from(tldSettings)
+          .where(and(eq(tldSettings.name, input.name), eq(tldSettings.userId, userId)))
+          .limit(1);
 
         if (existingTld) {
           throw new TRPCError({
@@ -202,14 +307,18 @@ export const tldSettingsRouter = router({
 
         // Validate nameserver group if provided
         if (input.nameserverGroupId) {
-          const nameserverGroup = await prisma.nameserverGroup.findFirst({
-            where: {
-              id: input.nameserverGroupId,
-              userId,
-            },
-          });
+          const [groupRow] = await db
+            .select({ id: nameserverGroup.id })
+            .from(nameserverGroup)
+            .where(
+              and(
+                eq(nameserverGroup.id, input.nameserverGroupId),
+                eq(nameserverGroup.userId, userId),
+              ),
+            )
+            .limit(1);
 
-          if (!nameserverGroup) {
+          if (!groupRow) {
             throw new TRPCError({
               code: "NOT_FOUND",
               message: "Nameserver group not found",
@@ -217,49 +326,53 @@ export const tldSettingsRouter = router({
           }
         }
 
-        // Create TLD setting
-        const tldSetting = await prisma.tldSettings.create({
-          data: {
-            id: crypto.randomUUID(),
+        const now = new Date();
+
+        const createdId = await db.transaction(async (tx) => {
+          const id = crypto.randomUUID();
+
+          await tx.insert(tldSettings).values({
+            id,
             name: input.name,
             userId,
-            nameserverGroupId: input.nameserverGroupId,
-            marginType: input.marginType,
-            percentageMargin: input.marginType === "PERCENTAGE" ? input.percentageMargin : null,
-            fixedMargin: input.marginType === "FIXED" ? input.fixedMargin : null,
-            roundOff: input.roundOff,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          include: {
-            nameserverGroup: {
-              include: {
-                nameservers: true,
-              },
-            },
-            _count: {
-              select: {
-                activityLogs: true,
-              },
-            },
-          },
-        });
+            nameserverGroupId: input.nameserverGroupId ?? null,
+            marginType: input.marginType ?? null,
+            percentageMargin:
+              input.marginType === "PERCENTAGE" ? input.percentageMargin ?? null : null,
+            fixedMargin: input.marginType === "FIXED" ? input.fixedMargin ?? null : null,
+            roundOff: input.roundOff ?? null,
+            isDefault: false,
+            createdAt: now,
+            updatedAt: now,
+          });
 
-        // Log the activity
-        await prisma.tldSettingsActivityLog.create({
-          data: {
+          await tx.insert(tldSettingsActivityLog).values({
             id: crypto.randomUUID(),
             userId,
-            tldSettingId: tldSetting.id,
+            tldSettingId: id,
             action: "CREATE",
             description: `Created TLD setting for "${input.name}"`,
-            createdAt: new Date(),
-          },
+            metadata: null,
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
+          });
+
+          return id;
         });
+
+        const created = await fetchTldSettingById(createdId);
+
+        if (!created) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Created TLD setting could not be fetched",
+          });
+        }
 
         return {
           success: true,
-          data: transformTldSetting(tldSetting),
+          data: transformTldSetting(created),
         };
       } catch (error) {
         if (error instanceof TRPCError) {
@@ -281,26 +394,9 @@ export const tldSettingsRouter = router({
       success: z.boolean(),
       data: tldSettingResponseSchema,
     }))
-    .query(async ({ ctx, input }) => {
+    .query(async ({ input }) => {
       try {
-        const tldSetting = await prisma.tldSettings.findFirst({
-          where: {
-            id: input.id,
-            // Removed userId filter - TLD settings are global and apply to everyone
-          },
-          include: {
-            nameserverGroup: {
-              include: {
-                nameservers: true,
-              },
-            },
-            _count: {
-              select: {
-                activityLogs: true,
-              },
-            },
-          },
-        });
+        const tldSetting = await fetchTldSettingById(input.id);
 
         if (!tldSetting) {
           throw new TRPCError({
@@ -332,23 +428,15 @@ export const tldSettingsRouter = router({
       success: z.boolean(),
       data: tldSettingResponseSchema.nullable(),
     }))
-    .query(async ({ ctx }) => {
+    .query(async () => {
       try {
-        const defaultSetting = await prisma.tldSettings.findFirst({
-          where: { isDefault: true },
-          include: {
-            nameserverGroup: {
-              include: {
-                nameservers: true,
-              },
-            },
-            _count: {
-              select: {
-                activityLogs: true,
-              },
-            },
-          },
-        });
+        const [defaultRow] = await db
+          .select({ id: tldSettings.id })
+          .from(tldSettings)
+          .where(eq(tldSettings.isDefault, true))
+          .limit(1);
+
+        const defaultSetting = defaultRow ? await fetchTldSettingById(defaultRow.id) : null;
 
         return {
           success: true,
@@ -368,42 +456,62 @@ export const tldSettingsRouter = router({
   list: protectedProcedure
     .input(listTldSettingsSchema)
     .output(tldSettingListResponseSchema)
-    .query(async ({ ctx, input }) => {
+    .query(async ({ input }) => {
       try {
-        const where = {
-          // Removed userId filter - TLD settings are global and apply to everyone
-          ...(input.search && {
-            name: { contains: input.search, mode: "insensitive" as const },
-          }),
-          ...(input.marginType && { marginType: input.marginType }),
-          ...(input.nameserverGroupId && { nameserverGroupId: input.nameserverGroupId }),
-        };
+        const conditions: ReturnType<typeof and>[] = [];
 
-        const [tldSettings, total] = await Promise.all([
-          prisma.tldSettings.findMany({
-            where,
-            include: {
-              nameserverGroup: {
-                include: {
-                  nameservers: true,
-                },
-              },
-              _count: {
-                select: {
-                  activityLogs: true,
-                },
-              },
-            },
-            orderBy: { createdAt: "desc" },
-            take: input.limit,
-            skip: input.offset,
-          }),
-          prisma.tldSettings.count({ where }),
+        if (input.search) {
+          conditions.push(ilike(tldSettings.name, `%${input.search}%`));
+        }
+        if (input.marginType) {
+          conditions.push(eq(tldSettings.marginType, input.marginType));
+        }
+        if (input.nameserverGroupId) {
+          conditions.push(eq(tldSettings.nameserverGroupId, input.nameserverGroupId));
+        }
+
+        const whereClause = conditions.length ? and(...conditions) : undefined;
+
+        const [rows, totalRes] = await Promise.all([
+          db
+            .select()
+            .from(tldSettings)
+            .where(whereClause)
+            .orderBy(desc(tldSettings.createdAt))
+            .limit(input.limit)
+            .offset(input.offset),
+          db.select({ value: count() }).from(tldSettings).where(whereClause),
         ]);
+
+        const hydrated: TldSettingWithRelations[] = await Promise.all(
+          rows.map(async (row) => {
+            const full = await fetchTldSettingById(row.id);
+            // should never be null since row exists
+            return (
+              full ?? {
+                id: row.id,
+                name: row.name,
+                userId: row.userId,
+                nameserverGroupId: row.nameserverGroupId,
+                marginType: row.marginType,
+                percentageMargin: row.percentageMargin,
+                fixedMargin: row.fixedMargin,
+                roundOff: row.roundOff,
+                isDefault: row.isDefault,
+                createdAt: row.createdAt,
+                updatedAt: row.updatedAt,
+                nameserverGroup: null,
+                counts: { activityLogs: 0 },
+              }
+            );
+          }),
+        );
+
+        const total = Number(totalRes[0]?.value ?? 0);
 
         return {
           success: true,
-          data: tldSettings.map(transformTldSetting),
+          data: hydrated.map(transformTldSetting),
           pagination: {
             total,
             limit: input.limit,
@@ -433,12 +541,11 @@ export const tldSettingsRouter = router({
 
       try {
         // Check if TLD setting exists and belongs to user
-        const existingTld = await prisma.tldSettings.findFirst({
-          where: {
-            id: input.id,
-            userId,
-          },
-        });
+        const [existingTld] = await db
+          .select()
+          .from(tldSettings)
+          .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)))
+          .limit(1);
 
         if (!existingTld) {
           throw new TRPCError({
@@ -465,14 +572,18 @@ export const tldSettingsRouter = router({
 
         // Validate nameserver group if provided
         if (input.nameserverGroupId) {
-          const nameserverGroup = await prisma.nameserverGroup.findFirst({
-            where: {
-              id: input.nameserverGroupId,
-              userId,
-            },
-          });
+          const [groupRow] = await db
+            .select({ id: nameserverGroup.id })
+            .from(nameserverGroup)
+            .where(
+              and(
+                eq(nameserverGroup.id, input.nameserverGroupId),
+                eq(nameserverGroup.userId, userId),
+              ),
+            )
+            .limit(1);
 
-          if (!nameserverGroup) {
+          if (!groupRow) {
             throw new TRPCError({
               code: "NOT_FOUND",
               message: "Nameserver group not found",
@@ -482,13 +593,17 @@ export const tldSettingsRouter = router({
 
         // Check for name conflicts if name is being changed
         if (input.name && input.name !== existingTld.name) {
-          const nameConflict = await prisma.tldSettings.findFirst({
-            where: {
-              name: input.name,
-              userId,
-              id: { not: input.id },
-            },
-          });
+          const [nameConflict] = await db
+            .select({ id: tldSettings.id })
+            .from(tldSettings)
+            .where(
+              and(
+                eq(tldSettings.name, input.name),
+                eq(tldSettings.userId, userId),
+                ne(tldSettings.id, input.id),
+              ),
+            )
+            .limit(1);
 
           if (nameConflict) {
             throw new TRPCError({
@@ -498,53 +613,54 @@ export const tldSettingsRouter = router({
           }
         }
 
-        // Prepare update data
-        const updateData: any = {
-          updatedAt: new Date(),
-        };
+        const now = new Date();
 
-        if (input.name !== undefined) updateData.name = input.name;
-        if (input.nameserverGroupId !== undefined) updateData.nameserverGroupId = input.nameserverGroupId;
-        if (input.marginType !== undefined) updateData.marginType = input.marginType;
-        if (input.roundOff !== undefined) updateData.roundOff = input.roundOff;
+        await db.transaction(async (tx) => {
+          const updateData: Partial<typeof tldSettings.$inferInsert> = {
+            updatedAt: now,
+          };
 
-        // Handle margin fields based on margin type
-        if (marginType === "PERCENTAGE") {
-          updateData.percentageMargin = input.percentageMargin ?? existingTld.percentageMargin;
-          updateData.fixedMargin = null;
-        } else if (marginType === "FIXED") {
-          updateData.fixedMargin = input.fixedMargin ?? existingTld.fixedMargin;
-          updateData.percentageMargin = null;
-        }
+          if (input.name !== undefined) updateData.name = input.name;
+          if (input.nameserverGroupId !== undefined)
+            updateData.nameserverGroupId = input.nameserverGroupId;
+          if (input.marginType !== undefined) updateData.marginType = input.marginType;
+          if (input.roundOff !== undefined) updateData.roundOff = input.roundOff;
 
-        const updatedTld = await prisma.tldSettings.update({
-          where: { id: input.id },
-          data: updateData,
-          include: {
-            nameserverGroup: {
-              include: {
-                nameservers: true,
-              },
-            },
-            _count: {
-              select: {
-                activityLogs: true,
-              },
-            },
-          },
-        });
+          if (marginType === "PERCENTAGE") {
+            updateData.percentageMargin =
+              input.percentageMargin ?? existingTld.percentageMargin;
+            updateData.fixedMargin = null;
+          } else if (marginType === "FIXED") {
+            updateData.fixedMargin = input.fixedMargin ?? existingTld.fixedMargin;
+            updateData.percentageMargin = null;
+          }
 
-        // Log the activity
-        await prisma.tldSettingsActivityLog.create({
-          data: {
+          await tx
+            .update(tldSettings)
+            .set(updateData)
+            .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)));
+
+          await tx.insert(tldSettingsActivityLog).values({
             id: crypto.randomUUID(),
             userId,
-            tldSettingId: updatedTld.id,
+            tldSettingId: input.id,
             action: "UPDATE",
-            description: `Updated TLD setting for "${updatedTld.name}"`,
-            createdAt: new Date(),
-          },
+            description: `Updated TLD setting for "${input.name ?? existingTld.name}"`,
+            metadata: null,
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
+          });
         });
+
+        const updatedTld = await fetchTldSettingById(input.id);
+
+        if (!updatedTld) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Updated TLD setting could not be fetched",
+          });
+        }
 
         return {
           success: true,
@@ -575,12 +691,11 @@ export const tldSettingsRouter = router({
 
       try {
         // Check if TLD setting exists and belongs to user
-        const existingTld = await prisma.tldSettings.findFirst({
-          where: {
-            id: input.id,
-            userId,
-          },
-        });
+        const [existingTld] = await db
+          .select()
+          .from(tldSettings)
+          .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)))
+          .limit(1);
 
         if (!existingTld) {
           throw new TRPCError({
@@ -589,21 +704,24 @@ export const tldSettingsRouter = router({
           });
         }
 
-        // Delete the TLD setting
-        await prisma.tldSettings.delete({
-          where: { id: input.id },
-        });
+        const now = new Date();
 
-        // Log the activity
-        await prisma.tldSettingsActivityLog.create({
-          data: {
+        await db.transaction(async (tx) => {
+          await tx
+            .delete(tldSettings)
+            .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)));
+
+          await tx.insert(tldSettingsActivityLog).values({
             id: crypto.randomUUID(),
             userId,
             tldSettingId: input.id,
             action: "DELETE",
             description: `Deleted TLD setting for "${existingTld.name}"`,
-            createdAt: new Date(),
-          },
+            metadata: null,
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
+          });
         });
 
         return {
@@ -632,12 +750,11 @@ export const tldSettingsRouter = router({
 
       try {
         // Check if TLD setting exists and belongs to user
-        const existingTld = await prisma.tldSettings.findFirst({
-          where: {
-            id: input.id,
-            userId,
-          },
-        });
+        const [existingTld] = await db
+          .select({ id: tldSettings.id })
+          .from(tldSettings)
+          .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)))
+          .limit(1);
 
         if (!existingTld) {
           throw new TRPCError({
@@ -646,21 +763,21 @@ export const tldSettingsRouter = router({
           });
         }
 
-        const [logs, total] = await Promise.all([
-          prisma.tldSettingsActivityLog.findMany({
-            where: {
-              tldSettingId: input.id,
-            },
-            orderBy: { createdAt: "desc" },
-            take: input.limit,
-            skip: input.offset,
-          }),
-          prisma.tldSettingsActivityLog.count({
-            where: {
-              tldSettingId: input.id,
-            },
-          }),
+        const [logs, totalRes] = await Promise.all([
+          db
+            .select()
+            .from(tldSettingsActivityLog)
+            .where(eq(tldSettingsActivityLog.tldSettingId, input.id))
+            .orderBy(desc(tldSettingsActivityLog.createdAt))
+            .limit(input.limit)
+            .offset(input.offset),
+          db
+            .select({ value: count() })
+            .from(tldSettingsActivityLog)
+            .where(eq(tldSettingsActivityLog.tldSettingId, input.id)),
         ]);
+
+        const total = Number(totalRes[0]?.value ?? 0);
 
         return {
           success: true,
@@ -697,12 +814,10 @@ export const tldSettingsRouter = router({
 
       try {
         // Check if all TLD settings exist and belong to user
-        const existingTlds = await prisma.tldSettings.findMany({
-          where: {
-            id: { in: input.ids },
-            userId,
-          },
-        });
+        const existingTlds = await db
+          .select({ id: tldSettings.id, name: tldSettings.name })
+          .from(tldSettings)
+          .where(and(inArray(tldSettings.id, input.ids), eq(tldSettings.userId, userId)));
 
         if (existingTlds.length !== input.ids.length) {
           throw new TRPCError({
@@ -711,24 +826,26 @@ export const tldSettingsRouter = router({
           });
         }
 
-        // Delete all TLD settings
-        await prisma.tldSettings.deleteMany({
-          where: {
-            id: { in: input.ids },
-            userId,
-          },
-        });
+        const now = new Date();
 
-        // Log the activity
-        await prisma.tldSettingsActivityLog.createMany({
-          data: existingTlds.map((tld: any) => ({
-            id: crypto.randomUUID(),
-            userId,
-            tldSettingId: tld.id,
-            action: "DELETE",
-            description: `Bulk deleted TLD setting for "${tld.name}"`,
-            createdAt: new Date(),
-          })),
+        await db.transaction(async (tx) => {
+          await tx
+            .delete(tldSettings)
+            .where(and(inArray(tldSettings.id, input.ids), eq(tldSettings.userId, userId)));
+
+          await tx.insert(tldSettingsActivityLog).values(
+            existingTlds.map((tld) => ({
+              id: crypto.randomUUID(),
+              userId,
+              tldSettingId: tld.id,
+              action: "DELETE",
+              description: `Bulk deleted TLD setting for "${tld.name}"`,
+              metadata: null,
+              ipAddress: null,
+              userAgent: null,
+              createdAt: now,
+            })),
+          );
         });
 
         return {
@@ -760,12 +877,11 @@ export const tldSettingsRouter = router({
 
       try {
         // Check if TLD setting exists and belongs to user
-        const existingTldSetting = await prisma.tldSettings.findFirst({
-          where: {
-            id: input.id,
-            userId,
-          },
-        });
+        const [existingTldSetting] = await db
+          .select({ id: tldSettings.id, name: tldSettings.name })
+          .from(tldSettings)
+          .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)))
+          .limit(1);
 
         if (!existingTldSetting) {
           throw new TRPCError({
@@ -774,47 +890,40 @@ export const tldSettingsRouter = router({
           });
         }
 
-        // Update existing default to false
-        await prisma.tldSettings.updateMany({
-          where: {
-            userId,
-            isDefault: true,
-          },
-          data: { isDefault: false },
-        });
+        const now = new Date();
 
-        // Set new default
-        const updatedTldSetting = await prisma.tldSettings.update({
-          where: { id: input.id },
-          data: { 
-            isDefault: true,
-            updatedAt: new Date(),
-          },
-          include: {
-            nameserverGroup: {
-              include: {
-                nameservers: true,
-              },
-            },
-            _count: {
-              select: {
-                activityLogs: true,
-              },
-            },
-          },
-        });
+        await db.transaction(async (tx) => {
+          await tx
+            .update(tldSettings)
+            .set({ isDefault: false, updatedAt: now })
+            .where(and(eq(tldSettings.userId, userId), eq(tldSettings.isDefault, true)));
 
-        // Log the activity
-        await prisma.tldSettingsActivityLog.create({
-          data: {
+          await tx
+            .update(tldSettings)
+            .set({ isDefault: true, updatedAt: now })
+            .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)));
+
+          await tx.insert(tldSettingsActivityLog).values({
             id: crypto.randomUUID(),
             userId,
-            tldSettingId: updatedTldSetting.id,
+            tldSettingId: input.id,
             action: "SET_DEFAULT",
-            description: `Set TLD setting "${updatedTldSetting.name}" as default`,
-            createdAt: new Date(),
-          },
+            description: `Set TLD setting "${existingTldSetting.name}" as default`,
+            metadata: null,
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
+          });
         });
+
+        const updatedTldSetting = await fetchTldSettingById(input.id);
+
+        if (!updatedTldSetting) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Updated TLD setting could not be fetched",
+          });
+        }
 
         return {
           success: true,

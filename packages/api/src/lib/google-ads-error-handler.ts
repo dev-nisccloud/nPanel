@@ -23,7 +23,7 @@ export class GoogleAdsErrorHandler {
 			errorBody = error.message;
 			// Try to extract error code from message if present
 			const codeMatch = error.message.match(/\[(\d+)\]/);
-			if (codeMatch) {
+			if (codeMatch?.[1] != null) {
 				errorCode = parseInt(codeMatch[1], 10);
 			}
 		} else if (typeof error === 'object' && error !== null) {

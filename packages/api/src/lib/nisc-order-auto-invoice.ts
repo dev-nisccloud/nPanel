@@ -3,13 +3,19 @@
  * Used by the process-nisc-order worker.
  */
 import * as crypto from "crypto";
-import type prisma from "@nPanel/db";
+import { eq, sql } from "drizzle-orm";
 import type { TeamBillingSettings } from "../schemas/team-billing";
 import { isTeamBillingComplete } from "../schemas/team-billing";
 import type { NiscOrderForInvoice } from "../schemas/nisc-order-invoice";
 import type { InvoiceLineItemCreate } from "../schemas/invoice";
-
-type PrismaClient = typeof prisma;
+import { db } from "@npanel/db";
+import {
+	invoice,
+	invoiceActivityLog,
+	invoiceCounter,
+	invoiceLineItem,
+} from "@npanel/db/schema/invoicing";
+import { niscOrder } from "@npanel/db/schema/nisc-orders";
 
 const COMPANY_LOGO_URL = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
 
@@ -62,7 +68,7 @@ function addBillingCycleToDate(start: Date, billingCycle: string | null): Date |
 }
 
 export async function createInvoiceForNiscOrder(
-	prisma: PrismaClient,
+	_prisma: unknown,
 	order: NiscOrderForInvoice,
 	billing: TeamBillingSettings,
 	createdBy: string,
@@ -111,18 +117,21 @@ export async function createInvoiceForNiscOrder(
 	const newInvoiceId = crypto.randomUUID();
 	const token = crypto.randomUUID();
 
-	const generatedInvoiceNumber = await prisma.$transaction(async (tx) => {
-		const counter = await tx.invoiceCounter.upsert({
-			where: { id: "invoice-counter" },
-			create: { id: "invoice-counter", lastNumber: 1 },
-			update: { lastNumber: { increment: 1 } },
-			select: { lastNumber: true },
-		});
-		return `INV-${counter.lastNumber.toString().padStart(4, "0")}`;
+	const generatedInvoiceNumber = await db.transaction(async (tx) => {
+		const [counter] = await tx
+			.insert(invoiceCounter)
+			.values({ id: "invoice-counter", lastNumber: 1 })
+			.onConflictDoUpdate({
+				target: invoiceCounter.id,
+				set: { lastNumber: sql`${invoiceCounter.lastNumber} + 1` },
+			})
+			.returning({ lastNumber: invoiceCounter.lastNumber });
+
+		const n = counter?.lastNumber ?? 1;
+		return `INV-${n.toString().padStart(4, "0")}`;
 	});
 
-	await prisma.invoice.create({
-		data: {
+	await db.insert(invoice).values({
 			id: newInvoiceId,
 			token,
 			teamId: order.teamId,
@@ -145,7 +154,6 @@ export async function createInvoiceForNiscOrder(
 			updatedBy: createdBy,
 			createdAt: now,
 			updatedAt: now,
-		},
 	});
 
 	const subscriptionDate = order.createdAt ?? now;
@@ -179,8 +187,7 @@ export async function createInvoiceForNiscOrder(
 	});
 
 	for (const item of lineItems) {
-		await prisma.invoiceLineItem.create({
-			data: {
+		await db.insert(invoiceLineItem).values({
 				id: item.id,
 				invoiceId: item.invoiceId,
 				position: item.position,
@@ -191,12 +198,10 @@ export async function createInvoiceForNiscOrder(
 				total: item.total,
 				createdAt: now,
 				updatedAt: now,
-			},
-		});
+			});
 	}
 
-	await prisma.invoiceActivityLog.create({
-		data: {
+	await db.insert(invoiceActivityLog).values({
 			id: crypto.randomUUID(),
 			invoiceId: newInvoiceId,
 			userId: createdBy,
@@ -204,13 +209,12 @@ export async function createInvoiceForNiscOrder(
 			description: "Auto-generated invoice from NISC order",
 			metadata: { niscOrderId: order.id, orderNumber: order.orderNumber },
 			createdAt: now,
-		},
 	});
 
-	await prisma.niscOrder.update({
-		where: { id: order.id },
-		data: { invoiceId: newInvoiceId, invoiceNumber: generatedInvoiceNumber, updatedAt: now },
-	});
+	await db
+		.update(niscOrder)
+		.set({ invoiceId: newInvoiceId, invoiceNumber: generatedInvoiceNumber, updatedAt: now })
+		.where(eq(niscOrder.id, order.id));
 
 	return { invoiceId: newInvoiceId, invoiceNumber: generatedInvoiceNumber };
 }

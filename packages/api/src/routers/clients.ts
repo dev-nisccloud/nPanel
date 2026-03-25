@@ -1,9 +1,17 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
+import { and, desc, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import {
+	customerIntegration,
+	customerIntegrationActivityLog,
+	userActivityLog,
+	userProfile,
+} from "@npanel/db/schema/auth-extras";
+import { session as sessionTable, user } from "@npanel/db/schema/auth";
 import * as crypto from "crypto";
-import { auth } from "@nPanel/auth";
+import { auth } from "@npanel/auth";
 import { renderAccountCreatedEmail } from "../lib/email-templates";
 import { sendEmail } from "react-email-starter/src/email";
 import { sendPleskXmlRequest } from "../lib/plesk/xml-client";
@@ -211,10 +219,11 @@ async function getUserRole(userId: string, sessionUser?: { role?: string }): Pro
 	}
 
 	// Fallback: Query database if role not in session
-	const dbUser = await prisma.user.findUnique({
-		where: { id: userId },
-		select: { role: true },
-	});
+	const [dbUser] = await db
+		.select({ role: user.role })
+		.from(user)
+		.where(eq(user.id, userId))
+		.limit(1);
 
 	if (!dbUser) {
 		throw new TRPCError({
@@ -254,16 +263,13 @@ export const clientsRouter = router({
 				});
 			}
 
-			const clients = await prisma.user.findMany({
-				where: {
-					role: "CUSTOMER",
-				},
-				orderBy: {
-					createdAt: "desc",
-				},
-			});
+			const clients = await db
+				.select()
+				.from(user)
+				.where(eq(user.role, "CUSTOMER"))
+				.orderBy(desc(user.createdAt));
 
-			return clients.map((client) => ({
+			return getAllClientsOutputSchema.parse(clients.map((client) => ({
 				id: client.id,
 				name: client.name,
 				email: client.email,
@@ -274,7 +280,7 @@ export const clientsRouter = router({
 				lastLoginAt: client.lastLoginAt,
 				createdAt: client.createdAt,
 				updatedAt: client.updatedAt,
-			}));
+			})));
 		}),
 
 	// Create a new client
@@ -302,9 +308,11 @@ export const clientsRouter = router({
 			const userId = session.user.id;
 
 			// Check if user with this email already exists
-			const existingUser = await prisma.user.findUnique({
-				where: { email: input.email },
-			});
+			const [existingUser] = await db
+				.select({ id: user.id })
+				.from(user)
+				.where(eq(user.email, input.email))
+				.limit(1);
 
 			if (existingUser) {
 				throw new TRPCError({
@@ -342,9 +350,11 @@ export const clientsRouter = router({
 
 			// Batch: Get user, update role if needed, and get updated user
 			// This reduces connection usage from 3 sequential queries to 1-2 queries
-			let updatedUser = await prisma.user.findUnique({
-				where: { email: input.email },
-			});
+			let [updatedUser] = await db
+				.select()
+				.from(user)
+				.where(eq(user.email, input.email))
+				.limit(1);
 
 			if (!updatedUser) {
 				throw new TRPCError({
@@ -355,12 +365,16 @@ export const clientsRouter = router({
 
 			// Update user role to the specified role (Better Auth defaults to CUSTOMER)
 			if (input.role && input.role !== updatedUser.role) {
-				updatedUser = await prisma.user.update({
-					where: { id: updatedUser.id },
-					data: {
-						role: input.role,
-					},
-				});
+				await db
+					.update(user)
+					.set({ role: input.role })
+					.where(eq(user.id, updatedUser.id));
+				const [refetchedUser] = await db
+					.select()
+					.from(user)
+					.where(eq(user.id, updatedUser.id))
+					.limit(1);
+				updatedUser = refetchedUser;
 			}
 
 			if (!updatedUser) {
@@ -394,22 +408,22 @@ export const clientsRouter = router({
 			}
 
 			// Log activity
-			await prisma.userActivityLog.create({
-				data: {
-					id: crypto.randomUUID(),
-					userId: updatedUser.id,
-					action: "ACCOUNT_CREATED_BY_ADMIN",
-					description: `Account created by admin: ${session.user.email}`,
-					metadata: {
-						createdBy: userId,
-						createdByEmail: session.user.email,
-						role: input.role,
-					},
-					createdAt: new Date(),
+			await db.insert(userActivityLog).values({
+				id: crypto.randomUUID(),
+				userId: updatedUser.id,
+				action: "ACCOUNT_CREATED_BY_ADMIN",
+				description: `Account created by admin: ${session.user.email}`,
+				metadata: {
+					createdBy: userId,
+					createdByEmail: session.user.email,
+					role: input.role,
 				},
+				ipAddress: null,
+				userAgent: null,
+				createdAt: new Date(),
 			});
 
-			return {
+			return createClientOutputSchema.parse({
 				id: updatedUser.id,
 				name: updatedUser.name,
 				email: updatedUser.email,
@@ -420,7 +434,7 @@ export const clientsRouter = router({
 				lastLoginAt: updatedUser.lastLoginAt,
 				createdAt: updatedUser.createdAt,
 				updatedAt: updatedUser.updatedAt,
-			};
+			});
 		}),
 
 	// Update client
@@ -449,17 +463,19 @@ export const clientsRouter = router({
 
 			// Batch: Find user and check email availability in parallel (if email is being changed)
 			const [existingUser, emailExists] = await Promise.all([
-				prisma.user.findUnique({
-					where: { id: input.userId },
-				}),
-				// Only check email if it's being changed
+				db
+					.select()
+					.from(user)
+					.where(eq(user.id, input.userId))
+					.limit(1)
+					.then((rows) => rows[0]),
 				input.email
-					? prisma.user
-							.findUnique({
-								where: { email: input.email },
-								select: { id: true },
-							})
-							.then((user) => user !== null)
+					? db
+							.select({ id: user.id })
+							.from(user)
+							.where(eq(user.email, input.email))
+							.limit(1)
+							.then((rows) => rows.length > 0)
 							.catch(() => false)
 					: Promise.resolve(false),
 			]);
@@ -480,7 +496,7 @@ export const clientsRouter = router({
 			}
 
 			// Build update data
-			const updateData: any = {
+			const updateData: Record<string, unknown> = {
 				updatedAt: new Date(),
 			};
 
@@ -498,42 +514,54 @@ export const clientsRouter = router({
 
 			// Batch: Update user and log activity in a transaction
 			const changedFields = Object.keys(updateData).filter(key => key !== "updatedAt");
-			const updatedUser = await prisma.$transaction(async (tx) => {
-				const updated = await tx.user.update({
-					where: { id: input.userId },
-					data: updateData,
-				});
+			const updatedUser = await db.transaction(async (tx) => {
+				await tx
+					.update(user)
+					.set(updateData)
+					.where(eq(user.id, input.userId));
 
-				// Log activity
-				await tx.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: updated.id,
-						action: "ACCOUNT_UPDATED_BY_ADMIN",
-						description: `Account updated by admin: ${session.user!.email}`,
-						metadata: {
-							updatedBy: userId,
-							updatedByEmail: session.user!.email,
-							changedFields,
-							previousValues: {
-								name: existingUser.name,
-								email: existingUser.email,
-								role: existingUser.role,
-							},
-							newValues: {
-								name: updated.name,
-								email: updated.email,
-								role: updated.role,
-							},
+				const [updated] = await tx
+					.select()
+					.from(user)
+					.where(eq(user.id, input.userId))
+					.limit(1);
+
+				if (!updated) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to update user",
+					});
+				}
+
+				await tx.insert(userActivityLog).values({
+					id: crypto.randomUUID(),
+					userId: updated.id,
+					action: "ACCOUNT_UPDATED_BY_ADMIN",
+					description: `Account updated by admin: ${session.user!.email}`,
+					metadata: {
+						updatedBy: userId,
+						updatedByEmail: session.user!.email,
+						changedFields,
+						previousValues: {
+							name: existingUser.name,
+							email: existingUser.email,
+							role: existingUser.role,
 						},
-						createdAt: new Date(),
+						newValues: {
+							name: updated.name,
+							email: updated.email,
+							role: updated.role,
+						},
 					},
+					ipAddress: null,
+					userAgent: null,
+					createdAt: new Date(),
 				});
 
 				return updated;
 			});
 
-			return {
+			return updateClientOutputSchema.parse({
 				id: updatedUser.id,
 				name: updatedUser.name,
 				email: updatedUser.email,
@@ -544,7 +572,7 @@ export const clientsRouter = router({
 				lastLoginAt: updatedUser.lastLoginAt,
 				createdAt: updatedUser.createdAt,
 				updatedAt: updatedUser.updatedAt,
-			};
+			});
 		}),
 
 	// Change client status
@@ -572,9 +600,11 @@ export const clientsRouter = router({
 			const userId = session.user.id;
 
 			// Find the user
-			const existingUser = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			const [existingUser] = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
 
 			if (!existingUser) {
 				throw new TRPCError({
@@ -609,30 +639,29 @@ export const clientsRouter = router({
 			}
 
 			// Batch: Update status and log activity in a transaction
-			await prisma.$transaction(async (tx) => {
-				const updated = await tx.user.update({
-					where: { id: input.userId },
-					data: {
+			await db.transaction(async (tx) => {
+				await tx
+					.update(user)
+					.set({
 						status: input.status,
 						updatedAt: new Date(),
-					},
-				});
+					})
+					.where(eq(user.id, input.userId));
 
-				// Log activity with specific action type
-				await tx.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: updated.id,
-						action: actionType,
-						description: actionDescription,
-						metadata: {
-							changedBy: userId,
-							changedByEmail: session.user!.email,
-							previousStatus: existingUser.status,
-							newStatus: input.status,
-						},
-						createdAt: new Date(),
+				await tx.insert(userActivityLog).values({
+					id: crypto.randomUUID(),
+					userId: input.userId,
+					action: actionType,
+					description: actionDescription,
+					metadata: {
+						changedBy: userId,
+						changedByEmail: session.user!.email,
+						previousStatus: existingUser.status,
+						newStatus: input.status,
 					},
+					ipAddress: null,
+					userAgent: null,
+					createdAt: new Date(),
 				});
 			});
 
@@ -664,11 +693,13 @@ export const clientsRouter = router({
 			}
 
 			// Find the user
-			const user = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			const [targetUser] = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
 
-			if (!user) {
+			if (!targetUser) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
@@ -679,23 +710,23 @@ export const clientsRouter = router({
 			try {
 				await auth.api.requestPasswordReset({
 					body: {
-						email: user.email,
+						email: targetUser.email,
 					},
 				});
 
 				// Log activity
-				await prisma.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: user.id,
-						action: "PASSWORD_RESET_REQUESTED_BY_ADMIN",
-						description: `Password reset requested by admin: ${session.user.email}`,
-						metadata: {
-							requestedBy: session.user.id,
-							requestedByEmail: session.user.email,
-						},
-						createdAt: new Date(),
+				await db.insert(userActivityLog).values({
+					id: crypto.randomUUID(),
+					userId: targetUser.id,
+					action: "PASSWORD_RESET_REQUESTED_BY_ADMIN",
+					description: `Password reset requested by admin: ${session.user.email}`,
+					metadata: {
+						requestedBy: session.user.id,
+						requestedByEmail: session.user.email,
 					},
+					ipAddress: null,
+					userAgent: null,
+					createdAt: new Date(),
 				});
 
 				return {
@@ -732,11 +763,13 @@ export const clientsRouter = router({
 			}
 
 			// Verify the user exists
-			const user = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			const [targetUser] = await db
+				.select({ id: user.id })
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
 
-			if (!user) {
+			if (!targetUser) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
@@ -744,14 +777,11 @@ export const clientsRouter = router({
 			}
 
 			// Get all sessions for the user
-			const sessions = await prisma.session.findMany({
-				where: {
-					userId: input.userId,
-				},
-				orderBy: {
-					createdAt: "desc",
-				},
-			});
+			const sessions = await db
+				.select()
+				.from(sessionTable)
+				.where(eq(sessionTable.userId, input.userId))
+				.orderBy(desc(sessionTable.createdAt));
 
 			return sessions.map((session) => ({
 				id: session.id,
@@ -787,21 +817,25 @@ export const clientsRouter = router({
 			}
 
 			// Verify the user exists and is a customer
-			const user = await prisma.user.findUnique({
-				where: { id: input.userId },
-				include: {
-					profile: true,
-				},
-			});
+			const [targetUser] = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
+			const [profile] = await db
+				.select()
+				.from(userProfile)
+				.where(eq(userProfile.userId, input.userId))
+				.limit(1);
 
-			if (!user) {
+			if (!targetUser) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
 				});
 			}
 
-			if (user.role !== "CUSTOMER") {
+			if (targetUser.role !== "CUSTOMER") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "This user is not a customer",
@@ -809,14 +843,14 @@ export const clientsRouter = router({
 			}
 
 			return {
-				firstName: user.profile?.firstName || null,
-				lastName: user.profile?.lastName || null,
-				phone: user.profile?.phone || null,
-				address: user.profile?.address || null,
-				city: user.profile?.city || null,
-				state: user.profile?.state || null,
-				country: user.profile?.country || null,
-				postalCode: user.profile?.postalCode || null,
+				firstName: profile?.firstName || null,
+				lastName: profile?.lastName || null,
+				phone: profile?.phone || null,
+				address: profile?.address || null,
+				city: profile?.city || null,
+				state: profile?.state || null,
+				country: profile?.country || null,
+				postalCode: profile?.postalCode || null,
 			};
 		}),
 
@@ -845,12 +879,16 @@ export const clientsRouter = router({
 			const userId = session.user.id;
 
 			// Find the user
-			const existingUser = await prisma.user.findUnique({
-				where: { id: input.userId },
-				include: {
-					profile: true,
-				},
-			});
+			const [existingUser] = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
+			const [existingProfile] = await db
+				.select()
+				.from(userProfile)
+				.where(eq(userProfile.userId, input.userId))
+				.limit(1);
 
 			if (!existingUser) {
 				throw new TRPCError({
@@ -870,16 +908,16 @@ export const clientsRouter = router({
 			const { name, firstName, lastName, phone, address, city, state, country, postalCode } = input;
 			const changedFields = Object.keys(input).filter(key => key !== "userId");
 
-			await prisma.$transaction(async (tx) => {
+			await db.transaction(async (tx) => {
 				// Update user name if provided
 				if (name) {
-					await tx.user.update({
-						where: { id: input.userId },
-						data: {
+					await tx
+						.update(user)
+						.set({
 							name,
 							updatedAt: new Date(),
-						},
-					});
+						})
+						.where(eq(user.id, input.userId));
 				}
 
 				// Prepare profile data
@@ -896,27 +934,24 @@ export const clientsRouter = router({
 				};
 
 				// Update or create profile
-				if (existingUser.profile) {
-					await tx.userProfile.update({
-						where: { userId: input.userId },
-						data: profileData,
-					});
+				if (existingProfile) {
+					await tx
+						.update(userProfile)
+						.set(profileData)
+						.where(eq(userProfile.userId, input.userId));
 				} else {
-					await tx.userProfile.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: input.userId,
-							...profileData,
-							createdAt: new Date(),
-						},
+					await tx.insert(userProfile).values({
+						id: crypto.randomUUID(),
+						userId: input.userId,
+						...profileData,
+						createdAt: new Date(),
 					});
 				}
 
 				// Log activity
-				await tx.userActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId: input.userId,
+				await tx.insert(userActivityLog).values({
+					id: crypto.randomUUID(),
+					userId: input.userId,
 					action: "PROFILE_UPDATED_BY_ADMIN",
 					description: `Profile updated by admin: ${session.user!.email}`,
 					metadata: {
@@ -925,18 +960,19 @@ export const clientsRouter = router({
 							changedFields,
 							previousValues: {
 								name: existingUser.name,
-								firstName: existingUser.profile?.firstName || null,
-								lastName: existingUser.profile?.lastName || null,
-								phone: existingUser.profile?.phone || null,
-								address: existingUser.profile?.address || null,
-								city: existingUser.profile?.city || null,
-								state: existingUser.profile?.state || null,
-								country: existingUser.profile?.country || null,
-								postalCode: existingUser.profile?.postalCode || null,
+							firstName: existingProfile?.firstName || null,
+							lastName: existingProfile?.lastName || null,
+							phone: existingProfile?.phone || null,
+							address: existingProfile?.address || null,
+							city: existingProfile?.city || null,
+							state: existingProfile?.state || null,
+							country: existingProfile?.country || null,
+							postalCode: existingProfile?.postalCode || null,
 							},
 						},
+					ipAddress: null,
+					userAgent: null,
 						createdAt: new Date(),
-					},
 				});
 			});
 
@@ -969,30 +1005,33 @@ export const clientsRouter = router({
 			}
 
 			// Verify the user exists and is a customer
-			const user = await prisma.user.findUnique({
-				where: { id: input.userId },
-			});
+			const [targetUser] = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
 
-			if (!user) {
+			if (!targetUser) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
 				});
 			}
 
-			if (user.role !== "CUSTOMER") {
+			if (targetUser.role !== "CUSTOMER") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "This user is not a customer",
 				});
 			}
 
-			const integrations = await prisma.customerIntegration.findMany({
-				where: { userId: input.userId },
-				orderBy: { createdAt: "desc" },
-			});
+			const integrations = await db
+				.select()
+				.from(customerIntegration)
+				.where(eq(customerIntegration.userId, input.userId))
+				.orderBy(desc(customerIntegration.createdAt));
 
-			return integrations.map((integration) => ({
+			return getIntegrationsOutputSchema.parse(integrations.map((integration) => ({
 				id: integration.id,
 				userId: integration.userId,
 				platform: integration.platform,
@@ -1004,7 +1043,7 @@ export const clientsRouter = router({
 				lastSyncedAt: integration.lastSyncedAt,
 				platformData: integration.platformData,
 				updatedAt: integration.updatedAt,
-			}));
+			})));
 		}),
 
 	// Create client integration
@@ -1032,21 +1071,25 @@ export const clientsRouter = router({
 			const userId = session.user.id;
 
 			// Get user and profile information
-			const user = await prisma.user.findUnique({
-				where: { id: input.userId },
-				include: {
-					profile: true,
-				},
-			});
+			const [targetUser] = await db
+				.select()
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
+			const [profile] = await db
+				.select()
+				.from(userProfile)
+				.where(eq(userProfile.userId, input.userId))
+				.limit(1);
 
-			if (!user) {
+			if (!targetUser) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
 				});
 			}
 
-			if (user.role !== "CUSTOMER") {
+			if (targetUser.role !== "CUSTOMER") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "This user is not a customer",
@@ -1054,14 +1097,16 @@ export const clientsRouter = router({
 			}
 
 			// Check if integration already exists
-			const existingIntegration = await prisma.customerIntegration.findUnique({
-				where: {
-					userId_platform: {
-						userId: input.userId,
-						platform: input.platform,
-					},
-				},
-			});
+			const [existingIntegration] = await db
+				.select({ id: customerIntegration.id })
+				.from(customerIntegration)
+				.where(
+					and(
+						eq(customerIntegration.userId, input.userId),
+						eq(customerIntegration.platform, input.platform),
+					),
+				)
+				.limit(1);
 
 			if (existingIntegration) {
 				throw new TRPCError({
@@ -1071,26 +1116,26 @@ export const clientsRouter = router({
 			}
 
 			// Validate that required profile data exists
-			if (!user.profile) {
+			if (!profile) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "User profile information is required. Please complete the profile first.",
 				});
 			}
 
-			const profile = user.profile;
+			const userProfileData = profile;
 
 			// Validate required fields based on platform
 			if (input.platform === "PLESK") {
-				if (!user.name || !user.email) {
+				if (!targetUser.name || !targetUser.email) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "User name and email are required for Plesk integration",
 					});
 				}
 			} else if (input.platform === "OPENPROVIDER") {
-				if (!profile.firstName || !profile.lastName || !profile.address || !profile.city || 
-					!profile.country || !profile.postalCode || !profile.phone) {
+				if (!userProfileData.firstName || !userProfileData.lastName || !userProfileData.address || !userProfileData.city || 
+					!userProfileData.country || !userProfileData.postalCode || !userProfileData.phone) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "Complete profile information (first name, last name, address, city, country, postal code, phone) is required for OpenProvider integration",
@@ -1130,15 +1175,15 @@ export const clientsRouter = router({
   <customer>
     <add>
       <gen_info>
-        <pname>${escapeXml(user.name)}</pname>
+						<pname>${escapeXml(targetUser.name)}</pname>
         <login>${escapeXml(login)}</login>
         <passwd>${escapeXml(password)}</passwd>
-        <email>${escapeXml(user.email)}</email>
-        ${profile.address ? `<address>${escapeXml(profile.address)}</address>` : ''}
-        ${profile.city ? `<city>${escapeXml(profile.city)}</city>` : ''}
-        ${profile.state ? `<state>${escapeXml(profile.state)}</state>` : ''}
-        ${profile.postalCode ? `<pcode>${escapeXml(String(profile.postalCode))}</pcode>` : ''}
-        ${profile.country ? `<country>${escapeXml(profile.country === 'Kenya' ? 'KE' : profile.country)}</country>` : ''}
+				        <email>${escapeXml(targetUser.email)}</email>
+				        ${userProfileData.address ? `<address>${escapeXml(userProfileData.address)}</address>` : ''}
+				        ${userProfileData.city ? `<city>${escapeXml(userProfileData.city)}</city>` : ''}
+				        ${userProfileData.state ? `<state>${escapeXml(userProfileData.state)}</state>` : ''}
+				        ${userProfileData.postalCode ? `<pcode>${escapeXml(String(userProfileData.postalCode))}</pcode>` : ''}
+				        ${userProfileData.country ? `<country>${escapeXml(userProfileData.country === 'Kenya' ? 'KE' : userProfileData.country)}</country>` : ''}
         <locale>en-US</locale>
         <owner-id>1</owner-id>
       </gen_info>
@@ -1211,7 +1256,7 @@ export const clientsRouter = router({
 					}
 				} else if (input.platform === "OPENPROVIDER") {
 					// Parse phone number for OpenProvider format
-					const phoneStr = profile.phone || "";
+					const phoneStr = userProfileData.phone || "";
 					// Simple parsing - assume format like "+254 700 000 000" or "254700000000"
 					const phoneDigits = phoneStr.replace(/\D/g, "");
 					let countryCode = "";
@@ -1240,8 +1285,8 @@ export const clientsRouter = router({
 					}
 
 					// Parse address - split street and number
-					const addressParts = (profile.address || "").split(/\s+/);
-					const street = addressParts.slice(0, -1).join(" ") || profile.address || "";
+					const addressParts = (userProfileData.address || "").split(/\s+/);
+					const street = addressParts.slice(0, -1).join(" ") || userProfileData.address || "";
 					const number = addressParts[addressParts.length - 1] || "1";
 
 					// Normalize country code - always use "KE" for Kenya
@@ -1251,23 +1296,23 @@ export const clientsRouter = router({
 					// Prepare OpenProvider customer data
 					const openProviderData: OpenProviderCustomerRequest = {
 						name: {
-							first_name: profile.firstName!,
-							last_name: profile.lastName!,
+							first_name: userProfileData.firstName!,
+							last_name: userProfileData.lastName!,
 						},
 						address: {
 							street: street,
 							number: number,
-							zipcode: profile.postalCode!,
-							city: profile.city!,
+							zipcode: userProfileData.postalCode!,
+							city: userProfileData.city!,
 							country: addressCountryCode, // Always use "KE" for Kenya
-							state: profile.state || undefined,
+							state: userProfileData.state || undefined,
 						},
 						phone: {
 							country_code: countryCode, // Phone country code (254 for Kenya)
 							area_code: areaCode,
 							subscriber_number: subscriberNumber,
 						},
-						email: user.email,
+						email: targetUser.email,
 					};
 
 					// Create OpenProvider client and authenticate
@@ -1281,8 +1326,8 @@ export const clientsRouter = router({
 						});
 					} catch (authError) {
 						throw new TRPCError({
-							code: 'UNAUTHORIZED',
-							message: 'OpenProvider authentication failed. Please check your environment credentials.',
+							code: 'INTERNAL_SERVER_ERROR',
+							message: 'OpenProvider service unavailable. Please check server configuration.',
 						});
 					}
 
@@ -1308,26 +1353,38 @@ export const clientsRouter = router({
 				}
 
 				// Batch: Create integration and log activities in a transaction
-				const integration = await prisma.$transaction(async (tx) => {
-					const integration = await tx.customerIntegration.create({
-						data: {
-							id: crypto.randomUUID(),
-							userId: input.userId,
-							platform: input.platform,
-							platformCustomerId,
-							isActive: true,
-							isCreated: true,
-							createdBy: userId,
-							createdAt: new Date(),
-							updatedAt: new Date(),
-							platformData,
-						},
+				const integration = await db.transaction(async (tx) => {
+					const integrationId = crypto.randomUUID();
+					const now = new Date();
+					await tx.insert(customerIntegration).values({
+						id: integrationId,
+						userId: input.userId,
+						platform: input.platform,
+						platformCustomerId,
+						isActive: true,
+						isCreated: true,
+						createdBy: userId,
+						createdAt: now,
+						updatedAt: now,
+						platformData,
+						lastSyncedAt: null,
 					});
+
+					const [integration] = await tx
+						.select()
+						.from(customerIntegration)
+						.where(eq(customerIntegration.id, integrationId))
+						.limit(1);
+					if (!integration) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to create integration",
+						});
+					}
 
 					// Log activities in parallel
 					await Promise.all([
-						tx.customerIntegrationActivityLog.create({
-							data: {
+						tx.insert(customerIntegrationActivityLog).values({
 								id: crypto.randomUUID(),
 								userId: input.userId,
 								customerIntegrationId: integration.id,
@@ -1339,11 +1396,11 @@ export const clientsRouter = router({
 									platform: input.platform,
 									platformCustomerId,
 								},
+								ipAddress: null,
+								userAgent: null,
 								createdAt: new Date(),
-							},
 						}),
-						tx.userActivityLog.create({
-							data: {
+						tx.insert(userActivityLog).values({
 								id: crypto.randomUUID(),
 								userId: input.userId,
 								action: "CUSTOMER_INTEGRATION_CREATED_BY_ADMIN",
@@ -1355,15 +1412,16 @@ export const clientsRouter = router({
 									platformCustomerId,
 									integrationId: integration.id,
 								},
+								ipAddress: null,
+								userAgent: null,
 								createdAt: new Date(),
-							},
 						}),
 					]);
 
 					return integration;
 				});
 
-				return {
+				return createIntegrationOutputSchema.parse({
 					id: integration.id,
 					userId: integration.userId,
 					platform: integration.platform,
@@ -1375,7 +1433,7 @@ export const clientsRouter = router({
 					lastSyncedAt: integration.lastSyncedAt,
 					platformData: integration.platformData,
 					updatedAt: integration.updatedAt,
-				};
+				});
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
@@ -1411,12 +1469,11 @@ export const clientsRouter = router({
 			}
 
 			// Get integration
-			const integration = await prisma.customerIntegration.findUnique({
-				where: { id: input.integrationId },
-				include: {
-					user: true,
-				},
-			});
+			const [integration] = await db
+				.select()
+				.from(customerIntegration)
+				.where(eq(customerIntegration.id, input.integrationId))
+				.limit(1);
 
 			if (!integration) {
 				throw new TRPCError({
@@ -1458,15 +1515,24 @@ export const clientsRouter = router({
 					});
 				} catch (authError) {
 					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'OpenProvider authentication failed. Please check your environment credentials.',
+						code: 'INTERNAL_SERVER_ERROR',
+						message: 'OpenProvider service unavailable. Please check server configuration.',
 					});
 				}
 
 				// Check email verification status
+				const [integrationUser] = await db
+					.select({ email: user.email })
+					.from(user)
+					.where(eq(user.id, integration.userId))
+					.limit(1);
+				if (!integrationUser) {
+					throw new TRPCError({ code: "NOT_FOUND", message: "Integration user not found" });
+				}
+
 				const response = await client.checkEmailVerificationStatus({
 					handle: integration.platformCustomerId,
-					email: integration.user.email,
+					email: integrationUser.email,
 				});
 
 				if (response.code !== 0) {
@@ -1485,7 +1551,7 @@ export const clientsRouter = router({
 				return {
 					isVerified,
 					status: latestStatus,
-					email: integration.user.email,
+					email: integrationUser.email,
 					handle: integration.platformCustomerId,
 					domains: results.map((r: any) => ({
 						domain: r.domain || '',
@@ -1531,12 +1597,11 @@ export const clientsRouter = router({
 			const userId = session.user.id;
 
 			// Get integration
-			const integration = await prisma.customerIntegration.findUnique({
-				where: { id: input.integrationId },
-				include: {
-					user: true,
-				},
-			});
+			const [integration] = await db
+				.select()
+				.from(customerIntegration)
+				.where(eq(customerIntegration.id, input.integrationId))
+				.limit(1);
 
 			if (!integration) {
 				throw new TRPCError({
@@ -1566,7 +1631,12 @@ export const clientsRouter = router({
 				});
 			}
 
-			if (!integration.user.email) {
+			const [integrationUser] = await db
+				.select({ email: user.email })
+				.from(user)
+				.where(eq(user.id, integration.userId))
+				.limit(1);
+			if (!integrationUser?.email) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "User email is required for email verification",
@@ -1585,14 +1655,14 @@ export const clientsRouter = router({
 					});
 				} catch (authError) {
 					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'OpenProvider authentication failed. Please check your environment credentials.',
+						code: 'INTERNAL_SERVER_ERROR',
+						message: 'OpenProvider service unavailable. Please check server configuration.',
 					});
 				}
 
 				// Start email verification
 				const response = await client.startEmailVerification({
-					email: integration.user.email,
+					email: integrationUser.email,
 					handle: integration.platformCustomerId,
 					language: input.language || "en",
 				});
@@ -1613,10 +1683,9 @@ export const clientsRouter = router({
 					: "Email verification sent successfully";
 
 				// Batch: Log activities in a transaction
-				await prisma.$transaction(async (tx) => {
+				await db.transaction(async (tx) => {
 					await Promise.all([
-						tx.customerIntegrationActivityLog.create({
-							data: {
+						tx.insert(customerIntegrationActivityLog).values({
 								id: crypto.randomUUID(),
 								userId: input.userId,
 								customerIntegrationId: integration.id,
@@ -1626,16 +1695,16 @@ export const clientsRouter = router({
 									sentBy: userId,
 									sentByEmail: session.user!.email,
 									platform: "OPENPROVIDER",
-									email: integration.user.email,
+									email: integrationUser.email,
 									handle: integration.platformCustomerId,
 									language: input.language || "en",
 									verificationId: response.data?.id || null,
 								},
+								ipAddress: null,
+								userAgent: null,
 								createdAt: new Date(),
-							},
 						}),
-						tx.userActivityLog.create({
-							data: {
+						tx.insert(userActivityLog).values({
 								id: crypto.randomUUID(),
 								userId: input.userId,
 								action: "OPENPROVIDER_EMAIL_VERIFICATION_SENT_BY_ADMIN",
@@ -1645,12 +1714,13 @@ export const clientsRouter = router({
 									sentByEmail: session.user!.email,
 									platform: "OPENPROVIDER",
 									integrationId: integration.id,
-									email: integration.user.email,
+									email: integrationUser.email,
 									handle: integration.platformCustomerId,
 									verificationId: response.data?.id || null,
 								},
+								ipAddress: null,
+								userAgent: null,
 								createdAt: new Date(),
-							},
 						}),
 					]);
 				});
@@ -1671,10 +1741,9 @@ export const clientsRouter = router({
 					const successMessage = "Verification email is already in progress. Please check your email inbox.";
 					
 					// Batch: Log activities for "in progress" case in a transaction
-					await prisma.$transaction(async (tx) => {
+					await db.transaction(async (tx) => {
 						await Promise.all([
-							tx.customerIntegrationActivityLog.create({
-								data: {
+							tx.insert(customerIntegrationActivityLog).values({
 									id: crypto.randomUUID(),
 									userId: input.userId,
 									customerIntegrationId: integration.id,
@@ -1684,17 +1753,17 @@ export const clientsRouter = router({
 										sentBy: userId,
 										sentByEmail: session.user!.email,
 										platform: "OPENPROVIDER",
-										email: integration.user.email,
+										email: integrationUser.email,
 										handle: integration.platformCustomerId,
 										language: input.language || "en",
 										status: "already_in_progress",
 										errorCode: 20001,
 									},
+									ipAddress: null,
+									userAgent: null,
 									createdAt: new Date(),
-								},
 							}),
-							tx.userActivityLog.create({
-								data: {
+							tx.insert(userActivityLog).values({
 									id: crypto.randomUUID(),
 									userId: input.userId,
 									action: "OPENPROVIDER_EMAIL_VERIFICATION_SENT_BY_ADMIN",
@@ -1704,13 +1773,14 @@ export const clientsRouter = router({
 										sentByEmail: session.user!.email,
 										platform: "OPENPROVIDER",
 										integrationId: integration.id,
-										email: integration.user.email,
+										email: integrationUser.email,
 										handle: integration.platformCustomerId,
 										status: "already_in_progress",
 										errorCode: 20001,
 									},
+									ipAddress: null,
+									userAgent: null,
 									createdAt: new Date(),
-								},
 							}),
 						]);
 					});

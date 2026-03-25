@@ -1,8 +1,13 @@
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../../trpc";
-import prisma from "@nPanel/db";
+import { and, desc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { db } from "@npanel/db";
+import {
+  imageGenUpload,
+  imageGenUploadActivityLog,
+} from "@npanel/db/schema/imagegen-studio";
+import { protectedProcedure, router } from "../../trpc";
 import {
   createUploadSchema,
   getUploadsSchema,
@@ -10,10 +15,10 @@ import {
   getUploadsResponseSchema,
   imageGenUploadSchema,
 } from "./schemas";
+import { getUserTeamIds, orUserOrTeamMember, personalScope } from "./team-scope";
 
 /**
- * Transform function to ensure clean data (no Prisma types leak)
- * Converts Prisma types to plain types for API layer
+ * Transform function to ensure clean data (no ORM types leak)
  */
 function transformUpload(upload: any): z.infer<typeof imageGenUploadSchema> {
   return {
@@ -29,7 +34,6 @@ function transformUpload(upload: any): z.infer<typeof imageGenUploadSchema> {
 }
 
 export const imageGenUploadsRouter = router({
-  // Create a new upload
   create: protectedProcedure
     .input(createUploadSchema)
     .output(z.object({ data: imageGenUploadSchema }))
@@ -39,7 +43,6 @@ export const imageGenUploadsRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      // Verify mimeType is an image
       if (!input.mimeType.startsWith("image/")) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -47,43 +50,51 @@ export const imageGenUploadsRouter = router({
         });
       }
 
-      const upload = await prisma.imageGenUpload.create({
-        data: {
-          id: randomUUID(),
-          userId,
-          teamId: input.teamId ?? null,
-          fileUrl: input.fileUrl,
-          fileKey: input.fileKey,
+      const now = new Date();
+      const id = randomUUID();
+      await db.insert(imageGenUpload).values({
+        id,
+        userId,
+        teamId: input.teamId ?? null,
+        fileUrl: input.fileUrl,
+        fileKey: input.fileKey,
+        fileName: input.fileName,
+        fileSize: input.fileSize,
+        mimeType: input.mimeType,
+        fileMetadata: input.fileMetadata ?? null,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const upload = await db.query.imageGenUpload.findFirst({
+        where: eq(imageGenUpload.id, id),
+      });
+      if (!upload) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create upload",
+        });
+      }
+
+      await db.insert(imageGenUploadActivityLog).values({
+        id: randomUUID(),
+        imageGenUploadId: upload.id,
+        userId,
+        action: "UPLOAD",
+        description: `Uploaded image: ${input.fileName}`,
+        metadata: {
           fileName: input.fileName,
           fileSize: input.fileSize,
           mimeType: input.mimeType,
-          fileMetadata: input.fileMetadata ?? undefined,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
-      });
-
-      // Create activity log
-      await prisma.imageGenUploadActivityLog.create({
-        data: {
-          id: randomUUID(),
-          imageGenUploadId: upload.id,
-          userId,
-          action: "UPLOAD",
-          description: `Uploaded image: ${input.fileName}`,
-          metadata: {
-            fileName: input.fileName,
-            fileSize: input.fileSize,
-            mimeType: input.mimeType,
-          },
-          createdAt: new Date(),
-        },
+        ipAddress: null,
+        userAgent: null,
+        createdAt: new Date(),
       });
 
       return { data: transformUpload(upload) };
     }),
 
-  // List uploads with pagination
   list: protectedProcedure
     .input(getUploadsSchema)
     .output(getUploadsResponseSchema)
@@ -94,46 +105,41 @@ export const imageGenUploadsRouter = router({
       }
 
       const { page, limit, teamId } = input;
+      const userTeamIds = await getUserTeamIds(userId);
 
-      const where = teamId
-        ? {
-          teamId,
-          team: {
-            members: {
-              some: { userId },
-            },
-          },
+      let whereCond;
+      if (teamId) {
+        if (!userTeamIds.includes(teamId)) {
+          return { data: [], nextPage: null };
         }
-        : {
-          userId,
-          teamId: null,
-        };
+        whereCond = eq(imageGenUpload.teamId, teamId);
+      } else {
+        whereCond = personalScope(imageGenUpload.userId, imageGenUpload.teamId, userId);
+      }
 
-      const uploads = await prisma.imageGenUpload.findMany({
-        where,
-        take: limit,
-        skip: (page - 1) * limit,
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          fileUrl: true,
-          fileName: true,
-          fileSize: true,
-          mimeType: true,
-          fileMetadata: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+      const uploads = await db
+        .select({
+          id: imageGenUpload.id,
+          fileUrl: imageGenUpload.fileUrl,
+          fileName: imageGenUpload.fileName,
+          fileSize: imageGenUpload.fileSize,
+          mimeType: imageGenUpload.mimeType,
+          fileMetadata: imageGenUpload.fileMetadata,
+          createdAt: imageGenUpload.createdAt,
+          updatedAt: imageGenUpload.updatedAt,
+        })
+        .from(imageGenUpload)
+        .where(whereCond)
+        .orderBy(desc(imageGenUpload.createdAt))
+        .limit(limit)
+        .offset((page - 1) * limit);
 
-      // Transform Prisma data to clean API response
       return {
         data: uploads.map(transformUpload),
         nextPage: uploads.length === limit ? page + 1 : null,
       };
     }),
 
-  // Delete an upload
   delete: protectedProcedure
     .input(deleteUploadSchema)
     .output(z.object({ data: z.object({ id: z.string() }) }))
@@ -143,46 +149,39 @@ export const imageGenUploadsRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      // Check if user has access to this upload
-      const existingUpload = await prisma.imageGenUpload.findFirst({
-        where: {
-          id: input.id,
-          OR: [
-            { userId },
-            {
-              team: {
-                members: {
-                  some: { userId },
-                },
-              },
-            },
-          ],
-        },
+      const userTeamIds = await getUserTeamIds(userId);
+      const existingUpload = await db.query.imageGenUpload.findFirst({
+        where: and(
+          eq(imageGenUpload.id, input.id),
+          orUserOrTeamMember(
+            imageGenUpload.userId,
+            imageGenUpload.teamId,
+            userId,
+            userTeamIds,
+          ),
+        ),
       });
 
       if (!existingUpload) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Upload not found" });
       }
 
-      // Create activity log before deletion
-      await prisma.imageGenUploadActivityLog.create({
-        data: {
-          id: randomUUID(),
-          imageGenUploadId: input.id,
-          userId,
-          action: "DELETE",
-          description: `Deleted upload: ${existingUpload.fileName}`,
-          metadata: {
-            fileName: existingUpload.fileName,
-            fileKey: existingUpload.fileKey,
-          },
-          createdAt: new Date(),
+      await db.insert(imageGenUploadActivityLog).values({
+        id: randomUUID(),
+        imageGenUploadId: input.id,
+        userId,
+        action: "DELETE",
+        description: `Deleted upload: ${existingUpload.fileName}`,
+        metadata: {
+          fileName: existingUpload.fileName,
+          fileKey: existingUpload.fileKey,
         },
+        ipAddress: null,
+        userAgent: null,
+        createdAt: new Date(),
       });
 
-      await prisma.imageGenUpload.delete({
-        where: { id: input.id },
-      });
+      await db.delete(imageGenUpload).where(eq(imageGenUpload.id, input.id));
 
       return { data: { id: input.id } };
     }),

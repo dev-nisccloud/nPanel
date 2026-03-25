@@ -3,7 +3,7 @@ import { defineConfig } from "tsdown";
 export default defineConfig({
 	entry: "src/**/*.ts",
 	sourcemap: true,
-	// Disable .d.ts emit: inferred appRouter type references @nPanel/db Prisma runtime (TS2742).
+	// Disable .d.ts emit: inferred appRouter type references @npanel/db Prisma runtime (TS2742).
 	// Package exposes "types": "./src/index.ts" so consumers use source types.
 	dts: false,
 	bundle: false,
@@ -14,7 +14,7 @@ export default defineConfig({
 		"@react-pdf/renderer",
 		"google-ads-api",
 		"googleapis",
-		/^@nPanel\//,
+		/^@npanel\//,
 	],
 	// Rolldown does not accept "define" / "inject"; strip if tsdown passes them (avoids "Invalid key" warning).
 	inputOptions(opts) {

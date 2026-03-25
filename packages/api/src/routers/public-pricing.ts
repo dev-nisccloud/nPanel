@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { publicProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { tldSettings } from "@npanel/db/schema/nameservers";
 
 // NOTE: This router exposes read-only, public helpers for
 // pricing margin + currency conversion. It does NOT allow
@@ -50,8 +52,8 @@ export const publicPricingRouter = router({
         }
 
         // Fetch global default TLD setting directly from the database.
-        const defaultSetting = await prisma.tldSettings.findFirst({
-          where: { isDefault: true },
+        const defaultSetting = await db.query.tldSettings.findFirst({
+          where: eq(tldSettings.isDefault, true),
         });
 
         if (!defaultSetting) {

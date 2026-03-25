@@ -46,7 +46,7 @@ export const customersRouter = router({
   // Get all customers
   getAll: publicProcedure
     .input(z.object({}).optional().default({}))
-    .query(async ({ input = {} }) => {
+    .query(async () => {
 
   try {
     // Check if required environment variables are set

@@ -2,7 +2,14 @@
  * Server-side helpers for Background Remover credit checks and deductions.
  * Used by: startBackgroundRemoval (tRPC) to enforce at least 1 credit; worker to deduct after completion.
  */
-import prisma from "@nPanel/db";
+import { and, eq, ilike, asc } from "drizzle-orm";
+import { db } from "@npanel/db";
+import {
+  niscClientSubscription,
+  niscClientSubscriptionUsage,
+  niscClientSubscriptionUsageActivityLog,
+  niscProduct,
+} from "@npanel/db/schema/products";
 
 function parseCredits(value: string): number | null {
   const trimmed = value.trim().toLowerCase();
@@ -25,22 +32,30 @@ export type BackgroundRemoverCreditsResult = {
 export async function getBackgroundRemoverCreditsForTeam(
   teamId: string
 ): Promise<BackgroundRemoverCreditsResult | null> {
-  const sub = await prisma.niscClientSubscription.findFirst({
-    where: {
-      teamId,
-      status: "ACTIVE",
-      product: {
-        name: { contains: "Background Remover", mode: "insensitive" },
-      },
-    },
-    select: { id: true },
-  });
+  const subRow = await db
+    .select({ id: niscClientSubscription.id })
+    .from(niscClientSubscription)
+    .leftJoin(
+      niscProduct,
+      eq(niscClientSubscription.productId, niscProduct.id),
+    )
+    .where(
+      and(
+        eq(niscClientSubscription.teamId, teamId),
+        eq(niscClientSubscription.status, "ACTIVE"),
+        ilike(niscProduct.name, "%Background Remover%"),
+      ),
+    )
+    .limit(1);
+
+  const sub = subRow[0];
   if (!sub) return null;
 
-  const usage = await prisma.niscClientSubscriptionUsage.findFirst({
-    where: { subscriptionId: sub.id },
-    orderBy: { usageKind: "asc" },
+  const usage = await db.query.niscClientSubscriptionUsage.findFirst({
+    where: eq(niscClientSubscriptionUsage.subscriptionId, sub.id),
+    orderBy: asc(niscClientSubscriptionUsage.usageKind),
   });
+
   if (!usage) return null;
 
   return {
@@ -60,8 +75,8 @@ export async function deductOneBackgroundRemoverCredit(params: {
   userId: string;
   metadata?: { generationId?: string };
 }): Promise<void> {
-  const usage = await prisma.niscClientSubscriptionUsage.findUnique({
-    where: { id: params.subscriptionUsageId },
+  const usage = await db.query.niscClientSubscriptionUsage.findFirst({
+    where: eq(niscClientSubscriptionUsage.id, params.subscriptionUsageId),
   });
   if (!usage) return;
 
@@ -72,25 +87,25 @@ export async function deductOneBackgroundRemoverCredit(params: {
   const newValue = Math.max(0, current - 1);
   const newCredits = String(newValue);
 
-  await prisma.niscClientSubscriptionUsage.update({
-    where: { id: params.subscriptionUsageId },
-    data: { credits: newCredits },
-  });
+  await db
+    .update(niscClientSubscriptionUsage)
+    .set({ credits: newCredits })
+    .where(eq(niscClientSubscriptionUsage.id, params.subscriptionUsageId));
 
-  await prisma.niscClientSubscriptionUsageActivityLog.create({
-    data: {
-      subscriptionUsageId: params.subscriptionUsageId,
-      userId: params.userId,
-      action: "CREDIT_USE",
-      description: "1 credit used for background removal",
-      metadata: {
-        amount: "-1",
-        previousCredits,
-        newCredits,
-        reason: "background_removal",
-        ...params.metadata,
-      },
+  await db.insert(niscClientSubscriptionUsageActivityLog).values({
+    id: crypto.randomUUID(),
+    subscriptionUsageId: params.subscriptionUsageId,
+    userId: params.userId,
+    action: "CREDIT_USE",
+    description: "1 credit used for background removal",
+    metadata: {
+      amount: "-1",
+      previousCredits,
+      newCredits,
+      reason: "background_removal",
+      ...params.metadata,
     },
+    createdAt: new Date(),
   });
 }
 

@@ -1,8 +1,12 @@
-import { z } from "zod";
-import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
 import { randomUUID } from "node:crypto";
+import { TRPCError } from "@trpc/server";
+import { and, count, desc, eq, gt } from "drizzle-orm";
+import { z } from "zod";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
+import { notification, notificationActivityLog } from "@npanel/db/schema/notifications";
+import { team } from "@npanel/db/schema/teams";
+import { protectedProcedure, router } from "../trpc";
 
 // ============================================================================
 // TYPESCRIPT TYPES - Independent from Prisma, mirroring database structure
@@ -27,7 +31,7 @@ type NotificationTypeType =
 
 type NotificationPriorityType = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 
-// Database model types (matching Prisma schema structure but independent)
+// Database model types (matching DB structure but independent from ORM)
 interface DbUser {
   id: string;
   name: string;
@@ -265,18 +269,16 @@ async function logActivity(
   ipAddress?: string | null,
   userAgent?: string | null,
 ) {
-  await prisma.notificationActivityLog.create({
-    data: {
-      id: randomUUID(),
-      notificationId,
-      userId,
-      action,
-      description: description ?? null,
-      metadata: metadata ?? null,
-      ipAddress: ipAddress ?? null,
-      userAgent: userAgent ?? null,
-      createdAt: new Date(),
-    } as any, // Type assertion for JsonValue compatibility
+  await db.insert(notificationActivityLog).values({
+    id: randomUUID(),
+    notificationId,
+    userId,
+    action,
+    description: description ?? null,
+    metadata: metadata ?? null,
+    ipAddress: ipAddress ?? null,
+    userAgent: userAgent ?? null,
+    createdAt: new Date(),
   });
 }
 
@@ -291,25 +293,22 @@ export const notificationsRouter = router({
       // Use input userId if provided, otherwise use authenticated user
       const targetUserId = input.userId || authenticatedUser.id;
 
-      // Build where clause
-      const where: any = {
-        userId: targetUserId,
-      };
+      const conditions = [eq(notification.userId, targetUserId)];
 
       if (input.teamId) {
-        where.teamId = input.teamId;
+        conditions.push(eq(notification.teamId, input.teamId));
       }
 
       if (input.seen !== undefined) {
-        where.seen = input.seen;
+        conditions.push(eq(notification.seen, input.seen));
       }
 
       if (input.type) {
-        where.type = input.type;
+        conditions.push(eq(notification.type, input.type));
       }
 
       if (input.priority) {
-        where.priority = input.priority;
+        conditions.push(eq(notification.priority, input.priority));
       }
 
       // Change detection: only fetch notifications updated after 'since' timestamp
@@ -317,42 +316,55 @@ export const notificationsRouter = router({
         try {
           const sinceDate = new Date(input.since);
           if (!isNaN(sinceDate.getTime())) {
-            where.updatedAt = {
-              gt: sinceDate,
-            };
+            conditions.push(gt(notification.updatedAt, sinceDate));
           }
-        } catch (error) {
+        } catch {
           // Invalid date, ignore since parameter
           console.warn("Invalid 'since' parameter in notifications query:", input.since);
         }
       }
 
-      const notifications = await prisma.notification.findMany({
-        where,
-        include: {
+      const notifications = await db
+        .select({
+          id: notification.id,
+          userId: notification.userId,
+          teamId: notification.teamId,
+          type: notification.type,
+          priority: notification.priority,
+          title: notification.title,
+          message: notification.message,
+          link: notification.link,
+          metadata: notification.metadata,
+          seen: notification.seen,
+          readAt: notification.readAt,
+          createdAt: notification.createdAt,
+          updatedAt: notification.updatedAt,
           user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
+            id: user.id,
+            name: user.name,
+            email: user.email,
           },
           team: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
+            id: team.id,
+            name: team.name,
+            slug: team.slug,
           },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        take: input.limit,
-        skip: input.offset,
-      });
+        })
+        .from(notification)
+        .leftJoin(user, eq(notification.userId, user.id))
+        .leftJoin(team, eq(notification.teamId, team.id))
+        .where(and(...conditions))
+        .orderBy(desc(notification.createdAt))
+        .limit(input.limit)
+        .offset(input.offset);
 
-      return notifications.map(transformNotification);
+      return notifications.map((n) =>
+        transformNotification({
+          ...n,
+          user: n.user?.id ? n.user : undefined,
+          team: n.team?.id ? n.team : null,
+        } as DbNotification),
+      );
     }),
 
   // Get unseen notifications count
@@ -368,20 +380,21 @@ export const notificationsRouter = router({
       const authenticatedUser = await getAuthenticatedUser(ctx);
       const targetUserId = input?.userId || authenticatedUser.id;
 
-      const where: any = {
-        userId: targetUserId,
-        seen: false,
-      };
+      const conditions = [
+        eq(notification.userId, targetUserId),
+        eq(notification.seen, false),
+      ];
 
       if (input?.teamId) {
-        where.teamId = input.teamId;
+        conditions.push(eq(notification.teamId, input.teamId));
       }
 
-      const count = await prisma.notification.count({
-        where,
-      });
+      const unseenCountRes = await db
+        .select({ count: count() })
+        .from(notification)
+        .where(and(...conditions));
 
-      return { count };
+      return { count: unseenCountRes[0]?.count ?? 0 };
     }),
 
   // Get a single notification by ID
@@ -389,39 +402,52 @@ export const notificationsRouter = router({
     .input(z.object({ id: z.string() }))
     .output(notificationSchema)
     .query(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const authUser = await getAuthenticatedUser(ctx);
 
-      const notification = await prisma.notification.findFirst({
-        where: {
-          id: input.id,
-          userId: user.id, // Ensure user owns the notification
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
+      const [notificationRow] = await db
+        .select({
+          id: notification.id,
+          userId: notification.userId,
+          teamId: notification.teamId,
+          type: notification.type,
+          priority: notification.priority,
+          title: notification.title,
+          message: notification.message,
+          link: notification.link,
+          metadata: notification.metadata,
+          seen: notification.seen,
+          readAt: notification.readAt,
+          createdAt: notification.createdAt,
+          updatedAt: notification.updatedAt,
+          userInfo: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
           },
           team: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
+            id: team.id,
+            name: team.name,
+            slug: team.slug,
           },
-        },
-      });
+        })
+        .from(notification)
+        .leftJoin(user, eq(notification.userId, user.id))
+        .leftJoin(team, eq(notification.teamId, team.id))
+        .where(and(eq(notification.id, input.id), eq(notification.userId, authUser.id)))
+        .limit(1);
 
-      if (!notification) {
+      if (!notificationRow) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Notification not found",
         });
       }
 
-      return transformNotification(notification);
+      return transformNotification({
+        ...notificationRow,
+        user: notificationRow.userInfo?.id ? notificationRow.userInfo : undefined,
+        team: notificationRow.team?.id ? notificationRow.team : null,
+      } as DbNotification);
     }),
 
   // Create a new notification (system-wide, can be called by any authenticated user)
@@ -432,10 +458,11 @@ export const notificationsRouter = router({
       const authenticatedUser = await getAuthenticatedUser(ctx);
 
       // Validate user exists
-      const targetUser = await prisma.user.findUnique({
-        where: { id: input.userId },
-        select: { id: true },
-      });
+      const [targetUser] = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.id, input.userId))
+        .limit(1);
 
       if (!targetUser) {
         throw new TRPCError({
@@ -446,12 +473,13 @@ export const notificationsRouter = router({
 
       // Validate team if provided
       if (input.teamId) {
-        const team = await prisma.team.findUnique({
-          where: { id: input.teamId },
-          select: { id: true },
-        });
+        const [targetTeam] = await db
+          .select({ id: team.id })
+          .from(team)
+          .where(eq(team.id, input.teamId))
+          .limit(1);
 
-        if (!team) {
+        if (!targetTeam) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Team not found",
@@ -461,9 +489,10 @@ export const notificationsRouter = router({
 
       // Batch: Create notification and log activity in a transaction
       // This reduces connection usage from 2 sequential queries to 1 transaction
-      const notification = await prisma.$transaction(async (tx) => {
-        const notification = await tx.notification.create({
-          data: {
+      const createdNotification = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(notification)
+          .values({
             id: randomUUID(),
             userId: input.userId,
             teamId: input.teamId ?? null,
@@ -477,42 +506,74 @@ export const notificationsRouter = router({
             readAt: null,
             createdAt: new Date(),
             updatedAt: new Date(),
-          } as any, // Type assertion for JsonValue compatibility
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        });
+          })
+          .returning({ id: notification.id });
+
+        if (!created) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create notification",
+          });
+        }
 
         // Log activity
-        await tx.notificationActivityLog.create({
-          data: {
+        await tx.insert(notificationActivityLog).values({
             id: randomUUID(),
-            notificationId: notification.id,
+            notificationId: created.id,
             userId: authenticatedUser.id,
             action: "CREATE",
             description: `Notification created: ${input.title || input.message.substring(0, 50)}`,
-            metadata: { type: input.type, priority: input.priority } as any,
+            metadata: { type: input.type, priority: input.priority },
             createdAt: new Date(),
-          } as any,
         });
 
-        return notification;
+        return created.id;
       });
 
-      return transformNotification(notification);
+      const [createdRow] = await db
+        .select({
+          id: notification.id,
+          userId: notification.userId,
+          teamId: notification.teamId,
+          type: notification.type,
+          priority: notification.priority,
+          title: notification.title,
+          message: notification.message,
+          link: notification.link,
+          metadata: notification.metadata,
+          seen: notification.seen,
+          readAt: notification.readAt,
+          createdAt: notification.createdAt,
+          updatedAt: notification.updatedAt,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          },
+          team: {
+            id: team.id,
+            name: team.name,
+            slug: team.slug,
+          },
+        })
+        .from(notification)
+        .leftJoin(user, eq(notification.userId, user.id))
+        .leftJoin(team, eq(notification.teamId, team.id))
+        .where(eq(notification.id, createdNotification))
+        .limit(1);
+
+      if (!createdRow) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Created notification could not be fetched",
+        });
+      }
+
+      return transformNotification({
+        ...createdRow,
+        user: createdRow.user?.id ? createdRow.user : undefined,
+        team: createdRow.team?.id ? createdRow.team : null,
+      } as DbNotification);
     }),
 
   // Update a notification
@@ -520,15 +581,14 @@ export const notificationsRouter = router({
     .input(updateNotificationInputSchema)
     .output(notificationSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const authUser = await getAuthenticatedUser(ctx);
 
       // Check if notification exists and user owns it
-      const existingNotification = await prisma.notification.findFirst({
-        where: {
-          id: input.id,
-          userId: user.id,
-        },
-      });
+      const [existingNotification] = await db
+        .select({ id: notification.id })
+        .from(notification)
+        .where(and(eq(notification.id, input.id), eq(notification.userId, authUser.id)))
+        .limit(1);
 
       if (!existingNotification) {
         throw new TRPCError({
@@ -538,7 +598,7 @@ export const notificationsRouter = router({
       }
 
       // Build update data
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         updatedAt: new Date(),
       };
 
@@ -560,45 +620,68 @@ export const notificationsRouter = router({
 
       // Batch: Update notification and log activity in a transaction
       // This reduces connection usage from 2 sequential queries to 1 transaction
-      const notification = await prisma.$transaction(async (tx) => {
-        const notification = await tx.notification.update({
-          where: { id: input.id },
-          data: updateData,
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        });
+      await db.transaction(async (tx) => {
+        await tx
+          .update(notification)
+          .set(updateData as Partial<typeof notification.$inferInsert>)
+          .where(and(eq(notification.id, input.id), eq(notification.userId, authUser.id)));
 
         // Log activity
-        await tx.notificationActivityLog.create({
-          data: {
+        await tx.insert(notificationActivityLog).values({
             id: randomUUID(),
-            notificationId: notification.id,
-            userId: user.id,
+            notificationId: input.id,
+            userId: authUser.id,
             action: "UPDATE",
             description: "Notification updated",
-            metadata: { updatedFields: Object.keys(updateData) } as any,
+            metadata: { updatedFields: Object.keys(updateData) },
             createdAt: new Date(),
-          } as any,
         });
-
-        return notification;
       });
 
-      return transformNotification(notification);
+      const [updatedRow] = await db
+        .select({
+          id: notification.id,
+          userId: notification.userId,
+          teamId: notification.teamId,
+          type: notification.type,
+          priority: notification.priority,
+          title: notification.title,
+          message: notification.message,
+          link: notification.link,
+          metadata: notification.metadata,
+          seen: notification.seen,
+          readAt: notification.readAt,
+          createdAt: notification.createdAt,
+          updatedAt: notification.updatedAt,
+          userInfo: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          },
+          team: {
+            id: team.id,
+            name: team.name,
+            slug: team.slug,
+          },
+        })
+        .from(notification)
+        .leftJoin(user, eq(notification.userId, user.id))
+        .leftJoin(team, eq(notification.teamId, team.id))
+        .where(eq(notification.id, input.id))
+        .limit(1);
+
+      if (!updatedRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Notification not found",
+        });
+      }
+
+      return transformNotification({
+        ...updatedRow,
+        user: updatedRow.userInfo?.id ? updatedRow.userInfo : undefined,
+        team: updatedRow.team?.id ? updatedRow.team : null,
+      } as DbNotification);
     }),
 
   // Mark notification as seen
@@ -606,16 +689,15 @@ export const notificationsRouter = router({
     .input(markAsSeenInputSchema)
     .output(notificationSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const authUser = await getAuthenticatedUser(ctx);
 
-      const notification = await prisma.notification.findFirst({
-        where: {
-          id: input.id,
-          userId: user.id,
-        },
-      });
+      const [existingNotification] = await db
+        .select({ id: notification.id })
+        .from(notification)
+        .where(and(eq(notification.id, input.id), eq(notification.userId, authUser.id)))
+        .limit(1);
 
-      if (!notification) {
+      if (!existingNotification) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Notification not found",
@@ -624,61 +706,84 @@ export const notificationsRouter = router({
 
       // Batch: Update notification and log activity in a transaction
       // This reduces connection usage from 2 sequential queries to 1 transaction
-      const updatedNotification = await prisma.$transaction(async (tx) => {
-        const notification = await tx.notification.update({
-          where: { id: input.id },
-          data: {
+      await db.transaction(async (tx) => {
+        await tx
+          .update(notification)
+          .set({
             seen: true,
             readAt: new Date(),
             updatedAt: new Date(),
-          },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        });
+          })
+          .where(and(eq(notification.id, input.id), eq(notification.userId, authUser.id)));
 
         // Log activity
-        await tx.notificationActivityLog.create({
-          data: {
+        await tx.insert(notificationActivityLog).values({
             id: randomUUID(),
-            notificationId: notification.id,
-            userId: user.id,
+            notificationId: input.id,
+            userId: authUser.id,
             action: "MARK_SEEN",
             description: "Notification marked as seen",
             metadata: null,
             createdAt: new Date(),
-          } as any,
         });
-
-        return notification;
       });
 
-      const transformed = transformNotification(updatedNotification);
+      const [updatedRow] = await db
+        .select({
+          id: notification.id,
+          userId: notification.userId,
+          teamId: notification.teamId,
+          type: notification.type,
+          priority: notification.priority,
+          title: notification.title,
+          message: notification.message,
+          link: notification.link,
+          metadata: notification.metadata,
+          seen: notification.seen,
+          readAt: notification.readAt,
+          createdAt: notification.createdAt,
+          updatedAt: notification.updatedAt,
+          userInfo: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          },
+          team: {
+            id: team.id,
+            name: team.name,
+            slug: team.slug,
+          },
+        })
+        .from(notification)
+        .leftJoin(user, eq(notification.userId, user.id))
+        .leftJoin(team, eq(notification.teamId, team.id))
+        .where(eq(notification.id, input.id))
+        .limit(1);
+
+      if (!updatedRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Notification not found",
+        });
+      }
+
+      const transformed = transformNotification({
+        ...updatedRow,
+        user: updatedRow.userInfo?.id ? updatedRow.userInfo : undefined,
+        team: updatedRow.team?.id ? updatedRow.team : null,
+      } as DbNotification);
 
       // Broadcast unseen count update via event
       if (typeof globalThis !== 'undefined') {
-        const unseenCount = await prisma.notification.count({
-          where: {
-            userId: user.id,
-            seen: false,
-          },
-        });
-        const eventName = `notification:unseen_count:${user.id}`;
-        if (globalThis.dispatchEvent) {
-          globalThis.dispatchEvent(new CustomEvent(eventName, { detail: { count: unseenCount } }));
+        const unseenCountRes = await db
+          .select({ count: count() })
+          .from(notification)
+          .where(and(eq(notification.userId, authUser.id), eq(notification.seen, false)));
+        const unseenCount = unseenCountRes[0]?.count ?? 0;
+        const eventName = `notification:unseen_count:${authUser.id}`;
+        const globalAny = globalThis as { dispatchEvent?: (event: unknown) => boolean; CustomEvent?: unknown };
+        if (typeof globalAny.dispatchEvent === "function" && typeof CustomEvent !== "undefined") {
+          globalAny.dispatchEvent(new CustomEvent(eventName, { detail: { count: unseenCount } }));
         }
       }
 
@@ -690,16 +795,15 @@ export const notificationsRouter = router({
     .input(markAsSeenInputSchema)
     .output(notificationSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const authUser = await getAuthenticatedUser(ctx);
 
-      const notification = await prisma.notification.findFirst({
-        where: {
-          id: input.id,
-          userId: user.id,
-        },
-      });
+      const [existingNotification] = await db
+        .select({ id: notification.id })
+        .from(notification)
+        .where(and(eq(notification.id, input.id), eq(notification.userId, authUser.id)))
+        .limit(1);
 
-      if (!notification) {
+      if (!existingNotification) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Notification not found",
@@ -708,49 +812,72 @@ export const notificationsRouter = router({
 
       // Batch: Update notification and log activity in a transaction
       // This reduces connection usage from 2 sequential queries to 1 transaction
-      const updatedNotification = await prisma.$transaction(async (tx) => {
-        const notification = await tx.notification.update({
-          where: { id: input.id },
-          data: {
+      await db.transaction(async (tx) => {
+        await tx
+          .update(notification)
+          .set({
             seen: false,
             readAt: null,
             updatedAt: new Date(),
-          },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            team: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        });
+          })
+          .where(and(eq(notification.id, input.id), eq(notification.userId, authUser.id)));
 
         // Log activity
-        await tx.notificationActivityLog.create({
-          data: {
+        await tx.insert(notificationActivityLog).values({
             id: randomUUID(),
-            notificationId: notification.id,
-            userId: user.id,
+            notificationId: input.id,
+            userId: authUser.id,
             action: "MARK_UNSEEN",
             description: "Notification marked as unseen",
             metadata: null,
             createdAt: new Date(),
-          } as any,
         });
-
-        return notification;
       });
 
-      return transformNotification(updatedNotification);
+      const [updatedRow] = await db
+        .select({
+          id: notification.id,
+          userId: notification.userId,
+          teamId: notification.teamId,
+          type: notification.type,
+          priority: notification.priority,
+          title: notification.title,
+          message: notification.message,
+          link: notification.link,
+          metadata: notification.metadata,
+          seen: notification.seen,
+          readAt: notification.readAt,
+          createdAt: notification.createdAt,
+          updatedAt: notification.updatedAt,
+          userInfo: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          },
+          team: {
+            id: team.id,
+            name: team.name,
+            slug: team.slug,
+          },
+        })
+        .from(notification)
+        .leftJoin(user, eq(notification.userId, user.id))
+        .leftJoin(team, eq(notification.teamId, team.id))
+        .where(eq(notification.id, input.id))
+        .limit(1);
+
+      if (!updatedRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Notification not found",
+        });
+      }
+
+      return transformNotification({
+        ...updatedRow,
+        user: updatedRow.userInfo?.id ? updatedRow.userInfo : undefined,
+        team: updatedRow.team?.id ? updatedRow.team : null,
+      } as DbNotification);
     }),
 
   // Mark all notifications as seen
@@ -763,48 +890,50 @@ export const notificationsRouter = router({
       const authenticatedUser = await getAuthenticatedUser(ctx);
       const targetUserId = input?.userId || authenticatedUser.id;
 
-      const where: any = {
-        userId: targetUserId,
-        seen: false,
-      };
+      const conditions = [
+        eq(notification.userId, targetUserId),
+        eq(notification.seen, false),
+      ];
 
       if (input?.teamId) {
-        where.teamId = input.teamId;
+        conditions.push(eq(notification.teamId, input.teamId));
       }
 
-      const result = await prisma.notification.updateMany({
-        where,
-        data: {
-          seen: true,
-          readAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
+      const targetNotifications = await db
+        .select({ id: notification.id })
+        .from(notification)
+        .where(and(...conditions));
 
-      // Batch: Log activity for all notifications in a transaction
-      // This reduces connection usage from N sequential queries to 1 transaction
-      const notifications = await prisma.notification.findMany({
-        where,
-        select: { id: true },
-      });
+      const targetIds = targetNotifications.map((n) => n.id);
 
-      if (notifications.length > 0) {
-        await prisma.$transaction(async (tx) => {
-          await tx.notificationActivityLog.createMany({
-            data: notifications.map(notification => ({
+      if (targetIds.length === 0) {
+        return { count: 0 };
+      }
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(notification)
+          .set({
+            seen: true,
+            readAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(and(...conditions));
+
+        await tx.insert(notificationActivityLog).values(
+          targetIds.map((notificationId) => ({
               id: randomUUID(),
-              notificationId: notification.id,
+              notificationId,
               userId: authenticatedUser.id,
               action: "MARK_SEEN",
               description: "Notification marked as seen (bulk)",
               metadata: null,
               createdAt: new Date(),
-            })) as any,
-          });
-        });
-      }
+            })),
+        );
+      });
 
-      return { count: result.count };
+      return { count: targetIds.length };
     }),
 
   // Delete a notification
@@ -812,16 +941,15 @@ export const notificationsRouter = router({
     .input(z.object({ id: z.string() }))
     .output(z.object({ success: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
-      const user = await getAuthenticatedUser(ctx);
+      const authUser = await getAuthenticatedUser(ctx);
 
-      const notification = await prisma.notification.findFirst({
-        where: {
-          id: input.id,
-          userId: user.id,
-        },
-      });
+      const [existingNotification] = await db
+        .select({ id: notification.id })
+        .from(notification)
+        .where(and(eq(notification.id, input.id), eq(notification.userId, authUser.id)))
+        .limit(1);
 
-      if (!notification) {
+      if (!existingNotification) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Notification not found",
@@ -830,15 +958,15 @@ export const notificationsRouter = router({
 
       // Log activity before deletion
       await logActivity(
-        notification.id,
-        user.id,
+        existingNotification.id,
+        authUser.id,
         "DELETE",
         "Notification deleted",
       );
 
-      await prisma.notification.delete({
-        where: { id: input.id },
-      });
+      await db
+        .delete(notification)
+        .where(and(eq(notification.id, input.id), eq(notification.userId, authUser.id)));
 
       return { success: true };
     }),

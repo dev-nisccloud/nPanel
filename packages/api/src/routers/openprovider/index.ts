@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { router, publicProcedure } from '../../trpc';
 import { openProviderAuthRouter } from './auth';
 import { openProviderTldRouter } from './tlds';
@@ -36,8 +35,7 @@ export const openProviderRouter = router({
    * Health check for OpenProvider integration
    */
   healthCheck: publicProcedure
-    .input(z.object({}).optional().default({}))
-    .query(async ({ input = {} }) => {
+    .query(async () => {
       try {
         // Try to authenticate to check if the service is working
         const { createOpenProviderClient } = await import('../../lib/openprovider-client');

@@ -37,7 +37,7 @@ export async function sendEmail({
   maxRetries?: number;
 }) {
   let lastError: unknown;
-  
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       // Use the basic email sending approach without React components
@@ -48,7 +48,7 @@ export async function sendEmail({
         html?: string;
         text?: string;
       } = {
-        from: process.env.RESEND_FROM_EMAIL || "nPanel <noreply@npanel.com>",
+        from: process.env.RESEND_FROM_EMAIL || "npanel <noreply@npanel.com>",
         to: [to],
         subject,
       };
@@ -72,7 +72,7 @@ export async function sendEmail({
 
       if (error) {
         // Check if it's a rate limit error
-        const isRateLimitError = 
+        const isRateLimitError =
           (error as { statusCode?: number }).statusCode === 429 ||
           (error as { name?: string }).name === "rate_limit_exceeded";
 
@@ -92,20 +92,20 @@ export async function sendEmail({
       return data;
     } catch (error) {
       lastError = error;
-      
+
       // If it's not a rate limit error or we're out of retries, throw
       if (attempt === maxRetries - 1) {
         console.error("Email service error after all retries:", error);
         throw error;
       }
-      
+
       // Wait before retrying
       const backoffDelay = Math.pow(2, attempt) * 1000;
       console.log(`Error sending email, retrying in ${backoffDelay}ms (attempt ${attempt + 1}/${maxRetries})`);
       await delay(backoffDelay);
     }
   }
-  
+
   throw lastError;
 }
 
@@ -128,7 +128,7 @@ export async function sendEmailBatch(
     try {
       await sendEmail(email);
       results.push({ success: true, email: email.to });
-      
+
       // Add delay before next email (except for the last one)
       if (email !== emails[emails.length - 1]) {
         await delay(delayBetweenEmails);
@@ -136,12 +136,12 @@ export async function sendEmailBatch(
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       console.error(`Failed to send email to ${email.to}:`, errorMessage);
-      results.push({ 
-        success: false, 
-        email: email.to, 
-        error: errorMessage 
+      results.push({
+        success: false,
+        email: email.to,
+        error: errorMessage
       });
-      
+
       // Still add delay even on failure to respect rate limits
       if (email !== emails[emails.length - 1]) {
         await delay(delayBetweenEmails);

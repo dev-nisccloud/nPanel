@@ -1,59 +1,74 @@
-import { headers } from "next/headers";
 import flags from "./country-flags";
 import { currencies } from "./currencies";
 import { EU_COUNTRY_CODES } from "./eu-countries";
 import timezones from "./timezones.json";
 
-export async function getCountryCode() {
-  const headersList = await headers();
-
-  return headersList.get("x-vercel-ip-country") || "SE";
+function header(headers: Headers | undefined, name: string, fallback: string): string {
+  if (!headers) return fallback;
+  return headers.get(name) || fallback;
 }
 
-export async function getTimezone() {
-  const headersList = await headers();
-
-  return headersList.get("x-vercel-ip-timezone") || "Europe/Berlin";
+/**
+ * Geo/locale hints from request headers (e.g. `x-vercel-ip-*` on Vercel).
+ * Pass `request.headers` from your server (Hono, RR resource route, etc.).
+ * In the browser, there are no geo headers — defaults apply.
+ */
+export function getCountryCodeSync(headers?: Headers): string {
+  return header(headers, "x-vercel-ip-country", "SE");
 }
 
-export async function getLocale() {
-  const headersList = await headers();
+export function getTimezoneSync(headers?: Headers): string {
+  return header(headers, "x-vercel-ip-timezone", "Europe/Berlin");
+}
 
-  return headersList.get("x-vercel-ip-locale") || "en-US";
+export function getLocaleSync(headers?: Headers): string {
+  return header(headers, "x-vercel-ip-locale", "en-US");
+}
+
+/** @deprecated Prefer `getCountryCodeSync(headers)` with request headers on the server. */
+export async function getCountryCode(headers?: Headers) {
+  return getCountryCodeSync(headers);
+}
+
+/** @deprecated Prefer `getTimezoneSync(headers)`. */
+export async function getTimezone(headers?: Headers) {
+  return getTimezoneSync(headers);
+}
+
+/** @deprecated Prefer `getLocaleSync(headers)`. */
+export async function getLocale(headers?: Headers) {
+  return getLocaleSync(headers);
 }
 
 export function getTimezones() {
   return timezones;
 }
-export async function getCurrency() {
-  const countryCode = await getCountryCode();
 
+export async function getCurrency(headers?: Headers) {
+  const countryCode = await getCountryCode(headers);
   return currencies[countryCode as keyof typeof currencies];
 }
 
-export async function getDateFormat() {
-  const country = await getCountryCode();
+export async function getDateFormat(headers?: Headers) {
+  const country = await getCountryCode(headers);
 
-  // US uses MM/dd/yyyy
   if (country === "US") {
     return "MM/dd/yyyy";
   }
 
-  // China, Japan, Korea, Taiwan use yyyy-MM-dd
   if (["CN", "JP", "KR", "TW"].includes(country)) {
     return "yyyy-MM-dd";
   }
-  // Most Latin American, African, and some Asian countries use dd/MM/yyyy
+
   if (["AU", "NZ", "IN", "ZA", "BR", "AR"].includes(country)) {
     return "dd/MM/yyyy";
   }
 
-  // Default to yyyy-MM-dd for other countries
   return "yyyy-MM-dd";
 }
 
-export async function isEU() {
-  const countryCode = await getCountryCode();
+export async function isEU(headers?: Headers) {
+  const countryCode = await getCountryCode(headers);
 
   if (countryCode && EU_COUNTRY_CODES.includes(countryCode)) {
     return true;
@@ -62,10 +77,9 @@ export async function isEU() {
   return false;
 }
 
-export async function getCountry() {
-  const country = await getCountryCode();
+export async function getCountry(headers?: Headers) {
+  const country = await getCountryCode(headers);
 
-  // Type guard to ensure country is a key of flags
   if (country && Object.prototype.hasOwnProperty.call(flags, country)) {
     return flags[country as keyof typeof flags];
   }

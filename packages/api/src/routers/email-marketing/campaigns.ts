@@ -1,7 +1,17 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../../trpc";
-import prisma from "@nPanel/db";
+import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import * as crypto from "crypto";
+import { db } from "@npanel/db";
+import { user as userTable } from "@npanel/db/schema/auth";
+import { teamMember } from "@npanel/db/schema/teams";
+import { notification } from "@npanel/db/schema/notifications";
+import {
+  campaignRecipient,
+  emailCampaign,
+  emailCampaignActivityLog,
+  emailCampaignSendJob,
+  emailDomain,
+} from "@npanel/db/schema/email-marketing";
 import { enqueueCampaignSend, cancelCampaignSend } from "../../lib/qstash/campaign-send";
 import { sendEmail } from "../../lib/email";
 import {
@@ -22,6 +32,8 @@ import {
 	campaignRecipientListFiltersSchema,
 	campaignRecipientListResponseSchema,
 } from "./schemas";
+import { z } from "zod";
+import { protectedProcedure, router } from "../../trpc";
 
 /** Build campaign view link using NEXT_PUBLIC_APP_URL as-is (no extra redirects). */
 function getCampaignViewLink(campaignId: string): string {
@@ -45,6 +57,64 @@ function mapRecipient(r: {
 	});
 }
 
+async function assertTeamMember(teamId: string, userId: string) {
+  const [member] = await db
+    .select({ id: teamMember.id })
+    .from(teamMember)
+    .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+    .limit(1);
+
+  if (!member) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+  }
+}
+
+async function assertCampaignAccess(campaignId: string, userId: string) {
+  const [campaign] = await db
+    .select({
+      id: emailCampaign.id,
+      userId: emailCampaign.userId,
+      teamId: emailCampaign.teamId,
+      name: emailCampaign.name,
+      status: emailCampaign.status,
+      emailDomainId: emailCampaign.emailDomainId,
+      subject: emailCampaign.subject,
+      fromEmail: emailCampaign.fromEmail,
+      fromName: emailCampaign.fromName,
+      description: emailCampaign.description,
+      htmlContent: emailCampaign.htmlContent,
+      textContent: emailCampaign.textContent,
+      scheduledAt: emailCampaign.scheduledAt,
+      sentAt: emailCampaign.sentAt,
+      createdAt: emailCampaign.createdAt,
+      updatedAt: emailCampaign.updatedAt,
+    })
+    .from(emailCampaign)
+    .where(eq(emailCampaign.id, campaignId))
+    .limit(1);
+
+  if (!campaign) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+  }
+
+  if (campaign.userId === userId) return campaign;
+
+  if (campaign.teamId) {
+    await assertTeamMember(campaign.teamId, userId);
+    return campaign;
+  }
+
+  throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
+
+async function fetchRecipients(campaignId: string) {
+  return await db
+    .select()
+    .from(campaignRecipient)
+    .where(eq(campaignRecipient.campaignId, campaignId))
+    .orderBy(desc(campaignRecipient.createdAt));
+}
+
 export const emailMarketingCampaignsRouter = router({
 	create: protectedProcedure
 		.input(campaignCreateInputSchema)
@@ -58,9 +128,11 @@ export const emailMarketingCampaignsRouter = router({
 			}
 
 			if (input.emailDomainId) {
-				const domain = await prisma.emailDomain.findUnique({
-					where: { id: input.emailDomainId },
-				});
+				const [domain] = await db
+          .select({ id: emailDomain.id, status: emailDomain.status })
+          .from(emailDomain)
+          .where(eq(emailDomain.id, input.emailDomainId))
+          .limit(1);
 				if (!domain || domain.status !== "VERIFIED") {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
@@ -77,93 +149,95 @@ export const emailMarketingCampaignsRouter = router({
 			}
 
 			const now = new Date();
-			const campaign = await prisma.$transaction(async (tx) => {
-				const newCampaign = await tx.emailCampaign.create({
-					data: {
-						id: crypto.randomUUID(),
-						name: input.name,
-						description: input.description ?? null,
-						subject: input.subject,
-						fromEmail: input.fromEmail,
-						fromName: input.fromName ?? null,
-						status: "DRAFT",
-						htmlContent: input.htmlContent ?? null,
-						textContent: input.textContent ?? null,
-						scheduledAt: input.scheduledAt ?? null,
-						emailDomainId: input.emailDomainId ?? null,
-						userId,
-						teamId: input.teamId ?? null,
-						createdAt: now,
-						updatedAt: now,
-					},
-				});
+			const campaignId = await db.transaction(async (tx: any) => {
+        const id = crypto.randomUUID();
+        await tx.insert(emailCampaign).values({
+          id,
+          name: input.name,
+          description: input.description ?? null,
+          subject: input.subject,
+          fromEmail: input.fromEmail,
+          fromName: input.fromName ?? null,
+          status: "DRAFT",
+          htmlContent: input.htmlContent ?? null,
+          textContent: input.textContent ?? null,
+          scheduledAt: input.scheduledAt ?? null,
+          sentAt: null,
+          emailDomainId: input.emailDomainId ?? null,
+          userId,
+          teamId: input.teamId ?? null,
+          createdAt: now,
+          updatedAt: now,
+        });
 
-				if (input.recipientEmails.length > 0) {
-					await tx.campaignRecipient.createMany({
-						data: input.recipientEmails.map((email) => ({
-							id: crypto.randomUUID(),
-							campaignId: newCampaign.id,
-							toEmail: email,
-							createdAt: now,
-							updatedAt: now,
-						})),
-					});
-				}
+        if (input.recipientEmails.length > 0) {
+          await tx.insert(campaignRecipient).values(
+            input.recipientEmails.map((email) => ({
+              id: crypto.randomUUID(),
+              campaignId: id,
+              toEmail: email,
+              resendId: null,
+              resendMessageId: null,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          );
+        }
 
-				await tx.emailCampaignActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId,
-						campaignId: newCampaign.id,
-						action: "CREATE",
-						description: `Campaign ${input.name} created`,
-						createdAt: now,
-					},
-				});
+        await tx.insert(emailCampaignActivityLog).values({
+          id: crypto.randomUUID(),
+          userId,
+          campaignId: id,
+          action: "CREATE",
+          description: `Campaign ${input.name} created`,
+          metadata: null,
+          ipAddress: null,
+          userAgent: null,
+          createdAt: now,
+        });
 
-				return newCampaign;
-			});
+        return id;
+      });
 
-			const recipients = await prisma.campaignRecipient.findMany({
-				where: { campaignId: campaign.id },
-			});
+      const campaign = await assertCampaignAccess(campaignId, userId);
+			const recipients = await fetchRecipients(campaignId);
 
 			// Notify creator: email + in-app notification (fire-and-forget style; don't block response)
 			const viewCampaignLink = getCampaignViewLink(campaign.id);
 			try {
-				const user = await prisma.user.findUnique({
-					where: { id: userId },
-					select: { name: true, email: true },
-				});
-				if (user?.email) {
+				const [u] = await db
+          .select({ name: userTable.name, email: userTable.email })
+          .from(userTable)
+          .where(eq(userTable.id, userId))
+          .limit(1);
+				if (u?.email) {
 					const html = await renderCampaignCreatedEmail({
-						recipientName: user.name ?? undefined,
+						recipientName: u.name ?? undefined,
 						campaignName: campaign.name,
 						subject: campaign.subject,
 						recipientCount: recipients.length,
 						viewCampaignLink,
 					});
 					await sendEmail({
-						to: user.email,
+						to: u.email,
 						subject: `Campaign created: ${campaign.name}`,
 						html,
 					});
 				}
-				await prisma.notification.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId,
-						teamId: campaign.teamId ?? null,
-						type: "EMAIL_MARKETING",
-						priority: "NORMAL",
-						title: "Campaign created",
-						message: `Your campaign "${campaign.name}" has been created.`,
-						link: viewCampaignLink,
-						seen: false,
-						createdAt: new Date(),
-						updatedAt: new Date(),
-					},
-				});
+				await db.insert(notification).values({
+          id: crypto.randomUUID(),
+          userId,
+          teamId: campaign.teamId ?? null,
+          type: "EMAIL_MARKETING",
+          priority: "NORMAL",
+          title: "Campaign created",
+          message: `Your campaign "${campaign.name}" has been created.`,
+          link: viewCampaignLink,
+          seen: false,
+          readAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
 			} catch (err) {
 				// Log but don't fail the create mutation
 				console.error("Campaign created notification/email failed:", err);
@@ -194,38 +268,8 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.emailCampaign.findUnique({
-				where: { id: input.id },
-				include: { recipients: true },
-			});
-
-			if (!campaign) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Campaign not found",
-				});
-			}
-
-			if (campaign.userId !== userId) {
-				if (campaign.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: campaign.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
+			const campaign = await assertCampaignAccess(input.id, userId);
+      const recipients = await fetchRecipients(input.id);
 
 			return campaignDetailSchema.parse({
 				...campaign,
@@ -236,8 +280,8 @@ export const emailMarketingCampaignsRouter = router({
 				textContent: campaign.textContent ?? null,
 				scheduledAt: campaign.scheduledAt ?? null,
 				sentAt: campaign.sentAt ?? null,
-				recipientCount: campaign.recipients.length,
-				recipients: campaign.recipients.map(mapRecipient),
+				recipientCount: recipients.length,
+				recipients: recipients.map(mapRecipient),
 			});
 		}),
 
@@ -252,39 +296,58 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const where: {
-				OR: Array<Record<string, unknown>>;
-				status?: "DRAFT" | "SCHEDULED" | "COMPLETED" | "FAILED" | "CANCELLED";
-				name?: { contains: string; mode: "insensitive" };
-			} = {
-				OR: [
-					{ userId },
-					...(input.teamId
-						? [
-								{
-									teamId: input.teamId,
-									team: {
-										members: { some: { userId } },
-									},
-								},
-							]
-						: []),
-				],
-			};
+      const accessOr = [eq(emailCampaign.userId, userId)];
+      if (input.teamId) {
+        accessOr.push(
+          sql`(${emailCampaign.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`,
+        );
+      }
 
-			if (input.status) where.status = input.status;
-			if (input.search) where.name = { contains: input.search, mode: "insensitive" };
+      const conditions = [or(...accessOr)];
+      if (input.status) conditions.push(eq(emailCampaign.status, input.status));
+      if (input.search) conditions.push(ilike(emailCampaign.name, `%${input.search}%`));
 
-			const [campaigns, total] = await Promise.all([
-				prisma.emailCampaign.findMany({
-					where,
-					skip: input.offset,
-					take: input.limit,
-					orderBy: { createdAt: "desc" },
-					include: { _count: { select: { recipients: true } } },
-				}),
-				prisma.emailCampaign.count({ where }),
-			]);
+      const whereClause = and(...conditions);
+
+      const [campaigns, totalRes] = await Promise.all([
+        db
+          .select({
+            id: emailCampaign.id,
+            name: emailCampaign.name,
+            subject: emailCampaign.subject,
+            fromEmail: emailCampaign.fromEmail,
+            status: emailCampaign.status,
+            userId: emailCampaign.userId,
+            teamId: emailCampaign.teamId,
+            createdAt: emailCampaign.createdAt,
+            updatedAt: emailCampaign.updatedAt,
+            scheduledAt: emailCampaign.scheduledAt,
+            sentAt: emailCampaign.sentAt,
+            recipientCount: count(campaignRecipient.id).as("recipientCount"),
+          })
+          .from(emailCampaign)
+          .leftJoin(campaignRecipient, eq(campaignRecipient.campaignId, emailCampaign.id))
+          .where(whereClause)
+          .groupBy(
+            emailCampaign.id,
+            emailCampaign.name,
+            emailCampaign.subject,
+            emailCampaign.fromEmail,
+            emailCampaign.status,
+            emailCampaign.userId,
+            emailCampaign.teamId,
+            emailCampaign.createdAt,
+            emailCampaign.updatedAt,
+            emailCampaign.scheduledAt,
+            emailCampaign.sentAt,
+          )
+          .orderBy(desc(emailCampaign.createdAt))
+          .limit(input.limit)
+          .offset(input.offset),
+        db.select({ value: count() }).from(emailCampaign).where(whereClause),
+      ]);
+
+      const total = Number(totalRes[0]?.value ?? 0);
 
 			return campaignListResponseSchema.parse({
 				campaigns: campaigns.map((c) => ({
@@ -293,7 +356,7 @@ export const emailMarketingCampaignsRouter = router({
 					subject: c.subject,
 					fromEmail: c.fromEmail,
 					status: c.status,
-					recipientCount: c._count.recipients,
+					recipientCount: Number((c as any).recipientCount ?? 0),
 					userId: c.userId,
 					teamId: c.teamId ?? null,
 					createdAt: c.createdAt,
@@ -316,24 +379,7 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.emailCampaign.findUnique({
-				where: { id: input.id },
-				include: { recipients: true },
-			});
-
-			if (!campaign) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Campaign not found",
-				});
-			}
-
-			if (campaign.userId !== userId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Access denied",
-				});
-			}
+			const campaign = await assertCampaignAccess(input.id, userId);
 
 			if (campaign.status === "COMPLETED" || campaign.status === "FAILED") {
 				throw new TRPCError({
@@ -343,67 +389,69 @@ export const emailMarketingCampaignsRouter = router({
 			}
 
 			const now = new Date();
-			const updated = await prisma.$transaction(async (tx) => {
-				const updatedCampaign = await tx.emailCampaign.update({
-					where: { id: input.id },
-					data: {
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(emailCampaign)
+					.set({
 						...(input.name && { name: input.name }),
 						...(input.description !== undefined && {
-							description: input.description,
+							description: input.description ?? null,
 						}),
 						...(input.subject && { subject: input.subject }),
 						...(input.fromEmail && { fromEmail: input.fromEmail }),
-						...(input.fromName !== undefined && { fromName: input.fromName }),
+						...(input.fromName !== undefined && { fromName: input.fromName ?? null }),
 						...(input.emailDomainId !== undefined && {
-							emailDomainId: input.emailDomainId ?? undefined,
+							emailDomainId: input.emailDomainId ?? null,
 						}),
 						...(input.htmlContent !== undefined && {
-							htmlContent: input.htmlContent,
+							htmlContent: input.htmlContent ?? null,
 						}),
 						...(input.textContent !== undefined && {
-							textContent: input.textContent,
+							textContent: input.textContent ?? null,
 						}),
 						...(input.scheduledAt !== undefined && {
-							scheduledAt: input.scheduledAt,
+							scheduledAt: input.scheduledAt ?? null,
 						}),
 						updatedAt: now,
-					},
-				});
+					})
+					.where(eq(emailCampaign.id, input.id));
 
 				if (input.recipientEmails !== undefined) {
-					await tx.campaignRecipient.deleteMany({
-						where: { campaignId: input.id },
-					});
+					await tx
+						.delete(campaignRecipient)
+						.where(eq(campaignRecipient.campaignId, input.id));
+
 					if (input.recipientEmails.length > 0) {
-						await tx.campaignRecipient.createMany({
-							data: input.recipientEmails.map((email) => ({
+						await tx.insert(campaignRecipient).values(
+							input.recipientEmails.map((email) => ({
 								id: crypto.randomUUID(),
 								campaignId: input.id,
 								toEmail: email,
+								resendId: null,
+								resendMessageId: null,
 								createdAt: now,
 								updatedAt: now,
 							})),
-						});
+						);
 					}
 				}
 
-				await tx.emailCampaignActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId,
-						campaignId: campaign.id,
-						action: "UPDATE",
-						description: `Campaign ${campaign.name} updated`,
-						createdAt: now,
-					},
+				await tx.insert(emailCampaignActivityLog).values({
+					id: crypto.randomUUID(),
+					userId,
+					campaignId: campaign.id,
+					action: "UPDATE",
+					description: `Campaign ${campaign.name} updated`,
+					metadata: null,
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
-
-				return updatedCampaign;
 			});
 
-			const recipients = await prisma.campaignRecipient.findMany({
-				where: { campaignId: updated.id },
-			});
+			const updated = await assertCampaignAccess(input.id, userId);
+			const recipients = await fetchRecipients(input.id);
 
 			return campaignDetailSchema.parse({
 				...updated,
@@ -430,27 +478,9 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.emailCampaign.findUnique({
-				where: { id: input.id },
-			});
+			await assertCampaignAccess(input.id, userId);
 
-			if (!campaign) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Campaign not found",
-				});
-			}
-
-			if (campaign.userId !== userId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Access denied",
-				});
-			}
-
-			await prisma.emailCampaign.delete({
-				where: { id: input.id },
-			});
+			await db.delete(emailCampaign).where(eq(emailCampaign.id, input.id));
 
 			return { success: true };
 		}),
@@ -466,24 +496,7 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.emailCampaign.findUnique({
-				where: { id: input.id },
-				include: { _count: { select: { recipients: true } } },
-			});
-
-			if (!campaign) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Campaign not found",
-				});
-			}
-
-			if (campaign.userId !== userId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Access denied",
-				});
-			}
+			const campaign = await assertCampaignAccess(input.id, userId);
 
 			if (campaign.status === "COMPLETED" || campaign.status === "FAILED") {
 				throw new TRPCError({
@@ -492,7 +505,13 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			if (campaign._count.recipients === 0) {
+			const [{ value: recipientsCountValue } = { value: 0 }] = await db
+				.select({ value: count(campaignRecipient.id) })
+				.from(campaignRecipient)
+				.where(eq(campaignRecipient.campaignId, campaign.id));
+			const recipientsCount = Number(recipientsCountValue ?? 0);
+
+			if (recipientsCount === 0) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Campaign has no recipients",
@@ -507,9 +526,15 @@ export const emailMarketingCampaignsRouter = router({
 			}
 
 			if (campaign.emailDomainId) {
-				const domain = await prisma.emailDomain.findUnique({
-					where: { id: campaign.emailDomainId },
-				});
+				const [domain] = await db
+					.select({
+						id: emailDomain.id,
+						status: emailDomain.status,
+					})
+					.from(emailDomain)
+					.where(eq(emailDomain.id, campaign.emailDomainId))
+					.limit(1);
+
 				if (!domain || domain.status !== "VERIFIED") {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
@@ -522,20 +547,31 @@ export const emailMarketingCampaignsRouter = router({
 			const scheduledFor =
 				input.immediate === true
 					? null
-					: campaign.scheduledAt != null && campaign.scheduledAt.getTime() > now.getTime()
+					: campaign.scheduledAt != null &&
+							campaign.scheduledAt.getTime() > now.getTime()
 						? campaign.scheduledAt
 						: null;
 
-			const sendJob = await prisma.emailCampaignSendJob.create({
-				data: {
+			const [sendJob] = await db
+				.insert(emailCampaignSendJob)
+				.values({
 					id: crypto.randomUUID(),
 					campaignId: campaign.id,
 					status: "QUEUED",
-					scheduledFor: scheduledFor ?? undefined,
+					scheduledFor,
 					createdAt: now,
 					updatedAt: now,
-				},
-			});
+				})
+				.returning({
+					id: emailCampaignSendJob.id,
+				});
+
+			if (!sendJob) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create campaign send job",
+				});
+			}
 
 			try {
 				const result = await enqueueCampaignSend(
@@ -544,61 +580,65 @@ export const emailMarketingCampaignsRouter = router({
 					scheduledFor,
 				);
 
-				await prisma.emailCampaignSendJob.update({
-					where: { id: sendJob.id },
-					data: {
+				await db
+					.update(emailCampaignSendJob)
+					.set({
 						qstashMessageId: result.messageId,
 						updatedAt: new Date(),
-					},
-				});
+					})
+					.where(eq(emailCampaignSendJob.id, sendJob.id));
 
 				if (scheduledFor != null) {
-					await prisma.emailCampaign.update({
-						where: { id: campaign.id },
-						data: { status: "SCHEDULED", updatedAt: new Date() },
-					});
+					await db
+						.update(emailCampaign)
+						.set({ status: "SCHEDULED", updatedAt: new Date() })
+						.where(eq(emailCampaign.id, campaign.id));
 				}
 
-				await prisma.emailCampaignActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId,
-						campaignId: campaign.id,
-						action: "SEND",
-						description:
-							scheduledFor != null
-								? `Campaign ${campaign.name} scheduled for ${scheduledFor.toISOString()}`
-								: `Campaign ${campaign.name} send queued`,
-						metadata: JSON.parse(
-							JSON.stringify({
-								sendJobId: sendJob.id,
-								messageId: result.messageId,
-								scheduledFor: result.scheduledFor ?? null,
-							}),
-						),
-						createdAt: new Date(),
-					},
+				await db.insert(emailCampaignActivityLog).values({
+					id: crypto.randomUUID(),
+					userId,
+					campaignId: campaign.id,
+					action: "SEND",
+					description:
+						scheduledFor != null
+							? `Campaign ${campaign.name} scheduled for ${scheduledFor.toISOString()}`
+							: `Campaign ${campaign.name} send queued`,
+					metadata: JSON.parse(
+						JSON.stringify({
+							sendJobId: sendJob.id,
+							messageId: result.messageId,
+							scheduledFor: result.scheduledFor ?? null,
+						}),
+					),
+					ipAddress: null,
+					userAgent: null,
+					createdAt: new Date(),
 				});
 
 				// When scheduled: send Campaign Scheduled email + in-app notification
 				if (scheduledFor != null) {
 					try {
 						const viewCampaignLink = getCampaignViewLink(campaign.id);
-						const user = await prisma.user.findUnique({
-							where: { id: userId },
-							select: { name: true, email: true },
-						});
-						const scheduledAtFormatted = scheduledFor.toLocaleString(undefined, {
-							dateStyle: "medium",
-							timeStyle: "short",
-						});
+						const [user] = await db
+							.select({ name: userTable.name, email: userTable.email })
+							.from(userTable)
+							.where(eq(userTable.id, userId))
+							.limit(1);
+						const scheduledAtFormatted = scheduledFor.toLocaleString(
+							undefined,
+							{
+								dateStyle: "medium",
+								timeStyle: "short",
+							},
+						);
 						if (user?.email) {
 							const html = await renderCampaignScheduledEmail({
 								recipientName: user.name ?? undefined,
 								campaignName: campaign.name,
 								subject: campaign.subject,
 								scheduledAt: scheduledAtFormatted,
-								recipientCount: campaign._count.recipients,
+								recipientCount: recipientsCount,
 								viewCampaignLink,
 							});
 							await sendEmail({
@@ -607,20 +647,19 @@ export const emailMarketingCampaignsRouter = router({
 								html,
 							});
 						}
-						await prisma.notification.create({
-							data: {
-								id: crypto.randomUUID(),
-								userId,
-								teamId: campaign.teamId ?? null,
-								type: "EMAIL_MARKETING",
-								priority: "NORMAL",
-								title: "Campaign scheduled",
-								message: `"${campaign.name}" is scheduled for ${scheduledAtFormatted}.`,
-								link: viewCampaignLink,
-								seen: false,
-								createdAt: new Date(),
-								updatedAt: new Date(),
-							},
+						await db.insert(notification).values({
+							id: crypto.randomUUID(),
+							userId,
+							teamId: campaign.teamId ?? null,
+							type: "EMAIL_MARKETING",
+							priority: "NORMAL",
+							title: "Campaign scheduled",
+							message: `"${campaign.name}" is scheduled for ${scheduledAtFormatted}.`,
+							link: viewCampaignLink,
+							seen: false,
+							readAt: null,
+							createdAt: new Date(),
+							updatedAt: new Date(),
 						});
 					} catch (err) {
 						console.error("Campaign scheduled notification/email failed:", err);
@@ -638,15 +677,17 @@ export const emailMarketingCampaignsRouter = router({
 					scheduledFor: result.scheduledFor ?? null,
 				};
 			} catch (error) {
-				await prisma.emailCampaignSendJob.update({
-					where: { id: sendJob.id },
-					data: {
+				await db
+					.update(emailCampaignSendJob)
+					.set({
 						status: "FAILED",
 						errorMessage:
-							error instanceof Error ? error.message : "Failed to enqueue",
+							error instanceof Error
+								? error.message
+								: "Failed to enqueue",
 						updatedAt: new Date(),
-					},
-				});
+					})
+					.where(eq(emailCampaignSendJob.id, sendJob.id));
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message:
@@ -670,44 +711,7 @@ export const emailMarketingCampaignsRouter = router({
 			}
 
 			// Always fetch fresh from DB to avoid stale cache (e.g. UI showed SCHEDULED but campaign was already sent)
-			const campaign = await prisma.emailCampaign.findUnique({
-				where: { id: input.id },
-				include: {
-					sendJobs: {
-						where: { status: "QUEUED" },
-						orderBy: { createdAt: "desc" },
-						take: 1,
-					},
-				},
-			});
-
-			if (!campaign) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Campaign not found",
-				});
-			}
-
-			if (campaign.userId !== userId) {
-				if (campaign.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: campaign.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
+			const campaign = await assertCampaignAccess(input.id, userId);
 
 			if (campaign.status !== "SCHEDULED") {
 				const statusMessage =
@@ -724,11 +728,23 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const queuedJob = campaign.sendJobs[0];
+			const [queuedJob] = await db
+				.select()
+				.from(emailCampaignSendJob)
+				.where(
+					and(
+						eq(emailCampaignSendJob.campaignId, input.id),
+						eq(emailCampaignSendJob.status, "QUEUED"),
+					),
+				)
+				.orderBy(desc(emailCampaignSendJob.createdAt))
+				.limit(1);
+
 			if (!queuedJob) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "No scheduled send found for this campaign. It may have already run or been cancelled.",
+					message:
+						"No scheduled send found for this campaign. It may have already run or been cancelled.",
 				});
 			}
 
@@ -747,24 +763,25 @@ export const emailMarketingCampaignsRouter = router({
 				}
 			}
 
-			await prisma.$transaction(async (tx) => {
-				await tx.emailCampaignSendJob.update({
-					where: { id: queuedJob.id },
-					data: { status: "CANCELLED", updatedAt: now },
-				});
-				await tx.emailCampaign.update({
-					where: { id: input.id },
-					data: { status: "CANCELLED", updatedAt: now },
-				});
-				await tx.emailCampaignActivityLog.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId,
-						campaignId: input.id,
-						action: "CANCEL",
-						description: `Scheduled campaign ${campaign.name} cancelled at ${cancelledAtFormatted}`,
-						createdAt: now,
-					},
+			await db.transaction(async (tx) => {
+				await tx
+					.update(emailCampaignSendJob)
+					.set({ status: "CANCELLED", updatedAt: now })
+					.where(eq(emailCampaignSendJob.id, queuedJob.id));
+				await tx
+					.update(emailCampaign)
+					.set({ status: "CANCELLED", updatedAt: now })
+					.where(eq(emailCampaign.id, input.id));
+				await tx.insert(emailCampaignActivityLog).values({
+					id: crypto.randomUUID(),
+					userId,
+					campaignId: input.id,
+					action: "CANCEL",
+					description: `Scheduled campaign ${campaign.name} cancelled at ${cancelledAtFormatted}`,
+					metadata: null,
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
 			});
 
@@ -772,10 +789,7 @@ export const emailMarketingCampaignsRouter = router({
 			const viewCampaignLink = getCampaignViewLink(input.id);
 			const campaignsListLink = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "") + "/agency/email-marketing/campaigns";
 			try {
-				const user = await prisma.user.findUnique({
-					where: { id: userId },
-					select: { name: true, email: true },
-				});
+				const [user] = await db.select({ name: userTable.name, email: userTable.email }).from(userTable).where(eq(userTable.id, userId)).limit(1);
 				if (user?.email) {
 					const html = await renderCampaignCancelledEmail({
 						recipientName: user.name ?? undefined,
@@ -790,20 +804,19 @@ export const emailMarketingCampaignsRouter = router({
 						html,
 					});
 				}
-				await prisma.notification.create({
-					data: {
-						id: crypto.randomUUID(),
-						userId,
-						teamId: campaign.teamId ?? null,
-						type: "EMAIL_MARKETING",
-						priority: "NORMAL",
-						title: "Scheduled campaign cancelled",
-						message: `You cancelled "${campaign.name}" at ${cancelledAtFormatted}.`,
-						link: viewCampaignLink,
-						seen: false,
-						createdAt: now,
-						updatedAt: now,
-					},
+				await db.insert(notification).values({
+					id: crypto.randomUUID(),
+					userId,
+					teamId: campaign.teamId ?? null,
+					type: "EMAIL_MARKETING",
+					priority: "NORMAL",
+					title: "Scheduled campaign cancelled",
+					message: `You cancelled "${campaign.name}" at ${cancelledAtFormatted}.`,
+					link: viewCampaignLink,
+					seen: false,
+					readAt: null,
+					createdAt: now,
+					updatedAt: now,
 				});
 			} catch (err) {
 				console.error("Campaign cancelled notification/email failed:", err);
@@ -823,23 +836,7 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.emailCampaign.findUnique({
-				where: { id: input.campaignId },
-			});
-
-			if (!campaign) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Campaign not found",
-				});
-			}
-
-			if (campaign.userId !== userId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Access denied",
-				});
-			}
+			const campaign = await assertCampaignAccess(input.campaignId, userId);
 
 			if (campaign.status !== "DRAFT") {
 				throw new TRPCError({
@@ -849,25 +846,29 @@ export const emailMarketingCampaignsRouter = router({
 			}
 
 			const now = new Date();
-			const existing = await prisma.campaignRecipient.findMany({
-				where: { campaignId: input.campaignId },
-				select: { toEmail: true },
-			});
-			const existingSet = new Set(existing.map((r) => r.toEmail.toLowerCase()));
+			const existing = await db
+				.select({ toEmail: campaignRecipient.toEmail })
+				.from(campaignRecipient)
+				.where(eq(campaignRecipient.campaignId, input.campaignId));
+			const existingSet = new Set(
+				existing.map((r) => r.toEmail.toLowerCase()),
+			);
 			const toAdd = input.emails.filter(
 				(e) => !existingSet.has(e.toLowerCase()),
 			);
 
 			if (toAdd.length > 0) {
-				await prisma.campaignRecipient.createMany({
-					data: toAdd.map((email) => ({
+				await db.insert(campaignRecipient).values(
+					toAdd.map((email) => ({
 						id: crypto.randomUUID(),
 						campaignId: input.campaignId,
 						toEmail: email,
+						resendId: null,
+						resendMessageId: null,
 						createdAt: now,
 						updatedAt: now,
 					})),
-				});
+				);
 			}
 
 			return { added: toAdd.length };
@@ -884,54 +885,33 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-			const campaign = await prisma.emailCampaign.findUnique({
-				where: { id: input.campaignId },
-			});
+			await assertCampaignAccess(input.campaignId, userId);
 
-			if (!campaign) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Campaign not found",
-				});
-			}
-
-			if (campaign.userId !== userId) {
-				if (campaign.teamId) {
-					const member = await prisma.teamMember.findUnique({
-						where: {
-							teamId_userId: { teamId: campaign.teamId, userId },
-						},
-					});
-					if (!member) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Access denied",
-						});
-					}
-				} else {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-			}
-
-			const where: { campaignId: string; toEmail?: { contains: string; mode: "insensitive" } } = {
-				campaignId: input.campaignId,
-			};
+			const conditions = [eq(campaignRecipient.campaignId, input.campaignId)];
 			if (input.search) {
-				where.toEmail = { contains: input.search, mode: "insensitive" };
+				conditions.push(
+					ilike(campaignRecipient.toEmail, `%${input.search}%`),
+				);
 			}
 
-			const [recipients, total] = await Promise.all([
-				prisma.campaignRecipient.findMany({
-					where,
-					skip: input.offset,
-					take: input.limit,
-					orderBy: { createdAt: "desc" },
-				}),
-				prisma.campaignRecipient.count({ where }),
+			const whereClause =
+				conditions.length === 1 ? conditions[0] : and(...conditions);
+
+			const [recipients, totalRes] = await Promise.all([
+				db
+					.select()
+					.from(campaignRecipient)
+					.where(whereClause)
+					.orderBy(desc(campaignRecipient.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ value: count(campaignRecipient.id) })
+					.from(campaignRecipient)
+					.where(whereClause),
 			]);
+
+			const total = Number(totalRes[0]?.value ?? 0);
 
 			return campaignRecipientListResponseSchema.parse({
 				recipients: recipients.map(mapRecipient),

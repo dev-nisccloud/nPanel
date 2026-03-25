@@ -1,5 +1,11 @@
 import { TRPCError } from "@trpc/server";
-import prisma from "@nPanel/db";
+import { db } from "@npanel/db";
+import { user as userTable } from "@npanel/db/schema/auth";
+import { teamMember, team as teamTable } from "@npanel/db/schema/teams";
+import {
+  paymentTransaction,
+} from "@npanel/db/schema/payment-transactions";
+import { and, count, desc, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, router, type Context } from "../trpc";
 
@@ -59,10 +65,11 @@ async function getAuthenticatedUser(ctx: Context) {
 	}
 
 	// Fallback: Query database if role not in session (shouldn't happen with proper auth hooks)
-	const dbUser = await prisma.user.findUnique({
-		where: { id: user.id },
-		select: { id: true, role: true },
-	});
+	const [dbUser] = await db
+		.select({ id: userTable.id, role: userTable.role })
+		.from(userTable)
+		.where(eq(userTable.id, user.id))
+		.limit(1);
 
 	if (!dbUser) {
 		throw new TRPCError({
@@ -96,79 +103,83 @@ export const paymentTransactionsRouter = router({
 		.query(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
 
-			const filters: Record<string, unknown>[] = [];
+			const conditions: any[] = [];
 
 			// For agency users, show all transactions
 			// For customers, filter by their user ID or team
 			if (!isAgencyUser(user.role)) {
-				const memberships = await prisma.teamMember.findMany({
-					where: { userId: user.id },
-					select: { teamId: true },
-				});
+				const memberships = await db
+					.select({ teamId: teamMember.teamId })
+					.from(teamMember)
+					.where(eq(teamMember.userId, user.id));
 
-				const accessibleTeams = memberships.map((membership) => membership.teamId);
-				const accessConditions: Record<string, unknown>[] = [
-					{ userId: user.id },
-				];
+				const accessibleTeams = memberships.map(
+					(membership: { teamId: string }) => membership.teamId,
+				);
+				const accessConditions =
+					accessibleTeams.length > 0
+						? or(
+								eq(paymentTransaction.userId, user.id),
+								inArray(paymentTransaction.teamId, accessibleTeams),
+							)
+						: eq(paymentTransaction.userId, user.id);
 
-				if (accessibleTeams.length > 0) {
-					accessConditions.push({
-						teamId: { in: accessibleTeams },
-					});
-				}
-
-				filters.push({ OR: accessConditions });
+				conditions.push(accessConditions);
 			}
 
 			if (input.status) {
-				filters.push({ status: input.status });
+				conditions.push(eq(paymentTransaction.status, input.status));
 			}
 
 			if (input.gateway) {
-				filters.push({ gateway: input.gateway });
+				conditions.push(eq(paymentTransaction.gateway, input.gateway));
 			}
 
-			const where = filters.length > 0 ? { AND: filters } : undefined;
+			const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-			const [transactions, total] = await prisma.$transaction([
-				prisma.paymentTransaction.findMany({
-					where,
-					orderBy: { createdAt: "desc" },
-					skip: input.offset,
-					take: input.limit,
-					select: {
-						id: true,
-						userId: true,
-						teamId: true,
-						gateway: true,
-						status: true,
-						amount: true,
-						currency: true,
-						accountReference: true,
-						transactionDesc: true,
-						receiptNumber: true,
-						initiatedAt: true,
-						processedAt: true,
-						failedAt: true,
-						createdAt: true,
-						updatedAt: true,
-					},
-				}),
-				prisma.paymentTransaction.count({ where }),
+			const [transactions, totalRes] = await Promise.all([
+				db
+					.select({
+						id: paymentTransaction.id,
+						userId: paymentTransaction.userId,
+						teamId: paymentTransaction.teamId,
+						gateway: paymentTransaction.gateway,
+						status: paymentTransaction.status,
+						amount: paymentTransaction.amount,
+						currency: paymentTransaction.currency,
+						accountReference: paymentTransaction.accountReference,
+						transactionDesc: paymentTransaction.transactionDesc,
+						receiptNumber: paymentTransaction.receiptNumber,
+						initiatedAt: paymentTransaction.initiatedAt,
+						processedAt: paymentTransaction.processedAt,
+						failedAt: paymentTransaction.failedAt,
+						createdAt: paymentTransaction.createdAt,
+						updatedAt: paymentTransaction.updatedAt,
+					})
+					.from(paymentTransaction)
+					.where(whereClause)
+					.orderBy(desc(paymentTransaction.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ total: count() })
+					.from(paymentTransaction)
+					.where(whereClause),
 			]);
+			const total = totalRes[0]?.total ?? 0;
 
-			const userIds = [...new Set(transactions.map((t) => t.userId))];
+			const userIds = [...new Set(transactions.map((t: { userId: string }) => t.userId))];
 			const users =
 				userIds.length > 0
-					? await prisma.user.findMany({
-							where: { id: { in: userIds } },
-							select: { id: true, name: true },
-						})
+					? await db
+							.select({ id: userTable.id, name: userTable.name })
+							.from(userTable)
+							.where(inArray(userTable.id, userIds))
 					: [];
-			const userMap = new Map(users.map((u) => [u.id, u.name]));
+			const userMap = new Map(users.map((u: { id: string; name: string }) => [u.id, u.name]));
 
 			return {
-				transactions: transactions.map((t) =>
+				transactions: transactions.map((t: any) =>
 					paymentTransactionOutputSchema.parse({
 						id: t.id,
 						userId: t.userId,
@@ -230,9 +241,11 @@ export const paymentTransactionsRouter = router({
 		.query(async ({ ctx, input }) => {
 			await getAuthenticatedUser(ctx);
 
-			const tx = await prisma.paymentTransaction.findUnique({
-				where: { id: input.id },
-			});
+			const [tx] = await db
+				.select()
+				.from(paymentTransaction)
+				.where(eq(paymentTransaction.id, input.id))
+				.limit(1);
 			if (!tx) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
@@ -240,26 +253,30 @@ export const paymentTransactionsRouter = router({
 				});
 			}
 
-			const [user, team] = await Promise.all([
-				prisma.user.findUnique({
-					where: { id: tx.userId },
-					select: { name: true },
-				}),
+			const [userRow, teamRow] = await Promise.all([
+				db
+					.select({ name: userTable.name })
+					.from(userTable)
+					.where(eq(userTable.id, tx.userId))
+					.limit(1),
 				tx.teamId
-					? prisma.team.findUnique({
-							where: { id: tx.teamId },
-							select: { name: true },
-						})
-					: null,
+					? db
+							.select({ name: teamTable.name })
+							.from(teamTable)
+							.where(eq(teamTable.id, tx.teamId))
+							.limit(1)
+					: Promise.resolve([]),
 			]);
+			const userName = userRow[0]?.name ?? null;
+			const teamName = teamRow[0]?.name ?? null;
 
 			return {
 				id: tx.id,
 				userId: tx.userId,
 				teamId: tx.teamId,
-				userName: user?.name ?? null,
-				teamName: team?.name ?? null,
-				gateway: tx.gateway,
+				userName,
+				teamName,
+				gateway: paymentGatewaySchema.parse(tx.gateway),
 				gatewayStatus: tx.gatewayStatus,
 				gatewayMessage: tx.gatewayMessage,
 				gatewayTransactionId: tx.gatewayTransactionId,
@@ -272,7 +289,7 @@ export const paymentTransactionsRouter = router({
 				accountReference: tx.accountReference,
 				transactionDesc: tx.transactionDesc,
 				phoneNumber: tx.phoneNumber,
-				status: tx.status,
+				status: paymentTransactionStatusSchema.parse(tx.status),
 				rawResponse: tx.rawResponse as unknown,
 				rawError: tx.rawError as unknown,
 				initiatedAt: tx.initiatedAt,

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
-import prisma from "@nPanel/db";
+import { eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
 
 // Schema for notification preferences
 const notificationPreferencesSchema = z.object({
@@ -28,27 +30,28 @@ export const userRouter = router({
                 throw new Error("Unauthorized");
             }
 
-            const user = await prisma.user.findUnique({
-                where: { id: userId },
-                select: {
-                    notificationSoundEnabled: true,
-                    browserNotificationsEnabled: true,
-                    notificationSoundVolume: true,
-                    browserNotificationPermission: true,
-                    notificationPreferencesUpdatedAt: true,
-                },
-            });
+            const [userRow] = await db
+                .select({
+                    notificationSoundEnabled: user.notificationSoundEnabled,
+                    browserNotificationsEnabled: user.browserNotificationsEnabled,
+                    notificationSoundVolume: user.notificationSoundVolume,
+                    browserNotificationPermission: user.browserNotificationPermission,
+                    notificationPreferencesUpdatedAt: user.notificationPreferencesUpdatedAt,
+                })
+                .from(user)
+                .where(eq(user.id, userId))
+                .limit(1);
 
-            if (!user) {
+            if (!userRow) {
                 throw new Error("User not found");
             }
 
             return {
-                notificationSoundEnabled: user.notificationSoundEnabled ?? true,
-                browserNotificationsEnabled: user.browserNotificationsEnabled ?? false,
-                notificationSoundVolume: user.notificationSoundVolume ?? 100,
-                browserNotificationPermission: (user.browserNotificationPermission as "default" | "granted" | "denied" | null) ?? "default",
-                notificationPreferencesUpdatedAt: user.notificationPreferencesUpdatedAt,
+                notificationSoundEnabled: userRow.notificationSoundEnabled ?? true,
+                browserNotificationsEnabled: userRow.browserNotificationsEnabled ?? false,
+                notificationSoundVolume: userRow.notificationSoundVolume ?? 100,
+                browserNotificationPermission: (userRow.browserNotificationPermission as "default" | "granted" | "denied" | null) ?? "default",
+                notificationPreferencesUpdatedAt: userRow.notificationPreferencesUpdatedAt,
             };
         }),
 
@@ -62,20 +65,24 @@ export const userRouter = router({
                 throw new Error("Unauthorized");
             }
 
-            const updatedUser = await prisma.user.update({
-                where: { id: userId },
-                data: {
+            const [updatedUser] = await db
+                .update(user)
+                .set({
                     ...input,
                     notificationPreferencesUpdatedAt: new Date(),
-                },
-                select: {
-                    notificationSoundEnabled: true,
-                    browserNotificationsEnabled: true,
-                    notificationSoundVolume: true,
-                    browserNotificationPermission: true,
-                    notificationPreferencesUpdatedAt: true,
-                },
-            });
+                })
+                .where(eq(user.id, userId))
+                .returning({
+                    notificationSoundEnabled: user.notificationSoundEnabled,
+                    browserNotificationsEnabled: user.browserNotificationsEnabled,
+                    notificationSoundVolume: user.notificationSoundVolume,
+                    browserNotificationPermission: user.browserNotificationPermission,
+                    notificationPreferencesUpdatedAt: user.notificationPreferencesUpdatedAt,
+                });
+
+            if (!updatedUser) {
+                throw new Error("User not found");
+            }
 
             return {
                 notificationSoundEnabled: updatedUser.notificationSoundEnabled ?? true,

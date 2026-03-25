@@ -1,0 +1,26 @@
+import { QueryCache, QueryClient } from "@tanstack/react-query";
+import { createTRPCReact } from "@trpc/react-query";
+import type { AppRouter } from "@npanel/api";
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+
+import { toast } from "@/components/ui/sonner";
+
+export const queryClient = new QueryClient({
+	queryCache: new QueryCache({
+		onError: (error) => {
+			toast.error(error.message, {
+				action: {
+					label: "retry",
+					onClick: () => {
+						queryClient.invalidateQueries();
+					},
+				},
+			});
+		},
+	}),
+});
+
+export const trpc = createTRPCReact<AppRouter>();
+
+export type RouterInputs = inferRouterInputs<AppRouter>;
+export type RouterOutputs = inferRouterOutputs<AppRouter>;

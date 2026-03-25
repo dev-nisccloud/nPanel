@@ -1,5 +1,5 @@
 {
-  "name": "@nPanel/location",
+  "name": "@npanel/location",
   "version": "1.0.0",
   "main": "src/index.ts",
   "private": true,
@@ -22,11 +22,9 @@
     }
   },
   "devDependencies": {
-    "next": "catalog:",
     "typescript": "^5.9.2"
   },
   "peerDependencies": {
-    "next": "catalog:",
     "typescript": "^5.9.2"
   }
 }

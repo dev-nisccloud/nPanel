@@ -2,7 +2,6 @@
 import { z } from "zod";
 import { router, publicProcedure } from "../../trpc";
 import { sendPleskRestRequest } from "../../lib/plesk/rest-client";
-import { TRPCError } from "@trpc/server";
 
 export const wpFeaturesRouter = router({
   // --- Integrity ---

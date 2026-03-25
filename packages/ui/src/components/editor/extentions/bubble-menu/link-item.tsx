@@ -8,8 +8,8 @@ import {
   MdOutlineDelete,
   MdOutlineLinkOff,
 } from "react-icons/md";
-import { Button } from "../../../button";
-import { Popover, PopoverContent, PopoverTrigger } from "../../../popover";
+import { Button } from "@npanel/ui/components/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@npanel/ui/components/popover";
 import { formatUrlWithProtocol } from "../../utils";
 import { BubbleMenuButton } from "./bubble-menu-button";
 

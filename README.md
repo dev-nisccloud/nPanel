@@ -1,19 +1,17 @@
-# nPanel
-
-This project was created with [Better-T-Stack], a modern TypeScript stack that combines Next.js, Self, TRPC, and more.
-
+# npanel
 ## Features
 
 - **TypeScript** - For type safety and improved developer experience
-- **Next.js** - Full-stack React framework
+- **React Router** - Declarative routing for React
 - **TailwindCSS** - Utility-first CSS for rapid UI development
-- **shadcn/ui** - Reusable UI components
+- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
+- **Hono** - Lightweight, performant server framework
 - **tRPC** - End-to-end type-safe APIs
-- **Prisma** - TypeScript-first ORM
+- **Bun** - Runtime environment
+- **Drizzle** - TypeScript-first ORM
 - **PostgreSQL** - Database engine
 - **Authentication** - Better-Auth
 - **PWA** - Progressive Web App support
-- **Tauri** - Build native desktop applications
 - **Turborepo** - Optimized monorepo build system
 
 ## Getting Started
@@ -21,42 +19,71 @@ This project was created with [Better-T-Stack], a modern TypeScript stack that c
 First, install the dependencies:
 
 ```bash
-pnpm install
+bun install
 ```
+
 ## Database Setup
 
-This project uses PostgreSQL with Prisma.
+This project uses PostgreSQL with Drizzle ORM.
 
 1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/web/.env` file with your PostgreSQL connection details.
+2. Update your `apps/server/.env` file with your PostgreSQL connection details.
 
-3. Generate the Prisma client and push the schema:
+3. Apply the schema to your database:
+
 ```bash
-pnpm db:push
+bun run db:push
 ```
-
 
 Then, run the development server:
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see your fullstack application.
+Open [http://localhost:5173](http://localhost:5173) in your browser to see the web application.
+The API is running at [http://localhost:3000](http://localhost:3000).
 
+## UI Customization
 
+React web apps in this stack share shadcn/ui primitives through `packages/ui`.
 
+- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
+- Update shared primitives in `packages/ui/src/components/*`
+- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
 
+### Add more shared components
 
+Run this from the project root to add more primitives to the shared UI package:
 
+```bash
+npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
+```
+
+Import shared components like this:
+
+```tsx
+import { Button } from "@npanel/ui/components/button";
+```
+
+### Add app-specific blocks
+
+If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
+
+## PWA Support with React Router v7
+
+There is a known compatibility issue between VitePWA and React Router v7.
+See: https://github.com/vite-pwa/vite-plugin-pwa/issues/809
 
 ## Project Structure
 
 ```
-nPanel/
+npanel/
 ├── apps/
-│   └── web/         # Fullstack application (Next.js)
+│   ├── web/         # Frontend application (React + React Router)
+│   └── server/      # Backend API (Hono, TRPC)
 ├── packages/
+│   ├── ui/          # Shared shadcn/ui components and styles
 │   ├── api/         # API layer / business logic
 │   ├── auth/        # Authentication configuration & logic
 │   └── db/          # Database schema & queries
@@ -64,11 +91,13 @@ nPanel/
 
 ## Available Scripts
 
-- `pnpm dev`: Start all applications in development mode
-- `pnpm build`: Build all applications
-- `pnpm check-types`: Check TypeScript types across all apps
-- `pnpm db:push`: Push schema changes to database
-- `pnpm db:studio`: Open database studio UI
-- `cd apps/web && pnpm generate-pwa-assets`: Generate PWA assets
-- `cd apps/web && pnpm desktop:dev`: Start Tauri desktop app in development
-- `cd apps/web && pnpm desktop:build`: Build Tauri desktop app
+- `bun run dev`: Start all applications in development mode
+- `bun run build`: Build all applications
+- `bun run dev:web`: Start only the web application
+- `bun run dev:server`: Start only the server
+- `bun run check-types`: Check TypeScript types across all apps
+- `bun run db:push`: Push schema changes to database(Always generate  and migrate never use the push command at all unless you are sure to avoid migration conflicts)
+- `bun run db:generate`: Generate database client/types
+- `bun run db:migrate`: Run database migrations
+- `bun run db:studio`: Open database studio UI
+- `cd apps/web && bun run generate-pwa-assets`: Generate PWA assets

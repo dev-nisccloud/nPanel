@@ -1,12 +1,15 @@
-import * as crypto from "crypto";
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { desc, eq } from "drizzle-orm";
+import * as crypto from "crypto";
+import { db } from "@npanel/db";
+import { user as userTable } from "@npanel/db/schema/auth";
+import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
+import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
 import { rdapLookup } from "../lib/rdap/client";
 import { createOpenProviderClient, OpenProviderApiError } from "../lib/openprovider-client";
 import { executeKenicTransferRequest } from "../lib/kenic-transfer-request";
-import prisma from "@nPanel/db";
 
 /**
  * Parse domain into name and extension (extension without leading dot).
@@ -70,6 +73,25 @@ function buildReturn(
 		error: opts.error ?? null,
 	};
 }
+
+type DomainTransferRequestListItem = {
+	id: string;
+	domainName: string;
+	provider: string;
+	status: string;
+	providerPriceAmount: string | null;
+	providerPriceCurrency: string | null;
+	customerPriceAmount: string | null;
+	customerPriceCurrency: string | null;
+	submittedToProviderAt: Date | null;
+	createdAt: Date;
+	updatedAt: Date;
+	createdBy: {
+		id: string;
+		name: string;
+		email: string;
+	};
+};
 
 export const domainTransferRouter = router({
 	/**
@@ -247,22 +269,23 @@ export const domainTransferRouter = router({
 			const now = new Date();
 			const id = crypto.randomUUID();
 
-			const record = await prisma.domainTransferRequest.create({
-				data: {
-					id,
-					domainName: input.domain,
-					authCode: input.authCode,
-					provider: input.provider === "kenic" ? "KENIC" : "OPENPROVIDER",
-					status: "PENDING",
-					providerPriceAmount: input.providerPriceAmount ?? null,
-					providerPriceCurrency: input.providerPriceCurrency ?? null,
-					customerPriceAmount: input.customerPriceAmount ?? null,
-					customerPriceCurrency: input.customerPriceCurrency ?? null,
-					teamId: input.teamId ?? null,
-					createdById: userId,
-					createdAt: now,
-					updatedAt: now,
-				},
+			await db.insert(domainTransferRequest).values({
+				id,
+				domainName: input.domain,
+				authCode: input.authCode,
+				provider: input.provider === "kenic" ? "KENIC" : "OPENPROVIDER",
+				status: "PENDING",
+				providerPriceAmount: input.providerPriceAmount ?? null,
+				providerPriceCurrency: input.providerPriceCurrency ?? null,
+				customerPriceAmount: input.customerPriceAmount ?? null,
+				customerPriceCurrency: input.customerPriceCurrency ?? null,
+				teamId: input.teamId ?? null,
+				createdById: userId,
+				createdAt: now,
+				updatedAt: now,
+				niscOrderId: null,
+				submittedToProviderAt: null,
+				providerResponse: null,
 			});
 
 			try {
@@ -272,16 +295,16 @@ export const domainTransferRouter = router({
 						authCode: input.authCode,
 						period: 1,
 					});
-					await prisma.domainTransferRequest.update({
-						where: { id: record.id },
-						data: {
+					await db
+						.update(domainTransferRequest)
+						.set({
 							status: "SUBMITTED_TO_PROVIDER",
 							submittedToProviderAt: new Date(),
 							providerResponse: result as unknown as object,
 							updatedAt: new Date(),
-						},
-					});
-					return { success: true, id: record.id, pending: result.pending, domain: result.domain };
+						})
+						.where(eq(domainTransferRequest.id, id));
+					return { success: true, id, pending: result.pending, domain: result.domain };
 				}
 
 				const client = createOpenProviderClient();
@@ -300,41 +323,42 @@ export const domainTransferRouter = router({
 					autorenew: "default",
 				});
 				if (response.code !== 0) {
-					await prisma.domainTransferRequest.update({
-						where: { id: record.id },
-						data: {
+					await db
+						.update(domainTransferRequest)
+						.set({
 							status: "FAILED",
 							providerResponse: { code: response.code, desc: response.desc },
 							updatedAt: new Date(),
-						},
-					});
+						})
+						.where(eq(domainTransferRequest.id, id));
 					throw new TRPCError({ code: "BAD_REQUEST", message: response.desc ?? "Transfer failed" });
 				}
-				await prisma.domainTransferRequest.update({
-					where: { id: record.id },
-					data: {
+				await db
+					.update(domainTransferRequest)
+					.set({
 						status: "SUBMITTED_TO_PROVIDER",
 						submittedToProviderAt: new Date(),
 						providerResponse: { success: true, data: response.data },
 						updatedAt: new Date(),
-					},
-				});
+					})
+					.where(eq(domainTransferRequest.id, id));
 				return {
 					success: true,
-					id: record.id,
+					id,
 					domain: `${input.domainName}.${ext}`,
 				};
 			} catch (error) {
 				if (error instanceof TRPCError) throw error;
 				const message = error instanceof Error ? error.message : String(error);
-				await prisma.domainTransferRequest.update({
-					where: { id: record.id },
-					data: {
+				await db
+					.update(domainTransferRequest)
+					.set({
 						status: "FAILED",
 						providerResponse: { error: message },
 						updatedAt: new Date(),
-					},
-				}).catch(() => {});
+					})
+					.where(eq(domainTransferRequest.id, id))
+					.catch(() => {});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: message,
@@ -347,25 +371,35 @@ export const domainTransferRouter = router({
 	 * Does not return authCode for security.
 	 */
 	listTransferRequests: protectedProcedure.query(async () => {
-		const list = await prisma.domainTransferRequest.findMany({
-			orderBy: { createdAt: "desc" },
-			select: {
-				id: true,
-				domainName: true,
-				provider: true,
-				status: true,
-				providerPriceAmount: true,
-				providerPriceCurrency: true,
-				customerPriceAmount: true,
-				customerPriceCurrency: true,
-				submittedToProviderAt: true,
-				createdAt: true,
-				updatedAt: true,
+		const rows = await db
+			.select({
+				id: domainTransferRequest.id,
+				domainName: domainTransferRequest.domainName,
+				provider: domainTransferRequest.provider,
+				status: domainTransferRequest.status,
+				providerPriceAmount: domainTransferRequest.providerPriceAmount,
+				providerPriceCurrency: domainTransferRequest.providerPriceCurrency,
+				customerPriceAmount: domainTransferRequest.customerPriceAmount,
+				customerPriceCurrency: domainTransferRequest.customerPriceCurrency,
+				submittedToProviderAt: domainTransferRequest.submittedToProviderAt,
+				createdAt: domainTransferRequest.createdAt,
+				updatedAt: domainTransferRequest.updatedAt,
 				createdBy: {
-					select: { id: true, name: true, email: true },
+					id: userTable.id,
+					name: userTable.name,
+					email: userTable.email,
 				},
-			},
-		});
-		return list;
+			})
+			.from(domainTransferRequest)
+			.innerJoin(userTable, eq(domainTransferRequest.createdById, userTable.id))
+			.orderBy(desc(domainTransferRequest.createdAt));
+
+		return rows.map(
+			(r) =>
+				({
+					...r,
+					createdBy: r.createdBy,
+				}) as DomainTransferRequestListItem,
+		);
 	}),
 });

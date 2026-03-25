@@ -1,11 +1,19 @@
-import prisma from "@nPanel/db";
-import { startOfDay, startOfMonth, subDays, subMonths } from "date-fns";
+import { and, eq } from "drizzle-orm";
+import { db } from "@npanel/db";
+import {
+    creativeProductionSnapshot,
+    revenueByServiceSnapshot,
+    revenueByTeamSnapshot,
+    salesReportSnapshot,
+} from "@npanel/db/schema/reporting";
+import { startOfDay, startOfMonth } from "date-fns";
+import { randomUUID } from "node:crypto";
 
 export async function aggregateSales(period: "DAILY" | "MONTHLY" = "DAILY") {
     // We aggregate all invoices to ensure the snapshot table is fully populated
     // In a production environment with millions of rows, we would only aggregate the last few days
-    const invoices = await prisma.invoice.findMany({
-        include: {
+    const invoices = await db.query.invoice.findMany({
+        with: {
             lineItems: true,
             team: true,
         },
@@ -99,91 +107,112 @@ export async function aggregateSales(period: "DAILY" | "MONTHLY" = "DAILY") {
     // Upsert Sales Snapshots
     for (const key in salesGroups) {
         const data = salesGroups[key];
-        await prisma.salesReportSnapshot.upsert({
-            where: {
-                date_period_currency: {
-                    date: data.date,
-                    period: period,
-                    currency: data.currency,
-                },
-            },
-            update: {
-                totalRevenue: data.totalRevenue,
-                totalInvoiced: data.totalInvoiced,
-                totalPaid: data.totalPaid,
-                taxableAmount: data.taxableAmount,
-                taxAmount: data.taxAmount,
-                pendingAmount: data.pendingAmount,
-                invoiceCount: data.invoiceCount,
-                paidInvoiceCount: data.paidInvoiceCount,
-            },
-            create: {
-                date: data.date,
-                period: period,
-                currency: data.currency,
-                totalRevenue: data.totalRevenue,
-                totalInvoiced: data.totalInvoiced,
-                totalPaid: data.totalPaid,
-                taxableAmount: data.taxableAmount,
-                taxAmount: data.taxAmount,
-                pendingAmount: data.pendingAmount,
-                invoiceCount: data.invoiceCount,
-                paidInvoiceCount: data.paidInvoiceCount,
-            },
+        if (data == null) continue;
+        const existing = await db.query.salesReportSnapshot.findFirst({
+            where: and(
+                eq(salesReportSnapshot.date, data.date),
+                eq(salesReportSnapshot.period, period),
+                eq(salesReportSnapshot.currency, data.currency),
+            ),
+            columns: { id: true },
         });
+        if (existing) {
+            await db
+                .update(salesReportSnapshot)
+                .set({
+                    totalRevenue: String(data.totalRevenue),
+                    totalInvoiced: String(data.totalInvoiced),
+                    totalPaid: String(data.totalPaid),
+                    taxableAmount: String(data.taxableAmount),
+                    taxAmount: String(data.taxAmount),
+                    pendingAmount: String(data.pendingAmount),
+                    invoiceCount: data.invoiceCount,
+                    paidInvoiceCount: data.paidInvoiceCount,
+                })
+                .where(eq(salesReportSnapshot.id, existing.id));
+        } else {
+            await db.insert(salesReportSnapshot).values({
+                id: randomUUID(),
+                date: data.date,
+                period,
+                currency: data.currency,
+                totalRevenue: String(data.totalRevenue),
+                totalInvoiced: String(data.totalInvoiced),
+                totalPaid: String(data.totalPaid),
+                taxableAmount: String(data.taxableAmount),
+                taxAmount: String(data.taxAmount),
+                pendingAmount: String(data.pendingAmount),
+                invoiceCount: data.invoiceCount,
+                paidInvoiceCount: data.paidInvoiceCount,
+            });
+        }
     }
 
     // Upsert Service Snapshots
     for (const key in serviceGroups) {
         const data = serviceGroups[key];
-        await prisma.revenueByServiceSnapshot.upsert({
-            where: {
-                date_period_serviceType_currency: {
-                    date: data.date,
-                    period: data.period,
-                    serviceType: data.serviceType,
-                    currency: data.currency,
-                },
-            },
-            update: { amount: data.amount },
-            create: {
+        if (data == null) continue;
+        const existing = await db.query.revenueByServiceSnapshot.findFirst({
+            where: and(
+                eq(revenueByServiceSnapshot.date, data.date),
+                eq(revenueByServiceSnapshot.period, data.period),
+                eq(revenueByServiceSnapshot.serviceType, data.serviceType),
+                eq(revenueByServiceSnapshot.currency, data.currency),
+            ),
+            columns: { id: true },
+        });
+        if (existing) {
+            await db
+                .update(revenueByServiceSnapshot)
+                .set({ amount: String(data.amount) })
+                .where(eq(revenueByServiceSnapshot.id, existing.id));
+        } else {
+            await db.insert(revenueByServiceSnapshot).values({
+                id: randomUUID(),
                 date: data.date,
                 period: data.period,
                 serviceType: data.serviceType,
                 currency: data.currency,
-                amount: data.amount,
-            },
-        });
+                amount: String(data.amount),
+            });
+        }
     }
 
     // Upsert Revenue by Team (Company) Snapshots
     for (const key in teamGroups) {
         const data = teamGroups[key];
-        await prisma.revenueByTeamSnapshot.upsert({
-            where: {
-                date_period_teamId_currency: {
-                    date: data.date,
-                    period: data.period,
-                    teamId: data.teamId,
-                    currency: data.currency,
-                },
-            },
-            update: { amount: data.amount, teamName: data.teamName },
-            create: {
+        if (data == null) continue;
+        const existing = await db.query.revenueByTeamSnapshot.findFirst({
+            where: and(
+                eq(revenueByTeamSnapshot.date, data.date),
+                eq(revenueByTeamSnapshot.period, data.period),
+                eq(revenueByTeamSnapshot.teamId, data.teamId),
+                eq(revenueByTeamSnapshot.currency, data.currency),
+            ),
+            columns: { id: true },
+        });
+        if (existing) {
+            await db
+                .update(revenueByTeamSnapshot)
+                .set({ amount: String(data.amount), teamName: data.teamName })
+                .where(eq(revenueByTeamSnapshot.id, existing.id));
+        } else {
+            await db.insert(revenueByTeamSnapshot).values({
+                id: randomUUID(),
                 date: data.date,
                 period: data.period,
                 teamId: data.teamId,
                 teamName: data.teamName,
                 currency: data.currency,
-                amount: data.amount,
-            },
-        });
+                amount: String(data.amount),
+            });
+        }
     }
 }
 
 export async function aggregateCreative(period: "DAILY" | "MONTHLY" = "DAILY") {
-    const assets = await prisma.creativeAsset.findMany({
-        include: {
+    const assets = await db.query.creativeAsset.findMany({
+        with: {
             versions: true,
         },
     });
@@ -213,25 +242,32 @@ export async function aggregateCreative(period: "DAILY" | "MONTHLY" = "DAILY") {
 
     for (const key in groups) {
         const data = groups[key];
-        await prisma.creativeProductionSnapshot.upsert({
-            where: {
-                date_period: {
-                    date: data.date,
-                    period: period,
-                },
-            },
-            update: {
-                assetsCreated: data.assetsCreated,
-                assetsApproved: data.assetsApproved,
-                versionsCreated: data.versionsCreated,
-            },
-            create: {
-                date: data.date,
-                period: period,
-                assetsCreated: data.assetsCreated,
-                assetsApproved: data.assetsApproved,
-                versionsCreated: data.versionsCreated,
-            },
+        if (data == null) continue;
+        const existing = await db.query.creativeProductionSnapshot.findFirst({
+            where: and(
+                eq(creativeProductionSnapshot.date, data.date),
+                eq(creativeProductionSnapshot.period, period),
+            ),
+            columns: { id: true },
         });
+        if (existing) {
+            await db
+                .update(creativeProductionSnapshot)
+                .set({
+                    assetsCreated: data.assetsCreated,
+                    assetsApproved: data.assetsApproved,
+                    versionsCreated: data.versionsCreated,
+                })
+                .where(eq(creativeProductionSnapshot.id, existing.id));
+        } else {
+            await db.insert(creativeProductionSnapshot).values({
+                id: randomUUID(),
+                date: data.date,
+                period,
+                assetsCreated: data.assetsCreated,
+                assetsApproved: data.assetsApproved,
+                versionsCreated: data.versionsCreated,
+            });
+        }
     }
 }
