@@ -230,7 +230,7 @@ export function GlobalBuyNowDialog() {
     },
   });
 
-  // Create order on payment success — called from poll callback to avoid useEffect latency
+  // Create order on payment success ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â called from poll callback to avoid useEffect latency
   const triggerOrderFromPayment = React.useCallback(
     (checkoutRequestIdParam: string) => {
       if (orderCreatedForCheckoutRef.current === checkoutRequestIdParam) return;
@@ -337,7 +337,7 @@ export function GlobalBuyNowDialog() {
       };
 
       const poll = async (): Promise<boolean> => {
-        // Already resolved in a previous tick – stop without another request
+        // Already resolved in a previous tick ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ stop without another request
         if (terminalStateDetectedRef.current) {
           return true;
         }
@@ -356,7 +356,7 @@ export function GlobalBuyNowDialog() {
           if (Number.isNaN(code)) return false;
           if (PROCESSING_CODES.has(code)) return false;
 
-          // Terminal: success or failure – clear interval immediately so no further polls run
+          // Terminal: success or failure ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ clear interval immediately so no further polls run
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
@@ -769,7 +769,7 @@ export function GlobalBuyNowDialog() {
                 {selectedUpsellPlans.map((p) => (
                   <div key={p.planId} className="bg-muted/50 rounded-lg p-4 flex justify-between items-center">
                     <div>
-                      <div className="font-medium">{p.productName} – {p.planName}</div>
+                      <div className="font-medium">{p.productName} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ {p.planName}</div>
                       <div className="text-sm text-muted-foreground">{p.billingCycle}</div>
                     </div>
                     <div className="font-semibold">{formatPrice(p.price, p.currency)}</div>
@@ -800,7 +800,7 @@ export function GlobalBuyNowDialog() {
         return (
           <div className="space-y-4">
             <div className="text-center py-2">
-              <h3 className="text-lg font-semibold text-foreground">Select plan – {planSelectionProductName}</h3>
+              <h3 className="text-lg font-semibold text-foreground">Select plan ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ {planSelectionProductName}</h3>
               <p className="text-sm text-muted-foreground">Choose a plan from the list</p>
             </div>
             {plans.length === 0 ? (
@@ -878,7 +878,7 @@ export function GlobalBuyNowDialog() {
             <div className="space-y-4">
               <div className="bg-muted/50 rounded-lg p-4 flex justify-between items-center">
                 <div>
-                  <div className="font-medium">Domain transfer – {transferContext.domain}</div>
+                  <div className="font-medium">Domain transfer ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ {transferContext.domain}</div>
                   <div className="text-sm text-muted-foreground">Includes 1 year renewal</div>
                 </div>
                 <div className="font-semibold">{formatPrice(transferContext.price, transferContext.currency)}</div>
@@ -954,13 +954,13 @@ export function GlobalBuyNowDialog() {
                 ))}
                 {selectedMainPlan && (
                   <div className="bg-muted/50 rounded-lg p-4 flex justify-between">
-                    <div><div className="font-medium">{selectedMainPlan.productName} – {selectedMainPlan.planName}</div><div className="text-sm text-muted-foreground">{selectedMainPlan.billingCycle}</div></div>
+                    <div><div className="font-medium">{selectedMainPlan.productName} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ {selectedMainPlan.planName}</div><div className="text-sm text-muted-foreground">{selectedMainPlan.billingCycle}</div></div>
                     <div className="font-semibold">{formatPrice(selectedMainPlan.price, selectedMainPlan.currency)}</div>
                   </div>
                 )}
                 {selectedUpsellPlans.map((p) => (
                   <div key={p.planId} className="bg-muted/50 rounded-lg p-4 flex justify-between">
-                    <div><div className="font-medium">{p.productName} – {p.planName}</div><div className="text-sm text-muted-foreground">{p.billingCycle}</div></div>
+                    <div><div className="font-medium">{p.productName} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ {p.planName}</div><div className="text-sm text-muted-foreground">{p.billingCycle}</div></div>
                     <div className="font-semibold">{formatPrice(p.price, p.currency)}</div>
                   </div>
                 ))}
@@ -1075,7 +1075,7 @@ export function GlobalBuyNowDialog() {
         return (
           <div className="space-y-4 text-center py-4">
             <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl text-red-600 dark:text-red-400">✕</span>
+              <span className="text-2xl text-red-600 dark:text-red-400">ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢</span>
             </div>
             <h3 className="text-lg font-semibold text-foreground">Payment failed</h3>
             <p className="text-sm text-muted-foreground">{errMsg}</p>
@@ -1095,7 +1095,7 @@ export function GlobalBuyNowDialog() {
     if (isCartMode) return totalItems === 1 ? "Complete your purchase" : `Review ${totalItems} items`;
     if (effectiveStep === "product") return `Buy ${hasDomain ? ctx?.domain?.domain ?? ctx?.productName : ctx?.productName}`;
     if (effectiveStep === "hosting-upsell") return "Add hosting";
-    if (effectiveStep === "plan-selection") return `Select plan – ${planSelectionProductName}`;
+    if (effectiveStep === "plan-selection") return `Select plan ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ ${planSelectionProductName}`;
     if (effectiveStep === "review") return "Complete and review";
     if (effectiveStep === "payment") return "Choose payment method";
     if (effectiveStep === "success") return "Order confirmed";

@@ -238,8 +238,9 @@ export const auth = betterAuth<BetterAuthOptions>({
           // If this is a get-session call, we MUST return the enriched data in the response.
           // Better Auth's default handler doesn't know about our manual ctx.context.session.user modification
           // unless we explicitly return the JSON here in the 'after' hook.
-          if (isGetSession && ctx.data && typeof ctx.data === "object") {
-            (ctx.data as any).user = enrichedUser;
+          const returned = ctx.context.returned as any;
+          if (isGetSession && returned && typeof returned === "object") {
+            returned.user = enrichedUser;
           }
         }
       }

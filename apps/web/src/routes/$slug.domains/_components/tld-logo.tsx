@@ -54,7 +54,7 @@ export function TldLogo({ tld, variant, className }: TldLogoProps) {
 	// Gradient fallback: show TLD segment only; if tld empty or has no dot (e.g. search query passed by mistake), show generic symbol
 	const withoutDot = normalized.replace(/^\./, "");
 	const isLikelyRealTld = withoutDot && (normalized.includes(".") || withoutDot.length <= 4);
-	const label = isLikelyRealTld ? (withoutDot.split(".")[0] ?? withoutDot) : "•";
+	const label = isLikelyRealTld ? (withoutDot.split(".")[0] ?? withoutDot) : "Ã¢â‚¬Â¢";
 	if (variant === "kenyan") {
 		return (
 			<div
@@ -72,7 +72,7 @@ export function TldLogo({ tld, variant, className }: TldLogoProps) {
 		);
 	}
 
-	// OpenProvider: FAB tickets screen–like gradient (blue)
+	// OpenProvider: FAB tickets screenÃ¢â‚¬â€œlike gradient (blue)
 	return (
 		<div
 			className={`flex-shrink-0 rounded-lg flex items-center justify-center shadow-inner bg-gradient-to-b from-blue-200 via-blue-100 to-blue-50 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-blue-900/30 ${className ?? ""}`}

@@ -276,12 +276,12 @@ export default function OrdersPage() {
 														<span className="font-medium">{order.orderNumber}</span>
 													</div>
 												</TableCell>
-												<TableCell>{order.team?.name || "—"}</TableCell>
+												<TableCell>{order.team?.name || "Ã¢â‚¬â€"}</TableCell>
 												<TableCell>{ORDER_TYPE_NAMES[order.type] || order.type}</TableCell>
 												<TableCell>
 													{order.total
 														? `${order.currency} ${parseFloat(order.total).toFixed(2)}`
-														: "—"}
+														: "Ã¢â‚¬â€"}
 												</TableCell>
 												<TableCell>
 													<Badge

@@ -73,7 +73,7 @@ export function useDomainSearch(
 ) {
   const [domainName, setDomainName] = React.useState("");
   const [searchQueryName, setSearchQueryName] = React.useState("");
-  /** Raw input at time of last successful search – used for results only (no live-typing / debounce). */
+  /** Raw input at time of last successful search Ã¢â‚¬â€œ used for results only (no live-typing / debounce). */
   const [rawSearchQueryForResults, setRawSearchQueryForResults] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
 
@@ -120,7 +120,7 @@ export function useDomainSearch(
 
   /**
    * Single-label name for KENIC + OpenProvider (both reject or mis-handle dots in name).
-   * e.g. "me.fineyakwoyo" → "fineyakwoyo". Same rule as OpenProvider so Kenyan and OpenProvider search the same base name.
+   * e.g. "me.fineyakwoyo" Ã¢â€ â€™ "fineyakwoyo". Same rule as OpenProvider so Kenyan and OpenProvider search the same base name.
    */
   const toSingleLabelName = React.useCallback((sanitized: string): string => {
     const t = sanitized.trim();

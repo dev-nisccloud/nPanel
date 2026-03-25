@@ -325,7 +325,7 @@ function ThemeCard({
               </span>
               {theme.availableVersion && theme.availableVersion !== theme.version && (
                 <>
-                  <span className="text-xs text-muted-foreground">→</span>
+                  <span className="text-xs text-muted-foreground">Ã¢â€ â€™</span>
                   <span className="text-xs text-blue-600">
                     v{theme.availableVersion}
                   </span>

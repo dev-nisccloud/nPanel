@@ -1,4 +1,4 @@
-import { Database } from "./databases-schema";
+import { type Database } from "./databases-schema";
 
 export const databasesData: Database[] = [
   {

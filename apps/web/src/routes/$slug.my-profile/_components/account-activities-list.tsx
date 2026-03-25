@@ -179,7 +179,7 @@ export function AccountActivitiesList() {
               disabled={revokeSessionMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {revokeSessionMutation.isPending ? "Revoking…" : "Revoke"}
+              {revokeSessionMutation.isPending ? "RevokingÃ¢â‚¬Â¦" : "Revoke"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

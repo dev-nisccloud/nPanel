@@ -23,14 +23,14 @@ const formatPrice = (price?: number, currency?: string) => {
   const currencySymbols: Record<string, string> = {
     'USD': '$',
     'KES': 'KSh',
-    'EUR': '€',
-    'GBP': '£',
+    'EUR': 'Ã¢â€šÂ¬',
+    'GBP': 'Ã‚Â£',
     'CAD': 'C$',
     'AUD': 'A$',
-    'JPY': '¥',
-    'INR': '₹',
+    'JPY': 'Ã‚Â¥',
+    'INR': 'Ã¢â€šÂ¹',
     'ZAR': 'R',
-    'NGN': '₦',
+    'NGN': 'Ã¢â€šÂ¦',
   };
 
   const symbol = currencySymbols[currency || 'USD'] || currency || '$';

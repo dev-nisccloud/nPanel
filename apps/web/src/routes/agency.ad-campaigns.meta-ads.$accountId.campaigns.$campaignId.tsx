@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useParams, useNavigate } from "react-router";
@@ -155,7 +155,7 @@ function parseTargeting(targeting: any): {
 
 function formatAgeRange(age: { min: number | null; max: number | null }): string {
     if (age.min == null && age.max == null) return "";
-    if (age.min != null && age.max != null) return `${age.min} â€“ ${age.max}`;
+    if (age.min != null && age.max != null) return `${age.min} Ã¢â‚¬â€œ ${age.max}`;
     if (age.min != null) return `${age.min}+`;
     if (age.max != null) return `Up to ${age.max}`;
     return "";
@@ -875,9 +875,9 @@ function MetricsDisplay({
     compact?: boolean;
 }) {
     const formatCurrency = (amount: string | number | null | undefined) => {
-        if (amount === null || amount === undefined || amount === '' || amount === 'null') return 'â€”';
+        if (amount === null || amount === undefined || amount === '' || amount === 'null') return 'Ã¢â‚¬â€';
         const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-        if (isNaN(num)) return 'â€”';
+        if (isNaN(num)) return 'Ã¢â‚¬â€';
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: currency,
@@ -887,16 +887,16 @@ function MetricsDisplay({
     };
 
     const formatNumber = (num: string | number | null | undefined) => {
-        if (num === null || num === undefined || num === '' || num === 'null') return 'â€”';
+        if (num === null || num === undefined || num === '' || num === 'null') return 'Ã¢â‚¬â€';
         const n = typeof num === 'string' ? parseFloat(num) : num;
-        if (isNaN(n)) return 'â€”';
+        if (isNaN(n)) return 'Ã¢â‚¬â€';
         return new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(n);
     };
 
     const formatPercentage = (num: string | number | null | undefined) => {
-        if (num === null || num === undefined || num === '' || num === 'null') return 'â€”';
+        if (num === null || num === undefined || num === '' || num === 'null') return 'Ã¢â‚¬â€';
         const n = typeof num === 'string' ? parseFloat(num) : num;
-        if (isNaN(n)) return 'â€”';
+        if (isNaN(n)) return 'Ã¢â‚¬â€';
         return n < 1 ? `${(n * 100).toFixed(2)}%` : `${n.toFixed(2)}%`;
     };
 
@@ -992,7 +992,7 @@ function MetricsDisplay({
         // Add lead metrics for lead generation campaigns
         ...(leadCount !== null ? [
             { label: 'Leads', value: formatNumber(leadCount), color: 'emerald' },
-            { label: 'Cost per Lead', value: costPerLead !== null ? formatCurrency(costPerLead) : 'â€”', color: 'orange' },
+            { label: 'Cost per Lead', value: costPerLead !== null ? formatCurrency(costPerLead) : 'Ã¢â‚¬â€', color: 'orange' },
         ] : []),
         { label: 'Budget', value: formatBudgetDisplay(budget), color: 'purple' },
         { label: 'Amount Spent', value: formatCurrency(insights.spend), color: 'emerald' },
@@ -1009,7 +1009,7 @@ function MetricsDisplay({
         { label: 'Conversion Ranking', value: formatRanking(insights.conversion_rate_ranking), color: 'orange' },
         { label: 'Clicks (all)', value: formatNumber(insights.clicks), color: 'green' },
         { label: 'CTR (all)', value: formatPercentage(ctrAll !== null ? ctrAll : insights.ctr), color: 'indigo' }, // Fallback to ctr if calculation fails? actually dialog calc used ctrAll
-        { label: 'CPC (all)', value: cpcAll !== null ? formatCurrency(cpcAll) : 'â€”', color: 'orange' },
+        { label: 'CPC (all)', value: cpcAll !== null ? formatCurrency(cpcAll) : 'Ã¢â‚¬â€', color: 'orange' },
     ];
 
     const colorClasses: Record<string, { bg: string; border: string; label: string; value: string }> = {
@@ -1341,7 +1341,7 @@ function AdSetItem({
                                             key={idx}
                                             label={line.content ?? ""}
                                             content={Array.isArray(line.children) ? line.children.join(", ") : ""}
-                                            emptyMessage="â€”"
+                                            emptyMessage="Ã¢â‚¬â€"
                                         />
                                     ))}
                                 </div>
@@ -2023,7 +2023,7 @@ export default function CampaignDetailsPage() {
                                                 const linkClicks = parseInt(item.inline_link_clicks || '0') ||
                                                     (item.actions?.find((a: any) => a.action_type === 'link_click')?.value || 0);
                                                 return {
-                                                    date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : 'â€”',
+                                                    date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : 'Ã¢â‚¬â€',
                                                     spend: parseFloat(item.spend || '0'),
                                                     impressions: parseInt(item.impressions || '0'),
                                                     link_clicks: parseInt(linkClicks.toString()),
@@ -2109,7 +2109,7 @@ export default function CampaignDetailsPage() {
                                             data={dailyPerformance.data
                                                 .sort((a: any, b: any) => (a.date_start || '').localeCompare(b.date_start || ''))
                                                 .map((item: any) => ({
-                                                    date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : 'â€”',
+                                                    date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : 'Ã¢â‚¬â€',
                                                     spend: parseFloat(item.spend || '0'),
                                                 }))}
                                             margin={{ top: 10, right: 10, left: 10, bottom: 0 }}

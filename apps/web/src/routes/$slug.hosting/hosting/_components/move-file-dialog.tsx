@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Badge } from "@/components/ui/badge";
 
-import { FileManagerItem } from "./file-manager-schema";
+import { type FileManagerItem } from "./file-manager-schema";
 
 interface MoveFileDialogProps {
   open: boolean;

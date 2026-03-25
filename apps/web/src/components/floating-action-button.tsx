@@ -115,7 +115,7 @@ const getActionOptions = () => [
 const initialGreetingMessage: ChatMessage = {
   id: "greeting",
   type: "assistant",
-  message: "👋 How can we help you today?\nPlease describe the issue in detail. Include details about what you're seeing, any service specific details, serviceIDs, custom domains, log output etc",
+  message: "Ã°Å¸â€˜â€¹ How can we help you today?\nPlease describe the issue in detail. Include details about what you're seeing, any service specific details, serviceIDs, custom domains, log output etc",
   timestamp: new Date(),
 };
 
@@ -123,7 +123,7 @@ const initialGreetingMessage: ChatMessage = {
 const initialZepoMessage: ChatMessage = {
   id: "zepo-greeting",
   type: "assistant",
-  message: "👋 Hi! I'm Zepo, your AI support assistant. How can I help you today?\nFeel free to ask me anything about your services, account, or any questions you might have!",
+  message: "Ã°Å¸â€˜â€¹ Hi! I'm Zepo, your AI support assistant. How can I help you today?\nFeel free to ask me anything about your services, account, or any questions you might have!",
   timestamp: new Date(),
 };
 

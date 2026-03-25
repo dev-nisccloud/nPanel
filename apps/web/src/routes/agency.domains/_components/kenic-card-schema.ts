@@ -40,7 +40,7 @@ export interface KenicCardItem {
 
 /**
  * Build list of domains to check from search query.
- * Example: "nisccloud" → ["nisccloud.ke", "nisccloud.co.ke", ...]
+ * Example: "nisccloud" Ã¢â€ â€™ ["nisccloud.ke", "nisccloud.co.ke", ...]
  */
 export function buildKenicDomainsFromQuery(searchQuery: string): string[] {
 	const name = searchQuery.trim().toLowerCase().replace(/\s+/g, "");
@@ -59,7 +59,7 @@ export function parseFullDomain(input: string): { name: string; tld: string } | 
 	const s = input.trim().toLowerCase().replace(/\s+/g, "");
 	const parts = s.split(".");
 	if (parts.length < 2 || parts.some((p) => !p.length)) return null;
-	// Two-part: example.com → name=example, tld=com
+	// Two-part: example.com Ã¢â€ â€™ name=example, tld=com
 	if (parts.length === 2) {
 		return { name: parts[0]!, tld: parts[1]! };
 	}
@@ -75,7 +75,7 @@ export function parseFullDomain(input: string): { name: string; tld: string } | 
 	if (last === "ke") {
 		return { name: parts.slice(0, -1).join("."), tld: "ke" };
 	}
-	// Generic: last part is TLD (e.g. example.foo.com → name=example.foo, tld=com)
+	// Generic: last part is TLD (e.g. example.foo.com Ã¢â€ â€™ name=example.foo, tld=com)
 	return { name: parts.slice(0, -1).join("."), tld: last };
 }
 

@@ -36,9 +36,9 @@ import { toast } from "@/components/ui/sonner";
 type AudienceSummary = RouterOutputs["emailMarketing"]["audiences"]["list"]["audiences"][0];
 
 const formatDate = (value: Date | string | null | undefined) => {
-	if (!value) return "—";
+	if (!value) return "Ã¢â‚¬â€";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "Ã¢â‚¬â€" : d.toLocaleDateString();
 };
 
 interface AudienceRowActionsProps {

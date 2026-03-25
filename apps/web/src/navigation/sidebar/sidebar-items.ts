@@ -2,7 +2,7 @@ import { Icons } from "@/components/icons";
 import {
   type LucideIcon,
 } from "lucide-react";
-import { ComponentType } from "react";
+import { type ComponentType } from "react";
 import React from "react";
 
 // Define the props that your custom icons accept (based on your SVGIconProps)

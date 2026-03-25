@@ -85,7 +85,7 @@ export function CalendarSidebar({
             />
             <div className="flex items-center gap-0.5 rounded border border-border bg-sidebar px-1.5 py-0.5 shrink-0 absolute right-2 top-1/2 -translate-y-1/2">
               <span className="text-[10px] font-medium text-muted-foreground leading-none tracking-[-0.1px]">
-                ⌘
+                Ã¢Å’Ëœ
               </span>
               <Kbd className="h-auto min-w-0 px-0 py-0 text-[10px] leading-none tracking-[-0.1px] bg-transparent border-0">
                 K

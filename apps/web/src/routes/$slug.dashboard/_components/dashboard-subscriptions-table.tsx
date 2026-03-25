@@ -48,9 +48,9 @@ function SubscriptionsTableSkeleton() {
 }
 
 function formatDate(value: Date | string | null | undefined) {
-  if (!value) return "—";
+  if (!value) return "Ã¢â‚¬â€";
   const d = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return Number.isNaN(d.getTime()) ? "Ã¢â‚¬â€" : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -167,8 +167,8 @@ export function DashboardSubscriptionsTable() {
           ) : (
             subscriptions.map((sub) => (
               <TableRow key={sub.id}>
-                <TableCell className="font-medium">{sub.planName ?? "—"}</TableCell>
-                <TableCell>{sub.planType ?? "—"}</TableCell>
+                <TableCell className="font-medium">{sub.planName ?? "Ã¢â‚¬â€"}</TableCell>
+                <TableCell>{sub.planType ?? "Ã¢â‚¬â€"}</TableCell>
                 <TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
                 <TableCell>{formatDate(sub.nextRenewalDate)}</TableCell>
                 <TableCell>

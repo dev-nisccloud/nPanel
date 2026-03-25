@@ -5,7 +5,7 @@
 const FALLBACK_CONFIG = {
   name: "Nisc Cloud - npanel",
   version: "1.0.0",
-  copyright: "© 2025, Nisc Cloud.",
+  copyright: "Ã‚Â© 2025, Nisc Cloud.",
   meta: { title: "Nisc Cloud", description: "Nisc Cloud" },
 };
 
@@ -19,7 +19,7 @@ function buildAppConfig(): typeof FALLBACK_CONFIG {
     return {
       name: "Nisc Cloud - npanel",
       version,
-      copyright: `© ${currentYear}, Nisc Cloud.`,
+      copyright: `Ã‚Â© ${currentYear}, Nisc Cloud.`,
       meta: { title: "Nisc Cloud", description: "Nisc Cloud" },
     };
   } catch {

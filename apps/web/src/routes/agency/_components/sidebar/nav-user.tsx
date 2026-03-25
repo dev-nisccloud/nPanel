@@ -145,7 +145,7 @@ export function NavUser() {
               {isLoggingOut ? (
                 <>
                   <Spinner variant="ellipsis" className="size-4" />
-                  Logging out…
+                  Logging outÃ¢â‚¬Â¦
                 </>
               ) : (
                 <>

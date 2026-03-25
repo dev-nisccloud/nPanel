@@ -31,7 +31,6 @@ export const ServiceSuspensionEmail = ({
   serviceName = "Web Hosting",
   planName = "Business Plan",
   domain = "example.com",
-  paymentLink,
   supportEmail = "billing@nisccloud.com",
   supportPhone = "+254 748 777 666",
   reactivationFee = "$25.00"

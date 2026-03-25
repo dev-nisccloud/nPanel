@@ -34,14 +34,14 @@ function formatPrice(price?: number, currency?: string): string {
   const currencySymbols: Record<string, string> = {
     USD: "$",
     KES: "KSh",
-    EUR: "€",
-    GBP: "£",
+    EUR: "Ã¢â€šÂ¬",
+    GBP: "Ã‚Â£",
     CAD: "C$",
     AUD: "A$",
-    JPY: "¥",
-    INR: "₹",
+    JPY: "Ã‚Â¥",
+    INR: "Ã¢â€šÂ¹",
     ZAR: "R",
-    NGN: "₦",
+    NGN: "Ã¢â€šÂ¦",
   };
   const symbol = currencySymbols[currency ?? "USD"] ?? currency ?? "$";
   const formattedNumber = new Intl.NumberFormat("en-US", {
@@ -331,7 +331,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
         </div>
         <h2 className="text-xl font-semibold tracking-tight">Transfer your domain to Nisc Cloud</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Enter the domain you want to transfer and we’ll check eligibility and price.
+          Enter the domain you want to transfer and weÃ¢â‚¬â„¢ll check eligibility and price.
         </p>
       </div>
 
@@ -395,7 +395,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
           </p>
         )}
 
-        {/* Available for registration — CTA to register page */}
+        {/* Available for registration Ã¢â‚¬â€ CTA to register page */}
         {status === "error" && transferStatus === "available" && (
           <div className="mt-4 flex flex-col gap-4 rounded-lg border border-primary/30 bg-primary/5 p-4 text-left">
             <div className="flex gap-3">
@@ -415,7 +415,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
           </div>
         )}
 
-        {/* Locked — explain and ask user to unlock */}
+        {/* Locked Ã¢â‚¬â€ explain and ask user to unlock */}
         {status === "error" && transferStatus === "locked" && (
           <div className="mt-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
             <Lock className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-500" />
@@ -429,7 +429,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
           </div>
         )}
 
-        {/* Other errors (reserved, unavailable, invalid) — why transfer failed */}
+        {/* Other errors (reserved, unavailable, invalid) Ã¢â‚¬â€ why transfer failed */}
         {status === "error" && message && transferStatus !== "available" && transferStatus !== "locked" && (
           <div
             className="mt-4 flex gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-left"
@@ -446,7 +446,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
         {showPricingLoading && (
           <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Spinner variant="ellipsis" size={14} className="shrink-0 text-muted-foreground" />
-            Getting price…
+            Getting priceÃ¢â‚¬Â¦
           </p>
         )}
 

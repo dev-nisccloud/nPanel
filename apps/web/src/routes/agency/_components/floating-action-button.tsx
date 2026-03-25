@@ -109,7 +109,7 @@ const getActionOptions = () => [
 const initialGreetingMessage: ChatMessage = {
   id: "greeting",
   type: "assistant",
-  message: "👋 How can we help you today?\nPlease describe the issue in detail. Include details about what you're seeing, any service specific details, serviceIDs, custom domains, log output etc",
+  message: "Ã°Å¸â€˜â€¹ How can we help you today?\nPlease describe the issue in detail. Include details about what you're seeing, any service specific details, serviceIDs, custom domains, log output etc",
   timestamp: new Date(),
 };
 

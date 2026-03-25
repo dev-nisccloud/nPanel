@@ -6,7 +6,7 @@ const f = createUploadthing();
 /**
  * UploadThing file router configuration for Hono backend
  */
-export const ourFileRouter = {
+export const ourFileRouter: FileRouter = {
   // Generic file upload endpoint
   fileUploader: f({ blob: { maxFileSize: "64MB", maxFileCount: 10 } })
     .middleware(async ({ req }) => {

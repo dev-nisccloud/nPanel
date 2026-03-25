@@ -1,10 +1,10 @@
-import { Button } from "@npanel/ui/components/components/button";
+import { Button } from "@npanel/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@npanel/ui/components/components/dropdown-menu";
+} from "@npanel/ui/components/dropdown-menu";
 import { Moon, Sun } from "lucide-react";
 
 import { useTheme } from "@/components/theme-provider";

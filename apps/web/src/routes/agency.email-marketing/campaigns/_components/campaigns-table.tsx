@@ -88,13 +88,13 @@ const getStatusBadge = (status: string) => {
 };
 
 const formatDate = (value: Date | string | null | undefined) => {
-	if (!value) return "—";
+	if (!value) return "Ã¢â‚¬â€";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "Ã¢â‚¬â€" : d.toLocaleDateString();
 };
 
 const formatNumber = (value: number | null | undefined) => {
-	if (value === null || value === undefined) return "—";
+	if (value === null || value === undefined) return "Ã¢â‚¬â€";
 	return value.toLocaleString();
 };
 
@@ -115,7 +115,7 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 	const handleRefresh = async () => {
 		if (isRefreshing) return;
 		setIsRefreshing(true);
-		toast.loading("Refreshing…", { id: "campaigns-list-refresh" });
+		toast.loading("RefreshingÃ¢â‚¬Â¦", { id: "campaigns-list-refresh" });
 		try {
 			await utils.emailMarketing.campaigns.list.invalidate();
 			await onRefetch?.();
@@ -214,7 +214,7 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 								</DropdownMenuItem>
 								<DropdownMenuItem onClick={handleRefresh} disabled={isRefreshing}>
 									<RefreshCw className={`mr-2 h-4 w-4 shrink-0 ${isRefreshing ? "animate-spin" : ""}`} />
-									{isRefreshing ? "Refreshing…" : "Refresh"}
+									{isRefreshing ? "RefreshingÃ¢â‚¬Â¦" : "Refresh"}
 								</DropdownMenuItem>
 								{campaign.status === "SCHEDULED" && (
 									<DropdownMenuItem onClick={handleCancelScheduledClick} disabled={busy}>
@@ -271,7 +271,7 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={isCancelling}>Keep scheduled</AlertDialogCancel>
 						<AlertDialogAction onClick={handleConfirmCancel} disabled={isCancelling}>
-							{isCancelling ? "Cancelling…" : "Cancel scheduled send"}
+							{isCancelling ? "CancellingÃ¢â‚¬Â¦" : "Cancel scheduled send"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -303,7 +303,7 @@ export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
 						<TableRow key={campaign.id}>
 							<TableCell className="pl-6">
 								<Link
-									href={`/agency/email-marketing/campaigns/${campaign.id}`}
+									to={`/agency/email-marketing/campaigns/${campaign.id}`}
 									className="flex items-center gap-2 font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
 								>
 									<Mail className="h-4 w-4 text-muted-foreground shrink-0" />

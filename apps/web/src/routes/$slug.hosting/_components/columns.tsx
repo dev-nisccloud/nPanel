@@ -1,11 +1,11 @@
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from '@tanstack/react-table';
 import { Link } from "react-router";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { DataTableColumnHeader } from "../../../../../components/data-table/data-table-column-header";
+import { DataTableColumnHeader } from "../../../components/data-table/data-table-column-header";
 
 import { hostingSubscriptionSchema } from "./schema";
 import { getStatusDisplayText, getStatusBadgeVariant, formatFileSize } from "./hosting-utils";
@@ -39,7 +39,7 @@ export const hostingColumns: ColumnDef<z.infer<typeof hostingSubscriptionSchema>
     header: ({ column }) => <DataTableColumnHeader column={column} title="Subscription name" />,
     cell: ({ row }) => (
       <Link 
-        href={`/agency/hosting/${row.original.id}`}
+        to={`/agency/hosting/${row.original.id}`}
         className="font-medium text-primary hover:underline"
       >
         {row.original.subscriptionName}

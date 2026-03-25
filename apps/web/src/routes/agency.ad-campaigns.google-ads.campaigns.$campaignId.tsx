@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
@@ -318,7 +318,7 @@ export default function GoogleAdsCampaignPage() {
                         <div className="flex items-center gap-1.5 font-medium">
                             <CalendarIcon className="h-3.5 w-3.5 opacity-60" />
                             <span>
-                                {formatGoogleDate(campaign?.start_date)} â€” {campaign?.end_date ? formatGoogleDate(campaign.end_date) : "Ongoing"}
+                                {formatGoogleDate(campaign?.start_date)} Ã¢â‚¬â€ {campaign?.end_date ? formatGoogleDate(campaign.end_date) : "Ongoing"}
                             </span>
                         </div>
                     </div>
@@ -700,7 +700,7 @@ export default function GoogleAdsCampaignPage() {
                                                     <tr key={idx} className="border-b border-muted/40 last:border-0 hover:bg-muted/10 transition-colors">
                                                         <td className="px-4 py-3">
                                                             <div className="flex flex-col">
-                                                                <span className="text-sm font-medium">{kw.keyword || "â€”"}</span>
+                                                                <span className="text-sm font-medium">{kw.keyword || "Ã¢â‚¬â€"}</span>
                                                                 <TooltipProvider>
                                                                     <Tooltip>
                                                                         <TooltipTrigger asChild>
@@ -726,7 +726,7 @@ export default function GoogleAdsCampaignPage() {
                                                                     <TooltipTrigger asChild>
                                                                         <div className="flex justify-center cursor-help">
                                                                             <Badge variant="outline" className="text-[9px] px-1.5 py-0 rounded-full font-medium opacity-70 flex items-center gap-1">
-                                                                                {String(kw.matchType || "").charAt(0).toUpperCase() + String(kw.matchType || "").slice(1).toLowerCase() || "â€”"}
+                                                                                {String(kw.matchType || "").charAt(0).toUpperCase() + String(kw.matchType || "").slice(1).toLowerCase() || "Ã¢â‚¬â€"}
                                                                                 <HelpCircle className="h-2.5 w-2.5 opacity-40" />
                                                                             </Badge>
                                                                         </div>
@@ -990,7 +990,7 @@ function AdGroupAccordionItem({ adGroup, customerId, currency }: { adGroup: any,
                         </div>
                         <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">
                             <span>ID: {adGroup.id}</span>
-                            <span>â€¢</span>
+                            <span>Ã¢â‚¬Â¢</span>
                             <span>{adGroup.type || "STANDARD"}</span>
                         </div>
                     </div>
@@ -1025,7 +1025,7 @@ function AdGroupAccordionItem({ adGroup, customerId, currency }: { adGroup: any,
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <MetricBox
                                 label="CPC BID"
-                                value={adGroup.cpc_bid ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(adGroup.cpc_bid)) : "â€”"}
+                                value={adGroup.cpc_bid ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(adGroup.cpc_bid)) : "Ã¢â‚¬â€"}
                             />
                             <MetricBox
                                 label="Impressions"

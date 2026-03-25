@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
-	if (!cycle) return "—";
+	if (!cycle) return "Ã¢â‚¬â€";
 	const m: Record<string, string> = {
 		MONTHLY: "Monthly",
 		YEARLY: "Yearly",
@@ -29,9 +29,9 @@ function getBillingCycleDisplayName(cycle: string | null): string {
 }
 
 function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "—";
+	if (!v) return "Ã¢â‚¬â€";
 	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "Ã¢â‚¬â€" : d.toLocaleDateString();
 }
 
 function getStatusBadgeClass(status: string): string {
@@ -61,7 +61,7 @@ function displayServiceName(
 
 function teamOrUserName(userName: string | null, teamName: string | null): string {
 	// If both userId and teamId exist, prefer userId (user name)
-	return userName ?? teamName ?? "—";
+	return userName ?? teamName ?? "Ã¢â‚¬â€";
 }
 
 export interface SubscriptionsTableProps {

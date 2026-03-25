@@ -107,7 +107,7 @@ export const ImageSidebar = ({ editor, activeTool, onChangeActiveTool }: ImageSi
                         <Link
                           target="_blank"
                           rel="noopener noreferrer"
-                          href={image.links.html}
+                          to={image.links.html}
                           className="absolute left-0 bottom-0 w-full truncate bg-black/50 p-1 text-left text-[10px] text-white opacity-0 group-hover:opacity-100 hover:underline"
                         >
                           {image.user.name}

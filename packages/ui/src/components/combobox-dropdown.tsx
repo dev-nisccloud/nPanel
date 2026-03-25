@@ -165,7 +165,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild disabled={disabled} className="w-full">
+      <PopoverTrigger disabled={disabled} className="w-full">
         <Button
           variant="outline"
           aria-expanded={open}
@@ -189,36 +189,38 @@ export function ComboboxDropdown<T extends ComboboxItem>({
       <PopoverContent
         className="p-0"
         {...popoverProps}
-        onPointerDownOutside={(e) => {
-          // Prevent closing when clicking inside the command list
-          const target = e.target as HTMLElement;
-          if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]') || target.closest('[cmdk-input]')) {
+        {...({
+          onPointerDownOutside: (e: any) => {
+            // Prevent closing when clicking inside the command list
+            const target = e.target as HTMLElement;
+            if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]') || target.closest('[cmdk-input]')) {
+              e.preventDefault();
+            }
+            if ((popoverProps as any)?.onPointerDownOutside) {
+              (popoverProps as any).onPointerDownOutside(e);
+            }
+          },
+          onInteractOutside: (e: any) => {
+            // Prevent closing when interacting with command items
+            const target = e.target as HTMLElement;
+            if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]') || target.closest('[cmdk-input]')) {
+              e.preventDefault();
+            }
+            if ((popoverProps as any)?.onInteractOutside) {
+              (popoverProps as any).onInteractOutside(e);
+            }
+          },
+          onOpenAutoFocus: (e: any) => {
+            // Prevent default focus on trigger, focus input instead
             e.preventDefault();
+            setTimeout(() => {
+              (inputRef.current as HTMLInputElement | null)?.focus();
+            }, 0);
+            if ((popoverProps as any)?.onOpenAutoFocus) {
+              (popoverProps as any).onOpenAutoFocus(e);
+            }
           }
-          if (popoverProps?.onPointerDownOutside) {
-            popoverProps.onPointerDownOutside(e);
-          }
-        }}
-        onInteractOutside={(e) => {
-          // Prevent closing when interacting with command items
-          const target = e.target as HTMLElement;
-          if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]') || target.closest('[cmdk-input]')) {
-            e.preventDefault();
-          }
-          if (popoverProps?.onInteractOutside) {
-            popoverProps.onInteractOutside(e);
-          }
-        }}
-        onOpenAutoFocus={(e) => {
-          // Prevent default focus on trigger, focus input instead
-          e.preventDefault();
-          setTimeout(() => {
-            (inputRef.current as HTMLInputElement | null)?.focus();
-          }, 0);
-          if (popoverProps?.onOpenAutoFocus) {
-            popoverProps.onOpenAutoFocus(e);
-          }
-        }}
+        } as any)}
         style={{
           width: "var(--radix-popover-trigger-width)",
           pointerEvents: "auto",

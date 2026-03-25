@@ -135,7 +135,7 @@ export function InvoicesTable() {
               <TableRow key={invoice.id}>
                 <TableCell className="pl-6">
                   <Link
-                    href={`/agency/invoices/${invoice.id}`}
+                    to={`/agency/invoices/${invoice.id}`}
                     className="font-medium text-primary hover:underline"
                   >
                     {invoice.invoiceNumber || `Invoice ${invoice.id.slice(0, 8)}`}
@@ -143,7 +143,7 @@ export function InvoicesTable() {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium">{invoice.customerName || "—"}</span>
+                    <span className="font-medium">{invoice.customerName || "Ã¢â‚¬â€"}</span>
                     {invoice.customerEmail && (
                       <span className="text-sm text-muted-foreground">{invoice.customerEmail}</span>
                     )}
@@ -157,12 +157,12 @@ export function InvoicesTable() {
                 <TableCell>
                   {invoice.amount
                     ? `${invoice.currency} ${parseFloat(invoice.amount).toLocaleString()}`
-                    : "—"}
+                    : "Ã¢â‚¬â€"}
                 </TableCell>
                 <TableCell>
                   {invoice.dueDate
                     ? new Date(invoice.dueDate).toLocaleDateString()
-                    : "—"}
+                    : "Ã¢â‚¬â€"}
                 </TableCell>
               </TableRow>
             ))

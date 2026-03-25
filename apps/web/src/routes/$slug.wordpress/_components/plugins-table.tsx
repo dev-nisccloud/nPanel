@@ -57,7 +57,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { useWordPressPlugins, WordPressPlugin } from "./use-wordpress-plugins";
+import { useWordPressPlugins, type WordPressPlugin } from "./use-wordpress-plugins";
 import { PluginMarketplaceSheet } from "./plugin-marketplace-sheet";
 
 interface PluginsTableProps {

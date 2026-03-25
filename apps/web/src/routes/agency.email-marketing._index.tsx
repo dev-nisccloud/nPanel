@@ -22,7 +22,7 @@ export default function EmailMarketingPage() {
                 Create and design emails with the drag-and-drop editor.
               </p>
               <Button variant="link" className="mt-2 h-auto p-0" asChild>
-                <span>Open builder →</span>
+                <span>Open builder Ã¢â€ â€™</span>
               </Button>
             </div>
           </Link>

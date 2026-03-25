@@ -166,7 +166,7 @@ export function DashboardInvoicesTable() {
               <TableRow key={invoice.id}>
                 <TableCell>
                   <Link
-                    href={`/${teamSlug}/invoices/${invoice.id}`}
+                    to={`/${teamSlug}/invoices/${invoice.id}`}
                     className="font-medium text-primary hover:underline"
                   >
                     {invoice.invoiceNumber || `Invoice ${invoice.id.slice(0, 8)}`}
@@ -174,7 +174,7 @@ export function DashboardInvoicesTable() {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium">{invoice.customerName || "—"}</span>
+                    <span className="font-medium">{invoice.customerName || "Ã¢â‚¬â€"}</span>
                     {invoice.customerEmail && (
                       <span className="text-sm text-muted-foreground">{invoice.customerEmail}</span>
                     )}
@@ -188,12 +188,12 @@ export function DashboardInvoicesTable() {
                 <TableCell>
                   {invoice.amount
                     ? `${invoice.currency} ${parseFloat(invoice.amount).toLocaleString()}`
-                    : "—"}
+                    : "Ã¢â‚¬â€"}
                 </TableCell>
                 <TableCell>
                   {invoice.dueDate
                     ? new Date(invoice.dueDate).toLocaleDateString()
-                    : "—"}
+                    : "Ã¢â‚¬â€"}
                 </TableCell>
               </TableRow>
             ))

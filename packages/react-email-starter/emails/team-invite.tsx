@@ -19,7 +19,6 @@ interface TeamInviteEmailProps {
 }
 
 export const TeamInviteEmail = ({
-  invitedUserEmail,
   inviterName,
   teamName,
   teamRole = 'Member',

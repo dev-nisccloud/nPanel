@@ -1,4 +1,4 @@
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from '@tanstack/react-table';
 import { CheckCircle, XCircle, EllipsisVertical } from "lucide-react";
 import { z } from "zod";
 
@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { DataTableColumnHeader } from "../../../../../components/data-table/data-table-column-header";
+import { DataTableColumnHeader } from "../../../components/data-table/data-table-column-header";
 
 import { tldSchema } from "./schema";
 import { TldCellViewer } from "./tld-cell-viewer";

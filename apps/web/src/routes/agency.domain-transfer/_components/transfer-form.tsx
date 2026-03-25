@@ -34,14 +34,14 @@ function formatPrice(price?: number, currency?: string): string {
   const currencySymbols: Record<string, string> = {
     USD: "$",
     KES: "KSh",
-    EUR: "€",
-    GBP: "£",
+    EUR: "Ã¢â€šÂ¬",
+    GBP: "Ã‚Â£",
     CAD: "C$",
     AUD: "A$",
-    JPY: "¥",
-    INR: "₹",
+    JPY: "Ã‚Â¥",
+    INR: "Ã¢â€šÂ¹",
     ZAR: "R",
-    NGN: "₦",
+    NGN: "Ã¢â€šÂ¦",
   };
   const symbol = currencySymbols[currency ?? "USD"] ?? currency ?? "$";
   const formattedNumber = new Intl.NumberFormat("en-US", {
@@ -57,13 +57,13 @@ interface TransferFormProps {
   fullDomain: string;
   initialDomain: string;
   initialExtension: string;
-  /** Customer-facing price (after margin) – shown in UI */
+  /** Customer-facing price (after margin) Ã¢â‚¬â€œ shown in UI */
   price: number;
   currency: string;
-  /** Provider price (no margin) – for DB record */
+  /** Provider price (no margin) Ã¢â‚¬â€œ for DB record */
   providerPriceAmount?: number | null;
   providerPriceCurrency?: string | null;
-  /** Customer price (after margin) – for DB record */
+  /** Customer price (after margin) Ã¢â‚¬â€œ for DB record */
   customerPriceAmount?: number | null;
   customerPriceCurrency?: string | null;
   provider: TransferProvider;

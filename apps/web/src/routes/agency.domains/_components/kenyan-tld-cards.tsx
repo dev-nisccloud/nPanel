@@ -18,8 +18,8 @@ const formatPrice = (price?: number, currency?: string) => {
 	const symbols: Record<string, string> = {
 		USD: "$",
 		KES: "KSh",
-		EUR: "€",
-		GBP: "£",
+		EUR: "Ã¢â€šÂ¬",
+		GBP: "Ã‚Â£",
 	};
 	const symbol = symbols[currency ?? "KES"] ?? currency ?? "KSh";
 	const formatted = new Intl.NumberFormat("en-US", {
@@ -143,8 +143,8 @@ export function KenyanTldCards({
 		};
 	}, []);
 
-	// NOTE: useEffect (NOT useLayoutEffect) — only clears state, no DOM measurement needed.
-	// useLayoutEffect here caused synchronous cascade: clear → re-render → useEffect fires mutation → re-render.
+	// NOTE: useEffect (NOT useLayoutEffect) Ã¢â‚¬â€ only clears state, no DOM measurement needed.
+	// useLayoutEffect here caused synchronous cascade: clear Ã¢â€ â€™ re-render Ã¢â€ â€™ useEffect fires mutation Ã¢â€ â€™ re-render.
 	React.useEffect(() => {
 		if (!sanitized) return;
 		if (lastFetchedSanitizedRef.current !== null && lastFetchedSanitizedRef.current !== sanitized) {

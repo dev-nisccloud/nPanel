@@ -1,4 +1,3 @@
-```npanel
 import { calculateTotal } from "@npanel/invoice/calculate";
 import { useCallback, useEffect, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";

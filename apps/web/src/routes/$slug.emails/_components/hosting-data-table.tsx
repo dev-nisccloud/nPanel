@@ -25,9 +25,9 @@ import { useLocation } from "react-router";
 // import { useDataTableInstance } from "@/hooks/use-data-table-instance";
 
 // Table imports (commented out for performance)
-// import { DataTable as DataTableNew } from "../../../../../components/data-table/data-table";
-// import { DataTablePagination } from "../../../../../components/data-table/data-table-pagination";
-// import { DataTableViewOptions } from "../../../../../components/data-table/data-table-view-options";
+// import { DataTable as DataTableNew } from "../../../components/data-table/data-table";
+// import { DataTablePagination } from "../../../components/data-table/data-table-pagination";
+// import { DataTableViewOptions } from "../../../components/data-table/data-table-view-options";
 // import { hostingColumns } from "./columns";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 
@@ -205,7 +205,7 @@ export function HostingDataTable() {
               <TableRow key={subscription.id}>
                 <TableCell className="pl-6">
                   <Link
-                    href={`/${teamSlug}/emails/${subscription.id}`}
+                    to={`/${teamSlug}/emails/${subscription.id}`}
                     className="font-medium text-primary hover:underline"
                   >
                     {subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id}
@@ -222,12 +222,12 @@ export function HostingDataTable() {
                 <TableCell>
                   {subscription.subscriptionDate
                     ? new Date(subscription.subscriptionDate).toLocaleDateString()
-                    : "—"}
+                    : "Ã¢â‚¬â€"}
                 </TableCell>
                 <TableCell>
                   {subscription.expiryDate
                     ? new Date(subscription.expiryDate).toLocaleDateString()
-                    : "—"}
+                    : "Ã¢â‚¬â€"}
                 </TableCell>
               </TableRow>
             ))

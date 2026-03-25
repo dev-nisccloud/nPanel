@@ -1,6 +1,6 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from '@tanstack/react-table';
 import { Link } from "react-router";
 import { useLocation } from "react-router";
 import { z } from "zod";
@@ -8,7 +8,7 @@ import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { DataTableColumnHeader } from "../../../../../components/data-table/data-table-column-header";
+import { DataTableColumnHeader } from "../../../components/data-table/data-table-column-header";
 
 import { hostingSubscriptionSchema } from "./schema";
 import { getStatusDisplayText, getStatusBadgeVariant, formatFileSize } from "./hosting-utils";

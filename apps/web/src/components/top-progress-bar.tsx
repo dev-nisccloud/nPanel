@@ -80,7 +80,7 @@ export function TopProgressBar({ active, className }: TopProgressBarProps) {
 
       tickRef.current = setInterval(() => {
         setProgress((p) => {
-          // Ease toward MAX_ACTIVE_PROGRESS with a bit of jitter so it feels “alive”.
+          // Ease toward MAX_ACTIVE_PROGRESS with a bit of jitter so it feels Ã¢â‚¬Å“aliveÃ¢â‚¬Â.
           const distance = MAX_ACTIVE_PROGRESS - p;
           if (distance <= 0) return MAX_ACTIVE_PROGRESS;
           const step = Math.max(0.6, distance * (0.06 + Math.random() * 0.02));

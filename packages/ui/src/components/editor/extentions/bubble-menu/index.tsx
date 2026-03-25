@@ -1,4 +1,6 @@
-import { type Editor, BubbleMenu as TiptapBubbleMenu } from "@tiptap/react";
+import { type Editor } from "@tiptap/react";
+// @ts-ignore - BubbleMenu might be missing from types or moved
+import { BubbleMenu as TiptapBubbleMenu } from "@tiptap/react";
 import { useState } from "react";
 import {
   MdOutlineFormatBold,

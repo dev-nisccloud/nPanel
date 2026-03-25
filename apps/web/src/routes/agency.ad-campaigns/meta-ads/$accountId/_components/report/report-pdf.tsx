@@ -1035,7 +1035,7 @@ const AdsList = ({ ads, currency }: { ads: any[], currency: string }) => {
                 <View key={i} style={styles.adRow}>
                     <View wrap={false}>
                         <Text style={styles.adName}>{ad.name}</Text>
-                        <Text style={styles.adMeta}>{ad.status} • {ad.creative?.title || 'No Title'}</Text>
+                        <Text style={styles.adMeta}>{ad.status} Ã¢â‚¬Â¢ {ad.creative?.title || 'No Title'}</Text>
                     </View>
                     <MetricsGrid insights={ad.insights?.[0] || ad.insights || {}} currency={currency} compact />
                 </View>

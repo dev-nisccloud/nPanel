@@ -32,9 +32,9 @@ import { trpc } from "@/utils/trpc";
 // import { useDataTableInstance } from "@/hooks/use-data-table-instance";
 
 // Table imports (commented out for performance)
-// import { DataTable as DataTableNew } from "../../../../../components/data-table/data-table";
-// import { DataTablePagination } from "../../../../../components/data-table/data-table-pagination";
-// import { DataTableViewOptions } from "../../../../../components/data-table/data-table-view-options";
+// import { DataTable as DataTableNew } from "../../../components/data-table/data-table";
+// import { DataTablePagination } from "../../../components/data-table/data-table-pagination";
+// import { DataTableViewOptions } from "../../../components/data-table/data-table-view-options";
 // import { hostingColumns } from "./columns";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 

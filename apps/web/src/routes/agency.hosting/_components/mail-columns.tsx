@@ -1,4 +1,4 @@
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from '@tanstack/react-table';
 import { EllipsisVertical, Mail, Forward, Shield, Reply } from "lucide-react";
 import { z } from "zod";
 

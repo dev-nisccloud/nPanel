@@ -1,4 +1,4 @@
-import { SubdomainsData } from "./subdomains-schema";
+import { type SubdomainsData } from "./subdomains-schema";
 
 const subdomainsData: SubdomainsData = {
   subdomains: [

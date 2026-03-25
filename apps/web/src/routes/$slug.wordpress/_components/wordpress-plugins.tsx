@@ -43,7 +43,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { useWordPressPlugins, WordPressPlugin } from "./use-wordpress-plugins";
+import { useWordPressPlugins, type WordPressPlugin } from "./use-wordpress-plugins";
 
 interface WordPressPluginsProps {
   installationId: string;
@@ -320,7 +320,7 @@ function PluginCard({
               </span>
               {plugin.availableVersion && plugin.availableVersion !== plugin.version && (
                 <>
-                  <span className="text-xs text-muted-foreground">→</span>
+                  <span className="text-xs text-muted-foreground">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span>
                   <span className="text-xs text-blue-600">
                     v{plugin.availableVersion}
                   </span>

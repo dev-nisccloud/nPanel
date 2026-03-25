@@ -56,7 +56,7 @@ export function RegisterForm() {
     setIsEmailSent(false);
   }, []);
 
-  // Redirect if user is already authenticated – go straight to dashboard or create-team
+  // Redirect if user is already authenticated Ã¢â‚¬â€œ go straight to dashboard or create-team
   useEffect(() => {
     if (!isPending && session) {
       redirectToTarget(0);
@@ -139,7 +139,7 @@ export function RegisterForm() {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 p-8">
         <Spinner variant="ellipsis" className="text-primary" />
-        <p className="text-sm text-muted-foreground">Redirecting…</p>
+        <p className="text-sm text-muted-foreground">RedirectingÃ¢â‚¬Â¦</p>
       </div>
     );
   }
@@ -233,7 +233,7 @@ export function RegisterForm() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢"
                     autoComplete="new-password"
                     {...field}
                   />
@@ -267,7 +267,7 @@ export function RegisterForm() {
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢"
                     autoComplete="new-password"
                     {...field}
                   />
