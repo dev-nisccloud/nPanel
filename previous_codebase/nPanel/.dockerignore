@@ -1,0 +1,25 @@
+# Docker build context is repo root (docker build -f apps/npanel/Dockerfile .)
+# This file is used; apps/npanel/.dockerignore is NOT used for that build.
+.git
+.github
+node_modules
+**/node_modules
+.next
+**/.next
+.turbo
+**/.turbo
+dist
+**/dist
+build
+**/build
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+*.md
+!apps/npanel/README.md
+docs
+.husky
+coverage
+**/coverage

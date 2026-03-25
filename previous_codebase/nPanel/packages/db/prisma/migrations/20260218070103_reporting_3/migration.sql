@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "SalesReportSnapshot" ADD COLUMN     "pendingAmount" DECIMAL(20,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "taxAmount" DECIMAL(20,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "taxableAmount" DECIMAL(20,2) NOT NULL DEFAULT 0;

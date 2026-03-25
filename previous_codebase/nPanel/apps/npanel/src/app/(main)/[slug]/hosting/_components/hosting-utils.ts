@@ -1,0 +1,144 @@
+import { z } from "zod";
+import { pleskSubscriptionResponseSchema, hostingSubscriptionSchema } from "./schema";
+
+// Helper function to get SSL status from hosting properties
+function getSslStatus(subscription: any): boolean {
+  const sslProperty = subscription.data?.hosting?.vrt_hst?.property?.find(
+    (prop: any) => prop.name === "ssl"
+  );
+  return sslProperty?.value === true || sslProperty?.value === "true";
+}
+
+// Helper function to get previous day traffic from stats
+function getTrafficPrevDay(subscription: any): number {
+  return subscription.data?.stat?.traffic_prevday ?? 0;
+}
+
+// Helper function to get total traffic from stats
+function getTraffic(subscription: any): number {
+  return subscription.data?.stat?.traffic ?? 0;
+}
+
+/**
+ * Transform Plesk API response to table format
+ */
+export function transformPleskSubscriptionsToTable(
+  pleskResponse: z.infer<typeof pleskSubscriptionResponseSchema>
+): z.infer<typeof hostingSubscriptionSchema>[] {
+  try {
+    // Check for system errors first
+    if (pleskResponse.parsed.packet.system?.status === 'error') {
+      const errorCode = pleskResponse.parsed.packet.system.errcode;
+      const errorText = pleskResponse.parsed.packet.system.errtext || 'Unknown error';
+      throw new Error(`Plesk API Error ${errorCode}: ${errorText}`);
+    }
+
+    // Check if webspace exists
+    if (!pleskResponse.parsed.packet.webspace?.get?.result) {
+      // Return empty array if no subscriptions found (not an error)
+      return [];
+    }
+
+    const subscriptions = pleskResponse.parsed.packet.webspace.get.result;
+    
+    return subscriptions.map((subscription, index) => {
+      const genInfo = subscription.data?.gen_info;
+      
+      // Safely convert status to number
+      // If status field is missing or undefined, we'll use undefined to indicate unknown status
+      let status: number | undefined = undefined;
+      if (genInfo && 'status' in genInfo && genInfo.status !== undefined && genInfo.status !== null) {
+        // Convert to number if it's a string
+        status = typeof genInfo.status === 'string' 
+          ? parseInt(genInfo.status, 10) 
+          : Number(genInfo.status);
+        // If conversion failed, keep as undefined
+        if (isNaN(status)) {
+          status = undefined;
+        }
+      }
+      
+      // Safely access nested properties with fallbacks
+      return {
+        id: subscription.id || index,
+        subscriptionName: genInfo?.name || `Subscription ${subscription.id || index}`,
+        setupDate: genInfo?.["cr_date"] || new Date().toISOString().split('T')[0],
+        status: status,
+        dnsIpAddress: genInfo?.["dns_ip_address"] || "0.0.0.0",
+        hostingType: genInfo?.htype || "unknown",
+        realSize: genInfo?.["real_size"] ?? 0,
+        guid: genInfo?.guid || "",
+        description: genInfo?.description || "",
+        sslEnabled: getSslStatus(subscription),
+        trafficPrevDay: getTrafficPrevDay(subscription),
+        traffic: getTraffic(subscription),
+      };
+    });
+  } catch (error) {
+    console.error("Error transforming Plesk subscriptions:", error);
+    console.error("Raw response:", pleskResponse);
+    throw new Error("Failed to transform subscription data");
+  }
+}
+
+/**
+ * Plesk status codes (bitmask system):
+ * 0 = Active
+ * 1 = Suspended
+ * 2 = Suspended by parent object
+ * 4 = Suspended due to backup/restore
+ * 16 = Suspended by administrator
+ * 32 = Suspended by reseller
+ * 64 = Suspended by client
+ * 256 = Suspended due to expiration
+ * These can be combined (e.g., 3 = 1+2, 272 = 256+16)
+ */
+
+/** NISC subscription status enum → display label */
+const NISC_STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "Active",
+  PENDING: "Pending",
+  SUSPENDED: "Suspended",
+  CANCELLED: "Cancelled",
+  EXPIRED: "Expired",
+  PROCESSING: "Processing",
+  FAILED: "Failed",
+  UPGRADED: "Upgraded",
+  DOWNGRADED: "Downgraded",
+};
+
+/**
+ * Get status display text. Supports (1) Plesk numeric status and (2) NISC enum string (e.g. ACTIVE, SUSPENDED).
+ */
+export function getStatusDisplayText(status: number | string | undefined | null): string {
+  if (status === undefined || status === null) return "Suspended";
+  const s = String(status).toUpperCase();
+  if (NISC_STATUS_LABELS[s]) return NISC_STATUS_LABELS[s];
+  const statusNum = typeof status === "string" ? parseInt(status, 10) : Number(status);
+  if (isNaN(statusNum)) return "Suspended";
+  return statusNum === 0 ? "Active" : "Suspended";
+}
+
+/**
+ * Get status badge variant. Supports Plesk numeric status and NISC enum string.
+ */
+export function getStatusBadgeVariant(status: number | string | undefined | null): "default" | "secondary" | "destructive" | "outline" {
+  if (status === undefined || status === null) return "destructive";
+  const s = String(status).toUpperCase();
+  if (s === "ACTIVE") return "default";
+  if (["PENDING", "PROCESSING"].includes(s)) return "secondary";
+  if (["SUSPENDED", "CANCELLED", "EXPIRED", "FAILED", "UPGRADED", "DOWNGRADED"].includes(s)) return "destructive";
+  const statusNum = typeof status === "string" ? parseInt(status, 10) : Number(status);
+  if (isNaN(statusNum)) return "destructive";
+  return statusNum === 0 ? "default" : "destructive";
+}
+
+/**
+ * Format file size from bytes to human readable format
+ */
+export function formatFileSize(bytes: number): string {
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+  if (bytes === 0) return "0 Bytes";
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + " " + sizes[i];
+}

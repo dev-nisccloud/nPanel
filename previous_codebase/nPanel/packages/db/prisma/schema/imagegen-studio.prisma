@@ -1,0 +1,185 @@
+// ImageGen Studio - User projects (personal or team-owned)
+model ImageGenProject {
+  id           String   @id @map("_id")
+  name         String
+  userId       String // Creator of the project
+  teamId       String? // Optional team ownership (null = personal project)
+  json         String   @db.Text
+  height       Int
+  width        Int
+  thumbnailUrl String?
+  createdAt    DateTime
+  updatedAt    DateTime
+
+  user         User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team         Team?                        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  activityLogs ImageGenProjectActivityLog[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@map("imagegen_project")
+}
+
+// ImageGen Studio - Templates (user-owned, shared globally for all users to use)
+model ImageGenTemplate {
+  id           String   @id @map("_id")
+  name         String
+  userId       String // Creator/owner of the template
+  json         String   @db.Text
+  height       Int
+  width        Int
+  thumbnailUrl String?
+  isPublic     Boolean  @default(true) // Whether template is visible to all users
+  createdAt    DateTime
+  updatedAt    DateTime
+
+  user         User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityLogs ImageGenTemplateActivityLog[]
+
+  @@index([userId])
+  @@index([isPublic])
+  @@map("imagegen_template")
+}
+
+// Activity logging for ImageGen project actions
+model ImageGenProjectActivityLog {
+  id                String          @id @map("_id")
+  imageGenProjectId String
+  imageGenProject   ImageGenProject @relation(fields: [imageGenProjectId], references: [id], onDelete: Cascade)
+  userId            String
+  action            String // e.g., "CREATE", "UPDATE", "DELETE", "DUPLICATE"
+  description       String?
+  metadata          Json?
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime
+
+  @@index([imageGenProjectId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("imagegen_project_activity_log")
+}
+
+// Activity logging for ImageGen template actions
+model ImageGenTemplateActivityLog {
+  id                 String           @id @map("_id")
+  imageGenTemplateId String
+  imageGenTemplate   ImageGenTemplate @relation(fields: [imageGenTemplateId], references: [id], onDelete: Cascade)
+  userId             String
+  action             String // e.g., "CREATE", "UPDATE", "DELETE", "PUBLISH", "UNPUBLISH"
+  description        String?
+  metadata           Json?
+  ipAddress          String?
+  userAgent          String?
+  createdAt          DateTime
+
+  @@index([imageGenTemplateId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("imagegen_template_activity_log")
+}
+
+// ImageGen Studio - User uploads (not linked to projects, accessible across all projects)
+model ImageGenUpload {
+  id     String  @id @map("_id")
+  userId String // User who uploaded the image
+  teamId String? // Optional team ownership (null = personal upload)
+
+  // File Storage (UploadThing)
+  fileUrl      String // UploadThing file URL
+  fileKey      String // UploadThing file key for deletion
+  fileName     String // Original file name
+  fileSize     Int // File size in bytes
+  mimeType     String // File MIME type (should be image/*)
+  fileMetadata Json? // Additional metadata (dimensions, etc.)
+
+  createdAt DateTime
+  updatedAt DateTime
+
+  user         User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team         Team?                       @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  activityLogs ImageGenUploadActivityLog[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([createdAt])
+  @@map("imagegen_upload")
+}
+
+// Activity logging for ImageGen upload actions
+model ImageGenUploadActivityLog {
+  id               String         @id @map("_id")
+  imageGenUploadId String
+  imageGenUpload   ImageGenUpload @relation(fields: [imageGenUploadId], references: [id], onDelete: Cascade)
+  userId           String
+  action           String // e.g., "UPLOAD", "DELETE"
+  description      String?
+  metadata         Json?
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime
+
+  @@index([imageGenUploadId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("imagegen_upload_activity_log")
+}
+
+// ImageGen Studio - AI Generations (not linked to projects, accessible across all projects)
+model ImageGenAiGeneration {
+  id     String  @id @map("_id")
+  userId String // User who generated the image
+  teamId String? // Optional team ownership (null = personal generation)
+
+  // Generation Details
+  prompt             String // The text prompt used
+  referenceImageUrls Json? // Array of reference image URLs (stored as JSON array)
+
+  // Generated Image Storage (UploadThing)
+  imageUrl      String // UploadThing file URL for the generated image
+  imageKey      String // UploadThing file key for deletion
+  imageFileName String // Generated file name
+  imageSize     Int // File size in bytes
+  imageMimeType String // File MIME type (should be image/*)
+  imageMetadata Json? // Additional metadata (dimensions, model used, etc.)
+
+  // Model Information
+  modelId   String // e.g., "google/nano-banana-pro"
+  modelName String? // Human-readable model name
+
+  createdAt DateTime
+  updatedAt DateTime
+
+  user         User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team         Team?                             @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  activityLogs ImageGenAiGenerationActivityLog[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([createdAt])
+  @@index([modelId])
+  @@map("imagegen_ai_generation")
+}
+
+// Activity logging for ImageGen AI generation actions
+model ImageGenAiGenerationActivityLog {
+  id                     String               @id @map("_id")
+  imageGenAiGenerationId String
+  imageGenAiGeneration   ImageGenAiGeneration @relation(fields: [imageGenAiGenerationId], references: [id], onDelete: Cascade)
+  userId                 String
+  action                 String // e.g., "GENERATE", "DELETE", "USE_IN_CANVAS"
+  description            String?
+  metadata               Json?
+  ipAddress              String?
+  userAgent              String?
+  createdAt              DateTime
+
+  @@index([imageGenAiGenerationId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("imagegen_ai_generation_activity_log")
+}

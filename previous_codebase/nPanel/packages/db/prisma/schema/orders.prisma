@@ -1,0 +1,220 @@
+// ============================================================================
+// Orders Schema
+// Order system for all services (domains, hosting, etc.) and related models.
+// ============================================================================
+
+// --- Enums -------------------------------------------------------------------
+
+enum OrderStatus {
+  PENDING // Order placed, awaiting processing
+  PROCESSING // Order being processed
+  COMPLETED // Order completed successfully
+  FAILED // Order failed
+  CANCELLED // Order cancelled
+  REFUNDED // Order refunded
+  PARTIAL // Order partially completed
+}
+
+// Order Item Status - tracks individual item provisioning status
+enum OrderItemStatus {
+  PENDING // Item is pending provisioning
+  PROVISIONING // Item is currently being provisioned
+  PROVISIONED // Item has been successfully provisioned
+  FAILED // Item provisioning failed
+  SKIPPED // Item provisioning was skipped (non-hosting)
+}
+
+enum OrderType {
+  DOMAIN_REGISTRATION // Domain registration order
+  DOMAIN_RENEWAL // Domain renewal order
+  DOMAIN_TRANSFER // Domain transfer order
+  HOSTING_SUBSCRIPTION // Hosting subscription order
+  HOSTING_RENEWAL // Hosting renewal order
+  HOSTING_UPGRADE // Hosting upgrade order
+  EMAIL_HOSTING // Email hosting order
+  SSL_CERTIFICATE // SSL certificate order
+  BACKUP_SERVICE // Backup service order
+  CUSTOM_SERVICE // Custom service order
+}
+
+// --- Order --------------------------------------------------------------------
+
+// Order system for all services (domains, hosting, etc.)
+//
+// Backward compatibility: type, domainId, domainRenewalId, domainTransferId,
+// hostingSubscriptionId, hostingRenewalId, and promoId are kept for legacy orders.
+// New flow: we do not use order types; the subscription (NiscClientSubscription or
+// ServiceSubscription) defines the service type. Service details live at subscription
+// level; the order optionally links to subscription(s) via NiscClientSubscription.orderId
+// (or ServiceSubscription.orderId). Use niscProductPromoId when a NISC product promo was applied.
+model Order {
+  id          String  @id @map("_id")
+  orderNumber String  @unique // Unique order number (e.g., "ORD-2024-001")
+  userId      String? // User that placed the order
+  teamId      String? // Team that placed the order
+  createdBy   String? // User who created the order (admin or customer)
+
+  // Order Details (type kept for backward compat; new flow ignores it — type is at subscription level)
+  type        OrderType   @default(CUSTOM_SERVICE)
+  status      OrderStatus @default(PENDING)
+  description String? // Order description
+
+  // Legacy service references (backward compatibility only; new flow uses subscription-level data)
+  domainId              String? // Reference to domain
+  domainRenewalId       String? // Reference to domain renewal
+  domainTransferId      String? // Reference to domain transfer
+  hostingSubscriptionId String? // Reference to hosting subscription
+  hostingRenewalId      String? // Reference to hosting renewal
+
+  // Pricing Information
+  subtotal      String? // Subtotal before tax and discounts
+  discount      String? // Discount amount applied
+  isTaxable     Boolean? // Whether this order is taxable
+  taxPercentage Float? // Tax percentage (e.g., 16.0 for 16%)
+  taxAmount     String? // Calculated tax amount (subtotal * taxPercentage / 100)
+  total         String? // Final total amount (subtotal + taxAmount - discount)
+  currency      String   @default("KES")
+
+  // Promo Information
+  promoCode          String? // Promo code used (legacy)
+  promoId            String? // Reference to legacy Promo (auth)
+  niscProductPromoId String? // NISC product promo/coupon applied (new flow)
+
+  // Invoice Tracking
+  invoiceNumber String? // Invoice number for this order
+  invoiceId     String? // Reference to invoice record
+
+  // Order Processing
+  processedBy String? // User who processed the order
+  processedAt DateTime? // When order was processed
+  completedAt DateTime? // When order was completed
+
+  // Additional Information
+  notes    String? // Additional notes
+  metadata Json? // Flexible metadata for order-specific data
+
+  // Timestamps
+  createdAt DateTime
+  updatedAt DateTime
+
+  // Relations
+  team                       Team?                        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  domain                     Domain?                      @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  domainRenewal              DomainRenewal?               @relation(fields: [domainRenewalId], references: [id], onDelete: SetNull)
+  domainTransfer             DomainTransfer?              @relation(fields: [domainTransferId], references: [id], onDelete: SetNull)
+  hostingSubscription        HostingSubscription?         @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
+  hostingRenewal             HostingRenewal?              @relation(fields: [hostingRenewalId], references: [id], onDelete: SetNull)
+  promo                      Promo?                       @relation(fields: [promoId], references: [id], onDelete: SetNull)
+  niscProductPromo           NiscProductPromo?            @relation(fields: [niscProductPromoId], references: [id], onDelete: SetNull)
+  invoice                    Invoice?                     @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  orderItems                 OrderItem[] // Multiple order items per order
+  activityLogs               OrderActivityLog[]
+  serviceSubscriptions       ServiceSubscription[] // Service subscriptions created by this order
+  ServiceSubscriptionRenewal ServiceSubscriptionRenewal[]
+  NiscClientSubscription     NiscClientSubscription[]
+
+  @@index([orderNumber])
+  @@index([teamId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([processedAt])
+  @@index([completedAt])
+  @@index([invoiceId])
+  @@index([niscProductPromoId])
+  @@map("order")
+}
+
+// --- OrderItem ----------------------------------------------------------------
+
+// Order Item - Represents a single service plan item in an order
+// Allows multiple items per order (e.g., hosting + SEO + videography)
+model OrderItem {
+  id      String @id @map("_id")
+  orderId String // Reference to the order
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Service Plan Reference
+  niscServicePlanId String // Reference to NISC service plan
+  niscServicePlan   NiscServicePlan @relation(fields: [niscServicePlanId], references: [id], onDelete: Restrict)
+
+  // Item Details
+  billingCycle BillingCycle // Billing cycle for this item
+  itemPrice    String // Price for this item (calculated)
+  itemSubtotal String // Subtotal for this item (same as itemPrice since quantity is always 1)
+  itemCurrency String       @default("KES")
+
+  // Service-specific fields (optional, depends on plan type)
+  domainName       String? // For HOSTING plans - domain name for provisioning
+  description      String? // Item description
+  adminDescription String? // Admin description (for HOSTING plans)
+  notes            String? // Item-specific notes
+
+  // Provisioning Status
+  status                OrderItemStatus      @default(PENDING) // Status of this order item
+  isProvisioned         Boolean              @default(false) // Whether this item has been provisioned (deprecated, use status)
+  provisioningError     String? // Error message if provisioning failed
+  hostingSubscriptionId String? // Reference to hosting subscription (if HOSTING plan and provisioned)
+  hostingSubscription   HostingSubscription? @relation(fields: [hostingSubscriptionId], references: [id], onDelete: SetNull)
+
+  // Metadata for flexible data storage
+  metadata Json? // Additional item-specific data
+
+  // Timestamps
+  createdAt DateTime
+  updatedAt DateTime
+
+  // Relations
+  activityLogs OrderItemActivityLog[]
+
+  @@index([orderId])
+  @@index([niscServicePlanId])
+  @@index([status])
+  @@index([isProvisioned])
+  @@index([hostingSubscriptionId])
+  @@map("order_item")
+}
+
+// --- OrderItemActivityLog ----------------------------------------------------
+
+// Activity logging for order item actions
+model OrderItemActivityLog {
+  id          String    @id @map("_id")
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  userId      String
+  action      String // e.g., "CREATE", "UPDATE", "PROVISION", "COMPLETE", "CANCEL"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime
+
+  @@index([orderItemId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("order_item_activity_log")
+}
+
+// --- OrderActivityLog --------------------------------------------------------
+
+// Activity logging for order actions
+model OrderActivityLog {
+  id          String   @id @map("_id")
+  userId      String
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  action      String // e.g., "CREATE", "UPDATE", "PROCESS", "COMPLETE", "CANCEL", "REFUND"
+  description String?
+  metadata    Json? // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("order_activity_log")
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", "prisma/generated/**"],
+      "env": ["PRISMA_BINARY_TARGETS", "DATABASE_URL", "DIRECT_URL"]
+    },
+    "lint": {"dependsOn": ["^lint"]},
+    "check-types": {"dependsOn": ["^check-types"]},
+    "dev": {"cache": false, "persistent": true},
+    "db:push": {"cache": false, "persistent": true, "env": ["DATABASE_URL", "PRISMA_BINARY_TARGETS"]},
+    "db:studio": {"cache": false, "persistent": true},
+    "db:migrate": {"cache": false, "persistent": true, "env": ["DATABASE_URL", "PRISMA_BINARY_TARGETS"]},
+    "db:generate": {"cache": false, "env": ["DATABASE_URL", "PRISMA_BINARY_TARGETS"]}
+  }
+}
