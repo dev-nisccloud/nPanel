@@ -1480,7 +1480,7 @@ export const creativeAssetsRouter = router({
 					versions: isAgency
 						? { orderBy: (v, { desc: d }) => [d(v.createdAt)] }
 						: {
-								where: (v, { eq: eqFn }) => eqFn(v.isPublic, true),
+								where: (v, { eq }) => eq(v.isPublic, true),
 								orderBy: (v, { desc: d }) => [d(v.createdAt)],
 							},
 					...(isAgency ? { permissions: true } : {}),
