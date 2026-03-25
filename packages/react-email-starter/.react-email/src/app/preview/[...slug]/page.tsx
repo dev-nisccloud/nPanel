@@ -99,99 +99,24 @@ This is most likely not an issue with the preview server. Maybe there was a typo
       compatibilityCheckingResults.push(result);
     }
 
-    
-
-    // Spam check with timeout and error handling for CI/build environments
-
-
-    try {
-
-
-      const controller = new AbortController();
-
-
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-
-      
-
-
-      const response = await fetch('https://react.email/api/check-spam', {
-
-
-        method: 'POST',
-
-
-        headers: { 'Content-Type': 'application/json' },
-
-
-        body: JSON.stringify({
-
-
-          html: serverEmailRenderingResult.prettyMarkup,
-
-
-          plainText: serverEmailRenderingResult.plainText,
-
-
-        }),
-
-
-        signal: controller.signal,
-
-
+    const response = await fetch('https://react.email/api/check-spam', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        html: serverEmailRenderingResult.prettyMarkup,
+        plainText: serverEmailRenderingResult.plainText,
+      }),
+    });
+    const responseBody = (await response.json()) as
+      | { error: string }
+      | SpamCheckingResult;
+    if ('error' in responseBody) {
+      throw new Error(`Failed doing Spam Check. ${responseBody.error}`, {
+        cause: responseBody,
       });
-
-
-      clearTimeout(timeoutId);
-
-
-      
-
-
-      const responseBody = (await response.json()) as
-
-
-        | { error: string }
-
-
-        | SpamCheckingResult;
-
-
-      if ('error' in responseBody) {
-
-
-        console.warn(`Spam check failed: ${responseBody.error}. Continuing without spam check results.`);
-
-
-        spamCheckingResult = undefined;
-
-
-      } else {
-
-
-        spamCheckingResult = responseBody;
-
-
-      }
-
-
-    } catch (error) {
-
-
-      // Gracefully handle spam check failures (timeouts, network errors, etc.)
-
-
-      // This is common in CI/build environments where the spam check service may be unavailable
-
-
-      console.warn('Spam check unavailable or timed out. Continuing build without spam check results.', error);
-
-
-      spamCheckingResult = undefined;
-
-
     }
+
+    spamCheckingResult = responseBody;
   }
 
   return (

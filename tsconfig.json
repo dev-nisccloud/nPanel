@@ -1,3 +1,10 @@
 {
-  "extends": "@npanel/config/tsconfig.base.json"
+  "extends": "@npanel/config/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "drizzle-orm": ["./node_modules/drizzle-orm"],
+      "drizzle-orm/*": ["./node_modules/drizzle-orm/*"]
+    }
+  }
 }
