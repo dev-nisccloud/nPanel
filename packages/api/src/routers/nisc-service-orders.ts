@@ -1,7 +1,7 @@
 import * as crypto from "crypto";
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or, sql } from "@npanel/db";
 
 import { db } from "@npanel/db";
 import { userProfile } from "@npanel/db/schema/auth-extras";

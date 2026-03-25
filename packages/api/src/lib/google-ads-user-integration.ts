@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq } from "@npanel/db";
 
 import { db } from "@npanel/db";
 import { googleAdsIntegration } from "@npanel/db/schema/google-ads";

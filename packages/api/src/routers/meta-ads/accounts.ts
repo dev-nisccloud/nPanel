@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, type InferSelectModel } from "drizzle-orm";
+import { and, desc, eq, type InferSelectModel } from "@npanel/db";
 import { db } from "@npanel/db";
 import { metaAdsAccount } from "@npanel/db/schema/meta-ads";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";

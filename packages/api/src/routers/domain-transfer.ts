@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq } from "@npanel/db";
 import * as crypto from "crypto";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";

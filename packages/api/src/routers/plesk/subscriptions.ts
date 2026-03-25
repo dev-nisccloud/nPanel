@@ -1,7 +1,7 @@
 import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq } from "@npanel/db";
 
 import { db } from "@npanel/db";
 import { hostingSubscription, niscServicePlan } from "@npanel/db/schema/hosting";

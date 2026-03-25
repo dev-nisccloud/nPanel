@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, eq, or, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "@npanel/db";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@npanel/db";
 import { userActivityLog } from "@npanel/db/schema/auth-extras";

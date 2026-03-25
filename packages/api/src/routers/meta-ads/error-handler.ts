@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { eq } from "drizzle-orm";
+import { eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
 import { MetaAdsApiError } from '../../lib/meta-ads-client';

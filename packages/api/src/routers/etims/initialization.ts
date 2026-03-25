@@ -1,6 +1,6 @@
 import * as crypto from "node:crypto";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq } from "@npanel/db";
 import { router, protectedProcedure } from "../../trpc";
 import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";

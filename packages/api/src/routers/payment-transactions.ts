@@ -5,7 +5,7 @@ import { teamMember, team as teamTable } from "@npanel/db/schema/teams";
 import {
   paymentTransaction,
 } from "@npanel/db/schema/payment-transactions";
-import { and, count, desc, eq, inArray, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, or } from "@npanel/db";
 import { z } from "zod";
 import { protectedProcedure, router, type Context } from "../trpc";
 

@@ -17,7 +17,7 @@ import {
 	lt,
 	lte,
 	notInArray,
-} from "drizzle-orm";
+} from "@npanel/db";
 
 import { db } from "@npanel/db";
 import { creditNote, invoice, invoiceTransaction } from "@npanel/db/schema/invoicing";

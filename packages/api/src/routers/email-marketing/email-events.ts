@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { emailCampaign, campaignRecipient, emailEvent } from "@npanel/db/schema/email-marketing";
 import { teamMember } from "@npanel/db/schema/teams";

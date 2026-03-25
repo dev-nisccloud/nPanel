@@ -4,7 +4,7 @@
  * Creates NiscClientSubscriptionUsage rows with credits = plan's limitValue
  * and logs each in NiscClientSubscriptionUsageActivityLog.
  */
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
 	niscClientSubscriptionActivityLog,

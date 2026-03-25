@@ -11,7 +11,7 @@
  */
 import * as crypto from "crypto";
 import { XMLParser } from "fast-xml-parser";
-import { and, eq } from "drizzle-orm";
+import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 import { customerIntegration, customerIntegrationActivityLog, userProfile } from "@npanel/db/schema/auth-extras";

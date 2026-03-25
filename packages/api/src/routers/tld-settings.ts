@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
-import { and, count, desc, eq, ilike, inArray, ne } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, ne } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
   nameserver,
