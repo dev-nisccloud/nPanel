@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
 	customerIntegration,

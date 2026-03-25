@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "@npanel/db";
 
 import { db } from "@npanel/db";
 import { creativeProductionSnapshot } from "@npanel/db/schema/reporting";

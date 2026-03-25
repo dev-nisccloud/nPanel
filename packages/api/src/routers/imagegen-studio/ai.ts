@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 import Replicate from "replicate";
 import { db } from "@npanel/db";

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq } from "@npanel/db";
 import { publicProcedure, router } from "../trpc";
 import { db } from "@npanel/db";
 import { tldSettings } from "@npanel/db/schema/nameservers";

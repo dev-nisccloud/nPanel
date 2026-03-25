@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "@npanel/db";
 import { router, protectedProcedure } from '../../../trpc';
 import { LinkedInApiError } from '../../../lib/linkedin-client';
 import { LinkedInErrorHandler } from '../../../lib/linkedin-error-handler';

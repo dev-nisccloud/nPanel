@@ -1,5 +1,5 @@
 import { router, protectedProcedure } from '../../trpc';
-import { eq } from "drizzle-orm";
+import { eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
 import { getStoredLinkedInAccessToken } from '../../lib/linkedin-credentials';

@@ -5,7 +5,7 @@
  * OpenProvider (domain_registration) → ensure integration, verify email, register domain;
  * OpenProvider (domain_transfer) → ensure integration, verify email, transfer domain (auth code in item.metadata).
  */
-import { eq } from "drizzle-orm";
+import { eq } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 
 import { db } from "@npanel/db";

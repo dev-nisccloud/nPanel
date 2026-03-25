@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 
 import { db } from "@npanel/db";

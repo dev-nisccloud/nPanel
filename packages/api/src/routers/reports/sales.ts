@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
 	salesReportSnapshot,

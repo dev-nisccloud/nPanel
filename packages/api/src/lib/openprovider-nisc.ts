@@ -3,7 +3,7 @@
  * Used by the NISC order processor for domain_registration and domain_transfer items.
  */
 import * as crypto from "crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { customerIntegration, userProfile } from "@npanel/db/schema/auth-extras";

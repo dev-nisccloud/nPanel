@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
 	campaignRecipient,

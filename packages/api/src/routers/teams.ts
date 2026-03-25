@@ -1,6 +1,6 @@
 import * as crypto from "node:crypto";
 import { z } from "zod";
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "@npanel/db";
 import { publicProcedure, protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";

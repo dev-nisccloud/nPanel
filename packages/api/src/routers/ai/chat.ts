@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 import { db } from "@npanel/db";
 import { aiChat, aiChatMessage } from "@npanel/db/schema/ai";

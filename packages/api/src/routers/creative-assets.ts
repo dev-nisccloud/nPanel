@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import {
@@ -1480,7 +1480,7 @@ export const creativeAssetsRouter = router({
 					versions: isAgency
 						? { orderBy: (v, { desc: d }) => [d(v.createdAt)] }
 						: {
-								where: (v, { eq: eqFn }) => eqFn(v.isPublic, true),
+								where: (v, { eq }) => eq(v.isPublic, true),
 								orderBy: (v, { desc: d }) => [d(v.createdAt)],
 							},
 					...(isAgency ? { permissions: true } : {}),
@@ -1507,7 +1507,7 @@ export const creativeAssetsRouter = router({
 			const withCounts = assets.map((a) => ({
 				...a,
 				_count: { versions: versionCountMap.get(a.id) ?? 0 },
-			}));
+			})) as DbCreativeAsset[];
 
 			if (isAgency) {
 				return withCounts
@@ -1601,7 +1601,7 @@ export const creativeAssetsRouter = router({
 			const withCounts = assets.map((a) => ({
 				...a,
 				_count: { versions: versionCountMap.get(a.id) ?? 0 },
-			}));
+			})) as DbCreativeAsset[];
 
 			if (isAgency) {
 				return withCounts
@@ -1912,7 +1912,7 @@ export const creativeAssetsRouter = router({
 					},
 				},
 				orderBy: (c, { asc: a }) => [a(c.createdAt)],
-			});
+			}) as DbCreativeAssetComment[];
 
 			return comments.map(transformComment);
 		}),

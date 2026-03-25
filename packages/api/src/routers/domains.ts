@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { team, teamMember } from "@npanel/db/schema/teams";

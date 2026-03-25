@@ -2,7 +2,7 @@ import * as crypto from "crypto";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { webDesignQuoteRequest } from "@npanel/db/schema/web-design-quotes";
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq } from "@npanel/db";
 import { protectedProcedure, router } from "../../trpc";
 import {
 	apiWebDesignProjectTypeSchema,

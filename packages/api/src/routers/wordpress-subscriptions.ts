@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { hostingPlan, wordPressInstance, wordPressInstanceActivityLog } from "@npanel/db/schema/hosting";
 import { team } from "@npanel/db/schema/teams";

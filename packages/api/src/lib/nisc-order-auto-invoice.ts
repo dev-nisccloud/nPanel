@@ -3,7 +3,7 @@
  * Used by the process-nisc-order worker.
  */
 import * as crypto from "crypto";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql } from "@npanel/db";
 import type { TeamBillingSettings } from "../schemas/team-billing";
 import { isTeamBillingComplete } from "../schemas/team-billing";
 import type { NiscOrderForInvoice } from "../schemas/nisc-order-invoice";

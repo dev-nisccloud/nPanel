@@ -16,7 +16,7 @@
     "react-email-starter": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

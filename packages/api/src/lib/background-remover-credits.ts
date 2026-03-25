@@ -2,7 +2,7 @@
  * Server-side helpers for Background Remover credit checks and deductions.
  * Used by: startBackgroundRemoval (tRPC) to enforce at least 1 credit; worker to deduct after completion.
  */
-import { and, eq, ilike, asc } from "drizzle-orm";
+import { and, eq, ilike, asc } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
   niscClientSubscription,
