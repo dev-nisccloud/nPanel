@@ -3,7 +3,7 @@ import { getRootRedirectTargetFromHeaders } from "@npanel/auth/root-redirect-tar
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 import { env } from "@npanel/env/server";
-import { eq } from "drizzle-orm";
+import { eq } from "@npanel/db";
 import type { Hono } from "hono";
 
 const FALLBACK_REDIRECT = "/auth/login";

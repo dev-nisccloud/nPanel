@@ -901,7 +901,7 @@ export const creativeAssetsRouter = router({
 						with: {
 							permissions: true,
 							versions: {
-								where: (v, { eq }) => eq(v.isPublic, true) as any,
+										where: (v, { eq }) => eq(v.isPublic as any, true),
 								orderBy: (v, { desc: d }) => [d(v.publicVersionNumber)],
 								limit: 1,
 							},
@@ -1405,7 +1405,7 @@ export const creativeAssetsRouter = router({
 				where: eq(creativeAsset.id, version.creativeAssetId),
 				with: {
 					versions: {
-						where: (v, { eq }) => eq(v.isPublic, true) as any,
+						where: (v, { eq }) => eq(v.isPublic as any, true),
 						orderBy: (v, { desc: d }) => [d(v.publicVersionNumber)],
 						limit: 1,
 					},
@@ -1480,7 +1480,7 @@ export const creativeAssetsRouter = router({
 					versions: isAgency
 						? { orderBy: (v, { desc: d }) => [d(v.createdAt)] }
 						: {
-								where: (v, { eq }) => eq(v.isPublic, true) as any,
+								where: (v, { eq }) => eq(v.isPublic as any, true),
 								orderBy: (v, { desc: d }) => [d(v.createdAt)],
 							},
 					...(isAgency ? { permissions: true } : {}),
@@ -1578,7 +1578,7 @@ export const creativeAssetsRouter = router({
 					versions: isAgency
 						? { orderBy: (v, { desc: d }) => [d(v.createdAt)] }
 						: {
-								where: (v, { eq }) => eq(v.isPublic, true) as any,
+								where: (v, { eq }) => eq(v.isPublic as any, true),
 								orderBy: (v, { desc: d }) => [d(v.createdAt)],
 							},
 					...(isAgency ? { permissions: true } : {}),
@@ -1908,7 +1908,7 @@ export const creativeAssetsRouter = router({
 						orderBy: (c, { asc: a }) => [a(c.createdAt)],
 						...(isAgency
 							? {}
-							: { where: (c, { eq }) => eq(c.isInternal, false) as any }),
+							: { where: (c, { eq }) => eq(c.isInternal as any, false) }),
 					},
 				},
 				orderBy: (c, { asc: a }) => [a(c.createdAt)],

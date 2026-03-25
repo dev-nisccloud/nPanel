@@ -16,7 +16,7 @@ import { sendEmail } from "react-email-starter/src/email";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { eq } from "drizzle-orm";
+import { eq } from "@npanel/db";
 
 const resolvedTrustedOrigins = (() => {
   const addUrlToList = (list: string[], url: string | undefined) => {
