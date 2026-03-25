@@ -128,9 +128,9 @@ export async function POST(request: Request) {
 			}),
 		]);
 
-		// Notify campaign owner: completed email + in-app notification (use NEXT_PUBLIC_APP_URL as-is)
+		// Notify campaign owner: completed email + in-app notification (use VITE_PUBLIC_APP_URL as-is)
 		try {
-			const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+			const base = (process.env.VITE_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 			const viewCampaignLink = `${base}/agency/email-marketing/campaigns/${campaignId}`;
 			const campaignWithUser = await prisma.emailCampaign.findUnique({
 				where: { id: campaignId },

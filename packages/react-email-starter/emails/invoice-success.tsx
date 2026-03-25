@@ -93,7 +93,7 @@ InvoiceSuccessEmail.PreviewProps = {
   currency: 'KES',
   supportEmail: 'accounts@nisccloud.com',
   supportPhone: '+254 748 777 666',
-  invoiceLink: undefined, // Set at send time from NEXT_PUBLIC_APP_URL + /{teamSlug}/invoices
+  invoiceLink: undefined, // Set at send time from VITE_PUBLIC_APP_URL + /{teamSlug}/invoices
 } as InvoiceSuccessEmailProps;
 
 export default InvoiceSuccessEmail;

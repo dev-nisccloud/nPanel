@@ -208,7 +208,7 @@ export const metaAuthRouter = router({
 				// Step 1: Exchange OAuth code for short-lived token
 				const redirectUri =
 					input.redirectUri ||
-					`${process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/agency/social-media-marketing/facebook/callback`;
+					`${process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3001'}/agency/social-media-marketing/facebook/callback`;
 
 				const shortLivedTokenResponse = await exchangeCodeForToken(input.code, redirectUri);
 
@@ -273,38 +273,38 @@ export const metaAuthRouter = router({
 					// Create new integration
 					const newIntegrationId = `meta_${Date.now()}`;
 					await db.insert(socialMediaIntegration).values({
-							id: newIntegrationId,
-							platform: META_FACEBOOK_PLATFORM,
-							userId,
-							accessToken: longLivedToken.access_token,
-							accessTokenExpiresAt: expiresAt,
-							scope: scope || 'pages_read_engagement,pages_manage_posts,pages_show_list',
-							status: ACTIVE_STATUS,
-							createdAt: now,
-							updatedAt: now,
+						id: newIntegrationId,
+						platform: META_FACEBOOK_PLATFORM,
+						userId,
+						accessToken: longLivedToken.access_token,
+						accessTokenExpiresAt: expiresAt,
+						scope: scope || 'pages_read_engagement,pages_manage_posts,pages_show_list',
+						status: ACTIVE_STATUS,
+						createdAt: now,
+						updatedAt: now,
 					});
 					integrationId = newIntegrationId;
 				}
 
 				// Log activity
 				await db.insert(socialMediaIntegrationActivityLog).values({
-						id: randomUUID(),
-						integrationId,
-						userId,
-						action: isUpdate ? 'TOKEN_REFRESH' : 'CREATE',
-						description: isUpdate
-							? 'Meta integration token refreshed'
-							: 'Meta integration created and connected',
-						metadata: {
-							platform: 'META_FACEBOOK',
-							expiresAt: expiresAt.toISOString(),
-							scope: scope || 'pages_read_engagement,pages_manage_posts,pages_show_list',
-							tokenType: longLivedToken.token_type,
-							expiresIn: validExpiresIn,
-						},
-						ipAddress: null,
-						userAgent: null,
-						createdAt: now,
+					id: randomUUID(),
+					integrationId,
+					userId,
+					action: isUpdate ? 'TOKEN_REFRESH' : 'CREATE',
+					description: isUpdate
+						? 'Meta integration token refreshed'
+						: 'Meta integration created and connected',
+					metadata: {
+						platform: 'META_FACEBOOK',
+						expiresAt: expiresAt.toISOString(),
+						scope: scope || 'pages_read_engagement,pages_manage_posts,pages_show_list',
+						tokenType: longLivedToken.token_type,
+						expiresIn: validExpiresIn,
+					},
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
 
 				return {
@@ -477,55 +477,55 @@ export const metaAuthRouter = router({
 				} else {
 					const newPageTokenId = `page_token_${integration.id}_${input.pageId}_${Date.now()}`;
 					await db.insert(socialMediaPageToken).values({
-							id: newPageTokenId,
-							integrationId: integration.id,
-							platform: integration.platform, // Set platform from integration
-							pageId: input.pageId,
-							accessToken: pageToken.access_token,
-							accessTokenExpiresAt: expiresAt,
-							pageName: pageInfo.pageName,
-							pageUsername: pageInfo.pageUsername,
-							pagePicture: pageInfo.pagePicture,
-							pageCategory: pageInfo.pageCategory,
-							teamId: newTeamId,
-							isActive: true,
-							lastTokenRefreshAt: now,
-							createdAt: now,
-							updatedAt: now,
+						id: newPageTokenId,
+						integrationId: integration.id,
+						platform: integration.platform, // Set platform from integration
+						pageId: input.pageId,
+						accessToken: pageToken.access_token,
+						accessTokenExpiresAt: expiresAt,
+						pageName: pageInfo.pageName,
+						pageUsername: pageInfo.pageUsername,
+						pagePicture: pageInfo.pagePicture,
+						pageCategory: pageInfo.pageCategory,
+						teamId: newTeamId,
+						isActive: true,
+						lastTokenRefreshAt: now,
+						createdAt: now,
+						updatedAt: now,
 					});
 					pageTokenId = newPageTokenId;
 				}
 
 				// Log activity
 				await db.insert(socialMediaPageTokenActivityLog).values({
-						id: randomUUID(),
-						pageTokenId,
-						userId,
-						action: isUpdate
-							? teamChanged
-								? newTeamId
-									? 'LINK_TEAM'
-									: 'UNLINK_TEAM'
-								: 'UPDATE'
-							: 'CREATE',
-						description: isUpdate
-							? teamChanged
-								? newTeamId
-									? `Page linked to team ${newTeamId}`
-									: 'Page unlinked from team'
-								: 'Page token updated'
-							: `Page token created for page ${input.pageId}`,
-						metadata: {
-							pageId: input.pageId,
-							pageName: pageInfo.pageName,
-							pageUsername: pageInfo.pageUsername,
-							teamId: newTeamId,
-							previousTeamId: previousTeamId || null,
-							integrationId: integration.id,
-						},
-						ipAddress: null,
-						userAgent: null,
-						createdAt: now,
+					id: randomUUID(),
+					pageTokenId,
+					userId,
+					action: isUpdate
+						? teamChanged
+							? newTeamId
+								? 'LINK_TEAM'
+								: 'UNLINK_TEAM'
+							: 'UPDATE'
+						: 'CREATE',
+					description: isUpdate
+						? teamChanged
+							? newTeamId
+								? `Page linked to team ${newTeamId}`
+								: 'Page unlinked from team'
+							: 'Page token updated'
+						: `Page token created for page ${input.pageId}`,
+					metadata: {
+						pageId: input.pageId,
+						pageName: pageInfo.pageName,
+						pageUsername: pageInfo.pageUsername,
+						teamId: newTeamId,
+						previousTeamId: previousTeamId || null,
+						integrationId: integration.id,
+					},
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
 
 				return {
@@ -616,7 +616,7 @@ export const metaAuthRouter = router({
 				// Use provided redirect URI or default
 				const redirectUri =
 					input.redirectUri ||
-					`${process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/agency/social-media-marketing/facebook/callback`;
+					`${process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3000'}/agency/social-media-marketing/facebook/callback`;
 
 				const authUrl = `https://www.facebook.com/${apiVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scopes.join(',')}`;
 
@@ -647,7 +647,7 @@ export const metaAuthRouter = router({
 	/**
 	 * Get stored Meta credentials (integration status)
 	 */
-		getStoredCredentials: protectedProcedure.query(async () => {
+	getStoredCredentials: protectedProcedure.query(async () => {
 		try {
 			const integration = await db.query.socialMediaIntegration.findFirst({
 				where: eq(socialMediaIntegration.platform, META_FACEBOOK_PLATFORM),

@@ -2,7 +2,6 @@ import {
   US,
   EU,
   KE,
-  FlagComponent,
 } from "country-flag-icons/react/1x1";
 
 export const currencyList: {
@@ -13,7 +12,7 @@ export const currencyList: {
     currencySymbol: string;
     currencyName: string;
     currencyShortForm: string;
-    icon: FlagComponent;
+    icon: any;
     iconName: string;
   };
 }[] = [

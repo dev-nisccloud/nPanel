@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ZodError } from 'zod';
 import { ToggleGroupItem } from '@/components/ui/toggle-group';
-import { HeadingProps, HeadingPropsDefaults, HeadingPropsSchema } from '@usewaypoint/block-heading';
+import { type HeadingProps, HeadingPropsDefaults, HeadingPropsSchema } from '@usewaypoint/block-heading';
 import BaseSidebarPanel from '../helpers/BaseSidebarPanel';
 import RadioGroupInput from '../helpers/inputs/RadioGroupInput';
 import TextInput from '../helpers/inputs/TextInput';

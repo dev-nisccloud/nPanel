@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
 			},
 		});
 
-		const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+		const baseUrl = (process.env.VITE_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 		const orderLink = `${baseUrl}/agency/nisc-service-orders?order=${niscOrderId}`;
 		const retryLink = `${baseUrl}/agency/nisc-service-orders`;
 
@@ -132,11 +132,11 @@ export async function POST(request: NextRequest) {
 			order.user?.name ??
 			(order.team?.createdById
 				? (
-						await prisma.user.findUnique({
-							where: { id: order.team.createdById },
-							select: { name: true },
-						})
-					)?.name ?? null
+					await prisma.user.findUnique({
+						where: { id: order.team.createdById },
+						select: { name: true },
+					})
+				)?.name ?? null
 				: null) ??
 			"Customer";
 
@@ -144,8 +144,8 @@ export async function POST(request: NextRequest) {
 		if (result.ok && result.status === "COMPLETED" && orderAfter) {
 			const billingSettings = order.teamId
 				? await prisma.teamBillingSettings.findUnique({
-						where: { teamId: order.teamId },
-					})
+					where: { teamId: order.teamId },
+				})
 				: null;
 			const customerEmail =
 				order.user?.email ??

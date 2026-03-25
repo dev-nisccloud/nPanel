@@ -169,8 +169,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
     }
 
     return {
-      host: process.env.NEXT_PUBLIC_FTP_HOST || "orion.nisccloud.com", // From environment
-      port: parseInt(process.env.NEXT_PUBLIC_FTP_PORT || "21"),
+      host: process.env.VITE_PUBLIC_FTP_HOST || "orion.nisccloud.com", // From environment
+      port: parseInt(process.env.VITE_PUBLIC_FTP_PORT || "21"),
       user: String(ftpLogin),
       password: String(ftpPassword),
       secure: true, // Use FTPS

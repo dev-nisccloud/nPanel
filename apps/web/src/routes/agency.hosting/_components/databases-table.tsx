@@ -145,7 +145,7 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
 
   const filteredData = React.useMemo(() => {
     if (!databasesData) return [];
-    
+
     if (searchTerm.trim()) {
       return databasesData.filter((db) =>
         (db.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -179,7 +179,7 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
       return;
     }
     // Construct phpMyAdmin URL - format: https://orion.nisccloud.com/phpMyAdmin/index.php?db={database_name}
-    const pleskHost = process.env.NEXT_PUBLIC_PLESK_HOST || 'orion.nisccloud.com';
+    const pleskHost = process.env.VITE_PUBLIC_PLESK_HOST || 'orion.nisccloud.com';
     const phpMyAdminUrl = `https://${pleskHost}/phpMyAdmin/index.php?db=${encodeURIComponent(db.name)}`;
     window.open(phpMyAdminUrl, '_blank', 'noopener,noreferrer');
   };
@@ -290,57 +290,57 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
             filteredData.map((db, index) => {
               const isAssigned = isAssignedToCurrentWebsite(db);
               return (
-              <TableRow key={db.id || `db-${index}`}>
-                <TableCell className="pl-6 font-medium">
-                  <div className="flex items-center gap-2">
-                    <DatabaseIcon className="h-4 w-4 text-muted-foreground" />
-                    <span>{db.name || "Unknown Database"}</span>
-                  </div>
-                </TableCell>
-                <TableCell>{getTypeBadge(db.type)}</TableCell>
-                <TableCell>
-                  {isAssigned ? (
+                <TableRow key={db.id || `db-${index}`}>
+                  <TableCell className="pl-6 font-medium">
                     <div className="flex items-center gap-2">
-                      <Globe className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-sm">{domainName || "Current Website"}</span>
+                      <DatabaseIcon className="h-4 w-4 text-muted-foreground" />
+                      <span>{db.name || "Unknown Database"}</span>
                     </div>
-                  ) : (
-                    <Badge variant="outline" className="text-xs">
-                      Not assigned
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell>{getStatusBadge(db.status)}</TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
-                              <EllipsisVertical className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onClick={() => handleOpenPhpMyAdmin(db)}>
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              Open phpMyAdmin
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleConnectionInfo(db)}>
-                              <Info className="mr-2 h-4 w-4" />
-                              Connection Info
-                            </DropdownMenuItem>
-                            {!isAssignedToCurrentWebsite(db) && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleAssignToWebsite(db)}>
-                                  <Link2 className="mr-2 h-4 w-4" />
-                                  Assign to {domainName || "Website"}
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {/* TODO: Implement these features later
+                  </TableCell>
+                  <TableCell>{getTypeBadge(db.type)}</TableCell>
+                  <TableCell>
+                    {isAssigned ? (
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{domainName || "Current Website"}</span>
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">
+                        Not assigned
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>{getStatusBadge(db.status)}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0" size="icon">
+                                <EllipsisVertical className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onClick={() => handleOpenPhpMyAdmin(db)}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Open phpMyAdmin
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleConnectionInfo(db)}>
+                                <Info className="mr-2 h-4 w-4" />
+                                Connection Info
+                              </DropdownMenuItem>
+                              {!isAssignedToCurrentWebsite(db) && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleAssignToWebsite(db)}>
+                                    <Link2 className="mr-2 h-4 w-4" />
+                                    Assign to {domainName || "Website"}
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {/* TODO: Implement these features later
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleChangePassword(db)}>
                               <Key className="mr-2 h-4 w-4" />
@@ -364,24 +364,24 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
                               Export Dump (via phpMyAdmin)
                             </DropdownMenuItem>
                             */}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              variant="destructive"
-                              onClick={() => handleDelete(db)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Actions</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </TableCell>
-              </TableRow>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onClick={() => handleDelete(db)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Actions</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
+                </TableRow>
               );
             })
           )}
@@ -413,7 +413,7 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
             />
           </div>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
           {/* View Mode Toggle */}
           <div className="flex items-center border rounded-md">
@@ -434,9 +434,9 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => setCreateDatabaseOpen(true)}
             className="flex-shrink-0 min-w-0"

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormProvider, useForm } from "react-hook-form";
-import { QuotationContent } from "./agency.quotations/_components/quotation-content";
+import { QuotationContent } from "./agency.quotations/create/_components/quotation-content";
 
 export default function CreateQuotationPage() {
 	const form = useForm({

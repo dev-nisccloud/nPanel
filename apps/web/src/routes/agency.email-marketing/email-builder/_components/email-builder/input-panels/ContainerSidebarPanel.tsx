@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ZodError } from 'zod';
-import { ContainerProps, ContainerPropsSchema } from '@usewaypoint/block-container';
+import { type ContainerProps, ContainerPropsSchema } from '@usewaypoint/block-container';
 import BaseSidebarPanel from '../helpers/BaseSidebarPanel';
 import MultiStylePropertyPanel from '../helpers/style-inputs/MultiStylePropertyPanel';
 

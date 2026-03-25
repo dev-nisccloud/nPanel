@@ -437,7 +437,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         open={webDesignDialogOpen}
         onOpenChange={setWebDesignDialogOpen}
         domainName={domain.domain}
-        supportPhoneNumber={process.env.NEXT_PUBLIC_SUPPORT_PHONE}
+        supportPhoneNumber={process.env.VITE_PUBLIC_SUPPORT_PHONE}
       />
       <HostingPlanDialog
         open={hostingDialogOpen}

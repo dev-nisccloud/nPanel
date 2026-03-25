@@ -6,11 +6,11 @@ import { user as userTable } from "@npanel/db/schema/auth";
 import { teamMember } from "@npanel/db/schema/teams";
 import { notification } from "@npanel/db/schema/notifications";
 import {
-  campaignRecipient,
-  emailCampaign,
-  emailCampaignActivityLog,
-  emailCampaignSendJob,
-  emailDomain,
+	campaignRecipient,
+	emailCampaign,
+	emailCampaignActivityLog,
+	emailCampaignSendJob,
+	emailDomain,
 } from "@npanel/db/schema/email-marketing";
 import { enqueueCampaignSend, cancelCampaignSend } from "../../lib/qstash/campaign-send";
 import { sendEmail } from "../../lib/email";
@@ -35,9 +35,9 @@ import {
 import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc";
 
-/** Build campaign view link using NEXT_PUBLIC_APP_URL as-is (no extra redirects). */
+/** Build campaign view link using VITE_PUBLIC_APP_URL as-is (no extra redirects). */
 function getCampaignViewLink(campaignId: string): string {
-	const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+	const base = (process.env.VITE_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 	return `${base}/agency/email-marketing/campaigns/${campaignId}`;
 }
 
@@ -58,61 +58,61 @@ function mapRecipient(r: {
 }
 
 async function assertTeamMember(teamId: string, userId: string) {
-  const [member] = await db
-    .select({ id: teamMember.id })
-    .from(teamMember)
-    .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
-    .limit(1);
+	const [member] = await db
+		.select({ id: teamMember.id })
+		.from(teamMember)
+		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+		.limit(1);
 
-  if (!member) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
-  }
+	if (!member) {
+		throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+	}
 }
 
 async function assertCampaignAccess(campaignId: string, userId: string) {
-  const [campaign] = await db
-    .select({
-      id: emailCampaign.id,
-      userId: emailCampaign.userId,
-      teamId: emailCampaign.teamId,
-      name: emailCampaign.name,
-      status: emailCampaign.status,
-      emailDomainId: emailCampaign.emailDomainId,
-      subject: emailCampaign.subject,
-      fromEmail: emailCampaign.fromEmail,
-      fromName: emailCampaign.fromName,
-      description: emailCampaign.description,
-      htmlContent: emailCampaign.htmlContent,
-      textContent: emailCampaign.textContent,
-      scheduledAt: emailCampaign.scheduledAt,
-      sentAt: emailCampaign.sentAt,
-      createdAt: emailCampaign.createdAt,
-      updatedAt: emailCampaign.updatedAt,
-    })
-    .from(emailCampaign)
-    .where(eq(emailCampaign.id, campaignId))
-    .limit(1);
+	const [campaign] = await db
+		.select({
+			id: emailCampaign.id,
+			userId: emailCampaign.userId,
+			teamId: emailCampaign.teamId,
+			name: emailCampaign.name,
+			status: emailCampaign.status,
+			emailDomainId: emailCampaign.emailDomainId,
+			subject: emailCampaign.subject,
+			fromEmail: emailCampaign.fromEmail,
+			fromName: emailCampaign.fromName,
+			description: emailCampaign.description,
+			htmlContent: emailCampaign.htmlContent,
+			textContent: emailCampaign.textContent,
+			scheduledAt: emailCampaign.scheduledAt,
+			sentAt: emailCampaign.sentAt,
+			createdAt: emailCampaign.createdAt,
+			updatedAt: emailCampaign.updatedAt,
+		})
+		.from(emailCampaign)
+		.where(eq(emailCampaign.id, campaignId))
+		.limit(1);
 
-  if (!campaign) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
-  }
+	if (!campaign) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+	}
 
-  if (campaign.userId === userId) return campaign;
+	if (campaign.userId === userId) return campaign;
 
-  if (campaign.teamId) {
-    await assertTeamMember(campaign.teamId, userId);
-    return campaign;
-  }
+	if (campaign.teamId) {
+		await assertTeamMember(campaign.teamId, userId);
+		return campaign;
+	}
 
-  throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+	throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
 }
 
 async function fetchRecipients(campaignId: string) {
-  return await db
-    .select()
-    .from(campaignRecipient)
-    .where(eq(campaignRecipient.campaignId, campaignId))
-    .orderBy(desc(campaignRecipient.createdAt));
+	return await db
+		.select()
+		.from(campaignRecipient)
+		.where(eq(campaignRecipient.campaignId, campaignId))
+		.orderBy(desc(campaignRecipient.createdAt));
 }
 
 export const emailMarketingCampaignsRouter = router({
@@ -129,10 +129,10 @@ export const emailMarketingCampaignsRouter = router({
 
 			if (input.emailDomainId) {
 				const [domain] = await db
-          .select({ id: emailDomain.id, status: emailDomain.status })
-          .from(emailDomain)
-          .where(eq(emailDomain.id, input.emailDomainId))
-          .limit(1);
+					.select({ id: emailDomain.id, status: emailDomain.status })
+					.from(emailDomain)
+					.where(eq(emailDomain.id, input.emailDomainId))
+					.limit(1);
 				if (!domain || domain.status !== "VERIFIED") {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
@@ -150,66 +150,66 @@ export const emailMarketingCampaignsRouter = router({
 
 			const now = new Date();
 			const campaignId = await db.transaction(async (tx: any) => {
-        const id = crypto.randomUUID();
-        await tx.insert(emailCampaign).values({
-          id,
-          name: input.name,
-          description: input.description ?? null,
-          subject: input.subject,
-          fromEmail: input.fromEmail,
-          fromName: input.fromName ?? null,
-          status: "DRAFT",
-          htmlContent: input.htmlContent ?? null,
-          textContent: input.textContent ?? null,
-          scheduledAt: input.scheduledAt ?? null,
-          sentAt: null,
-          emailDomainId: input.emailDomainId ?? null,
-          userId,
-          teamId: input.teamId ?? null,
-          createdAt: now,
-          updatedAt: now,
-        });
+				const id = crypto.randomUUID();
+				await tx.insert(emailCampaign).values({
+					id,
+					name: input.name,
+					description: input.description ?? null,
+					subject: input.subject,
+					fromEmail: input.fromEmail,
+					fromName: input.fromName ?? null,
+					status: "DRAFT",
+					htmlContent: input.htmlContent ?? null,
+					textContent: input.textContent ?? null,
+					scheduledAt: input.scheduledAt ?? null,
+					sentAt: null,
+					emailDomainId: input.emailDomainId ?? null,
+					userId,
+					teamId: input.teamId ?? null,
+					createdAt: now,
+					updatedAt: now,
+				});
 
-        if (input.recipientEmails.length > 0) {
-          await tx.insert(campaignRecipient).values(
-            input.recipientEmails.map((email) => ({
-              id: crypto.randomUUID(),
-              campaignId: id,
-              toEmail: email,
-              resendId: null,
-              resendMessageId: null,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          );
-        }
+				if (input.recipientEmails.length > 0) {
+					await tx.insert(campaignRecipient).values(
+						input.recipientEmails.map((email) => ({
+							id: crypto.randomUUID(),
+							campaignId: id,
+							toEmail: email,
+							resendId: null,
+							resendMessageId: null,
+							createdAt: now,
+							updatedAt: now,
+						})),
+					);
+				}
 
-        await tx.insert(emailCampaignActivityLog).values({
-          id: crypto.randomUUID(),
-          userId,
-          campaignId: id,
-          action: "CREATE",
-          description: `Campaign ${input.name} created`,
-          metadata: null,
-          ipAddress: null,
-          userAgent: null,
-          createdAt: now,
-        });
+				await tx.insert(emailCampaignActivityLog).values({
+					id: crypto.randomUUID(),
+					userId,
+					campaignId: id,
+					action: "CREATE",
+					description: `Campaign ${input.name} created`,
+					metadata: null,
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
+				});
 
-        return id;
-      });
+				return id;
+			});
 
-      const campaign = await assertCampaignAccess(campaignId, userId);
+			const campaign = await assertCampaignAccess(campaignId, userId);
 			const recipients = await fetchRecipients(campaignId);
 
 			// Notify creator: email + in-app notification (fire-and-forget style; don't block response)
 			const viewCampaignLink = getCampaignViewLink(campaign.id);
 			try {
 				const [u] = await db
-          .select({ name: userTable.name, email: userTable.email })
-          .from(userTable)
-          .where(eq(userTable.id, userId))
-          .limit(1);
+					.select({ name: userTable.name, email: userTable.email })
+					.from(userTable)
+					.where(eq(userTable.id, userId))
+					.limit(1);
 				if (u?.email) {
 					const html = await renderCampaignCreatedEmail({
 						recipientName: u.name ?? undefined,
@@ -225,19 +225,19 @@ export const emailMarketingCampaignsRouter = router({
 					});
 				}
 				await db.insert(notification).values({
-          id: crypto.randomUUID(),
-          userId,
-          teamId: campaign.teamId ?? null,
-          type: "EMAIL_MARKETING",
-          priority: "NORMAL",
-          title: "Campaign created",
-          message: `Your campaign "${campaign.name}" has been created.`,
-          link: viewCampaignLink,
-          seen: false,
-          readAt: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+					id: crypto.randomUUID(),
+					userId,
+					teamId: campaign.teamId ?? null,
+					type: "EMAIL_MARKETING",
+					priority: "NORMAL",
+					title: "Campaign created",
+					message: `Your campaign "${campaign.name}" has been created.`,
+					link: viewCampaignLink,
+					seen: false,
+					readAt: null,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				});
 			} catch (err) {
 				// Log but don't fail the create mutation
 				console.error("Campaign created notification/email failed:", err);
@@ -269,7 +269,7 @@ export const emailMarketingCampaignsRouter = router({
 			}
 
 			const campaign = await assertCampaignAccess(input.id, userId);
-      const recipients = await fetchRecipients(input.id);
+			const recipients = await fetchRecipients(input.id);
 
 			return campaignDetailSchema.parse({
 				...campaign,
@@ -296,58 +296,58 @@ export const emailMarketingCampaignsRouter = router({
 				});
 			}
 
-      const accessOr = [eq(emailCampaign.userId, userId)];
-      if (input.teamId) {
-        accessOr.push(
-          sql`(${emailCampaign.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`,
-        );
-      }
+			const accessOr = [eq(emailCampaign.userId, userId)];
+			if (input.teamId) {
+				accessOr.push(
+					sql`(${emailCampaign.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`,
+				);
+			}
 
-      const conditions = [or(...accessOr)];
-      if (input.status) conditions.push(eq(emailCampaign.status, input.status));
-      if (input.search) conditions.push(ilike(emailCampaign.name, `%${input.search}%`));
+			const conditions = [or(...accessOr)];
+			if (input.status) conditions.push(eq(emailCampaign.status, input.status));
+			if (input.search) conditions.push(ilike(emailCampaign.name, `%${input.search}%`));
 
-      const whereClause = and(...conditions);
+			const whereClause = and(...conditions);
 
-      const [campaigns, totalRes] = await Promise.all([
-        db
-          .select({
-            id: emailCampaign.id,
-            name: emailCampaign.name,
-            subject: emailCampaign.subject,
-            fromEmail: emailCampaign.fromEmail,
-            status: emailCampaign.status,
-            userId: emailCampaign.userId,
-            teamId: emailCampaign.teamId,
-            createdAt: emailCampaign.createdAt,
-            updatedAt: emailCampaign.updatedAt,
-            scheduledAt: emailCampaign.scheduledAt,
-            sentAt: emailCampaign.sentAt,
-            recipientCount: count(campaignRecipient.id).as("recipientCount"),
-          })
-          .from(emailCampaign)
-          .leftJoin(campaignRecipient, eq(campaignRecipient.campaignId, emailCampaign.id))
-          .where(whereClause)
-          .groupBy(
-            emailCampaign.id,
-            emailCampaign.name,
-            emailCampaign.subject,
-            emailCampaign.fromEmail,
-            emailCampaign.status,
-            emailCampaign.userId,
-            emailCampaign.teamId,
-            emailCampaign.createdAt,
-            emailCampaign.updatedAt,
-            emailCampaign.scheduledAt,
-            emailCampaign.sentAt,
-          )
-          .orderBy(desc(emailCampaign.createdAt))
-          .limit(input.limit)
-          .offset(input.offset),
-        db.select({ value: count() }).from(emailCampaign).where(whereClause),
-      ]);
+			const [campaigns, totalRes] = await Promise.all([
+				db
+					.select({
+						id: emailCampaign.id,
+						name: emailCampaign.name,
+						subject: emailCampaign.subject,
+						fromEmail: emailCampaign.fromEmail,
+						status: emailCampaign.status,
+						userId: emailCampaign.userId,
+						teamId: emailCampaign.teamId,
+						createdAt: emailCampaign.createdAt,
+						updatedAt: emailCampaign.updatedAt,
+						scheduledAt: emailCampaign.scheduledAt,
+						sentAt: emailCampaign.sentAt,
+						recipientCount: count(campaignRecipient.id).as("recipientCount"),
+					})
+					.from(emailCampaign)
+					.leftJoin(campaignRecipient, eq(campaignRecipient.campaignId, emailCampaign.id))
+					.where(whereClause)
+					.groupBy(
+						emailCampaign.id,
+						emailCampaign.name,
+						emailCampaign.subject,
+						emailCampaign.fromEmail,
+						emailCampaign.status,
+						emailCampaign.userId,
+						emailCampaign.teamId,
+						emailCampaign.createdAt,
+						emailCampaign.updatedAt,
+						emailCampaign.scheduledAt,
+						emailCampaign.sentAt,
+					)
+					.orderBy(desc(emailCampaign.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db.select({ value: count() }).from(emailCampaign).where(whereClause),
+			]);
 
-      const total = Number(totalRes[0]?.value ?? 0);
+			const total = Number(totalRes[0]?.value ?? 0);
 
 			return campaignListResponseSchema.parse({
 				campaigns: campaigns.map((c) => ({
@@ -548,7 +548,7 @@ export const emailMarketingCampaignsRouter = router({
 				input.immediate === true
 					? null
 					: campaign.scheduledAt != null &&
-							campaign.scheduledAt.getTime() > now.getTime()
+						campaign.scheduledAt.getTime() > now.getTime()
 						? campaign.scheduledAt
 						: null;
 
@@ -787,7 +787,7 @@ export const emailMarketingCampaignsRouter = router({
 
 			// Notify: email + in-app notification
 			const viewCampaignLink = getCampaignViewLink(input.id);
-			const campaignsListLink = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "") + "/agency/email-marketing/campaigns";
+			const campaignsListLink = (process.env.VITE_PUBLIC_APP_URL ?? "").replace(/\/$/, "") + "/agency/email-marketing/campaigns";
 			try {
 				const [user] = await db.select({ name: userTable.name, email: userTable.email }).from(userTable).where(eq(userTable.id, userId)).limit(1);
 				if (user?.email) {

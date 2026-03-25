@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ZodError } from 'zod';
 import { ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ButtonProps, ButtonPropsDefaults, ButtonPropsSchema } from '@usewaypoint/block-button';
+import { type ButtonProps, ButtonPropsDefaults, ButtonPropsSchema } from '@usewaypoint/block-button';
 import BaseSidebarPanel from '../helpers/BaseSidebarPanel';
 import ColorInput from '../helpers/inputs/ColorInput';
 import RadioGroupInput from '../helpers/inputs/RadioGroupInput';

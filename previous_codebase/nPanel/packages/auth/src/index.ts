@@ -2,10 +2,10 @@ import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { createAuthMiddleware, APIError } from "better-auth/api";
 import prisma from "@npanel/db";
-import {  
-  renderResetPasswordEmail, 
-  renderPasswordResetSuccessEmail, 
-  renderEmailVerificationEmail 
+import {
+	renderResetPasswordEmail,
+	renderPasswordResetSuccessEmail,
+	renderEmailVerificationEmail
 } from "react-email-starter/src/email-templates";
 import { sendEmail } from "react-email-starter/src/email";
 
@@ -13,80 +13,80 @@ import { sendEmail } from "react-email-starter/src/email";
 // When BETTER_AUTH_ACCEPT_ANY_HTTPS=true, we don't set trustedOrigins
 // This allows Better Auth to accept same-origin requests dynamically for any HTTPS URL
 // Otherwise, use BETTER_AUTH_URLS or BETTER_AUTH_URL from env
-// Also include APP_URL to match NEXT_PUBLIC_APP_URL used in client redirects
+// Also include APP_URL to match VITE_PUBLIC_APP_URL used in client redirects
 const resolvedTrustedOrigins = (() => {
-  // Helper to normalize and add URL to list if not already present
-  const addUrlToList = (list: string[], url: string | undefined) => {
-    if (url) {
-      const normalized = url.replace(/\/+$/, "");
-      if (!list.includes(normalized)) {
-        list.push(normalized);
-      }
-    }
-  };
+	// Helper to normalize and add URL to list if not already present
+	const addUrlToList = (list: string[], url: string | undefined) => {
+		if (url) {
+			const normalized = url.replace(/\/+$/, "");
+			if (!list.includes(normalized)) {
+				list.push(normalized);
+			}
+		}
+	};
 
-  // If explicitly set to accept any HTTPS origin, include all URLs from env + allow dynamic HTTPS
-  if (process.env.BETTER_AUTH_ACCEPT_ANY_HTTPS === "true") {
-    // When accepting any HTTPS, we still need to include the URLs from env
-    // But Better Auth will validate against this list, so include all possible URLs
-    const list = process.env.BETTER_AUTH_URLS
-      ? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
-      : [];
-    
-    // Include BETTER_AUTH_URL if set
-    addUrlToList(list, process.env.BETTER_AUTH_URL);
-    
-    // Include APP_URL to match NEXT_PUBLIC_APP_URL used in client redirects
-    addUrlToList(list, process.env.APP_URL);
-    
-    // Also include CORS_ORIGIN for backward compatibility
-    addUrlToList(list, process.env.CORS_ORIGIN);
-    
-    // Normalize all URLs
-    const normalized = list.map((url) => url.replace(/\/+$/, ""));
-    console.log("[Better Auth Config] BETTER_AUTH_ACCEPT_ANY_HTTPS=true, using trustedOrigins:", normalized);
-    return normalized;
-  }
-  
-  const list = process.env.BETTER_AUTH_URLS
-    ? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
-    : [];
-  
-  // If BETTER_AUTH_URLS is set, also include APP_URL and other env vars
-  if (list.length > 0) {
-    addUrlToList(list, process.env.BETTER_AUTH_URL);
-    addUrlToList(list, process.env.APP_URL);
-    addUrlToList(list, process.env.CORS_ORIGIN);
-    
-    // Normalize URLs by removing trailing slashes to avoid origin matching issues
-    const normalized = list.map((url) => url.replace(/\/+$/, ""));
-    console.log("[Better Auth Config] Using BETTER_AUTH_URLS with additional URLs, trustedOrigins:", normalized);
-    return normalized;
-  }
-  
-  // If BETTER_AUTH_URL is set, use it and also include APP_URL
-  if (process.env.BETTER_AUTH_URL) {
-    const list: string[] = [];
-    addUrlToList(list, process.env.BETTER_AUTH_URL);
-    addUrlToList(list, process.env.APP_URL);
-    addUrlToList(list, process.env.CORS_ORIGIN);
-    
-    const normalized = list.map((url) => url.replace(/\/+$/, ""));
-    console.log("[Better Auth Config] Using BETTER_AUTH_URL with additional URLs, trustedOrigins:", normalized);
-    return normalized;
-  }
-  
-  // If APP_URL is set, use it as trusted origin
-  if (process.env.APP_URL) {
-    const normalized = process.env.APP_URL.replace(/\/+$/, "");
-    console.log("[Better Auth Config] Using APP_URL as trustedOrigin:", normalized);
-    return [normalized];
-  }
-  
-  // When baseURL is undefined and no trustedOrigins are set,
-  // Better Auth should accept same-origin requests automatically
-  console.log("[Better Auth Config] No trusted origins configured, setting to undefined");
-  return undefined;
+	// If explicitly set to accept any HTTPS origin, include all URLs from env + allow dynamic HTTPS
+	if (process.env.BETTER_AUTH_ACCEPT_ANY_HTTPS === "true") {
+		// When accepting any HTTPS, we still need to include the URLs from env
+		// But Better Auth will validate against this list, so include all possible URLs
+		const list = process.env.BETTER_AUTH_URLS
+			? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
+			: [];
+
+		// Include BETTER_AUTH_URL if set
+		addUrlToList(list, process.env.BETTER_AUTH_URL);
+
+		// Include APP_URL to match VITE_PUBLIC_APP_URL used in client redirects
+		addUrlToList(list, process.env.APP_URL);
+
+		// Also include CORS_ORIGIN for backward compatibility
+		addUrlToList(list, process.env.CORS_ORIGIN);
+
+		// Normalize all URLs
+		const normalized = list.map((url) => url.replace(/\/+$/, ""));
+		console.log("[Better Auth Config] BETTER_AUTH_ACCEPT_ANY_HTTPS=true, using trustedOrigins:", normalized);
+		return normalized;
+	}
+
+	const list = process.env.BETTER_AUTH_URLS
+		? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
+		: [];
+
+	// If BETTER_AUTH_URLS is set, also include APP_URL and other env vars
+	if (list.length > 0) {
+		addUrlToList(list, process.env.BETTER_AUTH_URL);
+		addUrlToList(list, process.env.APP_URL);
+		addUrlToList(list, process.env.CORS_ORIGIN);
+
+		// Normalize URLs by removing trailing slashes to avoid origin matching issues
+		const normalized = list.map((url) => url.replace(/\/+$/, ""));
+		console.log("[Better Auth Config] Using BETTER_AUTH_URLS with additional URLs, trustedOrigins:", normalized);
+		return normalized;
+	}
+
+	// If BETTER_AUTH_URL is set, use it and also include APP_URL
+	if (process.env.BETTER_AUTH_URL) {
+		const list: string[] = [];
+		addUrlToList(list, process.env.BETTER_AUTH_URL);
+		addUrlToList(list, process.env.APP_URL);
+		addUrlToList(list, process.env.CORS_ORIGIN);
+
+		const normalized = list.map((url) => url.replace(/\/+$/, ""));
+		console.log("[Better Auth Config] Using BETTER_AUTH_URL with additional URLs, trustedOrigins:", normalized);
+		return normalized;
+	}
+
+	// If APP_URL is set, use it as trusted origin
+	if (process.env.APP_URL) {
+		const normalized = process.env.APP_URL.replace(/\/+$/, "");
+		console.log("[Better Auth Config] Using APP_URL as trustedOrigin:", normalized);
+		return [normalized];
+	}
+
+	// When baseURL is undefined and no trustedOrigins are set,
+	// Better Auth should accept same-origin requests automatically
+	console.log("[Better Auth Config] No trusted origins configured, setting to undefined");
+	return undefined;
 })();
 
 export const auth = betterAuth<BetterAuthOptions>({
@@ -133,7 +133,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 						where: { email },
 						select: { id: true, status: true }
 					});
-					
+
 					if (user && user.status !== "ACTIVE") {
 						// Batch: Log the blocked login attempt in a transaction
 						// This reduces connection usage by combining queries
@@ -196,7 +196,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 				if (newSession) {
 					// Check if user wants to be remembered for 30 days
 					const rememberMe = ctx.body?.rememberMe === true;
-					
+
 					// Batch all related database operations in a single transaction
 					// This reduces connection usage significantly (from 5+ queries to 1 transaction)
 					try {
@@ -205,13 +205,13 @@ export const auth = betterAuth<BetterAuthOptions>({
 							if (rememberMe && newSession.session?.token) {
 								// Extend session to 30 days in the database
 								const thirtyDaysFromNow = new Date(Date.now() + 60 * 60 * 24 * 30 * 1000);
-								
+
 								await tx.session.update({
 									where: { token: newSession.session.token },
 									data: { expiresAt: thirtyDaysFromNow }
 								});
 							}
-							
+
 							// Update last login time
 							await tx.user.update({
 								where: { id: newSession.user.id },
@@ -481,7 +481,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 			console.log(`📧 SENDING PASSWORD RESET EMAIL: User ${user.email} requested password reset`);
 			console.log(`Token: ${token}`);
 			console.log(`Original URL: ${url}`);
-			
+
 			// Log password reset request activity
 			try {
 				await prisma.userActivityLog.create({
@@ -504,20 +504,20 @@ export const auth = betterAuth<BetterAuthOptions>({
 			} catch (error) {
 				console.error("Failed to log password reset request activity:", error);
 			}
-			
+
 			// Override URL to include /auth prefix
-			// Use APP_URL to match NEXT_PUBLIC_APP_URL used in client redirects
+			// Use APP_URL to match VITE_PUBLIC_APP_URL used in client redirects
 			const frontendUrl = process.env.APP_URL || process.env.CORS_ORIGIN || "http://localhost:3002";
 			const resetUrl = `${frontendUrl}/auth/reset-password?token=${token}`;
-			
+
 			console.log(`Reset URL: ${resetUrl}`);
-			
+
 			// Render the React email template
 			const html = await renderResetPasswordEmail({
 				userFirstname: user.name || 'User',
 				resetPasswordLink: resetUrl,
 			});
-			
+
 			await sendEmail({
 				to: user.email,
 				subject: "Reset your password - nPanel",
@@ -528,7 +528,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 			console.log(`✅ PASSWORD RESET SUCCESS: Password for user ${user.email} has been reset successfully.`);
 			console.log(`User ID: ${user.id}`);
 			console.log(`Reset timestamp: ${new Date().toISOString()}`);
-			
+
 			// Log password reset activity
 			try {
 				await prisma.userActivityLog.create({
@@ -605,24 +605,24 @@ export const auth = betterAuth<BetterAuthOptions>({
 				// Log error but don't fail the password reset
 				console.error("Failed to create password reset success notification:", error);
 			}
-			
+
 			// Send password reset success email
 			try {
-				// Use APP_URL to match NEXT_PUBLIC_APP_URL used in client redirects
+				// Use APP_URL to match VITE_PUBLIC_APP_URL used in client redirects
 				const frontendUrl = process.env.APP_URL || process.env.CORS_ORIGIN || "http://localhost:3002";
 				const loginLink = `${frontendUrl}/auth/login`;
-				
+
 				const html = await renderPasswordResetSuccessEmail({
 					userFirstname: user.name || 'User',
 					loginLink,
 				});
-				
+
 				await sendEmail({
 					to: user.email,
 					subject: "Password reset successful - nPanel",
 					html,
 				});
-				
+
 				console.log(`📧 Password reset success email sent to ${user.email}`);
 			} catch (error) {
 				console.error("Failed to send password reset success email:", error);
@@ -635,7 +635,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 			console.log(`📧 SENDING EMAIL VERIFICATION: User ${user.email} needs to verify their email`);
 			console.log(`Token: ${token}`);
 			console.log(`Original URL: ${url}`);
-			
+
 			// Log email verification request activity
 			try {
 				await prisma.userActivityLog.create({
@@ -704,20 +704,20 @@ export const auth = betterAuth<BetterAuthOptions>({
 				// Log error but don't fail the email verification send
 				console.error("Failed to create email verification sent notification:", error);
 			}
-			
+
 			// Redirect to frontend verification page instead of API endpoint
-			// Use APP_URL to match NEXT_PUBLIC_APP_URL used in client redirects
+			// Use APP_URL to match VITE_PUBLIC_APP_URL used in client redirects
 			const frontendUrl = process.env.APP_URL || process.env.CORS_ORIGIN || "http://localhost:3002";
 			const verificationUrl = `${frontendUrl}/auth/verify-email?token=${token}`;
-			
+
 			console.log(`Verification URL: ${verificationUrl}`);
-			
+
 			// Render the React email template using WelcomeEmail
 			const html = await renderEmailVerificationEmail({
 				userFirstname: user.name || 'User',
 				verificationLink: verificationUrl,
 			});
-			
+
 			await sendEmail({
 				to: user.email,
 				subject: "Welcome to nPanel - Verify your email",

@@ -47,7 +47,7 @@ import {
 interface WebDesignContactDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Optional phone number for the "Call us" button (e.g. from NEXT_PUBLIC_SUPPORT_PHONE) */
+  /** Optional phone number for the "Call us" button (e.g. from VITE_PUBLIC_SUPPORT_PHONE) */
   supportPhoneNumber?: string;
   /** Pre-fill domain when opened from a domain context */
   domainName?: string;

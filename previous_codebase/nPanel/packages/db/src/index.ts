@@ -108,7 +108,7 @@ if (typeof process !== "undefined") {
 	// can cause requests to reuse a globally-cached PrismaClient that has already
 	// been disconnected, leading to hard-to-debug transaction errors.
 	// Only enable shutdown hooks in non-Next contexts (scripts/CLI).
-	const isNextRuntime = Boolean(process.env.NEXT_RUNTIME || process.env.NEXT_PHASE);
+	const isNextRuntime = Boolean(process.env.VITE_RUNTIME || process.env.VITE_PHASE);
 	const enableShutdownHooks =
 		process.env.PRISMA_ENABLE_SHUTDOWN_HOOKS === "true" || !isNextRuntime;
 

@@ -71,8 +71,8 @@ export function ExtractZipDialog({
     }
 
     return {
-      host: process.env.NEXT_PUBLIC_FTP_HOST || "orion.nisccloud.com",
-      port: parseInt(process.env.NEXT_PUBLIC_FTP_PORT || "21"),
+      host: process.env.VITE_PUBLIC_FTP_HOST || "orion.nisccloud.com",
+      port: parseInt(process.env.VITE_PUBLIC_FTP_PORT || "21"),
       user: String(ftpLogin),
       password: String(ftpPassword),
       secure: true,
@@ -96,11 +96,11 @@ export function ExtractZipDialog({
       setStatusMessage(data.message);
       setExtractedFiles(data.files || []);
       setFailedFiles(data.failedFiles || []);
-      
+
       toast.success("Extraction completed", {
         description: data.message,
       });
-      
+
       // Call onSuccess callback to refresh file list
       if (onSuccess) {
         setTimeout(() => {
@@ -114,7 +114,7 @@ export function ExtractZipDialog({
       setProgress(0);
       setError(error.message || "Failed to extract zip file");
       setStatusMessage("Extraction failed");
-      
+
       toast.error("Extraction failed", {
         description: error.message || "Please try again.",
       });

@@ -7,7 +7,7 @@ import { DEFAULT_OPENPROVIDER_CONFIG } from '@/types/openprovider';
 const TldRequestSchema = z.object({
   limit: z.coerce.number().min(1).max(1000).optional(),
   offset: z.coerce.number().min(0).optional(),
-  extensions: z.string().optional().transform((val) => 
+  extensions: z.string().optional().transform((val) =>
     val ? val.split(',').map(ext => ext.trim()) : undefined
   ),
   status: z.enum(['ACT', 'INACT']).optional(),
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     // Check cache first
     const cacheKey = getCacheKey(validatedParams);
     const cachedData = getCachedData(cacheKey);
-    
+
     if (cachedData) {
       return Response.json({
         success: true,
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     }
 
     // Authenticate using environment variables
-    const authResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/openprovider/auth/login`, {
+    const authResponse = await fetch(`${process.env.VITE_PUBLIC_API_URL || 'http://localhost:3000'}/api/openprovider/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ useEnvCredentials: true }),
@@ -133,8 +133,8 @@ export async function GET(request: Request) {
     console.error('Openprovider TLD retrieval error:', error);
 
     // Handle timeout errors specifically
-    if (error instanceof OpenproviderApiError && 
-        (error.description.includes('timeout') || error.originalError?.code === 'ECONNABORTED')) {
+    if (error instanceof OpenproviderApiError &&
+      (error.description.includes('timeout') || error.originalError?.code === 'ECONNABORTED')) {
       console.warn('TLD request timed out, this may be due to Openprovider API slowness');
       return Response.json(
         {
@@ -203,7 +203,7 @@ export async function POST(request: Request) {
     const validatedParams = TldRequestSchema.parse(body);
 
     // Authenticate using environment variables
-    const authResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/openprovider/auth/login`, {
+    const authResponse = await fetch(`${process.env.VITE_PUBLIC_API_URL || 'http://localhost:3000'}/api/openprovider/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ useEnvCredentials: true }),
@@ -236,7 +236,7 @@ export async function POST(request: Request) {
     // Check cache first
     const cacheKey = getCacheKey(validatedParams);
     const cachedData = getCachedData(cacheKey);
-    
+
     if (cachedData) {
       return Response.json({
         success: true,
@@ -278,8 +278,8 @@ export async function POST(request: Request) {
     console.error('Openprovider TLD retrieval error:', error);
 
     // Handle timeout errors specifically
-    if (error instanceof OpenproviderApiError && 
-        (error.description.includes('timeout') || error.originalError?.code === 'ECONNABORTED')) {
+    if (error instanceof OpenproviderApiError &&
+      (error.description.includes('timeout') || error.originalError?.code === 'ECONNABORTED')) {
       console.warn('TLD request timed out, this may be due to Openprovider API slowness');
       return Response.json(
         {

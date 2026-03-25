@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ZodError } from 'zod';
 import { MoveVertical } from 'lucide-react';
-import { SpacerProps, SpacerPropsDefaults, SpacerPropsSchema } from '@usewaypoint/block-spacer';
+import { type SpacerProps, SpacerPropsDefaults, SpacerPropsSchema } from '@usewaypoint/block-spacer';
 import BaseSidebarPanel from '../helpers/BaseSidebarPanel';
 import SliderInput from '../helpers/inputs/SliderInput';
 

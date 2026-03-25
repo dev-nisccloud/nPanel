@@ -206,7 +206,7 @@ jobs:
         run: |
           docker build -f apps/npanel/Dockerfile \
             --build-arg DOCKER_BUILD=true \
-            --build-arg NEXT_PUBLIC_APP_URL=${{ secrets.STAGING_URL }} \
+            --build-arg VITE_PUBLIC_APP_URL=${{ secrets.STAGING_URL }} \
             --build-arg BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET || 'build-time-placeholder-do-not-use-in-production' }} \
             -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             .
@@ -225,7 +225,7 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
             HOSTNAME=0.0.0.0
             BETTER_AUTH_URL=${{ secrets.STAGING_URL }}
-            NEXT_PUBLIC_APP_URL=${{ secrets.STAGING_URL }}
+            VITE_PUBLIC_APP_URL=${{ secrets.STAGING_URL }}
 
       - name: Health check
         run: |

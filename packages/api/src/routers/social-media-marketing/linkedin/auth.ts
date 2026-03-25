@@ -44,7 +44,7 @@ const getLinkedInClientSecret = () => {
 };
 
 const getFrontendUrl = () => {
-	return process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+	return process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3001';
 };
 
 // Validation schemas
@@ -248,41 +248,41 @@ export const linkedinAuthRouter = router({
 					// Create new integration
 					const newIntegrationId = `linkedin_${Date.now()}`;
 					await db.insert(socialMediaIntegration).values({
-							id: newIntegrationId,
-							platform: LINKEDIN_PLATFORM,
-							userId,
-							accessToken: tokenResponse.access_token,
-							refreshToken: tokenResponse.refresh_token,
-							accessTokenExpiresAt: expiresAt,
-							refreshTokenExpiresAt: refreshExpiresAt,
-							scope: tokenResponse.scope,
-							status: ACTIVE_STATUS,
-							createdAt: now,
-							updatedAt: now,
+						id: newIntegrationId,
+						platform: LINKEDIN_PLATFORM,
+						userId,
+						accessToken: tokenResponse.access_token,
+						refreshToken: tokenResponse.refresh_token,
+						accessTokenExpiresAt: expiresAt,
+						refreshTokenExpiresAt: refreshExpiresAt,
+						scope: tokenResponse.scope,
+						status: ACTIVE_STATUS,
+						createdAt: now,
+						updatedAt: now,
 					});
 					integrationId = newIntegrationId;
 				}
 
 				// Log activity
 				await db.insert(socialMediaIntegrationActivityLog).values({
-						id: randomUUID(),
-						integrationId,
-						userId,
-						action: isUpdate ? 'TOKEN_REFRESH' : 'CREATE',
-						description: isUpdate
-							? 'LinkedIn integration token refreshed'
-							: 'LinkedIn integration created and connected',
-						metadata: {
-							platform: 'LINKEDIN',
-							expiresAt: expiresAt.toISOString(),
-							refreshExpiresAt: refreshExpiresAt.toISOString(),
-							scope: tokenResponse.scope,
-							expiresIn: tokenResponse.expires_in,
-							userInfo,
-						},
-						ipAddress: null,
-						userAgent: null,
-						createdAt: now,
+					id: randomUUID(),
+					integrationId,
+					userId,
+					action: isUpdate ? 'TOKEN_REFRESH' : 'CREATE',
+					description: isUpdate
+						? 'LinkedIn integration token refreshed'
+						: 'LinkedIn integration created and connected',
+					metadata: {
+						platform: 'LINKEDIN',
+						expiresAt: expiresAt.toISOString(),
+						refreshExpiresAt: refreshExpiresAt.toISOString(),
+						scope: tokenResponse.scope,
+						expiresIn: tokenResponse.expires_in,
+						userInfo,
+					},
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
 
 				return {
@@ -410,20 +410,20 @@ export const linkedinAuthRouter = router({
 
 				// Log activity
 				await db.insert(socialMediaIntegrationActivityLog).values({
-						id: randomUUID(),
-						integrationId: integration.id,
-						userId,
-						action: 'TOKEN_REFRESH',
-						description: 'LinkedIn integration token refreshed',
-						metadata: {
-							platform: 'LINKEDIN',
-							expiresAt: expiresAt.toISOString(),
-							refreshExpiresAt: refreshExpiresAt.toISOString(),
-							expiresIn: tokenResponse.expires_in,
-						},
-						ipAddress: null,
-						userAgent: null,
-						createdAt: now,
+					id: randomUUID(),
+					integrationId: integration.id,
+					userId,
+					action: 'TOKEN_REFRESH',
+					description: 'LinkedIn integration token refreshed',
+					metadata: {
+						platform: 'LINKEDIN',
+						expiresAt: expiresAt.toISOString(),
+						refreshExpiresAt: refreshExpiresAt.toISOString(),
+						expiresIn: tokenResponse.expires_in,
+					},
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
 				});
 
 				return {

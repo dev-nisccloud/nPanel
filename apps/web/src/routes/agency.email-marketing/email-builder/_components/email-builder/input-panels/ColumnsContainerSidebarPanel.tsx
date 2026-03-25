@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ZodError } from 'zod';
 import { AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Columns3 } from 'lucide-react';
 import { ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ColumnsContainerProps, ColumnsContainerPropsSchema } from '@usewaypoint/block-columns-container';
+import { type ColumnsContainerProps, ColumnsContainerPropsSchema } from '@usewaypoint/block-columns-container';
 import BaseSidebarPanel from '../helpers/BaseSidebarPanel';
 import ColumnWidthsInput from '../helpers/inputs/ColumnWidthsInput';
 import RadioGroupInput from '../helpers/inputs/RadioGroupInput';

@@ -124,7 +124,7 @@ export const linkedInAdsAuthRouter = router({
 					});
 				}
 
-				const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+				const frontendUrl = process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3001';
 
 				// Required scopes for LinkedIn Marketing API
 				const scopes = [

@@ -17,9 +17,10 @@
     "@npanel/env": "workspace:*",
     "@trpc/server": "catalog:",
     "better-auth": "catalog:",
-    "drizzle-orm": "^0.45.1",
     "dotenv": "catalog:",
+    "drizzle-orm": "^0.45.1",
     "hono": "catalog:",
+    "uploadthing": "^7.7.4",
     "zod": "catalog:"
   },
   "devDependencies": {

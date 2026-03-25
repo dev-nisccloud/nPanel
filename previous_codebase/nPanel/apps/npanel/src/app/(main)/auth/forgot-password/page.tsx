@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setIsSubmitting(true);
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
+      const appUrl = process.env.VITE_PUBLIC_APP_URL || "http://localhost:3002";
       const result = await authClient.forgetPassword({
         email: data.email,
         redirectTo: `${appUrl}/auth/reset-password`,
@@ -101,7 +101,7 @@ export default function ForgotPasswordPage() {
           <h1 className="text-3xl font-medium">Forgot your password?</h1>
           <p className="text-muted-foreground text-sm">Enter your email address and we'll send you a reset link.</p>
         </div>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -111,19 +111,19 @@ export default function ForgotPasswordPage() {
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="you@example.com" 
-                      autoComplete="email" 
-                      {...field} 
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <Button className="w-full" type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <div className="flex items-center gap-2">

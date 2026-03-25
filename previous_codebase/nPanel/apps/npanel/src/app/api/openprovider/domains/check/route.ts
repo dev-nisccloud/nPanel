@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const validatedData = DomainCheckRequestSchema.parse(body);
 
     // Authenticate using environment variables
-    const authResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/openprovider/auth/login`, {
+    const authResponse = await fetch(`${process.env.VITE_PUBLIC_API_URL || 'http://localhost:3000'}/api/openprovider/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ useEnvCredentials: true }),
@@ -102,12 +102,12 @@ export async function POST(request: NextRequest) {
 
     // Call Openprovider domain check API
     let checkResponse: OpenproviderDomainCheckResponse;
-    
+
     // If we have many domains, batch them into smaller requests
     if (checkRequest.domains && checkRequest.domains.length > 10) {
       const batchSize = 10;
       const batches: OpenproviderDomainCheckRequest[] = [];
-      
+
       for (let i = 0; i < checkRequest.domains.length; i += batchSize) {
         const batch = checkRequest.domains.slice(i, i + batchSize);
         batches.push({
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           additional_data: checkRequest.additional_data,
         });
       }
-      
+
       // Process each batch
       const batchResults: any[] = [];
       for (const batch of batches) {
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
         }
         batchResults.push(...batchResponse.data.results);
       }
-      
+
       // Combine all batch results
       checkResponse = {
         code: 0,
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Single request for small batches
       checkResponse = await client.checkDomains(checkRequest);
-      
+
       // Check if request was successful
       if (checkResponse.code !== 0) {
         return NextResponse.json(
@@ -173,10 +173,10 @@ export async function POST(request: NextRequest) {
       meta: {
         checked_at: new Date().toISOString(),
         total_domains_checked: checkRequest.domains?.length || 0,
-        request_type: validatedData.name 
-          ? (validatedData.extensions && validatedData.extensions.length > 0 
-              ? 'name_with_specific_extensions' 
-              : 'name_with_custom_extensions')
+        request_type: validatedData.name
+          ? (validatedData.extensions && validatedData.extensions.length > 0
+            ? 'name_with_specific_extensions'
+            : 'name_with_custom_extensions')
           : 'specific_domains',
       },
       raw_response: checkResponse, // Include the full raw response for debugging
