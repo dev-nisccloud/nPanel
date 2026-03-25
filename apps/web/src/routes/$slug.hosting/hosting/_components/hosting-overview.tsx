@@ -289,7 +289,7 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
               <p className="text-sm font-medium text-muted-foreground">Password</p>
               <div className="flex items-center gap-2">
                 <p className="text-base font-bold text-primary flex-1">
-                  {showPassword ? String(ftpPassword) : "••••••••"}
+                  {showPassword ? String(ftpPassword) : "Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢"}
                 </p>
                 <TooltipProvider>
                   <Tooltip>

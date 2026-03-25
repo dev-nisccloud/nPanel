@@ -218,7 +218,7 @@ export function TransactionsTable({
                     transaction.id.slice(0, 8)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {transaction.userName ?? "—"}
+                  {transaction.userName ?? "Ã¢â‚¬â€"}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">

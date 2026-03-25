@@ -207,7 +207,7 @@ export function WordPressDataTable() {
               <TableRow key={item.id}>
                 <TableCell className="pl-6">
                   <Link
-                    href={`/${teamSlug}/wordpress/${item.id}`}
+                    to={`/${teamSlug}/wordpress/${item.id}`}
                     className="font-medium text-primary hover:underline"
                   >
                     {item.displayTitle || item.title || `Installation ${item.id}`}
@@ -219,7 +219,7 @@ export function WordPressDataTable() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {item.title || "—"}
+                  {item.title || "Ã¢â‚¬â€"}
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(item)}

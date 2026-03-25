@@ -43,7 +43,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { useWordPressThemes, WordPressTheme } from "./use-wordpress-themes";
+import { useWordPressThemes, type WordPressTheme } from "./use-wordpress-themes";
 
 interface WordPressThemesProps {
   installationId: string;
@@ -324,7 +324,7 @@ function ThemeCard({
               </span>
               {theme.availableVersion && theme.availableVersion !== theme.version && (
                 <>
-                  <span className="text-xs text-muted-foreground">→</span>
+                  <span className="text-xs text-muted-foreground">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span>
                   <span className="text-xs text-blue-600">
                     v{theme.availableVersion}
                   </span>

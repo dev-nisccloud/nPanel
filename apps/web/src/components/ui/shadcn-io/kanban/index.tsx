@@ -20,13 +20,12 @@ import {
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {
+import type { ReactNode, HTMLAttributes } from "react";
+import { 
   createContext,
-  type HTMLAttributes,
-  type ReactNode,
   useContext,
   useState,
-} from 'react';
+} from "react";
 import { createPortal } from 'react-dom';
 import tunnel from 'tunnel-rat';
 import { Card } from '@/components/ui/card';

@@ -322,7 +322,7 @@ export function EventSheet({ event, open, onOpenChange }: EventSheetProps) {
                       <span>Join Google Meet meeting</span>
                       <div className="flex gap-0.5">
                         <Kbd className="bg-white/14 text-white text-[10.8px] px-1.5 py-1 rounded">
-                          ⌘
+                          Ã¢Å’Ëœ
                         </Kbd>
                         <Kbd className="bg-white/14 text-white text-[10.8px] px-1.5 py-1 rounded w-[18px]">
                           J
@@ -371,7 +371,7 @@ export function EventSheet({ event, open, onOpenChange }: EventSheetProps) {
                   </div>
                   <span>
                     {mockParticipants.length} persons
-                    <span className="mx-1">•</span>
+                    <span className="mx-1">Ã¢â‚¬Â¢</span>
                     {yesCount} yes
                   </span>
                 </div>

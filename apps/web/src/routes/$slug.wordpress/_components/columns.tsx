@@ -1,6 +1,6 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from '@tanstack/react-table';
 import { EllipsisVertical } from "lucide-react";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { DataTableColumnHeader } from "../../../../../components/data-table/data-table-column-header";
+import { DataTableColumnHeader } from "../../../components/data-table/data-table-column-header";
 
 import { wordpressInstallationSchema } from "./schema";
 

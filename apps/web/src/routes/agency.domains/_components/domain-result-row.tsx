@@ -10,25 +10,25 @@ import type { DomainSearchResult } from "@/hooks/use-domain-search";
 
 const formatPrice = (price?: number, currency?: string) => {
 	if (price == null || price === undefined) return "N/A";
-	const symbols: Record<string, string> = { USD: "$", KES: "KSh", EUR: "€", GBP: "£" };
+	const symbols: Record<string, string> = { USD: "$", KES: "KSh", EUR: "Ã¢â€šÂ¬", GBP: "Ã‚Â£" };
 	const symbol = symbols[currency ?? "USD"] ?? currency ?? "$";
 	return `${symbol} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price)}`;
 };
 
 export interface DomainResultRowProps {
-	/** Domain name (e.g. example.co.ke) – bold, foreground, same size as price. */
+	/** Domain name (e.g. example.co.ke) Ã¢â‚¬â€œ bold, foreground, same size as price. */
 	domain: string;
 	/** Whether the domain is available for registration. */
 	isAvailable: boolean;
 	/** Original price before markup (small text below domain). Only used when available. */
 	originalPrice?: number;
 	originalCurrency?: string;
-	/** Margin description e.g. "+15% (+KSh 100)" or "+KSh 50" – shown below original. Only used when available. */
+	/** Margin description e.g. "+15% (+KSh 100)" or "+KSh 50" Ã¢â‚¬â€œ shown below original. Only used when available. */
 	marginLabel?: string | null;
-	/** Final price to show (after markup and conversion) – bold, primary. Only used when available. */
+	/** Final price to show (after markup and conversion) Ã¢â‚¬â€œ bold, primary. Only used when available. */
 	displayPrice?: number;
 	displayCurrency?: string;
-	/** Reason/description from API – shown in left column. */
+	/** Reason/description from API Ã¢â‚¬â€œ shown in left column. */
 	reason?: string | null;
 	/** For cart and Buy Now. */
 	displayResult: DomainSearchResult;

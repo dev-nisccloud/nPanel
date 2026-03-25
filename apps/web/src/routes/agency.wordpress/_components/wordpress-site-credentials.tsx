@@ -130,7 +130,7 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
               <p className="text-sm font-medium text-muted-foreground mb-2">Password</p>
               <div className="flex items-center gap-2">
                 <p className="text-sm font-mono bg-muted px-2 py-1 rounded flex-1">
-                  {showPassword ? credentials.password : "••••••••••••••••"}
+                  {showPassword ? credentials.password : "Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢"}
                 </p>
                 <Button
                   variant="ghost"

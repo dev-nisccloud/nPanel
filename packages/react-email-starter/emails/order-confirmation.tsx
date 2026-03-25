@@ -35,7 +35,6 @@ export const OrderConfirmationEmail = ({
   orderItems = [],
   supportEmail = "support@nisccloud.com",
   supportPhone = "+254 748 777 666",
-  orderLink = "#"
 }: OrderConfirmationEmailProps) => {
   const formattedAmount = `${currency} ${totalAmount}`;
 

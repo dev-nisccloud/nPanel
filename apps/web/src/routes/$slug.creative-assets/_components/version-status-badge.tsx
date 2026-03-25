@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { VersionApprovalStatus } from "./types";
+import { type VersionApprovalStatus } from "./types";
 
 interface VersionStatusBadgeProps {
   status: VersionApprovalStatus;

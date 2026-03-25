@@ -552,7 +552,7 @@ export default function InvoiceViewPage() {
 							{markUnpaidMutation.isPending ? (
 								<>
 									<Spinner className="mr-2 h-4 w-4" />
-									Updating…
+									UpdatingÃ¢â‚¬Â¦
 								</>
 							) : (
 								"Mark unpaid"

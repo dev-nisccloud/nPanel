@@ -1,10 +1,10 @@
-import { Button } from "@npanel/ui/components/components/button";
-import { Input } from "@npanel/ui/components/components/input";
-import { Label } from "@npanel/ui/components/components/label";
+import { Button } from "@npanel/ui/components/button";
+import { Input } from "@npanel/ui/components/input";
+import { Label } from "@npanel/ui/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "react-router";
 import { toast } from "@/components/ui/sonner";
-import z from "zod";
+import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
 

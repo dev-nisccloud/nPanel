@@ -10,7 +10,6 @@ interface EmailHeaderProps {
 export const EmailHeader = ({ 
   logoWidth = companyBranding.logo.width,
   logoHeight = companyBranding.logo.height,
-  showCompanyName = false 
 }: EmailHeaderProps) => {
   return (
     <Img

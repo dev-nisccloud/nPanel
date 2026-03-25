@@ -47,10 +47,10 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 // Table imports (commented out for performance)
-// import { DataTable as DataTableNew } from "../../../../../components/data-table/data-table";
-// import { DataTablePagination } from "../../../../../components/data-table/data-table-pagination";
-// import { DataTableViewOptions } from "../../../../../components/data-table/data-table-view-options";
-// import { withDndColumn } from "../../../../../components/data-table/table-utils";
+// import { DataTable as DataTableNew } from "../../../components/data-table/data-table";
+// import { DataTablePagination } from "../../../components/data-table/data-table-pagination";
+// import { DataTableViewOptions } from "../../../components/data-table/data-table-view-options";
+// import { withDndColumn } from "../../../components/data-table/table-utils";
 // import { dnsColumns } from "./dns-columns";
 
 import { ScrollArea } from "@/components/ui/scroll-area";

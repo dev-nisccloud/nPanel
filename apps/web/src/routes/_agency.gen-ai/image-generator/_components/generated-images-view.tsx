@@ -294,7 +294,7 @@ export function GeneratedImagesView({
         {generations.map((generation) => (
           <div key={generation.id} className="rounded-lg border border-border bg-card p-3">
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              {format(new Date(generation.createdAt), "MMM d, yyyy · h:mm a")}
+              {format(new Date(generation.createdAt), "MMM d, yyyy Ã‚Â· h:mm a")}
             </p>
             <PromptPreview text={generation.prompt} />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

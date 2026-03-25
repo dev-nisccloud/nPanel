@@ -191,7 +191,7 @@ export default function CampaignDetailPage() {
 	const handleRefresh = async () => {
 		if (!campaignId || isRefreshing) return;
 		setIsRefreshing(true);
-		toast.loading("Refreshing…", { id: "campaign-refresh" });
+		toast.loading("RefreshingÃ¢â‚¬Â¦", { id: "campaign-refresh" });
 		try {
 			// Invalidate cache so refetch returns fresh data from server
 			await Promise.all([
@@ -392,7 +392,7 @@ export default function CampaignDetailPage() {
 									disabled={isRefreshing}
 								>
 									<RefreshCw className={`mr-2 h-4 w-4 shrink-0 ${isRefreshing ? "animate-spin" : ""}`} />
-									{isRefreshing ? "Refreshing…" : "Refresh"}
+									{isRefreshing ? "RefreshingÃ¢â‚¬Â¦" : "Refresh"}
 								</DropdownMenuItem>
 								{campaign.status === "SCHEDULED" && (
 									<DropdownMenuItem
@@ -469,7 +469,7 @@ export default function CampaignDetailPage() {
 								{isCancelling ? (
 									<>
 										<Spinner size={14} className="mr-2 shrink-0" />
-										Cancelling…
+										CancellingÃ¢â‚¬Â¦
 									</>
 								) : (
 									"Cancel scheduled send"
@@ -479,7 +479,7 @@ export default function CampaignDetailPage() {
 					</AlertDialogContent>
 				</AlertDialog>
 
-				{/* Analytics — skeleton when loading; empty state when no data (e.g. scheduled/draft); cards when data */}
+				{/* Analytics Ã¢â‚¬â€ skeleton when loading; empty state when no data (e.g. scheduled/draft); cards when data */}
 				<div className="mt-6">
 					{summaryLoading ? (
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -598,7 +598,7 @@ export default function CampaignDetailPage() {
 												<TooltipContent side="top" className="max-w-xs text-sm">
 													<p className="font-medium mb-1">How engagement is calculated</p>
 													<p>
-														Opened and Clicked show <strong>unique recipients</strong> (one count per person), so rates never exceed 100%. &quot;Total opens&quot; and &quot;Total clicks&quot; are total event counts—e.g. one person can open multiple times or click multiple links, so those numbers can be higher than unique.
+														Opened and Clicked show <strong>unique recipients</strong> (one count per person), so rates never exceed 100%. &quot;Total opens&quot; and &quot;Total clicks&quot; are total event countsÃ¢â‚¬â€e.g. one person can open multiple times or click multiple links, so those numbers can be higher than unique.
 													</p>
 												</TooltipContent>
 											</Tooltip>
@@ -761,7 +761,7 @@ export default function CampaignDetailPage() {
 													title={item.url}
 												>
 													<span className="truncate">
-														{item.url.length > 50 ? `${item.url.slice(0, 50)}…` : item.url}
+														{item.url.length > 50 ? `${item.url.slice(0, 50)}Ã¢â‚¬Â¦` : item.url}
 													</span>
 													<ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
 												</a>

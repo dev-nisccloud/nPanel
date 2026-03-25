@@ -267,7 +267,7 @@ export function UploadFileSheet({
                       Upload Summary
                     </CardTitle>
                     <Badge variant="outline" className="text-xs">
-                      {files.length} file{files.length !== 1 ? 's' : ''} • {formatFileSize(totalSize)}
+                      {files.length} file{files.length !== 1 ? 's' : ''} Ã¢â‚¬Â¢ {formatFileSize(totalSize)}
                     </Badge>
                   </div>
                   <CardDescription>
@@ -381,11 +381,11 @@ export function UploadFileSheet({
               </CardHeader>
               <CardContent className="pt-0">
                 <ul className="text-xs text-muted-foreground space-y-1">
-                  <li>• Maximum file size: <strong>50MB per file</strong></li>
-                  <li>• Maximum files: 10 files per upload</li>
-                  <li>• Supported formats: Images, PDFs, Archives, Text files</li>
-                  <li>• Files will be uploaded to the current directory</li>
-                  <li>• Large files may take longer to upload</li>
+                  <li>Ã¢â‚¬Â¢ Maximum file size: <strong>50MB per file</strong></li>
+                  <li>Ã¢â‚¬Â¢ Maximum files: 10 files per upload</li>
+                  <li>Ã¢â‚¬Â¢ Supported formats: Images, PDFs, Archives, Text files</li>
+                  <li>Ã¢â‚¬Â¢ Files will be uploaded to the current directory</li>
+                  <li>Ã¢â‚¬Â¢ Large files may take longer to upload</li>
                 </ul>
               </CardContent>
             </Card>

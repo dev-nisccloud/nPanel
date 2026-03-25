@@ -609,7 +609,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 	const handleOpenChange = (next: boolean) => {
 		if (!next && isSending) {
 			toast.warning("Please wait", {
-				description: "Creating campaign and starting send…",
+				description: "Creating campaign and starting sendÃ¢â‚¬Â¦",
 			});
 			return;
 		}
@@ -940,7 +940,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 															{domainsLoading ? (
 																<span className="flex items-center gap-2">
 																	<Spinner size={14} className="shrink-0" />
-																	Loading domains…
+																	Loading domainsÃ¢â‚¬Â¦
 																</span>
 															) : (
 																<SelectValue placeholder="Select a verified domain" />
@@ -1022,7 +1022,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 								</div>
 							)}
 
-							{/* Step 2: Email Template — choose template or provide HTML */}
+							{/* Step 2: Email Template Ã¢â‚¬â€ choose template or provide HTML */}
 							{step === 2 && (
 								<div className="space-y-4 min-w-0 overflow-x-auto">
 									<div>
@@ -1039,7 +1039,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 											<div className="space-y-0.5">
 												<p className="text-sm font-medium">Start from an email builder template</p>
 												<p className="text-xs text-muted-foreground">
-													Select any saved design and we’ll convert it to ready-to-send HTML for this campaign.
+													Select any saved design and weÃ¢â‚¬â„¢ll convert it to ready-to-send HTML for this campaign.
 												</p>
 											</div>
 										</div>
@@ -1048,7 +1048,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 											{designsLoading ? (
 												<div className="flex items-center gap-2 text-xs text-muted-foreground">
 													<Spinner size={14} className="shrink-0" />
-													<span>Loading templates…</span>
+													<span>Loading templatesÃ¢â‚¬Â¦</span>
 												</div>
 											) : emailBuilderDesigns.length === 0 ? (
 												<p className="text-xs text-muted-foreground">
@@ -1105,7 +1105,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 												{isApplyingTemplate && (
 													<div className="flex items-center gap-2 text-[11px] text-muted-foreground ml-auto">
 														<Loader2 className="h-3 w-3 animate-spin" />
-														Applying template…
+														Applying templateÃ¢â‚¬Â¦
 													</div>
 												)}
 											</div>
@@ -1116,7 +1116,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 										<div className="min-w-0">
 											<Label>Write or paste content</Label>
 											<Textarea
-												placeholder="Type or paste HTML content here. You can also use plain text — line breaks will be preserved in the sent email."
+												placeholder="Type or paste HTML content here. You can also use plain text Ã¢â‚¬â€ line breaks will be preserved in the sent email."
 												value={htmlContent}
 												onChange={(e) => {
 													const v = e.target.value;
@@ -1183,7 +1183,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 										{audiencesLoading ? (
 											<div className="flex items-center gap-2 text-xs text-muted-foreground">
 												<Spinner className="h-3 w-3" />
-												Loading audiences…
+												Loading audiencesÃ¢â‚¬Â¦
 											</div>
 										) : (audiencesData?.audiences?.length ?? 0) === 0 ? (
 											<div className="rounded-lg border bg-card p-4 space-y-3">
@@ -1223,7 +1223,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 														}}
 													>
 														<SelectTrigger className="w-full">
-															<SelectValue placeholder="Choose an audience…" />
+															<SelectValue placeholder="Choose an audienceÃ¢â‚¬Â¦" />
 														</SelectTrigger>
 														<SelectContent>
 															{audiencesData?.audiences.map((aud) => (
@@ -1240,7 +1240,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 														</SelectContent>
 													</Select>
 													<p className="text-xs text-muted-foreground">
-														We’ll load all subscribed contacts from the selected audience and
+														WeÃ¢â‚¬â„¢ll load all subscribed contacts from the selected audience and
 														use their email addresses as recipients.
 													</p>
 												</div>
@@ -1251,7 +1251,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 														{isLoadingAudienceRecipients ? (
 															<span className="flex items-center gap-1 text-[11px] text-muted-foreground">
 																<Spinner className="h-3 w-3" />
-																Loading…
+																LoadingÃ¢â‚¬Â¦
 															</span>
 														) : (
 															<Badge variant="outline">
@@ -1288,7 +1288,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 								</div>
 							)}
 
-							{/* Step 4: Preview — how the email will look to recipients */}
+							{/* Step 4: Preview Ã¢â‚¬â€ how the email will look to recipients */}
 							{step === 4 && (
 								<div className="space-y-4">
 									<div>

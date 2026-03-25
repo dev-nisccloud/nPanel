@@ -353,7 +353,7 @@ export function PageInformation({ pageId, pageName }: PageInformationProps) {
 													onClick={() => removePhotoUrlField(index)}
 													className="h-9 w-9"
 												>
-													×
+													Ãƒâ€”
 												</Button>
 											)}
 										</div>

@@ -613,7 +613,7 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
                                       className="cursor-pointer select-none"
                                       onClick={() => !isSubmitting && toggleTag(tag)}
                                     >
-                                      {tag} ×
+                                      {tag} Ãƒâ€”
                                     </Badge>
                                   ))}
                                 </div>

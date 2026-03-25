@@ -203,17 +203,17 @@ export default function NiscServiceOrdersPage() {
 												</div>
 											</TableCell>
 											<TableCell>
-												{order.user?.name ?? order.team?.name ?? "—"}
+												{order.user?.name ?? order.team?.name ?? "Ã¢â‚¬â€"}
 											</TableCell>
 											<TableCell>
 												{order.orderItems
-													.map((i: { productName: string; planName?: string | null }) => `${i.productName} – ${i.planName ?? "—"}`)
+													.map((i: { productName: string; planName?: string | null }) => `${i.productName} Ã¢â‚¬â€œ ${i.planName ?? "Ã¢â‚¬â€"}`)
 													.join(", ")}
 											</TableCell>
 											<TableCell>
 												{order.total
 													? `${order.currency} ${Number(order.total).toFixed(2)}`
-													: "—"}
+													: "Ã¢â‚¬â€"}
 											</TableCell>
 											<TableCell>
 												<Badge variant={STATUS_VARIANTS[order.status] as any ?? "secondary"}>

@@ -996,7 +996,7 @@ function AdGroupItem({ adGroup, customerId, getStatusStyles, timeRange, currency
 													)}
 												</div>
 												<div className="mt-2 flex items-center gap-3">
-													<p className="text-[10px] font-mono text-muted-foreground/60">ID: {ad.id} {ad.type && `• ${ad.type}`}</p>
+													<p className="text-[10px] font-mono text-muted-foreground/60">ID: {ad.id} {ad.type && `Ã¢â‚¬Â¢ ${ad.type}`}</p>
 												</div>
 											</div>
 										</div>

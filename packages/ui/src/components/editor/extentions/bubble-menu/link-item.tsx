@@ -42,7 +42,7 @@ export function LinkItem({ editor, open, setOpen }: LinkItemProps) {
 
   return (
     <Popover modal={false} open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger>
         <div>
           <BubbleMenuButton isActive={isActive} action={() => setOpen(true)}>
             {linkValue ? (

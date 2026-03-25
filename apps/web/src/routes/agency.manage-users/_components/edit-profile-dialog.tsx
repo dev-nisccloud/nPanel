@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
-import { CountrySelect } from "@/routes/$slug/my-profile/_components/country-select";
+import { CountrySelect } from "@/routes/$slug.my-profile/_components/country-select";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100).optional(),

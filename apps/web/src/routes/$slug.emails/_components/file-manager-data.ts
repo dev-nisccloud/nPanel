@@ -1,4 +1,4 @@
-import { FileManagerData } from "./file-manager-schema";
+import { type FileManagerData } from "./file-manager-schema";
 
 export const fileManagerData: FileManagerData = {
   currentPath: "/public_html",

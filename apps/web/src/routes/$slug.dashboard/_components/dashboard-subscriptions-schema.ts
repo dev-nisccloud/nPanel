@@ -1,5 +1,5 @@
 /**
- * Customer dashboard subscriptions tab — local schema only.
+ * Customer dashboard subscriptions tab Ã¢â‚¬â€ local schema only.
  * Independent from API/client-subscriptions layer; map API responses to these types here.
  */
 

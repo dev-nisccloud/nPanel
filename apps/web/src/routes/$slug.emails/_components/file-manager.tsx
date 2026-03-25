@@ -47,7 +47,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Icons } from "@/components/icons";
-import { FileManagerItem } from "./file-manager-schema";
+import { type FileManagerItem } from "./file-manager-schema";
 import { useFtpFileManager } from "./use-ftp-file-manager";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { z } from "zod";

@@ -10,7 +10,7 @@ import type { DomainPricingHook } from "@/hooks/use-domain-search";
 
 const CATEGORIES = getTldExtensionsByCategory();
 
-/** Section extensions for OpenProvider only – Kenyan TLDs are excluded (handled by KENIC). */
+/** Section extensions for OpenProvider only Ã¢â‚¬â€œ Kenyan TLDs are excluded (handled by KENIC). */
 function getExtensionsForSection(sectionId: string): string[] {
 	// Popular tab: explicit curated list and order
 	if (sectionId === "popular") {
@@ -54,7 +54,7 @@ function getExtensionsForSection(sectionId: string): string[] {
 		.filter((ext) => !isKenicTld(ext));
 }
 
-/** OpenProvider rejects names with dots (error 303). Use only the last label, e.g. "me.fineyakwoyo" → "fineyakwoyo". */
+/** OpenProvider rejects names with dots (error 303). Use only the last label, e.g. "me.fineyakwoyo" Ã¢â€ â€™ "fineyakwoyo". */
 export function nameForOpenProvider(name: string): string {
 	const t = name.trim();
 	if (!t) return t;

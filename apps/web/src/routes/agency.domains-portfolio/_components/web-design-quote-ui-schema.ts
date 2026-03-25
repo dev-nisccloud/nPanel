@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * UI-layer schemas and transformation for the web design quote form.
- * Independent from API and DB—no shared types. Maps form values to the
+ * Independent from API and DBÃ¢â‚¬â€no shared types. Maps form values to the
  * payload shape expected by the API (contract defined here, not imported).
  */
 
@@ -24,7 +24,7 @@ export type UiProjectType = (typeof UI_PROJECT_TYPE)[keyof typeof UI_PROJECT_TYP
 export const UI_PROJECT_TYPE_OPTIONS: { value: UiProjectType; label: string }[] = [
   { value: UI_PROJECT_TYPE.NEW_WEBSITE, label: "New website" },
   { value: UI_PROJECT_TYPE.REDESIGN, label: "Website redesign" },
-  { value: UI_PROJECT_TYPE.ECOMMERCE, label: "E‑commerce / online store" },
+  { value: UI_PROJECT_TYPE.ECOMMERCE, label: "EÃ¢â‚¬â€˜commerce / online store" },
   { value: UI_PROJECT_TYPE.LANDING_PAGE, label: "Landing page" },
   { value: UI_PROJECT_TYPE.WEB_APP, label: "Web application" },
   { value: UI_PROJECT_TYPE.OTHER, label: "Other" },

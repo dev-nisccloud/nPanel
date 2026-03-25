@@ -1,6 +1,6 @@
 "use client";
 
-import { LucideIcon, Ellipsis, Folder, Forward, Trash2 } from "lucide-react";
+import { type LucideIcon, Ellipsis, Folder, Forward, Trash2 } from "lucide-react";
 
 import {
   DropdownMenu,

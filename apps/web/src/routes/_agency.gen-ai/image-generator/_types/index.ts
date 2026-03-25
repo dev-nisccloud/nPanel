@@ -1,5 +1,5 @@
 /**
- * UI layer only – independent from API/DB.
+ * UI layer only Ã¢â‚¬â€œ independent from API/DB.
  * Types and enums for the image generator feature.
  */
 
@@ -38,7 +38,7 @@ export interface GenerationView {
 }
 
 /**
- * Transform API response to UI view (API shape → UI shape).
+ * Transform API response to UI view (API shape Ã¢â€ â€™ UI shape).
  */
 export function apiGenerationsToView(apiData?: {
   data?: Array<{

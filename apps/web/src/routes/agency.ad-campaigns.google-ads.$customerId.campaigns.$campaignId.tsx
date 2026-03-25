@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useParams, useNavigate } from "react-router";
@@ -243,7 +243,7 @@ export default function GoogleAdsCampaignPage() {
                                 <div className="flex items-center gap-1.5 font-medium text-[13px]">
                                     <CalendarIcon className="h-3.5 w-3.5 opacity-60" />
                                     <span>
-                                        {formatGoogleDate(campaign?.start_date)} â€” {campaign?.end_date ? formatGoogleDate(campaign.end_date) : "Ongoing"}
+                                        {formatGoogleDate(campaign?.start_date)} Ã¢â‚¬â€ {campaign?.end_date ? formatGoogleDate(campaign.end_date) : "Ongoing"}
                                     </span>
                                 </div>
                             </div>
@@ -664,7 +664,7 @@ function AdGroupAccordionItem({ adGroup, customerId, currency }: { adGroup: any,
                         </div>
                         <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">
                             <span>ID: {adGroup.id}</span>
-                            <span>â€¢</span>
+                            <span>Ã¢â‚¬Â¢</span>
                             <span>{adGroup.type || "STANDARD"}</span>
                         </div>
                     </div>
@@ -699,7 +699,7 @@ function AdGroupAccordionItem({ adGroup, customerId, currency }: { adGroup: any,
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <MetricBox
                                 label="CPC BID"
-                                value={adGroup.cpc_bid ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(adGroup.cpc_bid)) : "â€”"}
+                                value={adGroup.cpc_bid ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(adGroup.cpc_bid)) : "Ã¢â‚¬â€"}
                             />
                             <MetricBox
                                 label="Impressions"

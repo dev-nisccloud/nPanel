@@ -328,7 +328,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent side="left" className="max-w-[240px] text-balance">
-                                            <p>Daily clicks and impressions from Google Search. You’ll see how often your site appeared in search results and how many users clicked through.</p>
+                                            <p>Daily clicks and impressions from Google Search. YouÃ¢â‚¬â„¢ll see how often your site appeared in search results and how many users clicked through.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </CardHeader>
@@ -485,7 +485,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent side="left" className="max-w-[240px] text-balance">
-                                            <p>Keywords on page 2 (positions 11–20). Small improvements can move them to page 1 and increase traffic.</p>
+                                            <p>Keywords on page 2 (positions 11Ã¢â‚¬â€œ20). Small improvements can move them to page 1 and increase traffic.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </CardHeader>
@@ -569,7 +569,7 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent side="left" className="max-w-[240px] text-balance">
-                                            <p>Pages that gained the most clicks compared to the previous period. Your content that’s rising in performance.</p>
+                                            <p>Pages that gained the most clicks compared to the previous period. Your content thatÃ¢â‚¬â„¢s rising in performance.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </CardHeader>

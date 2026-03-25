@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// UI-layer enums and schemas – independent from API and DB.
+// UI-layer enums and schemas Ã¢â‚¬â€œ independent from API and DB.
 // Keep string values in sync with API but do not import from it.
 
 export const agencyMenuKeysUi = [

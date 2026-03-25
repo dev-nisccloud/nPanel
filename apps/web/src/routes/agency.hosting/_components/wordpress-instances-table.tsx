@@ -236,7 +236,7 @@ export function WordPressInstancesTable({ domainName, onInstallClick }: WordPres
                 >
                   <TableCell className="pl-6">
                     <Link 
-                      href={`/agency/wordpress/${item.id}`}
+                      to={`/agency/wordpress/${item.id}`}
                       className="font-medium text-primary hover:underline"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -249,7 +249,7 @@ export function WordPressInstancesTable({ domainName, onInstallClick }: WordPres
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {item.title || "—"}
+                    {item.title || "Ã¢â‚¬â€"}
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(item)}

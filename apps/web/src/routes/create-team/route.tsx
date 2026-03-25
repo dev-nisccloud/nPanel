@@ -1,4 +1,4 @@
-import CreateTeamLayout from "./create-team-layout";
+import CreateTeamLayout from "./layout";
 import { CreateTeamForm } from "./_components/create-team-form";
 
 export default function CreateTeamRouteLayout() {
@@ -41,7 +41,7 @@ export default function CreateTeamRouteLayout() {
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-medium">
                   3
                 </span>
-                You’re in — head to your dashboard
+                YouÃ¢â‚¬â„¢re in Ã¢â‚¬â€ head to your dashboard
               </li>
             </ul>
           </div>

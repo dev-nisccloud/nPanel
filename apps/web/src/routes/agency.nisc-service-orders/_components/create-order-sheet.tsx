@@ -399,13 +399,13 @@ function OrderItemRow({
 								<SelectContent>
 									{loadingDomainSubs ? (
 										<div className="p-2 text-sm text-muted-foreground">
-											Loading domains…
+											Loading domainsÃ¢â‚¬Â¦
 										</div>
 									) : domainSubs.length === 0 ? (
 										<div className="p-2 text-sm text-muted-foreground">
 											No domain subscriptions.{" "}
 											<Link
-												href="/agency/domains-portfolio"
+												to="/agency/domains-portfolio"
 												className="text-primary underline"
 											>
 												Register domain
@@ -431,7 +431,7 @@ function OrderItemRow({
 						<div className="space-y-1.5">
 							<FormLabel className="text-xs">Your domains</FormLabel>
 							{loadingDomainSubs ? (
-								<p className="text-xs text-muted-foreground">Loading domains…</p>
+								<p className="text-xs text-muted-foreground">Loading domainsÃ¢â‚¬Â¦</p>
 							) : domainSubs.length > 0 ? (
 								<div className="flex flex-wrap gap-1.5">
 									{domainSubs.map((d) => (

@@ -47,6 +47,9 @@
   },
   "devDependencies": {
     "@npanel/config": "workspace:*",
+    "@types/adm-zip": "^0.5.8",
+    "@types/archiver": "^7.0.0",
+    "@types/qrcode": "^1.5.6",
     "hono": "catalog:",
     "typescript": "^5"
   }

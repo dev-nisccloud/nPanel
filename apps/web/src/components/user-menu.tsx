@@ -1,4 +1,4 @@
-import { Button } from "@npanel/ui/components/components/button";
+import { Button } from "@npanel/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,8 +7,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@npanel/ui/components/components/dropdown-menu";
-import { Skeleton } from "@npanel/ui/components/components/skeleton";
+} from "@npanel/ui/components/dropdown-menu";
+import { Skeleton } from "@npanel/ui/components/skeleton";
 import { Link, useNavigate } from "react-router";
 
 import { authClient } from "@/lib/auth-client";

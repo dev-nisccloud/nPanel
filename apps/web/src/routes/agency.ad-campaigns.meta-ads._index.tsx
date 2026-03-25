@@ -371,7 +371,7 @@ export default function MetaAdsPage() {
 								{isLoadingAccounts ? (
 									<div className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-muted/30 px-3 py-2 shadow-sm border-muted/60">
 										<Spinner size={16} className="shrink-0 text-muted-foreground" />
-										<span className="text-sm text-muted-foreground">Loading accounts…</span>
+										<span className="text-sm text-muted-foreground">Loading accountsÃ¢â‚¬Â¦</span>
 									</div>
 								) : (
 									<Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
@@ -604,7 +604,7 @@ export default function MetaAdsPage() {
 																<CalendarIcon className="h-3 w-3" />
 																<span>
 																	{campaign.start_time ? format(new Date(campaign.start_time), "MMM dd, yyyy") : "No start date"}
-																	{" — "}
+																	{" Ã¢â‚¬â€ "}
 																	{campaign.stop_time ? format(new Date(campaign.stop_time), "MMM dd, yyyy") : "Ongoing"}
 																</span>
 															</div>

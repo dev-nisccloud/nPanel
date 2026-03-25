@@ -22,7 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { trpc } from "@/utils/trpc";
-import { FileManagerItem } from "./file-manager-schema";
+import { type FileManagerItem } from "./file-manager-schema";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 
 interface ExtractZipDialogProps {

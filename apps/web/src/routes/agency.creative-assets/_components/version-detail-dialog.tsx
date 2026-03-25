@@ -107,7 +107,7 @@ export function VersionDetailDialog({
               <div className="min-w-0 flex-1">
                 <h3 className="font-semibold text-sm truncate">{version.fileName}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {formatFileSize(version.fileSize)} • {version.mimeType}
+                  {formatFileSize(version.fileSize)} Ã¢â‚¬Â¢ {version.mimeType}
                 </p>
               </div>
             </div>

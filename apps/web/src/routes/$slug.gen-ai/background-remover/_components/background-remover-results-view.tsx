@@ -164,7 +164,7 @@ export function BackgroundRemoverResultsView({
         {generations.map((gen) => (
           <div key={gen.id} className="rounded-lg border border-border bg-card p-3">
             <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              {format(new Date(gen.createdAt), "MMM d, yyyy · h:mm a")}
+              {format(new Date(gen.createdAt), "MMM d, yyyy Ã‚Â· h:mm a")}
             </p>
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div className="space-y-1">

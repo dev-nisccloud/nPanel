@@ -15,9 +15,9 @@ import { Receipt, User, Building2, FileJson } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 
 function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "—";
+	if (!v) return "Ã¢â‚¬â€";
 	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+	return Number.isNaN(d.getTime()) ? "Ã¢â‚¬â€" : d.toLocaleString();
 }
 
 function getStatusBadgeClass(status: string): string {
@@ -54,7 +54,7 @@ export function TransactionViewSheet({
 	);
 
 	const refLabel =
-		tx?.accountReference ?? tx?.receiptNumber ?? (tx ? `${tx.id.slice(0, 12)}…` : "—");
+		tx?.accountReference ?? tx?.receiptNumber ?? (tx ? `${tx.id.slice(0, 12)}Ã¢â‚¬Â¦` : "Ã¢â‚¬â€");
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -105,7 +105,7 @@ export function TransactionViewSheet({
 									<div className="flex items-center gap-2">
 										<User className="h-4 w-4 text-muted-foreground shrink-0" />
 										<span className="text-muted-foreground">Name</span>
-										<span className="font-medium">{tx.userName ?? tx.userId ?? "—"}</span>
+										<span className="font-medium">{tx.userName ?? tx.userId ?? "Ã¢â‚¬â€"}</span>
 									</div>
 									{tx.teamId && (
 										<div className="flex items-center gap-2">

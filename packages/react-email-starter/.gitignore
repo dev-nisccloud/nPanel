@@ -1,0 +1,4 @@
+.react-email
+node_modules
+dist
+.turbo

@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
-import { FileManagerItem } from "./file-manager-schema";
+import { type FileManagerItem } from "./file-manager-schema";
 
 interface RenameFileDialogProps {
   open: boolean;

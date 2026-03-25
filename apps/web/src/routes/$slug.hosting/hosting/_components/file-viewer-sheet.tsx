@@ -29,7 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
-import { FileManagerItem } from "./file-manager-schema";
+import { type FileManagerItem } from "./file-manager-schema";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 
 interface FileViewerSheetProps {
