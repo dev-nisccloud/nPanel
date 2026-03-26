@@ -6,7 +6,7 @@ export default defineConfig({
   outDir: "./dist",
   clean: true,
   skipNodeModulesBundle: true,
-  noExternal: [/@npanel\/.*/],
+  noExternal: [/@npanel\/.*/, "react-email-starter"],
   external: ["google-ads-api", "googleapis", "google-proto-files"],
   banner: `
 import { fileURLToPath as __fileURLToPath } from 'node:url';
