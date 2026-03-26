@@ -1,5 +1,5 @@
 {
-  "buildCommand": "turbo build",
+  "buildCommand": "turbo build && rm -f tsconfig.json",
   "build": {
     "env": {
       "TSCONFIG": "tsconfig.vercel.json"
