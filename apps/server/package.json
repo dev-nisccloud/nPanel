@@ -3,7 +3,7 @@
   "type": "module",
   "main": "dist/index.mjs",
   "scripts": {
-    "build": "bun build ./src/index.ts --outfile dist/index.mjs --target node --format esm --minify --sourcemap --external google-ads-api --external googleapis --external google-proto-files --banner \"import { fileURLToPath as __fileURLToPath } from 'node:url'; import { dirname as __path_dirname } from 'node:path'; const __filename = __fileURLToPath(import.meta.url); const __dirname = __path_dirname(__filename);\"",
+    "build": "tsdown",
     "check-types": "tsc -b || true",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "bun run --hot src/index.ts",
@@ -26,7 +26,8 @@
     "react-dom": "catalog:",
     "resend": "^6.1.2",
     "uploadthing": "^7.7.4",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "prettier": "^3.5.1"
   },
   "devDependencies": {
     "@npanel/config": "workspace:*",
