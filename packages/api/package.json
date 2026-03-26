@@ -3,10 +3,10 @@
   "type": "module",
   "exports": {
     ".": {
-      "default": "./dist/index.js"
+      "default": "./dist/index.mjs"
     },
     "./*": {
-      "default": "./dist/*.js"
+      "default": "./dist/*.mjs"
     }
   },
   "scripts": {
