@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@npanel/config": "workspace:*",
+    "tsdown": "catalog:",
     "typescript": "^5"
   }
 }

@@ -29,6 +29,7 @@
   "devDependencies": {
     "@npanel/config": "workspace:*",
     "@types/pg": "^8.16.0",
+    "tsdown": "catalog:",
     "drizzle-kit": "catalog:",
     "typescript": "^5"
   }
