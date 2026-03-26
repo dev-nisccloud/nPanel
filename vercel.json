@@ -1,9 +1,0 @@
-{
-  "buildCommand": "turbo build",
-  "outputDirectory": "apps/web/build/client",
-  "build": {
-    "env": {
-      "TSCONFIG": "tsconfig.vercel.json"
-    }
-  }
-}
