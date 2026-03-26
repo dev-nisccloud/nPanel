@@ -1,0 +1,8 @@
+{
+  "buildCommand": "cd ../.. && turbo build --filter=server",
+  "build": {
+    "env": {
+      "TSCONFIG": "tsconfig.vercel.json"
+    }
+  }
+}

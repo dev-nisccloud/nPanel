@@ -1,5 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, or, type SQL } from "@npanel/db";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { and, eq, inArray, isNotNull, isNull, or, type SQL, type AnyColumn } from "@npanel/db";
 import { db } from "@npanel/db";
 import { teamMember } from "@npanel/db/schema/teams";
 
@@ -17,8 +16,8 @@ export async function getUserTeamIds(userId: string): Promise<string[]> {
  * i.e. personal owner OR row attached to a team the user is a member of.
  */
 export function orUserOrTeamMember(
-  userIdCol: AnyPgColumn,
-  teamIdCol: AnyPgColumn,
+  userIdCol: AnyColumn,
+  teamIdCol: AnyColumn,
   userId: string,
   userTeamIds: string[],
 ): SQL {
@@ -30,6 +29,6 @@ export function orUserOrTeamMember(
 }
 
 /** Personal-only rows: owned by user and not tied to a team workspace. */
-export function personalScope(userIdCol: AnyPgColumn, teamIdCol: AnyPgColumn, userId: string): SQL {
+export function personalScope(userIdCol: AnyColumn, teamIdCol: AnyColumn, userId: string): SQL {
   return and(eq(userIdCol, userId), isNull(teamIdCol))!;
 }

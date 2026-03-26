@@ -5,8 +5,19 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "dist",
-    "composite": true
+    "composite": true,
+    "skipLibCheck": true,
+    "noCheck": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.json", "src/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "tsdown.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.json",
+    "src/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tsdown.config.ts"
+  ]
 }

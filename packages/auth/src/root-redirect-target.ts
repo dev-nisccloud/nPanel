@@ -2,7 +2,7 @@ import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { userActivityLog } from "@npanel/db/schema/auth-extras";
 import { team, teamMember } from "@npanel/db/schema/teams";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "@npanel/db";
 
 import { auth } from "./index";
 

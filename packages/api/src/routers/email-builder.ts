@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, exists, isNull } from "@npanel/db";
+import { and, asc, eq, exists, isNull, or } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
@@ -106,13 +106,13 @@ export const emailBuilderRouter = router({
             }
 
             const design = await db.query.emailBuilderDesign.findFirst({
-                where: (ebd, { or: orFn, eq: eqFn }) =>
+                where: (ebd) =>
                     and(
-                        eqFn(ebd.id, input.id),
-                        orFn(
-                            eqFn(ebd.userId, userId),
-                            eqFn(ebd.isPublic, true),
-                            orFn(
+                        eq(ebd.id, input.id),
+                        or(
+                            eq(ebd.userId, userId),
+                            eq(ebd.isPublic, true),
+                            or(
                                 isNull(ebd.teamId),
                                 exists(
                                     db
@@ -204,11 +204,11 @@ export const emailBuilderRouter = router({
             const { id, ...updateData } = input;
 
             const existingDesign = await db.query.emailBuilderDesign.findFirst({
-                where: (ebd, { or: orFn, eq: eqFn }) =>
+                where: (ebd) =>
                     and(
-                        eqFn(ebd.id, id),
-                        orFn(
-                            eqFn(ebd.userId, userId),
+                        eq(ebd.id, id),
+                        or(
+                            eq(ebd.userId, userId),
                             exists(
                                 db
                                     .select()
@@ -269,11 +269,11 @@ export const emailBuilderRouter = router({
             }
 
             const existingDesign = await db.query.emailBuilderDesign.findFirst({
-                where: (ebd, { or: orFn, eq: eqFn }) =>
+                where: (ebd) =>
                     and(
-                        eqFn(ebd.id, input.id),
-                        orFn(
-                            eqFn(ebd.userId, userId),
+                        eq(ebd.id, input.id),
+                        or(
+                            eq(ebd.userId, userId),
                             exists(
                                 db
                                     .select()
@@ -310,12 +310,12 @@ export const emailBuilderRouter = router({
             }
 
             const originalDesign = await db.query.emailBuilderDesign.findFirst({
-                where: (ebd, { or: orFn, eq: eqFn }) =>
+                where: (ebd) =>
                     and(
-                        eqFn(ebd.id, input.id),
-                        orFn(
-                            eqFn(ebd.userId, userId),
-                            eqFn(ebd.isPublic, true),
+                        eq(ebd.id, input.id),
+                        or(
+                            eq(ebd.userId, userId),
+                            eq(ebd.isPublic, true),
                             exists(
                                 db
                                     .select()

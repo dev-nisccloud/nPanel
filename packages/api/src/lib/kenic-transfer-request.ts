@@ -91,7 +91,7 @@ export async function executeKenicTransferRequest(
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Only KENIC TLDs are supported. Domain: ${input.name}.`,
-			cause: { invalidDomains: validation.invalidDomains },
+			cause: { invalidDomains: "invalidDomains" in validation ? validation.invalidDomains : [] },
 		});
 	}
 

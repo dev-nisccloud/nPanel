@@ -5,5 +5,13 @@ export default defineConfig({
   format: "esm",
   outDir: "./dist",
   clean: true,
-  noExternal: [/@npanel\/.*/],
+  skipNodeModulesBundle: false,
+  noExternal: [/@npanel\/.*/, "react-email-starter", /@react-email\/.*/, "resend"],
+  external: ["google-ads-api", "googleapis", "google-proto-files"],
+  banner: `
+import { fileURLToPath as __fileURLToPath } from 'node:url';
+import { dirname as __path_dirname } from 'node:path';
+const __filename = __fileURLToPath(import.meta.url);
+const __dirname = __path_dirname(__filename);
+`,
 });

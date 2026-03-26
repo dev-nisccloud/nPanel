@@ -1,0 +1,19 @@
+{
+  "buildCommand": "cd ../.. && turbo build --filter=web",
+  "outputDirectory": "build/client",
+  "build": {
+    "env": {
+      "TSCONFIG": "tsconfig.vercel.json"
+    }
+  },
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

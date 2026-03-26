@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq } from '@npanel/db';
 import { request } from 'undici';
 import { router, protectedProcedure } from '../../trpc';
 import { db } from '@npanel/db';
