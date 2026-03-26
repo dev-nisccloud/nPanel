@@ -4,10 +4,12 @@
   "exports": {
     ".": {
       "source": "./src/index.ts",
+      "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
     "./*": {
       "source": "./src/*.ts",
+      "import": "./dist/*.mjs",
       "default": "./dist/*.mjs"
     }
   },

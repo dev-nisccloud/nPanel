@@ -4,14 +4,17 @@
   "exports": {
     ".": {
       "source": "./src/index.ts",
+      "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./schema": {
       "source": "./src/schema/index.ts",
+      "import": "./dist/schema/index.js",
       "default": "./dist/schema/index.js"
     },
     "./*": {
       "source": "./src/*.ts",
+      "import": "./dist/*.js",
       "default": "./dist/*.js"
     }
   },

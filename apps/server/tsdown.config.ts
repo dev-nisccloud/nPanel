@@ -6,6 +6,7 @@ export default defineConfig({
   outDir: "./api",
   outExtension: () => ({ js: ".js" }),
   clean: true,
+  bundle: true,
   skipNodeModulesBundle: false,
   resolveConditions: ["source"],    // ← add this
   noExternal: [/@npanel\/.*/, "react-email-starter", /@react-email\/.*/, "resend"],
