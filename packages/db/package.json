@@ -1,18 +1,19 @@
 {
   "name": "@npanel/db",
   "type": "module",
-    "exports": {
-      ".": {
-        "default": "./src/index.ts"
-      },
-      "./schema": {
-        "default": "./src/schema/index.ts"
-      },
-      "./*": {
-        "default": "./src/*.ts"
-      }
+  "exports": {
+    ".": {
+      "default": "./dist/index.js"
     },
+    "./schema": {
+      "default": "./dist/schema/index.js"
+    },
+    "./*": {
+      "default": "./dist/*.js"
+    }
+  },
   "scripts": {
+    "build": "tsdown",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",

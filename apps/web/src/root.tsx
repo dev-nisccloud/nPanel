@@ -59,7 +59,7 @@ export const links: Route.LinksFunction = () => [
   },
   { rel: "icon", href: "/favicon/favicon.ico" },
   { rel: "apple-touch-icon", href: "/favicon/apple-touch-icon.png" },
-  { rel: "manifest", href: "/manifest.webmanifest" },
+  { rel: "manifest", href: "/favicon/site.webmanifest" },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

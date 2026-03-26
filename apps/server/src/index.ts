@@ -16,13 +16,6 @@ import { handleProcessNiscOrder } from "./api/workers/process-nisc-order";
 import { handleSendCampaignEmails } from "./api/workers/send-campaign-emails";
 import { handlePublishContent } from "./api/workers/publish-content";
 import { handlePublishLinkedInContent } from "./api/workers/publish-linkedin-content";
-import { handleReplicateWebhook } from "./api/webhooks/replicate-image-generator";
-import { handleMpesaWebhook } from "./api/webhooks/mpesa";
-import { handleResendWebhook } from "./api/webhooks/resend";
-import { handleHealth } from "./api/health";
-import { handleManifest } from "./api/manifest";
-import { handleTestPleskConnection } from "./api/test-plesk-connection";
-import { handlePleskHealthCheck } from "./api/plesk-health-check";
 
 const app = new Hono();
 
@@ -85,17 +78,6 @@ app.on(["POST"], "/api/workers/process-nisc-order*", handleProcessNiscOrder);
 app.on(["POST"], "/api/workers/send-campaign-emails*", handleSendCampaignEmails);
 app.on(["POST"], "/api/workers/publish-content*", handlePublishContent);
 app.on(["POST"], "/api/workers/publish-linkedin-content*", handlePublishLinkedInContent);
-
-// Webhooks
-app.on(["POST"], "/api/webhooks/replicate-image-generator*", handleReplicateWebhook);
-app.on(["POST", "GET"], "/api/webhooks/mpesa*", handleMpesaWebhook);
-app.on(["POST"], "/api/webhooks/resend*", handleResendWebhook);
-
-// Remaining API Routes
-app.on(["GET"], "/api/health*", handleHealth);
-app.on(["GET"], "/api/manifest*", handleManifest);
-app.on(["GET"], "/api/test-plesk-connection*", handleTestPleskConnection);
-app.on(["GET"], "/api/plesk-health-check*", handlePleskHealthCheck);
 
 export default {
   port: 3000,

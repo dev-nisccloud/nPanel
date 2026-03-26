@@ -2,22 +2,22 @@ import { TopProgressBar } from "@/components/top-progress-bar";
 
 const FALLBACK_REDIRECT = "/auth/login";
 /** Last-resort redirect if JS fails or fetch hangs (seconds). */
-const META_REFRESH_SECONDS = 5;
+const META_REFRESH_SECONDS = 3;
 
 /**
  * Root path "/" – returns 200 OK HTML with a small inline redirect bootstrap.
- *
- * Why: avoid 30x navigation issues with service workers and keep "/" resilient even if
- * client hydration is delayed.
  */
 export default function RootPage() {
   const inlineScript = `
     const FALLBACK = "${FALLBACK_REDIRECT}";
     let cancelled = false;
     
+    console.log("[RootPage] Bootstrapping redirect...");
+
     // Safety timeout in case fetch hangs
     setTimeout(function() {
       if (!cancelled) {
+        console.log("[RootPage] Timeout hit, redirecting to fallback...");
         cancelled = true;
         window.location.replace(FALLBACK);
       }
@@ -25,22 +25,22 @@ export default function RootPage() {
 
     fetch("/api/auth/redirect-target", { cache: "no-store", credentials: "include" })
       .then(function(res) {
-        var contentType = res.headers.get("content-type") || "";
         if (!res.ok) throw new Error("redirect-target http " + res.status);
+        const contentType = res.headers.get("content-type") || "";
         if (contentType.indexOf("application/json") === -1) {
-          return res.text().then(function(t) {
-            throw new Error("redirect-target non-json: " + t.slice(0, 200));
-          });
+           throw new Error("redirect-target non-json");
         }
         return res.json();
       })
       .then(function(data) {
         if (!cancelled) {
+          console.log("[RootPage] Redirecting to:", data.redirect || FALLBACK);
           cancelled = true;
           window.location.replace(data.redirect || FALLBACK);
         }
       })
-      .catch(function() {
+      .catch(function(err) {
+        console.error("[RootPage] Redirect check failed:", err);
         if (!cancelled) {
           cancelled = true;
           window.location.replace(FALLBACK);

@@ -3,13 +3,15 @@
   "type": "module",
   "exports": {
     ".": {
-      "default": "./src/index.ts"
+      "default": "./dist/index.js"
     },
     "./*": {
-      "default": "./src/*.ts"
+      "default": "./dist/*.js"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "build": "tsdown"
+  },
   "dependencies": {
     "@npanel/db": "workspace:*",
     "@npanel/env": "workspace:*",
