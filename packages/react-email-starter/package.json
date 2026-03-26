@@ -2,15 +2,16 @@
   "name": "react-email-starter",
   "version": "1.1.0",
   "private": true,
+  "type": "module",
   "exports": {
     "./emails": "./emails/index.ts",
     "./src/*": "./src/*.ts"
   },
   "scripts": {
-    "build": "email build && node scripts/fix-spam-check.js && node -e \"require('fs').mkdirSync('dist',{recursive:true}); require('fs').writeFileSync('dist/.turbo-build','')\"",
+    "build": "email build && node scripts/fix-spam-check.cjs && node -e \"import fs from 'node:fs'; fs.mkdirSync('dist',{recursive:true}); fs.writeFileSync('dist/.turbo-build','')\"",
     "dev": "email dev",
     "export": "email export",
-    "postinstall": "node scripts/fix-spam-check.js || true"
+    "postinstall": "node scripts/fix-spam-check.cjs || true"
   },
   "dependencies": {
     "@react-email/components": "0.5.7",
