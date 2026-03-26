@@ -1,4 +1,4 @@
-import { defineConfig } from "tsdown";  // ← add this line
+import { defineConfig } from "tsdown";
 
 export default defineConfig({
   entry: "./src/index.ts",
@@ -7,6 +7,7 @@ export default defineConfig({
   outExtension: () => ({ js: ".js" }),
   clean: true,
   skipNodeModulesBundle: false,
+  resolveConditions: ["source"],    // ← add this
   noExternal: [/@npanel\/.*/, "react-email-starter", /@react-email\/.*/, "resend"],
   external: ["google-ads-api", "googleapis", "google-proto-files"],
   banner: `

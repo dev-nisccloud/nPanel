@@ -3,12 +3,15 @@
   "type": "module",
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "default": "./dist/index.js"
     },
     "./schema": {
+      "source": "./src/schema/index.ts",
       "default": "./dist/schema/index.js"
     },
     "./*": {
+      "source": "./src/*.ts",
       "default": "./dist/*.js"
     }
   },

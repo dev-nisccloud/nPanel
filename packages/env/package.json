@@ -4,8 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./server": "./dist/server.js",
-    "./web": "./dist/web.js"
+    "./server": {
+      "source": "./src/server.ts",
+      "default": "./dist/server.js"
+    },
+    "./web": {
+      "source": "./src/web.ts",
+      "default": "./dist/web.js"
+    }
   },
   "scripts": {
     "build": "tsdown"

@@ -3,9 +3,11 @@
   "type": "module",
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "default": "./dist/index.mjs"
     },
     "./*": {
+      "source": "./src/*.ts",
       "default": "./dist/*.mjs"
     }
   },

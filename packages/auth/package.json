@@ -1,14 +1,16 @@
 {
   "name": "@npanel/auth",
   "type": "module",
-  "exports": {
-    ".": {
-      "default": "./dist/index.js"
-    },
-    "./*": {
-      "default": "./dist/*.js"
-    }
+"exports": {
+  ".": {
+    "source": "./src/index.ts",
+    "default": "./dist/index.js"
   },
+  "./*": {
+    "source": "./src/*.ts",
+    "default": "./dist/*.js"
+  }
+},
   "scripts": {
     "build": "tsdown"
   },
