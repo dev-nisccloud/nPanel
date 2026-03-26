@@ -1,9 +1,8 @@
-import { defineConfig } from "tsdown";
-
 export default defineConfig({
   entry: "./src/index.ts",
   format: "esm",
-  outDir: "./dist",
+  outDir: "./api",          // changed from ./dist
+  outExtension: () => ({ js: ".js" }),  // output as .js not .mjs
   clean: true,
   skipNodeModulesBundle: false,
   noExternal: [/@npanel\/.*/, "react-email-starter", /@react-email\/.*/, "resend"],
