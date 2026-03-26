@@ -2,7 +2,7 @@
  * Marketplace service cards configuration.
  * Add or edit entries here to control what appears on the marketplace grid.
  * slug: used in URL e.g. /marketplace/website-hosting and for API product/plan lookup.
- * searchTerms: optional; if omitted, the API derives terms from slug (e.g. website-hosting Ã¢â€ â€™ "website hosting", "web hosting").
+ * searchTerms: optional; if omitted, the API derives terms from slug (e.g. website-hosting → "website hosting", "web hosting").
  */
 
 export interface MarketplaceServiceItem {

@@ -41,7 +41,7 @@ export default function CreateTeamRouteLayout() {
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-medium">
                   3
                 </span>
-                YouÃ¢â‚¬â„¢re in Ã¢â‚¬â€ head to your dashboard
+                You’re in — head to your dashboard
               </li>
             </ul>
           </div>

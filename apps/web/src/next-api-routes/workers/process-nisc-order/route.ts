@@ -222,7 +222,7 @@ export async function POST(request: Request) {
 										ccList.push(initiatorEmail);
 									}
 								}
-								// Dashboard link from env (no hardcoding) Ã¢â‚¬â€œ only set when we have both base URL and team slug
+								// Dashboard link from env (no hardcoding) – only set when we have both base URL and team slug
 								const invoiceDashboardUrl =
 									baseUrl && order.team?.slug
 										? `${baseUrl}/${order.team.slug}/invoices`

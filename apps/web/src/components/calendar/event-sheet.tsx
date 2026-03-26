@@ -371,7 +371,7 @@ export function EventSheet({ event, open, onOpenChange }: EventSheetProps) {
                   </div>
                   <span>
                     {mockParticipants.length} persons
-                    <span className="mx-1">Ã¢â‚¬Â¢</span>
+                    <span className="mx-1">•</span>
                     {yesCount} yes
                   </span>
                 </div>

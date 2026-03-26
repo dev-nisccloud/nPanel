@@ -41,7 +41,7 @@ Centered / Symmetrical: Everything aligns to the center. Safe, balanced. Good fo
 
 Rule of Thirds: 3Ãƒâ€”3 grid; place key subjects at intersections. Good for photos, editorial, social.
 
-Z-Pattern: Eye moves top-left Ã¢â€ â€™ top-right Ã¢â€ â€™ bottom-left Ã¢â€ â€™ bottom-right. Good for pages with visuals and text.
+Z-Pattern: Eye moves top-left → top-right → bottom-left → bottom-right. Good for pages with visuals and text.
 
 F-Pattern: Eye scans across the top then down. Good for text-heavy layouts (newsletters, menus).
 
@@ -63,7 +63,7 @@ Luxury / Premium: Refined, expensive. Black, white, gold, jewel tones. Elegant s
 
 Streetwear / Urban: Bold, raw, high-contrast. Oversized type, black/white + one accent. Good for youth, culture, rebellion.
 
-Corporate / Professional: Clean, trustworthy, grid-based. 2Ã¢â‚¬â€œ3 colors, readable sans-serif. Good for business, stability.
+Corporate / Professional: Clean, trustworthy, grid-based. 2–3 colors, readable sans-serif. Good for business, stability.
 
 Cyberpunk / Futuristic: Dark, neon, tech dystopia. Cyan, magenta, green. Glitch, scan lines. Good for tech, gaming, sci-fi.
 
@@ -189,7 +189,7 @@ Refined and austere: Minimal, strict, elegant.`;
 
 const AUDIENCE_TOOLTIP = `Who the design is for. Age, lifestyle, and context shape every design choice.
 
-Examples: "Gen Z streetwear enthusiasts", "C-suite executives", "parents of children 3Ã¢â‚¬â€œ7". Be specific so the refined prompt can target the right look and message.`;
+Examples: "Gen Z streetwear enthusiasts", "C-suite executives", "parents of children 3–7". Be specific so the refined prompt can target the right look and message.`;
 
 const INTENT_TOOLTIP = `Why the design exists. Guides the message and visual strategy.
 

@@ -94,7 +94,7 @@ export function transformPleskSubscriptionsToTable(
  * These can be combined (e.g., 3 = 1+2, 272 = 256+16)
  */
 
-/** NISC subscription status enum Ã¢â€ â€™ display label */
+/** NISC subscription status enum → display label */
 const NISC_STATUS_LABELS: Record<string, string> = {
   ACTIVE: "Active",
   PENDING: "Pending",

@@ -14,7 +14,7 @@ async function hasSession(): Promise<boolean> {
 }
 
 /**
- * Client middleware Ã¢â‚¬â€ runs on navigations (and on hydration when root `clientLoader.hydrate` is true).
+ * Client middleware — runs on navigations (and on hydration when root `clientLoader.hydrate` is true).
  * Public routes pass through; others require a session.
  */
 export async function sessionGateClientMiddleware(

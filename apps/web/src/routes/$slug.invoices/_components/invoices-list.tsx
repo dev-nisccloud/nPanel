@@ -65,7 +65,7 @@ const statusIcon: Record<InvoiceSummary["status"], React.ComponentType<{ classNa
 
 const formatCurrency = (amount: string | null | undefined, currency: string) => {
 	if (!amount) {
-		return "Ã¢â‚¬â€";
+		return "—";
 	}
 
 	const numeric = Number(amount);
@@ -81,11 +81,11 @@ const formatCurrency = (amount: string | null | undefined, currency: string) => 
 
 const formatDate = (value: string | Date | null | undefined) => {
 	if (!value) {
-		return "Ã¢â‚¬â€";
+		return "—";
 	}
 	const date = value instanceof Date ? value : new Date(value);
 	if (Number.isNaN(date.getTime())) {
-		return "Ã¢â‚¬â€";
+		return "—";
 	}
 	return date.toLocaleDateString();
 };

@@ -26,6 +26,9 @@
     "react-dom": "catalog:",
     "resend": "^6.1.2",
     "uploadthing": "^7.7.4",
+    "replicate": "catalog:",
+    "@upstash/qstash": "catalog:",
+    "svix": "catalog:",
     "zod": "catalog:",
     "prettier": "^3.5.1"
   },

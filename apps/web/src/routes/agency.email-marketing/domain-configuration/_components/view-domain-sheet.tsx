@@ -59,9 +59,9 @@ const getStatusBadge = (status: string) => {
 };
 
 const formatDate = (value: Date | string | null | undefined) => {
-	if (!value) return "Ã¢â‚¬â€";
+	if (!value) return "—";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "Ã¢â‚¬â€" : d.toLocaleString();
+	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
 };
 
 export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainSheetProps) {

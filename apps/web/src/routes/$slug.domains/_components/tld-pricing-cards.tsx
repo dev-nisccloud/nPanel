@@ -25,7 +25,7 @@ const formatPrice = (price: number, currency: string = "KES") => {
     'USD': '$',
     'KES': 'KSh',
     'EUR': 'Ã¢â€šÂ¬',
-    'GBP': 'Ã‚Â£',
+    'GBP': ' £',
   };
 
   const symbol = currencySymbols[currency] || currency;

@@ -530,7 +530,7 @@ export default function SalesReportsPage() {
 									{revenueByPlan.length > 0 ? (
 										revenueByPlan.slice(0, 10).map((p) => (
 											<div key={p.planId} className="flex justify-between text-sm">
-												<span className="truncate max-w-[60%]">{p.planName} Ã‚Â· {p.productName}</span>
+												<span className="truncate max-w-[60%]">{p.planName}  · {p.productName}</span>
 												<span className="font-mono font-semibold shrink-0">{formatCurrency(p.mrr)}</span>
 											</div>
 										))
@@ -638,16 +638,16 @@ export default function SalesReportsPage() {
 								</CardHeader>
 								<CardContent className="space-y-3">
 									<div className="flex justify-between text-sm">
-										<span>0Ã¢â‚¬â€œ30 days</span>
-										<span className="font-mono">{renewalsDue.days30.count} subs Ã‚Â· {formatCurrency(renewalsDue.days30.mrr)} MRR</span>
+										<span>0–30 days</span>
+										<span className="font-mono">{renewalsDue.days30.count} subs  · {formatCurrency(renewalsDue.days30.mrr)} MRR</span>
 									</div>
 									<div className="flex justify-between text-sm">
-										<span>31Ã¢â‚¬â€œ60 days</span>
-										<span className="font-mono">{renewalsDue.days60.count} Ã‚Â· {formatCurrency(renewalsDue.days60.mrr)}</span>
+										<span>31–60 days</span>
+										<span className="font-mono">{renewalsDue.days60.count}  · {formatCurrency(renewalsDue.days60.mrr)}</span>
 									</div>
 									<div className="flex justify-between text-sm">
-										<span>61Ã¢â‚¬â€œ90 days</span>
-										<span className="font-mono">{renewalsDue.days90.count} Ã‚Â· {formatCurrency(renewalsDue.days90.mrr)}</span>
+										<span>61–90 days</span>
+										<span className="font-mono">{renewalsDue.days90.count}  · {formatCurrency(renewalsDue.days90.mrr)}</span>
 									</div>
 								</CardContent>
 							</Card>
@@ -699,23 +699,23 @@ export default function SalesReportsPage() {
 								</CardHeader>
 								<CardContent className="space-y-2">
 									<div className="flex justify-between text-sm">
-										<span>0Ã¢â‚¬â€œ30 days</span>
-										<span className="font-mono">{overdueAging.bucket0_30.count} Ã‚Â· {formatCurrency(overdueAging.bucket0_30.amount)}</span>
+										<span>0–30 days</span>
+										<span className="font-mono">{overdueAging.bucket0_30.count}  · {formatCurrency(overdueAging.bucket0_30.amount)}</span>
 									</div>
 									<div className="flex justify-between text-sm">
-										<span>31Ã¢â‚¬â€œ60 days</span>
-										<span className="font-mono">{overdueAging.bucket31_60.count} Ã‚Â· {formatCurrency(overdueAging.bucket31_60.amount)}</span>
+										<span>31–60 days</span>
+										<span className="font-mono">{overdueAging.bucket31_60.count}  · {formatCurrency(overdueAging.bucket31_60.amount)}</span>
 									</div>
 									<div className="flex justify-between text-sm">
-										<span>61Ã¢â‚¬â€œ90 days</span>
-										<span className="font-mono">{overdueAging.bucket61_90.count} Ã‚Â· {formatCurrency(overdueAging.bucket61_90.amount)}</span>
+										<span>61–90 days</span>
+										<span className="font-mono">{overdueAging.bucket61_90.count}  · {formatCurrency(overdueAging.bucket61_90.amount)}</span>
 									</div>
 									<div className="flex justify-between text-sm">
 										<span>90+ days</span>
-										<span className="font-mono">{overdueAging.bucket90Plus.count} Ã‚Â· {formatCurrency(overdueAging.bucket90Plus.amount)}</span>
+										<span className="font-mono">{overdueAging.bucket90Plus.count}  · {formatCurrency(overdueAging.bucket90Plus.amount)}</span>
 									</div>
 									<Separator className="my-2" />
-									<p className="font-semibold">Total: {overdueAging.totalCount} Ã‚Â· {formatCurrency(overdueAging.totalAmount)}</p>
+									<p className="font-semibold">Total: {overdueAging.totalCount}  · {formatCurrency(overdueAging.totalAmount)}</p>
 								</CardContent>
 							</Card>
 							<Card className="border-muted/60 shadow-none">
@@ -760,7 +760,7 @@ export default function SalesReportsPage() {
 										return (
 										<div key={s} className="flex justify-between">
 											<span>{s}</span>
-											<span className="font-mono">{entry?.count ?? 0} Ã‚Â· {formatCurrency(entry?.value ?? 0)}</span>
+											<span className="font-mono">{entry?.count ?? 0}  · {formatCurrency(entry?.value ?? 0)}</span>
 										</div>
 									);
 									})}
@@ -920,7 +920,7 @@ export default function SalesReportsPage() {
 									<p className={cn("text-2xl font-bold", (timeComparison.paidRevenueYearOverYearPercent ?? 0) >= 0 ? "text-emerald-600" : "text-red-600")}>
 										{timeComparison.paidRevenueYearOverYearPercent != null
 											? `${timeComparison.paidRevenueYearOverYearPercent >= 0 ? "+" : ""}${timeComparison.paidRevenueYearOverYearPercent.toFixed(1)}%`
-											: "Ã¢â‚¬â€"}
+											: "—"}
 									</p>
 									<p className="text-xs text-muted-foreground">vs same month last year</p>
 								</CardContent>

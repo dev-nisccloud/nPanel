@@ -20,13 +20,13 @@ export type TransferProvider = "kenic" | "openprovider";
 interface TransferReadyCardProps {
   domain: string;
   extension: string;
-  /** Customer-facing price (after margin) Ã¢â‚¬â€œ shown in UI */
+  /** Customer-facing price (after margin) – shown in UI */
   price: number;
   currency: string;
-  /** Provider price (no margin) Ã¢â‚¬â€œ for DB when initiating transfer */
+  /** Provider price (no margin) – for DB when initiating transfer */
   providerPriceAmount?: number | null;
   providerPriceCurrency?: string | null;
-  /** Customer price (after margin) Ã¢â‚¬â€œ for DB when initiating transfer */
+  /** Customer price (after margin) – for DB when initiating transfer */
   customerPriceAmount?: number | null;
   customerPriceCurrency?: string | null;
   provider: TransferProvider;
@@ -50,10 +50,10 @@ function formatPrice(price?: number, currency?: string): string {
     USD: "$",
     KES: "KSh",
     EUR: "Ã¢â€šÂ¬",
-    GBP: "Ã‚Â£",
+    GBP: " £",
     CAD: "C$",
     AUD: "A$",
-    JPY: "Ã‚Â¥",
+    JPY: " ¥",
     INR: "Ã¢â€šÂ¹",
     ZAR: "R",
     NGN: "Ã¢â€šÂ¦",

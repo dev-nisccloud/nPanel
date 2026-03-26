@@ -324,7 +324,7 @@ export function TestUploadSheet({ open, onOpenChange }: TestUploadSheetProps) {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{file.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {formatFileSize(file.size)} Ã¢â‚¬Â¢ {file.type || "Unknown type"}
+                              {formatFileSize(file.size)} • {file.type || "Unknown type"}
                             </p>
                           </div>
                           <Button

@@ -5,7 +5,7 @@ const FALLBACK_REDIRECT = "/auth/login";
 const META_REFRESH_SECONDS = 5;
 
 /**
- * Root path "/" Ã¢â‚¬â€œ returns 200 OK HTML with a small inline redirect bootstrap.
+ * Root path "/" – returns 200 OK HTML with a small inline redirect bootstrap.
  *
  * Why: avoid 30x navigation issues with service workers and keep "/" resilient even if
  * client hydration is delayed.

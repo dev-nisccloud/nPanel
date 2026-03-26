@@ -121,7 +121,7 @@ export function MetricCards() {
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
 						Active <span className={isDomainsError ? "text-muted-foreground" : "text-green-600 dark:text-green-400"}>{domainsActive}</span>
-						<span className="text-muted-foreground">Ã‚Â·</span>
+						<span className="text-muted-foreground"> ·</span>
 						Expired <span className={isDomainsError ? "text-muted-foreground" : "text-red-600 dark:text-red-400"}>{domainsExpired}</span>
 					</div>
 					<div className="text-muted-foreground">Total domains across all teams</div>
@@ -153,7 +153,7 @@ export function MetricCards() {
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
 						Processed <span className={isOrdersError ? "text-muted-foreground" : "text-green-600 dark:text-green-400"}>{ordersCompleted}</span>
-						<span className="text-muted-foreground">Ã‚Â·</span>
+						<span className="text-muted-foreground"> ·</span>
 						Failed <span className={isOrdersError ? "text-muted-foreground" : "text-red-600 dark:text-red-400"}>{ordersFailed}</span>
 					</div>
 					<div className="text-muted-foreground">Order status across all teams</div>
@@ -185,7 +185,7 @@ export function MetricCards() {
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
 						Paid <span className={isInvoicesError ? "text-muted-foreground" : "text-green-600 dark:text-green-400"}>{invoicesPaid}</span>
-						<span className="text-muted-foreground">Ã‚Â·</span>
+						<span className="text-muted-foreground"> ·</span>
 						Unpaid <span className={isInvoicesError ? "text-muted-foreground" : "text-red-600 dark:text-red-400"}>{invoicesUnpaid}</span>
 					</div>
 					<div className="text-muted-foreground">Total invoices across all teams</div>
@@ -217,7 +217,7 @@ export function MetricCards() {
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
 						Active <span className={isSubsError ? "text-muted-foreground" : "text-green-600 dark:text-green-400"}>{subsActive}</span>
-						<span className="text-muted-foreground">Ã‚Â·</span>
+						<span className="text-muted-foreground"> ·</span>
 						Pending/Expired <span className={isSubsError ? "text-muted-foreground" : "text-red-600 dark:text-red-400"}>{subsOther}</span>
 					</div>
 					<div className="text-muted-foreground">Service subscriptions across all teams</div>

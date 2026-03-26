@@ -72,10 +72,10 @@ const formatPrice = (price?: number, currency?: string) => {
     'USD': '$',
     'KES': 'KSh',
     'EUR': 'Ã¢â€šÂ¬',
-    'GBP': 'Ã‚Â£',
+    'GBP': ' £',
     'CAD': 'C$',
     'AUD': 'A$',
-    'JPY': 'Ã‚Â¥',
+    'JPY': ' ¥',
     'INR': 'Ã¢â€šÂ¹',
     'ZAR': 'R',
     'NGN': 'Ã¢â€šÂ¦',
@@ -387,7 +387,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
     },
   });
 
-  // Poll payment status Ã¢â‚¬â€ real-time only, no cache
+  // Poll payment status — real-time only, no cache
   const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
     { checkoutRequestId: checkoutRequestId! },
     {

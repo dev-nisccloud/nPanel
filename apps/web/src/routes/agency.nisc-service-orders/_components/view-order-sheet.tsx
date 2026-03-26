@@ -97,7 +97,7 @@ export function ViewOrderSheet({
 						</div>
 						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground">User / Team</p>
-							<p>{order.user?.name ?? order.team?.name ?? "Ã¢â‚¬â€"}</p>
+							<p>{order.user?.name ?? order.team?.name ?? "—"}</p>
 						</div>
 						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground">Status</p>
@@ -118,10 +118,10 @@ export function ViewOrderSheet({
 										className="flex flex-col rounded border p-3 text-sm"
 									>
 										<span className="font-medium">
-											{item.product.name} Ã¢â‚¬â€œ {item.productPlan?.name ?? ""}
+											{item.product.name} – {item.productPlan?.name ?? ""}
 										</span>
 										<span className="text-muted-foreground">
-											{item.itemSubtotal} {item.itemCurrency} Ã‚Â· {item.status}
+											{item.itemSubtotal} {item.itemCurrency}  · {item.status}
 										</span>
 										{item.provisioningError && (
 											<span className="text-destructive text-xs mt-1 block">

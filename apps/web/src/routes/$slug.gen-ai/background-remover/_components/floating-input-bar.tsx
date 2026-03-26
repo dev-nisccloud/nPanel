@@ -115,7 +115,7 @@ export function FloatingInputBar({ teamId, creditsValue }: FloatingInputBarProps
                   <div className="flex items-center justify-center gap-2 py-2 text-center">
                     <Upload className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
                     <p className="text-xs text-muted-foreground">
-                      Drop image or click to browse Ã‚Â· PNG, JPG, WebP up to 10MB
+                      Drop image or click to browse  · PNG, JPG, WebP up to 10MB
                     </p>
                   </div>
                 </DropzoneEmptyState>

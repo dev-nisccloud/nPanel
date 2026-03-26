@@ -44,9 +44,9 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 type AudienceContactList = RouterOutputs["emailMarketing"]["audiences"]["listContacts"];
 
 const formatDateTime = (value: Date | string | null | undefined) => {
-	if (!value) return "Ã¢â‚¬â€";
+	if (!value) return "—";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "Ã¢â‚¬â€" : d.toLocaleString();
+	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
 };
 
 export default function AudienceDetailPage() {
@@ -476,7 +476,7 @@ export default function AudienceDetailPage() {
 										<span className="text-xs text-muted-foreground">
 											{totalContacts === 0
 												? "No contacts match"
-												: `Showing ${contactsOffset + 1}Ã¢â‚¬â€œ${contactsOffset + contacts.length} of ${totalContacts} contact${totalContacts !== 1 ? "s" : ""}`}
+												: `Showing ${contactsOffset + 1}–${contactsOffset + contacts.length} of ${totalContacts} contact${totalContacts !== 1 ? "s" : ""}`}
 											.
 										</span>
 									</div>
@@ -721,7 +721,7 @@ export default function AudienceDetailPage() {
 							{addContactsBulkMutation.isPending ? (
 								<>
 									<Spinner className="mr-2" size="sm" />
-									AddingÃ¢â‚¬Â¦
+									Adding…
 								</>
 							) : (
 								<>

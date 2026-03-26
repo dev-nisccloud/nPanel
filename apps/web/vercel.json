@@ -6,14 +6,15 @@
       "TSCONFIG": "tsconfig.vercel.json"
     }
   },
-  "routes": [
+  "cleanUrls": true,
+  "rewrites": [
     {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
+      "source": "/api/:path*",
+      "destination": "https://npanel-server.vercel.app/api/:path*"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

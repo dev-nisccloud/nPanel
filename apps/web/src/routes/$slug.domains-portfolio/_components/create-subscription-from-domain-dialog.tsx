@@ -242,8 +242,8 @@ export function CreateSubscriptionFromDomainDialog({
               </div>
 
               <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                Subscription date: {subscriptionDate.toLocaleDateString()} Ã‚Â· Expiry:{" "}
-                {expiryDate.toLocaleDateString()} Ã‚Â· Next renewal: {nextRenewalDate.toLocaleDateString()} Ã‚Â· Billing: {billingCycle} Ã‚Â· Auto-renew: {domain.autoRenewal ? "On" : "Off"}
+                Subscription date: {subscriptionDate.toLocaleDateString()}  · Expiry:{" "}
+                {expiryDate.toLocaleDateString()}  · Next renewal: {nextRenewalDate.toLocaleDateString()}  · Billing: {billingCycle}  · Auto-renew: {domain.autoRenewal ? "On" : "Off"}
               </div>
 
               <div className="space-y-3">

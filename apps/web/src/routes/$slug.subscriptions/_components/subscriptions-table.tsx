@@ -18,9 +18,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
 
 function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "Ã¢â‚¬â€";
+	if (!v) return "—";
 	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? "Ã¢â‚¬â€" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
 }
 
 function getStatusBadgeClass(status: string): string {

@@ -321,7 +321,7 @@ function PluginCard({
               </span>
               {plugin.availableVersion && plugin.availableVersion !== plugin.version && (
                 <>
-                  <span className="text-xs text-muted-foreground">Ã¢â€ â€™</span>
+                  <span className="text-xs text-muted-foreground">→</span>
                   <span className="text-xs text-blue-600">
                     v{plugin.availableVersion}
                   </span>

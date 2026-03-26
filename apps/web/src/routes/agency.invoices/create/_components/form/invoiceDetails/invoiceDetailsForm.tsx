@@ -139,7 +139,7 @@ export const InvoiceDetailsForm = () => {
                       year: "numeric",
                     })
                   : "";
-                const dateRangeLabel = [fromLabel, toLabel].filter(Boolean).join(" Ã¢â‚¬â€œ ");
+                const dateRangeLabel = [fromLabel, toLabel].filter(Boolean).join(" – ");
                 const newItems: Item[] = contexts.map((context) => {
                   const adSpendFormatted = context.adSpend.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
@@ -333,7 +333,7 @@ function InvoiceItemRow({
             </Button>
             {item.commissionContext && (
               <span className="text-xs text-muted-foreground truncate max-w-[180px]">
-                {item.commissionContext.metaAdsCampaignName} Ã‚Â· {formatSpend(item.commissionContext.adSpend)}
+                {item.commissionContext.metaAdsCampaignName}  · {formatSpend(item.commissionContext.adSpend)}
               </span>
             )}
           </div>

@@ -241,7 +241,7 @@ export default function AgencyRolesPage() {
 												{role.name}
 											</TableCell>
 											<TableCell className="text-xs text-muted-foreground">
-												{role.description || "Ã¢â‚¬â€"}
+												{role.description || "—"}
 											</TableCell>
 											<TableCell>
 												<Badge variant="outline" className="text-xs">
@@ -352,7 +352,7 @@ export default function AgencyRolesPage() {
 							{deleteRoleMutation.isPending ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									DeletingÃ¢â‚¬Â¦
+									Deleting…
 								</>
 							) : (
 								"Delete role"

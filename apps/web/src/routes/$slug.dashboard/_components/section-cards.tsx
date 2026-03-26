@@ -107,7 +107,7 @@ export function SectionCards() {
 
 	return (
 		<div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-			{/* 1. Domains Ã¢â‚¬â€œ like agency dashboard */}
+			{/* 1. Domains – like agency dashboard */}
 			<Card className="@container/card">
 				<CardHeader>
 					<CardDescription>Domains</CardDescription>
@@ -118,7 +118,7 @@ export function SectionCards() {
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
 						Active <span className="text-green-600 dark:text-green-400">{domainsActive}</span>
-						<span className="text-muted-foreground">Ã‚Â·</span>
+						<span className="text-muted-foreground"> ·</span>
 						Expired <span className="text-red-600 dark:text-red-400">{domainsExpired}</span>
 					</div>
 					<div className="text-muted-foreground">Total domains for this company</div>
@@ -136,14 +136,14 @@ export function SectionCards() {
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
 						Paid <span className="text-green-600 dark:text-green-400">{invoicesPaid}</span>
-						<span className="text-muted-foreground">Ã‚Â·</span>
+						<span className="text-muted-foreground"> ·</span>
 						Unpaid <span className="text-red-600 dark:text-red-400">{invoicesUnpaid}</span>
 					</div>
 					<div className="text-muted-foreground">Total invoices for this company</div>
 				</CardFooter>
 			</Card>
 
-			{/* 3. Orders Ã¢â‚¬â€œ agency layout: processed / failed */}
+			{/* 3. Orders – agency layout: processed / failed */}
 			<Card className="@container/card">
 				<CardHeader>
 					<CardDescription>Orders</CardDescription>
@@ -154,14 +154,14 @@ export function SectionCards() {
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
 						Processed <span className="text-green-600 dark:text-green-400">{ordersCompleted}</span>
-						<span className="text-muted-foreground">Ã‚Â·</span>
+						<span className="text-muted-foreground"> ·</span>
 						Failed <span className="text-red-600 dark:text-red-400">{ordersFailed}</span>
 					</div>
 					<div className="text-muted-foreground">Order status for this company</div>
 				</CardFooter>
 			</Card>
 
-			{/* 4. Subscriptions Ã¢â‚¬â€œ agency-style layout, same visual as other cards */}
+			{/* 4. Subscriptions – agency-style layout, same visual as other cards */}
 			<Card className="@container/card">
 				<CardHeader>
 					<CardDescription>Subscriptions</CardDescription>
@@ -172,7 +172,7 @@ export function SectionCards() {
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<div className="line-clamp-1 flex gap-2 font-medium">
 						Active <span className="text-green-600 dark:text-green-400">{subsActive}</span>
-						<span className="text-muted-foreground">Ã‚Â·</span>
+						<span className="text-muted-foreground"> ·</span>
 						Pending/Expired <span className="text-red-600 dark:text-red-400">{subsOther}</span>
 					</div>
 					<div className="text-muted-foreground">Service subscriptions for this company</div>
