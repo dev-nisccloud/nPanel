@@ -1,7 +1,7 @@
 {
   "name": "server",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.mjs",
   "scripts": {
     "build": "bun build ./src/index.ts --outfile dist/index.mjs --target node --format esm --minify --sourcemap --external google-ads-api --external googleapis --external google-proto-files --banner \"import { fileURLToPath as __fileURLToPath } from 'node:url'; import { dirname as __path_dirname } from 'node:path'; const __filename = __fileURLToPath(import.meta.url); const __dirname = __path_dirname(__filename);\"",
     "check-types": "tsc -b || true",
