@@ -34,6 +34,8 @@ export default defineConfig(({ mode }) => {
         "localhost",
         "127.0.0.1",
         "loverlike-cinderella-signatureless.ngrok-free.dev",
+        "npanel-web.vercel.app",
+        "npanel-server.vercel.app"
       ],
       proxy: {
         // Keep the original `Host` header (e.g. `localhost:5173`) so Better Auth
