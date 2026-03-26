@@ -29,7 +29,7 @@
   },
   "type": "module",
   "scripts": {
-    "postinstall": "if [ \"$VERCEL\" = \"1\" ]; then echo '#!/usr/bin/env node\\nprocess.exit(0);' > node_modules/typescript/bin/tsc && chmod +x node_modules/typescript/bin/tsc; fi",
+    "postinstall": "node scripts/disable-tsc.cjs",
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "NODE_OPTIONS='--max-old-space-size=8192' turbo check-types",
