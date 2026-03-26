@@ -125,7 +125,9 @@ export const kenicContactCreateRouter = router({
 				};
 				if (input.fax != null) params.fax = input.fax;
 				if (input.authInfo != null) params.authInfo = input.authInfo;
-				if (input.disclose != null) params.disclose = input.disclose;
+				if (input.disclose != null) {
+					params.disclose = input.disclose as { flag: 0 | 1; elements?: ("name" | "org" | "addr" | "voice" | "fax" | "email")[] };
+				}
 
 				const createXml = buildContactCreateXml(params);
 				sendFrame(socket, createXml);
