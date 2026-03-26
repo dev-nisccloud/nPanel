@@ -9,9 +9,9 @@ export default defineConfig({
   noExternal: [/@npanel\/.*/],
   external: ["google-ads-api", "googleapis", "google-proto-files"],
   banner: `
-import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { fileURLToPath as __fileURLToPath } from 'node:url';
+import { dirname as __path_dirname } from 'node:path';
+const __filename = __fileURLToPath(import.meta.url);
+const __dirname = __path_dirname(__filename);
 `,
 });
