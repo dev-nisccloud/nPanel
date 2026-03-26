@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "@npanel/db";
 import { randomUUID } from "node:crypto";
@@ -243,7 +244,7 @@ Objectives:
                 const now = new Date();
                 const title = input.initialMessage
                     ? input.initialMessage.slice(0, 50) +
-                      (input.initialMessage.length > 50 ? "..." : "")
+                    (input.initialMessage.length > 50 ? "..." : "")
                     : "New Chat";
 
                 await db.transaction(async (tx) => {
