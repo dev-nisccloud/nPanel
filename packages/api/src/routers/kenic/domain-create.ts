@@ -91,10 +91,11 @@ export const kenicDomainCreateRouter = router({
 		.mutation(async ({ input }) => {
 			const validation = validateKenicDomains([input.name]);
 			if (!validation.valid) {
+				const invalidDomains = "invalidDomains" in validation ? validation.invalidDomains : [];
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Only KENIC TLDs are supported. Domain: ${input.name}. Use kenic.tlds.list for supported TLDs.`,
-					cause: { invalidDomains: validation.invalidDomains },
+					cause: { invalidDomains },
 				});
 			}
 
