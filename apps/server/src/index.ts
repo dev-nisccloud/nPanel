@@ -81,6 +81,7 @@ app.on(["POST"], "/api/workers/publish-linkedin-content*", handlePublishLinkedIn
 
 export default {
   port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+  hostname: process.env.HOSTNAME || "0.0.0.0",
   fetch: app.fetch,
   idleTimeout: 255,
   requestTimeout: 60000,
