@@ -3,11 +3,11 @@
   "type": "module",
   "main": "api/index.js",
   "scripts": {
-    "build": "tsdown",
+    "build": "tsc -b",
     "check-types": "tsc -b || true",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "bun run --hot src/index.ts",
-    "start": "bun run api/index.js"
+    "start": "bun run src/index.ts"
   },
   "dependencies": {
     "@hono/trpc-server": "^0.4.0",

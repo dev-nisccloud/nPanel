@@ -2,24 +2,12 @@
   "name": "@npanel/db",
   "type": "module",
   "exports": {
-    ".": {
-      "source": "./src/index.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
-    },
-    "./schema": {
-      "source": "./src/schema/index.ts",
-      "import": "./dist/schema/index.js",
-      "default": "./dist/schema/index.js"
-    },
-    "./*": {
-      "source": "./src/*.ts",
-      "import": "./dist/*.js",
-      "default": "./dist/*.js"
-    }
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./*": "./src/*.ts"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsc -b",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",

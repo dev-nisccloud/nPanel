@@ -2,19 +2,11 @@
   "name": "@npanel/api",
   "type": "module",
   "exports": {
-    ".": {
-      "source": "./src/index.ts",
-      "import": "./dist/index.mjs",
-      "default": "./dist/index.mjs"
-    },
-    "./*": {
-      "source": "./src/*.ts",
-      "import": "./dist/*.mjs",
-      "default": "./dist/*.mjs"
-    }
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
   },
   "scripts": {
-    "build": "tsdown"
+    "build": "tsc -b"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.41",
