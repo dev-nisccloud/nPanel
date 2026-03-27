@@ -13,12 +13,6 @@ COPY . .
 
 # Install dependencies using bun
 RUN bun install --frozen-lockfile
-
-
-
-# Build the server app
-RUN bun run turbo build --filter=server...
-
 # Run stage
 FROM oven/bun:1 AS runner
 WORKDIR /app

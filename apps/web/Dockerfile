@@ -25,6 +25,7 @@ ARG BETTER_AUTH_SECRET="build-time-placeholder-do-not-use-in-production"
 ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 
 # Build the web app
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN bun run turbo build --filter=web...
 
 # Run stage
