@@ -1,0 +1,333 @@
+name: Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  BUN_VERSION: '1.1'
+  # GCP Config
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ secrets.GCP_REGION }}
+  REPO_NAME: ${{ secrets.GCP_ARTIFACT_REPO }}
+
+jobs:
+  # Quality checks and type checking
+  quality-checks:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run check-types
+
+  # Build verification (ensure everything compiles)
+  build-check:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build all packages
+        # Using turbo to build the monorepo
+        run: NODE_OPTIONS="--max-old-space-size=8192" bun run build
+
+  # Run Drizzle migrations for staging
+  migrate-staging:
+    name: Migrate Database (Staging)
+    runs-on: ubuntu-latest
+    needs: [quality-checks]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
+        run: |
+          bun run db:migrate
+          echo "✅ Staging database migrations completed"
+
+  # 1. Deploy npanel-server to Google Cloud Run (Staging)
+  deploy-server-staging:
+    name: Deploy Server to Cloud Run
+    runs-on: ubuntu-latest
+    needs: [build-check, migrate-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    outputs:
+      server_url: ${{ steps.deploy.outputs.url }}
+    env:
+      SERVICE_NAME: npanel-server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build and Push Server Container
+        run: |
+          docker build -f apps/server/Dockerfile \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            .
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+      - name: Deploy Server to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          flags: '--allow-unauthenticated'
+          env_vars: |
+            NODE_ENV=production
+            DATABASE_URL=${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
+            HOSTNAME=0.0.0.0
+
+      - name: Health check
+        run: |
+          max_attempts=30
+          attempt=0
+          while [ $attempt -lt $max_attempts ]; do
+            # Assumes health endpoint exists, adjust as needed
+            if curl -f -s -o /dev/null "${{ steps.deploy.outputs.url }}/api/health"; then
+              echo "✅ Cloud Run server deployment successful and healthy! URL: ${{ steps.deploy.outputs.url }}"
+              exit 0
+            fi
+            echo "⏳ Waiting for deployment... ($((attempt + 1))/$max_attempts)"
+            sleep 10
+            attempt=$((attempt + 1))
+          done
+          echo "❌ Server deployment health check failed after $max_attempts attempts"
+          exit 1
+
+  # 2. Deploy npanel-web to Google Cloud Run (Staging)
+  deploy-web-staging:
+    name: Deploy Web to Cloud Run
+    runs-on: ubuntu-latest
+    needs: [deploy-server-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    env:
+      SERVICE_NAME: npanel-web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build and Push Web Container
+        run: |
+          docker build -f apps/web/Dockerfile \
+            --build-arg VITE_SERVER_URL=${{ needs.deploy-server-staging.outputs.server_url }} \
+            --build-arg BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET || 'build-time-placeholder-do-not-use-in-production' }} \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            .
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+      - name: Deploy Web to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          flags: '--allow-unauthenticated'
+          env_vars: |
+            NODE_ENV=production
+            HOSTNAME=0.0.0.0
+            VITE_SERVER_URL=${{ needs.deploy-server-staging.outputs.server_url }}
+            BETTER_AUTH_URL=${{ needs.deploy-server-staging.outputs.server_url }}
+
+  # Same logic would follow for production...
+  migrate-production:
+    name: Migrate Database (Production)
+    runs-on: ubuntu-latest
+    needs: [quality-checks]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
+    environment:
+      name: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
+        run: |
+          bun run db:migrate
+          echo "✅ Production database migrations completed"
+
+  deploy-server-production:
+    name: Deploy Server to Production
+    runs-on: ubuntu-latest
+    needs: [build-check, migrate-production]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
+    environment:
+      name: production
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    outputs:
+      server_url: ${{ steps.deploy.outputs.url }}
+    env:
+      SERVICE_NAME: npanel-server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build and Push Server Container
+        run: |
+          docker build -f apps/server/Dockerfile \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            .
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+      - name: Deploy Server to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          flags: '--allow-unauthenticated'
+          env_vars: |
+            NODE_ENV=production
+            DATABASE_URL=${{ secrets.DATABASE_URL_PRODUCTION }}
+            HOSTNAME=0.0.0.0
+
+  deploy-web-production:
+    name: Deploy Web to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-server-production]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
+    environment:
+      name: production
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    env:
+      SERVICE_NAME: npanel-web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build and Push Web Container
+        run: |
+          docker build -f apps/web/Dockerfile \
+            --build-arg VITE_SERVER_URL=${{ needs.deploy-server-production.outputs.server_url }} \
+            --build-arg BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET || 'build-time-placeholder-do-not-use-in-production' }} \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            .
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+      - name: Deploy Web to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          flags: '--allow-unauthenticated'
+          env_vars: |
+            NODE_ENV=production
+            HOSTNAME=0.0.0.0
+            VITE_SERVER_URL=${{ needs.deploy-server-production.outputs.server_url }}
+            BETTER_AUTH_URL=${{ needs.deploy-server-production.outputs.server_url }}

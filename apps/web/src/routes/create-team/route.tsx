@@ -13,7 +13,7 @@ export default function CreateTeamRouteLayout() {
               alt="NISC"
               width={180}
               height={60}
-              className="h-auto w-auto max-w-full object-contain object-left"
+              className="h-15 w-auto max-w-full object-contain object-left"
             />
           </div>
           <div className="max-w-sm flex-1 flex flex-col justify-center">
