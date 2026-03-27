@@ -21,7 +21,7 @@ interface CreateSubscriptionForHostingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
-  /** Plesk subscription id Ã¢â‚¬â€œ when set, the created NiscClientSubscription is linked via serviceRefs */
+  /** Plesk subscription id – when set, the created NiscClientSubscription is linked via serviceRefs */
   pleskSubscriptionId?: string | number;
   /** Pre-fill subscription name (e.g. Plesk subscription name) */
   subscriptionName?: string;
@@ -266,8 +266,8 @@ export function CreateSubscriptionForHostingDialog({
               </div>
 
               <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                Subscription date: {subscriptionDate.toLocaleDateString()} Ã‚Â· Expiry:{" "}
-                {expiryDate.toLocaleDateString()} Ã‚Â· Billing: Annual Ã‚Â· Auto-renew: Off
+                Subscription date: {subscriptionDate.toLocaleDateString()}  · Expiry:{" "}
+                {expiryDate.toLocaleDateString()}  · Billing: Annual  · Auto-renew: Off
               </div>
 
               <div className="space-y-3">

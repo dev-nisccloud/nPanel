@@ -327,7 +327,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-muted-foreground">
-                    {email.description || "Ã¢â‚¬â€"}
+                    {email.description || "—"}
                   </span>
                 </TableCell>
                 <TableCell>

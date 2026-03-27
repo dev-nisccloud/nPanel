@@ -486,7 +486,7 @@ function ConnectedServicesSection({
         {isLoading ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Checking for hosting linked to this domainÃ¢â‚¬Â¦
+              Checking for hosting linked to this domain…
             </p>
             <div className="flex items-start justify-between p-4 border rounded-lg">
               <div className="flex-1 space-y-2">

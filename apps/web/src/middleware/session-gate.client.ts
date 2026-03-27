@@ -5,16 +5,22 @@ import { isPublicPath, loginRedirectUrl, normalizePathname } from "@/lib/session
 
 async function hasSession(): Promise<boolean> {
   try {
-    const res = await authClient.getSession();
+    // Add a strict timeout to ensure we don't hang hydration
+    const res = await Promise.race([
+      authClient.getSession(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000))
+    ]);
+    
     if (!res || res.error) return false;
     return Boolean(res.data?.user);
-  } catch {
+  } catch (err) {
+    console.warn("[sessionGateClientMiddleware] hasSession catch:", err);
     return false;
   }
 }
 
 /**
- * Client middleware Ã¢â‚¬â€ runs on navigations (and on hydration when root `clientLoader.hydrate` is true).
+ * Client middleware — runs on navigations (and on hydration when root `clientLoader.hydrate` is true).
  * Public routes pass through; others require a session.
  */
 export async function sessionGateClientMiddleware(

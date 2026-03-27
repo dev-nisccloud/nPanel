@@ -112,14 +112,14 @@ function PermissionCard({ permission, getUserName }: PermissionCardProps) {
                 {hasPermission ? (
                   <CheckCircle className="h-4 w-4 text-primary" />
                 ) : (
-                  <span className="text-muted-foreground">Ã¢â‚¬â€</span>
+                  <span className="text-muted-foreground">—</span>
                 )}
               </div>
             );
           })}
         </div>
         <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
-          Granted {formatDate(permission.createdAt)} Ã¢â‚¬Â¢ Updated {formatDate(permission.updatedAt)}
+          Granted {formatDate(permission.createdAt)} • Updated {formatDate(permission.updatedAt)}
         </div>
       </CardContent>
     </Card>

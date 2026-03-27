@@ -57,10 +57,10 @@ const formatPrice = (price?: number, currency?: string) => {
     'USD': '$',
     'KES': 'KSh',
     'EUR': 'Ã¢â€šÂ¬',
-    'GBP': 'Ã‚Â£',
+    'GBP': ' £',
     'CAD': 'C$',
     'AUD': 'A$',
-    'JPY': 'Ã‚Â¥',
+    'JPY': ' ¥',
     'INR': 'Ã¢â€šÂ¹',
     'ZAR': 'R',
     'NGN': 'Ã¢â€šÂ¦',
@@ -240,7 +240,7 @@ function SearchTldCard({
             <>
               <div className="flex items-start gap-2">
                 <span className="text-green-600 dark:text-green-400 mt-0.5">Ã¢Å“â€œ</span>
-                <span>Claim the exact domain you searched for Ã¢â‚¬â€ secure your brand and start building your online presence today.</span>
+                <span>Claim the exact domain you searched for — secure your brand and start building your online presence today.</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-green-600 dark:text-green-400 mt-0.5">Ã¢Å“â€œ</span>
@@ -251,11 +251,11 @@ function SearchTldCard({
             <>
               <div className="flex items-start gap-2">
                 <span className="text-green-600 dark:text-green-400 mt-0.5">Ã¢Å“â€œ</span>
-                <span>Your search included .{queryTldParsed.extension} Ã¢â‚¬â€ this domain is not available.</span>
+                <span>Your search included .{queryTldParsed.extension} — this domain is not available.</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-green-600 dark:text-green-400 mt-0.5">Ã¢Å“â€œ</span>
-                <span>Try a different extension or variation Ã¢â‚¬â€ we have hundreds of TLDs to help you find the perfect match.</span>
+                <span>Try a different extension or variation — we have hundreds of TLDs to help you find the perfect match.</span>
               </div>
             </>
           )}
@@ -543,7 +543,7 @@ function BundleCard({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => { /* Get deal Ã¢â‚¬â€œ logic left blank for now */ }}
+            onClick={() => { /* Get deal – logic left blank for now */ }}
             className="px-4 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
           >
             Get deal

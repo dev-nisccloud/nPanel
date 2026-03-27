@@ -5,7 +5,7 @@ const FALLBACK_REDIRECT = "/auth/login";
 /**
  * GET /api/auth/redirect-target
  * Returns { redirect: string } for the root path. Used by the client-only root page.
- * NEVER returns 5xx Ã¢â‚¬â€œ always 200 with a redirect path so "/" can never 500 from this.
+ * NEVER returns 5xx – always 200 with a redirect path so "/" can never 500 from this.
  */
 export async function GET(request: Request) {
   try {

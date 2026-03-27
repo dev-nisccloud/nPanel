@@ -10,6 +10,12 @@ import { createRouteHandler } from "uploadthing/server";
 import { ourFileRouter } from "./api/uploadthing";
 
 import { registerAuthCustomRoutes } from "./auth-custom-routes";
+import { handleImageGenerator } from "./api/workers/image-generator";
+import { handleBackgroundRemover } from "./api/workers/background-remover";
+import { handleProcessNiscOrder } from "./api/workers/process-nisc-order";
+import { handleSendCampaignEmails } from "./api/workers/send-campaign-emails";
+import { handlePublishContent } from "./api/workers/publish-content";
+import { handlePublishLinkedInContent } from "./api/workers/publish-linkedin-content";
 
 const app = new Hono();
 
@@ -31,7 +37,7 @@ app.use(
   cors({
     origin: env.CORS_ORIGIN,
     allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "upstash-signature"],
     credentials: true,
   }),
 );
@@ -65,6 +71,13 @@ app.on(["GET", "POST"], "/api/uploadthing*", async (c) => {
   const response = await uploadthingHandler(c.req.raw);
   return response;
 });
+
+app.on(["POST"], "/api/workers/image-generator*", handleImageGenerator);
+app.on(["POST"], "/api/workers/background-remover*", handleBackgroundRemover);
+app.on(["POST"], "/api/workers/process-nisc-order*", handleProcessNiscOrder);
+app.on(["POST"], "/api/workers/send-campaign-emails*", handleSendCampaignEmails);
+app.on(["POST"], "/api/workers/publish-content*", handlePublishContent);
+app.on(["POST"], "/api/workers/publish-linkedin-content*", handlePublishLinkedInContent);
 
 export default {
   port: 3000,

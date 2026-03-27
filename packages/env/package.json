@@ -4,8 +4,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./server": "./src/server.ts",
-    "./web": "./src/web.ts"
+    "./server": {
+      "source": "./src/server.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    },
+    "./web": {
+      "source": "./src/web.ts",
+      "import": "./dist/web.js",
+      "default": "./dist/web.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown"
   },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.1",
@@ -14,6 +25,7 @@
   },
   "devDependencies": {
     "@npanel/config": "workspace:*",
+    "tsdown": "catalog:",
     "@types/bun": "catalog:",
     "typescript": "^5"
   }

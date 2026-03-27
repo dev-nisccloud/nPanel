@@ -19,7 +19,7 @@ const formatPrice = (price?: number, currency?: string) => {
 		USD: "$",
 		KES: "KSh",
 		EUR: "Ã¢â€šÂ¬",
-		GBP: "Ã‚Â£",
+		GBP: " £",
 	};
 	const symbol = symbols[currency ?? "KES"] ?? currency ?? "KSh";
 	const formatted = new Intl.NumberFormat("en-US", {
@@ -143,7 +143,7 @@ export function KenyanTldCards({
 		};
 	}, []);
 
-	// Clear cached cards when search term changes Ã¢â‚¬â€œ before paint so we don't flash stale data
+	// Clear cached cards when search term changes – before paint so we don't flash stale data
 	React.useLayoutEffect(() => {
 		if (!sanitized) return;
 		if (lastFetchedSanitizedRef.current !== null && lastFetchedSanitizedRef.current !== sanitized) {

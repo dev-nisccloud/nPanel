@@ -305,7 +305,7 @@ export function HostingPlansDataTable() {
                   <TableCell>
                     {plan.niscPrice != null
                       ? `${plan.niscCurrency} ${plan.niscPrice}`
-                      : "Ã¢â‚¬â€"}
+                      : "—"}
                   </TableCell>
                   <TableCell>
                     <Badge

@@ -152,7 +152,7 @@ export function UpdatePaymentDialog({
 							{updatePaymentMutation.isPending ? (
 								<>
 									<Spinner size={16} className="mr-2" />
-									UpdatingÃ¢â‚¬Â¦
+									Updating…
 								</>
 							) : (
 								"Update payment"

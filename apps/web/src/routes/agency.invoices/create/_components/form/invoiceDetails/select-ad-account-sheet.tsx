@@ -261,7 +261,7 @@ export function SelectAdAccountSheet({
                           format(dateRange.from, "MMM dd, yyyy")
                         ) : (
                           <>
-                            {format(dateRange.from, "MMM dd")} Ã¢â‚¬â€œ {format(dateRange.to, "MMM dd, yyyy")}
+                            {format(dateRange.from, "MMM dd")} – {format(dateRange.to, "MMM dd, yyyy")}
                           </>
                         )
                       ) : (
@@ -344,7 +344,7 @@ export function SelectAdAccountSheet({
                     </p>
                     <p>
                       <span className="text-foreground">Period:</span>{" "}
-                      {format(dateRange.from, "MMM d, yyyy")} Ã¢â‚¬â€œ {format(dateRange.to, "MMM d, yyyy")}
+                      {format(dateRange.from, "MMM d, yyyy")} – {format(dateRange.to, "MMM d, yyyy")}
                     </p>
                     <p>
                       <span className="text-foreground">Campaigns selected:</span> {selectedCampaigns.length}
@@ -361,7 +361,7 @@ export function SelectAdAccountSheet({
                         {kesConverted != null ? (
                           <>Ã¢â€°Ë† KSh {kesConverted.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</>
                         ) : convertPricesMutation.isPending ? (
-                          "Converting to KESÃ¢â‚¬Â¦"
+                          "Converting to KES…"
                         ) : null}
                       </p>
                     )}

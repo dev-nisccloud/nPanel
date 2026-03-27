@@ -210,7 +210,7 @@ export function AddEditPlanUsageSheet({
             {isEditing ? "Edit usage" : "Create usage"}
           </SheetTitle>
           <SheetDescription>
-            {planName} Ã¢â‚¬â€ {isEditing ? "Update usage limit and overuse behaviour" : "Add usage settings for this plan"}
+            {planName} — {isEditing ? "Update usage limit and overuse behaviour" : "Add usage settings for this plan"}
           </SheetDescription>
           <SheetClose asChild>
             <Button size="icon" variant="ghost" className="absolute right-6 top-6">

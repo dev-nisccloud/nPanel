@@ -276,7 +276,7 @@ export function WebDesignContactDialog({
                       <FormItem>
                         <FormLabel>Budget range</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. KES 50,000 Ã¢â‚¬â€œ 100,000" {...field} />
+                          <Input placeholder="e.g. KES 50,000 – 100,000" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

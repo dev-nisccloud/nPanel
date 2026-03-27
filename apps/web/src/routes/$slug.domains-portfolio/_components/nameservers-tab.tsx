@@ -219,10 +219,10 @@ export function NameserversTab({ domain }: NameserversTabProps) {
                             {index + 1}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <p className="font-mono font-medium truncate">{entry.name || "Ã¢â‚¬â€"}</p>
+                            <p className="font-mono font-medium truncate">{entry.name || "—"}</p>
                             {(entry.ip || entry.ip6) && (
                               <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                {[entry.ip, entry.ip6].filter(Boolean).join(" Ã‚Â· ")}
+                                {[entry.ip, entry.ip6].filter(Boolean).join("  · ")}
                               </p>
                             )}
                           </div>

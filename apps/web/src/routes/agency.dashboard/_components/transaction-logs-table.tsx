@@ -139,7 +139,7 @@ export function TransactionLogsTable() {
                   </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {transaction.reference || transaction.providerReference || "Ã¢â‚¬â€"}
+                  {transaction.reference || transaction.providerReference || "—"}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">{getMethodDisplayText(transaction.method)}</Badge>

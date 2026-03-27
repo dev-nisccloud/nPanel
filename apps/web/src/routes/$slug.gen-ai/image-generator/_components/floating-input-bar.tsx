@@ -131,7 +131,7 @@ export function FloatingInputBar({
       setPrompt("");
       setSelectedImages([]);
       adjustHeight(true);
-      toast.success("Generation started. This can take about 30 seconds to 10 minutes depending on complexity. Images will appear as theyÃ¢â‚¬â„¢re ready.");
+      toast.success("Generation started. This can take about 30 seconds to 10 minutes depending on complexity. Images will appear as they’re ready.");
     },
   });
 
@@ -308,7 +308,7 @@ export function FloatingInputBar({
                 />
               </div>
 
-              {/* Refine options (7 pillars) Ã¢â‚¬â€ only in Visual & creative design mode */}
+              {/* Refine options (7 pillars) — only in Visual & creative design mode */}
               {generationMode === "visual-creative" && (
                 <div className="px-3 pt-4 pb-2">
                   <RefineOptions

@@ -18,7 +18,7 @@ const formatPrice = (price?: number, currency?: string) => {
 		USD: "$",
 		KES: "KSh",
 		EUR: "Ã¢â€šÂ¬",
-		GBP: "Ã‚Â£",
+		GBP: " £",
 	};
 	const symbol = symbols[currency ?? "USD"] ?? currency ?? "$";
 	const formatted = new Intl.NumberFormat("en-US", {
@@ -147,7 +147,7 @@ export function DomainSearchSection({
 
 	const onLoadingChangeRef = React.useRef(onLoadingChange);
 	onLoadingChangeRef.current = onLoadingChange;
-	// NOTE: useEffect (NOT useLayoutEffect) Ã¢â‚¬â€ reporting loading state to parent is a side-effect,
+	// NOTE: useEffect (NOT useLayoutEffect) — reporting loading state to parent is a side-effect,
 	// not a DOM measurement. useLayoutEffect here caused synchronous state cascade during commit.
 	React.useEffect(() => {
 		onLoadingChangeRef.current?.(isSelected ? isLoading : false);
@@ -164,7 +164,7 @@ export function DomainSearchSection({
 
 	if (!searchQuery.trim()) return null;
 
-	// Per-section loading: only this section shows skeleton when this sectionÃ¢â‚¬â„¢s query is loading
+	// Per-section loading: only this section shows skeleton when this section’s query is loading
 	if (isSelected === false) return <div className="min-h-[200px]" aria-hidden />;
 
 	return (

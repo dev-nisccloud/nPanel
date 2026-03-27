@@ -3,9 +3,12 @@ import { defineConfig } from "tsdown";
 export default defineConfig({
   entry: "./src/index.ts",
   format: "esm",
-  outDir: "./dist",
+  outDir: "./api",
+  outExtension: () => ({ js: ".js" }),
   clean: true,
+  bundle: true,
   skipNodeModulesBundle: false,
+  resolveConditions: ["source"],    // ← add this
   noExternal: [/@npanel\/.*/, "react-email-starter", /@react-email\/.*/, "resend"],
   external: ["google-ads-api", "googleapis", "google-proto-files"],
   banner: `

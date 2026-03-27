@@ -7,7 +7,15 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ]
+      ],
+      "@npanel/api": ["../../packages/api/src/index.ts"],
+      "@npanel/api/*": ["../../packages/api/src/*"],
+      "@npanel/auth": ["../../packages/auth/src/index.ts"],
+      "@npanel/auth/*": ["../../packages/auth/src/*"],
+      "@npanel/db": ["../../packages/db/src/index.ts"],
+      "@npanel/db/*": ["../../packages/db/src/*"],
+      "@npanel/env/server": ["../../packages/env/src/server.ts"],
+      "@npanel/env/web": ["../../packages/env/src/web.ts"]
     },
     "jsx": "react-jsx",
     "jsxImportSource": "react",

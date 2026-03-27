@@ -64,13 +64,13 @@ export function DeleteFileDialog({
               {isDirectory ? (
                 <div className="h-8 w-8 bg-blue-100 dark:bg-blue-900 rounded flex items-center justify-center">
                   <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
-                    ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â
+                    📂 
                   </span>
                 </div>
               ) : (
                 <div className="h-8 w-8 bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center">
                   <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-                    ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Å¾
+                    📄
                   </span>
                 </div>
               )}

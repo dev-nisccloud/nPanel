@@ -53,16 +53,16 @@ const STATUS_CONFIG: Record<
 };
 
 function formatPrice(amount: string | null, currency: string | null): string {
-  if (amount == null || currency == null) return "Ã¢â‚¬â€";
+  if (amount == null || currency == null) return "—";
   const symbols: Record<string, string> = {
     USD: "$",
     KES: "KSh",
     EUR: "Ã¢â€šÂ¬",
-    GBP: "Ã‚Â£",
+    GBP: " £",
   };
   const symbol = symbols[currency] ?? currency;
   const num = Number.parseFloat(amount);
-  if (Number.isNaN(num)) return "Ã¢â‚¬â€";
+  if (Number.isNaN(num)) return "—";
   return `${symbol} ${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -145,13 +145,13 @@ export function TransferRequestsList() {
                 <TableCell className="text-muted-foreground">
                   {row.submittedToProviderAt
                     ? format(new Date(row.submittedToProviderAt), "MMM d, yyyy HH:mm")
-                    : "Ã¢â‚¬â€"}
+                    : "—"}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {format(new Date(row.createdAt), "MMM d, yyyy")}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {row.createdBy?.name ?? row.createdBy?.email ?? "Ã¢â‚¬â€"}
+                  {row.createdBy?.name ?? row.createdBy?.email ?? "—"}
                 </TableCell>
               </TableRow>
             );

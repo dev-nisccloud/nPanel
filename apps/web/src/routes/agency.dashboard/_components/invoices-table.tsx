@@ -143,7 +143,7 @@ export function InvoicesTable() {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium">{invoice.customerName || "Ã¢â‚¬â€"}</span>
+                    <span className="font-medium">{invoice.customerName || "—"}</span>
                     {invoice.customerEmail && (
                       <span className="text-sm text-muted-foreground">{invoice.customerEmail}</span>
                     )}
@@ -157,12 +157,12 @@ export function InvoicesTable() {
                 <TableCell>
                   {invoice.amount
                     ? `${invoice.currency} ${parseFloat(invoice.amount).toLocaleString()}`
-                    : "Ã¢â‚¬â€"}
+                    : "—"}
                 </TableCell>
                 <TableCell>
                   {invoice.dueDate
                     ? new Date(invoice.dueDate).toLocaleDateString()
-                    : "Ã¢â‚¬â€"}
+                    : "—"}
                 </TableCell>
               </TableRow>
             ))

@@ -200,7 +200,7 @@ export function CreateTeamForm() {
                   className="min-h-[120px] w-full resize-none rounded-lg border-border/80 focus-visible:ring-2"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Separate with commas or new lines. Optional Ã¢â‚¬â€ you can invite later from
+                  Separate with commas or new lines. Optional — you can invite later from
                   company settings.
                 </p>
               </div>
@@ -228,7 +228,7 @@ export function CreateTeamForm() {
                 className="flex-1 h-11 rounded-lg gap-2"
                 disabled={createTeamMutation.isPending}
               >
-                {createTeamMutation.isPending ? "CreatingÃ¢â‚¬Â¦" : "Create company"}
+                {createTeamMutation.isPending ? "Creating…" : "Create company"}
                 {!createTeamMutation.isPending && (
                   <ArrowRight className="h-4 w-4" />
                 )}

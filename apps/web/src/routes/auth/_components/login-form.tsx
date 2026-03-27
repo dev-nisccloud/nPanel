@@ -44,7 +44,7 @@ export function LoginForm() {
     setIsSuccess(false);
   }, []);
 
-  // Redirect if user is already authenticated Ã¢â‚¬â€œ go straight to dashboard or create-team (no "/" round-trip)
+  // Redirect if user is already authenticated – go straight to dashboard or create-team (no "/" round-trip)
   useEffect(() => {
     if (!isPending && session) {
       redirectToTarget(0);
@@ -90,7 +90,7 @@ export function LoginForm() {
 
       if (result?.data) {
         setIsSuccess(true);
-        // Go straight to dashboard or create-team (avoids "/" Ã¢â€ â€™ redirect-target race and login loop)
+        // Go straight to dashboard or create-team (avoids "/" → redirect-target race and login loop)
         await redirectToTarget(200);
         return;
       } else if (result?.error) {
@@ -128,7 +128,7 @@ export function LoginForm() {
       <div className="flex flex-col items-center justify-center space-y-4 p-8">
         <Spinner variant="ellipsis" className="text-primary" />
         <p className="text-sm text-muted-foreground">
-          {isSuccess || isSubmitting ? "Signing you inÃ¢â‚¬Â¦" : "RedirectingÃ¢â‚¬Â¦"}
+          {isSuccess || isSubmitting ? "Signing you in…" : "Redirecting…"}
         </p>
       </div>
     );
@@ -188,7 +188,7 @@ export function LoginForm() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢"
+                    placeholder="••••••••"
                     autoComplete="current-password"
                     {...field}
                   />

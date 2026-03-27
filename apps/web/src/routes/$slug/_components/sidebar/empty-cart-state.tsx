@@ -26,10 +26,10 @@ export function EmptyCartState() {
         <div className="mt-8 text-sm text-muted-foreground space-y-2">
           <p className="font-medium">Quick Tips:</p>
           <ul className="text-left space-y-1">
-            <li>Ã¢â‚¬Â¢ Search for your perfect domain name</li>
-            <li>Ã¢â‚¬Â¢ Add hosting plans for your websites</li>
-            <li>Ã¢â‚¬Â¢ Include professional services</li>
-            <li>Ã¢â‚¬Â¢ Review everything before checkout</li>
+            <li>• Search for your perfect domain name</li>
+            <li>• Add hosting plans for your websites</li>
+            <li>• Include professional services</li>
+            <li>• Review everything before checkout</li>
           </ul>
         </div>
       </CardContent>

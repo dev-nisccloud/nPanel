@@ -3,13 +3,23 @@
   "type": "module",
   "exports": {
     ".": {
-      "default": "./src/index.ts"
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "source": "./src/schema/index.ts",
+      "import": "./dist/schema/index.js",
+      "default": "./dist/schema/index.js"
     },
     "./*": {
-      "default": "./src/*.ts"
+      "source": "./src/*.ts",
+      "import": "./dist/*.js",
+      "default": "./dist/*.js"
     }
   },
   "scripts": {
+    "build": "tsdown",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
@@ -25,6 +35,7 @@
   "devDependencies": {
     "@npanel/config": "workspace:*",
     "@types/pg": "^8.16.0",
+    "tsdown": "catalog:",
     "drizzle-kit": "catalog:",
     "typescript": "^5"
   }

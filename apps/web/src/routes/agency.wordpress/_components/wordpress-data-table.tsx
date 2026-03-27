@@ -219,7 +219,7 @@ export function WordPressDataTable() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {item.title || "Ã¢â‚¬â€"}
+                  {item.title || "—"}
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(item)}

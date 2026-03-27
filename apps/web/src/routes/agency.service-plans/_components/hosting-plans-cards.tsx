@@ -197,7 +197,7 @@ export function HostingPlanCard({
               <ul className="text-sm text-muted-foreground space-y-1">
                 {data.highlights.slice(0, 2).map((highlight, index) => (
                   <li key={index} className="flex items-start gap-1">
-                    <span className="text-primary">Ã¢â‚¬Â¢</span>
+                    <span className="text-primary">•</span>
                     <span className="line-clamp-1">{highlight}</span>
                   </li>
                 ))}

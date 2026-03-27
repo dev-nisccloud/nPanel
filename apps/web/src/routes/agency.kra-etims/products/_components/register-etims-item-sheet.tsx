@@ -34,15 +34,15 @@ const DEFAULT_ITEM_CLASS_CODE = "81112100";
 // Curated list for a cloud + digital marketing company.
 // Extend this list as you onboard new service lines.
 const ITEM_CLASS_OPTIONS: ComboboxItem[] = [
-  { id: "81112100", label: "81112100 Ã¢â‚¬â€ Computer programmers" },
-  { id: "81111600", label: "81111600 Ã¢â‚¬â€ Computer programmers (alt listing)" },
-  { id: "81161600", label: "81161600 Ã¢â‚¬â€ Electronic mail and messaging services" },
-  { id: "83111600", label: "83111600 Ã¢â‚¬â€ Mobile communications services" },
-  { id: "82101600", label: "82101600 Ã¢â‚¬â€ Broadcast advertising" },
-  { id: "80171600", label: "80171600 Ã¢â‚¬â€ Publicity and marketing support services" },
-  { id: "82111600", label: "82111600 Ã¢â‚¬â€ Non technical writing" },
-  { id: "82141600", label: "82141600 Ã¢â‚¬â€ Graphic display services" },
-  { id: "81101600", label: "81101600 Ã¢â‚¬â€ Mechanical engineering (not typical; only use if required)" },
+  { id: "81112100", label: "81112100 — Computer programmers" },
+  { id: "81111600", label: "81111600 — Computer programmers (alt listing)" },
+  { id: "81161600", label: "81161600 — Electronic mail and messaging services" },
+  { id: "83111600", label: "83111600 — Mobile communications services" },
+  { id: "82101600", label: "82101600 — Broadcast advertising" },
+  { id: "80171600", label: "80171600 — Publicity and marketing support services" },
+  { id: "82111600", label: "82111600 — Non technical writing" },
+  { id: "82141600", label: "82141600 — Graphic display services" },
+  { id: "81101600", label: "81101600 — Mechanical engineering (not typical; only use if required)" },
 ].sort((a, b) => a.id.localeCompare(b.id));
 
 const formSchema = z.object({

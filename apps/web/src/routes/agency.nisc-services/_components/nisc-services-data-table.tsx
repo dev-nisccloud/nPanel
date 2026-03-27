@@ -431,7 +431,7 @@ export function NiscServicesDataTable() {
                                         <TableCell className="text-sm text-muted-foreground">
                                             {(product.features as any[]).length > 0
                                                 ? `${(product.features as any[]).length} feature${(product.features as any[]).length === 1 ? "" : "s"}`
-                                                : "Ã¢â‚¬â€"}
+                                                : "—"}
                                         </TableCell>
                                         <TableCell>
                                             <Badge

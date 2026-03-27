@@ -198,7 +198,7 @@ export default function ImageSidebarPanel({ data, setData }: ImageSidebarPanelPr
           {!selectedFile || !previewUrl ? (
             <div className="w-full min-h-[120px] flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
               <span>Click to select an image or drag &amp; drop</span>
-              <span className="text-[11px]">JPG, PNG, GIF, WEBP, SVG Ã¢â‚¬Â¢ Max 16MB</span>
+              <span className="text-[11px]">JPG, PNG, GIF, WEBP, SVG • Max 16MB</span>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3">
@@ -220,7 +220,7 @@ export default function ImageSidebarPanel({ data, setData }: ImageSidebarPanelPr
                   }}
                   disabled={isUploading}
                 >
-                  {isUploading ? 'UploadingÃ¢â‚¬Â¦' : 'Upload image'}
+                  {isUploading ? 'Uploading…' : 'Upload image'}
                 </Button>
                 <Button
                   type="button"
