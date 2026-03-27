@@ -5,7 +5,7 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
-    "start": "react-router-serve ./build/server/index.js",
+    "start": "bunx serve -s build/client",
     "typecheck": "react-router typegen && tsc",
     "generate-pwa-assets": "pwa-assets-generator"
   },
