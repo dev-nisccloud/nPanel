@@ -4,15 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 import { httpBatchLink, httpLink, splitLink } from "@trpc/client";
-import { authClient } from "@/lib/auth-client";
+import { authClient, serverBaseURL } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
-// In production the SPA and API live on different Cloud Run origins.
-// Use the full server URL only when it's HTTPS (production). In dev/ngrok,
-// keep the relative path so Vite's dev-server proxy handles /api transparently.
-const _rawServerUrl = (import.meta.env.VITE_SERVER_URL as string | undefined)?.replace(/\/+$/, "");
-const trpcBaseUrl = _rawServerUrl?.startsWith("https://")
-  ? `${_rawServerUrl}/api/trpc`
+// Use the same server origin that authClient uses for tRPC calls.
+const trpcBaseUrl = serverBaseURL
+  ? `${serverBaseURL.replace(/\/+$/, "")}/api/trpc`
   : "/api/trpc";
 
 interface QueryProviderProps {

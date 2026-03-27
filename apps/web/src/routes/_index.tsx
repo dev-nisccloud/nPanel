@@ -1,15 +1,13 @@
 import { TopProgressBar } from "@/components/top-progress-bar";
+import { serverBaseURL } from "@/lib/auth-client";
 
 const FALLBACK_REDIRECT = "/auth/login";
 /** Last-resort redirect if JS fails or fetch hangs (seconds). */
 const META_REFRESH_SECONDS = 3;
 
-// The redirect-target endpoint lives on the Hono server, not the static SPA host.
-// VITE_SERVER_URL is embedded at Vite build time. Only use it when it's HTTPS
-// (production). In dev/ngrok, VITE_SERVER_URL is localhost — Vite's proxy handles /api.
-const _rawServerUrl = (import.meta.env.VITE_SERVER_URL as string | undefined)?.replace(/\/+$/, "");
-const REDIRECT_TARGET_URL = _rawServerUrl?.startsWith("https://")
-  ? `${_rawServerUrl}/api/auth/redirect-target`
+// Use the same server origin that authClient uses.
+const REDIRECT_TARGET_URL = serverBaseURL
+  ? `${serverBaseURL.replace(/\/+$/, "")}/api/auth/redirect-target`
   : "/api/auth/redirect-target";
 
 /**
