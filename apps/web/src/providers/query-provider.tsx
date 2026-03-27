@@ -7,6 +7,14 @@ import { httpBatchLink, httpLink, splitLink } from "@trpc/client";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
+// In production the SPA and API live on different Cloud Run origins.
+// Use the full server URL only when it's HTTPS (production). In dev/ngrok,
+// keep the relative path so Vite's dev-server proxy handles /api transparently.
+const _rawServerUrl = (import.meta.env.VITE_SERVER_URL as string | undefined)?.replace(/\/+$/, "");
+const trpcBaseUrl = _rawServerUrl?.startsWith("https://")
+  ? `${_rawServerUrl}/api/trpc`
+  : "/api/trpc";
+
 interface QueryProviderProps {
   children: React.ReactNode;
 }
@@ -67,15 +75,14 @@ export function QueryProvider({ children }: QueryProviderProps) {
   });
 
   const [trpcClient] = useState(() => {
-    const url = "/api/trpc";
     const fetchWithCredentials: typeof fetch = (input, init) =>
       fetch(input, { ...init, credentials: "include" });
     return trpc.createClient({
       links: [
         splitLink({
           condition: (op) => op.path === "paymentGateway.mpesa.queryStkPush",
-          true: httpLink({ url, fetch: fetchWithCredentials }),
-          false: httpBatchLink({ url, fetch: fetchWithCredentials }),
+          true: httpLink({ url: trpcBaseUrl, fetch: fetchWithCredentials }),
+          false: httpBatchLink({ url: trpcBaseUrl, fetch: fetchWithCredentials }),
         }),
       ],
     });
