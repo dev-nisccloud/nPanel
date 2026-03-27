@@ -27,9 +27,9 @@ export function PDFRenderer({ fileUrl, fileName }: PDFRendererProps) {
 
   return (
     <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
-      <div 
-        className="w-full h-full relative" 
-        style={{ 
+      <div
+        className="w-full h-full relative"
+        style={{
           height: "100%",
           width: "100%",
         }}
@@ -44,15 +44,15 @@ export function PDFRenderer({ fileUrl, fileName }: PDFRendererProps) {
             </div>
           </div>
         )}
-        <div 
+        <div
           className="w-full h-full"
-          style={{ 
+          style={{
             height: "100%",
             width: "100%",
             overflow: "auto"
           }}
         >
-          <Viewer 
+          <Viewer
             fileUrl={fileUrl}
             defaultScale={1.0}
             scrollMode={ScrollMode.Vertical}

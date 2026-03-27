@@ -34,7 +34,6 @@
   },
   "type": "module",
   "scripts": {
-    "postinstall": "node scripts/disable-tsc.cjs",
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "NODE_OPTIONS='--max-old-space-size=8192' turbo check-types",
