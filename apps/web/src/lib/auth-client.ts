@@ -1,12 +1,12 @@
 import { createAuthClient } from "better-auth/react";
 
-// In production the web SPA (npanel-web) lives on a different Cloud Run origin from
-// the API server (npanel-server), so we point the auth client directly at the server.
-// In dev/ngrok, VITE_SERVER_URL is an http://localhost URL that the browser can't reach
-// cross-origin — Vite's dev-server proxy handles /api transparently, so no baseURL
-// is needed. We detect production by checking for an HTTPS scheme.
-const _rawServerUrl = import.meta.env.VITE_SERVER_URL as string | undefined;
-const baseURL = _rawServerUrl?.startsWith("https://") ? _rawServerUrl : undefined;
+// __NPANEL_SERVER_URL__ is injected by vite.config.ts `define` at build time.
+// It reads from loadEnv (which covers .env files) AND process.env (which covers
+// Docker ENV / CI build args). This is more reliable than import.meta.env which
+// was silently empty in production builds.
+declare const __NPANEL_SERVER_URL__: string;
+const _serverUrl: string = typeof __NPANEL_SERVER_URL__ !== "undefined" ? __NPANEL_SERVER_URL__ : "";
+const baseURL = _serverUrl.startsWith("https://") ? _serverUrl : undefined;
 
 /** The resolved server origin (HTTPS only) — `undefined` in dev. */
 export const serverBaseURL: string | undefined = baseURL;
