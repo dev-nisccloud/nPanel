@@ -17,6 +17,14 @@ import { handleSendCampaignEmails } from "./api/workers/send-campaign-emails";
 import { handlePublishContent } from "./api/workers/publish-content";
 import { handlePublishLinkedInContent } from "./api/workers/publish-linkedin-content";
 
+import { handleHealth } from "./api/health";
+import { handleManifest } from "./api/manifest";
+import { handlePleskHealthCheck } from "./api/plesk-health-check";
+import { handleTestPleskConnection } from "./api/test-plesk-connection";
+import { handleMpesaWebhook } from "./api/webhooks/mpesa";
+import { handleReplicateWebhook } from "./api/webhooks/replicate-image-generator";
+import { handleResendWebhook } from "./api/webhooks/resend";
+
 const app = new Hono();
 
 const appCaller = t.createCallerFactory(appRouter);
@@ -58,6 +66,18 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => {
 
 app.use("/trpc/*", trpcMiddleware);
 app.use("/api/trpc/*", trpcMiddleware);
+
+// Specialized Handlers
+app.get("/api/health", handleHealth);
+app.get("/manifest.json", handleManifest);
+app.get("/api/manifest.json", handleManifest);
+app.get("/api/plesk/health-check", handlePleskHealthCheck);
+app.get("/api/plesk/test-connection", handleTestPleskConnection);
+
+// Webhooks
+app.on(["POST"], "/api/webhooks/mpesa", handleMpesaWebhook);
+app.on(["POST"], "/api/webhooks/replicate", handleReplicateWebhook);
+app.on(["POST"], "/api/webhooks/resend", handleResendWebhook);
 
 app.get("/", (c) => {
   return c.text("OK");
