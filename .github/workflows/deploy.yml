@@ -135,6 +135,9 @@ jobs:
             NODE_ENV=production
             DATABASE_URL=${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
             HOSTNAME=0.0.0.0
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
+            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
 
       - name: Health check
         run: |
@@ -204,6 +207,8 @@ jobs:
             HOSTNAME=0.0.0.0
             VITE_SERVER_URL=${{ needs.deploy-server-staging.outputs.server_url }}
             BETTER_AUTH_URL=${{ needs.deploy-server-staging.outputs.server_url }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
 
   # Same logic would follow for production...
   migrate-production:
@@ -281,6 +286,9 @@ jobs:
             NODE_ENV=production
             DATABASE_URL=${{ secrets.DATABASE_URL_PRODUCTION }}
             HOSTNAME=0.0.0.0
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
+            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
 
   deploy-web-production:
     name: Deploy Web to Production
@@ -332,3 +340,5 @@ jobs:
             HOSTNAME=0.0.0.0
             VITE_SERVER_URL=${{ needs.deploy-server-production.outputs.server_url }}
             BETTER_AUTH_URL=${{ needs.deploy-server-production.outputs.server_url }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
