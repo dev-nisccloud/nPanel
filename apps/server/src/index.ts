@@ -80,7 +80,7 @@ app.on(["POST"], "/api/workers/publish-content*", handlePublishContent);
 app.on(["POST"], "/api/workers/publish-linkedin-content*", handlePublishLinkedInContent);
 
 export default {
-  port: 3000,
+  port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
   fetch: app.fetch,
   idleTimeout: 255,
   requestTimeout: 60000,
