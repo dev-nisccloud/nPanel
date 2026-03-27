@@ -31,6 +31,27 @@
       "@/*": [
         "./src/*"
       ],
+      "@npanel/api": [
+        "../../packages/api/src/index.ts"
+      ],
+      "@npanel/api/*": [
+        "../../packages/api/src/*"
+      ],
+      "@npanel/auth": [
+        "../../packages/auth/src/index.ts"
+      ],
+      "@npanel/auth/*": [
+        "../../packages/auth/src/*"
+      ],
+      "@npanel/db": [
+        "../../packages/db/src/index.ts"
+      ],
+      "@npanel/db/*": [
+        "../../packages/db/src/*"
+      ],
+      "@npanel/env/*": [
+        "../../packages/env/src/*"
+      ],
       "@npanel/ui/*": [
         "../../packages/ui/src/*"
       ]

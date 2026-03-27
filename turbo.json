@@ -5,7 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**/*", "build/**/*", "api/**/*"]
+      "outputs": ["build/**/*"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -39,6 +39,7 @@
     "BETTER_AUTH_URLS",
     "CORS_ORIGIN",
     "HOSTNAME",
+    "VITE_SERVER_URL",
     "VITE_PUBLIC_APP_URL",
     "VITE_PUBLIC_FTP_HOST",
     "VITE_PUBLIC_FTP_PORT",

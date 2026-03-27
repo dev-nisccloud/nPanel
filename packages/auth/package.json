@@ -1,20 +1,12 @@
 {
   "name": "@npanel/auth",
   "type": "module",
-"exports": {
-  ".": {
-    "source": "./src/index.ts",
-    "import": "./dist/index.js",
-    "default": "./dist/index.js"
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
   },
-  "./*": {
-    "source": "./src/*.ts",
-    "import": "./dist/*.js",
-    "default": "./dist/*.js"
-  }
-},
   "scripts": {
-    "build": "tsdown"
+    "build": "tsc -b"
   },
   "dependencies": {
     "@npanel/db": "workspace:*",

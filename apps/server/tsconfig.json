@@ -15,7 +15,10 @@
       "@npanel/db": ["../../packages/db/src/index.ts"],
       "@npanel/db/*": ["../../packages/db/src/*"],
       "@npanel/env/server": ["../../packages/env/src/server.ts"],
-      "@npanel/env/web": ["../../packages/env/src/web.ts"]
+      "@npanel/env/web": ["../../packages/env/src/web.ts"],
+      "@npanel/invoice": ["../../packages/invoice/src/index.tsx"],
+      "@npanel/location": ["../../packages/location/src/index.ts"],
+      "@npanel/ui/*": ["../../packages/ui/src/*"]
     },
     "jsx": "react-jsx",
     "jsxImportSource": "react",
