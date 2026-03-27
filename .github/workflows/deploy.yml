@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  BUN_VERSION: '1.1'
+  BUN_VERSION: 'latest'
   # GCP Config
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: ${{ secrets.GCP_REGION }}
