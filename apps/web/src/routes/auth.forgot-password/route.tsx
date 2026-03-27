@@ -35,10 +35,9 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setIsSubmitting(true);
     try {
-      const appUrl = process.env.VITE_PUBLIC_APP_URL || "http://localhost:3002";
       const result = await authClient.forgetPassword({
         email: data.email,
-        redirectTo: `${appUrl}/auth/reset-password`,
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
       if (result.error) {

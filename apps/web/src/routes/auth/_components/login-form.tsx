@@ -28,6 +28,7 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [redirectFailed, setRedirectFailed] = useState(false);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -42,12 +43,17 @@ export function LoginForm() {
   useEffect(() => {
     setIsSubmitting(false);
     setIsSuccess(false);
+    setRedirectFailed(false);
   }, []);
 
-  // Redirect if user is already authenticated – go straight to dashboard or create-team (no "/" round-trip)
+  // Redirect if user is already authenticated
   useEffect(() => {
     if (!isPending && session) {
-      redirectToTarget(0);
+      redirectToTarget(0).then((didRedirect) => {
+        if (!didRedirect) setRedirectFailed(true);
+      }).catch(() => {
+        setRedirectFailed(true);
+      });
     }
   }, [session, isPending]);
 
@@ -90,8 +96,11 @@ export function LoginForm() {
 
       if (result?.data) {
         setIsSuccess(true);
-        // Go straight to dashboard or create-team (avoids "/" → redirect-target race and login loop)
-        await redirectToTarget(200);
+        const didRedirect = await redirectToTarget(200);
+        if (!didRedirect) {
+          // redirect-target endpoint failed — fall back to root which has its own redirect logic
+          window.location.replace("/");
+        }
         return;
       } else if (result?.error) {
         // Handle error response from auth
@@ -122,8 +131,11 @@ export function LoginForm() {
     }
   };
 
-  // Show loading only when submitting, just logged in, or redirecting logged-in user (form shows immediately; no wait for session check)
-  if (isSuccess || isSubmitting || (session && !isPending)) {
+  // Show loading only when submitting, just logged in, or actively redirecting.
+  // If the redirect failed (e.g. redirect-target endpoint unreachable), fall through
+  // and show the form so the user isn't stuck forever.
+  const isRedirecting = session && !isPending && !redirectFailed;
+  if (isSuccess || isSubmitting || isRedirecting) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 p-8">
         <Spinner variant="ellipsis" className="text-primary" />

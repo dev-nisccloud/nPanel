@@ -8,6 +8,9 @@ import { createAuthClient } from "better-auth/react";
 const _rawServerUrl = import.meta.env.VITE_SERVER_URL as string | undefined;
 const baseURL = _rawServerUrl?.startsWith("https://") ? _rawServerUrl : undefined;
 
+/** The resolved server origin (HTTPS only) — `undefined` in dev. */
+export const serverBaseURL: string | undefined = baseURL;
+
 export const authClient = createAuthClient({
   baseURL,
   fetchOptions: {

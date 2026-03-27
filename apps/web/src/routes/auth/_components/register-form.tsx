@@ -39,6 +39,7 @@ export function RegisterForm() {
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [redirectFailed, setRedirectFailed] = useState(false);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -54,12 +55,17 @@ export function RegisterForm() {
   useEffect(() => {
     setIsSubmitting(false);
     setIsEmailSent(false);
+    setRedirectFailed(false);
   }, []);
 
-  // Redirect if user is already authenticated – go straight to dashboard or create-team
+  // Redirect if user is already authenticated
   useEffect(() => {
     if (!isPending && session) {
-      redirectToTarget(0);
+      redirectToTarget(0).then((didRedirect) => {
+        if (!didRedirect) setRedirectFailed(true);
+      }).catch(() => {
+        setRedirectFailed(true);
+      });
     }
   }, [session, isPending]);
 
@@ -134,8 +140,9 @@ export function RegisterForm() {
     }
   };
 
-  // Redirecting already-logged-in user (don't flash the form)
-  if (!isPending && session) {
+  // Redirecting already-logged-in user (don't flash the form).
+  // If the redirect failed, fall through and show the form.
+  if (!isPending && session && !redirectFailed) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 p-8">
         <Spinner variant="ellipsis" className="text-primary" />
