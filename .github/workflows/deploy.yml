@@ -87,7 +87,7 @@ jobs:
 
   # 1. Deploy npanel-server to Google Cloud Run (Staging)
   deploy-server-staging:
-    name: Deploy Server to Cloud Run
+    name: Deploy Staging Server to Cloud Run
     runs-on: ubuntu-latest
     needs: [build-check, migrate-staging]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -99,7 +99,7 @@ jobs:
     outputs:
       server_url: ${{ steps.deploy.outputs.url }}
     env:
-      SERVICE_NAME: npanel-server
+      SERVICE_NAME: npanel-server-staging
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -155,7 +155,7 @@ jobs:
 
   # 2. Deploy npanel-web to Google Cloud Run (Staging)
   deploy-web-staging:
-    name: Deploy Web to Cloud Run
+    name: Deploy Staging Web to Cloud Run
     runs-on: ubuntu-latest
     needs: [deploy-server-staging]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -165,7 +165,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     env:
-      SERVICE_NAME: npanel-web
+      SERVICE_NAME: npanel-web-staging
     steps:
       - name: Checkout
         uses: actions/checkout@v4
