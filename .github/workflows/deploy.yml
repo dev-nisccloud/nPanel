@@ -96,8 +96,6 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    outputs:
-      server_url: ${{ steps.deploy.outputs.url }}
     env:
       SERVICE_NAME: npanel-server-staging
     steps:
@@ -186,11 +184,22 @@ jobs:
       - name: Authorize Docker push
         run: gcloud auth configure-docker ${{ env.ARTIFACT_REGION }}-docker.pkg.dev
 
+      - name: Resolve server URL (staging)
+        id: resolve-server-url
+        run: |
+          SERVER_URL="$(gcloud run services describe npanel-server-staging --region "${{ env.REGION }}" --format='value(status.url)')"
+          if [ -z "$SERVER_URL" ]; then
+            echo "❌ Could not resolve server URL for npanel-server-staging"
+            exit 1
+          fi
+          echo "server_url=$SERVER_URL" >> "$GITHUB_OUTPUT"
+          echo "✅ Resolved server URL: $SERVER_URL"
+
       - name: Validate server URL handoff (staging)
         run: |
-          SERVER_URL="${{ needs.deploy-server-staging.outputs.server_url }}"
+          SERVER_URL="${{ steps.resolve-server-url.outputs.server_url }}"
           if [ -z "$SERVER_URL" ]; then
-            echo "❌ Missing server_url output from deploy-server-staging"
+            echo "❌ Missing resolved server URL in staging web job"
             exit 1
           fi
           case "$SERVER_URL" in
@@ -209,7 +218,7 @@ jobs:
       - name: Build and Push Web Container
         run: |
           docker build -f apps/web/Dockerfile \
-            --build-arg VITE_SERVER_URL=${{ needs.deploy-server-staging.outputs.server_url }} \
+            --build-arg VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }} \
             --build-arg BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET || 'build-time-placeholder-do-not-use-in-production' }} \
             -t ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             .
@@ -226,8 +235,8 @@ jobs:
           env_vars: |
             NODE_ENV=production
             HOSTNAME=0.0.0.0
-            VITE_SERVER_URL=${{ needs.deploy-server-staging.outputs.server_url }}
-            BETTER_AUTH_URL=${{ needs.deploy-server-staging.outputs.server_url }}
+            VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }}
+            BETTER_AUTH_URL=${{ steps.resolve-server-url.outputs.server_url }}
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
 
@@ -268,8 +277,6 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    outputs:
-      server_url: ${{ steps.deploy.outputs.url }}
     env:
       SERVICE_NAME: npanel-server
     steps:
@@ -339,11 +346,22 @@ jobs:
       - name: Authorize Docker push
         run: gcloud auth configure-docker ${{ env.ARTIFACT_REGION }}-docker.pkg.dev
 
+      - name: Resolve server URL (production)
+        id: resolve-server-url
+        run: |
+          SERVER_URL="$(gcloud run services describe npanel-server --region "${{ env.REGION }}" --format='value(status.url)')"
+          if [ -z "$SERVER_URL" ]; then
+            echo "❌ Could not resolve server URL for npanel-server"
+            exit 1
+          fi
+          echo "server_url=$SERVER_URL" >> "$GITHUB_OUTPUT"
+          echo "✅ Resolved server URL: $SERVER_URL"
+
       - name: Validate server URL handoff (production)
         run: |
-          SERVER_URL="${{ needs.deploy-server-production.outputs.server_url }}"
+          SERVER_URL="${{ steps.resolve-server-url.outputs.server_url }}"
           if [ -z "$SERVER_URL" ]; then
-            echo "❌ Missing server_url output from deploy-server-production"
+            echo "❌ Missing resolved server URL in production web job"
             exit 1
           fi
           case "$SERVER_URL" in
@@ -362,7 +380,7 @@ jobs:
       - name: Build and Push Web Container
         run: |
           docker build -f apps/web/Dockerfile \
-            --build-arg VITE_SERVER_URL=${{ needs.deploy-server-production.outputs.server_url }} \
+            --build-arg VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }} \
             --build-arg BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET || 'build-time-placeholder-do-not-use-in-production' }} \
             -t ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             .
@@ -379,7 +397,7 @@ jobs:
           env_vars: |
             NODE_ENV=production
             HOSTNAME=0.0.0.0
-            VITE_SERVER_URL=${{ needs.deploy-server-production.outputs.server_url }}
-            BETTER_AUTH_URL=${{ needs.deploy-server-production.outputs.server_url }}
+            VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }}
+            BETTER_AUTH_URL=${{ steps.resolve-server-url.outputs.server_url }}
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
