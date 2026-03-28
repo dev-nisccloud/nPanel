@@ -1,11 +1,8 @@
 import { createAuthClient } from "better-auth/react";
 
-// __NPANEL_SERVER_URL__ is injected by vite.config.ts `define` at build time.
-// It reads from loadEnv (which covers .env files) AND process.env (which covers
-// Docker ENV / CI build args). This is more reliable than import.meta.env which
-// was silently empty in production builds.
-declare const __NPANEL_SERVER_URL__: string;
-const _serverUrl: string = typeof __NPANEL_SERVER_URL__ !== "undefined" ? __NPANEL_SERVER_URL__ : "";
+// VITE_SERVER_URL is baked in at build time from apps/web/.env.production.
+// The Dockerfile writes this file from the --build-arg before running the build.
+const _serverUrl = (import.meta.env.VITE_SERVER_URL as string | undefined) ?? "";
 const baseURL = _serverUrl.startsWith("https://") ? _serverUrl : undefined;
 
 /** The resolved server origin (HTTPS only) — `undefined` in dev. */
