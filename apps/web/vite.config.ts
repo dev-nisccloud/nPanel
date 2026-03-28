@@ -6,15 +6,9 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const serverUrl = env.VITE_SERVER_URL || process.env.VITE_SERVER_URL || "";
-  const apiTarget = serverUrl || "http://localhost:3000";
-
-  console.log("[vite.config] VITE_SERVER_URL =", JSON.stringify(serverUrl), "mode =", mode);
+  const apiTarget = env.VITE_SERVER_URL || "http://localhost:3000";
 
   return {
-    define: {
-      __NPANEL_SERVER_URL__: JSON.stringify(serverUrl),
-    },
     plugins: [
       tailwindcss(),
       reactRouter(),

@@ -24,6 +24,9 @@ ENV VITE_SERVER_URL=$VITE_SERVER_URL
 ARG BETTER_AUTH_SECRET="build-time-placeholder-do-not-use-in-production"
 ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 
+# Vite reads .env files at build time — file isn't in git
+RUN echo 'VITE_SERVER_URL=https://npanel-server-staging-961768926506.us-east1.run.app' > apps/web/.env
+
 # Build the web app
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN bun run turbo build --filter=web...
