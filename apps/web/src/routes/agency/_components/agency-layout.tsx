@@ -22,7 +22,7 @@ import { CartSwitcher } from "@/routes/agency/_components/sidebar/cart-switcher"
 import { NotificationSwitcher } from "@/routes/agency/_components/sidebar/notification-switcher";
 import { NavigationLoader } from "@/components/navigation-loader";
 import { NavigationLoadingProvider } from "@/contexts/navigation-loading-context";
-import { authClient } from "@/lib/auth-client";
+import { apiUrl, authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 function readSidebarDefaultOpen(): boolean {
@@ -78,7 +78,9 @@ export default function AgencyLayout({ children }: Readonly<{ children: ReactNod
     setCustomerRedirecting(true);
     void (async () => {
       try {
-        const res = await fetch("/api/auth/redirect-target", { credentials: "include" });
+        const res = await fetch(apiUrl("/api/auth/redirect-target"), {
+          credentials: "include",
+        });
         const contentType = res.headers.get("content-type") ?? "";
         if (!res.ok || !contentType.includes("application/json")) {
           const text = await res.text().catch(() => "");

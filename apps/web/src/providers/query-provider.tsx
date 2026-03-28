@@ -4,13 +4,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 import { httpBatchLink, httpLink, splitLink } from "@trpc/client";
-import { authClient, serverBaseURL } from "@/lib/auth-client";
+import { apiUrl, authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
 // Use the same server origin that authClient uses for tRPC calls.
-const trpcBaseUrl = serverBaseURL
-  ? `${serverBaseURL.replace(/\/+$/, "")}/api/trpc`
-  : "/api/trpc";
+const trpcBaseUrl = apiUrl("/api/trpc");
 
 interface QueryProviderProps {
   children: React.ReactNode;

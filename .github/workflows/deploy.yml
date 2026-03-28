@@ -186,6 +186,26 @@ jobs:
       - name: Authorize Docker push
         run: gcloud auth configure-docker ${{ env.ARTIFACT_REGION }}-docker.pkg.dev
 
+      - name: Validate server URL handoff (staging)
+        run: |
+          SERVER_URL="${{ needs.deploy-server-staging.outputs.server_url }}"
+          if [ -z "$SERVER_URL" ]; then
+            echo "❌ Missing server_url output from deploy-server-staging"
+            exit 1
+          fi
+          case "$SERVER_URL" in
+            https://*) ;;
+            *)
+              echo "❌ server_url is not https: $SERVER_URL"
+              exit 1
+              ;;
+          esac
+          if ! curl -f -s -o /dev/null "$SERVER_URL/api/health"; then
+            echo "❌ Server health check failed before web build: $SERVER_URL/api/health"
+            exit 1
+          fi
+          echo "✅ Using server URL for web build: $SERVER_URL"
+
       - name: Build and Push Web Container
         run: |
           docker build -f apps/web/Dockerfile \
@@ -318,6 +338,26 @@ jobs:
 
       - name: Authorize Docker push
         run: gcloud auth configure-docker ${{ env.ARTIFACT_REGION }}-docker.pkg.dev
+
+      - name: Validate server URL handoff (production)
+        run: |
+          SERVER_URL="${{ needs.deploy-server-production.outputs.server_url }}"
+          if [ -z "$SERVER_URL" ]; then
+            echo "❌ Missing server_url output from deploy-server-production"
+            exit 1
+          fi
+          case "$SERVER_URL" in
+            https://*) ;;
+            *)
+              echo "❌ server_url is not https: $SERVER_URL"
+              exit 1
+              ;;
+          esac
+          if ! curl -f -s -o /dev/null "$SERVER_URL/api/health"; then
+            echo "❌ Server health check failed before web build: $SERVER_URL/api/health"
+            exit 1
+          fi
+          echo "✅ Using server URL for web build: $SERVER_URL"
 
       - name: Build and Push Web Container
         run: |
