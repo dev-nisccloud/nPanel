@@ -20,6 +20,19 @@ RUN bun install --frozen-lockfile
 ARG BETTER_AUTH_SECRET="build-time-placeholder-do-not-use-in-production"
 ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 
+# Make API origin available to Vite at build time.
+# GitHub Actions already passes this as --build-arg VITE_SERVER_URL=...
+ARG VITE_SERVER_URL
+ENV VITE_SERVER_URL=$VITE_SERVER_URL
+RUN if [ -z "$VITE_SERVER_URL" ]; then \
+      echo "ERROR: VITE_SERVER_URL build arg is required for production web build." >&2; \
+      exit 1; \
+    fi \
+    && case "$VITE_SERVER_URL" in \
+      https://*) ;; \
+      *) echo "ERROR: VITE_SERVER_URL must be an https URL. Got: $VITE_SERVER_URL" >&2; exit 1 ;; \
+    esac
+
 # Build the web app
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN bun run turbo build --filter=web...

@@ -1,16 +1,12 @@
-import { serverBaseURL } from "./auth-client";
+import { apiUrl } from "./auth-client";
 
 const FALLBACK_REDIRECT = "/auth/login";
 
-// Use the same server origin that authClient uses. In production it's the
-// HTTPS Cloud Run server URL; in dev it's undefined so we fall back to a
-// relative path (handled by Vite's dev proxy).
-const REDIRECT_TARGET_URL = serverBaseURL
-  ? `${serverBaseURL.replace(/\/+$/, "")}/api/auth/redirect-target`
-  : "/api/auth/redirect-target";
+// Use the same server origin that authClient uses.
+const REDIRECT_TARGET_URL = apiUrl("/api/auth/redirect-target");
 
 if (typeof window !== "undefined") {
-  console.debug("[auth-redirect] REDIRECT_TARGET_URL =", REDIRECT_TARGET_URL, "serverBaseURL =", serverBaseURL);
+  console.debug("[auth-redirect] REDIRECT_TARGET_URL =", REDIRECT_TARGET_URL);
 }
 
 /**

@@ -1,14 +1,12 @@
 import { TopProgressBar } from "@/components/top-progress-bar";
-import { serverBaseURL } from "@/lib/auth-client";
+import { apiUrl } from "@/lib/auth-client";
 
 const FALLBACK_REDIRECT = "/auth/login";
 /** Last-resort redirect if JS fails or fetch hangs (seconds). */
 const META_REFRESH_SECONDS = 3;
 
 // Use the same server origin that authClient uses.
-const REDIRECT_TARGET_URL = serverBaseURL
-  ? `${serverBaseURL.replace(/\/+$/, "")}/api/auth/redirect-target`
-  : "/api/auth/redirect-target";
+const REDIRECT_TARGET_URL = apiUrl("/api/auth/redirect-target");
 
 /**
  * Root path "/" – returns 200 OK HTML with a small inline redirect bootstrap.

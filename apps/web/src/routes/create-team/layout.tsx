@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router";
 
-import { authClient } from "@/lib/auth-client";
+import { apiUrl, authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 export default function CreateTeamLayout({ children }: Readonly<{ children: ReactNode }>) {
@@ -25,7 +25,9 @@ export default function CreateTeamLayout({ children }: Readonly<{ children: Reac
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch("/api/auth/redirect-target", { credentials: "include" });
+        const res = await fetch(apiUrl("/api/auth/redirect-target"), {
+          credentials: "include",
+        });
         const contentType = res.headers.get("content-type") ?? "";
         if (!res.ok || !contentType.includes("application/json")) {
           const text = await res.text().catch(() => "");
