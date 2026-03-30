@@ -1,11 +1,48 @@
 import { google } from 'googleapis';
+import { createPrivateKey } from 'node:crypto';
+
+type ServiceAccountCredentials = {
+    type?: string;
+    project_id?: string;
+    private_key_id?: string;
+    private_key?: string;
+    client_email?: string;
+    client_id?: string;
+    auth_uri?: string;
+    token_uri?: string;
+    auth_provider_x509_cert_url?: string;
+    client_x509_cert_url?: string;
+    universe_domain?: string;
+};
+
+function normalizePrivateKey(input: string): string {
+    let fixedKey = input.trim();
+    if (fixedKey.startsWith('"') && fixedKey.endsWith('"')) fixedKey = fixedKey.substring(1, fixedKey.length - 1);
+    if (fixedKey.startsWith("'") && fixedKey.endsWith("'")) fixedKey = fixedKey.substring(1, fixedKey.length - 1);
+    return fixedKey.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
+}
+
+function validatePrivateKey(privateKey: string, source: 'GOOGLE_SERVICE_ACCOUNT_JSON' | 'GOOGLE_SA_PRIVATE_KEY'): boolean {
+    try {
+        createPrivateKey({ key: privateKey, format: 'pem' });
+        return true;
+    } catch (error) {
+        const e = error as { code?: string; message?: string };
+        console.error(
+            `[Google Auth] Invalid service-account private key from ${source}. ` +
+                `Regenerate the key in Google Cloud Console and update env vars. ` +
+                `(${e.code ?? 'UNKNOWN'}: ${e.message ?? 'unknown error'})`,
+        );
+        return false;
+    }
+}
 
 /**
  * Get the Google Search Console and GA4 auth client
  * Supports both a single JSON/Base64 string or individual environment variables
  */
 export function getGoogleAuthClient(): InstanceType<typeof google.auth.GoogleAuth> | null {
-    let credentials;
+    let credentials: ServiceAccountCredentials | undefined;
 
     // Option 1: Try the monolithic JSON string (or Base64)
     const serviceAccountValue = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
@@ -19,7 +56,13 @@ export function getGoogleAuthClient(): InstanceType<typeof google.auth.GoogleAut
                 jsonString = Buffer.from(jsonString, 'base64').toString('utf8');
             }
 
-            credentials = JSON.parse(jsonString);
+            credentials = JSON.parse(jsonString) as ServiceAccountCredentials;
+            if (credentials.private_key) {
+                credentials.private_key = normalizePrivateKey(credentials.private_key);
+                if (!validatePrivateKey(credentials.private_key, 'GOOGLE_SERVICE_ACCOUNT_JSON')) {
+                    credentials = undefined;
+                }
+            }
         } catch (error) {
             console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:', error);
         }
@@ -41,15 +84,7 @@ export function getGoogleAuthClient(): InstanceType<typeof google.auth.GoogleAut
         const universe_domain = process.env.GOOGLE_SA_UNIVERSE_DOMAIN || 'googleapis.com';
 
         if (project_id && private_key && client_email) {
-            // Very robust key cleaning:
-            // 1. Remove any surrounding quotes that might have been accidentally included
-            // 2. Replace any literal \n with real newlines
-            // 3. Ensure no trailing/leading whitespace except newlines
-            let fixedKey = private_key.trim();
-            if (fixedKey.startsWith('"') && fixedKey.endsWith('"')) fixedKey = fixedKey.substring(1, fixedKey.length - 1);
-            if (fixedKey.startsWith("'") && fixedKey.endsWith("'")) fixedKey = fixedKey.substring(1, fixedKey.length - 1);
-
-            fixedKey = fixedKey.replace(/\\n/g, '\n');
+            const fixedKey = normalizePrivateKey(private_key);
 
             if (process.env.NODE_ENV === 'development') {
                 console.log('--- Google Auth Diagnostic ---');
@@ -61,19 +96,21 @@ export function getGoogleAuthClient(): InstanceType<typeof google.auth.GoogleAut
                 console.log('------------------------------');
             }
 
-            credentials = {
-                type,
-                project_id,
-                private_key_id,
-                private_key: fixedKey,
-                client_email,
-                client_id,
-                auth_uri,
-                token_uri,
-                auth_provider_x509_cert_url,
-                client_x509_cert_url,
-                universe_domain,
-            };
+            if (validatePrivateKey(fixedKey, 'GOOGLE_SA_PRIVATE_KEY')) {
+                credentials = {
+                    type,
+                    project_id,
+                    private_key_id,
+                    private_key: fixedKey,
+                    client_email,
+                    client_id,
+                    auth_uri,
+                    token_uri,
+                    auth_provider_x509_cert_url,
+                    client_x509_cert_url,
+                    universe_domain,
+                };
+            }
         }
     }
 

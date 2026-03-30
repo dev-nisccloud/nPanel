@@ -96,8 +96,6 @@ export const googleAdsCampaignsRouter = router({
 						campaign.status,
 						campaign.advertising_channel_type,
 						campaign.advertising_channel_sub_type,
-						campaign.start_date,
-						campaign.end_date,
 						campaign.bidding_strategy_type,
 						campaign_budget.amount_micros,
 						campaign_budget.period,
@@ -365,8 +363,6 @@ export const googleAdsCampaignsRouter = router({
 						campaign.status,
 						campaign.advertising_channel_type,
 						campaign.advertising_channel_sub_type,
-						campaign.start_date,
-						campaign.end_date,
 						campaign.bidding_strategy_type,
 						campaign_budget.amount_micros,
 						campaign_budget.period

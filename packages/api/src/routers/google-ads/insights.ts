@@ -242,8 +242,7 @@ export const googleAdsInsightsRouter = router({
                     case 'region':
                         query = `
                             SELECT
-                                geographic_view.country_criterion_id,
-                                segments.geo_target_state,
+                                segments.geo_target_most_specific_location,
                                 metrics.impressions,
                                 metrics.clicks,
                                 metrics.cost_micros
@@ -252,16 +251,12 @@ export const googleAdsInsightsRouter = router({
                               AND segments.date BETWEEN '${sinceDate}' AND '${untilDate}'
                         `;
                         mappingFn = (row: any) => {
-                            const stateResource = row.segments?.geo_target_state;
-                            const countryId = String(row.geographic_view?.country_criterion_id || '');
+                            const mostSpecificLocation = row.segments?.geo_target_most_specific_location;
 
                             let regionName = 'Unknown';
-                            if (stateResource) {
-                                const regionId = String(stateResource).split('/').pop() || '';
+                            if (mostSpecificLocation) {
+                                const regionId = String(mostSpecificLocation).split('/').pop() || '';
                                 regionName = US_STATE_MAPPING[regionId] || `Region ${regionId}`;
-                            } else if (countryId) {
-                                const cId = countryId.split('/').pop() || '';
-                                regionName = COUNTRY_MAPPING[cId] || `Country ${cId}`;
                             }
 
                             return {

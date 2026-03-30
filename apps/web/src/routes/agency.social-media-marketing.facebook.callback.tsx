@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useNavigate, useSearchParams } from "react-router";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +9,6 @@ import { toast } from "@/components/ui/sonner";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function FacebookCallbackPage() {
-	const navigate = useNavigate();
-	const [searchParams] = useSearchParams();
 	const [status, setStatus] = React.useState<"loading" | "success" | "error">("loading");
 	const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 	const [hasProcessed, setHasProcessed] = React.useState(false);
@@ -21,9 +18,9 @@ export default function FacebookCallbackPage() {
 			setStatus("success");
 			setHasProcessed(true);
 			toast.success("Facebook account connected successfully!");
-			// Redirect to main Facebook page after a short delay
+			// Use a hard redirect so refreshing the callback does not re-run the exchange.
 			setTimeout(() => {
-				navigate("/agency/social-media-marketing/facebook");
+				window.location.replace("/agency/social-media-marketing/facebook");
 			}, 2000);
 		},
 		onError: (error) => {
@@ -40,6 +37,7 @@ export default function FacebookCallbackPage() {
 			return;
 		}
 
+		const searchParams = new URLSearchParams(window.location.search);
 		const code = searchParams.get("code");
 		const state = searchParams.get("state");
 		const error = searchParams.get("error");
@@ -64,10 +62,22 @@ export default function FacebookCallbackPage() {
 			setErrorMessage("Invalid state parameter. Please try connecting again.");
 			return;
 		}
+		sessionStorage.removeItem("facebook_oauth_state");
+
+		const lastProcessedCode = sessionStorage.getItem("facebook_oauth_last_code");
+		if (code && lastProcessedCode === code) {
+			setStatus("success");
+			setHasProcessed(true);
+			setTimeout(() => {
+				window.location.replace("/agency/social-media-marketing/facebook");
+			}, 1000);
+			return;
+		}
 
 		// Exchange code for token
 		if (code) {
 			setHasProcessed(true);
+			sessionStorage.setItem("facebook_oauth_last_code", code);
 			generateTokenMutation.mutate({
 				code: code,
 				redirectUri: `${window.location.origin}/agency/social-media-marketing/facebook/callback`,
@@ -77,8 +87,7 @@ export default function FacebookCallbackPage() {
 			setHasProcessed(true);
 			setErrorMessage("No authorization code received from Facebook");
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [searchParams]);
+	}, [generateTokenMutation, hasProcessed]);
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6">
@@ -115,7 +124,7 @@ export default function FacebookCallbackPage() {
 									<AlertCircle className="h-12 w-12 text-destructive mb-4" />
 									<p className="text-sm text-destructive mb-4">{errorMessage}</p>
 									<Button
-										onClick={() => navigate("/agency/social-media-marketing/facebook")}
+										onClick={() => window.location.replace("/agency/social-media-marketing/facebook")}
 										variant="outline"
 									>
 										Go Back
