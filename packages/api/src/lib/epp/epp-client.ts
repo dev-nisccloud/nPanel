@@ -18,11 +18,52 @@ export interface EppClientConfig {
 	 * If set, this is used for servername; otherwise host is used.
 	 */
 	tlsServername?: string;
+	/**
+	 * If true, allow legacy CN hostname validation fallback when SAN is missing.
+	 * Certificate chain validation remains enabled (rejectUnauthorized=true).
+	 */
+	allowLegacyCommonNameFallback?: boolean;
 }
 
 export interface ConnectAndReceiveGreetingResult {
 	/** Raw XML string (greeting or first server message). */
 	xml: string;
+}
+
+function matchesWildcardCommonName(commonName: string, hostname: string): boolean {
+	if (!commonName.startsWith("*.")) return false;
+	const suffix = commonName.slice(1); // ".example.com"
+	return hostname.endsWith(suffix) && hostname.split(".").length >= commonName.split(".").length;
+}
+
+function legacyCnCheck(
+	hostname: string,
+	cert: tls.PeerCertificate,
+	defaultError: Error
+): Error | undefined {
+	// Only relax when SAN is missing in legacy certs.
+	if (!defaultError.message.includes("Cert does not contain a DNS name")) {
+		return defaultError;
+	}
+	const subjectCN = cert.subject?.CN;
+	if (!subjectCN || typeof subjectCN !== "string") {
+		return defaultError;
+	}
+	const normalizedHost = hostname.toLowerCase();
+	const normalizedCN = subjectCN.toLowerCase();
+	if (normalizedCN === normalizedHost || matchesWildcardCommonName(normalizedCN, normalizedHost)) {
+		return undefined;
+	}
+	return defaultError;
+}
+
+function buildCheckServerIdentity(allowLegacyCommonNameFallback: boolean) {
+	return (hostname: string, cert: tls.PeerCertificate) => {
+		const defaultError = tls.checkServerIdentity(hostname, cert);
+		if (!defaultError) return undefined;
+		if (!allowLegacyCommonNameFallback) return defaultError;
+		return legacyCnCheck(hostname, cert, defaultError);
+	};
 }
 
 /**
@@ -94,12 +135,24 @@ export function sendFrame(socket: tls.TLSSocket, xml: string): void {
  * Do not set encoding on the socket (required for readFrame to receive Buffers).
  */
 export function createConnection(config: EppClientConfig): Promise<tls.TLSSocket> {
-	const { host, port, timeoutMs = DEFAULT_TIMEOUT_MS, tlsServername } = config;
+	const {
+		host,
+		port,
+		timeoutMs = DEFAULT_TIMEOUT_MS,
+		tlsServername,
+		allowLegacyCommonNameFallback = false,
+	} = config;
 	const servername = tlsServername?.trim() || host;
 
 	return new Promise((resolve, reject) => {
 		const socket = tls.connect(
-			{ host, port, servername, rejectUnauthorized: true },
+			{
+				host,
+				port,
+				servername,
+				rejectUnauthorized: true,
+				checkServerIdentity: buildCheckServerIdentity(allowLegacyCommonNameFallback),
+			},
 			() => {
 				socket.removeListener("error", onError);
 				resolve(socket);
@@ -122,7 +175,13 @@ export function createConnection(config: EppClientConfig): Promise<tls.TLSSocket
 export async function connectAndReceiveGreeting(
 	config: EppClientConfig
 ): Promise<ConnectAndReceiveGreetingResult> {
-	const { host, port, timeoutMs = DEFAULT_TIMEOUT_MS, tlsServername } = config;
+	const {
+		host,
+		port,
+		timeoutMs = DEFAULT_TIMEOUT_MS,
+		tlsServername,
+		allowLegacyCommonNameFallback = false,
+	} = config;
 	const servername = tlsServername?.trim() || host;
 
 	const socket = tls.connect(
@@ -131,6 +190,7 @@ export async function connectAndReceiveGreeting(
 			port,
 			servername,
 			rejectUnauthorized: true,
+			checkServerIdentity: buildCheckServerIdentity(allowLegacyCommonNameFallback),
 		},
 		() => {
 			// Connected; server will send greeting
