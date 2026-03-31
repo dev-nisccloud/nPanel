@@ -21,8 +21,8 @@ const formatPrice = (price?: number, currency?: string) => {
 	const symbols: Record<string, string> = {
 		USD: "$",
 		KES: "KSh",
-		EUR: "Ã¢â€šÂ¬",
-		GBP: " £",
+		EUR: "€",
+		GBP: " ?",
 	};
 	const symbol = symbols[currency ?? "USD"] ?? currency ?? "$";
 	return `${symbol} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price)}`;
@@ -60,7 +60,7 @@ function toDomainSearchResult(item: KenicCardItem, createFinal: number, createCa
 }
 
 export interface ExactMatchSectionProps {
-	/** Raw query as entered (e.g. "example.com", "example.co.ke") – not sanitized. */
+	/** Raw query as entered (e.g. "example.com", "example.co.ke") ? not sanitized. */
 	rawSearchQuery: string;
 	isDomainInCart: (domain: string) => boolean;
 	onAddToCart: (result: DomainSearchResult) => void;
@@ -91,7 +91,7 @@ export function ExactMatchSection({
 	const kenicMutation = trpc.kenic.domainCheck.check.useMutation();
 	const [kenicCard, setKenicCard] = React.useState<KenicCardItem | null>(null);
 
-	// OpenProvider path: name + single extension (name must be single label – no dots, or API 303)
+	// OpenProvider path: name + single extension (name must be single label ? no dots, or API 303)
 	const openProviderQuery = trpc.openProvider.domains.checkAvailability.useQuery(
 		{
 			name: nameForOpenProvider(parsed?.name ?? ""),

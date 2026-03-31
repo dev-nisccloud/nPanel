@@ -7,7 +7,7 @@ import { trpc } from "@/utils/trpc";
 export const SUPPORTED_CURRENCIES = [
   { code: 'USD', name: 'US Dollar', symbol: '$' },
   { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh' },
-  { code: 'EUR', name: 'Euro', symbol: 'Ã¢â€šÂ¬' },
+  { code: 'EUR', name: 'Euro', symbol: '€' },
 ] as const;
 
 export type SupportedCurrency = typeof SUPPORTED_CURRENCIES[number]['code'];

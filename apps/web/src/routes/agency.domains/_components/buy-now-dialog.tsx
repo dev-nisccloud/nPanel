@@ -71,14 +71,14 @@ const formatPrice = (price?: number, currency?: string) => {
   const currencySymbols: Record<string, string> = {
     'USD': '$',
     'KES': 'KSh',
-    'EUR': 'Ã¢â€šÂ¬',
-    'GBP': ' £',
+    'EUR': '€',
+    'GBP': ' ?',
     'CAD': 'C$',
     'AUD': 'A$',
-    'JPY': ' ¥',
-    'INR': 'Ã¢â€šÂ¹',
+    'JPY': ' ?',
+    'INR': '₹',
     'ZAR': 'R',
-    'NGN': 'Ã¢â€šÂ¦',
+    'NGN': '₦',
   };
 
   const symbol = currencySymbols[currency || 'KES'] || currency || 'KSh';
@@ -387,7 +387,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
     },
   });
 
-  // Poll payment status — real-time only, no cache (staleTime/gcTime 0)
+  // Poll payment status ?? real-time only, no cache (staleTime/gcTime 0)
   const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
     { checkoutRequestId: checkoutRequestId! },
     {
@@ -1448,7 +1448,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
           <div className="space-y-4">
             <div className="text-center py-4">
               <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 mx-auto mb-4">
-                <span className="text-2xl text-red-600 dark:text-red-400">Ã¢Å“â€¢</span>
+                <span className="text-2xl text-red-600 dark:text-red-400">✕</span>
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
                 Payment Failed

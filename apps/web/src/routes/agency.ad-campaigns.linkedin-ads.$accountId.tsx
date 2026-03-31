@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useNavigate } from "react-router";
+import { Outlet, useParams, useNavigate } from "react-router";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,15 @@ import {
 	BarChart3,
 	RefreshCw,
 	TrendingUp,
-	Calendar as CalendarIcon
+	Calendar as CalendarIcon,
+	AlertTriangle
 } from "lucide-react";
 
 export default function LinkedInAdsAccountDetailPage() {
 	const params = useParams();
 	const navigate = useNavigate();
 	const accountId = params?.accountId as string;
+	const campaignId = params?.campaignId as string | undefined;
 
 	// Convert accountId to URN format if needed
 	const accountUrn = React.useMemo(() => {
@@ -43,9 +45,6 @@ export default function LinkedInAdsAccountDetailPage() {
 		to: new Date(),
 	});
 	const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
-
-	// Campaign group dialog state
-	const [selectedCampaignGroup, setSelectedCampaignGroup] = React.useState<any | null>(null);
 
 	const {
 		data: accountData,
@@ -184,6 +183,12 @@ export default function LinkedInAdsAccountDetailPage() {
 		return "secondary";
 	};
 
+	// Flat-route parent behavior: when a campaign child route is matched,
+	// render the child outlet instead of the account index view.
+	if (campaignId) {
+		return <Outlet />;
+	}
+
 	if (isLoadingAccount) {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6">
@@ -196,19 +201,35 @@ export default function LinkedInAdsAccountDetailPage() {
 
 	if (!account) {
 		return (
-			<div className="@container/main flex flex-col gap-4 md:gap-6">
-				<Card>
-					<CardHeader>
-						<CardTitle>Account Not Found</CardTitle>
-						<CardDescription>The requested ad account could not be found.</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Button onClick={() => navigate("/agency/ad-campaigns/linkedin-ads")} variant="outline">
-							<ArrowLeft className="mr-2 h-4 w-4" />
-							Back to Accounts
-						</Button>
-					</CardContent>
-				</Card>
+			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+				<div className="w-full max-w-5xl mx-auto">
+					<Card className="border-dashed border-muted">
+						<CardContent className="py-14">
+							<div className="mx-auto max-w-lg text-center space-y-4">
+								<div className="mx-auto h-14 w-14 rounded-full bg-amber-500/10 flex items-center justify-center">
+									<AlertTriangle className="h-7 w-7 text-amber-600" />
+								</div>
+								<div className="space-y-1">
+									<h2 className="text-xl font-semibold tracking-tight">LinkedIn account unavailable</h2>
+									<p className="text-sm text-muted-foreground">
+										We could not load this account right now. It may have been removed, access may have changed,
+										or LinkedIn may have returned a temporary error.
+									</p>
+								</div>
+								<div className="flex items-center justify-center gap-2 pt-2">
+									<Button onClick={() => navigate("/agency/ad-campaigns/linkedin-ads")} variant="outline">
+										<ArrowLeft className="mr-2 h-4 w-4" />
+										Back to Accounts
+									</Button>
+									<Button onClick={() => refetchAccount()} variant="default">
+										<RefreshCw className="mr-2 h-4 w-4" />
+										Try Again
+									</Button>
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+				</div>
 			</div>
 		);
 	}
@@ -387,7 +408,7 @@ export default function LinkedInAdsAccountDetailPage() {
 									key={campaignGroup.id}
 									className="hover:bg-accent/50 transition-colors cursor-pointer"
 									onClick={() => {
-										setSelectedCampaignGroup(campaignGroup);
+										navigate(`/agency/ad-campaigns/linkedin-ads/${accountId}/campaigns/${campaignGroup.id}`);
 									}}
 								>
 									<CardContent className="p-4">

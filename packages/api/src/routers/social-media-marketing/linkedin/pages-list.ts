@@ -14,7 +14,7 @@ import {
 // Validation schema for organizations list request
 const OrganizationsListRequestSchema = z.object({
 	accessToken: z.string().optional(), // Optional - will use stored token if not provided
-	apiVersion: z.string().optional().default('202501'),
+	apiVersion: z.string().optional().default('202603'),
 	useStoredToken: z.boolean().optional().default(true), // Whether to use stored token if available
 });
 
@@ -268,7 +268,7 @@ export const linkedinPagesListRouter = router({
 			z.object({
 				orgId: z.string().min(1, 'Organization ID is required'),
 				accessToken: z.string().optional(),
-				apiVersion: z.string().optional().default('202501'),
+				apiVersion: z.string().optional().default('202603'),
 				useStoredToken: z.boolean().optional().default(true),
 			})
 		)

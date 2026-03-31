@@ -570,7 +570,7 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
                                       className="cursor-pointer select-none"
                                       onClick={() => !isSubmitting && toggleTag(tag)}
                                     >
-                                      {tag} Ãƒâ€”
+                                      {tag} ×
                                     </Badge>
                                   ))}
                                 </div>

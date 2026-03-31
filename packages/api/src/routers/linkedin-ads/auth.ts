@@ -2,7 +2,7 @@ import { router, protectedProcedure } from '../../trpc';
 import { eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
-import { getStoredLinkedInAccessToken } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessTokenForUser } from '../../lib/linkedin-credentials';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -16,9 +16,16 @@ export const linkedInAdsAuthRouter = router({
 	 * Get stored LinkedIn credentials (integration status)
 	 * Checks if token has Marketing API scopes
 	 */
-	getStoredCredentials: protectedProcedure.query(async () => {
+	getStoredCredentials: protectedProcedure.query(async ({ ctx }) => {
 		try {
-			const tokenData = await getStoredLinkedInAccessToken();
+			const userId = ctx.session?.user?.id;
+			if (!userId) {
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+					message: 'User session not found',
+				});
+			}
+			const tokenData = await getStoredLinkedInAccessTokenForUser(userId);
 
 			if (!tokenData) {
 				return {

@@ -58,6 +58,56 @@ export async function getStoredLinkedInAccessToken(): Promise<{
 	}
 }
 
+export async function getStoredLinkedInAccessTokenForUser(
+	userId: string
+): Promise<{
+	accessToken: string;
+	integrationId: string;
+} | null> {
+	try {
+		const [integration] = await db
+			.select({
+				id: socialMediaIntegration.id,
+				accessToken: socialMediaIntegration.accessToken,
+				accessTokenExpiresAt: socialMediaIntegration.accessTokenExpiresAt,
+				status: socialMediaIntegration.status,
+			})
+			.from(socialMediaIntegration)
+			.where(
+				and(
+					eq(socialMediaIntegration.platform, "LINKEDIN"),
+					eq(socialMediaIntegration.status, "ACTIVE"),
+					eq(socialMediaIntegration.userId, userId),
+				),
+			)
+			.orderBy(desc(socialMediaIntegration.createdAt))
+			.limit(1);
+
+		if (!integration || !integration.accessToken) {
+			return null;
+		}
+
+		if (
+			integration.accessTokenExpiresAt &&
+			new Date(integration.accessTokenExpiresAt) < new Date()
+		) {
+			await db
+				.update(socialMediaIntegration)
+				.set({ status: "EXPIRED" })
+				.where(eq(socialMediaIntegration.id, integration.id));
+			return null;
+		}
+
+		return {
+			accessToken: integration.accessToken,
+			integrationId: integration.id,
+		};
+	} catch (error) {
+		console.error('Error retrieving stored LinkedIn credentials for user:', error);
+		return null;
+	}
+}
+
 /**
  * Get stored page access token for a specific LinkedIn Organization
  * Returns the access token if available, not expired, and integration is active

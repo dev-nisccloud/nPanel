@@ -30,7 +30,7 @@ export class LinkedInClient {
 	constructor(config: LinkedInApiConfig) {
 		this.config = {
 			accessToken: config.accessToken,
-			apiVersion: config.apiVersion || '202501',
+			apiVersion: config.apiVersion || '202603',
 			baseUrl: config.baseUrl || 'https://api.linkedin.com',
 		};
 	}

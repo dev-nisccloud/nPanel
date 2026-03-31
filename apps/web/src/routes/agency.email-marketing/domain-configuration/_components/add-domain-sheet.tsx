@@ -40,12 +40,12 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 // Resend regions (AWS regions)
 const RESEND_REGIONS = [
-	{ value: "eu-west-1", label: "Ireland (eu-west-1)", flag: "Ã°Å¸â€¡Â®Ã°Å¸â€¡Âª" },
-	{ value: "us-east-1", label: "United States (us-east-1)", flag: "Ã°Å¸â€¡ÂºÃ°Å¸â€¡Â¸" },
-	{ value: "us-west-2", label: "United States (us-west-2)", flag: "Ã°Å¸â€¡ÂºÃ°Å¸â€¡Â¸" },
-	{ value: "eu-central-1", label: "Germany (eu-central-1)", flag: "Ã°Å¸â€¡Â©Ã°Å¸â€¡Âª" },
-	{ value: "ap-southeast-1", label: "Singapore (ap-southeast-1)", flag: "Ã°Å¸â€¡Â¸Ã°Å¸â€¡Â¬" },
-	{ value: "ap-southeast-2", label: "Australia (ap-southeast-2)", flag: "Ã°Å¸â€¡Â¦Ã°Å¸â€¡Âº" },
+	{ value: "eu-west-1", label: "Ireland (eu-west-1)", flag: "🇮🇪" },
+	{ value: "us-east-1", label: "United States (us-east-1)", flag: "🇺🇸" },
+	{ value: "us-west-2", label: "United States (us-west-2)", flag: "🇺🇸" },
+	{ value: "eu-central-1", label: "Germany (eu-central-1)", flag: "🇩🇪" },
+	{ value: "ap-southeast-1", label: "Singapore (ap-southeast-1)", flag: "🇸🇬" },
+	{ value: "ap-southeast-2", label: "Australia (ap-southeast-2)", flag: "🇦🇺" },
 ];
 
 const STEPS = [

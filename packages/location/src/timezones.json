@@ -14,7 +14,7 @@
   {
     "label": "Pacific/Pago_Pago (GMT-11:00)",
     "tzCode": "Pacific/Pago_Pago",
-    "name": "(GMT-11:00) Pago Pago, Tāfuna, Ta`ū, Taulaga",
+    "name": "(GMT-11:00) Pago Pago, Tafuna, Ta`u, Taulaga",
     "utc": "-11:00"
   },
   {
@@ -128,7 +128,7 @@
   {
     "label": "America/Chihuahua (GMT-07:00)",
     "tzCode": "America/Chihuahua",
-    "name": "(GMT-07:00) Chihuahua, Ciudad Delicias, Cuauhtémoc, Parral, Nuevo Casas Grandes",
+    "name": "(GMT-07:00) Chihuahua, Ciudad Delicias, Cuauht?moc, Parral, Nuevo Casas Grandes",
     "utc": "-07:00"
   },
   {
@@ -170,7 +170,7 @@
   {
     "label": "America/Hermosillo (GMT-07:00)",
     "tzCode": "America/Hermosillo",
-    "name": "(GMT-07:00) Hermosillo, Ciudad Obregón, Nogales, San Luis Río Colorado, Navojoa",
+    "name": "(GMT-07:00) Hermosillo, Ciudad Obreg?n, Nogales, San Luis R?o Colorado, Navojoa",
     "utc": "-07:00"
   },
   {
@@ -182,13 +182,13 @@
   {
     "label": "America/Mazatlan (GMT-07:00)",
     "tzCode": "America/Mazatlan",
-    "name": "(GMT-07:00) Culiacán, Mazatlán, Tepic, Los Mochis, La Paz",
+    "name": "(GMT-07:00) Culiac?n, Mazatl?n, Tepic, Los Mochis, La Paz",
     "utc": "-07:00"
   },
   {
     "label": "America/Ojinaga (GMT-07:00)",
     "tzCode": "America/Ojinaga",
-    "name": "(GMT-07:00) Ciudad Juárez, Manuel Ojinaga, Ojinaga",
+    "name": "(GMT-07:00) Ciudad Ju?rez, Manuel Ojinaga, Ojinaga",
     "utc": "-07:00"
   },
   {
@@ -212,7 +212,7 @@
   {
     "label": "America/Bahia_Banderas (GMT-06:00)",
     "tzCode": "America/Bahia_Banderas",
-    "name": "(GMT-06:00) Mezcales, San Vicente, Bucerías, Valle de Banderas",
+    "name": "(GMT-06:00) Mezcales, San Vicente, Bucer?as, Valle de Banderas",
     "utc": "-06:00"
   },
   {
@@ -230,7 +230,7 @@
   {
     "label": "America/Costa_Rica (GMT-06:00)",
     "tzCode": "America/Costa_Rica",
-    "name": "(GMT-06:00) San José, Limón, San Francisco, Alajuela, Liberia",
+    "name": "(GMT-06:00) San Jos?, Lim?n, San Francisco, Alajuela, Liberia",
     "utc": "-06:00"
   },
   {
@@ -242,7 +242,7 @@
   {
     "label": "America/Guatemala (GMT-06:00)",
     "tzCode": "America/Guatemala",
-    "name": "(GMT-06:00) Guatemala City, Mixco, Villa Nueva, Petapa, San Juan Sacatepéquez",
+    "name": "(GMT-06:00) Guatemala City, Mixco, Villa Nueva, Petapa, San Juan Sacatep?quez",
     "utc": "-06:00"
   },
   {
@@ -260,13 +260,13 @@
   {
     "label": "America/Managua (GMT-06:00)",
     "tzCode": "America/Managua",
-    "name": "(GMT-06:00) Managua, León, Masaya, Chinandega, Matagalpa",
+    "name": "(GMT-06:00) Managua, Le?n, Masaya, Chinandega, Matagalpa",
     "utc": "-06:00"
   },
   {
     "label": "America/Matamoros (GMT-06:00)",
     "tzCode": "America/Matamoros",
-    "name": "(GMT-06:00) Reynosa, Heroica Matamoros, Nuevo Laredo, Piedras Negras, Ciudad Acuña",
+    "name": "(GMT-06:00) Reynosa, Heroica Matamoros, Nuevo Laredo, Piedras Negras, Ciudad Acu?a",
     "utc": "-06:00"
   },
   {
@@ -278,7 +278,7 @@
   {
     "label": "America/Merida (GMT-06:00)",
     "tzCode": "America/Merida",
-    "name": "(GMT-06:00) Mérida, Campeche, Ciudad del Carmen, Kanasín, Valladolid",
+    "name": "(GMT-06:00) M?rida, Campeche, Ciudad del Carmen, Kanas?n, Valladolid",
     "utc": "-06:00"
   },
   {
@@ -290,7 +290,7 @@
   {
     "label": "America/Monterrey (GMT-06:00)",
     "tzCode": "America/Monterrey",
-    "name": "(GMT-06:00) Monterrey, Saltillo, Guadalupe, Torreón, Victoria de Durango",
+    "name": "(GMT-06:00) Monterrey, Saltillo, Guadalupe, Torre?n, Victoria de Durango",
     "utc": "-06:00"
   },
   {
@@ -374,13 +374,13 @@
   {
     "label": "America/Bogota (GMT-05:00)",
     "tzCode": "America/Bogota",
-    "name": "(GMT-05:00) Bogotá, Cali, Medellín, Barranquilla, Cartagena",
+    "name": "(GMT-05:00) Bogot?, Cali, Medell?n, Barranquilla, Cartagena",
     "utc": "-05:00"
   },
   {
     "label": "America/Cancun (GMT-05:00)",
     "tzCode": "America/Cancun",
-    "name": "(GMT-05:00) Cancún, Chetumal, Playa del Carmen, Cozumel, Felipe Carrillo Puerto",
+    "name": "(GMT-05:00) Canc?n, Chetumal, Playa del Carmen, Cozumel, Felipe Carrillo Puerto",
     "utc": "-05:00"
   },
   {
@@ -398,7 +398,7 @@
   {
     "label": "America/Eirunepe (GMT-05:00)",
     "tzCode": "America/Eirunepe",
-    "name": "(GMT-05:00) Eirunepé, Benjamin Constant, Envira",
+    "name": "(GMT-05:00) Eirunep?, Benjamin Constant, Envira",
     "utc": "-05:00"
   },
   {
@@ -416,7 +416,7 @@
   {
     "label": "America/Havana (GMT-05:00)",
     "tzCode": "America/Havana",
-    "name": "(GMT-05:00) Havana, Santiago de Cuba, Camagüey, Holguín, Guantánamo",
+    "name": "(GMT-05:00) Havana, Santiago de Cuba, Camag?ey, Holgu?n, Guant?namo",
     "utc": "-05:00"
   },
   {
@@ -488,7 +488,7 @@
   {
     "label": "America/Nassau (GMT-05:00)",
     "tzCode": "America/Nassau",
-    "name": "(GMT-05:00) Nassau, Lucaya, Freeport, West End, Cooper’s Town",
+    "name": "(GMT-05:00) Nassau, Lucaya, Freeport, West End, Cooper?s Town",
     "utc": "-05:00"
   },
   {
@@ -506,7 +506,7 @@
   {
     "label": "America/Panama (GMT-05:00)",
     "tzCode": "America/Panama",
-    "name": "(GMT-05:00) Panamá, San Miguelito, Juan Díaz, David, Arraiján",
+    "name": "(GMT-05:00) Panam?, San Miguelito, Juan D?az, David, Arraij?n",
     "utc": "-05:00"
   },
   {
@@ -518,13 +518,13 @@
   {
     "label": "America/Port-au-Prince (GMT-05:00)",
     "tzCode": "America/Port-au-Prince",
-    "name": "(GMT-05:00) Port-au-Prince, Carrefour, Delmas 73, Pétionville, Port-de-Paix",
+    "name": "(GMT-05:00) Port-au-Prince, Carrefour, Delmas 73, P?tionville, Port-de-Paix",
     "utc": "-05:00"
   },
   {
     "label": "America/Rio_Branco (GMT-05:00)",
     "tzCode": "America/Rio_Branco",
-    "name": "(GMT-05:00) Rio Branco, Cruzeiro do Sul, Sena Madureira, Tarauacá, Feijó",
+    "name": "(GMT-05:00) Rio Branco, Cruzeiro do Sul, Sena Madureira, Tarauac?, Feij?",
     "utc": "-05:00"
   },
   {
@@ -536,7 +536,7 @@
   {
     "label": "America/Toronto (GMT-05:00)",
     "tzCode": "America/Toronto",
-    "name": "(GMT-05:00) Toronto, Montréal, Ottawa, Mississauga, Québec",
+    "name": "(GMT-05:00) Toronto, Montr?al, Ottawa, Mississauga, Qu?bec",
     "utc": "-05:00"
   },
   {
@@ -548,7 +548,7 @@
   {
     "label": "America/Antigua (GMT-04:00)",
     "tzCode": "America/Antigua",
-    "name": "(GMT-04:00) Saint John’s, Piggotts, Bolands, Codrington, Parham",
+    "name": "(GMT-04:00) Saint John?s, Piggotts, Bolands, Codrington, Parham",
     "utc": "-04:00"
   },
   {
@@ -560,7 +560,7 @@
   {
     "label": "America/Asuncion (GMT-04:00)",
     "tzCode": "America/Asuncion",
-    "name": "(GMT-04:00) Asunción, Ciudad del Este, San Lorenzo, Capiatá, Lambaré",
+    "name": "(GMT-04:00) Asunci?n, Ciudad del Este, San Lorenzo, Capiat?, Lambar?",
     "utc": "-04:00"
   },
   {
@@ -572,7 +572,7 @@
   {
     "label": "America/Blanc-Sablon (GMT-04:00)",
     "tzCode": "America/Blanc-Sablon",
-    "name": "(GMT-04:00) Lévis",
+    "name": "(GMT-04:00) L?vis",
     "utc": "-04:00"
   },
   {
@@ -584,7 +584,7 @@
   {
     "label": "America/Campo_Grande (GMT-04:00)",
     "tzCode": "America/Campo_Grande",
-    "name": "(GMT-04:00) Campo Grande, Dourados, Corumbá, Três Lagoas, Ponta Porã",
+    "name": "(GMT-04:00) Campo Grande, Dourados, Corumb?, Tr?s Lagoas, Ponta Por?",
     "utc": "-04:00"
   },
   {
@@ -596,7 +596,7 @@
   {
     "label": "America/Cuiaba (GMT-04:00)",
     "tzCode": "America/Cuiaba",
-    "name": "(GMT-04:00) Cuiabá, Várzea Grande, Rondonópolis, Sinop, Barra do Garças",
+    "name": "(GMT-04:00) Cuiab?, V?rzea Grande, Rondon?polis, Sinop, Barra do Gar?as",
     "utc": "-04:00"
   },
   {
@@ -626,7 +626,7 @@
   {
     "label": "America/Grenada (GMT-04:00)",
     "tzCode": "America/Grenada",
-    "name": "(GMT-04:00) Saint George's, Gouyave, Grenville, Victoria, Saint David’s",
+    "name": "(GMT-04:00) Saint George's, Gouyave, Grenville, Victoria, Saint David?s",
     "utc": "-04:00"
   },
   {
@@ -662,7 +662,7 @@
   {
     "label": "America/Lower_Princes (GMT-04:00)",
     "tzCode": "America/Lower_Princes",
-    "name": "(GMT-04:00) Cul de Sac, Lower Prince’s Quarter, Koolbaai, Philipsburg",
+    "name": "(GMT-04:00) Cul de Sac, Lower Prince?s Quarter, Koolbaai, Philipsburg",
     "utc": "-04:00"
   },
   {
@@ -680,7 +680,7 @@
   {
     "label": "America/Martinique (GMT-04:00)",
     "tzCode": "America/Martinique",
-    "name": "(GMT-04:00) Fort-de-France, Le Lamentin, Le Robert, Sainte-Marie, Le François",
+    "name": "(GMT-04:00) Fort-de-France, Le Lamentin, Le Robert, Sainte-Marie, Le Fran?ois",
     "utc": "-04:00"
   },
   {
@@ -698,7 +698,7 @@
   {
     "label": "America/Porto_Velho (GMT-04:00)",
     "tzCode": "America/Porto_Velho",
-    "name": "(GMT-04:00) Porto Velho, Ji Paraná, Vilhena, Ariquemes, Cacoal",
+    "name": "(GMT-04:00) Porto Velho, Ji Paran?, Vilhena, Ariquemes, Cacoal",
     "utc": "-04:00"
   },
   {
@@ -710,19 +710,19 @@
   {
     "label": "America/Puerto_Rico (GMT-04:00)",
     "tzCode": "America/Puerto_Rico",
-    "name": "(GMT-04:00) San Juan, Bayamón, Carolina, Ponce, Caguas",
+    "name": "(GMT-04:00) San Juan, Bayam?n, Carolina, Ponce, Caguas",
     "utc": "-04:00"
   },
   {
     "label": "America/Santiago (GMT-04:00)",
     "tzCode": "America/Santiago",
-    "name": "(GMT-04:00) Santiago, Puente Alto, Antofagasta, Viña del Mar, Valparaíso",
+    "name": "(GMT-04:00) Santiago, Puente Alto, Antofagasta, Vi?a del Mar, Valpara?so",
     "utc": "-04:00"
   },
   {
     "label": "America/Santo_Domingo (GMT-04:00)",
     "tzCode": "America/Santo_Domingo",
-    "name": "(GMT-04:00) Santo Domingo, Santiago de los Caballeros, Santo Domingo Oeste, Santo Domingo Este, San Pedro de Macorís",
+    "name": "(GMT-04:00) Santo Domingo, Santiago de los Caballeros, Santo Domingo Oeste, Santo Domingo Este, San Pedro de Macor?s",
     "utc": "-04:00"
   },
   {
@@ -734,13 +734,13 @@
   {
     "label": "America/St_Kitts (GMT-04:00)",
     "tzCode": "America/St_Kitts",
-    "name": "(GMT-04:00) Basseterre, Fig Tree, Market Shop, Saint Paul’s, Middle Island",
+    "name": "(GMT-04:00) Basseterre, Fig Tree, Market Shop, Saint Paul?s, Middle Island",
     "utc": "-04:00"
   },
   {
     "label": "America/St_Lucia (GMT-04:00)",
     "tzCode": "America/St_Lucia",
-    "name": "(GMT-04:00) Castries, Bisee, Vieux Fort, Micoud, Soufrière",
+    "name": "(GMT-04:00) Castries, Bisee, Vieux Fort, Micoud, Soufri?re",
     "utc": "-04:00"
   },
   {
@@ -782,13 +782,13 @@
   {
     "label": "America/Araguaina (GMT-03:00)",
     "tzCode": "America/Araguaina",
-    "name": "(GMT-03:00) Palmas, Araguaína, Gurupi, Miracema do Tocantins, Porto Franco",
+    "name": "(GMT-03:00) Palmas, Aragua?na, Gurupi, Miracema do Tocantins, Porto Franco",
     "utc": "-03:00"
   },
   {
     "label": "America/Argentina/Buenos_Aires (GMT-03:00)",
     "tzCode": "America/Argentina/Buenos_Aires",
-    "name": "(GMT-03:00) Buenos Aires, La Plata, Mar del Plata, Morón, Bahía Blanca",
+    "name": "(GMT-03:00) Buenos Aires, La Plata, Mar del Plata, Mor?n, Bah?a Blanca",
     "utc": "-03:00"
   },
   {
@@ -800,13 +800,13 @@
   {
     "label": "America/Argentina/Cordoba (GMT-03:00)",
     "tzCode": "America/Argentina/Cordoba",
-    "name": "(GMT-03:00) Córdoba, Rosario, Santa Fe, Resistencia, Santiago del Estero",
+    "name": "(GMT-03:00) C?rdoba, Rosario, Santa Fe, Resistencia, Santiago del Estero",
     "utc": "-03:00"
   },
   {
     "label": "America/Argentina/Jujuy (GMT-03:00)",
     "tzCode": "America/Argentina/Jujuy",
-    "name": "(GMT-03:00) San Salvador de Jujuy, San Pedro de Jujuy, Libertador General San Martín, Palpalá, La Quiaca",
+    "name": "(GMT-03:00) San Salvador de Jujuy, San Pedro de Jujuy, Libertador General San Mart?n, Palpal?, La Quiaca",
     "utc": "-03:00"
   },
   {
@@ -818,25 +818,25 @@
   {
     "label": "America/Argentina/Mendoza (GMT-03:00)",
     "tzCode": "America/Argentina/Mendoza",
-    "name": "(GMT-03:00) Mendoza, San Rafael, San Martín",
+    "name": "(GMT-03:00) Mendoza, San Rafael, San Mart?n",
     "utc": "-03:00"
   },
   {
     "label": "America/Argentina/Rio_Gallegos (GMT-03:00)",
     "tzCode": "America/Argentina/Rio_Gallegos",
-    "name": "(GMT-03:00) Comodoro Rivadavia, Río Gallegos, Caleta Olivia, Pico Truncado, Puerto Deseado",
+    "name": "(GMT-03:00) Comodoro Rivadavia, R?o Gallegos, Caleta Olivia, Pico Truncado, Puerto Deseado",
     "utc": "-03:00"
   },
   {
     "label": "America/Argentina/Salta (GMT-03:00)",
     "tzCode": "America/Argentina/Salta",
-    "name": "(GMT-03:00) Salta, Neuquén, Santa Rosa, San Carlos de Bariloche, Cipolletti",
+    "name": "(GMT-03:00) Salta, Neuqu?n, Santa Rosa, San Carlos de Bariloche, Cipolletti",
     "utc": "-03:00"
   },
   {
     "label": "America/Argentina/San_Juan (GMT-03:00)",
     "tzCode": "America/Argentina/San_Juan",
-    "name": "(GMT-03:00) San Juan, Chimbas, Santa Lucía, Pocito, Caucete",
+    "name": "(GMT-03:00) San Juan, Chimbas, Santa Luc?a, Pocito, Caucete",
     "utc": "-03:00"
   },
   {
@@ -848,37 +848,37 @@
   {
     "label": "America/Argentina/Tucuman (GMT-03:00)",
     "tzCode": "America/Argentina/Tucuman",
-    "name": "(GMT-03:00) San Miguel de Tucumán, Yerba Buena, Tafí Viejo, Alderetes, Aguilares",
+    "name": "(GMT-03:00) San Miguel de Tucum?n, Yerba Buena, Taf? Viejo, Alderetes, Aguilares",
     "utc": "-03:00"
   },
   {
     "label": "America/Argentina/Ushuaia (GMT-03:00)",
     "tzCode": "America/Argentina/Ushuaia",
-    "name": "(GMT-03:00) Ushuaia, Río Grande",
+    "name": "(GMT-03:00) Ushuaia, R?o Grande",
     "utc": "-03:00"
   },
   {
     "label": "America/Bahia (GMT-03:00)",
     "tzCode": "America/Bahia",
-    "name": "(GMT-03:00) Salvador, Feira de Santana, Vitória da Conquista, Itabuna, Camaçari",
+    "name": "(GMT-03:00) Salvador, Feira de Santana, Vit?ria da Conquista, Itabuna, Cama?ari",
     "utc": "-03:00"
   },
   {
     "label": "America/Belem (GMT-03:00)",
     "tzCode": "America/Belem",
-    "name": "(GMT-03:00) Belém, Ananindeua, Macapá, Parauapebas, Marabá",
+    "name": "(GMT-03:00) Bel?m, Ananindeua, Macap?, Parauapebas, Marab?",
     "utc": "-03:00"
   },
   {
     "label": "America/Cayenne (GMT-03:00)",
     "tzCode": "America/Cayenne",
-    "name": "(GMT-03:00) Cayenne, Matoury, Saint-Laurent-du-Maroni, Kourou, Rémire-Montjoly",
+    "name": "(GMT-03:00) Cayenne, Matoury, Saint-Laurent-du-Maroni, Kourou, R?mire-Montjoly",
     "utc": "-03:00"
   },
   {
     "label": "America/Fortaleza (GMT-03:00)",
     "tzCode": "America/Fortaleza",
-    "name": "(GMT-03:00) Fortaleza, São Luís, Natal, Teresina, João Pessoa",
+    "name": "(GMT-03:00) Fortaleza, S?o Lu?s, Natal, Teresina, Jo?o Pessoa",
     "utc": "-03:00"
   },
   {
@@ -890,7 +890,7 @@
   {
     "label": "America/Maceio (GMT-03:00)",
     "tzCode": "America/Maceio",
-    "name": "(GMT-03:00) Maceió, Aracaju, Arapiraca, Nossa Senhora do Socorro, São Cristóvão",
+    "name": "(GMT-03:00) Macei?, Aracaju, Arapiraca, Nossa Senhora do Socorro, S?o Crist?v?o",
     "utc": "-03:00"
   },
   {
@@ -902,7 +902,7 @@
   {
     "label": "America/Montevideo (GMT-03:00)",
     "tzCode": "America/Montevideo",
-    "name": "(GMT-03:00) Montevideo, Salto, Paysandú, Las Piedras, Rivera",
+    "name": "(GMT-03:00) Montevideo, Salto, Paysand?, Las Piedras, Rivera",
     "utc": "-03:00"
   },
   {
@@ -920,19 +920,19 @@
   {
     "label": "America/Recife (GMT-03:00)",
     "tzCode": "America/Recife",
-    "name": "(GMT-03:00) Recife, Jaboatão, Jaboatão dos Guararapes, Olinda, Paulista",
+    "name": "(GMT-03:00) Recife, Jaboat?o, Jaboat?o dos Guararapes, Olinda, Paulista",
     "utc": "-03:00"
   },
   {
     "label": "America/Santarem (GMT-03:00)",
     "tzCode": "America/Santarem",
-    "name": "(GMT-03:00) Santarém, Altamira, Itaituba, Oriximiná, Alenquer",
+    "name": "(GMT-03:00) Santar?m, Altamira, Itaituba, Oriximin?, Alenquer",
     "utc": "-03:00"
   },
   {
     "label": "America/Sao_Paulo (GMT-03:00)",
     "tzCode": "America/Sao_Paulo",
-    "name": "(GMT-03:00) São Paulo, Rio de Janeiro, Belo Horizonte, Brasília, Curitiba",
+    "name": "(GMT-03:00) S?o Paulo, Rio de Janeiro, Belo Horizonte, Bras?lia, Curitiba",
     "utc": "-03:00"
   },
   {
@@ -956,7 +956,7 @@
   {
     "label": "America/Noronha (GMT-02:00)",
     "tzCode": "America/Noronha",
-    "name": "(GMT-02:00) Itamaracá",
+    "name": "(GMT-02:00) Itamarac?",
     "utc": "-02:00"
   },
   {
@@ -974,7 +974,7 @@
   {
     "label": "Atlantic/Azores (GMT-01:00)",
     "tzCode": "Atlantic/Azores",
-    "name": "(GMT-01:00) Ponta Delgada, Lagoa, Angra do Heroísmo, Rosto de Cão, Rabo de Peixe",
+    "name": "(GMT-01:00) Ponta Delgada, Lagoa, Angra do Hero?smo, Rosto de C?o, Rabo de Peixe",
     "utc": "-01:00"
   },
   {
@@ -986,7 +986,7 @@
   {
     "label": "Africa/Abidjan (GMT+00:00)",
     "tzCode": "Africa/Abidjan",
-    "name": "(GMT+00:00) Abidjan, Abobo, Bouaké, Daloa, San-Pédro",
+    "name": "(GMT+00:00) Abidjan, Abobo, Bouak?, Daloa, San-P?dro",
     "utc": "+00:00"
   },
   {
@@ -998,7 +998,7 @@
   {
     "label": "Africa/Bamako (GMT+00:00)",
     "tzCode": "Africa/Bamako",
-    "name": "(GMT+00:00) Bamako, Sikasso, Mopti, Koutiala, Ségou",
+    "name": "(GMT+00:00) Bamako, Sikasso, Mopti, Koutiala, S?gou",
     "utc": "+00:00"
   },
   {
@@ -1010,25 +1010,25 @@
   {
     "label": "Africa/Bissau (GMT+00:00)",
     "tzCode": "Africa/Bissau",
-    "name": "(GMT+00:00) Bissau, Bafatá, Gabú, Bissorã, Bolama",
+    "name": "(GMT+00:00) Bissau, Bafat?, Gab?, Bissor?, Bolama",
     "utc": "+00:00"
   },
   {
     "label": "Africa/Casablanca (GMT+00:00)",
     "tzCode": "Africa/Casablanca",
-    "name": "(GMT+00:00) Casablanca, Rabat, Fès, Sale, Marrakesh",
+    "name": "(GMT+00:00) Casablanca, Rabat, F?s, Sale, Marrakesh",
     "utc": "+00:00"
   },
   {
     "label": "Africa/Conakry (GMT+00:00)",
     "tzCode": "Africa/Conakry",
-    "name": "(GMT+00:00) Camayenne, Conakry, Nzérékoré, Kindia, Kankan",
+    "name": "(GMT+00:00) Camayenne, Conakry, Nz?r?kor?, Kindia, Kankan",
     "utc": "+00:00"
   },
   {
     "label": "Africa/Dakar (GMT+00:00)",
     "tzCode": "Africa/Dakar",
-    "name": "(GMT+00:00) Dakar, Pikine, Touba, Thiès, Thiès Nones",
+    "name": "(GMT+00:00) Dakar, Pikine, Touba, Thi?s, Thi?s Nones",
     "utc": "+00:00"
   },
   {
@@ -1046,7 +1046,7 @@
   {
     "label": "Africa/Lome (GMT+00:00)",
     "tzCode": "Africa/Lome",
-    "name": "(GMT+00:00) Lomé, Sokodé, Kara, Atakpamé, Kpalimé",
+    "name": "(GMT+00:00) Lom?, Sokod?, Kara, Atakpam?, Kpalim?",
     "utc": "+00:00"
   },
   {
@@ -1058,7 +1058,7 @@
   {
     "label": "Africa/Nouakchott (GMT+00:00)",
     "tzCode": "Africa/Nouakchott",
-    "name": "(GMT+00:00) Nouakchott, Nouadhibou, Néma, Kaédi, Rosso",
+    "name": "(GMT+00:00) Nouakchott, Nouadhibou, N?ma, Ka?di, Rosso",
     "utc": "+00:00"
   },
   {
@@ -1070,7 +1070,7 @@
   {
     "label": "Africa/Sao_Tome (GMT+00:00)",
     "tzCode": "Africa/Sao_Tome",
-    "name": "(GMT+00:00) São Tomé, Santo António",
+    "name": "(GMT+00:00) S?o Tom?, Santo Ant?nio",
     "utc": "+00:00"
   },
   {
@@ -1094,19 +1094,19 @@
   {
     "label": "Atlantic/Faroe (GMT+00:00)",
     "tzCode": "Atlantic/Faroe",
-    "name": "(GMT+00:00) Tórshavn, Klaksvík, Fuglafjørður, Tvøroyri, Miðvágur",
+    "name": "(GMT+00:00) T?rshavn, Klaksv?k, Fuglafj?r?ur, Tv?royri, Mi?v?gur",
     "utc": "+00:00"
   },
   {
     "label": "Atlantic/Madeira (GMT+00:00)",
     "tzCode": "Atlantic/Madeira",
-    "name": "(GMT+00:00) Funchal, Câmara de Lobos, São Martinho, Caniço, Machico",
+    "name": "(GMT+00:00) Funchal, C?mara de Lobos, S?o Martinho, Cani?o, Machico",
     "utc": "+00:00"
   },
   {
     "label": "Atlantic/Reykjavik (GMT+00:00)",
     "tzCode": "Atlantic/Reykjavik",
-    "name": "(GMT+00:00) Reykjavík, Kópavogur, Hafnarfjörður, Akureyri, Garðabær",
+    "name": "(GMT+00:00) Reykjav?k, K?pavogur, Hafnarfj?r?ur, Akureyri, Gar?ab?r",
     "utc": "+00:00"
   },
   {
@@ -1142,7 +1142,7 @@
   {
     "label": "Europe/Lisbon (GMT+00:00)",
     "tzCode": "Europe/Lisbon",
-    "name": "(GMT+00:00) Lisbon, Porto, Amadora, Braga, Setúbal",
+    "name": "(GMT+00:00) Lisbon, Porto, Amadora, Braga, Set?bal",
     "utc": "+00:00"
   },
   {
@@ -1154,13 +1154,13 @@
   {
     "label": "Africa/Algiers (GMT+01:00)",
     "tzCode": "Africa/Algiers",
-    "name": "(GMT+01:00) Algiers, Boumerdas, Oran, Tébessa, Constantine",
+    "name": "(GMT+01:00) Algiers, Boumerdas, Oran, T?bessa, Constantine",
     "utc": "+01:00"
   },
   {
     "label": "Africa/Bangui (GMT+01:00)",
     "tzCode": "Africa/Bangui",
-    "name": "(GMT+01:00) Bangui, Bimbo, Mbaïki, Berbérati, Kaga Bandoro",
+    "name": "(GMT+01:00) Bangui, Bimbo, Mba?ki, Berb?rati, Kaga Bandoro",
     "utc": "+01:00"
   },
   {
@@ -1178,7 +1178,7 @@
   {
     "label": "Africa/Douala (GMT+01:00)",
     "tzCode": "Africa/Douala",
-    "name": "(GMT+01:00) Douala, Yaoundé, Garoua, Kousséri, Bamenda",
+    "name": "(GMT+01:00) Douala, Yaound?, Garoua, Kouss?ri, Bamenda",
     "utc": "+01:00"
   },
   {
@@ -1202,19 +1202,19 @@
   {
     "label": "Africa/Luanda (GMT+01:00)",
     "tzCode": "Africa/Luanda",
-    "name": "(GMT+01:00) Luanda, N’dalatando, Huambo, Lobito, Benguela",
+    "name": "(GMT+01:00) Luanda, N?dalatando, Huambo, Lobito, Benguela",
     "utc": "+01:00"
   },
   {
     "label": "Africa/Malabo (GMT+01:00)",
     "tzCode": "Africa/Malabo",
-    "name": "(GMT+01:00) Bata, Malabo, Ebebiyin, Aconibe, Añisoc",
+    "name": "(GMT+01:00) Bata, Malabo, Ebebiyin, Aconibe, A?isoc",
     "utc": "+01:00"
   },
   {
     "label": "Africa/Ndjamena (GMT+01:00)",
     "tzCode": "Africa/Ndjamena",
-    "name": "(GMT+01:00) N'Djamena, Moundou, Sarh, Abéché, Kelo",
+    "name": "(GMT+01:00) N'Djamena, Moundou, Sarh, Ab?ch?, Kelo",
     "utc": "+01:00"
   },
   {
@@ -1256,43 +1256,43 @@
   {
     "label": "Europe/Andorra (GMT+01:00)",
     "tzCode": "Europe/Andorra",
-    "name": "(GMT+01:00) Andorra la Vella, les Escaldes, Encamp, Sant Julià de Lòria, la Massana",
+    "name": "(GMT+01:00) Andorra la Vella, les Escaldes, Encamp, Sant Juli? de L?ria, la Massana",
     "utc": "+01:00"
   },
   {
     "label": "Europe/Belgrade (GMT+01:00)",
     "tzCode": "Europe/Belgrade",
-    "name": "(GMT+01:00) Belgrade, Pristina, Niš, Novi Sad, Prizren",
+    "name": "(GMT+01:00) Belgrade, Pristina, Ni?, Novi Sad, Prizren",
     "utc": "+01:00"
   },
   {
     "label": "Europe/Berlin (GMT+01:00)",
     "tzCode": "Europe/Berlin",
-    "name": "(GMT+01:00) Berlin, Hamburg, Munich, Köln, Frankfurt am Main",
+    "name": "(GMT+01:00) Berlin, Hamburg, Munich, K?ln, Frankfurt am Main",
     "utc": "+01:00"
   },
   {
     "label": "Europe/Bratislava (GMT+01:00)",
     "tzCode": "Europe/Bratislava",
-    "name": "(GMT+01:00) Bratislava, Košice, Prešov, Nitra, Žilina",
+    "name": "(GMT+01:00) Bratislava, Ko?ice, Pre?ov, Nitra, ?ilina",
     "utc": "+01:00"
   },
   {
     "label": "Europe/Brussels (GMT+01:00)",
     "tzCode": "Europe/Brussels",
-    "name": "(GMT+01:00) Brussels, Antwerpen, Gent, Charleroi, Liège",
+    "name": "(GMT+01:00) Brussels, Antwerpen, Gent, Charleroi, Li?ge",
     "utc": "+01:00"
   },
   {
     "label": "Europe/Budapest (GMT+01:00)",
     "tzCode": "Europe/Budapest",
-    "name": "(GMT+01:00) Budapest, Debrecen, Miskolc, Szeged, Pécs",
+    "name": "(GMT+01:00) Budapest, Debrecen, Miskolc, Szeged, P?cs",
     "utc": "+01:00"
   },
   {
     "label": "Europe/Copenhagen (GMT+01:00)",
     "tzCode": "Europe/Copenhagen",
-    "name": "(GMT+01:00) Copenhagen, Århus, Odense, Aalborg, Frederiksberg",
+    "name": "(GMT+01:00) Copenhagen, ?rhus, Odense, Aalborg, Frederiksberg",
     "utc": "+01:00"
   },
   {
@@ -1322,7 +1322,7 @@
   {
     "label": "Europe/Malta (GMT+01:00)",
     "tzCode": "Europe/Malta",
-    "name": "(GMT+01:00) Birkirkara, Qormi, Mosta, Żabbar, San Pawl il-Baħar",
+    "name": "(GMT+01:00) Birkirkara, Qormi, Mosta, Zabbar, San Pawl il-Bahar",
     "utc": "+01:00"
   },
   {
@@ -1346,7 +1346,7 @@
   {
     "label": "Europe/Podgorica (GMT+01:00)",
     "tzCode": "Europe/Podgorica",
-    "name": "(GMT+01:00) Podgorica, Nikšić, Herceg Novi, Pljevlja, Budva",
+    "name": "(GMT+01:00) Podgorica, Nik?ic, Herceg Novi, Pljevlja, Budva",
     "utc": "+01:00"
   },
   {
@@ -1382,13 +1382,13 @@
   {
     "label": "Europe/Stockholm (GMT+01:00)",
     "tzCode": "Europe/Stockholm",
-    "name": "(GMT+01:00) Stockholm, Göteborg, Malmö, Uppsala, Sollentuna",
+    "name": "(GMT+01:00) Stockholm, G?teborg, Malm?, Uppsala, Sollentuna",
     "utc": "+01:00"
   },
   {
     "label": "Europe/Tirane (GMT+01:00)",
     "tzCode": "Europe/Tirane",
-    "name": "(GMT+01:00) Tirana, Durrës, Elbasan, Vlorë, Shkodër",
+    "name": "(GMT+01:00) Tirana, Durr?s, Elbasan, Vlor?, Shkod?r",
     "utc": "+01:00"
   },
   {
@@ -1412,7 +1412,7 @@
   {
     "label": "Europe/Warsaw (GMT+01:00)",
     "tzCode": "Europe/Warsaw",
-    "name": "(GMT+01:00) Warsaw, Łódź, Kraków, Wrocław, Poznań",
+    "name": "(GMT+01:00) Warsaw, L?dz, Krak?w, Wroclaw, Poznan",
     "utc": "+01:00"
   },
   {
@@ -1424,7 +1424,7 @@
   {
     "label": "Europe/Zurich (GMT+01:00)",
     "tzCode": "Europe/Zurich",
-    "name": "(GMT+01:00) Zürich, Genève, Basel, Lausanne, Bern",
+    "name": "(GMT+01:00) Z?rich, Gen?ve, Basel, Lausanne, Bern",
     "utc": "+01:00"
   },
   {
@@ -1502,7 +1502,7 @@
   {
     "label": "Africa/Maseru (GMT+02:00)",
     "tzCode": "Africa/Maseru",
-    "name": "(GMT+02:00) Maseru, Mafeteng, Leribe, Maputsoe, Mohale’s Hoek",
+    "name": "(GMT+02:00) Maseru, Mafeteng, Leribe, Maputsoe, Mohale?s Hoek",
     "utc": "+02:00"
   },
   {
@@ -1514,43 +1514,43 @@
   {
     "label": "Africa/Tripoli (GMT+02:00)",
     "tzCode": "Africa/Tripoli",
-    "name": "(GMT+02:00) Tripoli, Benghazi, Mişrātah, Tarhuna, Al Khums",
+    "name": "(GMT+02:00) Tripoli, Benghazi, Misratah, Tarhuna, Al Khums",
     "utc": "+02:00"
   },
   {
     "label": "Asia/Amman (GMT+02:00)",
     "tzCode": "Asia/Amman",
-    "name": "(GMT+02:00) Amman, Zarqa, Irbid, Russeifa, Wādī as Sīr",
+    "name": "(GMT+02:00) Amman, Zarqa, Irbid, Russeifa, Wadi as Sir",
     "utc": "+02:00"
   },
   {
     "label": "Asia/Beirut (GMT+02:00)",
     "tzCode": "Asia/Beirut",
-    "name": "(GMT+02:00) Beirut, Ra’s Bayrūt, Tripoli, Sidon, Tyre",
+    "name": "(GMT+02:00) Beirut, Ra?s Bayrut, Tripoli, Sidon, Tyre",
     "utc": "+02:00"
   },
   {
     "label": "Asia/Damascus (GMT+02:00)",
     "tzCode": "Asia/Damascus",
-    "name": "(GMT+02:00) Aleppo, Damascus, Homs, Ḩamāh, Latakia",
+    "name": "(GMT+02:00) Aleppo, Damascus, Homs, ?amah, Latakia",
     "utc": "+02:00"
   },
   {
     "label": "Asia/Famagusta (GMT+02:00)",
     "tzCode": "Asia/Famagusta",
-    "name": "(GMT+02:00) Famagusta, Kyrenia, Protaras, Paralímni, Lápithos",
+    "name": "(GMT+02:00) Famagusta, Kyrenia, Protaras, Paral?mni, L?pithos",
     "utc": "+02:00"
   },
   {
     "label": "Asia/Gaza (GMT+02:00)",
     "tzCode": "Asia/Gaza",
-    "name": "(GMT+02:00) Gaza, Khān Yūnis, Jabālyā, Rafaḩ, Dayr al Balaḩ",
+    "name": "(GMT+02:00) Gaza, Khan Yunis, Jabalya, Rafa?, Dayr al Bala?",
     "utc": "+02:00"
   },
   {
     "label": "Asia/Hebron (GMT+02:00)",
     "tzCode": "Asia/Hebron",
-    "name": "(GMT+02:00) East Jerusalem, Hebron, Nablus, Battir, Ţūlkarm",
+    "name": "(GMT+02:00) East Jerusalem, Hebron, Nablus, Battir, Tulkarm",
     "utc": "+02:00"
   },
   {
@@ -1562,25 +1562,25 @@
   {
     "label": "Asia/Nicosia (GMT+02:00)",
     "tzCode": "Asia/Nicosia",
-    "name": "(GMT+02:00) Nicosia, Limassol, Larnaca, Stróvolos, Paphos",
+    "name": "(GMT+02:00) Nicosia, Limassol, Larnaca, Str?volos, Paphos",
     "utc": "+02:00"
   },
   {
     "label": "Europe/Athens (GMT+02:00)",
     "tzCode": "Europe/Athens",
-    "name": "(GMT+02:00) Athens, Thessaloníki, Pátra, Piraeus, Lárisa",
+    "name": "(GMT+02:00) Athens, Thessalon?ki, P?tra, Piraeus, L?risa",
     "utc": "+02:00"
   },
   {
     "label": "Europe/Bucharest (GMT+02:00)",
     "tzCode": "Europe/Bucharest",
-    "name": "(GMT+02:00) Bucharest, Sector 3, Sector 6, Sector 2, Iaşi",
+    "name": "(GMT+02:00) Bucharest, Sector 3, Sector 6, Sector 2, Iasi",
     "utc": "+02:00"
   },
   {
     "label": "Europe/Chisinau (GMT+02:00)",
     "tzCode": "Europe/Chisinau",
-    "name": "(GMT+02:00) Chisinau, Tiraspol, Bălţi, Bender, Rîbniţa",
+    "name": "(GMT+02:00) Chisinau, Tiraspol, Balti, Bender, R?bnita",
     "utc": "+02:00"
   },
   {
@@ -1610,7 +1610,7 @@
   {
     "label": "Europe/Riga (GMT+02:00)",
     "tzCode": "Europe/Riga",
-    "name": "(GMT+02:00) Riga, Daugavpils, Liepāja, Jelgava, Jūrmala",
+    "name": "(GMT+02:00) Riga, Daugavpils, Liepaja, Jelgava, Jurmala",
     "utc": "+02:00"
   },
   {
@@ -1622,7 +1622,7 @@
   {
     "label": "Europe/Tallinn (GMT+02:00)",
     "tzCode": "Europe/Tallinn",
-    "name": "(GMT+02:00) Tallinn, Tartu, Narva, Kohtla-Järve, Pärnu",
+    "name": "(GMT+02:00) Tallinn, Tartu, Narva, Kohtla-J?rve, P?rnu",
     "utc": "+02:00"
   },
   {
@@ -1634,7 +1634,7 @@
   {
     "label": "Europe/Vilnius (GMT+02:00)",
     "tzCode": "Europe/Vilnius",
-    "name": "(GMT+02:00) Vilnius, Kaunas, Klaipėda, Šiauliai, Panevėžys",
+    "name": "(GMT+02:00) Vilnius, Kaunas, Klaipeda, ?iauliai, Paneve?ys",
     "utc": "+02:00"
   },
   {
@@ -1646,7 +1646,7 @@
   {
     "label": "Africa/Addis_Ababa (GMT+03:00)",
     "tzCode": "Africa/Addis_Ababa",
-    "name": "(GMT+03:00) Addis Ababa, Dire Dawa, Mek'ele, Nazrēt, Bahir Dar",
+    "name": "(GMT+03:00) Addis Ababa, Dire Dawa, Mek'ele, Nazret, Bahir Dar",
     "utc": "+03:00"
   },
   {
@@ -1694,49 +1694,49 @@
   {
     "label": "Asia/Aden (GMT+03:00)",
     "tzCode": "Asia/Aden",
-    "name": "(GMT+03:00) Sanaa, Al Ḩudaydah, Taiz, Aden, Mukalla",
+    "name": "(GMT+03:00) Sanaa, Al ?udaydah, Taiz, Aden, Mukalla",
     "utc": "+03:00"
   },
   {
     "label": "Asia/Baghdad (GMT+03:00)",
     "tzCode": "Asia/Baghdad",
-    "name": "(GMT+03:00) Baghdad, Basrah, Al Mawşil al Jadīdah, Al Başrah al Qadīmah, Mosul",
+    "name": "(GMT+03:00) Baghdad, Basrah, Al Mawsil al Jadidah, Al Basrah al Qadimah, Mosul",
     "utc": "+03:00"
   },
   {
     "label": "Asia/Bahrain (GMT+03:00)",
     "tzCode": "Asia/Bahrain",
-    "name": "(GMT+03:00) Manama, Al Muharraq, Ar Rifā‘, Dār Kulayb, Madīnat Ḩamad",
+    "name": "(GMT+03:00) Manama, Al Muharraq, Ar Rifa?, Dar Kulayb, Madinat ?amad",
     "utc": "+03:00"
   },
   {
     "label": "Asia/Kuwait (GMT+03:00)",
     "tzCode": "Asia/Kuwait",
-    "name": "(GMT+03:00) Al Aḩmadī, Ḩawallī, As Sālimīyah, Şabāḩ as Sālim, Al Farwānīyah",
+    "name": "(GMT+03:00) Al A?madi, ?awalli, As Salimiyah, Saba? as Salim, Al Farwaniyah",
     "utc": "+03:00"
   },
   {
     "label": "Asia/Qatar (GMT+03:00)",
     "tzCode": "Asia/Qatar",
-    "name": "(GMT+03:00) Doha, Ar Rayyān, Umm Şalāl Muḩammad, Al Wakrah, Al Khawr",
+    "name": "(GMT+03:00) Doha, Ar Rayyan, Umm Salal Mu?ammad, Al Wakrah, Al Khawr",
     "utc": "+03:00"
   },
   {
     "label": "Asia/Riyadh (GMT+03:00)",
     "tzCode": "Asia/Riyadh",
-    "name": "(GMT+03:00) Riyadh, Jeddah, Mecca, Medina, Sulţānah",
+    "name": "(GMT+03:00) Riyadh, Jeddah, Mecca, Medina, Sultanah",
     "utc": "+03:00"
   },
   {
     "label": "Europe/Istanbul (GMT+03:00)",
     "tzCode": "Europe/Istanbul",
-    "name": "(GMT+03:00) Istanbul, Ankara, İzmir, Bursa, Adana",
+    "name": "(GMT+03:00) Istanbul, Ankara, Izmir, Bursa, Adana",
     "utc": "+03:00"
   },
   {
     "label": "Europe/Kirov (GMT+03:00)",
     "tzCode": "Europe/Kirov",
-    "name": "(GMT+03:00) Kirov, Kirovo-Chepetsk, Vyatskiye Polyany, Slobodskoy, Kotel’nich",
+    "name": "(GMT+03:00) Kirov, Kirovo-Chepetsk, Vyatskiye Polyany, Slobodskoy, Kotel?nich",
     "utc": "+03:00"
   },
   {
@@ -1790,7 +1790,7 @@
   {
     "label": "Asia/Baku (GMT+04:00)",
     "tzCode": "Asia/Baku",
-    "name": "(GMT+04:00) Baku, Ganja, Sumqayıt, Lankaran, Yevlakh",
+    "name": "(GMT+04:00) Baku, Ganja, Sumqayit, Lankaran, Yevlakh",
     "utc": "+04:00"
   },
   {
@@ -1802,7 +1802,7 @@
   {
     "label": "Asia/Muscat (GMT+04:00)",
     "tzCode": "Asia/Muscat",
-    "name": "(GMT+04:00) Muscat, Seeb, Şalālah, Bawshar, Sohar",
+    "name": "(GMT+04:00) Muscat, Seeb, Salalah, Bawshar, Sohar",
     "utc": "+04:00"
   },
   {
@@ -1826,19 +1826,19 @@
   {
     "label": "Europe/Samara (GMT+04:00)",
     "tzCode": "Europe/Samara",
-    "name": "(GMT+04:00) Samara, Togliatti-on-the-Volga, Izhevsk, Syzran’, Novokuybyshevsk",
+    "name": "(GMT+04:00) Samara, Togliatti-on-the-Volga, Izhevsk, Syzran?, Novokuybyshevsk",
     "utc": "+04:00"
   },
   {
     "label": "Europe/Saratov (GMT+04:00)",
     "tzCode": "Europe/Saratov",
-    "name": "(GMT+04:00) Saratov, Balakovo, Engel’s, Balashov, Vol’sk",
+    "name": "(GMT+04:00) Saratov, Balakovo, Engel?s, Balashov, Vol?sk",
     "utc": "+04:00"
   },
   {
     "label": "Europe/Ulyanovsk (GMT+04:00)",
     "tzCode": "Europe/Ulyanovsk",
-    "name": "(GMT+04:00) Ulyanovsk, Dimitrovgrad, Inza, Barysh, Novoul’yanovsk",
+    "name": "(GMT+04:00) Ulyanovsk, Dimitrovgrad, Inza, Barysh, Novoul?yanovsk",
     "utc": "+04:00"
   },
   {
@@ -1856,13 +1856,13 @@
   {
     "label": "Indian/Reunion (GMT+04:00)",
     "tzCode": "Indian/Reunion",
-    "name": "(GMT+04:00) Saint-Denis, Saint-Paul, Saint-Pierre, Le Tampon, Saint-André",
+    "name": "(GMT+04:00) Saint-Denis, Saint-Paul, Saint-Pierre, Le Tampon, Saint-Andr?",
     "utc": "+04:00"
   },
   {
     "label": "Asia/Kabul (GMT+04:30)",
     "tzCode": "Asia/Kabul",
-    "name": "(GMT+04:30) Kabul, Kandahār, Mazār-e Sharīf, Herāt, Jalālābād",
+    "name": "(GMT+04:30) Kabul, Kandahar, Mazar-e Sharif, Herat, Jalalabad",
     "utc": "+04:30"
   },
   {
@@ -1886,7 +1886,7 @@
   {
     "label": "Asia/Ashgabat (GMT+05:00)",
     "tzCode": "Asia/Ashgabat",
-    "name": "(GMT+05:00) Ashgabat, Türkmenabat, Daşoguz, Mary, Balkanabat",
+    "name": "(GMT+05:00) Ashgabat, T?rkmenabat, Dasoguz, Mary, Balkanabat",
     "utc": "+05:00"
   },
   {
@@ -1898,7 +1898,7 @@
   {
     "label": "Asia/Dushanbe (GMT+05:00)",
     "tzCode": "Asia/Dushanbe",
-    "name": "(GMT+05:00) Dushanbe, Khujand, Kŭlob, Bokhtar, Istaravshan",
+    "name": "(GMT+05:00) Dushanbe, Khujand, Kulob, Bokhtar, Istaravshan",
     "utc": "+05:00"
   },
   {
@@ -1910,7 +1910,7 @@
   {
     "label": "Asia/Oral (GMT+05:00)",
     "tzCode": "Asia/Oral",
-    "name": "(GMT+05:00) Oral, Aqsay, Zhänibek, Tasqala, Zhumysker",
+    "name": "(GMT+05:00) Oral, Aqsay, Zh?nibek, Tasqala, Zhumysker",
     "utc": "+05:00"
   },
   {
@@ -1928,7 +1928,7 @@
   {
     "label": "Asia/Tashkent (GMT+05:00)",
     "tzCode": "Asia/Tashkent",
-    "name": "(GMT+05:00) Tashkent, Namangan, Andijon, Qo‘qon, Chirchiq",
+    "name": "(GMT+05:00) Tashkent, Namangan, Andijon, Qo?qon, Chirchiq",
     "utc": "+05:00"
   },
   {
@@ -1940,7 +1940,7 @@
   {
     "label": "Indian/Kerguelen (GMT+05:00)",
     "tzCode": "Indian/Kerguelen",
-    "name": "(GMT+05:00) Port-aux-Français",
+    "name": "(GMT+05:00) Port-aux-Fran?ais",
     "utc": "+05:00"
   },
   {
@@ -1964,7 +1964,7 @@
   {
     "label": "Asia/Kathmandu (GMT+05:45)",
     "tzCode": "Asia/Kathmandu",
-    "name": "(GMT+05:45) Kathmandu, Pokhara, Pātan, Biratnagar, Birgañj",
+    "name": "(GMT+05:45) Kathmandu, Pokhara, Patan, Biratnagar, Birga?j",
     "utc": "+05:45"
   },
   {
@@ -1988,7 +1988,7 @@
   {
     "label": "Asia/Dhaka (GMT+06:00)",
     "tzCode": "Asia/Dhaka",
-    "name": "(GMT+06:00) Dhaka, Chattogram, Khulna, Rājshāhi, Comilla",
+    "name": "(GMT+06:00) Dhaka, Chattogram, Khulna, Rajshahi, Comilla",
     "utc": "+06:00"
   },
   {
@@ -2006,13 +2006,13 @@
   {
     "label": "Asia/Thimphu (GMT+06:00)",
     "tzCode": "Asia/Thimphu",
-    "name": "(GMT+06:00) himphu, Punākha, Tsirang, Phuntsholing, Pemagatshel",
+    "name": "(GMT+06:00) himphu, Punakha, Tsirang, Phuntsholing, Pemagatshel",
     "utc": "+06:00"
   },
   {
     "label": "Asia/Urumqi (GMT+06:00)",
     "tzCode": "Asia/Urumqi",
-    "name": "(GMT+06:00) Zhongshan, Ürümqi, Zhanjiang, Shihezi, Huocheng",
+    "name": "(GMT+06:00) Zhongshan, ?r?mqi, Zhanjiang, Shihezi, Huocheng",
     "utc": "+06:00"
   },
   {
@@ -2054,13 +2054,13 @@
   {
     "label": "Asia/Hovd (GMT+07:00)",
     "tzCode": "Asia/Hovd",
-    "name": "(GMT+07:00) Khovd, Ölgii, Ulaangom, Uliastay, Altai",
+    "name": "(GMT+07:00) Khovd, ?lgii, Ulaangom, Uliastay, Altai",
     "utc": "+07:00"
   },
   {
     "label": "Asia/Ho_Chi_Minh (GMT+07:00)",
     "tzCode": "Asia/Ho_Chi_Minh",
-    "name": "(GMT+07:00) Ho Chi Minh City, Da Nang, Biên Hòa, Nha Trang, Cần Thơ",
+    "name": "(GMT+07:00) Ho Chi Minh City, Da Nang, Bi?n H?a, Nha Trang, C?n Tho",
     "utc": "+07:00"
   },
   {
@@ -2078,7 +2078,7 @@
   {
     "label": "Asia/Novokuznetsk (GMT+07:00)",
     "tzCode": "Asia/Novokuznetsk",
-    "name": "(GMT+07:00) Novokuznetsk, Kemerovo, Prokop’yevsk, Leninsk-Kuznetsky, Kiselëvsk",
+    "name": "(GMT+07:00) Novokuznetsk, Kemerovo, Prokop?yevsk, Leninsk-Kuznetsky, Kisel?vsk",
     "utc": "+07:00"
   },
   {
@@ -2108,7 +2108,7 @@
   {
     "label": "Asia/Vientiane (GMT+07:00)",
     "tzCode": "Asia/Vientiane",
-    "name": "(GMT+07:00) Vientiane, Pakse, Thakhèk, Savannakhet, Luang Prabang",
+    "name": "(GMT+07:00) Vientiane, Pakse, Thakh?k, Savannakhet, Luang Prabang",
     "utc": "+07:00"
   },
   {
@@ -2138,7 +2138,7 @@
   {
     "label": "Asia/Irkutsk (GMT+08:00)",
     "tzCode": "Asia/Irkutsk",
-    "name": "(GMT+08:00) Irkutsk, Ulan-Ude, Bratsk, Angarsk, Ust’-Ilimsk",
+    "name": "(GMT+08:00) Irkutsk, Ulan-Ude, Bratsk, Angarsk, Ust?-Ilimsk",
     "utc": "+08:00"
   },
   {
@@ -2192,7 +2192,7 @@
   {
     "label": "Asia/Ulaanbaatar (GMT+08:00)",
     "tzCode": "Asia/Ulaanbaatar",
-    "name": "(GMT+08:00) Ulan Bator, Erdenet, Darhan, Hovd, Mörön",
+    "name": "(GMT+08:00) Ulan Bator, Erdenet, Darhan, Hovd, M?r?n",
     "utc": "+08:00"
   },
   {
@@ -2210,13 +2210,13 @@
   {
     "label": "Asia/Chita (GMT+09:00)",
     "tzCode": "Asia/Chita",
-    "name": "(GMT+09:00) Chita, Krasnokamensk, Borzya, Petrovsk-Zabaykal’skiy, Aginskoye",
+    "name": "(GMT+09:00) Chita, Krasnokamensk, Borzya, Petrovsk-Zabaykal?skiy, Aginskoye",
     "utc": "+09:00"
   },
   {
     "label": "Asia/Dili (GMT+09:00)",
     "tzCode": "Asia/Dili",
-    "name": "(GMT+09:00) Dili, Maliana, Suai, Likisá, Aileu",
+    "name": "(GMT+09:00) Dili, Maliana, Suai, Likis?, Aileu",
     "utc": "+09:00"
   },
   {
@@ -2234,7 +2234,7 @@
   {
     "label": "Asia/Pyongyang (GMT+09:00)",
     "tzCode": "Asia/Pyongyang",
-    "name": "(GMT+09:00) Pyongyang, Hamhŭng, Namp’o, Sunch’ŏn, Hŭngnam",
+    "name": "(GMT+09:00) Pyongyang, Hamhung, Namp?o, Sunch?on, Hungnam",
     "utc": "+09:00"
   },
   {
@@ -2384,7 +2384,7 @@
   {
     "label": "Asia/Sakhalin (GMT+11:00)",
     "tzCode": "Asia/Sakhalin",
-    "name": "(GMT+11:00) Yuzhno-Sakhalinsk, Korsakov, Kholmsk, Okha, Nevel’sk",
+    "name": "(GMT+11:00) Yuzhno-Sakhalinsk, Korsakov, Kholmsk, Okha, Nevel?sk",
     "utc": "+11:00"
   },
   {
@@ -2426,7 +2426,7 @@
   {
     "label": "Pacific/Noumea (GMT+11:00)",
     "tzCode": "Pacific/Noumea",
-    "name": "(GMT+11:00) Nouméa, Mont-Dore, Dumbéa, Païta, Wé",
+    "name": "(GMT+11:00) Noum?a, Mont-Dore, Dumb?a, Pa?ta, W?",
     "utc": "+11:00"
   },
   {
@@ -2450,7 +2450,7 @@
   {
     "label": "Asia/Kamchatka (GMT+12:00)",
     "tzCode": "Asia/Kamchatka",
-    "name": "(GMT+12:00) Petropavlovsk-Kamchatsky, Yelizovo, Vilyuchinsk, Klyuchi, Mil’kovo",
+    "name": "(GMT+12:00) Petropavlovsk-Kamchatsky, Yelizovo, Vilyuchinsk, Klyuchi, Mil?kovo",
     "utc": "+12:00"
   },
   {
@@ -2534,7 +2534,7 @@
   {
     "label": "Pacific/Tongatapu (GMT+13:00)",
     "tzCode": "Pacific/Tongatapu",
-    "name": "(GMT+13:00) Nuku‘alofa, Lapaha, Neiafu, Pangai, ‘Ohonua",
+    "name": "(GMT+13:00) Nuku?alofa, Lapaha, Neiafu, Pangai, ?Ohonua",
     "utc": "+13:00"
   },
   {

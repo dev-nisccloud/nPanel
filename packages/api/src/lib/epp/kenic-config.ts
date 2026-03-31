@@ -18,9 +18,16 @@ export function getKenicEppConfig(requireAuth: boolean): KenicEppEnvConfig {
 	const host = process.env.KENIC_EPP_HOST ?? "registry.kenic.or.ke";
 	const port = Number(process.env.KENIC_EPP_PORT ?? "700");
 	const timeoutMs = Number(process.env.KENIC_EPP_TIMEOUT_MS ?? "30000");
-	const tlsServername = process.env.KENIC_EPP_TLS_SERVERNAME?.trim() || undefined;
+	const isDefaultKenicHost = host.trim().toLowerCase() === "registry.kenic.or.ke";
+	const tlsServername =
+		process.env.KENIC_EPP_TLS_SERVERNAME?.trim() ||
+		// KENIC often presents a cert issued for the CoCCA endpoint.
+		(isDefaultKenicHost ? "epp.coccaregistry.org" : undefined);
 	const allowLegacyCommonNameFallback =
-		(process.env.KENIC_EPP_ALLOW_LEGACY_CN_FALLBACK ?? "false").toLowerCase() === "true";
+		(process.env.KENIC_EPP_ALLOW_LEGACY_CN_FALLBACK ??
+			// Default to safe compatibility for KENIC unless explicitly disabled.
+			(isDefaultKenicHost ? "true" : "false")
+		).toLowerCase() === "true";
 	const username = process.env.KENIC_EPP_USERNAME ?? "";
 	const password = process.env.KENIC_EPP_PASSWORD ?? "";
 

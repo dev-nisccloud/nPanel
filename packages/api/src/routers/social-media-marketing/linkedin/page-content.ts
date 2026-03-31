@@ -13,7 +13,7 @@ const OrganizationContentRequestSchema = z.object({
 	orgId: z.string().min(1, 'Organization ID is required'),
 	limit: z.number().min(1).max(100).optional().default(25),
 	accessToken: z.string().optional(), // Optional - will use stored token if not provided
-	apiVersion: z.string().optional().default('202501'),
+	apiVersion: z.string().optional().default('202603'),
 	useStoredToken: z.boolean().optional().default(true), // Whether to use stored token if available
 });
 
@@ -65,7 +65,7 @@ export const linkedinPageContentRouter = router({
 							method: 'GET',
 							headers: {
 								'Authorization': `Bearer ${accessToken}`,
-								'LinkedIn-Version': input.apiVersion || '202501',
+								'LinkedIn-Version': input.apiVersion || '202603',
 								'X-Restli-Protocol-Version': '2.0.0',
 							},
 						}
@@ -194,7 +194,7 @@ export const linkedinPageContentRouter = router({
 					.optional(),
 				scheduledPublishTime: z.number().optional(), // Unix timestamp in milliseconds
 				accessToken: z.string().optional(),
-				apiVersion: z.string().optional().default('202501'),
+				apiVersion: z.string().optional().default('202603'),
 				useStoredToken: z.boolean().optional().default(true),
 			})
 		)
