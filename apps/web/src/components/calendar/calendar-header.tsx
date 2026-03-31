@@ -57,7 +57,7 @@ export function CalendarHeader() {
                 <p className="hidden md:block text-xs text-muted-foreground">
                   You have {meetingsCount} meeting
                   {meetingsCount !== 1 ? "s" : ""} and {eventsCount} event
-                  {eventsCount !== 1 ? "s" : ""} today Ã°Å¸â€”â€œÃ¯Â¸Â
+                  {eventsCount !== 1 ? "s" : ""} today 🗓️
                 </p>
               </div>
             </div>

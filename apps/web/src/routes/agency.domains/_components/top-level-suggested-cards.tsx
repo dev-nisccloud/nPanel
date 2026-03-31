@@ -17,7 +17,7 @@ import type { DomainSearchResult } from "@/hooks/use-domain-search";
 
 const formatPrice = (price?: number, currency?: string) => {
 	if (price == null || price === undefined) return "N/A";
-	const symbols: Record<string, string> = { USD: "$", KES: "KSh", EUR: "Ã¢â€šÂ¬", GBP: " £" };
+	const symbols: Record<string, string> = { USD: "$", KES: "KSh", EUR: "€", GBP: " ?" };
 	const symbol = symbols[currency ?? "USD"] ?? currency ?? "$";
 	return `${symbol} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price)}`;
 };
@@ -39,10 +39,10 @@ function formatMarginLabel(
 /** Suggested single-TLD cards order: .co.ke, .ke, then .com */
 const SUGGESTED_OPEN_TLDS = ["com"] as const;
 
-/** Two short “why choose” points per TLD (and bundle) for suggested cards. Descriptions can wrap to two lines. */
+/** Two short ?why choose?? points per TLD (and bundle) for suggested cards. Descriptions can wrap to two lines. */
 const TLD_WHY_CHOOSE: Record<string, [string, string]> = {
 	"co.ke": [
-		"Kenya’s most trusted commercial extension, ideal for local businesses and brands.",
+		"Kenya?s most trusted commercial extension, ideal for local businesses and brands.",
 		"Strong local SEO and instant recognition with Kenyan customers.",
 	],
 	ke: [
@@ -50,7 +50,7 @@ const TLD_WHY_CHOOSE: Record<string, [string, string]> = {
 		"Perfect for startups and brands that want to stand out locally.",
 	],
 	com: [
-		"The world’s most recognized TLD, builds trust and credibility everywhere.",
+		"The world?s most recognized TLD, builds trust and credibility everywhere.",
 		"Best for global reach and lasting memorability.",
 	],
 	info: [
@@ -59,7 +59,7 @@ const TLD_WHY_CHOOSE: Record<string, [string, string]> = {
 	],
 	bundle: [
 		"Lock in .co.ke, .ke, .com & .net together and save.",
-		"One purchase, multiple identities—best value for your brand.",
+		"One purchase, multiple identities??best value for your brand.",
 	],
 };
 
@@ -236,7 +236,7 @@ export function TopLevelSuggestedCards({
 	const [bundleTotalKes, setBundleTotalKes] = React.useState<number | null>(null);
 	// NOTE: useEffect (NOT useLayoutEffect) is intentional. This is an async price calculation
 	// that must NOT block paint. useLayoutEffect + async Promise caused a tight render loop:
-	// effect fires → Promise resolves → setState → re-render → effect fires again (if deps changed).
+	// effect fires ? Promise resolves ? setState ? re-render ? effect fires again (if deps changed).
 	React.useEffect(() => {
 		if (!bundleInfo?.items.length || !convertPricesBatch) {
 			setBundleTotalKes(null);
@@ -429,7 +429,7 @@ function TopLevelCardsInner({
 			);
 		}
 
-	// .com from OpenProvider – original in converted (KES), display price after markup + conversion, show markup %
+	// .com from OpenProvider ? original in converted (KES), display price after markup + conversion, show markup %
 	for (const tld of SUGGESTED_OPEN_TLDS) {
 		const domain = `${name}.${tld}`;
 		const r = byDomain.get(domain);
@@ -653,7 +653,7 @@ function BundleCard({
 				) : null}
 			</div>
 			<div className="text-base font-bold text-foreground mb-2 line-clamp-2 break-words">
-				{bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "…"}
+				{bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "?"}
 			</div>
 			{TLD_WHY_CHOOSE.bundle ? (
 				<div>
@@ -669,7 +669,7 @@ function BundleCard({
 				</div>
 			) : null}
 			<div className="mt-auto flex items-center justify-center gap-2">
-				<Button size="sm" variant="default" onClick={() => { /* Get deal – logic left blank for now */ }} className="text-xs h-8 px-3">
+				<Button size="sm" variant="default" onClick={() => { /* Get deal ? logic left blank for now */ }} className="text-xs h-8 px-3">
 					Get deal
 				</Button>
 				<Button size="sm" variant="outline" onClick={handleAddBundle} className="text-xs h-8 px-3" disabled={anyInCart}>

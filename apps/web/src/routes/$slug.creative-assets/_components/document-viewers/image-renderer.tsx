@@ -91,7 +91,7 @@ export function ImageRenderer({
       </div>
       {imageDimensions && !isLoading && (
         <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-          {imageDimensions.width} Ãƒâ€” {imageDimensions.height}
+          {imageDimensions.width} × {imageDimensions.height}
         </div>
       )}
     </div>

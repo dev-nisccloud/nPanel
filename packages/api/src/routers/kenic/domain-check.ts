@@ -17,6 +17,7 @@ import {
 import { validateKenicDomains } from "../../lib/epp/kenic-tlds";
 
 const parser = new XMLParser({ ignoreAttributes: false });
+let kenicDomainCheckQueue: Promise<void> = Promise.resolve();
 
 /** Max domains per EPP check (with or without fee). 2400 was caused by .go.ke in the request; .go.ke is no longer offered. */
 const MAX_DOMAINS_PER_EPP_CHECK = 10;
@@ -32,8 +33,25 @@ function isRetryableEppError(error: unknown): boolean {
 		message.includes("ECONNREFUSED") ||
 		message.includes("ECONNRESET") ||
 		message.includes("ETIMEDOUT") ||
+		message.includes("EHOSTUNREACH") ||
+		message.includes("ENETUNREACH") ||
+		message.includes("ECONNABORTED") ||
 		message.includes("connection refused")
 	);
+}
+
+async function withKenicDomainCheckLock<T>(operation: () => Promise<T>): Promise<T> {
+	const previous = kenicDomainCheckQueue;
+	let release: (() => void) | null = null;
+	kenicDomainCheckQueue = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	await previous;
+	try {
+		return await operation();
+	} finally {
+		release?.();
+	}
 }
 
 /** Merge multiple EPP domain check responses into one parsed structure (resData + extension). */
@@ -167,7 +185,8 @@ export const kenicDomainCheckRouter = router({
 				includeRestoreFee: z.boolean().optional().default(false),
 			})
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input }) =>
+			withKenicDomainCheckLock(async () => {
 			const validation = validateKenicDomains(input.domains);
 			if (!validation.valid) {
 				const invalidDomains = "invalidDomains" in validation ? validation.invalidDomains : [];
@@ -304,6 +323,13 @@ export const kenicDomainCheckRouter = router({
 					};
 				} catch (error) {
 					lastError = error;
+					console.error("[KENIC EPP domainCheck] attempt failed", {
+						attempt: attempt + 1,
+						maxRetries,
+						domainCount: input.domains.length,
+						withFee: input.withFee,
+						error: error instanceof Error ? error.message : String(error),
+					});
 					if (error instanceof TRPCError) throw error;
 					const message = error instanceof Error ? error.message : String(error);
 					if (message.includes("KENIC_EPP_USERNAME") || message.includes("KENIC_EPP_PASSWORD")) {
@@ -319,8 +345,17 @@ export const kenicDomainCheckRouter = router({
 						const isRefused =
 							message.toLowerCase().includes("econnrefused") ||
 							message.toLowerCase().includes("connection refused");
+						const isTlsError =
+							message.toLowerCase().includes("certificate") ||
+							message.toLowerCase().includes("tls") ||
+							message.toLowerCase().includes("ssl");
 						throw new TRPCError({
-							code: isTimeout ? "TIMEOUT" : isRefused ? "SERVICE_UNAVAILABLE" : "INTERNAL_SERVER_ERROR",
+							code:
+								isTimeout
+									? "TIMEOUT"
+									: isRefused || isTlsError
+										? "SERVICE_UNAVAILABLE"
+										: "INTERNAL_SERVER_ERROR",
 							message: `EPP domain check failed${isLastAttempt && retryable ? ` after ${maxRetries} attempts` : ""}: ${message}`,
 							cause: error,
 						});
@@ -337,5 +372,6 @@ export const kenicDomainCheckRouter = router({
 				message: "EPP domain check failed after retries",
 				cause: lastError,
 			});
-		}),
+			})
+		),
 });

@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log("Ã¢Å“â€¦ Email verification successful via API");
+    console.log("✅ Email verification successful via API");
     return Response.json({ success: true, message: "Email verified successfully" });
 
   } catch (error: unknown) {

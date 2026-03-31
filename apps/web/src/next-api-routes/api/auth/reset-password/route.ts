@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("Ã¢Å“â€¦ Password reset successful via API");
+    console.log("✅ Password reset successful via API");
     return Response.json({ success: true, message: "Password reset successfully" });
 
   } catch (error: unknown) {

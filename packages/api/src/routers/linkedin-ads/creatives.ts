@@ -2,13 +2,13 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
-import { getStoredLinkedInAccessToken } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessTokenForUser } from '../../lib/linkedin-credentials';
 
 /**
  * Get user's LinkedIn integration with valid tokens
  */
-async function getUserIntegration() {
-	const tokenData = await getStoredLinkedInAccessToken();
+async function getUserIntegration(userId: string) {
+	const tokenData = await getStoredLinkedInAccessTokenForUser(userId);
 
 	if (!tokenData) {
 		throw new TRPCError({
@@ -31,6 +31,11 @@ function formatDateForLinkedIn(date: Date): { year: number; month: number; day: 
 	};
 }
 
+function normalizeStatusLabel(status: string | null | undefined): string | null {
+	if (!status) return null;
+	return status.replace(/_/g, ' ');
+}
+
 export const linkedInAdsCreativesRouter = router({
 	/**
 	 * List creatives (ads) for a campaign
@@ -39,6 +44,7 @@ export const linkedInAdsCreativesRouter = router({
 	listCreatives: protectedProcedure
 		.input(
 			z.object({
+				accountId: z.string().min(1, 'Account ID is required'),
 				campaignId: z.string().min(1, 'Campaign ID is required'),
 				timeRange: z
 					.object({
@@ -58,7 +64,7 @@ export const linkedInAdsCreativesRouter = router({
 					});
 				}
 
-				const { accessToken } = await getUserIntegration();
+				const { accessToken } = await getUserIntegration(userId);
 
 				// Create LinkedIn Ads client
 				const client = new LinkedInAdsClient({ accessToken });
@@ -77,7 +83,7 @@ export const linkedInAdsCreativesRouter = router({
 				await new Promise((resolve) => setTimeout(resolve, 300));
 
 				// Get creatives directly from LinkedIn API
-				const response = await client.getCreatives(campaignUrn);
+				const response = await client.getCreatives(campaignUrn, input.accountId);
 
 				// Fetch insights for each creative if time range is provided
 				const creativesWithInsights = [];
@@ -159,9 +165,10 @@ export const linkedInAdsCreativesRouter = router({
 					}
 
 					creativesWithInsights.push({
+						...creative,
 						id: creative.id,
 						name: creative.name || null,
-						status: creative.status || null,
+						status: normalizeStatusLabel(creative.status || null),
 						campaign: creative.campaign || null,
 						type: creative.type || null,
 						variables: creative.variables || null,
@@ -169,8 +176,6 @@ export const linkedInAdsCreativesRouter = router({
 						lastModified: creative.lastModified || null,
 						changeAuditStamps: creative.changeAuditStamps || null,
 						insights,
-						// Include any other fields returned by LinkedIn API
-						...creative,
 					});
 				}
 
@@ -226,7 +231,7 @@ export const linkedInAdsCreativesRouter = router({
 					});
 				}
 
-				const { accessToken } = await getUserIntegration();
+				const { accessToken } = await getUserIntegration(userId);
 
 				// Create LinkedIn Ads client
 				const client = new LinkedInAdsClient({ accessToken });

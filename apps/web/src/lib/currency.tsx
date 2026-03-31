@@ -33,7 +33,7 @@ export const currencyList: {
     label: "EUR",
     details: {
       country: "European Union",
-      currencySymbol: "Ã¢â€šÂ¬",
+      currencySymbol: "€",
       currencyName: "Euro",
       currencyShortForm: "EUR",
       icon: EU,

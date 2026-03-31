@@ -9,13 +9,108 @@ import { LinkedInErrorHandler } from './linkedin-error-handler';
  */
 export class LinkedInAdsClient {
 	private config: Required<LinkedInApiConfig>;
+	private debugEnabled: boolean;
 
 	constructor(config: LinkedInApiConfig) {
+		const envApiVersion =
+			process.env.LINKEDIN_MARKETING_API_VERSION ||
+			process.env.LINKEDIN_API_VERSION;
+		this.debugEnabled = process.env.LINKEDIN_ADS_DEBUG === 'true';
 		this.config = {
 			accessToken: config.accessToken,
-			apiVersion: config.apiVersion || '202501',
+			apiVersion: config.apiVersion || envApiVersion || '202603',
 			baseUrl: config.baseUrl || 'https://api.linkedin.com',
 		};
+	}
+
+	private extractAccountId(accountIdOrUrn: string): string {
+		if (accountIdOrUrn.startsWith('urn:li:sponsoredAccount:')) {
+			return accountIdOrUrn.split(':').pop() || accountIdOrUrn;
+		}
+		return accountIdOrUrn.replace(/[^0-9]/g, '') || accountIdOrUrn;
+	}
+
+	private normalizeElements<T = any>(response: any): T[] {
+		if (Array.isArray(response?.elements)) return response.elements as T[];
+		if (Array.isArray(response?.data)) return response.data as T[];
+		if (Array.isArray(response)) return response as T[];
+		return [];
+	}
+
+	private toLinkedInList(values: string[]): string {
+		return `List(${values.join(',')})`;
+	}
+
+	private toQueryValue(value: unknown): string {
+		if (Array.isArray(value)) return value.join(',');
+		if (typeof value === 'object' && value !== null) return JSON.stringify(value);
+		return String(value);
+	}
+
+	private buildAdAnalyticsQuery(params: Record<string, any>): string {
+		const entries = Object.entries(params).filter(([, value]) => value !== undefined && value !== null);
+		const parts = entries.map(([key, value]) => {
+			if (key === 'dateRange' && typeof value === 'string') {
+				// LinkedIn adAnalytics finder expects dateRange expression syntax, not percent-encoded.
+				return `${encodeURIComponent(key)}=${value}`;
+			}
+			return `${encodeURIComponent(key)}=${encodeURIComponent(this.toQueryValue(value))}`;
+		});
+		return parts.join('&');
+	}
+
+	private formatAnalyticsDateRange(dateRange: {
+		start: { year: number; month: number; day: number };
+		end: { year: number; month: number; day: number };
+	}): string {
+		const s = dateRange.start;
+		const e = dateRange.end;
+		return `(start:(year:${s.year},month:${s.month},day:${s.day}),end:(year:${e.year},month:${e.month},day:${e.day}))`;
+	}
+
+	private flattenAnalyticsDateRange(dateRange: {
+		start: { year: number; month: number; day: number };
+		end: { year: number; month: number; day: number };
+	}): Record<string, number> {
+		return {
+			'dateRange.start.year': dateRange.start.year,
+			'dateRange.start.month': dateRange.start.month,
+			'dateRange.start.day': dateRange.start.day,
+			'dateRange.end.year': dateRange.end.year,
+			'dateRange.end.month': dateRange.end.month,
+			'dateRange.end.day': dateRange.end.day,
+		};
+	}
+
+	private ensureUrn(value: string, type: 'ACCOUNT' | 'CAMPAIGN_GROUP' | 'CAMPAIGN' | 'CREATIVE'): string {
+		if (value.startsWith('urn:li:')) return value;
+		const numeric = value.replace(/[^0-9]/g, '');
+		if (!numeric) return value;
+		if (type === 'ACCOUNT') return `urn:li:sponsoredAccount:${numeric}`;
+		if (type === 'CAMPAIGN_GROUP') return `urn:li:sponsoredCampaignGroup:${numeric}`;
+		if (type === 'CAMPAIGN') return `urn:li:sponsoredCampaign:${numeric}`;
+		return `urn:li:sponsoredCreative:${numeric}`;
+	}
+
+	private maskAccessToken(token: string): string {
+		if (!token) return 'missing';
+		if (token.length <= 12) return '***';
+		return `${token.slice(0, 6)}...${token.slice(-4)}`;
+	}
+
+	private safeSerialize(value: unknown): string {
+		try {
+			const text = JSON.stringify(value);
+			if (!text) return '';
+			return text.length > 700 ? `${text.slice(0, 700)}...<truncated>` : text;
+		} catch {
+			return String(value);
+		}
+	}
+
+	private debugLog(event: string, payload: Record<string, unknown>): void {
+		if (!this.debugEnabled) return;
+		console.log(`[LinkedInAds Debug] ${event}`, payload);
 	}
 
 	/**
@@ -27,22 +122,23 @@ export class LinkedInAdsClient {
 		params?: Record<string, any>,
 		body?: any
 	): Promise<T> {
-		const url = new URL(`${this.config.baseUrl}${endpoint}`);
+		const isAdAnalyticsRequest = endpoint === '/rest/adAnalytics';
+		const baseUrl = `${this.config.baseUrl}${endpoint}`;
+		const url = new URL(baseUrl);
+		const requestId = `liads_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 		// Add query parameters
-		if (params) {
+		if (params && !isAdAnalyticsRequest) {
 			for (const [key, value] of Object.entries(params)) {
 				if (value !== undefined && value !== null) {
-					if (Array.isArray(value)) {
-						url.searchParams.set(key, value.join(','));
-					} else if (typeof value === 'object') {
-						url.searchParams.set(key, JSON.stringify(value));
-					} else {
-						url.searchParams.set(key, String(value));
-					}
+					url.searchParams.set(key, this.toQueryValue(value));
 				}
 			}
 		}
+
+		const requestUrl = isAdAnalyticsRequest && params
+			? `${baseUrl}?${this.buildAdAnalyticsQuery(params)}`
+			: url.toString();
 
 		const requestOptions: any = {
 			method,
@@ -54,12 +150,27 @@ export class LinkedInAdsClient {
 			},
 		};
 
+		this.debugLog('request', {
+			requestId,
+			method,
+			endpoint,
+			url: requestUrl,
+			params,
+			apiVersion: this.config.apiVersion,
+			accessToken: this.maskAccessToken(this.config.accessToken),
+		});
+
 		if (body && (method === 'POST' || method === 'PUT')) {
 			requestOptions.body = JSON.stringify(body);
 		}
 
 		try {
-			const response = await request(url.toString(), requestOptions);
+			const response = await request(requestUrl, requestOptions);
+			this.debugLog('response-status', {
+				requestId,
+				statusCode: response.statusCode,
+				endpoint,
+			});
 
 			// Check response status code
 			if (response.statusCode && response.statusCode >= 400) {
@@ -68,6 +179,12 @@ export class LinkedInAdsClient {
 
 				try {
 					responseText = await response.body.text();
+					this.debugLog('response-error-body', {
+						requestId,
+						endpoint,
+						statusCode: response.statusCode,
+						body: responseText.length > 1200 ? `${responseText.slice(0, 1200)}...<truncated>` : responseText,
+					});
 					if (responseText && responseText.trim()) {
 						try {
 							errorData = JSON.parse(responseText);
@@ -125,6 +242,12 @@ export class LinkedInAdsClient {
 			let responseData: unknown;
 			try {
 				const responseText = await response.body.text();
+				this.debugLog('response-success-body', {
+					requestId,
+					endpoint,
+					statusCode: response.statusCode,
+					body: responseText.length > 1200 ? `${responseText.slice(0, 1200)}...<truncated>` : responseText,
+				});
 				if (responseText && responseText.trim()) {
 					responseData = JSON.parse(responseText);
 				} else {
@@ -143,6 +266,11 @@ export class LinkedInAdsClient {
 
 			return responseData as T;
 		} catch (error) {
+			this.debugLog('request-failure', {
+				requestId,
+				endpoint,
+				error: this.safeSerialize(error),
+			});
 			if (error instanceof LinkedInApiError) {
 				if (!(error as any).errorType) {
 					const errorInfo = LinkedInErrorHandler.handleError(error);
@@ -200,19 +328,83 @@ export class LinkedInAdsClient {
 			'type',
 		];
 
-		const params: Record<string, any> = {
-			fields: (options?.fields || defaultFields).join(','),
+		const tryStrategy = async (
+			name: string,
+			params: Record<string, any>
+		): Promise<{ response: any; elements: any[] } | null> => {
+			try {
+				const response = await this.makeRequest<any>('GET', '/rest/adAccounts', params);
+				const elements = this.normalizeElements(response);
+				this.debugLog('accounts-strategy-result', {
+					strategy: name,
+					params,
+					elementsCount: elements.length,
+				});
+				return { response, elements };
+			} catch (error: any) {
+				this.debugLog('accounts-strategy-error', {
+					strategy: name,
+					status: error?.status,
+					message: error?.message,
+					errorType: error?.errorType,
+				});
+				if (error?.status === 404) return null;
+				throw error;
+			}
 		};
 
-		if (options?.start !== undefined) {
-			params.start = options.start;
+		// NOTE:
+		// LinkedIn adAccounts finder in this tenant/version rejects comma-projected `fields`
+		// as a literal field token (e.g. "id%2Cname..."). To ensure stable retrieval,
+		// fetch without projection and map needed fields in router layer.
+		const baseFields = (options?.fields || defaultFields).join(',');
+
+		// Strategy 1 (primary): finder search without explicit criteria (LinkedIn docs: returns all accessible)
+		const s1 = await tryStrategy('finder-search-all', {
+			q: 'search',
+			pageSize: 1000,
+		});
+		if (s1 && s1.elements.length > 0) {
+			return { ...s1.response, elements: s1.elements };
 		}
 
-		if (options?.count !== undefined) {
-			params.count = options.count;
+		// Strategy 2: finder search with explicit production filter
+		const s2 = await tryStrategy('finder-search-non-test', {
+			q: 'search',
+			search:
+				'(status:(values:List(ACTIVE,DRAFT,CANCELED,PENDING_DELETION,REMOVED)),type:(values:List(BUSINESS,ENTERPRISE)),test:false)',
+			sortOrder: 'DESCENDING',
+			pageSize: 1000,
+		});
+		if (s2 && s2.elements.length > 0) {
+			return { ...s2.response, elements: s2.elements };
 		}
 
-		return this.makeRequest('GET', '/rest/adAccountsV2', params);
+		// Strategy 3: plain list for tenants where collection GET is supported
+		const s3 = await tryStrategy('plain-list', {
+			start: options?.start,
+			count: options?.count,
+		});
+		if (s3 && s3.elements.length > 0) {
+			return { ...s3.response, elements: s3.elements };
+		}
+
+		// Strategy 4: finder search including test accounts
+		const s4 = await tryStrategy('finder-search-include-test', {
+			q: 'search',
+			search:
+				'(status:(values:List(ACTIVE,DRAFT,CANCELED,PENDING_DELETION,REMOVED)),type:(values:List(BUSINESS,ENTERPRISE)))',
+			sortOrder: 'DESCENDING',
+			pageSize: 1000,
+		});
+		if (s4) {
+			return { ...s4.response, elements: s4.elements };
+		}
+
+		return {
+			elements: [],
+			paging: undefined,
+		};
 	}
 
 	/**
@@ -233,23 +425,8 @@ export class LinkedInAdsClient {
 		reference?: string;
 		type?: string;
 	}> {
-		const defaultFields = [
-			'id',
-			'name',
-			'currency',
-			'timezone',
-			'status',
-			'accountStatus',
-			'servingStatuses',
-			'reference',
-			'type',
-		];
-
-		const fieldsToFetch = fields || defaultFields;
-
-		return this.makeRequest('GET', `/rest/adAccountsV2/${accountId}`, {
-			fields: fieldsToFetch.join(','),
-		});
+		const normalizedAccountId = this.extractAccountId(accountId);
+		return this.makeRequest('GET', `/rest/adAccounts/${normalizedAccountId}`);
 	}
 
 	/**
@@ -260,8 +437,8 @@ export class LinkedInAdsClient {
 		accountUrn: string,
 		options?: {
 			fields?: string[];
-			start?: number;
-			count?: number;
+			pageSize?: number;
+			pageToken?: string;
 		}
 	): Promise<{
 		elements: Array<any>;
@@ -282,20 +459,52 @@ export class LinkedInAdsClient {
 			'lastModified',
 		];
 
-		const params: Record<string, any> = {
-			account: accountUrn,
-			fields: (options?.fields || defaultFields).join(','),
+		const accountId = this.extractAccountId(accountUrn);
+		const endpoint = `/rest/adAccounts/${accountId}/adCampaignGroups`;
+
+		const trySearch = async (params: Record<string, any>) => {
+			try {
+				const response = await this.makeRequest<any>('GET', endpoint, params);
+				const elements = this.normalizeElements(response);
+				this.debugLog('campaignGroups-strategy-result', {
+					endpoint,
+					params,
+					elementsCount: elements.length,
+				});
+				return { ...response, elements };
+			} catch (error: any) {
+				this.debugLog('campaignGroups-strategy-error', {
+					endpoint,
+					params,
+					status: error?.status,
+					message: error?.message,
+					errorType: error?.errorType,
+				});
+				throw error;
+			}
 		};
 
-		if (options?.start !== undefined) {
-			params.start = options.start;
+		// Strategy 1: search without explicit filters
+		const baseParams: Record<string, any> = { q: 'search' };
+		if (options?.pageSize !== undefined) baseParams.pageSize = options.pageSize;
+		if (options?.pageToken) baseParams.pageToken = options.pageToken;
+		try {
+			return await trySearch(baseParams);
+		} catch {
+			// continue to dotted-param fallback
 		}
 
-		if (options?.count !== undefined) {
-			params.count = options.count;
-		}
-
-		return this.makeRequest('GET', '/rest/adCampaignGroupsV2', params);
+		// Strategy 2: dotted search params (accepted by many v2026 endpoints)
+		return trySearch({
+			q: 'search',
+			'search.status.values[0]': 'ACTIVE',
+			'search.status.values[1]': 'PAUSED',
+			'search.status.values[2]': 'DRAFT',
+			'search.status.values[3]': 'ARCHIVED',
+			'search.status.values[4]': 'CANCELED',
+			...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
+			...(options?.pageToken ? { pageToken: options.pageToken } : {}),
+		});
 	}
 
 	/**
@@ -319,9 +528,7 @@ export class LinkedInAdsClient {
 
 		const fieldsToFetch = fields || defaultFields;
 
-		return this.makeRequest('GET', `/rest/adCampaignGroupsV2/${campaignGroupId}`, {
-			fields: fieldsToFetch.join(','),
-		});
+		return this.makeRequest('GET', `/rest/adCampaignGroups/${campaignGroupId}`);
 	}
 
 	/**
@@ -330,10 +537,11 @@ export class LinkedInAdsClient {
 	 */
 	async getCampaigns(
 		campaignGroupUrn: string,
+		accountIdOrUrn: string,
 		options?: {
 			fields?: string[];
-			start?: number;
-			count?: number;
+			pageSize?: number;
+			pageToken?: string;
 		}
 	): Promise<{
 		elements: Array<any>;
@@ -359,20 +567,79 @@ export class LinkedInAdsClient {
 			'lastModified',
 		];
 
-		const params: Record<string, any> = {
-			campaignGroup: campaignGroupUrn,
-			fields: (options?.fields || defaultFields).join(','),
+		const accountId = this.extractAccountId(accountIdOrUrn);
+		const endpoint = `/rest/adAccounts/${accountId}/adCampaigns`;
+		const trySearch = async (strategy: string, params: Record<string, any>) => {
+			try {
+				const response = await this.makeRequest<any>('GET', endpoint, params);
+				const elements = this.normalizeElements(response);
+				this.debugLog('campaigns-strategy-result', {
+					endpoint,
+					strategy,
+					params,
+					elementsCount: elements.length,
+				});
+				return { ...response, elements };
+			} catch (error: any) {
+				this.debugLog('campaigns-strategy-error', {
+					endpoint,
+					strategy,
+					params,
+					status: error?.status,
+					message: error?.message,
+					errorType: error?.errorType,
+				});
+				throw error;
+			}
 		};
 
-		if (options?.start !== undefined) {
-			params.start = options.start;
+		const basePaging = {
+			...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
+			...(options?.pageToken ? { pageToken: options.pageToken } : {}),
+		};
+
+		// Strategy 1: finder search expression (preferred for this endpoint)
+		try {
+			return await trySearch('finder-search-expression', {
+				q: 'search',
+				search: `(campaignGroup:(values:${this.toLinkedInList([campaignGroupUrn])}),status:(values:List(ACTIVE,PAUSED,DRAFT,ARCHIVED,CANCELED)))`,
+				...basePaging,
+			});
+		} catch {
+			// fall through
 		}
 
-		if (options?.count !== undefined) {
-			params.count = options.count;
+		// Strategy 2: finder with campaign group only (broader, then local status filtering)
+		try {
+			const result = await trySearch('finder-search-campaign-group-only', {
+				q: 'search',
+				search: `(campaignGroup:(values:${this.toLinkedInList([campaignGroupUrn])}))`,
+				...basePaging,
+			});
+			const allowedStatuses = new Set(['ACTIVE', 'PAUSED', 'DRAFT', 'ARCHIVED', 'CANCELED']);
+			return {
+				...result,
+				elements: (result.elements || []).filter((campaign: any) => {
+					const status = String(campaign?.status || '').toUpperCase();
+					return !status || allowedStatuses.has(status);
+				}),
+			};
+		} catch {
+			// fall through
 		}
 
-		return this.makeRequest('GET', '/rest/adCampaignsV2', params);
+		// Strategy 3: plain finder search, then local campaign-group filtering
+		const fallback = await trySearch('finder-search-all-local-filter', {
+			q: 'search',
+			...basePaging,
+		});
+		const targetCampaignGroupUrn = campaignGroupUrn.startsWith('urn:li:')
+			? campaignGroupUrn
+			: this.ensureUrn(campaignGroupUrn, 'CAMPAIGN_GROUP');
+		return {
+			...fallback,
+			elements: (fallback.elements || []).filter((campaign: any) => String(campaign?.campaignGroup || '') === targetCampaignGroupUrn),
+		};
 	}
 
 	/**
@@ -398,9 +665,7 @@ export class LinkedInAdsClient {
 
 		const fieldsToFetch = fields || defaultFields;
 
-		return this.makeRequest('GET', `/rest/adCampaignsV2/${campaignId}`, {
-			fields: fieldsToFetch.join(','),
-		});
+		return this.makeRequest('GET', `/rest/adCampaigns/${campaignId}`);
 	}
 
 	/**
@@ -409,10 +674,11 @@ export class LinkedInAdsClient {
 	 */
 	async getCreatives(
 		campaignUrn: string,
+		accountIdOrUrn: string,
 		options?: {
 			fields?: string[];
-			start?: number;
-			count?: number;
+			pageSize?: number;
+			pageToken?: string;
 		}
 	): Promise<{
 		elements: Array<any>;
@@ -434,20 +700,92 @@ export class LinkedInAdsClient {
 			'lastModified',
 		];
 
-		const params: Record<string, any> = {
-			campaign: campaignUrn,
-			fields: (options?.fields || defaultFields).join(','),
+		const accountId = this.extractAccountId(accountIdOrUrn);
+		const endpoint = `/rest/adAccounts/${accountId}/creatives`;
+		const normalizedCampaignUrn = this.ensureUrn(campaignUrn, 'CAMPAIGN');
+
+		const tryCriteria = async (strategy: string, params: Record<string, any>) => {
+			try {
+				const response = await this.makeRequest<any>('GET', endpoint, params);
+				const elements = this.normalizeElements(response);
+				this.debugLog('creatives-strategy-result', {
+					endpoint,
+					strategy,
+					params,
+					elementsCount: elements.length,
+				});
+				return { ...response, elements };
+			} catch (error: any) {
+				this.debugLog('creatives-strategy-error', {
+					endpoint,
+					strategy,
+					params,
+					status: error?.status,
+					message: error?.message,
+					errorType: error?.errorType,
+				});
+				throw error;
+			}
 		};
 
-		if (options?.start !== undefined) {
-			params.start = options.start;
+		const basePaging = {
+			...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
+			...(options?.pageToken ? { pageToken: options.pageToken } : {}),
+		};
+
+		// Strategy 1: docs-aligned criteria finder by campaign + intended statuses
+		try {
+			return await tryCriteria('criteria-campaign-and-status', {
+				q: 'criteria',
+				campaigns: this.toLinkedInList([normalizedCampaignUrn]),
+				intendedStatuses: 'List(ACTIVE,PAUSED,DRAFT,ARCHIVED,CANCELED)',
+				sortOrder: 'ASCENDING',
+				...basePaging,
+			});
+		} catch {
+			// fall through
 		}
 
-		if (options?.count !== undefined) {
-			params.count = options.count;
+		// Strategy 2: criteria finder by campaign only, then local status filtering
+		try {
+			const result = await tryCriteria('criteria-campaign-only', {
+				q: 'criteria',
+				campaigns: this.toLinkedInList([normalizedCampaignUrn]),
+				sortOrder: 'ASCENDING',
+				...basePaging,
+			});
+			const allowedStatuses = new Set(['ACTIVE', 'PAUSED', 'DRAFT', 'ARCHIVED', 'CANCELED']);
+			return {
+				...result,
+				elements: (result.elements || []).filter((creative: any) => {
+					const status = String(creative?.intendedStatus || creative?.status || '').toUpperCase();
+					return !status || allowedStatuses.has(status);
+				}),
+			};
+		} catch (error: any) {
+			// If this account/version does not expose creatives endpoint, keep details page healthy.
+			if (error?.status === 404 || String(error?.message || '').includes('No virtual resource found')) {
+				return { elements: [], paging: undefined };
+			}
 		}
 
-		return this.makeRequest('GET', '/rest/adCreativesV2', params);
+		// Strategy 3: broad criteria finder then local filter by campaign
+		try {
+			const fallback = await tryCriteria('criteria-all-local-filter', {
+				q: 'criteria',
+				sortOrder: 'ASCENDING',
+				...basePaging,
+			});
+			return {
+				...fallback,
+				elements: (fallback.elements || []).filter((creative: any) => String(creative?.campaign || '') === normalizedCampaignUrn),
+			};
+		} catch (error: any) {
+			if (error?.status === 404 || String(error?.message || '').includes('No virtual resource found')) {
+				return { elements: [], paging: undefined };
+			}
+			throw error;
+		}
 	}
 
 	/**
@@ -469,9 +807,7 @@ export class LinkedInAdsClient {
 
 		const fieldsToFetch = fields || defaultFields;
 
-		return this.makeRequest('GET', `/rest/adCreativesV2/${creativeId}`, {
-			fields: fieldsToFetch.join(','),
-		});
+		return this.makeRequest('GET', `/rest/adCreatives/${creativeId}`);
 	}
 
 	/**
@@ -530,46 +866,45 @@ export class LinkedInAdsClient {
 			[key: string]: any;
 		}>;
 	}> {
-		const defaultFields = [
-			'impressions',
-			'clicks',
-			'costInLocalCurrency',
-			'externalWebsiteConversions',
-			'oneClickLeads',
-			'videoViews',
-			'videoCompletions',
-		];
-
-		const params: Record<string, any> = {
-			dateRange: JSON.stringify(options.dateRange),
-			fields: (options.fields || defaultFields).join(','),
+		const baseParams: Record<string, any> = {
+			q: 'analytics',
+			timeGranularity: options.timeGranularity || 'ALL',
 		};
 
-		if (options.timeGranularity) {
-			params.timeGranularity = options.timeGranularity;
-		}
-
 		if (options.accounts && options.accounts.length > 0) {
-			params.accounts = options.accounts.join(',');
+			const urns = options.accounts.map((v) => this.ensureUrn(v, 'ACCOUNT'));
+			baseParams.accounts = this.toLinkedInList(urns);
 		}
 
 		if (options.campaignGroups && options.campaignGroups.length > 0) {
-			params.campaignGroups = options.campaignGroups.join(',');
+			const urns = options.campaignGroups.map((v) => this.ensureUrn(v, 'CAMPAIGN_GROUP'));
+			baseParams.campaignGroups = this.toLinkedInList(urns);
 		}
 
 		if (options.campaigns && options.campaigns.length > 0) {
-			params.campaigns = options.campaigns.join(',');
+			const urns = options.campaigns.map((v) => this.ensureUrn(v, 'CAMPAIGN'));
+			baseParams.campaigns = this.toLinkedInList(urns);
 		}
 
 		if (options.creatives && options.creatives.length > 0) {
-			params.creatives = options.creatives.join(',');
+			const urns = options.creatives.map((v) => this.ensureUrn(v, 'CREATIVE'));
+			baseParams.creatives = this.toLinkedInList(urns);
 		}
 
 		if (options.pivots && options.pivots.length > 0) {
-			params.pivots = JSON.stringify(options.pivots);
+			baseParams.pivot = options.pivots[0]?.pivot;
+		}
+		if (!baseParams.pivot) {
+			if (baseParams.creatives) baseParams.pivot = 'CREATIVE';
+			else if (baseParams.campaigns) baseParams.pivot = 'CAMPAIGN';
+			else if (baseParams.campaignGroups) baseParams.pivot = 'CAMPAIGN_GROUP';
+			else if (baseParams.accounts) baseParams.pivot = 'ACCOUNT';
 		}
 
-		return this.makeRequest('GET', '/rest/adAnalyticsV2', params);
+		return this.makeRequest('GET', '/rest/adAnalytics', {
+			...baseParams,
+			dateRange: this.formatAnalyticsDateRange(options.dateRange),
+		});
 	}
 }
 

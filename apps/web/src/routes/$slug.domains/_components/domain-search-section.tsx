@@ -17,8 +17,8 @@ const formatPrice = (price?: number, currency?: string) => {
 	const symbols: Record<string, string> = {
 		USD: "$",
 		KES: "KSh",
-		EUR: "Ã¢â€šÂ¬",
-		GBP: " £",
+		EUR: "€",
+		GBP: " ?",
 	};
 	const symbol = symbols[currency ?? "USD"] ?? currency ?? "$";
 	const formatted = new Intl.NumberFormat("en-US", {
@@ -144,7 +144,7 @@ export function DomainSearchSection({
 
 	if (!searchQuery.trim()) return null;
 
-	// Per-section loading: only this section shows skeleton when this section’s query is loading
+	// Per-section loading: only this section shows skeleton when this section?s query is loading
 	if (isSelected === false) return <div className="min-h-[200px]" aria-hidden />;
 
 	return (

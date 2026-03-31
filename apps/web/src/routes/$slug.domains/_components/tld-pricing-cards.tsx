@@ -24,8 +24,8 @@ const formatPrice = (price: number, currency: string = "KES") => {
   const currencySymbols: Record<string, string> = {
     'USD': '$',
     'KES': 'KSh',
-    'EUR': 'Ã¢â€šÂ¬',
-    'GBP': ' £',
+    'EUR': '€',
+    'GBP': ' ?',
   };
 
   const symbol = currencySymbols[currency] || currency;

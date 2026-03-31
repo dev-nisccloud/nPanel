@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { toast } from "@/components/ui/sonner";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function LinkedInAdsCallbackPage() {
-	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
 	const [status, setStatus] = React.useState<"loading" | "success" | "error">("loading");
 	const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
@@ -23,9 +22,9 @@ export default function LinkedInAdsCallbackPage() {
 			setStatus("success");
 			setHasProcessed(true);
 			toast.success("LinkedIn Ads account connected successfully!");
-			// Redirect to LinkedIn Ads page after a short delay
+			// Use a hard redirect so LinkedIn Ads credentials are reloaded from server state.
 			setTimeout(() => {
-				navigate("/agency/ad-campaigns/linkedin-ads");
+				window.location.replace("/agency/ad-campaigns/linkedin-ads");
 			}, 2000);
 		},
 		onError: (error) => {
@@ -66,10 +65,22 @@ export default function LinkedInAdsCallbackPage() {
 			setErrorMessage("Invalid state parameter. Please try connecting again.");
 			return;
 		}
+		sessionStorage.removeItem("linkedin_ads_oauth_state");
+
+		const lastProcessedCode = sessionStorage.getItem("linkedin_ads_oauth_last_code");
+		if (code && lastProcessedCode === code) {
+			setStatus("success");
+			setHasProcessed(true);
+			setTimeout(() => {
+				window.location.replace("/agency/ad-campaigns/linkedin-ads");
+			}, 1000);
+			return;
+		}
 
 		// Exchange code for token
 		if (code) {
 			setHasProcessed(true);
+			sessionStorage.setItem("linkedin_ads_oauth_last_code", code);
 			generateTokenMutation.mutate({
 				code: code,
 				redirectUri: `${window.location.origin}/agency/ad-campaigns/linkedin-ads/callback`,
@@ -117,7 +128,7 @@ export default function LinkedInAdsCallbackPage() {
 									<AlertCircle className="h-12 w-12 text-destructive mb-4" />
 									<p className="text-sm text-destructive mb-4">{errorMessage}</p>
 									<Button
-										onClick={() => navigate("/agency/ad-campaigns/linkedin-ads")}
+										onClick={() => window.location.replace("/agency/ad-campaigns/linkedin-ads")}
 										variant="outline"
 									>
 										Go Back

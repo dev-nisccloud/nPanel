@@ -26,14 +26,14 @@ interface PriceToConvert {
 const DEFAULT_CURRENCIES: Currency[] = [
   { code: 'USD', name: 'US Dollar', symbol: '$' },
   { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh' },
-  { code: 'EUR', name: 'Euro', symbol: 'Ã¢â€šÂ¬' },
-  { code: 'GBP', name: 'British Pound', symbol: ' £' },
+  { code: 'EUR', name: 'Euro', symbol: '€' },
+  { code: 'GBP', name: 'British Pound', symbol: ' ?' },
   { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
   { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
-  { code: 'JPY', name: 'Japanese Yen', symbol: ' ¥' },
-  { code: 'INR', name: 'Indian Rupee', symbol: 'Ã¢â€šÂ¹' },
+  { code: 'JPY', name: 'Japanese Yen', symbol: ' ?' },
+  { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
   { code: 'ZAR', name: 'South African Rand', symbol: 'R' },
-  { code: 'NGN', name: 'Nigerian Naira', symbol: 'Ã¢â€šÂ¦' },
+  { code: 'NGN', name: 'Nigerian Naira', symbol: '₦' },
 ];
 
 export function useCurrencyConversion() {

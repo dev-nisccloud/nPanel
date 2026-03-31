@@ -2,13 +2,13 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
-import { getStoredLinkedInAccessToken } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessTokenForUser } from '../../lib/linkedin-credentials';
 
 /**
  * Get user's LinkedIn integration with valid tokens
  */
-async function getUserIntegration() {
-	const tokenData = await getStoredLinkedInAccessToken();
+async function getUserIntegration(userId: string) {
+	const tokenData = await getStoredLinkedInAccessTokenForUser(userId);
 
 	if (!tokenData) {
 		throw new TRPCError({
@@ -18,6 +18,18 @@ async function getUserIntegration() {
 	}
 
 	return tokenData;
+}
+
+function normalizeStatusLabel(status: string | null | undefined): string | null {
+	if (!status) return null;
+	return status.replace(/_/g, ' ');
+}
+
+function normalizeStatusArray(statuses: unknown): string[] {
+	if (!Array.isArray(statuses)) return [];
+	return statuses
+		.map((status) => (typeof status === 'string' ? status.replace(/_/g, ' ') : null))
+		.filter((status): status is string => Boolean(status));
 }
 
 export const linkedInAdsAccountsRouter = router({
@@ -35,22 +47,38 @@ export const linkedInAdsAccountsRouter = router({
 				});
 			}
 
-			const { accessToken } = await getUserIntegration();
+			const { accessToken, integrationId } = await getUserIntegration(userId);
+			const debugEnabled = process.env.LINKEDIN_ADS_DEBUG === 'true';
+			if (debugEnabled) {
+				console.log('[LinkedInAds Accounts Debug] integration-loaded', {
+					userId,
+					integrationId,
+				});
+			}
 
 			// Create LinkedIn Ads client
 			const client = new LinkedInAdsClient({ accessToken });
 
 			// Get accessible ad accounts
 			const response = await client.getAdAccounts();
+			if (debugEnabled) {
+				console.log('[LinkedInAds Accounts Debug] raw-response', {
+					userId,
+					integrationId,
+					elementsCount: Array.isArray((response as any)?.elements) ? (response as any).elements.length : 0,
+					hasPaging: !!(response as any)?.paging,
+					responseKeys: Object.keys((response as any) || {}),
+				});
+			}
 
 			// Format accounts for response
 			const accountResults = (response.elements || []).map((account) => ({
-				id: account.id,
+				id: String(account.id),
 				name: account.name || null,
 				currency: account.currency || null,
 				timezone: account.timezone || null,
-				status: account.status || account.accountStatus || null,
-				servingStatuses: account.servingStatuses || [],
+				status: normalizeStatusLabel(account.status || account.accountStatus || null),
+				servingStatuses: normalizeStatusArray(account.servingStatuses),
 				reference: account.reference || null,
 				type: account.type || null,
 			}));
@@ -65,6 +93,15 @@ export const linkedInAdsAccountsRouter = router({
 				},
 			};
 		} catch (error: any) {
+			if (process.env.LINKEDIN_ADS_DEBUG === 'true') {
+				console.log('[LinkedInAds Accounts Debug] listAdAccounts-error', {
+					status: error?.status,
+					message: error?.message,
+					serviceErrorCode: error?.serviceErrorCode,
+					errorType: error?.errorType,
+					userMessage: error?.userMessage,
+				});
+			}
 
 			// Handle 404 - user might not have any ad accounts or endpoint doesn't exist
 			if (error?.status === 404 || error?.message?.includes('No virtual resource found')) {
@@ -109,7 +146,7 @@ export const linkedInAdsAccountsRouter = router({
 					});
 				}
 
-				const { accessToken } = await getUserIntegration();
+				const { accessToken } = await getUserIntegration(userId);
 
 				// Create LinkedIn Ads client
 				const client = new LinkedInAdsClient({ accessToken });
@@ -121,12 +158,12 @@ export const linkedInAdsAccountsRouter = router({
 				return {
 					success: true,
 					data: {
-						id: accountDetails.id,
+						id: String(accountDetails.id),
 						name: accountDetails.name || null,
 						currency: accountDetails.currency || null,
 						timezone: accountDetails.timezone || null,
-						status: accountDetails.status || accountDetails.accountStatus || null,
-						servingStatuses: accountDetails.servingStatuses || [],
+						status: normalizeStatusLabel(accountDetails.status || accountDetails.accountStatus || null),
+						servingStatuses: normalizeStatusArray(accountDetails.servingStatuses),
 						reference: accountDetails.reference || null,
 						type: accountDetails.type || null,
 					},

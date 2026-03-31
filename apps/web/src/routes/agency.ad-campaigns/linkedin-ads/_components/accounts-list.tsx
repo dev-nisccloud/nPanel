@@ -4,9 +4,10 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
-import { Building2 } from "lucide-react";
+import { Building2, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router";
 import type { LinkedInAdsAccount } from "./schemas";
 import { ConnectLinkedInAds } from "./connect-linkedin-ads";
@@ -53,9 +54,47 @@ export function AccountsList() {
 		);
 	}
 
+	if (error) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>LinkedIn Ad Accounts</CardTitle>
+					<CardDescription>We could not load your LinkedIn ad accounts.</CardDescription>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<p className="text-sm text-muted-foreground">
+						{error.message || "Failed to load LinkedIn ad accounts"}
+					</p>
+					<div className="flex items-center gap-2">
+						<Button variant="outline" onClick={() => refetch()}>
+							<RefreshCw className="mr-2 h-4 w-4" />
+							Retry
+						</Button>
+						<ConnectLinkedInAds />
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
+
 	if (accounts.length === 0) {
 		return (
-			<ConnectLinkedInAds />
+			<Card>
+				<CardHeader>
+					<CardTitle>LinkedIn Ad Accounts</CardTitle>
+					<CardDescription>No accessible ad accounts were found.</CardDescription>
+				</CardHeader>
+				<CardContent className="space-y-3">
+					<p className="text-sm text-muted-foreground">
+						Your LinkedIn connection is active, but this user has no ad accounts accessible via the
+						Marketing API. If you just got access, click refresh.
+					</p>
+					<Button variant="outline" onClick={() => refetch()}>
+						<RefreshCw className="mr-2 h-4 w-4" />
+						Refresh accounts
+					</Button>
+				</CardContent>
+			</Card>
 		);
 	}
 

@@ -1,79 +1,138 @@
-# Powershell script to fix UTF-8 encoding corruption (mojibake)
-# This script uses byte arrays to define corrupted sequences to be encoding-independent.
+param(
+    [string]$Root = (Get-Location).Path,
+    [switch]$WhatIfOnly,
+    [int]$DecodePasses = 2
+)
 
 $ErrorActionPreference = "Stop"
 
-function Get-Utf8String([byte[]]$bytes) {
-    return [System.Text.Encoding]::UTF8.GetString($bytes)
+$allowedExtensions = @(
+    ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".md", ".mdx", ".txt",
+    ".yml", ".yaml", ".html", ".css", ".scss", ".less", ".env", ".graphql", ".sql",
+    ".prisma", ".sh", ".ps1", ".xml", ".csv"
+)
+
+$skipSegments = @(
+    "\.git\",
+    "\node_modules\",
+    "\dist\",
+    "\build\",
+    "\.next\",
+    "\coverage\",
+    "\out\",
+    "\bin\",
+    "\obj\",
+    "\.turbo\",
+    "\previous_codebase\"
+)
+
+function U([int]$codePoint) {
+    return [string][char]$codePoint
 }
 
-# Define replacements using byte sequences to avoid script encoding issues
-# Mapping based on: UTF-8 bytes for target symbol -> interpreted as CP1252 -> saved as UTF-8
-$replacements = [ordered]@{
-    # Arrow → (E2 86 92) -> C3 A2 E2 80 A0 E2 80 99
-    (Get-Utf8String @(0xC3, 0xA2, 0xE2, 0x80, 0xA0, 0xE2, 0x80, 0x99)) = "→"
-    
-    # Bullet • (E2 80 A2) -> C3 A2 E2 82 AC C2 A2
-    (Get-Utf8String @(0xC3, 0xA2, 0 E2, 0x82, 0xAC, 0xC2, 0xA2))       = "•"
-    
-    # Ellipsis … (E2 80 A6) -> C3 A2 E2 82 AC C2 A6
-    (Get-Utf8String @(0xC3, 0xA2, 0xE2, 0x82, 0xAC, 0xC2, 0xA6))       = "…"
-    
-    # En-dash – (E2 80 93) -> C3 A2 E2 82 AC E2 80 9C
-    (Get-Utf8String @(0xC3, 0xA2, 0xE2, 0x82, 0xAC, 0xE2, 0x80, 0x9C)) = "–"
-    
-    # Em-dash — (E2 80 94) -> C3 A2 E2 82 AC E2 80 9D
-    (Get-Utf8String @(0xC3, 0xA2, 0xE2, 0x82, 0xAC, 0xE2, 0x80, 0x9D)) = "—"
-    
-    # Left double quote “ (E2 80 9C) -> C3 A2 E2 82 AC E2 80 9C
-    # Wait, overlap with en-dash? Let's check.
-    # Actually, E2 80 9C (1252) is "â€œ". â=C3A2, €=E282AC, “=E2809C.
-    # Ah, the en-dash E2 80 93. 93 in 1252 is “ (U+201C).
-    # So en-dash becomes Ã¢â‚¬â€œ. No.
-    # Let's use literal string replacements for the most common ones instead of over-engineering if possible, 
-    # but I'll use hex for the risky characters like the arrow.
+function J([int[]]$cps) {
+    return -join ($cps | ForEach-Object { U $_ })
 }
 
-# Actually, let's go back to a simpler script but ensure it's saved with UTF-8 BOM if needed, 
-# or just use very specific literal strings and handle the errors.
+$suspectTokens = @(
+    (U 0x00C3), # ?
+    (U 0x00C2), # ?
+    (U 0x00E2), # ?
+    (U 0x00EF), # ?
+    (U 0x00F0)  # ?
+)
 
-# Final attempt at a robust replacement list
-$map = @{
-    "Ã¢â€ â€™" = "→"
-    "Ã¢â‚¬Â¢"   = "•"
-    "Ã¢â‚¬Â¦"   = "…"
-    "Ã¢â‚¬â€œ"   = "–"
-    "Ã¢â‚¬â€"    = "—"
-    "Ã¢â‚¬Å“"   = "“"
-    "Ã¢â‚¬Â "   = "” "
-    "Ã¢â‚¬Â"    = "”"
-    "Ã¢â‚¬Ëœ"   = "‘"
-    "Ã¢â‚¬â„¢"   = "’"
-    "Ã‚Â"        = " "
-    "ÃƒÂ©"       = "é"
-    "ÃƒÂ "       = "à"
+$manualMap = [ordered]@{
+    (J @(0x00E2,0x20AC,0x2122)) = (U 0x2019)
+    (J @(0x00E2,0x20AC,0x0153)) = (U 0x201C)
+    (J @(0x00E2,0x20AC,0x009D)) = (U 0x201D)
+    (J @(0x00E2,0x20AC,0x201C)) = (U 0x2013)
+    (J @(0x00E2,0x20AC,0x201D)) = (U 0x2014)
+    (J @(0x00E2,0x20AC,0x00A6)) = (U 0x2026)
+    (J @(0x00E2,0x20AC,0x00A2)) = (U 0x2022)
+    (J @(0x00E2,0x201E,0x00A2)) = (U 0x2122)
+    ((U 0x00C2) + " ") = " "
+    (U 0x00C2)         = ""
 }
 
-# Define file patterns
-$include = @("*.tsx", "*.ts", "*.js", "*.mjs", "*.json", "*.css", "*.md", "*.html")
-$exclude = @("node_modules/*", ".git/*", ".turbo/*", "dist/*", "build/*")
+$cp1252 = [System.Text.Encoding]::GetEncoding(1252)
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
-$files = Get-ChildItem -Recurse -File -Include $include -Exclude $exclude
+function Should-SkipPath {
+    param([string]$Path)
+    foreach ($segment in $skipSegments) {
+        if ($Path -like "*$segment*") {
+            return $true
+        }
+    }
+    return $false
+}
 
-foreach ($file in $files) {
+function Repair-Mojibake {
+    param([string]$Text)
+
+    $fixed = $Text
+    for ($i = 0; $i -lt $DecodePasses; $i++) {
+        $candidate = [System.Text.Encoding]::UTF8.GetString($cp1252.GetBytes($fixed))
+        if ($candidate -eq $fixed) {
+            break
+        }
+        $fixed = $candidate
+    }
+
+    foreach ($k in $manualMap.Keys) {
+        $fixed = $fixed.Replace($k, $manualMap[$k])
+    }
+
+    return $fixed
+}
+
+function Is-SuspectContent {
+    param([string]$Text)
+    foreach ($t in $suspectTokens) {
+        if ($Text.Contains($t)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+$filesScanned = 0
+$filesChanged = 0
+$filesErrored = 0
+
+Write-Host "Scanning: $Root"
+
+Get-ChildItem -Path $Root -Recurse -File | ForEach-Object {
+    $file = $_
+    $filesScanned++
+
+    if (Should-SkipPath -Path $file.FullName) { return }
+    if (-not ($allowedExtensions -contains $file.Extension.ToLowerInvariant())) { return }
+
     try {
-        $content = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
-        $modified = $false
-        foreach ($key in $map.Keys) {
-            if ($content.Contains($key)) {
-                $content = $content.Replace($key, $map[$key])
-                $modified = $true
-            }
-        }
-        if ($modified) {
+        $original = [System.IO.File]::ReadAllText($file.FullName)
+        if (-not (Is-SuspectContent -Text $original)) { return }
+
+        $fixed = Repair-Mojibake -Text $original
+        if ($fixed -eq $original) { return }
+
+        if ($WhatIfOnly) {
+            Write-Host "[DRY-RUN] Would fix: $($file.FullName)"
+        } else {
+            [System.IO.File]::WriteAllText($file.FullName, $fixed, $utf8NoBom)
             Write-Host "Fixed: $($file.FullName)"
-            [System.IO.File]::WriteAllText($file.FullName, $content, (New-Object System.Text.UTF8Encoding($false)))
         }
-    } catch {}
+
+        $filesChanged++
+    } catch {
+        $filesErrored++
+        Write-Warning "Failed: $($file.FullName) :: $($_.Exception.Message)"
+    }
 }
-Write-Host "Finished."
+
+if ($WhatIfOnly) {
+    Write-Host "Dry run complete. Scanned: $filesScanned | Would change: $filesChanged | Errors: $filesErrored"
+} else {
+    Write-Host "Done. Scanned: $filesScanned | Changed: $filesChanged | Errors: $filesErrored"
+}

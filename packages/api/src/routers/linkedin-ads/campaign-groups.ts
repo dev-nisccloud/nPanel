@@ -2,13 +2,13 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
-import { getStoredLinkedInAccessToken } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessTokenForUser } from '../../lib/linkedin-credentials';
 
 /**
  * Get user's LinkedIn integration with valid tokens
  */
-async function getUserIntegration() {
-	const tokenData = await getStoredLinkedInAccessToken();
+async function getUserIntegration(userId: string) {
+	const tokenData = await getStoredLinkedInAccessTokenForUser(userId);
 
 	if (!tokenData) {
 		throw new TRPCError({
@@ -29,6 +29,27 @@ function formatDateForLinkedIn(date: Date): { year: number; month: number; day: 
 		month: date.getMonth() + 1, // LinkedIn uses 1-based months
 		day: date.getDate(),
 	};
+}
+
+function normalizeStatusLabel(status: string | null | undefined): string | null {
+	if (!status) return null;
+	return status.replace(/_/g, ' ');
+}
+
+function normalizeStatusArray(statuses: unknown): string[] {
+	if (!Array.isArray(statuses)) return [];
+	return statuses
+		.map((status) => (typeof status === 'string' ? status.replace(/_/g, ' ') : null))
+		.filter((status): status is string => Boolean(status));
+}
+
+function parseDateInput(value: string): Date {
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+	if (m) {
+		const [, year, month, day] = m;
+		return new Date(Number(year), Number(month) - 1, Number(day));
+	}
+	return new Date(value);
 }
 
 export const linkedInAdsCampaignGroupsRouter = router({
@@ -59,7 +80,7 @@ export const linkedInAdsCampaignGroupsRouter = router({
 					});
 				}
 
-				const { accessToken } = await getUserIntegration();
+				const { accessToken } = await getUserIntegration(userId);
 
 				// Create LinkedIn Ads client
 				const client = new LinkedInAdsClient({ accessToken });
@@ -77,100 +98,107 @@ export const linkedInAdsCampaignGroupsRouter = router({
 				// Get campaign groups directly from LinkedIn API
 				const response = await client.getCampaignGroups(accountUrn);
 
-				// Fetch insights for each campaign group if time range is provided
-				const campaignGroupsWithInsights = await Promise.all(
-					(response.elements || []).map(async (campaignGroup: any) => {
-						let insights = null;
+				const campaignGroups = response.elements || [];
+				let insightsByCampaignGroupId: Record<string, any> = {};
 
-						// Determine date range for insights
-						if (input.timeRange || input.datePreset) {
-							try {
-								let startDate: Date;
-								let endDate = new Date();
+				// Bulk insights query (docs-aligned adAnalytics finder) to avoid one-request-per-group
+				if ((input.timeRange || input.datePreset) && campaignGroups.length > 0) {
+					try {
+						let startDate: Date;
+						let endDate = new Date();
 
-								if (input.timeRange) {
-									startDate = new Date(input.timeRange.since);
-									endDate = new Date(input.timeRange.until);
-								} else if (input.datePreset) {
-									// Calculate date range from preset
-									const days = input.datePreset === 'last_7d' ? 7 : input.datePreset === 'last_30d' ? 30 : 365;
-									startDate = new Date();
-									startDate.setDate(startDate.getDate() - days);
-								} else {
-									// Default to last 30 days
-									startDate = new Date();
-									startDate.setDate(startDate.getDate() - 30);
-								}
-
-								// Fetch insights for this campaign group
-								const insightsResponse = await client.getAnalytics({
-									dateRange: {
-										start: formatDateForLinkedIn(startDate),
-										end: formatDateForLinkedIn(endDate),
-									},
-									campaignGroups: [campaignGroup.id],
-									fields: [
-										'impressions',
-										'clicks',
-										'costInLocalCurrency',
-										'externalWebsiteConversions',
-										'oneClickLeads',
-										'videoViews',
-										'videoCompletions',
-									],
-								});
-
-								if (insightsResponse.elements && insightsResponse.elements.length > 0) {
-									// Aggregate insights across all elements
-									const aggregated = insightsResponse.elements.reduce(
-										(acc: any, elem: any) => {
-											acc.impressions = (acc.impressions || 0) + (elem.impressions || 0);
-											acc.clicks = (acc.clicks || 0) + (elem.clicks || 0);
-											acc.costInLocalCurrency = (acc.costInLocalCurrency || 0) + (elem.costInLocalCurrency || 0);
-											acc.externalWebsiteConversions = (acc.externalWebsiteConversions || 0) + (elem.externalWebsiteConversions || 0);
-											acc.oneClickLeads = (acc.oneClickLeads || 0) + (elem.oneClickLeads || 0);
-											acc.videoViews = (acc.videoViews || 0) + (elem.videoViews || 0);
-											acc.videoCompletions = (acc.videoCompletions || 0) + (elem.videoCompletions || 0);
-											return acc;
-										},
-										{}
-									);
-
-									// Calculate derived metrics
-									const cpc = aggregated.clicks > 0 ? aggregated.costInLocalCurrency / aggregated.clicks : null;
-									const ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions) * 100 : null;
-
-									insights = {
-										impressions: aggregated.impressions || null,
-										clicks: aggregated.clicks || null,
-										spend: aggregated.costInLocalCurrency || null,
-										externalWebsiteConversions: aggregated.externalWebsiteConversions || null,
-										oneClickLeads: aggregated.oneClickLeads || null,
-										videoViews: aggregated.videoViews || null,
-										videoCompletions: aggregated.videoCompletions || null,
-										cpc: cpc ? String(cpc) : null,
-										ctr: ctr ? String(ctr) : null,
-									};
-								}
-							} catch (error) {
-								// If insights fail, continue without them
-							}
+						if (input.timeRange) {
+							startDate = parseDateInput(input.timeRange.since);
+							endDate = parseDateInput(input.timeRange.until);
+						} else if (input.datePreset) {
+							const days = input.datePreset === 'last_7d' ? 7 : input.datePreset === 'last_30d' ? 30 : 365;
+							startDate = new Date();
+							startDate.setDate(startDate.getDate() - days);
+						} else {
+							startDate = new Date();
+							startDate.setDate(startDate.getDate() - 30);
 						}
 
-						return {
-							id: campaignGroup.id,
-							name: campaignGroup.name || null,
-							status: campaignGroup.status || campaignGroup.campaignGroupStatus || null,
-							account: campaignGroup.account || null,
-							runSchedule: campaignGroup.runSchedule || null,
-							created: campaignGroup.created || null,
-							lastModified: campaignGroup.lastModified || null,
-							insights,
-							// Include any other fields returned by LinkedIn API
-							...campaignGroup,
+						const insightsResponse = await client.getAnalytics({
+							dateRange: {
+								start: formatDateForLinkedIn(startDate),
+								end: formatDateForLinkedIn(endDate),
+							},
+							accounts: [input.accountId],
+							pivots: [{ pivot: 'CAMPAIGN_GROUP' }],
+							fields: [
+								'impressions',
+								'clicks',
+								'costInLocalCurrency',
+								'externalWebsiteConversions',
+								'oneClickLeads',
+								'videoViews',
+								'videoCompletions',
+								'pivotValues',
+							],
+						});
+
+						for (const elem of insightsResponse.elements || []) {
+							const pivot = Array.isArray((elem as any).pivotValues) ? (elem as any).pivotValues[0] : undefined;
+							if (!pivot) continue;
+							const groupId = String(pivot).split(':').pop();
+							if (!groupId) continue;
+
+							const acc = insightsByCampaignGroupId[groupId] || {
+								impressions: 0,
+								clicks: 0,
+								costInLocalCurrency: 0,
+								externalWebsiteConversions: 0,
+								oneClickLeads: 0,
+								videoViews: 0,
+								videoCompletions: 0,
+							};
+							acc.impressions += Number((elem as any).impressions || 0);
+							acc.clicks += Number((elem as any).clicks || 0);
+							acc.costInLocalCurrency += Number((elem as any).costInLocalCurrency || 0);
+							acc.externalWebsiteConversions += Number((elem as any).externalWebsiteConversions || 0);
+							acc.oneClickLeads += Number((elem as any).oneClickLeads || 0);
+							acc.videoViews += Number((elem as any).videoViews || 0);
+							acc.videoCompletions += Number((elem as any).videoCompletions || 0);
+							insightsByCampaignGroupId[groupId] = acc;
+						}
+					} catch {
+						// Keep list endpoint healthy even if insights fail
+					}
+				}
+
+				const campaignGroupsWithInsights = campaignGroups.map((campaignGroup: any) => {
+					const aggregated = insightsByCampaignGroupId[String(campaignGroup.id)];
+					let insights = null;
+					if (aggregated) {
+						const cpc = aggregated.clicks > 0 ? aggregated.costInLocalCurrency / aggregated.clicks : null;
+						const ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions) * 100 : null;
+						insights = {
+							impressions: aggregated.impressions || null,
+							clicks: aggregated.clicks || null,
+							spend: aggregated.costInLocalCurrency || null,
+							externalWebsiteConversions: aggregated.externalWebsiteConversions || null,
+							oneClickLeads: aggregated.oneClickLeads || null,
+							videoViews: aggregated.videoViews || null,
+							videoCompletions: aggregated.videoCompletions || null,
+							cpc: cpc ? String(cpc) : null,
+							ctr: ctr ? String(ctr) : null,
 						};
-					})
-				);
+					}
+
+					return {
+						...campaignGroup,
+						id: campaignGroup.id,
+						name: campaignGroup.name || null,
+						status: normalizeStatusLabel(campaignGroup.status || campaignGroup.campaignGroupStatus || null),
+						servingStatuses: normalizeStatusArray(campaignGroup.servingStatuses),
+						account: campaignGroup.account || null,
+						runSchedule: campaignGroup.runSchedule || null,
+						created: campaignGroup.created || null,
+						lastModified: campaignGroup.lastModified || null,
+						insights,
+					};
+				});
 
 				return {
 					success: true,
@@ -214,7 +242,7 @@ export const linkedInAdsCampaignGroupsRouter = router({
 					});
 				}
 
-				const { accessToken } = await getUserIntegration();
+				const { accessToken } = await getUserIntegration(userId);
 
 				// Create LinkedIn Ads client
 				const client = new LinkedInAdsClient({ accessToken });

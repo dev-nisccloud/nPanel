@@ -167,14 +167,14 @@ function ProtectBrandTabContent({ domainNameWithoutTld, isActive = true }: Prote
     const currencySymbols: Record<string, string> = {
       'USD': '$',
       'KES': 'KSh',
-      'EUR': 'Ã¢â€šÂ¬',
-      'GBP': ' £',
+      'EUR': '€',
+      'GBP': ' ?',
       'CAD': 'C$',
       'AUD': 'A$',
-      'JPY': ' ¥',
-      'INR': 'Ã¢â€šÂ¹',
+      'JPY': ' ?',
+      'INR': '₹',
       'ZAR': 'R',
-      'NGN': 'Ã¢â€šÂ¦',
+      'NGN': '₦',
     };
 
     const symbol = currencySymbols[currency || 'USD'] || currency || '$';

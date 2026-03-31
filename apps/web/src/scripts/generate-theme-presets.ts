@@ -22,7 +22,7 @@ import prettier from "prettier";
 const presetDir = path.resolve(__dirname, "../styles/presets");
 
 if (!fs.existsSync(presetDir)) {
-  console.error(`Ã¢ÂÅ’ Preset directory not found at: ${presetDir}`);
+  console.error(`❌ Preset directory not found at: ${presetDir}`);
   process.exit(1);
 }
 
@@ -31,7 +31,7 @@ const outputPath = path.resolve(__dirname, "../types/preferences/theme.ts");
 const files = fs.readdirSync(presetDir).filter((file) => file.endsWith(".css"));
 
 if (files.length === 0) {
-  console.warn("Ã¢Å¡Â Ã¯Â¸Â No preset CSS files found. Only default preset will be included.");
+  console.warn("⚠️ No preset CSS files found. Only default preset will be included.");
 }
 
 // eslint-disable-next-line complexity
@@ -44,10 +44,10 @@ const presets = files.map((file) => {
   const valueMatch = content.match(/value:\s*(.+)/);
 
   if (!labelMatch) {
-    console.warn(`Ã¢Å¡Â Ã¯Â¸Â No 'label:' found in ${file}, using filename as fallback.`);
+    console.warn(`⚠️ No 'label:' found in ${file}, using filename as fallback.`);
   }
   if (!valueMatch) {
-    console.warn(`Ã¢Å¡Â Ã¯Â¸Â No 'value:' found in ${file}, using filename as fallback.`);
+    console.warn(`⚠️ No 'value:' found in ${file}, using filename as fallback.`);
   }
 
   const label = labelMatch?.[1]?.trim() ?? file.replace(".css", "");
@@ -62,7 +62,7 @@ const presets = files.map((file) => {
   };
 
   if (!lightPrimaryMatch || !darkPrimaryMatch) {
-    console.warn(`Ã¢Å¡Â Ã¯Â¸Â Missing --primary for ${file} (light or dark). Check CSS syntax.`);
+    console.warn(`⚠️ Missing --primary for ${file} (light or dark). Check CSS syntax.`);
   }
 
   return { label, value, primary };
@@ -74,7 +74,7 @@ let globalContent = "";
 try {
   globalContent = fs.readFileSync(globalStylesPath, "utf8");
 } catch (err) {
-  console.error(`Ã¢ÂÅ’ Could not read globals.css at ${globalStylesPath}`);
+  console.error(`❌ Could not read globals.css at ${globalStylesPath}`);
   console.error(err);
   process.exit(1);
 }
@@ -113,15 +113,15 @@ async function main() {
   const formatted = await prettier.format(updated, { parser: "typescript" });
 
   if (formatted === fileContent) {
-    console.log("Ã¢â€žÂ¹Ã¯Â¸Â  No changes in theme.ts");
+    console.log("ℹ️  No changes in theme.ts");
     return;
   }
 
   fs.writeFileSync(outputPath, formatted);
-  console.log("Ã¢Å“â€¦ theme.ts updated with new theme presets");
+  console.log("✅ theme.ts updated with new theme presets");
 }
 
 main().catch((err) => {
-  console.error("Ã¢ÂÅ’ Unexpected error while generating theme presets:", err);
+  console.error("❌ Unexpected error while generating theme presets:", err);
   process.exit(1);
 });
