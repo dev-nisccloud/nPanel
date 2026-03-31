@@ -595,7 +595,7 @@ export function TldSettingsCards() {
           <p className="text-muted-foreground mb-4">
             Get started by adding your first TLD setting
           </p>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Button onClick={() => setIsCreateDialogOpen(true)} className="mx-auto w-fit">
             <Plus className="mr-2 h-4 w-4" />
             Add TLD Setting
           </Button>

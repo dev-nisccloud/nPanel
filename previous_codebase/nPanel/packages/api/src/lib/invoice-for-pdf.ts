@@ -6,7 +6,7 @@ type DbClient = PrismaClient | Omit<PrismaClient, "$connect" | "$disconnect" | "
 
 /**
  * Fetches an invoice in the same shape as getById (InvoiceDetail).
- * For server-side use only (e.g. PDF generation in NISC worker). Does not perform auth.
+ * For server-side use only (e.g. PDF generation in Nisc worker). Does not perform auth.
  */
 export async function getInvoiceDetailForPdf(db: DbClient, invoiceId: string): Promise<InvoiceDetail> {
 	const invoice = await fetchInvoiceDetail(db, invoiceId);

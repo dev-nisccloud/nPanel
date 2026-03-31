@@ -137,7 +137,7 @@ export const OrderReceivedEmail = ({
 
 OrderReceivedEmail.PreviewProps = {
   customerName: 'Finey Otieno Akwoyo',
-  orderNumber: 'NISC-2026-034438-309',
+  orderNumber: 'Nisc-2026-034438-309',
   orderDate: '2026-02-25 10:30 AM',
   totalAmount: '2,194.02',
   currency: 'KES',

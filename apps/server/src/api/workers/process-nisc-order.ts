@@ -263,7 +263,7 @@ export async function handleProcessNiscOrder(c: Context) {
 					await sendEmailBatch(
 						superAdminEmails.map((to) => ({
 							to,
-							subject: `[NISC Admin] Order confirmed: ${orderAfter!.orderNumber}`,
+							subject: `[Nisc Admin] Order confirmed: ${orderAfter!.orderNumber}`,
 							html,
 						})),
 					);
@@ -284,7 +284,7 @@ export async function handleProcessNiscOrder(c: Context) {
 					await sendEmailBatch(
 						superAdminEmails.map((to) => ({
 							to,
-							subject: `[NISC Admin] Order could not be completed: ${orderAfter!.orderNumber}`,
+							subject: `[Nisc Admin] Order could not be completed: ${orderAfter!.orderNumber}`,
 							html,
 						})),
 					);

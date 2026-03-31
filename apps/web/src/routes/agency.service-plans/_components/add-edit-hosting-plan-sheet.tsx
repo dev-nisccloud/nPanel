@@ -450,7 +450,7 @@ export function AddEditHostingPlanSheet({
               <SheetDescription className="text-base">
                 {isEditing 
                   ? "Update the service plan details" 
-                  : "Create a new NISC service plan for your customers"
+                  : "Create a new Nisc service plan for your customers"
                 }
               </SheetDescription>
             </div>
@@ -514,7 +514,7 @@ export function AddEditHostingPlanSheet({
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Service Plan Type</CardTitle>
-                  <CardDescription>Select the type of NISC service plan</CardDescription>
+                  <CardDescription>Select the type of Nisc service plan</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField

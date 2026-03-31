@@ -31,14 +31,14 @@ export interface CampaignSendJobResult {
 }
 
 /**
- * QStash job payload for NISC order processing (immediate)
+ * QStash job payload for Nisc order processing (immediate)
  */
 export interface NiscOrderJobPayload {
 	niscOrderId: string;
 }
 
 /**
- * QStash job result for NISC order processing
+ * QStash job result for Nisc order processing
  */
 export interface NiscOrderJobResult {
 	messageId: string;

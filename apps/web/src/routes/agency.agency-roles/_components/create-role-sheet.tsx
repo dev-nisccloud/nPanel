@@ -57,7 +57,7 @@ const groupByCategory = (keys: readonly z.infer<typeof agencyMenuKeyUiSchema>[])
 		else if (key.startsWith("/agency/seo")) category = "SEO";
 		else if (key.startsWith("/agency/creative-assets")) category = "Creatives";
 		else if (key.startsWith("/agency/gen-ai")) category = "Gen AI";
-		else if (key.startsWith("/agency/nisc-")) category = "NISC Services";
+		else if (key.startsWith("/agency/nisc-")) category = "Nisc Services";
 		else if (key.startsWith("/agency/clients") || key.startsWith("/agency/manage-")) category = "Clients & Teams";
 		else if (key.startsWith("/agency/billing") || key === "/agency/transactions") category = "Billing Overview";
 		else if (key.startsWith("/agency/invoices") || key.startsWith("/agency/subscriptions") || key.startsWith("/agency/quotations"))

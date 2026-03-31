@@ -1,5 +1,5 @@
 /**
- * Auto-create invoice for a completed NISC order when team has complete billing settings.
+ * Auto-create invoice for a completed Nisc order when team has complete billing settings.
  * Used by the process-nisc-order worker.
  */
 import * as crypto from "crypto";
@@ -201,7 +201,7 @@ export async function createInvoiceForNiscOrder(
 			invoiceId: newInvoiceId,
 			userId: createdBy,
 			action: "CREATE",
-			description: "Auto-generated invoice from NISC order",
+			description: "Auto-generated invoice from Nisc order",
 			metadata: { niscOrderId: order.id, orderNumber: order.orderNumber },
 			createdAt: now,
 		},

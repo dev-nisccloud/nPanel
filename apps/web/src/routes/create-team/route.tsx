@@ -10,7 +10,7 @@ export default function CreateTeamRouteLayout() {
           <div className="pt-10 xl:pt-12">
             <img
               src="/nisclogooriginal.png"
-              alt="NISC"
+              alt="Nisc"
               width={180}
               height={60}
               className="h-15 w-auto max-w-full object-contain object-left"

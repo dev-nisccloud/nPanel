@@ -151,6 +151,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
   const [viewingMediaFile, setViewingMediaFile] = useState<FileManagerItem | null>(null);
   const [extractZipDialogOpen, setExtractZipDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FileManagerItem | null>(null);
+  const [bulkDeleteItems, setBulkDeleteItems] = useState<FileManagerItem[] | null>(null);
   const [viewingFile, setViewingFile] = useState<FileManagerItem | null>(null);
   const [extractingFile, setExtractingFile] = useState<FileManagerItem | null>(null);
   const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
@@ -237,6 +238,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
   // Dialog handlers
   const handleDeleteClick = (item: FileManagerItem) => {
     setSelectedItem(item);
+    setBulkDeleteItems(null);
     setDeleteDialogOpen(true);
   };
 
@@ -290,9 +292,26 @@ export function FileManager({ hostingData }: FileManagerProps) {
   };
 
   const handleDeleteConfirm = async () => {
-    if (selectedItem) {
-      await deleteItem(selectedItem);
+    const itemsToDelete =
+      bulkDeleteItems && bulkDeleteItems.length > 0
+        ? bulkDeleteItems
+        : selectedItem
+          ? [selectedItem]
+          : [];
+
+    if (itemsToDelete.length === 0) return;
+
+    for (const item of itemsToDelete) {
+      // eslint-disable-next-line no-await-in-loop
+      await deleteItem(item);
     }
+
+    if (bulkDeleteItems && bulkDeleteItems.length > 0) {
+      setSelectedItems([]);
+      setBulkDeleteItems(null);
+    }
+
+    setSelectedItem(null);
   };
 
   const handleRenameConfirm = async (newName: string) => {
@@ -332,49 +351,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
       return;
     }
 
-    // Show confirmation toast
-    const itemTypes = itemsToDelete.reduce((acc, item) => {
-      acc[item.type] = (acc[item.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const typeSummary = Object.entries(itemTypes)
-      .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
-      .join(', ');
-
-    toast.info(`Deleting ${typeSummary}...`);
-
-    try {
-      let successCount = 0;
-      let errorCount = 0;
-
-      // Delete each item
-      for (const item of itemsToDelete) {
-        try {
-          await deleteItem(item);
-          successCount++;
-        } catch (error) {
-          console.error(`Error deleting ${item.name}:`, error);
-          errorCount++;
-        }
-      }
-
-      // Clear selection after deletion attempt
-      setSelectedItems([]);
-
-      // Show appropriate success/error message
-      if (errorCount === 0) {
-        toast.success(`Successfully deleted ${successCount} item${successCount > 1 ? 's' : ''}`);
-      } else if (successCount === 0) {
-        toast.error(`Failed to delete all ${errorCount} item${errorCount > 1 ? 's' : ''}`);
-      } else {
-        toast.warning(`Deleted ${successCount} item${successCount > 1 ? 's' : ''}, ${errorCount} failed`);
-      }
-    } catch (error) {
-      console.error("Error in bulk delete:", error);
-      toast.error("Failed to delete items");
-      setSelectedItems([]);
-    }
+    setBulkDeleteItems(itemsToDelete);
+    setDeleteDialogOpen(true);
   };
 
   const CardView = () => (
@@ -391,9 +369,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
               <div className="flex items-start justify-between mb-2">
                 <Checkbox
                   checked={selectedItems.includes(item.id)}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    handleSelectItem(item.id, (e.target as HTMLInputElement).checked);
+                  onCheckedChange={(checked) => {
+                    handleSelectItem(item.id, !!checked);
                   }}
                 />
                 <DropdownMenu>
@@ -525,9 +502,11 @@ export function FileManager({ hostingData }: FileManagerProps) {
               <Checkbox
                 checked={isAllSelected}
                 ref={(el) => {
-                  if (el) (el as HTMLInputElement).indeterminate = isIndeterminate;
+                  if (el) {
+                    (el as HTMLButtonElement).indeterminate = isIndeterminate;
+                  }
                 }}
-                onChange={(e) => handleSelectAll((e.target as HTMLInputElement).checked)}
+                onCheckedChange={(checked) => handleSelectAll(!!checked)}
               />
             </TableHead>
             <TableHead className="pl-6">Name</TableHead>
@@ -547,9 +526,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
               <TableCell>
                 <Checkbox
                   checked={selectedItems.includes(item.id)}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    handleSelectItem(item.id, (e.target as HTMLInputElement).checked);
+                  onCheckedChange={(checked) => {
+                    handleSelectItem(item.id, !!checked);
                   }}
                 />
               </TableCell>
@@ -657,6 +635,32 @@ export function FileManager({ hostingData }: FileManagerProps) {
 
   return (
     <div className="space-y-4">
+      {/* Current path (full-width, wraps) */}
+      <div className="w-full rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-1 break-words">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={navigateUp}
+            disabled={currentPath === "/"}
+            className="h-6 px-2"
+          >
+            <ArrowLeft className="h-3 w-3" />
+          </Button>
+          {(data?.breadcrumbs || []).map((crumb, index) => (
+            <React.Fragment key={crumb.path}>
+              <span
+                className="cursor-pointer hover:text-foreground"
+                onClick={() => navigateToBreadcrumb(crumb.path)}
+              >
+                {crumb.name}
+              </span>
+              {index < (data?.breadcrumbs || []).length - 1 && <span>/</span>}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
       {/* Header with controls */}
       <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
         <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center">
@@ -667,32 +671,6 @@ export function FileManager({ hostingData }: FileManagerProps) {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full @sm/main:w-80"
             />
-          </div>
-
-          {/* Breadcrumbs */}
-          <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={navigateUp}
-              disabled={currentPath === "/"}
-              className="h-6 px-2"
-            >
-              <ArrowLeft className="h-3 w-3" />
-            </Button>
-            {(data?.breadcrumbs || []).map((crumb, index) => (
-              <React.Fragment key={crumb.path}>
-                <span
-                  className="cursor-pointer hover:text-foreground"
-                  onClick={() => navigateToBreadcrumb(crumb.path)}
-                >
-                  {crumb.name}
-                </span>
-                {index < (data?.breadcrumbs || []).length - 1 && (
-                  <span>/</span>
-                )}
-              </React.Fragment>
-            ))}
           </div>
         </div>
 
@@ -860,8 +838,15 @@ export function FileManager({ hostingData }: FileManagerProps) {
       {/* Dialogs */}
       <DeleteFileDialog
         open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        item={selectedItem}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) {
+            setBulkDeleteItems(null);
+            setSelectedItem(null);
+          }
+        }}
+        item={bulkDeleteItems && bulkDeleteItems.length > 0 ? bulkDeleteItems[0] : selectedItem}
+        additionalItems={bulkDeleteItems && bulkDeleteItems.length > 1 ? bulkDeleteItems.slice(1) : undefined}
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}
       />

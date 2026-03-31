@@ -166,7 +166,7 @@ export const appRouter = router({
 	nameserverGroups: nameserverGroupsRouter,
 	// TLD Settings management
 	tldSettings: tldSettingsRouter,
-	// Domains Management (NISC)
+	// Domains Management (Nisc)
 	domains: niscDomainsRouter,
 	// Currency Conversion
 	currency: currencyConversionRouter,
@@ -251,7 +251,7 @@ export const appRouter = router({
 	clientSubscriptions: clientSubscriptionsRouter,
 	// Subscription usage & credits (per subscription per usage kind)
 	subscriptionUsage: subscriptionUsageRouter,
-	// NISC Service Orders (async processing via QStash)
+	// Nisc Service Orders (async processing via QStash)
 	niscServiceOrders: niscServiceOrdersRouter,
 	// Public, read-only pricing helpers (margin + conversion)
 	publicPricing: publicPricingRouter,

@@ -17,7 +17,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/ui/shadcn-io/dropzone";
+import { Dropzone } from "@/components/ui/shadcn-io/dropzone";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
 
@@ -195,14 +196,14 @@ export function UploadFileSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
-        <SheetHeader className="mb-6 flex justify-between items-center flex-row">
-          <div className="flex items-center gap-3 mb-2">
+        <SheetHeader className="mb-4 flex justify-between items-center flex-row">
+          <div className="flex items-center gap-2">
             <div className="p-2 bg-primary/10 rounded-full">
               <Upload className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Upload Files</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle className="text-lg font-semibold">Upload Files</SheetTitle>
+              <SheetDescription className="text-sm">
                 Upload files to your hosting account
               </SheetDescription>
             </div>
@@ -219,15 +220,15 @@ export function UploadFileSheet({
         </SheetHeader>
 
         <div className="px-1 pb-1">
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Upload Area */}
             <Card className="border-dashed border-2 border-muted-foreground/25 hover:border-primary/50 transition-colors">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg flex items-center gap-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Upload className="h-5 w-5" />
                   File Upload
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs">
                   Drag and drop files or click to browse. Supports images, documents, and archives.
                 </CardDescription>
               </CardHeader>
@@ -244,14 +245,12 @@ export function UploadFileSheet({
                   }}
                   maxSize={50 * 1024 * 1024} // 50MB
                   maxFiles={10}
-                  src={[]} // Always empty to show empty state
-                  className="transition-all duration-200 border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5"
+                  src={[]}
+                  className="transition-all duration-200 border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5 rounded-lg"
                 >
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="mb-3 p-3 bg-primary/10 rounded-full">
-                      <Upload className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-base font-semibold">Click to select files</h3>
+                  <div className="flex flex-col items-center justify-center py-4 text-center">
+                    <Upload className="mb-2 h-5 w-5 text-primary" />
+                    <h3 className="text-sm font-medium">Click or drop files here</h3>
                   </div>
                 </Dropzone>
               </CardContent>
@@ -260,9 +259,9 @@ export function UploadFileSheet({
             {/* Upload Summary */}
             {hasFiles ? (
               <Card>
-                <CardHeader className="pb-4">
+                <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
                       <FileText className="h-5 w-5" />
                       Upload Summary
                     </CardTitle>
@@ -275,22 +274,23 @@ export function UploadFileSheet({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {files.map((file, index) => {
+                  <ScrollArea className="h-52 overflow-hidden rounded-md border border-muted/60 bg-muted/10 px-1 py-1">
+                    <div className="space-y-2 pr-2">
+                      {files.map((file, index) => {
                       const status = uploadStatus[file.name] || 'pending';
                       const progress = uploadProgress[file.name] || 0;
                       
-                      return (
-                        <div 
+                        return (
+                          <div 
                           key={index} 
                           className={cn(
-                            "flex items-center justify-between p-3 rounded-lg border transition-all duration-200",
+                            "flex min-w-0 items-center justify-between overflow-hidden p-3 rounded-lg border transition-all duration-200",
                             status === 'success' && "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
                             status === 'error' && "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800",
                             status === 'uploading' && "bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800",
                             status === 'pending' && "bg-muted/50 border-muted"
                           )}
-                        >
+                          >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             {getFileIcon(file)}
                             <div className="flex-1 min-w-0">
@@ -320,10 +320,11 @@ export function UploadFileSheet({
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
                   
                   {/* Upload Status Summary */}
                   {isSubmitting && (
@@ -356,15 +357,15 @@ export function UploadFileSheet({
               </Card>
             ) : (
               <Card className="border-dashed border-2 border-muted-foreground/25">
-                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="mb-4 p-3 bg-muted/50 rounded-full">
-                    <FileText className="h-8 w-8 text-muted-foreground" />
+                <CardContent className="flex flex-col items-center justify-center py-6 text-center">
+                  <div className="mb-3 p-2 bg-muted/50 rounded-full">
+                    <FileText className="h-6 w-6 text-muted-foreground" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">No files selected</h3>
-                  <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+                  <h3 className="text-sm font-semibold mb-1">No files selected</h3>
+                  <p className="text-xs text-muted-foreground mb-3 max-w-sm">
                     Drag and drop files into the upload area above, or click to browse your computer.
                   </p>
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
                     <Badge variant="outline">Images</Badge>
                     <Badge variant="outline">PDFs</Badge>
                     <Badge variant="outline">Archives</Badge>
@@ -376,11 +377,11 @@ export function UploadFileSheet({
 
             {/* Upload Guidelines */}
             <Card className="bg-muted/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Upload Guidelines</CardTitle>
+              <CardHeader className="space-y-0 pb-1">
+                <CardTitle className="text-xs font-semibold">Upload Guidelines</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <ul className="text-xs text-muted-foreground space-y-1">
+                <ul className="text-[11px] text-muted-foreground space-y-0.5">
                   <li>• Maximum file size: <strong>50MB per file</strong></li>
                   <li>• Maximum files: 10 files per upload</li>
                   <li>• Supported formats: Images, PDFs, Archives, Text files</li>

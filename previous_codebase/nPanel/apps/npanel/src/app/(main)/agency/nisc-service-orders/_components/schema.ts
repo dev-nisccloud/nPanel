@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * NISC Service Orders – UI-layer schemas and enums.
+ * Nisc Service Orders – UI-layer schemas and enums.
  * Fully independent from DB/Prisma. Enum values must stay in sync with API (nisc-service-orders-schemas).
  * Used for forms and display only; no imports from API or db.
  */

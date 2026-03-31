@@ -26,7 +26,7 @@ Our types: `OpenProviderDomainRegistrationRequest`, `OpenProviderDomainRegistrat
 - **Optional:** `billingHandle`, `resellerHandle`, `period`, `autorenew`, `importNameserversFromRegistry` (0/1), `importContactsFromRegistry` (0/1), `dnssecKeys`, `acceptPremiumFee` (premium), `promoCode`, etc.
 - **Response:** `code`, `desc`, `data`: transfer status, dates, etc.
 
-Our types: `OpenProviderDomainTransferRequest`, `OpenProviderDomainTransferResponse`. Client: `transferDomain()` → POST `/domains/transfer`. **You still need to add NISC/UI flow for “transfer domain” (collect auth code, then call this).**
+Our types: `OpenProviderDomainTransferRequest`, `OpenProviderDomainTransferResponse`. Client: `transferDomain()` → POST `/domains/transfer`. **You still need to add Nisc/UI flow for “transfer domain” (collect auth code, then call this).**
 
 ### 1.3 Customer creation & email verification
 
@@ -162,8 +162,8 @@ So for **KENIC “customer” (contact) management** you need: id (or let server
 ### OpenProvider
 
 - [x] Domain registration (create) – implemented.
-- [x] Customer create + email verification – implemented (NISC + clients).
-- [ ] **Domain transfer:** Add flow in NISC (or separate “transfer” flow): collect domain name, extension, auth code; ensure owner/admin/tech handles (or use importContactsFromRegistry where supported); call `transferDomain()`; show status (REQ/ACT) and errors from `desc`.
+- [x] Customer create + email verification – implemented (Nisc + clients).
+- [ ] **Domain transfer:** Add flow in Nisc (or separate “transfer” flow): collect domain name, extension, auth code; ensure owner/admin/tech handles (or use importContactsFromRegistry where supported); call `transferDomain()`; show status (REQ/ACT) and errors from `desc`.
 
 ### KENIC
 

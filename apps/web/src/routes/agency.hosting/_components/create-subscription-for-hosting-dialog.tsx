@@ -267,7 +267,7 @@ export function CreateSubscriptionForHostingDialog({
         <DialogHeader>
           <DialogTitle>Create subscription</DialogTitle>
           <DialogDescription>
-            Create a NISC subscription for hosting and link it to a user or team. Choose the product type and assign ownership.
+            Create a Nisc subscription for hosting and link it to a user or team. Choose the product type and assign ownership.
           </DialogDescription>
         </DialogHeader>
 

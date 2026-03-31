@@ -200,7 +200,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                   <TooltipContent side="left" className="max-w-xs">
                     {hasExistingSubscription
                       ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
-                      : "Create a NISC subscription for this domain and link it to a user or team."}
+                      : "Create a Nisc subscription for this domain and link it to a user or team."}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

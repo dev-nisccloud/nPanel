@@ -449,7 +449,7 @@ export const niscClientSubscriptionRenewalActivityLog = pgTable(
   ],
 );
 
-/** Commission billing rows for COMMISSION-priced NISC client subscriptions (legacy Prisma: NiscCommissionEntry). */
+/** Commission billing rows for COMMISSION-priced Nisc client subscriptions (legacy Prisma: NiscCommissionEntry). */
 export const niscCommissionEntry = pgTable(
   "nisc_commission_entry",
   {

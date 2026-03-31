@@ -17,7 +17,7 @@ enum ServiceSubscriptionStatus {
 // All pricing and invoice information stays on the Order model
 model ServiceSubscription {
   id                String  @id @map("_id")
-  niscServicePlanId String // Reference to NISC service plan associated with the subscription
+  niscServicePlanId String // Reference to Nisc service plan associated with the subscription
   teamId            String? // Team that owns this subscription
   orderId           String? // Order that created this subscription (nullable for manual connections)
   subscribedBy      String? // User ID who purchased/subscribed

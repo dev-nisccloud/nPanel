@@ -1696,7 +1696,7 @@ export const clientSubscriptionsRouter = router({
             return mapCommissionEntry(updated);
         }),
 
-    /** List domain subscriptions for a user/team (product.serviceType === "domain_registration"). Used for domain dropdown in NISC orders. */
+    /** List domain subscriptions for a user/team (product.serviceType === "domain_registration"). Used for domain dropdown in Nisc orders. */
     getDomainSubscriptions: protectedProcedure
         .input(
             z.object({

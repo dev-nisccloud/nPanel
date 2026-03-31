@@ -94,7 +94,7 @@ export function transformPleskSubscriptionsToTable(
  * These can be combined (e.g., 3 = 1+2, 272 = 256+16)
  */
 
-/** NISC subscription status enum → display label */
+/** Nisc subscription status enum → display label */
 const NISC_STATUS_LABELS: Record<string, string> = {
   ACTIVE: "Active",
   PENDING: "Pending",
@@ -108,7 +108,7 @@ const NISC_STATUS_LABELS: Record<string, string> = {
 };
 
 /**
- * Get status display text. Supports (1) Plesk numeric status and (2) NISC enum string (e.g. ACTIVE, SUSPENDED).
+ * Get status display text. Supports (1) Plesk numeric status and (2) Nisc enum string (e.g. ACTIVE, SUSPENDED).
  */
 export function getStatusDisplayText(status: number | string | undefined | null): string {
   if (status === undefined || status === null) return "Suspended";
@@ -120,7 +120,7 @@ export function getStatusDisplayText(status: number | string | undefined | null)
 }
 
 /**
- * Get status badge variant. Supports Plesk numeric status and NISC enum string.
+ * Get status badge variant. Supports Plesk numeric status and Nisc enum string.
  */
 export function getStatusBadgeVariant(status: number | string | undefined | null): "default" | "secondary" | "destructive" | "outline" {
   if (status === undefined || status === null) return "destructive";

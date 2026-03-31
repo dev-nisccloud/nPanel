@@ -84,7 +84,6 @@ export function GlobalBuyNowDialog() {
 
   const [currentStep, setCurrentStep] = React.useState<Step>("review");
   const [couponCode, setCouponCode] = React.useState("");
-  const [showCouponInput, setShowCouponInput] = React.useState(false);
 
   const [duration, setDuration] = React.useState(1);
   const [selectedAddOns, setSelectedAddOns] = React.useState<SelectedAddOn[]>([]);
@@ -161,8 +160,8 @@ export function GlobalBuyNowDialog() {
 
   const transferSubtotal = isTransferMode && transferContext ? transferContext.price : 0;
   const subtotal = isTransferMode ? transferSubtotal : isCartMode ? cartSubtotal : productSubtotal;
-  const taxRate = 0.16;
-  const taxes = subtotal * taxRate;
+  const VAT_RATE = 0.16;
+  const taxes = subtotal * VAT_RATE;
   const total = subtotal + taxes;
   const totalItems = getItemCount();
 
@@ -625,7 +624,6 @@ export function GlobalBuyNowDialog() {
   React.useEffect(() => {
     if (!open) {
       setCouponCode("");
-      setShowCouponInput(false);
       setDuration(1);
       setSelectedAddOns([]);
       setSelectedUpsellPlans([]);
@@ -884,7 +882,15 @@ export function GlobalBuyNowDialog() {
                 <div className="font-semibold">{formatPrice(transferContext.price, transferContext.currency)}</div>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Taxes & fees</span>
+                <span className="text-muted-foreground inline-flex items-center gap-1">
+                  Taxes & fees
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>16% VAT (Kenya)</TooltipContent>
+                  </Tooltip>
+                </span>
                 <span>{formatPrice(taxes, primaryCurr)}</span>
               </div>
               <div className="border-t pt-4 flex items-center justify-between font-bold text-lg">
@@ -906,20 +912,24 @@ export function GlobalBuyNowDialog() {
                 </div>
                 <ScrollBar orientation="vertical" />
               </ScrollArea>
-              {!showCouponInput ? (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Coupon code</span>
-                  <Button variant="link" className="h-auto p-0 text-primary" onClick={() => setShowCouponInput(true)}>Add</Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Input placeholder="Coupon code" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} className="flex-1" />
-                  <Button variant="outline" size="sm" onClick={() => (setShowCouponInput(false), setCouponCode(""))}>Cancel</Button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="enter you coupon code"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Taxes & fees</span>
-                <Tooltip><TooltipTrigger asChild><HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent>16% VAT</TooltipContent></Tooltip>
+                <span className="text-muted-foreground inline-flex items-center gap-1">
+                  Taxes & fees
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>16% VAT (Kenya)</TooltipContent>
+                  </Tooltip>
+                </span>
                 <span>{formatPrice(taxes, primaryCurr)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
@@ -967,19 +977,24 @@ export function GlobalBuyNowDialog() {
               </div>
               <ScrollBar orientation="vertical" />
             </ScrollArea>
-            {!showCouponInput ? (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Coupon code</span>
-                <Button variant="link" className="h-auto p-0 text-primary" onClick={() => setShowCouponInput(true)}>Add</Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Input placeholder="Coupon code" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} className="flex-1" />
-                <Button variant="outline" size="sm" onClick={() => (setShowCouponInput(false), setCouponCode(""))}>Cancel</Button>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="enter you coupon code"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                className="flex-1"
+              />
+            </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Taxes & fees</span>
+              <span className="text-muted-foreground inline-flex items-center gap-1">
+                Taxes & fees
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>16% VAT (Kenya)</TooltipContent>
+                </Tooltip>
+              </span>
               <span>{formatPrice(taxes, primaryCurr)}</span>
             </div>
             <div className="border-t pt-4 flex items-center justify-between font-bold text-lg">

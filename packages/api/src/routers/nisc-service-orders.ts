@@ -29,7 +29,7 @@ function generateNiscOrderNumber(): string {
 	const year = new Date().getFullYear();
 	const timestamp = Date.now().toString().slice(-6);
 	const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
-	return `NISC-${year}-${timestamp}-${random}`;
+	return `Nisc-${year}-${timestamp}-${random}`;
 }
 
 export const niscServiceOrdersRouter = router({
@@ -39,7 +39,7 @@ export const niscServiceOrdersRouter = router({
 			if (!ctx.session?.user?.id) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You must be logged in to view NISC orders",
+					message: "You must be logged in to view Nisc orders",
 				});
 			}
 
@@ -114,7 +114,7 @@ export const niscServiceOrdersRouter = router({
 			if (!ctx.session?.user?.id) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You must be logged in to view NISC orders",
+					message: "You must be logged in to view Nisc orders",
 				});
 			}
 
@@ -141,7 +141,7 @@ export const niscServiceOrdersRouter = router({
 			if (!order) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "NISC order not found",
+					message: "Nisc order not found",
 				});
 			}
 
@@ -155,7 +155,7 @@ export const niscServiceOrdersRouter = router({
 			if (!session?.user?.id) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You must be logged in to create NISC orders",
+					message: "You must be logged in to create Nisc orders",
 				});
 			}
 
@@ -356,7 +356,7 @@ export const niscServiceOrdersRouter = router({
 			if (!order) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to create NISC order",
+					message: "Failed to create Nisc order",
 				});
 			}
 
@@ -444,7 +444,7 @@ export const niscServiceOrdersRouter = router({
 		}),
 
 	/**
-	 * Create a NISC order from a successful M-Pesa payment (agency: logged-in user only).
+	 * Create a Nisc order from a successful M-Pesa payment (agency: logged-in user only).
 	 * Verifies payment by checkoutRequestId, creates order with paymentTransactionId, enqueues processing, sends "order received" email.
 	 */
 	createFromPayment: protectedProcedure
@@ -642,7 +642,7 @@ export const niscServiceOrdersRouter = router({
 			if (!order) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to create NISC order",
+					message: "Failed to create Nisc order",
 				});
 			}
 
@@ -767,7 +767,7 @@ export const niscServiceOrdersRouter = router({
 			if (!ctx.session?.user?.id) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You must be logged in to retry NISC orders",
+					message: "You must be logged in to retry Nisc orders",
 				});
 			}
 
@@ -781,7 +781,7 @@ export const niscServiceOrdersRouter = router({
 			if (!order) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "NISC order not found",
+					message: "Nisc order not found",
 				});
 			}
 

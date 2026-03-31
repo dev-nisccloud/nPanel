@@ -33,7 +33,7 @@ function isLoopbackUrl(url: string): boolean {
 }
 
 /**
- * Enqueue a NISC order for background processing via QStash.
+ * Enqueue a Nisc order for background processing via QStash.
  * Delivers immediately (no scheduling).
  */
 export async function enqueueNiscOrderProcessing(
@@ -42,7 +42,7 @@ export async function enqueueNiscOrderProcessing(
 	const url = getWorkerEndpoint();
 	if (!url) {
 		throw new Error(
-			"NISC order worker URL not configured. Set QSTASH_NISC_ORDER_WORKER_ENDPOINT, VITE_PUBLIC_APP_URL, or VERCEL_URL.",
+			"Nisc order worker URL not configured. Set QSTASH_NISC_ORDER_WORKER_ENDPOINT, VITE_PUBLIC_APP_URL, or VERCEL_URL.",
 		);
 	}
 	if (isLoopbackUrl(url)) {

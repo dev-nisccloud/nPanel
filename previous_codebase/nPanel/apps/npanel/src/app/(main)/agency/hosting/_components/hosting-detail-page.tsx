@@ -230,7 +230,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                     <TooltipContent side="left" className="max-w-xs">
                       {hasLinkedSubscription
                         ? createSubscriptionTooltipLinked
-                        : "Create a NISC subscription and link it to a team or user."}
+                        : "Create a Nisc subscription and link it to a team or user."}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -374,7 +374,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         </div>
       </div>
 
-      {/* Create subscription (NISC client subscription linked to this Plesk hosting) */}
+      {/* Create subscription (Nisc client subscription linked to this Plesk hosting) */}
       <CreateSubscriptionForHostingDialog
         open={isCreateSubscriptionOpen}
         onOpenChange={setIsCreateSubscriptionOpen}

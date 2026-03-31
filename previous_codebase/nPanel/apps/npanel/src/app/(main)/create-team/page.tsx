@@ -9,7 +9,7 @@ export default function CreateTeamPage() {
         <div className="pt-10 xl:pt-12">
           <Image
             src="/nisclogooriginal.png"
-            alt="NISC"
+            alt="Nisc"
             width={180}
             height={60}
             className="h-auto w-auto object-contain object-left"

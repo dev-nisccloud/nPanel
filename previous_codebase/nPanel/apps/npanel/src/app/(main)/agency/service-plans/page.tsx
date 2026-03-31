@@ -7,7 +7,7 @@ export default function ServicePlansPage() {
         <div className="flex flex-col gap-2">
           <h1 className="text-base font-semibold tracking-tight">Service Plans</h1>
           <p className="text-xs text-muted-foreground">
-            Manage NISC service plans and pricing for your customers. Create and manage hosting, SEO, videography, and other service plans.
+            Manage Nisc service plans and pricing for your customers. Create and manage hosting, SEO, videography, and other service plans.
           </p>
         </div>
 

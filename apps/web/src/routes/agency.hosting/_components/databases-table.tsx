@@ -179,7 +179,7 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
       return;
     }
     // Construct phpMyAdmin URL - format: https://orion.nisccloud.com/phpMyAdmin/index.php?db={database_name}
-    const pleskHost = process.env.VITE_PUBLIC_PLESK_HOST || 'orion.nisccloud.com';
+    const pleskHost = import.meta.env.VITE_PUBLIC_PLESK_HOST || 'orion.nisccloud.com';
     const phpMyAdminUrl = `https://${pleskHost}/phpMyAdmin/index.php?db=${encodeURIComponent(db.name)}`;
     window.open(phpMyAdminUrl, '_blank', 'noopener,noreferrer');
   };

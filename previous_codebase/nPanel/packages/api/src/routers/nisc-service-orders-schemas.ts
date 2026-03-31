@@ -1,5 +1,5 @@
 /**
- * NISC Service Orders – independent API schemas and enums.
+ * Nisc Service Orders – independent API schemas and enums.
  * No Prisma or DB types. Used for router input/output and data transformation.
  * UI layer may define its own schemas with the same enum values for full independence.
  */

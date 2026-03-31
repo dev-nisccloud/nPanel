@@ -8,7 +8,7 @@ This document describes the **Sales & Revenue Report** in nPanel: what each metr
 
 ### Purpose
 
-The Sales Report gives a single place to see **revenue health**, **subscription performance**, **invoicing and collections**, **acquisition and pipeline**, and **customer behaviour**. All numbers are **aggregated in real time** from your existing data (invoices, NISC orders, NISC client subscriptions, products, teams). No separate “report tables” are written to; the report reads and sums live data.
+The Sales Report gives a single place to see **revenue health**, **subscription performance**, **invoicing and collections**, **acquisition and pipeline**, and **customer behaviour**. All numbers are **aggregated in real time** from your existing data (invoices, Nisc orders, Nisc client subscriptions, products, teams). No separate “report tables” are written to; the report reads and sums live data.
 
 ### Data sources
 
@@ -459,7 +459,7 @@ Shows **which products** are acquiring new subs. Supports product and campaign f
 ### 6.3 Order pipeline
 
 **What it is**  
-**Count** and **total value** of NISC orders by **status** (Pending, Processing, Completed, Failed, Partial) over a recent window (e.g. last 3 months), plus **conversion rate** (completed ÷ total orders).
+**Count** and **total value** of Nisc orders by **status** (Pending, Processing, Completed, Failed, Partial) over a recent window (e.g. last 3 months), plus **conversion rate** (completed ÷ total orders).
 
 **How it’s derived**  
 `NiscOrder` in the window; group by status; sum `total` and count; conversion = completed count ÷ total count.

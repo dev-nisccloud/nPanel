@@ -437,7 +437,7 @@ export async function renderServiceRenewalReminderEmail({
   );
 }
 
-// --- NISC order & OpenProvider verification (HTML, no React component) ---
+// --- Nisc order & OpenProvider verification (HTML, no React component) ---
 
 export async function renderNiscOrderConfirmationEmail({
   customerName,
@@ -464,7 +464,7 @@ export async function renderNiscOrderConfirmationEmail({
   return `<div style="font-family:sans-serif;max-width:600px;">
   <h2>Order confirmed</h2>
   <p>Hi ${escapeHtml(customerName ?? "Customer")},</p>
-  <p>Your NISC service order has been processed successfully.</p>
+  <p>Your Nisc service order has been processed successfully.</p>
   <p><strong>Order number:</strong> ${escapeHtml(orderNumber ?? "")}</p>
   <p><strong>Date:</strong> ${orderDate ?? ""}</p>
   <table style="border-collapse:collapse;width:100%;"><thead><tr><th style="text-align:left;">Item</th><th style="text-align:left;">Details</th><th style="text-align:right;">Price</th></tr></thead><tbody>${itemsHtml}</tbody></table>
@@ -506,7 +506,7 @@ export async function renderNiscOrderReceivedEmail({
   );
 }
 
-/** Admin "order failed" email — React template; sent to super admins when a NISC order fails or is partial. */
+/** Admin "order failed" email — React template; sent to super admins when a Nisc order fails or is partial. */
 export async function renderNiscOrderFailedEmail({
   customerName,
   orderNumber,
@@ -538,12 +538,12 @@ export async function renderOpenProviderVerifyEmail({
   recipientName?: string;
   domainName?: string;
 }): Promise<string> {
-  const placeholderImageUrl = "https://via.placeholder.com/120x60?text=NISC";
+  const placeholderImageUrl = "https://via.placeholder.com/120x60?text=Nisc";
   return `<div style="font-family:sans-serif;max-width:600px;">
   <p>Hi ${escapeHtml(recipientName ?? "Customer")},</p>
   <p>To complete your domain purchase for <strong>${escapeHtml(domainName ?? "")}</strong>, please verify your email address.</p>
   <p>OpenProvider has sent a verification email to this address. Click the link in that email to verify and complete your domain registration.</p>
-  <p><img src="${placeholderImageUrl}" alt="NISC" width="120" height="60" style="display:block;margin:1em 0;" /></p>
+  <p><img src="${placeholderImageUrl}" alt="Nisc" width="120" height="60" style="display:block;margin:1em 0;" /></p>
   <p>If you did not request this, you can ignore this message.</p>
 </div>`;
 }

@@ -237,7 +237,7 @@ export default function DomainsPortfolioPage() {
                                   typeof domain.id === "string" ? Number.parseInt(domain.id, 10) : domain.id
                                 )
                                   ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
-                                  : "Create a NISC subscription for this domain and link it to a user or team."}
+                                  : "Create a Nisc subscription for this domain and link it to a user or team."}
                               </TooltipContent>
                             </Tooltip>
                           </DropdownMenuContent>

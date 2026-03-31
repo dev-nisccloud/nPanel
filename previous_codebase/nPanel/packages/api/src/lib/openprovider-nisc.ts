@@ -1,6 +1,6 @@
 /**
- * OpenProvider integration for NISC domain orders: ensure customer, email verification, register or transfer domain.
- * Used by the NISC order processor for domain_registration and domain_transfer items.
+ * OpenProvider integration for Nisc domain orders: ensure customer, email verification, register or transfer domain.
+ * Used by the Nisc order processor for domain_registration and domain_transfer items.
  */
 import * as crypto from "crypto";
 import prisma from "@npanel/db";

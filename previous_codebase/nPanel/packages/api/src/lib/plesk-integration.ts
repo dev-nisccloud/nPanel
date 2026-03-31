@@ -1,6 +1,6 @@
 /**
  * Shared Plesk integration helpers: ensure customer exists in Plesk, provision webspace.
- * Used by orders router and NISC order processor.
+ * Used by orders router and Nisc order processor.
  *
  * XML structures and tooling must match the canonical Plesk routers:
  * - Customer add: packages/api/src/routers/plesk/customers-create.ts (buildCustomerCreateXml)

@@ -54,7 +54,7 @@ enum HostingType {
   DEDICATED_HOSTING // Dedicated server hosting
 }
 
-// NISC Service Plan Types - All service types offered by NISC
+// Nisc Service Plan Types - All service types offered by Nisc
 enum NiscServicePlanType {
   HOSTING // Hosting services (web, email, reseller, VPS, dedicated)
   SEO // SEO services
@@ -606,7 +606,7 @@ model HostingPlan {
   @@map("hosting_plan")
 }
 
-// NISC Service Plan - Generic service plan model supporting all service types
+// Nisc Service Plan - Generic service plan model supporting all service types
 model NiscServicePlan {
   id             String              @id @map("_id")
   name           String // Plan name (e.g., "Basic Web Hosting", "SEO Starter Package")
@@ -653,7 +653,7 @@ model NiscServicePlan {
   @@map("nisc_service_plan")
 }
 
-// Activity logging for NISC service plan actions
+// Activity logging for Nisc service plan actions
 model NiscServicePlanActivityLog {
   id                String          @id @map("_id")
   userId            String
