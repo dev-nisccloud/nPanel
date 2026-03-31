@@ -126,7 +126,7 @@ export function HostingCard({
                 <TooltipContent side="top" className="max-w-xs">
                   {hasLinkedSubscription && tooltipLinked
                     ? tooltipLinked
-                    : "Create a NISC subscription and link it to a team or user."}
+                    : "Create a Nisc subscription and link it to a team or user."}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

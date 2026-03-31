@@ -1,5 +1,5 @@
 // ============================================================================
-// NISC Service Orders Schema
+// Nisc Service Orders Schema
 // Orders that use NiscProduct + NiscProductPlan and create NiscClientSubscription.
 // Processed asynchronously via QStash worker.
 // ============================================================================

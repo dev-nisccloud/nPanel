@@ -20,7 +20,7 @@ interface OrderFailedEmailProps {
 
 export const OrderFailedEmail = ({
   customerName = "Admin",
-  orderNumber = "NISC-000000-000000-000",
+  orderNumber = "Nisc-000000-000000-000",
   failedItems = [],
   failureReason,
   retryLink = "https://app.nisccloud.com/agency/nisc-service-orders",
@@ -28,12 +28,12 @@ export const OrderFailedEmail = ({
   supportPhone = "+254 748 777 666",
 }: OrderFailedEmailProps) => {
   return (
-    <EmailLayout preview={`[NISC Admin] Order could not be completed: ${orderNumber}`}>
+    <EmailLayout preview={`[Nisc Admin] Order could not be completed: ${orderNumber}`}>
       <EmailHeader />
       <Section>
         <EmailText>Hi {customerName},</EmailText>
         <EmailText>
-          A NISC service order could not be fully processed and requires attention.
+          A Nisc service order could not be fully processed and requires attention.
         </EmailText>
 
         {/* Failure status box */}
@@ -57,7 +57,7 @@ export const OrderFailedEmail = ({
             Order could not be completed
           </EmailText>
           <EmailText style={{ margin: '8px 0', color: '#991b1b' }}>
-            One or more items failed during provisioning. Review the details below and retry from the NISC Service Orders page if needed.
+            One or more items failed during provisioning. Review the details below and retry from the Nisc Service Orders page if needed.
           </EmailText>
         </div>
 
@@ -122,10 +122,10 @@ export const OrderFailedEmail = ({
         )}
 
         <EmailText>
-          You can retry failed items from the NISC Service Orders page.
+          You can retry failed items from the Nisc Service Orders page.
         </EmailText>
 
-        <EmailButton href={retryLink}>Open NISC Service Orders</EmailButton>
+        <EmailButton href={retryLink}>Open Nisc Service Orders</EmailButton>
 
         <EmailText>
           <strong>Need help?</strong> Contact support: {supportEmail} / {supportPhone}
@@ -139,7 +139,7 @@ export const OrderFailedEmail = ({
 
 OrderFailedEmail.PreviewProps = {
   customerName: 'Admin',
-  orderNumber: 'NISC-2026-034438-309',
+  orderNumber: 'Nisc-2026-034438-309',
   failedItems: [
     { name: 'heliumcreations.com - Domain transfer', error: 'Transfer auth code invalid' },
     { name: 'example.com - Web Hosting', error: 'Domain is required for hosting' },

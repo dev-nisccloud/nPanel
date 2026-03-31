@@ -21,7 +21,7 @@ interface NiscOrderPayload {
 }
 
 /**
- * QStash worker: process a NISC order (provision items, create subscriptions, send emails).
+ * QStash worker: process a Nisc order (provision items, create subscriptions, send emails).
  */
 export async function POST(request: Request) {
 	await niscLog("worker_request_received", { step: "start" });
@@ -295,7 +295,7 @@ export async function POST(request: Request) {
 					await sendEmailBatch(
 						superAdminEmails.map((to) => ({
 							to,
-							subject: `[NISC Admin] Order confirmed: ${orderAfter!.orderNumber}`,
+							subject: `[Nisc Admin] Order confirmed: ${orderAfter!.orderNumber}`,
 							html,
 						})),
 					);
@@ -329,7 +329,7 @@ export async function POST(request: Request) {
 					await sendEmailBatch(
 						superAdminEmails.map((to) => ({
 							to,
-							subject: `[NISC Admin] Order could not be completed: ${orderAfter!.orderNumber}`,
+							subject: `[Nisc Admin] Order could not be completed: ${orderAfter!.orderNumber}`,
 							html,
 						})),
 					);

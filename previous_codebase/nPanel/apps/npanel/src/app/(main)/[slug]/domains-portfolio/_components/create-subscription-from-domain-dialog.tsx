@@ -171,7 +171,7 @@ export function CreateSubscriptionFromDomainDialog({
         <DialogHeader>
           <DialogTitle>Create subscription</DialogTitle>
           <DialogDescription>
-            Create a NISC subscription for {domain.domain} and link it to a user or team.
+            Create a Nisc subscription for {domain.domain} and link it to a user or team.
           </DialogDescription>
         </DialogHeader>
 

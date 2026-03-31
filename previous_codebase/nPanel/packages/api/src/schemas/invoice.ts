@@ -19,7 +19,7 @@ export type InvoiceStatusType = z.infer<typeof invoiceStatusSchema>;
 
 const nullableString = z.string().optional().nullable();
 
-/** Single invoice line item as used when creating (e.g. auto-invoice from NISC order). */
+/** Single invoice line item as used when creating (e.g. auto-invoice from Nisc order). */
 export const invoiceLineItemCreateSchema = z.object({
 	id: z.string().uuid(),
 	invoiceId: z.string().uuid(),

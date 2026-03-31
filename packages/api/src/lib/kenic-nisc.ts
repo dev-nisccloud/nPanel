@@ -1,5 +1,5 @@
 /**
- * KENIC EPP integration for NISC domain orders (.ke, .co.ke, etc.).
+ * KENIC EPP integration for Nisc domain orders (.ke, .co.ke, etc.).
  * Ensures KENIC contact (registrant) exists, then registers the domain via EPP.
  */
 import * as crypto from "crypto";

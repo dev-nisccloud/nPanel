@@ -247,7 +247,7 @@ model NiscClientSubscription {
   productId     String
   productPlanId String? // null for custom / one-off engagements
   orderId       String? // Order that created this subscription (if any) — legacy
-  niscOrderId   String? // NISC order that created this subscription (new flow)
+  niscOrderId   String? // Nisc order that created this subscription (new flow)
   subscribedBy  String? // User ID of agency staff who enrolled the client
   recordedBy    String? // User ID of admin who manually created this record
 
@@ -495,7 +495,7 @@ model NiscClientSubscriptionRenewalActivityLog {
 }
 
 // --- NiscProductPromo --------------------------------------------------------
-// Redeemable coupon / promo for NISC products. Not tied to user or team.
+// Redeemable coupon / promo for Nisc products. Not tied to user or team.
 // Percentage or fixed-amount discount; optional product/plan targeting.
 
 model NiscProductPromo {
@@ -537,7 +537,7 @@ model NiscProductPromo {
 }
 
 // --- NiscProductPromoRedeem --------------------------------------------------
-// Records each time a user redeems a NISC product promo (coupon code).
+// Records each time a user redeems a Nisc product promo (coupon code).
 // Promos can be applied to: orders (new purchase), subscriptions (new signup or
 // existing subscription — e.g. discount applied to current plan), or renewals.
 // Used for audit, usage counting, and reporting.

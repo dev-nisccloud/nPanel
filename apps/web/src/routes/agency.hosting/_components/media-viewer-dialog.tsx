@@ -87,6 +87,11 @@ export function MediaViewerDialog({
 }: MediaViewerDialogProps) {
   const [objectUrl, setObjectUrl] = React.useState<string | null>(null);
 
+  const getFtpPort = () => {
+    const parsed = Number.parseInt(import.meta.env.VITE_PUBLIC_FTP_PORT || "21", 10);
+    return Number.isFinite(parsed) ? parsed : 21;
+  };
+
   const getFtpCredentials = () => {
     const ftpLogin = hostingData.hosting?.vrt_hst?.property?.find(
       (p) => p.name === "ftp_login"
@@ -98,8 +103,8 @@ export function MediaViewerDialog({
       throw new Error("FTP credentials not found");
     }
     return {
-      host: process.env.VITE_PUBLIC_FTP_HOST ?? "orion.nisccloud.com",
-      port: parseInt(process.env.VITE_PUBLIC_FTP_PORT ?? "21", 10),
+      host: import.meta.env.VITE_PUBLIC_FTP_HOST ?? "orion.nisccloud.com",
+      port: getFtpPort(),
       user: String(ftpLogin),
       password: String(ftpPassword),
       secure: true,

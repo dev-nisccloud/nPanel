@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * API-layer schema for NISC order data used when creating an invoice.
+ * API-layer schema for Nisc order data used when creating an invoice.
  * Independent of Prisma/DB. Use in createInvoiceForNiscOrder and callers.
  */
 
@@ -20,7 +20,7 @@ export const orderItemProductPlanSchema = z.object({
 	name: z.string(),
 }).nullable();
 
-/** Single NISC order item as used for invoice creation. */
+/** Single Nisc order item as used for invoice creation. */
 export const niscOrderItemForInvoiceSchema = z.object({
 	itemPrice: z.string(),
 	itemSubtotal: z.string(),
@@ -32,7 +32,7 @@ export const niscOrderItemForInvoiceSchema = z.object({
 });
 export type NiscOrderItemForInvoice = z.infer<typeof niscOrderItemForInvoiceSchema>;
 
-/** NISC order with items as accepted for auto-invoice creation. */
+/** Nisc order with items as accepted for auto-invoice creation. */
 export const niscOrderForInvoiceSchema = z.object({
 	id: z.string(),
 	teamId: z.string().nullable(),

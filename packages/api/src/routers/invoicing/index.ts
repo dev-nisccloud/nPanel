@@ -1885,5 +1885,5 @@ export const invoicingRouter = router({
 		}),
 });
 
-/** For server-side PDF generation (e.g. NISC auto-invoice email). Skips auth. */
+/** For server-side PDF generation (e.g. Nisc auto-invoice email). Skips auth. */
 export { fetchInvoiceDetail, mapInvoiceDetail };

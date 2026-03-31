@@ -1,5 +1,5 @@
 /**
- * NISC order processor: runs in the QStash worker to process a single NiscOrder.
+ * Nisc order processor: runs in the QStash worker to process a single NiscOrder.
  * For each item: no integration → create NiscClientSubscription;
  * Plesk (web_hosting, email_hosting) → ensure integration + provision;
  * OpenProvider (domain_registration) → ensure integration, verify email, register domain;
@@ -515,7 +515,7 @@ async function createSubscriptionForOrderItem(
 		.returning();
 	const sub = inserted[0];
 	if (!sub) {
-		throw new Error("Failed to create NISC subscription");
+		throw new Error("Failed to create Nisc subscription");
 	}
 
 	if (order.createdBy) {
@@ -634,7 +634,7 @@ async function processPleskOrderItem(
 			.returning();
 		const sub = inserted[0];
 		if (!sub) {
-			throw new Error("Failed to create NISC subscription");
+			throw new Error("Failed to create Nisc subscription");
 		}
 
 		if (order.createdBy) {
@@ -690,7 +690,7 @@ function billingCycleToYears(billingCycle: string | null): number {
 	return 1;
 }
 
-/** KENIC TLD (.ke, .co.ke, etc.): registration via NISC using EPP (contacts + domain create). */
+/** KENIC TLD (.ke, .co.ke, etc.): registration via Nisc using EPP (contacts + domain create). */
 async function processKenicOrderItem(
 	order: DomainOrder,
 	item: DomainOrderItem,
@@ -765,7 +765,7 @@ async function processKenicOrderItem(
 			.returning();
 		const sub = inserted[0];
 		if (!sub) {
-			throw new Error("Failed to create NISC subscription");
+			throw new Error("Failed to create Nisc subscription");
 		}
 
 		if (order.createdBy) {
@@ -867,7 +867,7 @@ async function processKenicTransferOrderItem(
 			.returning();
 		const sub = inserted[0];
 		if (!sub) {
-			throw new Error("Failed to create NISC subscription");
+			throw new Error("Failed to create Nisc subscription");
 		}
 
 		if (order.createdBy) {

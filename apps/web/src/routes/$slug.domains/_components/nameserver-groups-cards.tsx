@@ -628,7 +628,7 @@ export function NameserverGroupsCards() {
           <p className="text-muted-foreground mb-4">
             Get started by creating your first nameserver group
           </p>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Button onClick={() => setIsCreateDialogOpen(true)} className="mx-auto w-fit">
             <Plus className="mr-2 h-4 w-4" />
             Add Nameserver Group
           </Button>

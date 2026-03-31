@@ -121,7 +121,7 @@ export function CreateOrderSheet({
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent className="flex flex-col sm:max-w-xl overflow-y-auto">
 				<SheetHeader>
-					<SheetTitle>Create NISC order</SheetTitle>
+					<SheetTitle>Create Nisc order</SheetTitle>
 					<SheetDescription>
 						Select user/team and add product items. Order will be processed in the background.
 					</SheetDescription>

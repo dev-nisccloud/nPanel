@@ -56,7 +56,7 @@ So the **actual cause** of 199 is **not** specified by OpenProvider; it is “un
    - Domain name and TLD (e.g. `fineyakwoyo.com`).
    - That the error is **code 199**, description “An unknown error has occurred!”.
    - The **exact request** you send for `registerDomain` (see below; we now log it so you can copy from processing logs).
-   - Handle ID used as owner/admin/tech (and, if possible, a note that it was created via your NISC flow and passed email verification).
+   - Handle ID used as owner/admin/tech (and, if possible, a note that it was created via your Nisc flow and passed email verification).
 
 2. **Check account/agreement**  
    - Sign the [Processor Agreement](https://cp.openprovider.eu/documentation/contracts.php) if not already done.  
@@ -69,7 +69,7 @@ So the **actual cause** of 199 is **not** specified by OpenProvider; it is “un
    - For some TLDs, [additional data](https://doc.openprovider.eu/API_Format_Additional_Data) may be required; for plain .com we don’t send any, which is usually correct.
 
 4. **Use the new request logging**  
-   We log the **registerDomain request** (and raw response) in NISC order processing logs. When you contact support, grab from the logs:
+   We log the **registerDomain request** (and raw response) in Nisc order processing logs. When you contact support, grab from the logs:
    - **`processor_register_domain_request`** – request body we sent (domain name, extension, period, owner/admin/tech handle).
    - **`processor_api_raw_response`** with `call: "registerDomain"` – full API response (including code 199 and `rawResponse`).  
    That gives support the exact payload and response for the failing call.

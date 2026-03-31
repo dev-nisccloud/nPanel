@@ -47,7 +47,7 @@ export interface ServicePlanDetails {
   price: number;
   currency: string;
   billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY";
-  /** Required for creating NISC order from payment (product table flow). */
+  /** Required for creating Nisc order from payment (product table flow). */
   productId?: string;
 }
 
@@ -325,7 +325,7 @@ export function BuyNowDialog({
     },
   });
 
-  // Create NISC order from successful payment and enqueue for processing (customer team order)
+  // Create Nisc order from successful payment and enqueue for processing (customer team order)
   type CreateFromPaymentInput = RouterInputs["niscServiceOrders"]["createFromPayment"];
   // @ts-expect-error - tRPC useMutation type instantiation is excessively deep with createFromPayment input
   const createOrderFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation({

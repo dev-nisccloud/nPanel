@@ -201,8 +201,8 @@ export function UploadFileSheet({
               <Upload className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Upload Files</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle className="text-lg font-semibold">Upload Files</SheetTitle>
+              <SheetDescription className="text-sm">
                 Upload files to your hosting account
               </SheetDescription>
             </div>
@@ -376,11 +376,11 @@ export function UploadFileSheet({
 
             {/* Upload Guidelines */}
             <Card className="bg-muted/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Upload Guidelines</CardTitle>
+              <CardHeader className="pb-0">
+                <CardTitle className="text-xs font-semibold">Upload Guidelines</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <ul className="text-xs text-muted-foreground space-y-1">
+                <ul className="text-[11px] text-muted-foreground">
                   <li>• Maximum file size: <strong>50MB per file</strong></li>
                   <li>• Maximum files: 10 files per upload</li>
                   <li>• Supported formats: Images, PDFs, Archives, Text files</li>

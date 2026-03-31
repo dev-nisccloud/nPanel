@@ -73,7 +73,7 @@ export function ViewOrderSheet({
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent className="flex flex-col sm:max-w-lg overflow-y-auto">
 				<SheetHeader>
-					<SheetTitle>NISC Order</SheetTitle>
+					<SheetTitle>Nisc Order</SheetTitle>
 					<SheetDescription>
 						Order details and provisioning status
 					</SheetDescription>

@@ -269,7 +269,7 @@ export function HostingDataTable() {
                       <TooltipContent side="left" className="max-w-xs">
                         {pleskIdsWithLinkedSet.has(String(subscription.id))
                           ? CREATE_SUBSCRIPTION_TOOLTIP_LINKED
-                          : "Create a NISC subscription and link it to a team or user."}
+                          : "Create a Nisc subscription and link it to a team or user."}
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

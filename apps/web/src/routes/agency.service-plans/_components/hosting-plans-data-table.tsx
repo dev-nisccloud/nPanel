@@ -231,7 +231,7 @@ export function HostingPlansDataTable() {
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <h3 className="text-lg font-semibold mb-1">No service plans found</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Get started by creating your first NISC service plan
+              Get started by creating your first Nisc service plan
             </p>
             <Button onClick={() => setIsAddSheetOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />

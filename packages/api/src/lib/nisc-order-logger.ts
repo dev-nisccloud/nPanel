@@ -1,13 +1,13 @@
 /**
- * Structured logging for NISC order processing (QStash worker).
- * - Console: prefixed with [NISC] for Vercel/hosting log aggregation.
+ * Structured logging for Nisc order processing (QStash worker).
+ * - Console: prefixed with [Nisc] for Vercel/hosting log aggregation.
  * - DB: when niscOrderId is in payload, writes to NiscOrderProcessingLog for debugging in the order view.
  */
 import { db } from "@npanel/db";
 import { niscOrderProcessingLog } from "@npanel/db/schema/nisc-orders";
 import { randomUUID } from "node:crypto";
 
-const PREFIX = "[NISC]";
+const PREFIX = "[Nisc]";
 
 export type NiscLogPayload = Record<string, unknown> & {
 	niscOrderId?: string;

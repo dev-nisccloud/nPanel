@@ -346,7 +346,7 @@ export function NiscServicesDataTable() {
                         </div>
                         <h3 className="text-base font-semibold mb-1">No products found</h3>
                         <p className="text-sm text-muted-foreground mb-5">
-                            Get started by creating your first NISC product or service.
+                            Get started by creating your first Nisc product or service.
                         </p>
                         <Button onClick={handleAdd}>
                             <Plus className="mr-2 h-4 w-4" />

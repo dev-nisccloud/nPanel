@@ -46,7 +46,7 @@ enum OrderType {
 // New flow: we do not use order types; the subscription (NiscClientSubscription or
 // ServiceSubscription) defines the service type. Service details live at subscription
 // level; the order optionally links to subscription(s) via NiscClientSubscription.orderId
-// (or ServiceSubscription.orderId). Use niscProductPromoId when a NISC product promo was applied.
+// (or ServiceSubscription.orderId). Use niscProductPromoId when a Nisc product promo was applied.
 model Order {
   id          String  @id @map("_id")
   orderNumber String  @unique // Unique order number (e.g., "ORD-2024-001")
@@ -78,7 +78,7 @@ model Order {
   // Promo Information
   promoCode          String? // Promo code used (legacy)
   promoId            String? // Reference to legacy Promo (auth)
-  niscProductPromoId String? // NISC product promo/coupon applied (new flow)
+  niscProductPromoId String? // Nisc product promo/coupon applied (new flow)
 
   // Invoice Tracking
   invoiceNumber String? // Invoice number for this order
@@ -135,7 +135,7 @@ model OrderItem {
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   // Service Plan Reference
-  niscServicePlanId String // Reference to NISC service plan
+  niscServicePlanId String // Reference to Nisc service plan
   niscServicePlan   NiscServicePlan @relation(fields: [niscServicePlanId], references: [id], onDelete: Restrict)
 
   // Item Details

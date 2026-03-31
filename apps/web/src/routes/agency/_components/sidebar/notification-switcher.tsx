@@ -22,7 +22,6 @@ import {
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { useNotificationsSSE } from "@/hooks/use-notifications-sse";
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
@@ -42,7 +41,6 @@ const getPriorityColor = (priority: string) => {
 export function NotificationSwitcher() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = React.useState(false);
-  const [sseUnseenCount, setSseUnseenCount] = React.useState<number | null>(null);
   const [expandedNotifications, setExpandedNotifications] = React.useState<Set<string>>(new Set());
   const [updatingNotificationId, setUpdatingNotificationId] = React.useState<string | null>(null);
 
@@ -82,18 +80,10 @@ export function NotificationSwitcher() {
       // since: undefined,
     },
     {
-      // Refetch when popover opens
+      // Fetch once on mount; explicit refetch when popover opens or on key state changes.
       enabled: true,
-      // Smart polling: only when tab is visible and popover is open
-      refetchInterval: (query) => {
-        // Don't poll if tab is hidden
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-          return false;
-        }
-        // Poll more frequently when popover is open
-        return isOpen ? 15000 : 60000; // 15s when open, 60s when closed
-      },
       refetchOnWindowFocus: true,
+      refetchInterval: false,
     }
   );
 
@@ -116,35 +106,13 @@ export function NotificationSwitcher() {
   const { data: unseenCountData, refetch: refetchUnseenCount } = trpc.notifications.getUnseenCount.useQuery(
     undefined,
     {
-      refetchInterval: (query) => {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-          return false;
-        }
-        return 20000; // 20s polling for count
-      },
+      // No background polling; rely on query mount, window focus, and explicit refetches.
+      refetchInterval: false,
       refetchOnWindowFocus: true,
     }
   );
 
-  // SSE for real-time updates (when popover is open)
-  const { isConnected: sseConnected } = useNotificationsSSE(
-    (notification) => {
-      // New notification received via SSE
-      // Add to the beginning of the list
-      const updated = [notification as unknown as { id: string; createdAt: Date | string; updatedAt: Date | string;[key: string]: unknown; }, ...notificationsRef.current.filter(n => n.id !== notification.id)];
-      notificationsRef.current = updated;
-      refetch(); // Refresh to get full data
-    },
-    (count) => {
-      // Unseen count updated via SSE
-      setSseUnseenCount(count);
-      refetchUnseenCount();
-    },
-    isOpen // Only enable SSE when popover is open
-  );
-
-  // Use SSE count if available, otherwise use polling count
-  const unseenCount = sseUnseenCount !== null ? sseUnseenCount : (unseenCountData?.count ?? 0);
+  const unseenCount = unseenCountData?.count ?? 0;
 
   const utils = trpc.useUtils();
 

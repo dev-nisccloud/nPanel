@@ -130,7 +130,7 @@ export default function NiscServiceOrdersPage() {
 				<div className="flex flex-col gap-2">
 					<h1 className="text-base font-semibold tracking-tight">Nisc Service Orders</h1>
 					<p className="text-xs text-muted-foreground">
-						Create and manage NISC product orders. Orders are processed in the background.
+						Create and manage Nisc product orders. Orders are processed in the background.
 					</p>
 				</div>
 
@@ -159,7 +159,7 @@ export default function NiscServiceOrdersPage() {
 					{!data?.orders.length ? (
 						<EmptyState
 							title="No orders yet"
-							description="Create a NISC service order to get started."
+							description="Create a Nisc service order to get started."
 							action={
 								<Button onClick={() => setIsCreateOpen(true)}>
 									<Plus className="mr-2 h-4 w-4" />

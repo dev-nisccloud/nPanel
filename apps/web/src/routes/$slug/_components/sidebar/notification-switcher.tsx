@@ -22,7 +22,6 @@ import {
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { useNotificationsSSE } from "@/hooks/use-notifications-sse";
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
@@ -42,7 +41,6 @@ const getPriorityColor = (priority: string) => {
 export function NotificationSwitcher() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = React.useState(false);
-  const [sseUnseenCount, setSseUnseenCount] = React.useState<number | null>(null);
   const [expandedNotifications, setExpandedNotifications] = React.useState<Set<string>>(new Set());
   const [updatingNotificationId, setUpdatingNotificationId] = React.useState<string | null>(null);
 
@@ -82,18 +80,10 @@ export function NotificationSwitcher() {
       // since: undefined,
     },
     {
-      // Refetch when popover opens
+      // Fetch once on mount; explicit refetch when popover opens or on key state changes.
       enabled: true,
-      // Smart polling: only when tab is visible and popover is open
-      refetchInterval: (query) => {
-        // Don't poll if tab is hidden
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-          return false;
-        }
-        // Poll more frequently when popover is open
-        return isOpen ? 15000 : 60000; // 15s when open, 60s when closed
-      },
       refetchOnWindowFocus: true,
+      refetchInterval: false,
     }
   );
 
@@ -116,35 +106,13 @@ export function NotificationSwitcher() {
   const { data: unseenCountData, refetch: refetchUnseenCount } = trpc.notifications.getUnseenCount.useQuery(
     undefined,
     {
-      refetchInterval: (query) => {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-          return false;
-        }
-        return 20000; // 20s polling for count
-      },
+      // No background polling; rely on query mount, window focus, and explicit refetches.
+      refetchInterval: false,
       refetchOnWindowFocus: true,
     }
   );
 
-  // SSE for real-time updates (when popover is open)
-  const { isConnected: sseConnected } = useNotificationsSSE(
-    (notification) => {
-      // New notification received via SSE
-      // Add to the beginning of the list
-      const updated = [notification as unknown as { id: string; createdAt: Date | string; updatedAt: Date | string;[key: string]: unknown; }, ...notificationsRef.current.filter(n => n.id !== notification.id)];
-      notificationsRef.current = updated;
-      refetch(); // Refresh to get full data
-    },
-    (count) => {
-      // Unseen count updated via SSE
-      setSseUnseenCount(count);
-      refetchUnseenCount();
-    },
-    isOpen // Only enable SSE when popover is open
-  );
-
-  // Use SSE count if available, otherwise use polling count
-  const unseenCount = sseUnseenCount !== null ? sseUnseenCount : (unseenCountData?.count ?? 0);
+  const unseenCount = unseenCountData?.count ?? 0;
 
   const utils = trpc.useUtils();
 
@@ -160,7 +128,6 @@ export function NotificationSwitcher() {
       // Snapshot the previous value
       const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
       const previousUnseenCount = utils.notifications.getUnseenCount.getData();
-      const previousSseUnseenCount = sseUnseenCount;
 
       // Optimistically update list
       utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
@@ -235,13 +202,7 @@ export function NotificationSwitcher() {
         return wasSeen ? { count: old.count + 1 } : old;
       });
 
-      // Always update local state
-      const currentCount = sseUnseenCount ?? previousUnseenCount?.count ?? 0;
-      if (wasSeen) {
-        setSseUnseenCount(currentCount + 1);
-      }
-
-      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
+      return { previousNotifications, previousUnseenCount };
     },
     onSuccess: () => {
       setUpdatingNotificationId(null);
@@ -272,7 +233,6 @@ export function NotificationSwitcher() {
 
       const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
       const previousUnseenCount = utils.notifications.getUnseenCount.getData();
-      const previousSseUnseenCount = sseUnseenCount;
 
       // Find the notification to check if it was seen or unseen
       const notification = previousNotifications?.find(n => n.id === variables.id);
@@ -290,13 +250,7 @@ export function NotificationSwitcher() {
         });
       }
 
-      // Always update local state if needed
-      if (isUnseen) {
-        const currentCount = sseUnseenCount ?? previousUnseenCount?.count ?? 0;
-        setSseUnseenCount(Math.max(0, currentCount - 1));
-      }
-
-      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
+      return { previousNotifications, previousUnseenCount };
     },
     onSuccess: () => {
       setUpdatingNotificationId(null);
@@ -325,7 +279,6 @@ export function NotificationSwitcher() {
 
       const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
       const previousUnseenCount = utils.notifications.getUnseenCount.getData();
-      const previousSseUnseenCount = sseUnseenCount;
 
       utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
         if (!old) return [];
@@ -334,10 +287,7 @@ export function NotificationSwitcher() {
 
       utils.notifications.getUnseenCount.setData(undefined, { count: 0 });
 
-      // Always update local state
-      setSseUnseenCount(0);
-
-      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
+      return { previousNotifications, previousUnseenCount };
     },
     onSuccess: () => {},
     onError: (error, variables, context) => {

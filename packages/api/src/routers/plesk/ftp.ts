@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { Client, FileInfo } from "basic-ftp";
+import { Client, FileInfo, enterPassiveModeIPv4 } from "basic-ftp";
 import archiver from "archiver";
 import AdmZip from "adm-zip";
 import { createWriteStream, createReadStream, unlinkSync, existsSync, mkdirSync, statSync } from "fs";
@@ -94,6 +94,9 @@ const fileInfoRequestSchema = z.object({
 // Helper function to create FTP client
 async function createFtpClient(credentials: z.infer<typeof ftpConnectionSchema>) {
   const client = new Client(credentials.timeout);
+  // Some servers reset TLS data sockets on EPSV/IPv6.
+  // Force passive IPv4 mode for more stable transfers.
+  client.prepareTransfer = enterPassiveModeIPv4;
   
   try {
     await client.access({
@@ -112,6 +115,88 @@ async function createFtpClient(credentials: z.infer<typeof ftpConnectionSchema>)
       message: `Failed to connect to FTP server: ${error instanceof Error ? error.message : "Unknown error"}`,
     });
   }
+}
+
+async function reconnectFtpClient(
+  client: Client,
+  credentials: z.infer<typeof ftpConnectionSchema>
+) {
+  try {
+    client.close();
+  } catch {
+    // Ignore close errors during reconnect.
+  }
+
+  await client.access({
+    host: credentials.host,
+    port: credentials.port,
+    user: credentials.user,
+    password: credentials.password,
+    secure: credentials.secure,
+  });
+}
+
+function isRetryableTransferError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("ECONNRESET") ||
+    message.includes("Client is closed") ||
+    message.includes("socket disconnected") ||
+    message.includes("secure TLS connection") ||
+    message.includes("Timeout")
+  );
+}
+
+async function uploadWithRetry(
+  client: Client,
+  credentials: z.infer<typeof ftpConnectionSchema>,
+  localPath: string,
+  remotePath: string,
+  maxRetries = 3
+) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await client.uploadFrom(localPath, remotePath);
+      return;
+    } catch (error) {
+      lastError = error;
+      const shouldRetry = attempt < maxRetries && isRetryableTransferError(error);
+      if (!shouldRetry) {
+        throw error;
+      }
+      await reconnectFtpClient(client, credentials);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Upload failed");
+}
+
+async function downloadWithRetry(
+  client: Client,
+  credentials: z.infer<typeof ftpConnectionSchema>,
+  localPath: string,
+  remotePath: string,
+  maxRetries = 3
+) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await client.downloadTo(localPath, remotePath);
+      return;
+    } catch (error) {
+      lastError = error;
+      const shouldRetry = attempt < maxRetries && isRetryableTransferError(error);
+      if (!shouldRetry) {
+        throw error;
+      }
+      await reconnectFtpClient(client, credentials);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Download failed");
 }
 
 // Helper function to parse raw LIST output
@@ -422,7 +507,7 @@ export const ftpRouter = router({
       const client = await createFtpClient(input.credentials);
       
       try {
-        await client.uploadFrom(input.localPath, input.remotePath);
+        await uploadWithRetry(client, input.credentials, input.localPath, input.remotePath);
         return {
           success: true,
           message: `File uploaded successfully to ${input.remotePath}`,
@@ -459,7 +544,7 @@ export const ftpRouter = router({
           : `${input.remotePath}/${input.fileName}`;
         
         // Upload file
-        await client.uploadFrom(tempFilePath, remotePath);
+        await uploadWithRetry(client, input.credentials, tempFilePath, remotePath);
         
         return {
           success: true,
@@ -487,7 +572,7 @@ export const ftpRouter = router({
       const client = await createFtpClient(input.credentials);
       
       try {
-        await client.downloadTo(input.localPath, input.remotePath);
+        await downloadWithRetry(client, input.credentials, input.localPath, input.remotePath);
         return {
           success: true,
           message: `File downloaded successfully to ${input.localPath}`,
@@ -653,7 +738,7 @@ export const ftpRouter = router({
         
         while (retryCount < maxRetries) {
           try {
-            await client.downloadTo(tempFilePath, input.remotePath);
+            await downloadWithRetry(client, input.credentials, tempFilePath, input.remotePath, 1);
             break; // Success, exit retry loop
           } catch (error) {
             retryCount++;
@@ -666,14 +751,7 @@ export const ftpRouter = router({
             
             // Reconnect if connection was lost
             if (error instanceof Error && error.message.includes('connection')) {
-              client.close();
-              await client.access({
-                host: input.credentials.host,
-                port: input.credentials.port,
-                user: input.credentials.user,
-                password: input.credentials.password,
-                secure: input.credentials.secure,
-              });
+              await reconnectFtpClient(client, input.credentials);
             }
           }
         }
@@ -790,7 +868,7 @@ export const ftpRouter = router({
             while (retryCount < maxRetries) {
               try {
                 console.log(`Downloading file ${file.path} to ${tempFilePath} (attempt ${retryCount + 1})`);
-                await client.downloadTo(tempFilePath, file.path);
+                await downloadWithRetry(client, input.credentials, tempFilePath, file.path, 1);
                 console.log(`Successfully downloaded file: ${file.path}`);
                 break;
               } catch (error) {
@@ -803,14 +881,7 @@ export const ftpRouter = router({
                 await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
                 
                 if (error instanceof Error && error.message.includes('connection')) {
-                  client.close();
-                  await client.access({
-                    host: input.credentials.host,
-                    port: input.credentials.port,
-                    user: input.credentials.user,
-                    password: input.credentials.password,
-                    secure: input.credentials.secure,
-                  });
+                  await reconnectFtpClient(client, input.credentials);
                 }
               }
             }
@@ -952,7 +1023,7 @@ export const ftpRouter = router({
         
         while (retryCount < maxRetries) {
           try {
-            await client.downloadTo(tempFilePath, input.remotePath);
+            await downloadWithRetry(client, input.credentials, tempFilePath, input.remotePath, 1);
             break;
           } catch (error) {
             retryCount++;
@@ -963,14 +1034,7 @@ export const ftpRouter = router({
             await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
             
             if (error instanceof Error && error.message.includes('connection')) {
-              client.close();
-              await client.access({
-                host: input.credentials.host,
-                port: input.credentials.port,
-                user: input.credentials.user,
-                password: input.credentials.password,
-                secure: input.credentials.secure,
-              });
+              await reconnectFtpClient(client, input.credentials);
             }
           }
         }
@@ -1095,7 +1159,7 @@ export const ftpRouter = router({
         
         while (retryCount < maxRetries) {
           try {
-            await client.downloadTo(tempZipPath, input.zipPath);
+            await downloadWithRetry(client, input.credentials, tempZipPath, input.zipPath, 1);
             break;
           } catch (error) {
             retryCount++;
@@ -1106,14 +1170,7 @@ export const ftpRouter = router({
             await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
             
             if (error instanceof Error && error.message.includes('connection')) {
-              client.close();
-              await client.access({
-                host: input.credentials.host,
-                port: input.credentials.port,
-                user: input.credentials.user,
-                password: input.credentials.password,
-                secure: input.credentials.secure,
-              });
+              await reconnectFtpClient(client, input.credentials);
             }
           }
         }
@@ -1139,7 +1196,7 @@ export const ftpRouter = router({
         // Upload extracted files to FTP
         const uploadedFiles: string[] = [];
         const failedFiles: string[] = [];
-        
+
         // Helper function to recursively upload files
         const uploadFileRecursive = async (localPath: string, remoteBasePath: string) => {
           const fs = require('fs');
@@ -1194,7 +1251,8 @@ export const ftpRouter = router({
                 }
               }
               
-              await client.uploadFrom(localPath, remoteFilePath);
+              await uploadWithRetry(client, input.credentials, localPath, remoteFilePath);
+
               uploadedFiles.push(remoteFilePath);
               console.log(`Uploaded: ${remoteFilePath}`);
             } catch (error) {

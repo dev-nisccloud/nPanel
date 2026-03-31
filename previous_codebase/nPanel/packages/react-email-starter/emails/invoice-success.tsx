@@ -88,7 +88,7 @@ export const InvoiceSuccessEmail = ({
 InvoiceSuccessEmail.PreviewProps = {
   customerName: 'John Doe',
   invoiceNumber: 'INV-001',
-  orderNumber: 'NISC-00042',
+  orderNumber: 'Nisc-00042',
   totalAmount: '29,999.00',
   currency: 'KES',
   supportEmail: 'accounts@nisccloud.com',

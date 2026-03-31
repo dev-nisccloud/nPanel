@@ -1,5 +1,5 @@
 /**
- * Server-only: generate invoice PDF as Buffer. Used by the NISC worker to attach PDF to the Invoice success email.
+ * Server-only: generate invoice PDF as Buffer. Used by the Nisc worker to attach PDF to the Invoice success email.
  */
 import { Document, Page } from "@react-pdf/renderer";
 import { renderToBuffer } from "@npanel/invoice";
