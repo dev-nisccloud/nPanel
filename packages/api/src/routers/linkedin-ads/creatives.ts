@@ -33,10 +33,198 @@ function formatDateForLinkedIn(date: Date): { year: number; month: number; day: 
 
 function normalizeStatusLabel(status: string | null | undefined): string | null {
 	if (!status) return null;
-	return status.replace(/_/g, ' ');
+	return status;
+}
+
+function normalizeStatusArray(statuses: unknown): string[] {
+	if (!Array.isArray(statuses)) return [];
+	return statuses
+		.map((status) => (typeof status === 'string' ? status : null))
+		.filter((status): status is string => Boolean(status));
 }
 
 export const linkedInAdsCreativesRouter = router({
+	listAccountCreatives: protectedProcedure
+		.input(
+			z.object({
+				accountId: z.string().min(1, 'Account ID is required'),
+				pageSize: z.number().int().positive().max(100).optional(),
+				pageToken: z.string().optional(),
+				campaignIds: z.array(z.string().min(1)).optional(),
+			})
+		)
+		.query(async ({ input, ctx }) => {
+			try {
+				const userId = ctx.session?.user?.id;
+				if (!userId) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'User session not found',
+					});
+				}
+
+				const { accessToken } = await getUserIntegration(userId);
+				const client = new LinkedInAdsClient({ accessToken });
+				const response = await client.getAccountCreatives(input.accountId, {
+					pageSize: input.pageSize,
+					pageToken: input.pageToken,
+				});
+
+				let elements = response.elements || [];
+				if (input.campaignIds && input.campaignIds.length > 0) {
+					const campaignUrns = new Set(
+						input.campaignIds.map((id) =>
+							id.startsWith('urn:li:sponsoredCampaign:') ? id : `urn:li:sponsoredCampaign:${id}`
+						)
+					);
+					elements = elements.filter((creative: any) => campaignUrns.has(String(creative.campaign || '')));
+				}
+
+				const data = elements.map((creative: any) => ({
+					id: creative.id || null,
+					name: creative.name || null,
+					campaign: creative.campaign || null,
+					account: creative.account || null,
+					intendedStatus: normalizeStatusLabel(creative.intendedStatus || null),
+					reviewStatus: normalizeStatusLabel(creative.review?.status || null),
+					isServing: Boolean(creative.isServing),
+					servingHoldReasons: normalizeStatusArray(creative.servingHoldReasons),
+					contentReference: creative.content?.reference || null,
+					inlineContent: creative.inlineContent || null,
+					leadgenCallToAction: creative.leadgenCallToAction
+						? {
+								label: normalizeStatusLabel(creative.leadgenCallToAction.label || null),
+								destination: creative.leadgenCallToAction.destination || null,
+						  }
+						: null,
+					createdAt: creative.createdAt || null,
+					lastModifiedAt: creative.lastModifiedAt || null,
+				}));
+
+				return {
+					success: true,
+					data,
+					meta: {
+						retrieved_at: new Date().toISOString(),
+						total_creatives: data.length,
+						nextPageToken: response.metadata?.nextPageToken ?? null,
+					},
+				};
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: error instanceof Error ? error.message : 'Failed to list account creatives',
+				});
+			}
+		}),
+
+	getCreativePreview: protectedProcedure
+		.input(
+			z.object({
+				accountId: z.string().min(1, 'Account ID is required'),
+				creativeId: z.string().min(1, 'Creative ID is required'),
+				livePreviewCreative: z
+					.object({
+						campaign: z.string().min(1),
+						intendedStatus: z.string().optional(),
+						contentReference: z.string().optional(),
+						inlineContent: z.record(z.any()).optional(),
+					})
+					.optional(),
+			})
+		)
+		.query(async ({ input, ctx }) => {
+			try {
+				const userId = ctx.session?.user?.id;
+				if (!userId) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'User session not found',
+					});
+				}
+
+				const { accessToken } = await getUserIntegration(userId);
+				const client = new LinkedInAdsClient({ accessToken });
+				let response = await client.getCreativePreviews(input.accountId, input.creativeId);
+				const accuratePreviewUnsupported = Boolean(response.unsupportedCreativeType);
+				let previewSource: 'accurate' | 'live_action' | 'none' = response.elements?.length ? 'accurate' : 'none';
+
+				if (
+					(response.elements || []).length === 0 &&
+					!accuratePreviewUnsupported &&
+					input.livePreviewCreative?.campaign &&
+					(input.livePreviewCreative.contentReference || input.livePreviewCreative.inlineContent)
+				) {
+					try {
+						const liveResponse = await client.getLiveCreativePreviews({
+							campaign: input.livePreviewCreative.campaign,
+							intendedStatus: input.livePreviewCreative.intendedStatus,
+							content: input.livePreviewCreative.contentReference
+								? { reference: input.livePreviewCreative.contentReference }
+								: undefined,
+							inlineContent: input.livePreviewCreative.inlineContent,
+						});
+						if ((liveResponse.elements || []).length > 0) {
+							response = liveResponse as any;
+							previewSource = 'live_action';
+						}
+					} catch {
+						// Keep accurate-preview response if live fallback fails.
+					}
+				}
+
+				const data = (response.elements || []).map((element: any) => ({
+					preview: element.preview || null,
+					creative: element.creative || null,
+					placement: element.placement || null,
+				}));
+
+				return {
+					success: true,
+					data,
+					meta: {
+						retrieved_at: new Date().toISOString(),
+						total_previews: data.length,
+						previewSource,
+						unsupportedCreativeType: accuratePreviewUnsupported,
+					},
+				};
+			} catch (error: any) {
+				const status =
+					error?.status ?? error?.statusCode ?? error?.cause?.status ?? error?.cause?.statusCode;
+				const message = String(error?.message || error?.userMessage || error?.cause?.message || '');
+				const code = String(error?.code || error?.errorCode || error?.cause?.code || '');
+				if (
+					status === 422 ||
+					code === 'UNSUPPORTED_CREATIVE_TYPE' ||
+					message.includes('Unsupported Creative Type')
+				) {
+					return {
+						success: true,
+						data: [],
+						meta: {
+							retrieved_at: new Date().toISOString(),
+							total_previews: 0,
+							unsupportedCreativeType: true,
+							message: 'Preview is not supported for this creative type.',
+						},
+					};
+				}
+
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: error instanceof Error ? error.message : 'Failed to fetch creative preview',
+				});
+			}
+		}),
+
 	/**
 	 * List creatives (ads) for a campaign
 	 * Returns creatives directly from LinkedIn API with optional insights

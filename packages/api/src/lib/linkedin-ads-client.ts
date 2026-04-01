@@ -10,6 +10,7 @@ import { LinkedInErrorHandler } from './linkedin-error-handler';
 export class LinkedInAdsClient {
 	private config: Required<LinkedInApiConfig>;
 	private debugEnabled: boolean;
+	private static unsupportedStrategyCache = new Set<string>();
 
 	constructor(config: LinkedInApiConfig) {
 		const envApiVersion =
@@ -32,9 +33,21 @@ export class LinkedInAdsClient {
 
 	private normalizeElements<T = any>(response: any): T[] {
 		if (Array.isArray(response?.elements)) return response.elements as T[];
+		if (Array.isArray(response?.value)) return response.value as T[];
 		if (Array.isArray(response?.data)) return response.data as T[];
 		if (Array.isArray(response)) return response as T[];
 		return [];
+	}
+
+	private isUnsupportedCreativePreviewError(error: any): boolean {
+		const status = error?.status ?? error?.statusCode ?? error?.cause?.status ?? error?.cause?.statusCode;
+		const message = String(error?.message || error?.userMessage || error?.cause?.message || '');
+		const code = String(error?.code || error?.errorCode || error?.cause?.code || '');
+		return (
+			status === 422 ||
+			code === 'UNSUPPORTED_CREATIVE_TYPE' ||
+			message.includes('Unsupported Creative Type')
+		);
 	}
 
 	private toLinkedInList(values: string[]): string {
@@ -52,6 +65,11 @@ export class LinkedInAdsClient {
 		const parts = entries.map(([key, value]) => {
 			if (key === 'dateRange' && typeof value === 'string') {
 				// LinkedIn adAnalytics finder expects dateRange expression syntax, not percent-encoded.
+				return `${encodeURIComponent(key)}=${value}`;
+			}
+			if (key === 'fields' && typeof value === 'string') {
+				// LinkedIn projections require raw comma-separated field names.
+				// Encoding commas makes the entire list look like a single invalid field.
 				return `${encodeURIComponent(key)}=${value}`;
 			}
 			return `${encodeURIComponent(key)}=${encodeURIComponent(this.toQueryValue(value))}`;
@@ -111,6 +129,23 @@ export class LinkedInAdsClient {
 	private debugLog(event: string, payload: Record<string, unknown>): void {
 		if (!this.debugEnabled) return;
 		console.log(`[LinkedInAds Debug] ${event}`, payload);
+	}
+
+	private makeStrategyCacheKey(endpoint: string, strategy: string, accountIdOrUrn?: string): string {
+		const normalizedAccount = accountIdOrUrn ? this.extractAccountId(accountIdOrUrn) : 'global';
+		return `${this.config.apiVersion}::${endpoint}::${normalizedAccount}::${strategy}`;
+	}
+
+	private isStrategyUnsupported(endpoint: string, strategy: string, accountIdOrUrn?: string): boolean {
+		return LinkedInAdsClient.unsupportedStrategyCache.has(
+			this.makeStrategyCacheKey(endpoint, strategy, accountIdOrUrn)
+		);
+	}
+
+	private markStrategyUnsupported(endpoint: string, strategy: string, accountIdOrUrn?: string): void {
+		const key = this.makeStrategyCacheKey(endpoint, strategy, accountIdOrUrn);
+		LinkedInAdsClient.unsupportedStrategyCache.add(key);
+		this.debugLog('strategy-marked-unsupported', { endpoint, strategy, accountIdOrUrn });
 	}
 
 	/**
@@ -569,76 +604,30 @@ export class LinkedInAdsClient {
 
 		const accountId = this.extractAccountId(accountIdOrUrn);
 		const endpoint = `/rest/adAccounts/${accountId}/adCampaigns`;
-		const trySearch = async (strategy: string, params: Record<string, any>) => {
-			try {
-				const response = await this.makeRequest<any>('GET', endpoint, params);
-				const elements = this.normalizeElements(response);
-				this.debugLog('campaigns-strategy-result', {
-					endpoint,
-					strategy,
-					params,
-					elementsCount: elements.length,
-				});
-				return { ...response, elements };
-			} catch (error: any) {
-				this.debugLog('campaigns-strategy-error', {
-					endpoint,
-					strategy,
-					params,
-					status: error?.status,
-					message: error?.message,
-					errorType: error?.errorType,
-				});
-				throw error;
-			}
-		};
-
-		const basePaging = {
+		// Direct strategy: plain finder search, then local campaign-group filtering.
+		// This is the stable shape for this tenant/version and avoids repeated 400s.
+		const fallback = await this.makeRequest<any>('GET', endpoint, {
+			q: 'search',
 			...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
 			...(options?.pageToken ? { pageToken: options.pageToken } : {}),
-		};
-
-		// Strategy 1: finder search expression (preferred for this endpoint)
-		try {
-			return await trySearch('finder-search-expression', {
+		});
+		const fallbackElements = this.normalizeElements(fallback);
+		this.debugLog('campaigns-strategy-result', {
+			endpoint,
+			strategy: 'finder-search-all-local-filter',
+			params: {
 				q: 'search',
-				search: `(campaignGroup:(values:${this.toLinkedInList([campaignGroupUrn])}),status:(values:List(ACTIVE,PAUSED,DRAFT,ARCHIVED,CANCELED)))`,
-				...basePaging,
-			});
-		} catch {
-			// fall through
-		}
-
-		// Strategy 2: finder with campaign group only (broader, then local status filtering)
-		try {
-			const result = await trySearch('finder-search-campaign-group-only', {
-				q: 'search',
-				search: `(campaignGroup:(values:${this.toLinkedInList([campaignGroupUrn])}))`,
-				...basePaging,
-			});
-			const allowedStatuses = new Set(['ACTIVE', 'PAUSED', 'DRAFT', 'ARCHIVED', 'CANCELED']);
-			return {
-				...result,
-				elements: (result.elements || []).filter((campaign: any) => {
-					const status = String(campaign?.status || '').toUpperCase();
-					return !status || allowedStatuses.has(status);
-				}),
-			};
-		} catch {
-			// fall through
-		}
-
-		// Strategy 3: plain finder search, then local campaign-group filtering
-		const fallback = await trySearch('finder-search-all-local-filter', {
-			q: 'search',
-			...basePaging,
+				...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
+				...(options?.pageToken ? { pageToken: options.pageToken } : {}),
+			},
+			elementsCount: fallbackElements.length,
 		});
 		const targetCampaignGroupUrn = campaignGroupUrn.startsWith('urn:li:')
 			? campaignGroupUrn
 			: this.ensureUrn(campaignGroupUrn, 'CAMPAIGN_GROUP');
 		return {
 			...fallback,
-			elements: (fallback.elements || []).filter((campaign: any) => String(campaign?.campaignGroup || '') === targetCampaignGroupUrn),
+			elements: fallbackElements.filter((campaign: any) => String(campaign?.campaignGroup || '') === targetCampaignGroupUrn),
 		};
 	}
 
@@ -704,81 +693,30 @@ export class LinkedInAdsClient {
 		const endpoint = `/rest/adAccounts/${accountId}/creatives`;
 		const normalizedCampaignUrn = this.ensureUrn(campaignUrn, 'CAMPAIGN');
 
-		const tryCriteria = async (strategy: string, params: Record<string, any>) => {
-			try {
-				const response = await this.makeRequest<any>('GET', endpoint, params);
-				const elements = this.normalizeElements(response);
-				this.debugLog('creatives-strategy-result', {
-					endpoint,
-					strategy,
-					params,
-					elementsCount: elements.length,
-				});
-				return { ...response, elements };
-			} catch (error: any) {
-				this.debugLog('creatives-strategy-error', {
-					endpoint,
-					strategy,
-					params,
-					status: error?.status,
-					message: error?.message,
-					errorType: error?.errorType,
-				});
-				throw error;
-			}
-		};
-
-		const basePaging = {
-			...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
-			...(options?.pageToken ? { pageToken: options.pageToken } : {}),
-		};
-
-		// Strategy 1: docs-aligned criteria finder by campaign + intended statuses
+		// Direct strategy: broad criteria finder then local filter by campaign.
+		// Campaign/intendedStatuses filters are rejected in this tenant/version.
 		try {
-			return await tryCriteria('criteria-campaign-and-status', {
+			const fallback = await this.makeRequest<any>('GET', endpoint, {
 				q: 'criteria',
-				campaigns: this.toLinkedInList([normalizedCampaignUrn]),
-				intendedStatuses: 'List(ACTIVE,PAUSED,DRAFT,ARCHIVED,CANCELED)',
 				sortOrder: 'ASCENDING',
-				...basePaging,
+				...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
+				...(options?.pageToken ? { pageToken: options.pageToken } : {}),
 			});
-		} catch {
-			// fall through
-		}
-
-		// Strategy 2: criteria finder by campaign only, then local status filtering
-		try {
-			const result = await tryCriteria('criteria-campaign-only', {
-				q: 'criteria',
-				campaigns: this.toLinkedInList([normalizedCampaignUrn]),
-				sortOrder: 'ASCENDING',
-				...basePaging,
-			});
-			const allowedStatuses = new Set(['ACTIVE', 'PAUSED', 'DRAFT', 'ARCHIVED', 'CANCELED']);
-			return {
-				...result,
-				elements: (result.elements || []).filter((creative: any) => {
-					const status = String(creative?.intendedStatus || creative?.status || '').toUpperCase();
-					return !status || allowedStatuses.has(status);
-				}),
-			};
-		} catch (error: any) {
-			// If this account/version does not expose creatives endpoint, keep details page healthy.
-			if (error?.status === 404 || String(error?.message || '').includes('No virtual resource found')) {
-				return { elements: [], paging: undefined };
-			}
-		}
-
-		// Strategy 3: broad criteria finder then local filter by campaign
-		try {
-			const fallback = await tryCriteria('criteria-all-local-filter', {
-				q: 'criteria',
-				sortOrder: 'ASCENDING',
-				...basePaging,
+			const fallbackElements = this.normalizeElements(fallback);
+			this.debugLog('creatives-strategy-result', {
+				endpoint,
+				strategy: 'criteria-all-local-filter',
+				params: {
+					q: 'criteria',
+					sortOrder: 'ASCENDING',
+					...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
+					...(options?.pageToken ? { pageToken: options.pageToken } : {}),
+				},
+				elementsCount: fallbackElements.length,
 			});
 			return {
 				...fallback,
-				elements: (fallback.elements || []).filter((creative: any) => String(creative?.campaign || '') === normalizedCampaignUrn),
+				elements: fallbackElements.filter((creative: any) => String(creative?.campaign || '') === normalizedCampaignUrn),
 			};
 		} catch (error: any) {
 			if (error?.status === 404 || String(error?.message || '').includes('No virtual resource found')) {
@@ -786,6 +724,120 @@ export class LinkedInAdsClient {
 			}
 			throw error;
 		}
+	}
+
+	async getAccountCreatives(
+		accountIdOrUrn: string,
+		options?: {
+			pageSize?: number;
+			pageToken?: string;
+			sortOrder?: 'ASCENDING' | 'DESCENDING';
+		}
+	): Promise<{
+		elements: Array<any>;
+		paging?: any;
+		metadata?: {
+			nextPageToken?: string | null;
+		};
+	}> {
+		const accountId = this.extractAccountId(accountIdOrUrn);
+		const endpoint = `/rest/adAccounts/${accountId}/creatives`;
+		const pageSize = Math.min(options?.pageSize ?? 100, 100);
+		const sortOrder = options?.sortOrder ?? 'ASCENDING';
+
+		const response = await this.makeRequest<any>('GET', endpoint, {
+			q: 'criteria',
+			pageSize,
+			...(options?.pageToken ? { pageToken: options.pageToken } : {}),
+			sortOrder,
+		});
+
+		return {
+			...response,
+			elements: this.normalizeElements(response),
+		};
+	}
+
+	async getCreativePreviews(
+		accountIdOrUrn: string,
+		creativeUrnOrId: string
+	): Promise<{
+		elements: Array<{
+			preview?: string;
+			creative?: string;
+			placement?: any;
+		}>;
+		paging?: any;
+		unsupportedCreativeType?: boolean;
+	}> {
+		const accountUrn = this.ensureUrn(accountIdOrUrn, 'ACCOUNT');
+		const creativeUrn = this.ensureUrn(creativeUrnOrId, 'CREATIVE');
+		try {
+			const response = await this.makeRequest<any>('GET', '/rest/adPreviews', {
+				q: 'creative',
+				account: accountUrn,
+				creative: creativeUrn,
+			});
+			return {
+				...response,
+				elements: this.normalizeElements(response),
+			};
+		} catch (error: any) {
+			if (this.isUnsupportedCreativePreviewError(error)) {
+				this.debugLog('adPreview-unsupported-creative-type', {
+					accountUrn,
+					creativeUrn,
+					error: this.safeSerialize(error),
+				});
+				return { elements: [], paging: undefined, unsupportedCreativeType: true };
+			}
+			throw error;
+		}
+	}
+
+	async getLiveCreativePreviews(
+		creative: {
+			campaign: string;
+			intendedStatus?: string;
+			content?: { reference?: string; [key: string]: any } | null;
+			inlineContent?: Record<string, any> | null;
+		}
+	): Promise<{ elements: Array<{ preview?: string; placement?: any }>; paging?: any }> {
+		const payloadCreative: any = {
+			campaign: this.ensureUrn(creative.campaign, 'CAMPAIGN'),
+			intendedStatus: creative.intendedStatus || 'ACTIVE',
+		};
+		if (creative.content) payloadCreative.content = creative.content;
+		if (creative.inlineContent) payloadCreative.inlineContent = creative.inlineContent;
+
+		if (!payloadCreative.content && !payloadCreative.inlineContent) {
+			return { elements: [], paging: undefined };
+		}
+
+		if (payloadCreative.content) {
+			const response = await this.makeRequest<any>(
+				'POST',
+				'/rest/adPreviews',
+				{ action: 'livePreviewForCreative' },
+				{ creative: payloadCreative }
+			);
+			const elements = this.normalizeElements(response);
+			if (elements.length > 0) {
+				return { ...response, elements };
+			}
+		}
+
+		if (payloadCreative.inlineContent) {
+			const response = await this.makeRequest<any>(
+				'POST',
+				'/rest/adPreviews',
+				{ action: 'livePreviewForCreativeInline' },
+				{ creative: payloadCreative }
+			);
+			return { ...response, elements: this.normalizeElements(response) };
+		}
+
+		return { elements: [], paging: undefined };
 	}
 
 	/**
@@ -870,6 +922,12 @@ export class LinkedInAdsClient {
 			q: 'analytics',
 			timeGranularity: options.timeGranularity || 'ALL',
 		};
+
+		// LinkedIn adAnalytics defaults to a minimal metric set when fields is omitted.
+		// Always pass explicit fields when provided so downstream insights are populated.
+		if (options.fields && options.fields.length > 0) {
+			baseParams.fields = options.fields.join(',');
+		}
 
 		if (options.accounts && options.accounts.length > 0) {
 			const urns = options.accounts.map((v) => this.ensureUrn(v, 'ACCOUNT'));

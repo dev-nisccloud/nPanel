@@ -33,13 +33,13 @@ function formatDateForLinkedIn(date: Date): { year: number; month: number; day: 
 
 function normalizeStatusLabel(status: string | null | undefined): string | null {
 	if (!status) return null;
-	return status.replace(/_/g, ' ');
+	return status;
 }
 
 function normalizeStatusArray(statuses: unknown): string[] {
 	if (!Array.isArray(statuses)) return [];
 	return statuses
-		.map((status) => (typeof status === 'string' ? status.replace(/_/g, ' ') : null))
+		.map((status) => (typeof status === 'string' ? status : null))
 		.filter((status): status is string => Boolean(status));
 }
 
