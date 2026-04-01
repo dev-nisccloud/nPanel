@@ -146,6 +146,10 @@ export function SeoGa4View() {
     const summary = report?.summary;
     const topPages = report?.topPages;
     const topCountries = report?.topCountries ?? [];
+    const bounceThreshold = summary?.averageBounceRate ?? 70;
+    const bounceAlertPages = report?.topPages?.top
+        .filter((p: any) => (p.bounceRate || 0) > bounceThreshold)
+        .slice(0, 3) ?? [];
 
     const formatNumber = (val: number) => val.toLocaleString();
     const formatPercent = (val: number) => `${val.toFixed(2)}%`;
@@ -473,20 +477,31 @@ export function SeoGa4View() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4">
-                                    <ul className="space-y-3">
-                                        {report.topPages.top
-                                            .filter((p: any) => (p.bounceRate || 0) > (summary.averageBounceRate || 70))
-                                            .slice(0, 3)
-                                            .map((p: any, i: number) => (
-                                                <li key={i} className="flex flex-col gap-0.5">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-sm font-bold truncate max-w-[200px]">{p.url.split('/').pop() || p.url}</span>
-                                                        <span className="text-xs font-medium text-rose-600">{(p.bounceRate || 0).toFixed(1)}% Bounce</span>
-                                                    </div>
-                                                    <span className="text-xs text-muted-foreground italic">High sessions but high drop-off. Audit content or page load speed.</span>
+                                    <ScrollArea className="h-[220px] w-full rounded-md pr-2">
+                                        <ul className="space-y-3">
+                                            {bounceAlertPages.length > 0 ? bounceAlertPages.map((p: any, i: number) => (
+                                                    <li key={i} className="flex flex-col gap-0.5 border-b border-muted/30 pb-2 last:border-0 last:pb-0">
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <span className="text-sm font-bold break-all leading-tight">
+                                                                {p.url}
+                                                            </span>
+                                                            <span className="text-xs font-medium text-rose-600 whitespace-nowrap">{(p.bounceRate || 0).toFixed(1)}% Bounce</span>
+                                                        </div>
+                                                        <span className="text-xs text-muted-foreground italic">
+                                                            {(p.sessions || 0).toLocaleString()} sessions, {(p.engagementRate || 0).toFixed(1)}% engagement, {Math.max((p.bounceRate || 0) - bounceThreshold, 0).toFixed(1)} pts above site average.
+                                                        </span>
+                                                        <span className="text-[11px] text-rose-700/90">
+                                                            Avg. session: {formatDuration(p.averageSessionDuration || 0)} | Conversions: {formatNumber(p.conversions || 0)}
+                                                        </span>
+                                                    </li>
+                                                )) : (
+                                                <li className="text-xs text-muted-foreground italic">
+                                                    No pages exceeded the bounce-rate alert threshold ({bounceThreshold.toFixed(1)}%).
                                                 </li>
-                                            ))}
-                                    </ul>
+                                            )}
+                                        </ul>
+                                        <ScrollBar orientation="vertical" className="flex" />
+                                    </ScrollArea>
                                 </CardContent>
                             </Card>
                         </div>

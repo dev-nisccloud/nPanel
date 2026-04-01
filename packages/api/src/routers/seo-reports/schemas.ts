@@ -111,9 +111,14 @@ export const seoOpportunitySchema = z.object({
 export const seoSitemapSchema = z.object({
   path: z.string(),
   lastDownloaded: z.string().optional(),
+  lastSubmitted: z.string().optional(),
   errors: z.number(),
   warnings: z.number(),
   status: z.string(),
+  type: z.string().optional(),
+  issues: z.array(z.string()).default([]),
+  indexedUrls: z.number().optional(),
+  submittedUrls: z.number().optional(),
 });
 
 export const seoAutomatedReportResponseSchema = z.object({

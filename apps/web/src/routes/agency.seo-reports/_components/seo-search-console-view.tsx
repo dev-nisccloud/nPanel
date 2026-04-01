@@ -756,6 +756,28 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                                                     Updated: {format(new Date(s.lastDownloaded), "MMM dd, yyyy")}
                                                 </span>
                                             )}
+                                            {!!s.issues?.length && (
+                                                <div className="rounded-md border border-amber-200/50 bg-amber-50/40 px-2 py-1.5">
+                                                    <p className="text-[11px] font-semibold text-amber-700 mb-1">Warning details</p>
+                                                    <ul className="space-y-0.5">
+                                                        {s.issues.slice(0, 3).map((issue: string, issueIdx: number) => (
+                                                            <li key={issueIdx} className="text-[11px] text-amber-700/90 leading-tight">
+                                                                - {issue}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {(s.submittedUrls > 0 || s.indexedUrls > 0) && (
+                                                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                                                    {typeof s.submittedUrls === "number" && s.submittedUrls > 0 && (
+                                                        <span>Submitted: {formatNumber(s.submittedUrls)}</span>
+                                                    )}
+                                                    {typeof s.indexedUrls === "number" && (
+                                                        <span>Indexed: {formatNumber(s.indexedUrls)}</span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </CardContent>

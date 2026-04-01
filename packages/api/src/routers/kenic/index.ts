@@ -6,6 +6,7 @@ import { kenicTldsRouter } from "./tlds";
 import { kenicContactCreateRouter } from "./contact-create";
 import { kenicDomainCreateRouter } from "./domain-create";
 import { kenicDomainTransferRouter } from "./domain-transfer";
+import { kenicConfigStatusRouter } from "./config-status";
 
 /**
  * KENIC EPP integration (.ke and other KENIC TLDs).
@@ -20,4 +21,5 @@ export const kenicRouter = router({
 	contactCreate: kenicContactCreateRouter,
 	domainCreate: kenicDomainCreateRouter,
 	domainTransfer: kenicDomainTransferRouter,
+	configStatus: kenicConfigStatusRouter,
 });

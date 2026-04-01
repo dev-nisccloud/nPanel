@@ -328,12 +328,42 @@ export const seoReportsRouter = router({
           else if (errors > 0) statusStr = "Has errors";
           else if (warnings > 0) statusStr = "Has warnings";
 
+          const sitemapContents = Array.isArray(s.contents) ? s.contents : [];
+          const submittedUrls = sitemapContents.reduce((sum: number, content: any) => {
+            const value = parseInt(content?.submitted || "0");
+            return sum + (Number.isNaN(value) ? 0 : value);
+          }, 0);
+          const indexedUrls = sitemapContents.reduce((sum: number, content: any) => {
+            const value = parseInt(content?.indexed || "0");
+            return sum + (Number.isNaN(value) ? 0 : value);
+          }, 0);
+
+          const issues: string[] = [];
+          if (errors > 0) {
+            issues.push(`${errors} error${errors !== 1 ? "s" : ""} reported by Search Console`);
+          }
+          if (warnings > 0) {
+            issues.push(`${warnings} warning${warnings !== 1 ? "s" : ""} reported by Search Console`);
+          }
+          if (submittedUrls > 0 && indexedUrls >= 0 && indexedUrls < submittedUrls) {
+            const notIndexed = submittedUrls - indexedUrls;
+            issues.push(`${notIndexed.toLocaleString()} submitted URL${notIndexed !== 1 ? "s are" : " is"} not indexed yet`);
+          }
+          if (s.isPending) {
+            issues.push("Sitemap is pending processing by Google");
+          }
+
           return {
             path: s.path,
             lastDownloaded: s.lastDownloaded,
+            lastSubmitted: s.lastSubmitted,
             errors,
             warnings,
             status: statusStr,
+            type: s.type,
+            issues,
+            indexedUrls,
+            submittedUrls,
           };
         });
 
