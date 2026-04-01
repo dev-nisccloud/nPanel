@@ -174,17 +174,33 @@ export default function LinkedInAdsPage() {
 		let totalClicks = 0;
 		let totalSpend = 0;
 		let totalConversions = 0;
+		let totalOneClickLeads = 0;
+		let totalVideoViews = 0;
+		let totalVideoCompletions = 0;
 		campaigns.forEach((campaign: any) => {
 			if (campaign.insights) {
 				totalImpressions += Number(campaign.insights.impressions || 0);
 				totalClicks += Number(campaign.insights.clicks || 0);
 				totalSpend += Number(campaign.insights.spend || 0);
 				totalConversions += Number(campaign.insights.externalWebsiteConversions || 0);
+				totalOneClickLeads += Number(campaign.insights.oneClickLeads || 0);
+				totalVideoViews += Number(campaign.insights.videoViews || 0);
+				totalVideoCompletions += Number(campaign.insights.videoCompletions || 0);
 			}
 		});
 		const avgCPC = totalClicks > 0 ? totalSpend / totalClicks : 0;
 		const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
-		return { totalImpressions, totalClicks, totalSpend, totalConversions, avgCPC, avgCTR };
+		return {
+			totalImpressions,
+			totalClicks,
+			totalSpend,
+			totalConversions,
+			totalOneClickLeads,
+			totalVideoViews,
+			totalVideoCompletions,
+			avgCPC,
+			avgCTR,
+		};
 	}, [campaigns]);
 
 	const formatNumber = (value: number | string): string => {
@@ -387,13 +403,16 @@ export default function LinkedInAdsPage() {
 							</div>
 						) : campaigns.length > 0 ? (
 							<div className="mt-8 space-y-12">
-								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-7 gap-4">
 									<MetricCard title="Total Impressions" value={formatNumber(metrics.totalImpressions)} icon={<Target className="h-4 w-4" />} color="green" />
 									<MetricCard title="Total Clicks" value={formatNumber(metrics.totalClicks)} icon={<MousePointer2 className="h-4 w-4" />} color="purple" />
 									<MetricCard title="Amount Spent" value={formatCurrency(metrics.totalSpend)} icon={<TrendingUp className="h-4 w-4" />} color="orange" />
 									<MetricCard title="Avg CPC" value={formatCurrency(metrics.avgCPC)} icon={<BarChart3 className="h-4 w-4" />} color="blue" />
 									<MetricCard title="Avg CTR" value={`${metrics.avgCTR.toFixed(2)}%`} icon={<TrendingUp className="h-4 w-4" />} color="indigo" />
 									<MetricCard title="Conversions" value={formatNumber(metrics.totalConversions)} icon={<Target className="h-4 w-4" />} color="emerald" />
+									<MetricCard title="One Click Leads" value={formatNumber(metrics.totalOneClickLeads)} icon={<Target className="h-4 w-4" />} color="orange" />
+									<MetricCard title="Video Views" value={formatNumber(metrics.totalVideoViews)} icon={<BarChart3 className="h-4 w-4" />} color="blue" />
+									<MetricCard title="Video Completions" value={formatNumber(metrics.totalVideoCompletions)} icon={<TrendingUp className="h-4 w-4" />} color="indigo" />
 								</div>
 
 								<div className="space-y-6">
@@ -459,6 +478,14 @@ export default function LinkedInAdsPage() {
 															<div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 space-y-1">
 																<p className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Spent</p>
 																<p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">{formatCurrency(campaign.insights.spend || 0)}</p>
+															</div>
+															<div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 space-y-1">
+																<p className="text-[9px] font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wider">Leads</p>
+																<p className="text-sm font-bold text-orange-900 dark:text-orange-100">{formatNumber(campaign.insights.oneClickLeads || 0)}</p>
+															</div>
+															<div className="p-3 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-100 dark:border-cyan-500/20 space-y-1">
+																<p className="text-[9px] font-medium text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">Video Views</p>
+																<p className="text-sm font-bold text-cyan-900 dark:text-cyan-100">{formatNumber(campaign.insights.videoViews || 0)}</p>
 															</div>
 														</div>
 													) : (

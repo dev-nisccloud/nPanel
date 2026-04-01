@@ -422,7 +422,7 @@ export default function LinkedInCampaignDetailsPage() {
                   Analytics metrics are unavailable for this selection (no activity yet, reporting permission missing, or API returned an empty reporting response).
                 </p>
               )}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7 gap-4">
                 <MetricBox label="Impressions" value={formatNumber(metrics.totalImpressions)} tone="purple" />
                 <MetricBox label="Clicks" value={formatNumber(metrics.totalClicks)} tone="green" />
                 <MetricBox label="Amount Spent" value={formatCurrency(metrics.totalSpend, currency)} tone="emerald" />
@@ -473,7 +473,7 @@ export default function LinkedInCampaignDetailsPage() {
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="pb-4 space-y-4">
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                           {getDynamicInsightMetricCards(campaign?.insights, currency).map((metric) => (
                             <MetricMini key={`${campaign.id}-${metric.label}`} label={metric.label} value={metric.value} tone={metric.tone} />
                           ))}
