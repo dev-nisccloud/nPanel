@@ -93,7 +93,11 @@ export default function LinkedInAdsAccountDetailPage() {
 	}, [accountError, campaignGroupsError]);
 
 	const account = accountData?.data;
-	const campaignGroups = campaignGroupsData?.data || [];
+	const campaignGroups = [...(campaignGroupsData?.data || [])].sort((a: any, b: any) => {
+		const aTime = a.changeAuditStamps?.lastModified?.time ?? a.changeAuditStamps?.created?.time ?? 0;
+		const bTime = b.changeAuditStamps?.lastModified?.time ?? b.changeAuditStamps?.created?.time ?? 0;
+		return bTime - aTime;
+	});
 	const currency = account?.currency || 'USD'; // Default to USD if not available
 
 	/**

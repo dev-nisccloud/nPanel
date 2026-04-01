@@ -165,7 +165,11 @@ export default function LinkedInAdsPage() {
 		}
 	}, [accountsError, campaignsError]);
 
-	const campaigns = campaignsData?.data || [];
+	const campaigns = [...(campaignsData?.data || [])].sort((a: any, b: any) => {
+		const aTime = a.changeAuditStamps?.lastModified?.time ?? a.changeAuditStamps?.created?.time ?? 0;
+		const bTime = b.changeAuditStamps?.lastModified?.time ?? b.changeAuditStamps?.created?.time ?? 0;
+		return bTime - aTime;
+	});
 	const currentAccount = accounts.find((a) => String(a.id) === selectedAccountId);
 	const currency = currentAccount?.currency || "USD";
 
