@@ -10,17 +10,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ArrowLeft, RefreshCw, AlertCircle, Layers, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function formatNumber(value: number | string | null | undefined): string {
-  const num = typeof value === "string" ? parseFloat(value) : Number(value || 0);
+  if (value === null || value === undefined || value === "") return "—";
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
   if (Number.isNaN(num)) return "0";
   return num.toLocaleString("en-US", { maximumFractionDigits: num % 1 === 0 ? 0 : 2 });
 }
 
 function formatCurrency(value: number | string | null | undefined, currency: string): string {
-  const num = typeof value === "string" ? parseFloat(value) : Number(value || 0);
+  if (value === null || value === undefined || value === "") return "—";
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
   if (Number.isNaN(num)) return "0";
   try {
     return new Intl.NumberFormat("en-US", {
@@ -56,13 +59,99 @@ function statusStyles(status?: string | null): { variant: "outline" | "secondary
   return { variant: "secondary", className: "rounded-full" };
 }
 
+function humanizeLabel(value?: string | null): string {
+  if (!value) return "N/A";
+  return value.replace(/_/g, " ");
+}
+
+function extractTargetingFacets(targetingCriteria: any): Array<{ facet: string; count: number }> {
+  const facetCounts = new Map<string, number>();
+  const andBlocks = targetingCriteria?.include?.and;
+  if (!Array.isArray(andBlocks)) return [];
+
+  for (const block of andBlocks) {
+    const orData = block?.or;
+    if (!orData || typeof orData !== "object") continue;
+    for (const [facetUrn, values] of Object.entries(orData)) {
+      if (!Array.isArray(values) || values.length === 0) continue;
+      const facetName = String(facetUrn).split(":").pop() || String(facetUrn);
+      facetCounts.set(facetName, (facetCounts.get(facetName) || 0) + values.length);
+    }
+  }
+
+  return Array.from(facetCounts.entries()).map(([facet, count]) => ({ facet, count }));
+}
+
+function toTitleFromKey(key: string): string {
+  return key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function formatPercent(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "—";
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
+  if (Number.isNaN(num)) return "—";
+  return `${(num * 100).toFixed(2)}%`;
+}
+
+function getDynamicInsightMetricCards(insights: Record<string, any> | null | undefined, currency: string): Array<{ label: string; value: string; tone: MetricTone }> {
+  if (!insights) return [];
+
+  const toneByKey: Record<string, MetricTone> = {
+    impressions: "purple",
+    clicks: "green",
+    spend: "emerald",
+    costInLocalCurrency: "emerald",
+    cpc: "indigo",
+    ctr: "blue",
+    externalWebsiteConversions: "orange",
+    oneClickLeads: "orange",
+    videoViews: "blue",
+    videoCompletions: "indigo",
+  };
+
+  const preferredOrder = [
+    "impressions",
+    "clicks",
+    "spend",
+    "cpc",
+    "ctr",
+    "oneClickLeads",
+    "externalWebsiteConversions",
+    "videoViews",
+    "videoCompletions",
+  ];
+
+  const keys = Object.keys(insights).filter((key) => insights[key] !== null && insights[key] !== undefined);
+  const orderedKeys = [
+    ...preferredOrder.filter((key) => keys.includes(key)),
+    ...keys.filter((key) => !preferredOrder.includes(key)),
+  ];
+
+  return orderedKeys.map((key) => {
+    const rawValue = insights[key];
+    const lower = key.toLowerCase();
+    let value = formatNumber(rawValue);
+    if (lower.includes("spend") || lower.includes("cost") || key === "cpc") value = formatCurrency(rawValue, currency);
+    if (lower.includes("ctr") || lower.includes("rate")) value = formatPercent(rawValue);
+
+    return {
+      label: toTitleFromKey(key),
+      value,
+      tone: toneByKey[key] || "blue",
+    };
+  });
+}
+
 export default function LinkedInCampaignDetailsPage() {
   const params = useParams();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
 
   const accountId = String(params?.accountId || "");
-  const campaignId = String(params?.campaignId || "");
+  const campaignGroupId = String(params?.campaignId || "");
 
   const timeRange = React.useMemo(
     () => ({
@@ -95,8 +184,8 @@ export default function LinkedInCampaignDetailsPage() {
 
   const campaignGroup = React.useMemo(() => {
     const groups = campaignGroupsData?.data || [];
-    return groups.find((group: any) => String(group.id) === campaignId) || null;
-  }, [campaignGroupsData, campaignId]);
+    return groups.find((group: any) => String(group.id) === campaignGroupId) || null;
+  }, [campaignGroupsData, campaignGroupId]);
 
   const {
     data: campaignsData,
@@ -104,9 +193,9 @@ export default function LinkedInCampaignDetailsPage() {
     isFetching: isFetchingCampaigns,
     refetch: refetchCampaigns,
   } = trpc.linkedInAds.campaigns.listCampaigns.useQuery(
-    { accountId, campaignGroupId: campaignId, timeRange },
+    { accountId, campaignGroupId, timeRange },
     {
-      enabled: !!accountId && !!campaignId && !!campaignGroup,
+      enabled: !!accountId && !!campaignGroupId && !!campaignGroup,
       refetchOnWindowFocus: false,
       retry: 1,
       staleTime: 0,
@@ -116,47 +205,104 @@ export default function LinkedInCampaignDetailsPage() {
 
   const campaigns = campaignsData?.data || [];
   const currency = accountData?.data?.currency || "USD";
+  const campaignIds = React.useMemo(() => campaigns.map((campaign: any) => String(campaign.id)), [campaigns]);
 
-  const creativeQueries = trpc.useQueries((t) =>
-    campaigns.map((campaign: any) =>
-      t.linkedInAds.creatives.listCreatives(
-        { accountId, campaignId: String(campaign.id), timeRange },
-        {
-          enabled: !!accountId && !!campaign?.id,
-          refetchOnWindowFocus: false,
-          retry: 1,
-        }
-      )
-    )
+  const {
+    data: accountCreativesData,
+    isLoading: isLoadingAccountCreatives,
+    isFetching: isFetchingAccountCreatives,
+    refetch: refetchAccountCreatives,
+  } = trpc.linkedInAds.creatives.listAccountCreatives.useQuery(
+    { accountId, pageSize: 100, campaignIds },
+    {
+      enabled: !!accountId && campaigns.length > 0,
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 0,
+      refetchOnMount: "always",
+    }
+  );
+
+  const [previewCreative, setPreviewCreative] = React.useState<any | null>(null);
+  const previewCreativeId = previewCreative ? String(previewCreative.id) : null;
+  const {
+    data: creativePreviewData,
+    isLoading: isLoadingCreativePreview,
+  } = trpc.linkedInAds.creatives.getCreativePreview.useQuery(
+    {
+      accountId,
+      creativeId: previewCreativeId || "",
+      livePreviewCreative: previewCreative
+        ? {
+            campaign: String(previewCreative.campaign || ""),
+            intendedStatus: previewCreative.intendedStatus || undefined,
+            contentReference: previewCreative.contentReference || undefined,
+            inlineContent: previewCreative.inlineContent || undefined,
+          }
+        : undefined,
+    },
+    { enabled: !!accountId && !!previewCreativeId, refetchOnWindowFocus: false, retry: 1 }
   );
 
   const creativesByCampaign = React.useMemo(() => {
     const map: Record<string, any[]> = {};
-    campaigns.forEach((campaign: any, idx: number) => {
-      map[String(campaign.id)] = creativeQueries[idx]?.data?.data || [];
+    const accountCreatives = accountCreativesData?.data || [];
+    campaigns.forEach((campaign: any) => {
+      const campaignUrn = String(campaign?.id || "").startsWith("urn:li:sponsoredCampaign:")
+        ? String(campaign.id)
+        : `urn:li:sponsoredCampaign:${String(campaign.id)}`;
+      map[String(campaign.id)] = accountCreatives.filter((creative: any) => String(creative.campaign || "") === campaignUrn);
     });
     return map;
-  }, [campaigns, creativeQueries]);
+  }, [campaigns, accountCreativesData]);
 
-  const isFetchingCreatives = creativeQueries.some((q) => q.isFetching);
+  const isFetchingCreatives = isFetchingAccountCreatives;
 
   const metrics = React.useMemo(() => {
     let totalImpressions = 0;
     let totalClicks = 0;
     let totalSpend = 0;
     let totalConversions = 0;
+    let totalOneClickLeads = 0;
+    let totalVideoViews = 0;
+    let totalVideoCompletions = 0;
 
     campaigns.forEach((campaign: any) => {
       totalImpressions += Number(campaign?.insights?.impressions || 0);
       totalClicks += Number(campaign?.insights?.clicks || 0);
       totalSpend += Number(campaign?.insights?.spend || 0);
       totalConversions += Number(campaign?.insights?.externalWebsiteConversions || 0);
+      totalOneClickLeads += Number(campaign?.insights?.oneClickLeads || 0);
+      totalVideoViews += Number(campaign?.insights?.videoViews || 0);
+      totalVideoCompletions += Number(campaign?.insights?.videoCompletions || 0);
     });
 
     const avgCPC = totalClicks > 0 ? totalSpend / totalClicks : 0;
     const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
-    return { totalImpressions, totalClicks, totalSpend, totalConversions, avgCPC, avgCTR };
+    return {
+      totalImpressions,
+      totalClicks,
+      totalSpend,
+      totalConversions,
+      totalOneClickLeads,
+      totalVideoViews,
+      totalVideoCompletions,
+      avgCPC,
+      avgCTR,
+    };
   }, [campaigns]);
+
+  const hasAnyCampaignInsights = React.useMemo(
+    () =>
+      campaigns.some((campaign: any) => {
+        const insights = campaign?.insights;
+        if (!insights) return false;
+        return ["impressions", "clicks", "spend", "externalWebsiteConversions", "oneClickLeads", "videoViews"].some(
+          (k) => insights[k] !== null && insights[k] !== undefined
+        );
+      }),
+    [campaigns]
+  );
 
   const isRefreshing = isFetchingAccount || isFetchingCampaignGroups || isFetchingCampaigns || isFetchingCreatives;
 
@@ -167,7 +313,7 @@ export default function LinkedInCampaignDetailsPage() {
   }, [campaignGroupError]);
 
   const handleRefresh = async () => {
-    await Promise.all([refetchAccount(), refetchCampaignGroups(), refetchCampaigns()]);
+    await Promise.all([refetchAccount(), refetchCampaignGroups(), refetchCampaigns(), refetchAccountCreatives()]);
     await utils.linkedInAds.invalidate();
     toast.success("Campaign data refreshed");
   };
@@ -218,9 +364,9 @@ export default function LinkedInCampaignDetailsPage() {
             </Button>
             <div className="min-w-0 flex-1">
               <h1 className="text-base font-semibold tracking-tight truncate">
-                {campaignGroup.name || `Campaign ${campaignGroup.id}`}
+                {campaignGroup.name || `Campaign Group ${campaignGroup.id}`}
               </h1>
-              <p className="text-xs text-muted-foreground">LinkedIn Ads campaign details</p>
+              <p className="text-xs text-muted-foreground">LinkedIn Ads campaign group details</p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="rounded-full h-8 gap-2">
@@ -243,7 +389,7 @@ export default function LinkedInCampaignDetailsPage() {
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Status</p>
                   <Badge variant={statusStyles(campaignGroup.status).variant} className={statusStyles(campaignGroup.status).className}>
-                    {campaignGroup.status || "UNKNOWN"}
+                    {humanizeLabel(campaignGroup.status)}
                   </Badge>
                 </div>
                 <div className="space-y-1">
@@ -271,13 +417,21 @@ export default function LinkedInCampaignDetailsPage() {
               <CardTitle className="text-base">Performance Metrics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <MetricBox label="Impressions" value={formatNumber(metrics.totalImpressions)} />
-                <MetricBox label="Clicks" value={formatNumber(metrics.totalClicks)} />
-                <MetricBox label="Amount Spent" value={formatCurrency(metrics.totalSpend, currency)} />
-                <MetricBox label="Conversions" value={formatNumber(metrics.totalConversions)} />
-                <MetricBox label="Avg CPC" value={formatCurrency(metrics.avgCPC, currency)} />
-                <MetricBox label="Avg CTR" value={`${metrics.avgCTR.toFixed(2)}%`} />
+              {!hasAnyCampaignInsights && (
+                <p className="text-xs text-muted-foreground mb-3">
+                  Analytics metrics are unavailable for this selection (no activity yet, reporting permission missing, or API returned an empty reporting response).
+                </p>
+              )}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4">
+                <MetricBox label="Impressions" value={formatNumber(metrics.totalImpressions)} tone="purple" />
+                <MetricBox label="Clicks" value={formatNumber(metrics.totalClicks)} tone="green" />
+                <MetricBox label="Amount Spent" value={formatCurrency(metrics.totalSpend, currency)} tone="emerald" />
+                <MetricBox label="Conversions" value={formatNumber(metrics.totalConversions)} tone="orange" />
+                <MetricBox label="Avg CPC" value={formatCurrency(metrics.avgCPC, currency)} tone="indigo" />
+                <MetricBox label="Avg CTR" value={`${metrics.avgCTR.toFixed(2)}%`} tone="blue" />
+                <MetricBox label="One Click Leads" value={formatNumber(metrics.totalOneClickLeads)} tone="orange" />
+                <MetricBox label="Video Views" value={formatNumber(metrics.totalVideoViews)} tone="blue" />
+                <MetricBox label="Video Completions" value={formatNumber(metrics.totalVideoCompletions)} tone="indigo" />
               </div>
             </CardContent>
           </Card>
@@ -297,62 +451,150 @@ export default function LinkedInCampaignDetailsPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
+              <Accordion type="multiple" className="w-full space-y-3">
                 {campaigns.map((campaign: any) => {
                   const creatives = creativesByCampaign[String(campaign.id)] || [];
                   return (
-                    <Card key={campaign.id} className="bg-card shadow-sm">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-1 min-w-0">
-                            <CardTitle className="text-sm truncate">{campaign.name || `Campaign ${campaign.id}`}</CardTitle>
+                    <AccordionItem key={campaign.id} value={String(campaign.id)} className="border rounded-lg bg-card px-4">
+                      <AccordionTrigger className="py-4 hover:no-underline">
+                        <div className="flex w-full items-start justify-between gap-3 pr-4">
+                          <div className="min-w-0 text-left">
+                            <p className="text-sm font-semibold truncate">{campaign.name || `Campaign ${campaign.id}`}</p>
                             <p className="text-xs text-muted-foreground">ID: {campaign.id}</p>
                           </div>
-                          <Badge variant={statusStyles(campaign.status).variant} className={statusStyles(campaign.status).className}>
-                            {campaign.status || "UNKNOWN"}
-                          </Badge>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="outline" className="text-[10px]">
+                              Ads {creatives.length}
+                            </Badge>
+                            <Badge variant={statusStyles(campaign.status).variant} className={statusStyles(campaign.status).className}>
+                                      {humanizeLabel(campaign.status)}
+                            </Badge>
+                          </div>
                         </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                          <MetricMini label="Impr." value={formatNumber(campaign?.insights?.impressions)} />
-                          <MetricMini label="Clicks" value={formatNumber(campaign?.insights?.clicks)} />
-                          <MetricMini label="Spend" value={formatCurrency(campaign?.insights?.spend, currency)} />
-                          <MetricMini label="CTR" value={`${Number(campaign?.insights?.ctr || 0).toFixed(2)}%`} />
-                          <MetricMini label="CPC" value={formatCurrency(campaign?.insights?.cpc, currency)} />
-                          <MetricMini label="Conv." value={formatNumber(campaign?.insights?.externalWebsiteConversions)} />
+                          {getDynamicInsightMetricCards(campaign?.insights, currency).map((metric) => (
+                            <MetricMini key={`${campaign.id}-${metric.label}`} label={metric.label} value={metric.value} tone={metric.tone} />
+                          ))}
                         </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                          <MetricMini label="Objective" value={humanizeLabel(campaign?.objectiveType)} />
+                          <MetricMini label="Cost Type" value={humanizeLabel(campaign?.costType)} />
+                          <MetricMini label="Optimization" value={humanizeLabel(campaign?.optimizationTargetType)} />
+                          <MetricMini label="Campaign Type" value={humanizeLabel(campaign?.type)} />
+                          <MetricMini label="Format" value={humanizeLabel(campaign?.format)} />
+                        </div>
+                        {Array.isArray(campaign?.servingStatuses) && campaign.servingStatuses.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {campaign.servingStatuses.map((status: string, idx: number) => (
+                              <Badge key={`${campaign.id}-serving-${idx}`} variant="secondary" className="text-[10px]">
+                                {humanizeLabel(status)}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        {extractTargetingFacets(campaign?.targetingCriteria).length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Targeting</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {extractTargetingFacets(campaign?.targetingCriteria).map((entry) => (
+                                <Badge key={`${campaign.id}-${entry.facet}`} variant="outline" className="text-[10px]">
+                                  {humanizeLabel(entry.facet)}: {entry.count}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <Separator />
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-muted-foreground" />
-                            <p className="text-sm font-medium">Ads ({creatives.length})</p>
+                            <p className="text-sm font-medium">Creatives ({creatives.length})</p>
                           </div>
-                          {creatives.length === 0 ? (
-                            <p className="text-xs text-muted-foreground">No ads found for this campaign.</p>
+                          {isLoadingAccountCreatives ? (
+                            <p className="text-xs text-muted-foreground">Loading creatives...</p>
+                          ) : creatives.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">No creatives found for this campaign.</p>
                           ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                               {creatives.map((creative: any) => (
                                 <div key={creative.id} className="rounded-md border p-3">
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
-                                      <p className="text-sm font-medium truncate">{creative.name || `Ad ${creative.id}`}</p>
-                                      <p className="text-xs text-muted-foreground">ID: {creative.id}</p>
+                                      <p className="text-sm font-medium truncate">{creative.name || `Creative ${creative.id}`}</p>
                                     </div>
-                                    <Badge variant={statusStyles(creative.status).variant} className={statusStyles(creative.status).className}>
-                                      {creative.status || "UNKNOWN"}
+                                    <Badge variant={statusStyles(creative.intendedStatus).variant} className={statusStyles(creative.intendedStatus).className}>
+                                      {humanizeLabel(creative.intendedStatus)}
                                     </Badge>
                                   </div>
+                                  <div className="mt-2 flex flex-wrap gap-1">
+                                    {creative.reviewStatus && (
+                                      <Badge variant="outline" className="text-[10px]">{creative.reviewStatus}</Badge>
+                                    )}
+                                    {creative.isServing ? (
+                                      <Badge variant="outline" className="text-[10px]">SERVING</Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="text-[10px]">NOT SERVING</Badge>
+                                    )}
+                                    {(creative.servingHoldReasons || []).slice(0, 2).map((reason: string, idx: number) => (
+                                      <Badge key={`${creative.id}-reason-${idx}`} variant="secondary" className="text-[10px]">
+                                        {humanizeLabel(reason)}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                  <div className="mt-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-[11px]"
+                                      onClick={() =>
+                                        setPreviewCreative((current: any) =>
+                                          current && String(current.id) === String(creative.id) ? null : creative
+                                        )
+                                      }
+                                    >
+                                      {previewCreativeId === String(creative.id) ? "Hide Preview" : "Show Preview"}
+                                    </Button>
+                                  </div>
+                                  {previewCreativeId === String(creative.id) && (
+                                    <div className="mt-3 rounded-md border p-2 bg-muted/20">
+                                      {isLoadingCreativePreview ? (
+                                        <p className="text-xs text-muted-foreground">Loading preview...</p>
+                                      ) : (creativePreviewData?.data || []).length === 0 ? (
+                                        <p className="text-xs text-muted-foreground">
+                                          {creativePreviewData?.meta?.unsupportedCreativeType
+                                            ? "Preview is not supported for this creative type in LinkedIn Ad Preview API."
+                                            : "No preview available for this creative."}
+                                        </p>
+                                      ) : (
+                                        <div className="space-y-2">
+                                          {(creativePreviewData?.data || []).map((previewItem: any, previewIdx: number) => (
+                                            <div key={`${creative.id}-preview-${previewIdx}`} className="overflow-auto">
+                                              {previewItem?.preview ? (
+                                                <div
+                                                  className="min-w-[320px]"
+                                                  dangerouslySetInnerHTML={{ __html: previewItem.preview }}
+                                                />
+                                              ) : (
+                                                <p className="text-xs text-muted-foreground">Preview payload missing HTML.</p>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
                           )}
                         </div>
-                      </CardContent>
-                    </Card>
+                      </AccordionContent>
+                    </AccordionItem>
                   );
                 })}
-              </div>
+              </Accordion>
             )}
           </div>
         </div>
@@ -361,20 +603,63 @@ export default function LinkedInCampaignDetailsPage() {
   );
 }
 
-function MetricBox({ label, value }: { label: string; value: string }) {
+type MetricTone = "blue" | "orange" | "purple" | "emerald" | "green" | "indigo";
+
+const metricToneClasses: Record<MetricTone, { bg: string; border: string; label: string; value: string }> = {
+  blue: {
+    bg: "bg-blue-50 dark:bg-blue-950/30",
+    border: "border-blue-200 dark:border-blue-900",
+    label: "text-blue-700 dark:text-blue-300",
+    value: "text-blue-900 dark:text-blue-100",
+  },
+  orange: {
+    bg: "bg-orange-50 dark:bg-orange-950/30",
+    border: "border-orange-200 dark:border-orange-900",
+    label: "text-orange-700 dark:text-orange-300",
+    value: "text-orange-900 dark:text-orange-100",
+  },
+  purple: {
+    bg: "bg-purple-50 dark:bg-purple-950/30",
+    border: "border-purple-200 dark:border-purple-900",
+    label: "text-purple-700 dark:text-purple-300",
+    value: "text-purple-900 dark:text-purple-100",
+  },
+  emerald: {
+    bg: "bg-emerald-50 dark:bg-emerald-950/30",
+    border: "border-emerald-200 dark:border-emerald-900",
+    label: "text-emerald-700 dark:text-emerald-300",
+    value: "text-emerald-900 dark:text-emerald-100",
+  },
+  green: {
+    bg: "bg-green-50 dark:bg-green-950/30",
+    border: "border-green-200 dark:border-green-900",
+    label: "text-green-700 dark:text-green-300",
+    value: "text-green-900 dark:text-green-100",
+  },
+  indigo: {
+    bg: "bg-indigo-50 dark:bg-indigo-950/30",
+    border: "border-indigo-200 dark:border-indigo-900",
+    label: "text-indigo-700 dark:text-indigo-300",
+    value: "text-indigo-900 dark:text-indigo-100",
+  },
+};
+
+function MetricBox({ label, value, tone = "blue" }: { label: string; value: string; tone?: MetricTone }) {
+  const colors = metricToneClasses[tone];
   return (
-    <div className="rounded-lg border p-3">
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-sm font-semibold mt-1">{value}</p>
+    <div className={`rounded-lg border p-3 ${colors.bg} ${colors.border}`}>
+      <p className={`text-[11px] uppercase tracking-wide ${colors.label}`}>{label}</p>
+      <p className={`text-sm font-semibold mt-1 ${colors.value}`}>{value}</p>
     </div>
   );
 }
 
-function MetricMini({ label, value }: { label: string; value: string }) {
+function MetricMini({ label, value, tone = "blue" }: { label: string; value: string; tone?: MetricTone }) {
+  const colors = metricToneClasses[tone];
   return (
-    <div className="rounded-md border p-2">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-xs font-semibold mt-1">{value}</p>
+    <div className={`rounded-md border p-2 ${colors.bg} ${colors.border}`}>
+      <p className={`text-[10px] uppercase tracking-wide ${colors.label}`}>{label}</p>
+      <p className={`text-xs font-semibold mt-1 ${colors.value}`}>{value}</p>
     </div>
   );
 }

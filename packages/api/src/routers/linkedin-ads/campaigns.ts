@@ -33,7 +33,7 @@ function formatDateForLinkedIn(date: Date): { year: number; month: number; day: 
 
 function normalizeStatusLabel(status: string | null | undefined): string | null {
 	if (!status) return null;
-	return status.replace(/_/g, ' ');
+	return status;
 }
 
 export const linkedInAdsCampaignsRouter = router({
@@ -85,83 +85,96 @@ export const linkedInAdsCampaignsRouter = router({
 				// Get campaigns directly from LinkedIn API
 				const response = await client.getCampaigns(campaignGroupUrn, input.accountId);
 
-				// Fetch insights for each campaign if time range is provided
-				const campaignsWithInsights = [];
-				let rateLimitHit = false;
+				// Bulk-fetch insights for all campaigns in this campaign group.
+				// This avoids one-request-per-campaign and gives better consistency.
+				const insightsByCampaignId: Record<string, any> = {};
+				let insightsDiagnostics: {
+					requested: boolean;
+					responseElements: number;
+					mappedCampaigns: number;
+					error: string | null;
+				} = {
+					requested: false,
+					responseElements: 0,
+					mappedCampaigns: 0,
+					error: null,
+				};
 
+				if (input.timeRange?.since && input.timeRange?.until) {
+					insightsDiagnostics.requested = true;
+					try {
+						const startDate = new Date(input.timeRange.since);
+						const endDate = new Date(input.timeRange.until);
+						const insightsResponse = await client.getAnalytics({
+							dateRange: {
+								start: formatDateForLinkedIn(startDate),
+								end: formatDateForLinkedIn(endDate),
+							},
+							campaignGroups: [input.campaignGroupId],
+							pivots: [{ pivot: 'CAMPAIGN' }],
+							fields: [
+								'impressions',
+								'clicks',
+								'costInLocalCurrency',
+								'externalWebsiteConversions',
+								'oneClickLeads',
+								'videoViews',
+								'videoCompletions',
+								'pivotValues',
+							],
+						});
+
+						insightsDiagnostics.responseElements = (insightsResponse.elements || []).length;
+
+						for (const elem of insightsResponse.elements || []) {
+							const pivot = Array.isArray((elem as any).pivotValues) ? (elem as any).pivotValues[0] : undefined;
+							if (!pivot) continue;
+							const campaignId = String(pivot).split(':').pop();
+							if (!campaignId) continue;
+							const acc = insightsByCampaignId[campaignId] || {
+								impressions: 0,
+								clicks: 0,
+								costInLocalCurrency: 0,
+								externalWebsiteConversions: 0,
+								oneClickLeads: 0,
+								videoViews: 0,
+								videoCompletions: 0,
+							};
+							acc.impressions += Number((elem as any).impressions || 0);
+							acc.clicks += Number((elem as any).clicks || 0);
+							acc.costInLocalCurrency += Number((elem as any).costInLocalCurrency || 0);
+							acc.externalWebsiteConversions += Number((elem as any).externalWebsiteConversions || 0);
+							acc.oneClickLeads += Number((elem as any).oneClickLeads || 0);
+							acc.videoViews += Number((elem as any).videoViews || 0);
+							acc.videoCompletions += Number((elem as any).videoCompletions || 0);
+							insightsByCampaignId[campaignId] = acc;
+						}
+
+						insightsDiagnostics.mappedCampaigns = Object.keys(insightsByCampaignId).length;
+					} catch (error: any) {
+						insightsDiagnostics.error = error?.message || 'Unknown analytics error';
+					}
+				}
+
+				const campaignsWithInsights = [];
 				for (let i = 0; i < (response.elements || []).length; i++) {
 					const campaign = response.elements[i];
 					let insights = null;
-
-					// Skip insights if we've hit rate limit
-					if (input.timeRange?.since && input.timeRange?.until && !rateLimitHit) {
-						try {
-							const startDate = new Date(input.timeRange.since);
-							const endDate = new Date(input.timeRange.until);
-
-							// Fetch insights for this campaign
-							const insightsResponse = await client.getAnalytics({
-								dateRange: {
-									start: formatDateForLinkedIn(startDate),
-									end: formatDateForLinkedIn(endDate),
-								},
-								campaigns: [campaign.id],
-								fields: [
-									'impressions',
-									'clicks',
-									'costInLocalCurrency',
-									'externalWebsiteConversions',
-									'oneClickLeads',
-									'videoViews',
-									'videoCompletions',
-								],
-							});
-
-							if (insightsResponse.elements && insightsResponse.elements.length > 0) {
-								// Aggregate insights across all elements
-								const aggregated = insightsResponse.elements.reduce(
-									(acc: any, elem: any) => {
-										acc.impressions = (acc.impressions || 0) + (elem.impressions || 0);
-										acc.clicks = (acc.clicks || 0) + (elem.clicks || 0);
-										acc.costInLocalCurrency = (acc.costInLocalCurrency || 0) + (elem.costInLocalCurrency || 0);
-										acc.externalWebsiteConversions = (acc.externalWebsiteConversions || 0) + (elem.externalWebsiteConversions || 0);
-										acc.oneClickLeads = (acc.oneClickLeads || 0) + (elem.oneClickLeads || 0);
-										acc.videoViews = (acc.videoViews || 0) + (elem.videoViews || 0);
-										acc.videoCompletions = (acc.videoCompletions || 0) + (elem.videoCompletions || 0);
-										return acc;
-									},
-									{}
-								);
-
-								// Calculate derived metrics
-								const cpc = aggregated.clicks > 0 ? aggregated.costInLocalCurrency / aggregated.clicks : null;
-								const ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions) * 100 : null;
-
-								insights = {
-									impressions: aggregated.impressions || null,
-									clicks: aggregated.clicks || null,
-									spend: aggregated.costInLocalCurrency || null,
-									externalWebsiteConversions: aggregated.externalWebsiteConversions || null,
-									oneClickLeads: aggregated.oneClickLeads || null,
-									videoViews: aggregated.videoViews || null,
-									videoCompletions: aggregated.videoCompletions || null,
-									cpc: cpc ? String(cpc) : null,
-									ctr: ctr ? String(ctr) : null,
-								};
-							}
-							} catch (error: any) {
-							// Insights are optional, continue without them
-							// If rate limit hit, stop making insights requests for remaining items
-							if (error.status === 429 || error.message?.includes('rate limit')) {
-								rateLimitHit = true;
-							}
-						}
-
-						// Add delay between requests to avoid rate limits
-						const delay = rateLimitHit ? 1000 : 500;
-						if (i < (response.elements || []).length - 1) {
-							await new Promise((resolve) => setTimeout(resolve, delay));
-						}
+					const aggregated = insightsByCampaignId[String(campaign.id)];
+					if (aggregated) {
+						const cpc = aggregated.clicks > 0 ? aggregated.costInLocalCurrency / aggregated.clicks : null;
+						const ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions) * 100 : null;
+						insights = {
+							impressions: aggregated.impressions || null,
+							clicks: aggregated.clicks || null,
+							spend: aggregated.costInLocalCurrency || null,
+							externalWebsiteConversions: aggregated.externalWebsiteConversions || null,
+							oneClickLeads: aggregated.oneClickLeads || null,
+							videoViews: aggregated.videoViews || null,
+							videoCompletions: aggregated.videoCompletions || null,
+							cpc: cpc ? String(cpc) : null,
+							ctr: ctr ? String(ctr) : null,
+						};
 					}
 
 					// Format budget values - LinkedIn returns in micro-currency (divide by 1000000)
@@ -199,6 +212,7 @@ export const linkedInAdsCampaignsRouter = router({
 						retrieved_at: new Date().toISOString(),
 						total_campaigns: campaignsWithInsights.length,
 						paging: response.paging,
+						insightsDiagnostics,
 					},
 				};
 			} catch (error: any) {
