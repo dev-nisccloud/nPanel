@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowLeft, RefreshCw, AlertCircle, Layers, FileText } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertCircle, Layers, FileText, Crosshair, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function formatNumber(value: number | string | null | undefined): string {
@@ -64,22 +64,148 @@ function humanizeLabel(value?: string | null): string {
   return value.replace(/_/g, " ");
 }
 
-function extractTargetingFacets(targetingCriteria: any): Array<{ facet: string; count: number }> {
-  const facetCounts = new Map<string, number>();
+/**
+ * Facets whose values can be decoded directly from the URN string — no lookup needed.
+ *
+ * Everything else (industries, seniorities, titles, skills, degrees, fields of study,
+ * functions, geos) will show as a raw ID until the static maps are filled in from the
+ * linkedInAds.standardizedData.* Postman endpoints.
+ */
+
+const LINKEDIN_FACET_LABELS: Record<string, string> = {
+  industries: "Industries", seniorities: "Seniorities", titles: "Job Titles",
+  locations: "Locations", profileLocations: "Profile Locations",
+  interfaceLocales: "Languages", jobFunctions: "Job Functions",
+  functions: "Job Functions",
+  employers: "Employers", employersAll: "Employers (All)", employersPast: "Past Employers",
+  skills: "Skills", groups: "LinkedIn Groups",
+  degrees: "Degrees", fieldsOfStudy: "Fields of Study", schools: "Schools",
+  ageRanges: "Age Ranges", genders: "Genders",
+  yearsOfExperienceRanges: "Years of Experience",
+  staffCountRanges: "Company Size",
+  companyIndustry: "Company Industries",
+  memberInterests: "Interests", memberTraits: "Member Traits",
+  memberBehaviors: "Member Behaviors",
+  growthRate: "Company Growth Rate",
+  followedCompanies: "Followed Companies",
+  firstDegreeConnectionCompanies: "1st-Degree Connection Companies",
+  buyerGroups: "Buyer Groups",
+};
+
+/** Parse urn:li:locale:en_US → "English (US)" */
+function resolveLocale(id: string): string {
+  const parts = id.split("_");
+  if (parts.length !== 2) return id;
+  const langMap: Record<string, string> = {
+    en: "English", es: "Spanish", fr: "French", de: "German",
+    pt: "Portuguese", it: "Italian", zh: "Chinese", ja: "Japanese",
+    ko: "Korean", ar: "Arabic", ru: "Russian", nl: "Dutch",
+    sv: "Swedish", da: "Danish", fi: "Finnish", nb: "Norwegian",
+    pl: "Polish", tr: "Turkish", id: "Indonesian", ms: "Malay",
+  };
+  const lang = langMap[parts[0].toLowerCase()] || parts[0].toUpperCase();
+  return `${lang} (${parts[1]})`;
+}
+
+/** Parse urn:li:gender:FEMALE → "Female" */
+function resolveGender(id: string): string {
+  const map: Record<string, string> = { MALE: "Male", FEMALE: "Female" };
+  return map[id.toUpperCase()] ?? id;
+}
+
+/** Parse urn:li:ageRange:(18,24) → "18–24 yrs"  /  (55,2147483647) → "55+ yrs" */
+function resolveAgeRange(id: string): string {
+  const m = id.match(/^\((\d+),(\d+)\)$/);
+  if (!m) return id;
+  const upper = parseInt(m[2], 10);
+  return upper >= 2_000_000_000 ? `${m[1]}+ yrs` : `${m[1]}–${m[2]} yrs`;
+}
+
+/** Parse urn:li:staffCountRange:(2,10) → "2–10 employees"  /  (10001,…) → "10,001+ employees" */
+function resolveStaffCount(id: string): string {
+  const m = id.match(/^\((\d+),(\d+)\)$/);
+  if (!m) return id;
+  const lo = parseInt(m[1], 10);
+  const hi = parseInt(m[2], 10);
+  if (lo === hi) return `${lo.toLocaleString()} employee${lo === 1 ? "" : "s"}`;
+  if (hi >= 2_000_000_000) return `${lo.toLocaleString()}+ employees`;
+  return `${lo.toLocaleString()}–${hi.toLocaleString()} employees`;
+}
+
+/** Parse urn:li:growthRate:(-2147483647,0) → "Declining (<0%)"  etc. */
+function resolveGrowthRate(id: string): string {
+  const m = id.match(/^\((-?\d+),(-?\d+)\)$/);
+  if (!m) return id;
+  const lo = parseInt(m[1], 10);
+  const hi = parseInt(m[2], 10);
+  if (lo <= -2_000_000_000) return `Declining (<${hi}%)`;
+  if (hi >= 2_000_000_000) return `High growth (>${lo}%)`;
+  return `${lo}–${hi}% growth`;
+}
+
+/** Parse urn:li:yearsOfExperience:3 → "3+ yrs experience" */
+function resolveYearsOfExperience(id: string): string {
+  const n = parseInt(id, 10);
+  if (isNaN(n)) return id;
+  return n >= 12 ? "12+ yrs experience" : `${n}+ yrs experience`;
+}
+
+function resolveLinkedInUrn(facetKey: string, urn: string): string {
+  // Extract the last segment after the final ":"  — for range URNs like
+  // urn:li:ageRange:(18,24) this gives "(18,24)"; for simple ones like
+  // urn:li:gender:FEMALE it gives "FEMALE".
+  const colonIdx = urn.indexOf(":(");
+  const id = colonIdx !== -1
+    ? urn.slice(colonIdx + 1)               // keep the range tuple "(18,24)"
+    : String(urn).split(":").pop() || urn;  // plain last segment
+
+  switch (facetKey) {
+    case "interfaceLocales": return resolveLocale(id);
+    case "genders": return resolveGender(id);
+    case "ageRanges": return resolveAgeRange(id);
+    case "staffCountRanges": return resolveStaffCount(id);
+    case "growthRate": return resolveGrowthRate(id);
+    case "yearsOfExperienceRanges": return resolveYearsOfExperience(id);
+    default:
+      // Will be replaced with a proper value once static maps are built
+      // from the linkedInAds.standardizedData.* Postman endpoints.
+      return id;
+  }
+}
+
+function parseLinkedInTargeting(targetingCriteria: any): Array<{ label: string; content: string }> {
   const andBlocks = targetingCriteria?.include?.and;
   if (!Array.isArray(andBlocks)) return [];
 
+  const facetMap = new Map<string, string[]>();
   for (const block of andBlocks) {
     const orData = block?.or;
     if (!orData || typeof orData !== "object") continue;
     for (const [facetUrn, values] of Object.entries(orData)) {
       if (!Array.isArray(values) || values.length === 0) continue;
-      const facetName = String(facetUrn).split(":").pop() || String(facetUrn);
-      facetCounts.set(facetName, (facetCounts.get(facetName) || 0) + values.length);
+      const facetKey = String(facetUrn).split(":").pop() || facetUrn;
+      if (!facetMap.has(facetKey)) facetMap.set(facetKey, []);
+      facetMap.get(facetKey)!.push(...(values as string[]));
     }
   }
 
-  return Array.from(facetCounts.entries()).map(([facet, count]) => ({ facet, count }));
+  const results: Array<{ label: string; content: string }> = [];
+  for (const [facetKey, urns] of facetMap.entries()) {
+    const label = LINKEDIN_FACET_LABELS[facetKey] ||
+      facetKey.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\b\w/g, (m) => m.toUpperCase());
+
+    let names: string[];
+    if (facetKey === "titles" && urns.length > 20) {
+      names = [`${urns.length} job titles`];
+    } else {
+      names = urns.map((urn) => resolveLinkedInUrn(facetKey, urn));
+    }
+
+    if (names.length > 0) {
+      results.push({ label, content: names.join(", ") });
+    }
+  }
+  return results;
 }
 
 function toTitleFromKey(key: string): string {
@@ -87,6 +213,128 @@ function toTitleFromKey(key: string): string {
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function CampaignTargeting({ campaignId, targetingCriteria }: { campaignId: string | number; targetingCriteria: any }) {
+  const [debugOpen, setDebugOpen] = React.useState(false);
+
+  const hasTargeting = React.useMemo(() => {
+    return Array.isArray(targetingCriteria?.include?.and) && targetingCriteria.include.and.length > 0;
+  }, [targetingCriteria]);
+
+  const { data, isLoading } = trpc.linkedInAds.campaigns.resolveTargetingCriteria.useQuery(
+    { targetingCriteria },
+    { enabled: hasTargeting, refetchOnWindowFocus: false, retry: 1, staleTime: 10 * 60 * 1000 },
+  );
+
+  if (!hasTargeting) return null;
+
+  const debugEntries = data?.debug ?? [];
+  const hasDebug = debugEntries.length > 0;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+          <Crosshair className="h-4 w-4" />
+          <span>Targeting</span>
+        </div>
+        {!isLoading && hasDebug && (
+          <button
+            type="button"
+            onClick={() => setDebugOpen(o => !o)}
+            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {debugOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            {debugOpen ? "Hide" : "Show"} raw API responses
+          </button>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="rounded-lg border bg-muted/20 px-4 py-3 space-y-3">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-3 w-4/5" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-3 w-2/3" />
+        </div>
+      ) : (data?.data?.length ?? 0) > 0 ? (
+        <div className="rounded-lg border bg-muted/20 px-4 py-3 space-y-4">
+          {data!.data.map((entry) => (
+            <TargetingField
+              key={`${campaignId}-${entry.label}`}
+              label={entry.label}
+              content={entry.content}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {debugOpen && hasDebug && (
+        <div className="space-y-2 mt-1">
+          {debugEntries.map((d) => (
+            <details key={d.facetKey} className="rounded-lg border border-dashed border-muted-foreground/30 text-xs">
+              <summary className="flex items-center justify-between gap-3 px-3 py-2 cursor-pointer select-none hover:bg-muted/30 rounded-lg">
+                <span className="font-mono font-semibold text-foreground">{d.facetKey}</span>
+                <span className={`ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold ${d.statusCode >= 200 && d.statusCode < 300 ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"}`}>
+                  {d.statusCode || "ERR"}
+                </span>
+                <span className="text-muted-foreground">{d.resolvedCount} resolved</span>
+              </summary>
+              <div className="px-3 pb-3 space-y-1.5">
+                <p className="text-muted-foreground break-all"><span className="font-semibold">URL: </span>{d.url}</p>
+                <pre className="bg-muted/50 rounded p-2 text-[11px] leading-relaxed overflow-auto max-h-64 whitespace-pre-wrap break-all">
+                  {(() => { try { return JSON.stringify(JSON.parse(d.rawResponse), null, 2); } catch { return d.rawResponse; } })()}
+                </pre>
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TargetingField({ label, content }: { label: string; content: string }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const ref = React.useRef<HTMLParagraphElement>(null);
+  const [showToggle, setShowToggle] = React.useState(false);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !content) return;
+    if (!expanded && el.scrollHeight > el.clientHeight) setShowToggle(true);
+  }, [content, expanded]);
+
+  const hasContent = content.trim().length > 0;
+  return (
+    <div className="space-y-1.5">
+      <div className="text-[13px] font-semibold text-primary">{label}</div>
+      <p
+        ref={ref}
+        className={`text-sm tracking-wide ${!expanded ? "line-clamp-3" : ""} ${!hasContent ? "text-muted-foreground italic" : ""}`}
+      >
+        {hasContent ? content : "—"}
+      </p>
+      {showToggle && hasContent && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-auto p-0 text-primary hover:bg-primary/10 text-xs font-medium"
+          onClick={() => setExpanded((e) => !e)}
+        >
+          {expanded ? (
+            <><ChevronUp className="h-3.5 w-3.5 mr-0.5" />Show less</>
+          ) : (
+            <><ChevronDown className="h-3.5 w-3.5 mr-0.5" />Show more</>
+          )}
+        </Button>
+      )}
+    </div>
+  );
 }
 
 function formatPercent(value: number | string | null | undefined): string {
@@ -203,7 +451,11 @@ export default function LinkedInCampaignDetailsPage() {
     }
   );
 
-  const campaigns = campaignsData?.data || [];
+  const campaigns = [...(campaignsData?.data || [])].sort((a: any, b: any) => {
+    const aTime = a.changeAuditStamps?.lastModified?.time ?? a.changeAuditStamps?.created?.time ?? 0;
+    const bTime = b.changeAuditStamps?.lastModified?.time ?? b.changeAuditStamps?.created?.time ?? 0;
+    return bTime - aTime;
+  });
   const currency = accountData?.data?.currency || "USD";
   const campaignIds = React.useMemo(() => campaigns.map((campaign: any) => String(campaign.id)), [campaigns]);
 
@@ -494,18 +746,10 @@ export default function LinkedInCampaignDetailsPage() {
                             ))}
                           </div>
                         )}
-                        {extractTargetingFacets(campaign?.targetingCriteria).length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium text-muted-foreground">Targeting</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {extractTargetingFacets(campaign?.targetingCriteria).map((entry) => (
-                                <Badge key={`${campaign.id}-${entry.facet}`} variant="outline" className="text-[10px]">
-                                  {humanizeLabel(entry.facet)}: {entry.count}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        <CampaignTargeting
+                          campaignId={campaign.id}
+                          targetingCriteria={campaign?.targetingCriteria}
+                        />
                         <Separator />
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">

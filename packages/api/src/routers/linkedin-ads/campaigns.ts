@@ -1,8 +1,192 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { request } from 'undici';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
 import { getStoredLinkedInAccessTokenForUser } from '../../lib/linkedin-credentials';
+
+// ---------------------------------------------------------------------------
+// Targeting resolution helpers
+// ---------------------------------------------------------------------------
+
+const LI_V2_BASE = 'https://api.linkedin.com';
+const LI_VERSION = process.env.LINKEDIN_MARKETING_API_VERSION || process.env.LINKEDIN_API_VERSION || '202603';
+
+function liHeaders(accessToken: string) {
+	return {
+		Authorization: `Bearer ${accessToken}`,
+		'LinkedIn-Version': LI_VERSION,
+		'X-Restli-Protocol-Version': '2.0.0',
+	};
+}
+
+interface ApiCallDebug {
+	url: string;
+	statusCode: number;
+	rawResponse: string;
+	resolvedCount: number;
+}
+
+/** BATCH_GET  /v2/{endpoint}?ids=List(id1,id2,…)  → { names, debug } (REST.li 2.0.0 format)
+ *  IMPORTANT: List() syntax must NOT be URL-encoded — append as raw string, not via URLSearchParams */
+async function batchGetNames(
+	accessToken: string,
+	endpoint: string,
+	ids: string[],
+	nameExtractor: (entity: any) => string,
+	extraParams: Record<string, string> = {},
+): Promise<{ names: Record<string, string>; debug: ApiCallDebug }> {
+	const emptyDebug = (url: string, statusCode: number, rawResponse: string): ApiCallDebug =>
+		({ url, statusCode, rawResponse, resolvedCount: 0 });
+
+	if (ids.length === 0) return { names: {}, debug: emptyDebug(endpoint, 0, 'no ids') };
+
+	// Build base URL with any extra params via URLSearchParams (safe to encode),
+	// then append ids=List(...) as a raw string so parentheses/commas stay literal.
+	const base = new URL(`${LI_V2_BASE}${endpoint}`);
+	for (const [k, v] of Object.entries(extraParams)) base.searchParams.set(k, v);
+	const rawIds = `ids=List(${ids.slice(0, 100).join(',')})`;
+	const urlStr = base.toString() + (base.search ? '&' : '?') + rawIds;
+
+	try {
+		const { statusCode, body } = await request(urlStr, { method: 'GET', headers: liHeaders(accessToken) });
+		const text = await body.text();
+		if (statusCode >= 400) return { names: {}, debug: emptyDebug(urlStr, statusCode, text) };
+		const data = JSON.parse(text);
+		const names: Record<string, string> = {};
+		for (const [id, entity] of Object.entries(data?.results || {})) {
+			const name = nameExtractor(entity as any);
+			if (name) names[String(id)] = name;
+		}
+		return { names, debug: { url: urlStr, statusCode, rawResponse: text, resolvedCount: Object.keys(names).length } };
+	} catch (e: any) {
+		return { names: {}, debug: emptyDebug(urlStr, 0, String(e?.message || e)) };
+	}
+}
+
+/** GET_ALL  /v2/{endpoint}?count=100  → { names, debug } (for small finite sets) */
+async function getAllNames(
+	accessToken: string,
+	endpoint: string,
+	nameExtractor: (entity: any) => string,
+	extraParams: Record<string, string> = {},
+): Promise<{ names: Record<string, string>; debug: ApiCallDebug }> {
+	const url = new URL(`${LI_V2_BASE}${endpoint}`);
+	url.searchParams.set('count', '100');
+	for (const [k, v] of Object.entries(extraParams)) url.searchParams.set(k, v);
+	const urlStr = url.toString();
+
+	try {
+		const { statusCode, body } = await request(urlStr, { method: 'GET', headers: liHeaders(accessToken) });
+		const text = await body.text();
+		if (statusCode >= 400) return { names: {}, debug: { url: urlStr, statusCode, rawResponse: text, resolvedCount: 0 } };
+		const data = JSON.parse(text);
+		const names: Record<string, string> = {};
+		for (const entity of (data?.elements || [])) {
+			const name = nameExtractor(entity);
+			if (name && entity.id !== undefined) names[String(entity.id)] = name;
+		}
+		return { names, debug: { url: urlStr, statusCode, rawResponse: text, resolvedCount: Object.keys(names).length } };
+	} catch (e: any) {
+		return { names: {}, debug: { url: urlStr, statusCode: 0, rawResponse: String(e?.message || e), resolvedCount: 0 } };
+	}
+}
+
+/** Extract the name from a standard MultiLocaleString entity */
+function multiLocaleName(entity: any): string {
+	const loc = entity?.name?.localized;
+	if (!loc) return '';
+	return loc.en_US ?? loc[Object.keys(loc)[0]] ?? '';
+}
+
+/** Facets whose values can be decoded purely from the URN — no API needed */
+function parseInlineFacet(facetKey: string, urns: string[]): string[] {
+	return urns.map(urn => {
+		const colonIdx = urn.indexOf(':(');
+		const id = colonIdx !== -1 ? urn.slice(colonIdx + 1) : String(urn).split(':').pop() || urn;
+		switch (facetKey) {
+			case 'interfaceLocales': {
+				const parts = id.split('_');
+				if (parts.length !== 2) return id;
+				const langMap: Record<string, string> = {
+					en: 'English', es: 'Spanish', fr: 'French', de: 'German',
+					pt: 'Portuguese', it: 'Italian', zh: 'Chinese', ja: 'Japanese',
+					ko: 'Korean', ar: 'Arabic', ru: 'Russian', nl: 'Dutch',
+					sv: 'Swedish', da: 'Danish', fi: 'Finnish', nb: 'Norwegian',
+					pl: 'Polish', tr: 'Turkish', id: 'Indonesian', ms: 'Malay',
+				};
+				return `${langMap[parts[0].toLowerCase()] || parts[0].toUpperCase()} (${parts[1]})`;
+			}
+			case 'genders': {
+				const map: Record<string, string> = { MALE: 'Male', FEMALE: 'Female' };
+				return map[id.toUpperCase()] ?? id;
+			}
+			case 'ageRanges': {
+				const m = id.match(/^\((\d+),(\d+)\)$/);
+				if (!m) return id;
+				return parseInt(m[2], 10) >= 2_000_000_000 ? `${m[1]}+ yrs` : `${m[1]}–${m[2]} yrs`;
+			}
+			case 'staffCountRanges': {
+				const m = id.match(/^\((\d+),(\d+)\)$/);
+				if (!m) return id;
+				const lo = parseInt(m[1], 10), hi = parseInt(m[2], 10);
+				if (lo === hi) return `${lo.toLocaleString()} employee${lo === 1 ? '' : 's'}`;
+				return hi >= 2_000_000_000 ? `${lo.toLocaleString()}+ employees` : `${lo.toLocaleString()}–${hi.toLocaleString()} employees`;
+			}
+			case 'growthRate': {
+				const m = id.match(/^\((-?\d+),(-?\d+)\)$/);
+				if (!m) return id;
+				const lo = parseInt(m[1], 10), hi = parseInt(m[2], 10);
+				if (lo <= -2_000_000_000) return `Declining (<${hi}%)`;
+				if (hi >= 2_000_000_000) return `High growth (>${lo}%)`;
+				return `${lo}–${hi}% growth`;
+			}
+			case 'yearsOfExperienceRanges': {
+				const n = parseInt(id, 10);
+				return isNaN(n) ? id : n >= 12 ? '12+ yrs experience' : `${n}+ yrs experience`;
+			}
+			default: return id;
+		}
+	});
+}
+
+const TARGETING_FACET_LABELS: Record<string, string> = {
+	industries: 'Industries', companyIndustry: 'Company Industries',
+	seniorities: 'Seniorities', titles: 'Job Titles',
+	locations: 'Locations', profileLocations: 'Profile Locations',
+	interfaceLocales: 'Languages', jobFunctions: 'Job Functions', functions: 'Job Functions',
+	employers: 'Employers', employersAll: 'Employers (All)', employersPast: 'Past Employers',
+	skills: 'Skills', groups: 'LinkedIn Groups', degrees: 'Degrees',
+	fieldsOfStudy: 'Fields of Study', schools: 'Schools',
+	ageRanges: 'Age Ranges', genders: 'Genders',
+	yearsOfExperienceRanges: 'Years of Experience', staffCountRanges: 'Company Size',
+	memberInterests: 'Interests', memberTraits: 'Member Traits',
+	memberBehaviors: 'Member Behaviors', growthRate: 'Company Growth Rate',
+	followedCompanies: 'Followed Companies',
+	firstDegreeConnectionCompanies: '1st-Degree Connection Companies',
+	buyerGroups: 'Buyer Groups',
+};
+
+const PARSEABLE_FACETS = new Set([
+	'interfaceLocales', 'genders', 'ageRanges', 'staffCountRanges', 'growthRate', 'yearsOfExperienceRanges',
+]);
+
+const BATCH_GET_CONFIG: Record<string, { endpoint: string; nameExtractor: (e: any) => string; extraParams: Record<string, string> }> = {
+	// No locale params — the /v2 standardized endpoints reject them (403 ACCESS_DENIED for locale.*)
+	industries:     { endpoint: '/v2/industries',    nameExtractor: multiLocaleName, extraParams: {} },
+	companyIndustry:{ endpoint: '/v2/industries',    nameExtractor: multiLocaleName, extraParams: {} },
+	titles:         { endpoint: '/v2/titles',         nameExtractor: multiLocaleName, extraParams: {} },
+	skills:         { endpoint: '/v2/skills',         nameExtractor: (e) => e?.standardizedName ?? multiLocaleName(e), extraParams: {} },
+	degrees:        { endpoint: '/v2/degrees',        nameExtractor: multiLocaleName, extraParams: {} },
+	fieldsOfStudy:  { endpoint: '/v2/fieldsOfStudy', nameExtractor: multiLocaleName, extraParams: {} },
+};
+
+const GET_ALL_CONFIG: Record<string, { endpoint: string; extraParams: Record<string, string> }> = {
+	// No locale params — seniorities explicitly rejects locale.language / locale.country
+	seniorities: { endpoint: '/v2/seniorities', extraParams: {} },
+	functions:   { endpoint: '/v2/functions',   extraParams: {} },
+	jobFunctions:{ endpoint: '/v2/functions',   extraParams: {} },
+};
 
 /**
  * Get user's LinkedIn integration with valid tokens
@@ -236,6 +420,137 @@ export const linkedInAdsCampaignsRouter = router({
 					cause: error,
 				});
 			}
+		}),
+
+	/**
+	 * Resolve targeting criteria URNs to human-readable names.
+	 * All API calls (industries, seniorities, titles, skills, degrees, fields of study,
+	 * functions, geos) are made in parallel for speed.
+	 * Parseable facets (genders, locales, age/staff/growth/experience ranges) are
+	 * resolved inline with no extra network hop.
+	 */
+	resolveTargetingCriteria: protectedProcedure
+		.input(z.object({ targetingCriteria: z.any() }))
+		.query(async ({ input, ctx }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+			const { accessToken } = await getUserIntegration(userId);
+
+			// 1. Extract URNs grouped by facet key
+			const facetMap = new Map<string, string[]>();
+			const andBlocks = input.targetingCriteria?.include?.and;
+			if (!Array.isArray(andBlocks)) return { data: [], debug: [] };
+
+			for (const block of andBlocks) {
+				const orData = block?.or;
+				if (!orData || typeof orData !== 'object') continue;
+				for (const [facetUrn, values] of Object.entries(orData)) {
+					if (!Array.isArray(values) || values.length === 0) continue;
+					const facetKey = String(facetUrn).split(':').pop() || facetUrn;
+					if (!facetMap.has(facetKey)) facetMap.set(facetKey, []);
+					facetMap.get(facetKey)!.push(...(values as string[]));
+				}
+			}
+
+			if (facetMap.size === 0) return { data: [], debug: [] };
+
+			// 2. Build the list of tasks — one per facet that needs an API call
+			type Task = {
+				facetKey: string;
+				ids: string[];
+				resolve: () => Promise<{ names: Record<string, string>; debug: ApiCallDebug }>;
+			};
+
+			const apiFacets: Task[] = [];
+			const parseableFacets: { facetKey: string; urns: string[] }[] = [];
+			const noApiFacets: { facetKey: string; urns: string[] }[] = [];
+
+			const extractId = (urn: string) => {
+				const colonIdx = urn.indexOf(':(');
+				return colonIdx !== -1 ? urn.slice(colonIdx + 1) : String(urn).split(':').pop() || urn;
+			};
+
+			for (const [facetKey, urns] of facetMap.entries()) {
+				const ids = urns.map(extractId);
+
+				if (PARSEABLE_FACETS.has(facetKey)) {
+					parseableFacets.push({ facetKey, urns });
+				} else if (BATCH_GET_CONFIG[facetKey]) {
+					const cfg = BATCH_GET_CONFIG[facetKey];
+					apiFacets.push({
+						facetKey, ids,
+						resolve: () => batchGetNames(accessToken, cfg.endpoint, ids, cfg.nameExtractor, cfg.extraParams),
+					});
+				} else if (GET_ALL_CONFIG[facetKey]) {
+					const cfg = GET_ALL_CONFIG[facetKey];
+					apiFacets.push({
+						facetKey, ids,
+						resolve: () => getAllNames(accessToken, cfg.endpoint, multiLocaleName, cfg.extraParams),
+					});
+				} else if (facetKey === 'locations' || facetKey === 'profileLocations') {
+					const geoUrns = urns; // capture full URNs for closure
+					apiFacets.push({
+						facetKey, ids,
+						resolve: async (): Promise<{ names: Record<string, string>; debug: ApiCallDebug }> => {
+							// /v2/geos does not exist — use Marketing API adTargetingEntities with q=urnLookup
+							// urns=List(urn:li:geo:x,urn:li:geo:y,...) — appended raw so colons/parens stay literal
+							const rawUrns = `urns=List(${geoUrns.join(',')})`;
+							const baseUrl = `${LI_V2_BASE}/v2/adTargetingEntities?q=urnLookup`;
+							const urlStr = `${baseUrl}&${rawUrns}`;
+							try {
+								const { statusCode, body } = await request(urlStr, { method: 'GET', headers: liHeaders(accessToken) });
+								const text = await body.text();
+								if (statusCode >= 400) return { names: {}, debug: { url: urlStr, statusCode, rawResponse: text, resolvedCount: 0 } };
+								const data = JSON.parse(text);
+								const names: Record<string, string> = {};
+								for (const el of (data?.elements || [])) {
+									const urn: string = el?.urn ?? '';
+									const numId = urn.split(':').pop() || '';
+									const name: string = el?.name ?? '';
+									if (numId && name) names[numId] = name;
+								}
+								return { names, debug: { url: urlStr, statusCode, rawResponse: text, resolvedCount: Object.keys(names).length } };
+							} catch (e: any) {
+								return { names: {}, debug: { url: urlStr, statusCode: 0, rawResponse: String(e?.message || e), resolvedCount: 0 } };
+							}
+						},
+					});
+				} else {
+					noApiFacets.push({ facetKey, urns });
+				}
+			}
+
+			// 3. Fire all API tasks in parallel
+			const resolvedResults = await Promise.all(apiFacets.map(t => t.resolve()));
+
+			// 4. Assemble results + collect debug info
+			const results: Array<{ label: string; content: string }> = [];
+			const debugInfo: Array<{ facetKey: string; url: string; statusCode: number; resolvedCount: number; rawResponse: string }> = [];
+			const facetLabel = (k: string) =>
+				TARGETING_FACET_LABELS[k] || k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, m => m.toUpperCase());
+
+			for (const { facetKey, urns } of parseableFacets) {
+				const names = parseInlineFacet(facetKey, urns);
+				if (names.length) results.push({ label: facetLabel(facetKey), content: names.join(', ') });
+			}
+
+			for (let i = 0; i < apiFacets.length; i++) {
+				const { facetKey, ids } = apiFacets[i];
+				const { names: map, debug } = resolvedResults[i];
+				debugInfo.push({ facetKey, ...debug });
+				const names = ids.map(id => map[id] || id);
+				if (names.length) results.push({ label: facetLabel(facetKey), content: names.join(', ') });
+			}
+
+			for (const { facetKey, urns } of noApiFacets) {
+				const ids = urns.map(u => {
+					const colonIdx = u.indexOf(':(');
+					return colonIdx !== -1 ? u.slice(colonIdx + 1) : String(u).split(':').pop() || u;
+				});
+				if (ids.length) results.push({ label: facetLabel(facetKey), content: ids.join(', ') });
+			}
+
+			return { data: results, debug: debugInfo };
 		}),
 
 	/**
