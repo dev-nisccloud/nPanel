@@ -1,5 +1,7 @@
+import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc";
 import { getKenicEppConfig } from "../../lib/epp/kenic-config";
+import { inspectPeerCertificate } from "../../lib/epp/epp-client";
 
 function isIpv4Host(host: string): boolean {
 	return /^(\d{1,3}\.){3}\d{1,3}$/.test(host.trim());
@@ -26,5 +28,25 @@ export const kenicConfigStatusRouter = router({
 			hasCredentialsConfigured: Boolean(cfg.username && cfg.password),
 		};
 	}),
+
+	/**
+	 * Connects to KENIC EPP with TLS verification off, reads the leaf certificate only.
+	 * Use to see CN/SAN and pick `KENIC_EPP_TLS_SERVERNAME`. Optional `sniServername` probes a different SNI.
+	 */
+	inspectTls: protectedProcedure
+		.input(
+			z
+				.object({
+					/** Override SNI for this probe (e.g. try `registry.kenic.or.ke` vs `epp.coccaregistry.org`). */
+					sniServername: z.string().min(1).optional(),
+				})
+				.optional()
+		)
+		.query(async ({ input }) => {
+			const cfg = getKenicEppConfig(false);
+			return inspectPeerCertificate(cfg, {
+				sniServernameOverride: input?.sniServername,
+			});
+		}),
 });
 
