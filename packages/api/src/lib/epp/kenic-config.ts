@@ -10,6 +10,12 @@ export interface KenicEppEnvConfig extends EppClientConfig {
 	password: string;
 }
 
+let hasLoggedProdTlsResolution = false;
+
+function isIpv4Host(value: string): boolean {
+	return /^(\d{1,3}\.){3}\d{1,3}$/.test(value.trim());
+}
+
 /**
  * Read KENIC EPP config from environment.
  * Throws if required credentials are missing (for login/command flows).
@@ -19,19 +25,16 @@ export function getKenicEppConfig(requireAuth: boolean): KenicEppEnvConfig {
 	const port = Number(process.env.KENIC_EPP_PORT ?? "700");
 	const timeoutMs = Number(process.env.KENIC_EPP_TIMEOUT_MS ?? "30000");
 	const normalizedHost = host.trim().toLowerCase();
-	const isDefaultKenicHost = normalizedHost === "registry.kenic.or.ke";
-	const isIpHost = /^(\d{1,3}\.){3}\d{1,3}$/.test(normalizedHost);
+	const isIpHost = isIpv4Host(normalizedHost);
 	const explicitTlsServername = process.env.KENIC_EPP_TLS_SERVERNAME?.trim();
-	const tlsServername =
-		explicitTlsServername ||
-		// KENIC often presents a cert issued for the CoCCA endpoint.
-		// In production some setups use an IP for KENIC_EPP_HOST; TLS still
-		// needs a DNS servername for certificate validation.
-		(isDefaultKenicHost || isIpHost ? "epp.coccaregistry.org" : undefined);
+	const explicitTlsServernameIsIp = explicitTlsServername ? isIpv4Host(explicitTlsServername) : false;
+	const tlsServername = explicitTlsServername && !explicitTlsServernameIsIp
+		? explicitTlsServername
+		: "epp.coccaregistry.org";
 	const allowLegacyCommonNameFallback =
 		(process.env.KENIC_EPP_ALLOW_LEGACY_CN_FALLBACK ??
 			// Default to safe compatibility for KENIC unless explicitly disabled.
-			(isDefaultKenicHost ? "true" : "false")
+			"true"
 		).toLowerCase() === "true";
 	const username = process.env.KENIC_EPP_USERNAME ?? "";
 	const password = process.env.KENIC_EPP_PASSWORD ?? "";
@@ -57,6 +60,24 @@ export function getKenicEppConfig(requireAuth: boolean): KenicEppEnvConfig {
 				`Using fallback TLS servername '${tlsServername}'. ` +
 				"Set KENIC_EPP_TLS_SERVERNAME explicitly to match the registry certificate."
 		);
+	}
+	if (process.env.NODE_ENV === "production" && explicitTlsServernameIsIp) {
+		console.warn(
+			"[KENIC EPP] KENIC_EPP_TLS_SERVERNAME is set to an IP, which breaks TLS hostname verification. " +
+				`Ignoring it and using '${tlsServername}' instead.`
+		);
+	}
+	if (process.env.NODE_ENV === "production" && !hasLoggedProdTlsResolution) {
+		hasLoggedProdTlsResolution = true;
+		console.info("[KENIC EPP] Resolved TLS connection settings", {
+			host,
+			hostIsIp: isIpHost,
+			port,
+			explicitTlsServername: explicitTlsServername ?? null,
+			explicitTlsServernameIsIp,
+			resolvedTlsServername: tlsServername,
+			allowLegacyCommonNameFallback,
+		});
 	}
 
 	return {
