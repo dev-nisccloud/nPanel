@@ -3,7 +3,7 @@
  * Options aligned with docs/master-ai-design-prompt-guide.md (7 pillars + formula).
  */
 
-/** Sentinel for "Not specified" — Radix Select does not allow value="". */
+/** Sentinel for "Not specified" —Radix Select does not allow value="". */
 export const REFINE_OPTION_NONE = "__none__";
 
 export const STYLE_OPTIONS: { value: string; label: string }[] = [
@@ -103,7 +103,7 @@ export const MOOD_PRESETS: { value: string; label: string }[] = [
   { value: "Refined and austere", label: "Refined and austere" },
 ];
 
-/** Guide: "Name specific colors or provide hex codes" — Primary, Secondary, Accent (e.g. "single bold accent"). */
+/** Guide: "Name specific colors or provide hex codes" —Primary, Secondary, Accent (e.g. "single bold accent"). */
 export const COLOR_ROLE_LABELS = {
   primary: "Primary color",
   secondary: "Secondary color",
