@@ -421,7 +421,7 @@ export function AddEditPlanSheet({
                 <SheetHeader className="mb-4">
                     <SheetTitle>{isEditing ? "Edit Plan" : "Add Plan"}</SheetTitle>
                     <SheetDescription>
-                        {productName} — {isEditing ? "Update plan details" : "Create a new pricing plan"}
+                        {productName} — {isEditing ? "Update plan details" : "Create a new pricing plan"}
                     </SheetDescription>
                     <SheetClose asChild>
                         <Button size="icon" variant="ghost" className="absolute right-6 top-6">

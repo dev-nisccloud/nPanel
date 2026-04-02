@@ -479,7 +479,7 @@ export default function CampaignDetailPage() {
 					</AlertDialogContent>
 				</AlertDialog>
 
-				{/* Analytics — skeleton when loading; empty state when no data (e.g. scheduled/draft); cards when data */}
+				{/* Analytics —skeleton when loading; empty state when no data (e.g. scheduled/draft); cards when data */}
 				<div className="mt-6">
 					{summaryLoading ? (
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">

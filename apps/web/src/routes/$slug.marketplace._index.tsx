@@ -12,7 +12,7 @@ export default function MarketplacePage() {
         <div className="flex flex-col gap-2">
           <h1 className="text-base font-semibold tracking-tight">Marketplace</h1>
           <p className="text-xs text-muted-foreground">
-            Explore and subscribe to services — hosting, email, marketing, and more.
+            Explore and subscribe to services — hosting, email, marketing, and more.
           </p>
         </div>
 
