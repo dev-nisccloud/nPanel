@@ -36,6 +36,11 @@ export function getKenicEppConfig(requireAuth: boolean): KenicEppEnvConfig {
 			// Default to safe compatibility for KENIC unless explicitly disabled.
 			"true"
 		).toLowerCase() === "true";
+	// KENIC_EPP_REJECT_UNAUTHORIZED=false disables TLS cert verification entirely.
+	// The connection is still encrypted but the peer cert is NOT verified.
+	// Use when the registry presents a cert from a different server path (e.g. Cloud Run → different IP).
+	const rejectUnauthorized =
+		(process.env.KENIC_EPP_REJECT_UNAUTHORIZED ?? "true").toLowerCase() !== "false";
 	const username = process.env.KENIC_EPP_USERNAME ?? "";
 	const password = process.env.KENIC_EPP_PASSWORD ?? "";
 
@@ -67,6 +72,14 @@ export function getKenicEppConfig(requireAuth: boolean): KenicEppEnvConfig {
 				`Ignoring it and using '${tlsServername}' instead.`
 		);
 	}
+	if (!rejectUnauthorized) {
+		console.warn(
+			"[KENIC EPP] KENIC_EPP_REJECT_UNAUTHORIZED=false — TLS cert verification is DISABLED. " +
+				"Connection is still encrypted but peer certificate is NOT validated. " +
+				"Set to true once the registry cert issue is resolved."
+		);
+	}
+
 	if (process.env.NODE_ENV === "production" && !hasLoggedProdTlsResolution) {
 		hasLoggedProdTlsResolution = true;
 		console.info("[KENIC EPP] Resolved TLS connection settings", {
@@ -77,6 +90,7 @@ export function getKenicEppConfig(requireAuth: boolean): KenicEppEnvConfig {
 			explicitTlsServernameIsIp,
 			resolvedTlsServername: tlsServername,
 			allowLegacyCommonNameFallback,
+			rejectUnauthorized,
 		});
 	}
 
@@ -86,6 +100,7 @@ export function getKenicEppConfig(requireAuth: boolean): KenicEppEnvConfig {
 		timeoutMs: Number.isNaN(timeoutMs) ? 30_000 : timeoutMs,
 		tlsServername,
 		allowLegacyCommonNameFallback,
+		rejectUnauthorized,
 		username,
 		password,
 	};

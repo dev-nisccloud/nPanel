@@ -21,6 +21,7 @@ import { handleHealth } from "./api/health";
 import { handleManifest } from "./api/manifest";
 import { handlePleskHealthCheck } from "./api/plesk-health-check";
 import { handleTestPleskConnection } from "./api/test-plesk-connection";
+import { handleTestKenicConnection } from "./api/test-kenic-connection";
 import { handleMpesaWebhook } from "./api/webhooks/mpesa";
 import { handleReplicateWebhook } from "./api/webhooks/replicate-image-generator";
 import { handleResendWebhook } from "./api/webhooks/resend";
@@ -73,6 +74,7 @@ app.get("/manifest.json", handleManifest);
 app.get("/api/manifest.json", handleManifest);
 app.get("/api/plesk/health-check", handlePleskHealthCheck);
 app.get("/api/plesk/test-connection", handleTestPleskConnection);
+app.get("/api/kenic/test-connection", handleTestKenicConnection);
 
 // Webhooks
 app.on(["POST"], "/api/webhooks/mpesa", handleMpesaWebhook);

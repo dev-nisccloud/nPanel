@@ -23,6 +23,13 @@ export interface EppClientConfig {
 	 * Certificate chain validation remains enabled (rejectUnauthorized=true).
 	 */
 	allowLegacyCommonNameFallback?: boolean;
+	/**
+	 * If false, skip TLS certificate verification entirely.
+	 * The connection is still TLS-encrypted but the peer cert is NOT verified.
+	 * Use only for registries with broken/inconsistent cert infrastructure.
+	 * Controlled via KENIC_EPP_REJECT_UNAUTHORIZED env var.
+	 */
+	rejectUnauthorized?: boolean;
 }
 
 export interface ConnectAndReceiveGreetingResult {
@@ -167,6 +174,17 @@ function legacyCnCheck(
 	return defaultError;
 }
 
+function certDiagnostics(cert: tls.PeerCertificate): Record<string, unknown> {
+	return {
+		subjectCN: (cert.subject as { CN?: string } | undefined)?.CN ?? null,
+		subjectAltName: cert.subjectaltname ?? null,
+		issuerCN: (cert.issuer as { CN?: string } | undefined)?.CN ?? null,
+		validFrom: cert.valid_from ?? null,
+		validTo: cert.valid_to ?? null,
+		fingerprint256: cert.fingerprint256 ?? null,
+	};
+}
+
 function buildCheckServerIdentity(
 	allowLegacyCommonNameFallback: boolean,
 	expectedHostname?: string
@@ -178,8 +196,24 @@ function buildCheckServerIdentity(
 		const verifyHostname = expectedHostname?.trim() || hostname;
 		const defaultError = tls.checkServerIdentity(verifyHostname, cert);
 		if (!defaultError) return undefined;
-		if (!allowLegacyCommonNameFallback) return defaultError;
-		return legacyCnCheck(verifyHostname, cert, defaultError);
+		if (!allowLegacyCommonNameFallback) {
+			console.error("[KENIC EPP] TLS cert verification failed (no CN fallback)", {
+				verifyHostname,
+				error: defaultError.message,
+				cert: certDiagnostics(cert),
+			});
+			return defaultError;
+		}
+		const cnError = legacyCnCheck(verifyHostname, cert, defaultError);
+		if (cnError) {
+			// Always log cert details so we can see exactly what cert Cloud Run receives.
+			console.error("[KENIC EPP] TLS cert verification failed (CN fallback also failed)", {
+				verifyHostname,
+				error: cnError.message,
+				cert: certDiagnostics(cert),
+			});
+		}
+		return cnError;
 	};
 }
 
@@ -258,6 +292,7 @@ export function createConnection(config: EppClientConfig): Promise<tls.TLSSocket
 		timeoutMs = DEFAULT_TIMEOUT_MS,
 		tlsServername,
 		allowLegacyCommonNameFallback = false,
+		rejectUnauthorized = true,
 	} = config;
 	const servername = tlsServername?.trim() || host;
 
@@ -267,8 +302,10 @@ export function createConnection(config: EppClientConfig): Promise<tls.TLSSocket
 				host,
 				port,
 				servername,
-				rejectUnauthorized: true,
-				checkServerIdentity: buildCheckServerIdentity(allowLegacyCommonNameFallback, servername),
+				rejectUnauthorized,
+				checkServerIdentity: rejectUnauthorized
+					? buildCheckServerIdentity(allowLegacyCommonNameFallback, servername)
+					: () => undefined,
 			},
 			() => {
 				socket.removeListener("error", onError);
@@ -298,6 +335,7 @@ export async function connectAndReceiveGreeting(
 		timeoutMs = DEFAULT_TIMEOUT_MS,
 		tlsServername,
 		allowLegacyCommonNameFallback = false,
+		rejectUnauthorized = true,
 	} = config;
 	const servername = tlsServername?.trim() || host;
 
@@ -306,8 +344,10 @@ export async function connectAndReceiveGreeting(
 			host,
 			port,
 			servername,
-			rejectUnauthorized: true,
-			checkServerIdentity: buildCheckServerIdentity(allowLegacyCommonNameFallback, servername),
+			rejectUnauthorized,
+			checkServerIdentity: rejectUnauthorized
+				? buildCheckServerIdentity(allowLegacyCommonNameFallback, servername)
+				: () => undefined,
 		},
 		() => {
 			// Connected; server will send greeting
