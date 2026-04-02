@@ -30,6 +30,116 @@ export interface ConnectAndReceiveGreetingResult {
 	xml: string;
 }
 
+/** Parsed TLS peer certificate metadata (for diagnostics; no private keys). */
+export interface EppTlsPeerInspectResult {
+	connectHost: string;
+	connectPort: number;
+	/** SNI sent during handshake. */
+	sniServername: string;
+	subjectCommonName: string | null;
+	/** DNS names from Subject Alternative Name extension. */
+	subjectAltNamesDns: string[];
+	/** Raw subjectAltName string from the cert, if present. */
+	subjectAltNameRaw: string | null;
+	issuerCommonName: string | null;
+	issuerOrganization: string | null;
+	validFrom: string | null;
+	validTo: string | null;
+	fingerprintSha256: string | null;
+	/** Hint: which name(s) to try for KENIC_EPP_TLS_SERVERNAME (first SAN DNS, else CN). */
+	suggestedTlsServername: string | null;
+}
+
+function parseSubjectAltDns(subjectAltName: string | undefined): string[] {
+	if (!subjectAltName || typeof subjectAltName !== "string") return [];
+	const out: string[] = [];
+	for (const part of subjectAltName.split(",")) {
+		const p = part.trim();
+		const m = /^DNS:(.+)$/i.exec(p);
+		if (m?.[1]) out.push(m[1].trim());
+	}
+	return out;
+}
+
+/**
+ * Connect with TLS verification disabled, read peer certificate, then close.
+ * Use only for debugging which hostname the registry cert is issued for (CN/SAN).
+ */
+export function inspectPeerCertificate(
+	config: EppClientConfig,
+	options?: { sniServernameOverride?: string; timeoutMs?: number }
+): Promise<EppTlsPeerInspectResult> {
+	const {
+		host,
+		port,
+		timeoutMs = DEFAULT_TIMEOUT_MS,
+		tlsServername,
+	} = config;
+	const servername = (options?.sniServernameOverride ?? tlsServername)?.trim() || host;
+	const effectiveTimeout = options?.timeoutMs ?? timeoutMs;
+
+	return new Promise((resolve, reject) => {
+		const socket = tls.connect(
+			{
+				host,
+				port,
+				servername,
+				rejectUnauthorized: false,
+			},
+			() => {
+				try {
+					const cert = socket.getPeerCertificate(true);
+					socket.destroy();
+					if (!cert || Object.keys(cert).length === 0) {
+						reject(new Error("No peer certificate received"));
+						return;
+					}
+					const subjectCN =
+						cert.subject && typeof cert.subject === "object"
+							? (cert.subject as { CN?: string }).CN ?? null
+							: null;
+					const sanRaw =
+						typeof cert.subjectaltname === "string" ? cert.subjectaltname : null;
+					const subjectAltNamesDns = parseSubjectAltDns(cert.subjectaltname);
+					const issuer =
+						cert.issuer && typeof cert.issuer === "object"
+							? (cert.issuer as { CN?: string; O?: string })
+							: null;
+					const suggested =
+						subjectAltNamesDns[0] ?? (typeof subjectCN === "string" ? subjectCN : null);
+					resolve({
+						connectHost: host,
+						connectPort: port,
+						sniServername: servername,
+						subjectCommonName: subjectCN,
+						subjectAltNamesDns,
+						subjectAltNameRaw: sanRaw,
+						issuerCommonName: issuer?.CN ?? null,
+						issuerOrganization: issuer?.O ?? null,
+						validFrom: cert.valid_from ?? null,
+						validTo: cert.valid_to ?? null,
+						fingerprintSha256: cert.fingerprint256 ?? null,
+						suggestedTlsServername: suggested,
+					});
+				} catch (e) {
+					socket.destroy();
+					reject(e instanceof Error ? e : new Error(String(e)));
+				}
+			}
+		);
+
+		socket.setTimeout(effectiveTimeout);
+		socket.once("timeout", () => {
+			socket.destroy();
+			reject(new Error("EPP TLS inspect connection timeout"));
+		});
+		socket.once("error", (e: Error) => {
+			socket.destroy();
+			reject(e);
+		});
+	});
+}
+
 function matchesWildcardCommonName(commonName: string, hostname: string): boolean {
 	if (!commonName.startsWith("*.")) return false;
 	const suffix = commonName.slice(1); // ".example.com"
@@ -57,12 +167,19 @@ function legacyCnCheck(
 	return defaultError;
 }
 
-function buildCheckServerIdentity(allowLegacyCommonNameFallback: boolean) {
+function buildCheckServerIdentity(
+	allowLegacyCommonNameFallback: boolean,
+	expectedHostname?: string
+) {
 	return (hostname: string, cert: tls.PeerCertificate) => {
-		const defaultError = tls.checkServerIdentity(hostname, cert);
+		// Prefer explicit expected hostname (usually TLS SNI/servername) when provided.
+		// Some environments pass socket host into checkServerIdentity, which can differ
+		// from TLS servername and cause false hostname mismatch failures.
+		const verifyHostname = expectedHostname?.trim() || hostname;
+		const defaultError = tls.checkServerIdentity(verifyHostname, cert);
 		if (!defaultError) return undefined;
 		if (!allowLegacyCommonNameFallback) return defaultError;
-		return legacyCnCheck(hostname, cert, defaultError);
+		return legacyCnCheck(verifyHostname, cert, defaultError);
 	};
 }
 
@@ -151,7 +268,7 @@ export function createConnection(config: EppClientConfig): Promise<tls.TLSSocket
 				port,
 				servername,
 				rejectUnauthorized: true,
-				checkServerIdentity: buildCheckServerIdentity(allowLegacyCommonNameFallback),
+				checkServerIdentity: buildCheckServerIdentity(allowLegacyCommonNameFallback, servername),
 			},
 			() => {
 				socket.removeListener("error", onError);
@@ -190,7 +307,7 @@ export async function connectAndReceiveGreeting(
 			port,
 			servername,
 			rejectUnauthorized: true,
-			checkServerIdentity: buildCheckServerIdentity(allowLegacyCommonNameFallback),
+			checkServerIdentity: buildCheckServerIdentity(allowLegacyCommonNameFallback, servername),
 		},
 		() => {
 			// Connected; server will send greeting
