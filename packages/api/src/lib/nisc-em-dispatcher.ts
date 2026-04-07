@@ -218,6 +218,7 @@ export async function dispatchNiscEmEmailQueue(params?: {
   let sent = 0;
   let failed = 0;
   let throttled = 0;
+  const touchedCampaignIds = new Set<string>();
 
   try {
     const quota = await getQuotaStatus(new Date());
@@ -235,6 +236,7 @@ export async function dispatchNiscEmEmailQueue(params?: {
       if (batch.length === 0) break;
 
       claimed += batch.length;
+      for (const b of batch) touchedCampaignIds.add(b.campaignId);
 
       // Prefetch campaigns for content and headers.
       const campaignIds = Array.from(new Set(batch.map((b) => b.campaignId)));
@@ -321,6 +323,50 @@ export async function dispatchNiscEmEmailQueue(params?: {
             await new Promise((r) => setTimeout(r, 500));
           }
         }
+      }
+    }
+
+    // Update campaign status + sent counts so UI doesn't get stuck on SCHEDULED/SENDING.
+    if (touchedCampaignIds.size > 0) {
+      const ids = Array.from(touchedCampaignIds);
+      const res = await db.execute<{
+        campaignId: string;
+        queuedCount: number;
+        sendingCount: number;
+        sentCount: number;
+        failedCount: number;
+      }>(sql`
+        select
+          e.campaign_id as "campaignId",
+          count(*) filter (where e.status = 'QUEUED')::int as "queuedCount",
+          count(*) filter (where e.status = 'SENDING')::int as "sendingCount",
+          count(*) filter (where e.status = 'SENT')::int as "sentCount",
+          count(*) filter (where e.status = 'FAILED')::int as "failedCount"
+        from ${niscEmEmail} e
+        where e.campaign_id = any(${ids}::uuid[])
+        group by e.campaign_id
+      `);
+
+      const rows = (res as unknown as { rows?: any[] }).rows ?? [];
+      const now = new Date();
+      for (const r of rows) {
+        const queuedCount = Number(r.queuedCount ?? 0);
+        const sendingCount = Number(r.sendingCount ?? 0);
+        const sentCount = Number(r.sentCount ?? 0);
+        const failedCount = Number(r.failedCount ?? 0);
+        const stillInFlight = queuedCount + sendingCount > 0;
+        const finalStatus = stillInFlight ? "SENDING" : failedCount > 0 ? "FAILED" : "SENT";
+
+        await db
+          .update(niscEmCampaign)
+          .set({
+            status: finalStatus as any,
+            totalSent: sentCount,
+            sentAt: sentCount > 0 ? now : null,
+            completedAt: stillInFlight ? null : now,
+            updatedAt: now,
+          })
+          .where(eq(niscEmCampaign.id, r.campaignId));
       }
     }
 

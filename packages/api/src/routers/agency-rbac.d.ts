@@ -1,0 +1,133 @@
+export declare const agencyRbacRouter: import("@trpc/server").TRPCBuiltRouter<{
+    ctx: import("..").Context;
+    meta: object;
+    errorShape: import("@trpc/server").TRPCDefaultErrorShape;
+    transformer: false;
+}, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+    permissionCatalog: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: ("/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[];
+        meta: object;
+    }>;
+    rolesList: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            id: string;
+            name: string;
+            description: string | null;
+            isSystem: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
+        meta: object;
+    }>;
+    roleById: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            roleId: string;
+        };
+        output: {
+            id: string;
+            name: string;
+            description: string | null;
+            isSystem: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            permissionKeys: ("/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[];
+        };
+        meta: object;
+    }>;
+    roleCreate: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            name: string;
+            description?: string | undefined;
+        };
+        output: {
+            id: string;
+            name: string;
+            description: string | null;
+            isSystem: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        meta: object;
+    }>;
+    roleUpdate: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            roleId: string;
+            name?: string | undefined;
+            description?: string | undefined;
+        };
+        output: {
+            id: string;
+            name: string;
+            description: string | null;
+            isSystem: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        meta: object;
+    }>;
+    roleDelete: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            roleId: string;
+        };
+        output: {
+            success: boolean;
+        };
+        meta: object;
+    }>;
+    permissionsList: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            id: string;
+            key: "/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative";
+            description: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
+        meta: object;
+    }>;
+    permissionUpsert: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            key: "/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative";
+            description?: string | undefined;
+        };
+        output: {
+            id: string;
+            key: "/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative";
+            description: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        meta: object;
+    }>;
+    rolePermissionsSet: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            roleId: string;
+            permissionKeys?: ("/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[] | undefined;
+        };
+        output: {
+            success: boolean;
+        };
+        meta: object;
+    }>;
+    userAgencyRoleAssign: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            userId: string;
+            roleId: string | null;
+        };
+        output: {
+            success: boolean;
+        };
+        meta: object;
+    }>;
+    myMenuAccess: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            roleId: string | null;
+            roleName: string | null;
+            allowedKeys: ("/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[];
+        };
+        meta: object;
+    }>;
+}>>;

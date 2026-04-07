@@ -1,0 +1,238 @@
+/**
+ * EPP XML command builders for KENIC (RFC 5730, 5731).
+ * Object and extension URIs match the live greeting from registry.kenic.or.ke.
+ */
+/** Escape string for use inside XML text content. */
+function escapeXml(s) {
+    return s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+/** Default objURIs from KENIC greeting (contact, domain, host). */
+const DEFAULT_OBJ_URIS = [
+    "urn:ietf:params:xml:ns:contact-1.0",
+    "urn:ietf:params:xml:ns:domain-1.0",
+    "urn:ietf:params:xml:ns:host-1.0",
+];
+/** Default extURIs from KENIC greeting. */
+const DEFAULT_EXT_URIS = [
+    "urn:ietf:params:xml:ns:rgp-1.0",
+    "urn:ietf:params:xml:ns:secDNS-1.1",
+    "urn:ietf:params:xml:ns:epp:fee-1.0",
+    "https://finance.coccaregistry.org",
+];
+/** Generate a unique client transaction ID (clTRID). */
+function clTrId() {
+    return `npanel-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+/**
+ * Build EPP <login> command (RFC 5730).
+ * Use the same objURI and extURI as in the server greeting so the server enables those services.
+ */
+export function buildLoginXml(clId, pw, options) {
+    const objURIs = options?.objURIs ?? DEFAULT_OBJ_URIS;
+    const extURIs = options?.extURIs ?? DEFAULT_EXT_URIS;
+    const objUriElements = objURIs.map((u) => `<objURI>${escapeXml(u)}</objURI>`).join("");
+    const extUriElements = extURIs.map((u) => `<extURI>${escapeXml(u)}</extURI>`).join("");
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+  <command>
+    <login>
+      <clID>${escapeXml(clId)}</clID>
+      <pw>${escapeXml(pw)}</pw>
+      <options>
+        <version>1.0</version>
+        <lang>en</lang>
+      </options>
+      <svcs>
+        ${objUriElements}
+        <svcExtension>
+          ${extUriElements}
+        </svcExtension>
+      </svcs>
+    </login>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+/**
+ * Build EPP <logout> command (RFC 5730).
+ */
+export function buildLogoutXml() {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+  <command>
+    <logout/>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+/**
+ * Build EPP domain:check command (RFC 5731).
+ * @param domains - Full domain names (e.g. ["example.ke", "test.ke"]).
+ */
+export function buildDomainCheckXml(domains) {
+    return buildDomainCheckXmlInternal(domains, null);
+}
+/**
+ * Build EPP domain:check command with fee extension (RFC 8748).
+ * Server may return fee:chkData in the response extension with create/renew/transfer fees per domain.
+ */
+export function buildDomainCheckWithFeeXml(domains, options) {
+    return buildDomainCheckXmlInternal(domains, options ?? {});
+}
+function buildDomainCheckXmlInternal(domains, feeOptions) {
+    const nameElements = domains
+        .map((d) => `<domain:name>${escapeXml(d)}</domain:name>`)
+        .join("");
+    const periodYears = feeOptions?.periodYears ?? 1;
+    const currency = feeOptions?.currency;
+    const currencyEl = currency ? `<fee:currency>${escapeXml(currency)}</fee:currency>` : "";
+    const phaseAttr = feeOptions?.phase ? ` phase="${escapeXml(feeOptions.phase)}"` : "";
+    const subphaseAttr = feeOptions?.subphase ? ` subphase="${escapeXml(feeOptions.subphase)}"` : "";
+    const createCmd = `<fee:command name="create"${phaseAttr}${subphaseAttr}>\n          <fee:period unit="y">${periodYears}</fee:period>\n        </fee:command>`;
+    const renewCmd = `<fee:command name="renew"${phaseAttr}${subphaseAttr}>\n          <fee:period unit="y">${periodYears}</fee:period>\n        </fee:command>`;
+    const transferCmd = `<fee:command name="transfer"${phaseAttr}${subphaseAttr}>\n          <fee:period unit="y">${periodYears}</fee:period>\n        </fee:command>`;
+    const restoreCmd = feeOptions?.includeRestoreFee === true
+        ? `\n        <fee:command name="restore"/>`
+        : "";
+    const feeExtension = feeOptions === null
+        ? ""
+        : `
+    <extension>
+      <fee:check xmlns:fee="urn:ietf:params:xml:ns:epp:fee-1.0">
+        ${currencyEl}
+        ${createCmd}
+        ${renewCmd}
+        ${transferCmd}${restoreCmd}
+      </fee:check>
+    </extension>`;
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+  <command>
+    <check>
+      <domain:check>
+        ${nameElements}
+      </domain:check>
+    </check>${feeExtension}
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+function formatStreet(street) {
+    const arr = Array.isArray(street) ? street : [street];
+    return arr.map((s) => `<contact:street>${escapeXml(s)}</contact:street>`).join("\n        ");
+}
+function formatPostalInfo(p, type) {
+    const street = formatStreet(p.street);
+    return `<contact:postalInfo type="${type}">
+      <contact:name>${escapeXml(p.name)}</contact:name>${p.org ? `\n      <contact:org>${escapeXml(p.org)}</contact:org>` : ""}
+      <contact:addr>
+        ${street}
+        <contact:city>${escapeXml(p.city)}</contact:city>${p.sp ? `\n        <contact:sp>${escapeXml(p.sp)}</contact:sp>` : ""}
+        <contact:pc>${escapeXml(p.pc)}</contact:pc>
+        <contact:cc>${escapeXml(p.cc)}</contact:cc>
+      </contact:addr>
+    </contact:postalInfo>`;
+}
+/**
+ * Build EPP contact:create command (RFC 3733).
+ */
+export function buildContactCreateXml(params) {
+    const postal = Array.isArray(params.postalInfo)
+        ? params.postalInfo.map((p, i) => formatPostalInfo(p, i === 0 ? "int" : "loc")).join("\n    ")
+        : formatPostalInfo(params.postalInfo, "int");
+    const fax = params.fax ? `\n    <contact:fax>${escapeXml(params.fax)}</contact:fax>` : "";
+    const auth = params.authInfo != null
+        ? `\n    <contact:authInfo>\n      <contact:pw>${escapeXml(params.authInfo)}</contact:pw>\n    </contact:authInfo>`
+        : "";
+    const disclose = params.disclose != null
+        ? `\n    <contact:disclose flag="${params.disclose.flag}">${(params.disclose.elements ?? []).map((e) => `<contact:${e}/>`).join("")}\n    </contact:disclose>`
+        : "";
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
+  <command>
+    <create>
+      <contact:create>
+    <contact:id>${escapeXml(params.id)}</contact:id>
+    ${postal}
+    <contact:voice>${escapeXml(params.voice)}</contact:voice>${fax}
+    <contact:email>${escapeXml(params.email)}</contact:email>${auth}${disclose}
+      </contact:create>
+    </create>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+/**
+ * Build EPP domain:create command (RFC 5731).
+ */
+export function buildDomainCreateXml(params) {
+    const period = params.period ?? 1;
+    const periodEl = `<domain:period unit="y">${period}</domain:period>`;
+    let nsEl = "";
+    if (params.ns) {
+        if (params.ns.type === "hostObj") {
+            nsEl = params.ns.hosts.map((h) => `<domain:hostObj>${escapeXml(h)}</domain:hostObj>`).join("\n        ");
+        }
+        else {
+            nsEl = params.ns.hosts
+                .map((h) => {
+                const addrs = h.addrs?.length ?
+                    h.addrs.map((a) => `<domain:hostAddr>${escapeXml(a)}</domain:hostAddr>`).join("\n          ")
+                    : "";
+                return `<domain:hostAttr>\n          <domain:hostName>${escapeXml(h.name)}</domain:hostName>${addrs ? "\n          " + addrs : ""}\n        </domain:hostAttr>`;
+            })
+                .join("\n        ");
+        }
+        nsEl = `\n    <domain:ns>\n        ${nsEl}\n    </domain:ns>`;
+    }
+    const adminEl = params.adminContacts?.length ?
+        params.adminContacts.map((c) => `\n    <domain:contact type="admin">${escapeXml(c)}</domain:contact>`).join("")
+        : "";
+    const techEl = params.techContacts?.length ?
+        params.techContacts.map((c) => `\n    <domain:contact type="tech">${escapeXml(c)}</domain:contact>`).join("")
+        : "";
+    const authEl = params.authInfo != null
+        ? `\n    <domain:authInfo>\n      <domain:pw>${escapeXml(params.authInfo)}</domain:pw>\n    </domain:authInfo>`
+        : "";
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+  <command>
+    <create>
+      <domain:create>
+    <domain:name>${escapeXml(params.name)}</domain:name>
+    ${periodEl}${nsEl}
+    <domain:registrant>${escapeXml(params.registrant)}</domain:registrant>${adminEl}${techEl}${authEl}
+      </domain:create>
+    </create>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+/**
+ * Build EPP domain:transfer command with op="request" (RFC 5731).
+ */
+export function buildDomainTransferXml(params) {
+    const periodEl = params.period != null && params.period > 0
+        ? `\n    <domain:period unit="y">${params.period}</domain:period>`
+        : "";
+    const roidAttr = params.roid ? ` roid="${escapeXml(params.roid)}"` : "";
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+  <command>
+    <transfer op="request">
+      <domain:transfer>
+    <domain:name>${escapeXml(params.name)}</domain:name>${periodEl}
+    <domain:authInfo>
+      <domain:pw${roidAttr}>${escapeXml(params.authCode)}</domain:pw>
+    </domain:authInfo>
+      </domain:transfer>
+    </transfer>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}

@@ -1,0 +1,767 @@
+export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuiltRouter<{
+    ctx: import("..").Context;
+    meta: object;
+    errorShape: import("@trpc/server").TRPCDefaultErrorShape;
+    transformer: false;
+}, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+    /** List subscriptions with optional filters */
+    getAll: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            userId?: string | undefined;
+            teamId?: string | undefined;
+            productId?: string | undefined;
+            productPlanId?: string | undefined;
+            pricingModel?: "FIXED" | "COMMISSION" | undefined;
+            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            fromDate?: unknown;
+            toDate?: unknown;
+            limit?: number | undefined;
+            offset?: number | undefined;
+        } | undefined;
+        output: {
+            id: string;
+            userId: string | null;
+            teamId: string | null;
+            productId: string;
+            productPlanId: string | null;
+            orderId: string | null;
+            subscribedBy: string | null;
+            recordedBy: string | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+            subscriptionDate: Date | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            nextRenewalDate: Date | null;
+            expiryDate: Date | null;
+            autoRenew: boolean;
+            pricingModel: "FIXED" | "COMMISSION";
+            agreedPrice: string | null;
+            agreedCurrency: string | null;
+            agreedCommissionRate: unknown;
+            agreedCommissionBase: string | null;
+            primaryDomain: string | null;
+            pleskFilterId: string | null;
+            pleskOwnerId: string | null;
+            pleskFtpLogin: string | null;
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            openProviderId: number | null;
+            domainAuthCode: string | null;
+            nameserverGroupId: string | null;
+            wpInstallationId: number | null;
+            serviceRefs: unknown;
+            hostingSubscriptionId: string | null;
+            notes: string | null;
+            metadata: unknown;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
+        meta: object;
+    }>;
+    /** List subscriptions for agency UI with product/plan/team/user names. Optional productFilter: "hosting" restricts to products whose name contains "hosting". */
+    listForAgency: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            limit?: number | undefined;
+            offset?: number | undefined;
+            search?: string | undefined;
+            productFilter?: "hosting" | undefined;
+        } | undefined;
+        output: {
+            id: string;
+            userId: string | null;
+            teamId: string | null;
+            productId: string;
+            productPlanId: string | null;
+            orderId: string | null;
+            subscribedBy: string | null;
+            recordedBy: string | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+            subscriptionDate: Date | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            nextRenewalDate: Date | null;
+            expiryDate: Date | null;
+            autoRenew: boolean;
+            pricingModel: "FIXED" | "COMMISSION";
+            agreedPrice: string | null;
+            agreedCurrency: string | null;
+            agreedCommissionRate: unknown;
+            agreedCommissionBase: string | null;
+            primaryDomain: string | null;
+            pleskFilterId: string | null;
+            pleskOwnerId: string | null;
+            pleskFtpLogin: string | null;
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            openProviderId: number | null;
+            domainAuthCode: string | null;
+            nameserverGroupId: string | null;
+            wpInstallationId: number | null;
+            serviceRefs: unknown;
+            hostingSubscriptionId: string | null;
+            notes: string | null;
+            metadata: unknown;
+            createdAt: Date;
+            updatedAt: Date;
+            productName: string;
+            productPlanName: string | null;
+            subscriptionName: string | null;
+            teamName: string | null;
+            userName: string | null;
+        }[];
+        meta: object;
+    }>;
+    /** List hosting subscriptions for a team (customer view). teamSlug is the route slug; returns only subscriptions for products named "web hosting" or "website hosting" (case-insensitive). Caller must be a member of the team. */
+    listForTeamHosting: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            teamSlug: string;
+        };
+        output: {
+            id: string;
+            pleskSubscriptionId: string | null;
+            subscriptionName: string | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+            productName: string;
+            productPlanName: string | null;
+            subscriptionDate: Date | null;
+            expiryDate: Date | null;
+            primaryDomain: string | null;
+        }[];
+        meta: object;
+    }>;
+    /** List email hosting subscriptions for a team (customer view). Same as listForTeamHosting but for products named "email hosting" (case-insensitive). */
+    listForTeamEmailHosting: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            teamSlug: string;
+        };
+        output: {
+            id: string;
+            pleskSubscriptionId: string | null;
+            subscriptionName: string | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+            productName: string;
+            productPlanName: string | null;
+            subscriptionDate: Date | null;
+            expiryDate: Date | null;
+            primaryDomain: string | null;
+        }[];
+        meta: object;
+    }>;
+    /** List domain subscriptions for a team (customer view). Returns subscriptions for products whose name contains "domains" (case-insensitive). Caller must be a member of the team. */
+    listForTeamDomains: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            teamSlug: string;
+        };
+        output: {
+            id: string;
+            pleskSubscriptionId: string | null;
+            subscriptionName: string | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+            productName: string;
+            productPlanName: string | null;
+            subscriptionDate: Date | null;
+            expiryDate: Date | null;
+            primaryDomain: string | null;
+        }[];
+        meta: object;
+    }>;
+    /** List all NiscClientSubscription for a team (customer dashboard). Same auth as listForTeamDomains; returns all products. */
+    listForTeam: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            teamSlug: string;
+        };
+        output: {
+            id: string;
+            productName: string;
+            productPlanName: string | null;
+            subscriptionDate: Date | null;
+            nextRenewalDate: Date | null;
+            expiryDate: Date | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+        }[];
+        meta: object;
+    }>;
+    /** Get a single subscription by ID */
+    getById: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            id: string;
+            teamSlug?: string | undefined;
+            includeRenewals?: boolean | undefined;
+            includeCommissions?: boolean | undefined;
+        };
+        output: {
+            commissionEntries?: {
+                id: string;
+                subscriptionId: string;
+                productPlanId: string;
+                teamId: string | null;
+                period: string;
+                baseAmount: unknown;
+                baseAmountDescription: string | null;
+                commissionRate: unknown;
+                commissionAmount: unknown;
+                currency: string;
+                status: "DRAFT" | "PAID" | "INVOICED" | "WAIVED";
+                invoiceId: string | null;
+                notes: string | null;
+                createdBy: string;
+                createdAt: Date;
+                updatedAt: Date;
+            }[] | undefined;
+            renewals?: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                status: string;
+                notes: string | null;
+                billingCycle: string | null;
+                orderId: string | null;
+                subscriptionId: string;
+                renewalType: string;
+                renewedBy: string | null;
+                renewalDate: Date;
+                newExpiryDate: Date | null;
+                newNextRenewalDate: Date | null;
+                renewalPrice: string | null;
+                renewalCurrency: string | null;
+                providerRenewalPrice: string | null;
+                providerRenewalCurrency: string | null;
+            }[] | undefined;
+            product: {
+                id: string;
+                name: string;
+                description: string | null;
+                createdAt: Date;
+                updatedAt: Date;
+                isActive: boolean;
+                metadata: unknown;
+                category: string;
+                serviceType: string;
+                sortOrder: number;
+                features: unknown;
+                highlights: unknown;
+                isAddOn: boolean;
+            };
+            productPlan: {
+                id: string;
+                name: string;
+                description: string | null;
+                createdAt: Date;
+                updatedAt: Date;
+                isActive: boolean;
+                metadata: unknown;
+                currency: string | null;
+                price: string | null;
+                sortOrder: number;
+                highlights: unknown;
+                productId: string;
+                pricingModel: string;
+                billingCycle: string | null;
+                setupFee: string | null;
+                cost: string | null;
+                costCurrency: string | null;
+                commissionRate: string | null;
+                commissionBase: string | null;
+                commissionBaseDescription: string | null;
+                planFeatures: unknown;
+                isPopular: boolean;
+                isRecommended: boolean;
+                isDefault: boolean;
+                pleskServicePlanId: string | null;
+                pleskFilterId: string | null;
+                pleskIpAddress: string | null;
+                hostingType: string | null;
+            } | null;
+            team: {
+                id: string;
+                name: string;
+                createdAt: Date;
+                updatedAt: Date;
+                slug: string;
+                baseCurrency: string;
+                logoUrl: string | null;
+                isActive: boolean;
+                createdById: string;
+            } | null;
+            userName: string | null;
+            id: string;
+            userId: string | null;
+            teamId: string | null;
+            productId: string;
+            productPlanId: string | null;
+            orderId: string | null;
+            subscribedBy: string | null;
+            recordedBy: string | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+            subscriptionDate: Date | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            nextRenewalDate: Date | null;
+            expiryDate: Date | null;
+            autoRenew: boolean;
+            pricingModel: "FIXED" | "COMMISSION";
+            agreedPrice: string | null;
+            agreedCurrency: string | null;
+            agreedCommissionRate: unknown;
+            agreedCommissionBase: string | null;
+            primaryDomain: string | null;
+            pleskFilterId: string | null;
+            pleskOwnerId: string | null;
+            pleskFtpLogin: string | null;
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            openProviderId: number | null;
+            domainAuthCode: string | null;
+            nameserverGroupId: string | null;
+            wpInstallationId: number | null;
+            serviceRefs: unknown;
+            hostingSubscriptionId: string | null;
+            notes: string | null;
+            metadata: unknown;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        meta: object;
+    }>;
+    /** Resolve product ID for "Domains" product (name contains "domain", case-insensitive). Used when creating domain subscriptions from portfolio. */
+    getDomainsProductId: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: string | null;
+        meta: object;
+    }>;
+    /** Resolve product ID for domain transfer (serviceType domain_transfer). Used for transfer checkout → createFromPayment. */
+    getTransferProductId: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            id: string;
+            name: string;
+        } | null;
+        meta: object;
+    }>;
+    /** Get subscription by OpenProvider domain ID (for checking if domain already has a connected subscription). */
+    getByOpenProviderId: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            openProviderId: number;
+        };
+        output: {
+            id: string;
+            userId: string | null;
+            teamId: string | null;
+            productId: string;
+            productPlanId: string | null;
+            orderId: string | null;
+            subscribedBy: string | null;
+            recordedBy: string | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+            subscriptionDate: Date | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            nextRenewalDate: Date | null;
+            expiryDate: Date | null;
+            autoRenew: boolean;
+            pricingModel: "FIXED" | "COMMISSION";
+            agreedPrice: string | null;
+            agreedCurrency: string | null;
+            agreedCommissionRate: unknown;
+            agreedCommissionBase: string | null;
+            primaryDomain: string | null;
+            pleskFilterId: string | null;
+            pleskOwnerId: string | null;
+            pleskFtpLogin: string | null;
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            openProviderId: number | null;
+            domainAuthCode: string | null;
+            nameserverGroupId: string | null;
+            wpInstallationId: number | null;
+            serviceRefs: unknown;
+            hostingSubscriptionId: string | null;
+            notes: string | null;
+            metadata: unknown;
+            createdAt: Date;
+            updatedAt: Date;
+        } | null;
+        meta: object;
+    }>;
+    /** Return OpenProvider domain IDs that already have a subscription (for batch check on list). */
+    getOpenProviderIdsWithSubscriptions: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            openProviderIds: number[];
+        };
+        output: number[];
+        meta: object;
+    }>;
+    /** Check if a Plesk subscription id already has a linked NiscClientSubscription (serviceRefs.pleskSubscriptionId). */
+    getHasLinkedSubscriptionByPleskId: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            pleskSubscriptionId: string | number;
+        };
+        output: {
+            hasLinked: boolean;
+        };
+        meta: object;
+    }>;
+    /** Return Plesk subscription ids that already have a linked NiscClientSubscription (for batch check on hosting list). */
+    getPleskSubscriptionIdsWithLinkedSubscription: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            pleskSubscriptionIds: (string | number)[];
+        };
+        output: string[];
+        meta: object;
+    }>;
+    /** Create a new subscription */
+    create: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            productId: string;
+            pricingModel: "FIXED" | "COMMISSION";
+            name?: string | undefined;
+            userId?: string | undefined;
+            teamId?: string | undefined;
+            productPlanId?: string | undefined;
+            orderId?: string | undefined;
+            subscribedBy?: string | undefined;
+            recordedBy?: string | undefined;
+            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            subscriptionDate?: unknown;
+            billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+            nextRenewalDate?: unknown;
+            expiryDate?: unknown;
+            autoRenew?: boolean | undefined;
+            agreedPrice?: string | undefined;
+            agreedCurrency?: string | undefined;
+            agreedCost?: string | undefined;
+            agreedCostCurrency?: string | undefined;
+            providerCost?: string | undefined;
+            providerCostCurrency?: string | undefined;
+            agreedCommissionRate?: number | undefined;
+            agreedCommissionBase?: string | undefined;
+            primaryDomain?: string | undefined;
+            pleskFilterId?: string | undefined;
+            pleskOwnerId?: string | undefined;
+            pleskFtpLogin?: string | undefined;
+            pleskFtpPassword?: string | undefined;
+            hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            openProviderId?: number | undefined;
+            domainAuthCode?: string | undefined;
+            nameserverGroupId?: string | undefined;
+            wpInstallationId?: number | undefined;
+            serviceRefs?: Record<string, string | string[]> | undefined;
+            hostingSubscriptionId?: string | undefined;
+            notes?: string | undefined;
+            metadata?: Record<string, unknown> | undefined;
+        };
+        output: {
+            id: string;
+            userId: string | null;
+            teamId: string | null;
+            productId: string;
+            productPlanId: string | null;
+            orderId: string | null;
+            subscribedBy: string | null;
+            recordedBy: string | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+            subscriptionDate: Date | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            nextRenewalDate: Date | null;
+            expiryDate: Date | null;
+            autoRenew: boolean;
+            pricingModel: "FIXED" | "COMMISSION";
+            agreedPrice: string | null;
+            agreedCurrency: string | null;
+            agreedCommissionRate: unknown;
+            agreedCommissionBase: string | null;
+            primaryDomain: string | null;
+            pleskFilterId: string | null;
+            pleskOwnerId: string | null;
+            pleskFtpLogin: string | null;
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            openProviderId: number | null;
+            domainAuthCode: string | null;
+            nameserverGroupId: string | null;
+            wpInstallationId: number | null;
+            serviceRefs: unknown;
+            hostingSubscriptionId: string | null;
+            notes: string | null;
+            metadata: unknown;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        meta: object;
+    }>;
+    /** Update a subscription */
+    update: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            id: string;
+            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            subscriptionDate?: unknown;
+            billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+            nextRenewalDate?: unknown;
+            expiryDate?: unknown;
+            autoRenew?: boolean | undefined;
+            agreedPrice?: string | undefined;
+            agreedCurrency?: string | undefined;
+            agreedCommissionRate?: number | undefined;
+            agreedCommissionBase?: string | undefined;
+            primaryDomain?: string | undefined;
+            pleskFilterId?: string | undefined;
+            pleskOwnerId?: string | undefined;
+            pleskFtpLogin?: string | undefined;
+            pleskFtpPassword?: string | undefined;
+            hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            openProviderId?: number | undefined;
+            domainAuthCode?: string | undefined;
+            nameserverGroupId?: string | undefined;
+            wpInstallationId?: number | undefined;
+            serviceRefs?: Record<string, string | string[]> | undefined;
+            notes?: string | undefined;
+            metadata?: Record<string, unknown> | undefined;
+        };
+        output: {
+            id: string;
+            userId: string | null;
+            teamId: string | null;
+            productId: string;
+            productPlanId: string | null;
+            orderId: string | null;
+            subscribedBy: string | null;
+            recordedBy: string | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+            subscriptionDate: Date | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            nextRenewalDate: Date | null;
+            expiryDate: Date | null;
+            autoRenew: boolean;
+            pricingModel: "FIXED" | "COMMISSION";
+            agreedPrice: string | null;
+            agreedCurrency: string | null;
+            agreedCommissionRate: unknown;
+            agreedCommissionBase: string | null;
+            primaryDomain: string | null;
+            pleskFilterId: string | null;
+            pleskOwnerId: string | null;
+            pleskFtpLogin: string | null;
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            openProviderId: number | null;
+            domainAuthCode: string | null;
+            nameserverGroupId: string | null;
+            wpInstallationId: number | null;
+            serviceRefs: unknown;
+            hostingSubscriptionId: string | null;
+            notes: string | null;
+            metadata: unknown;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        meta: object;
+    }>;
+    /** Cancel a subscription */
+    cancel: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            id: string;
+            reason?: string | undefined;
+        };
+        output: {
+            id: string;
+            userId: string | null;
+            teamId: string | null;
+            productId: string;
+            productPlanId: string | null;
+            orderId: string | null;
+            subscribedBy: string | null;
+            recordedBy: string | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+            subscriptionDate: Date | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            nextRenewalDate: Date | null;
+            expiryDate: Date | null;
+            autoRenew: boolean;
+            pricingModel: "FIXED" | "COMMISSION";
+            agreedPrice: string | null;
+            agreedCurrency: string | null;
+            agreedCommissionRate: unknown;
+            agreedCommissionBase: string | null;
+            primaryDomain: string | null;
+            pleskFilterId: string | null;
+            pleskOwnerId: string | null;
+            pleskFtpLogin: string | null;
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            openProviderId: number | null;
+            domainAuthCode: string | null;
+            nameserverGroupId: string | null;
+            wpInstallationId: number | null;
+            serviceRefs: unknown;
+            hostingSubscriptionId: string | null;
+            notes: string | null;
+            metadata: unknown;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        meta: object;
+    }>;
+    /** Send a service renewal reminder email. Grace period: 7 days before suspension for most services; for domains, suspension is immediate. */
+    sendRenewalEmail: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            subscriptionId: string;
+            to: string;
+            ccOrBcc?: {
+                type: "cc" | "bcc";
+                email: string;
+            } | undefined;
+        };
+        output: {
+            sent: boolean;
+        };
+        meta: object;
+    }>;
+    /** Record a renewal for a subscription */
+    renew: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            subscriptionId: string;
+            renewalType: "DOMAIN" | "HOSTING" | "FIXED_BILLING";
+            renewalDate: unknown;
+            renewedBy?: string | undefined;
+            newExpiryDate?: unknown;
+            newNextRenewalDate?: unknown;
+            billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            renewalPrice?: string | undefined;
+            renewalCurrency?: string | undefined;
+            externalRenewalId?: string | undefined;
+            orderId?: string | undefined;
+            invoiceId?: string | undefined;
+            notes?: string | undefined;
+        };
+        output: {
+            renewalId: string;
+            subscription: {
+                id: string;
+                userId: string | null;
+                teamId: string | null;
+                productId: string;
+                productPlanId: string | null;
+                orderId: string | null;
+                subscribedBy: string | null;
+                recordedBy: string | null;
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                subscriptionDate: Date | null;
+                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                nextRenewalDate: Date | null;
+                expiryDate: Date | null;
+                autoRenew: boolean;
+                pricingModel: "FIXED" | "COMMISSION";
+                agreedPrice: string | null;
+                agreedCurrency: string | null;
+                agreedCommissionRate: unknown;
+                agreedCommissionBase: string | null;
+                primaryDomain: string | null;
+                pleskFilterId: string | null;
+                pleskOwnerId: string | null;
+                pleskFtpLogin: string | null;
+                hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+                openProviderId: number | null;
+                domainAuthCode: string | null;
+                nameserverGroupId: string | null;
+                wpInstallationId: number | null;
+                serviceRefs: unknown;
+                hostingSubscriptionId: string | null;
+                notes: string | null;
+                metadata: unknown;
+                createdAt: Date;
+                updatedAt: Date;
+            };
+        };
+        meta: object;
+    }>;
+    /** Record a new commission entry for a COMMISSION subscription */
+    recordCommission: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            subscriptionId: string;
+            period: string;
+            baseAmount: number;
+            baseAmountDescription?: string | undefined;
+            currency?: string | undefined;
+            notes?: string | undefined;
+        };
+        output: {
+            id: string;
+            subscriptionId: string;
+            productPlanId: string;
+            teamId: string | null;
+            period: string;
+            baseAmount: unknown;
+            baseAmountDescription: string | null;
+            commissionRate: unknown;
+            commissionAmount: unknown;
+            currency: string;
+            status: "DRAFT" | "PAID" | "INVOICED" | "WAIVED";
+            invoiceId: string | null;
+            notes: string | null;
+            createdBy: string;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        meta: object;
+    }>;
+    /** List commission entries with optional filters */
+    getCommissionEntries: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            subscriptionId?: string | undefined;
+            teamId?: string | undefined;
+            status?: "DRAFT" | "PAID" | "INVOICED" | "WAIVED" | undefined;
+            periodFrom?: string | undefined;
+            periodTo?: string | undefined;
+        } | undefined;
+        output: {
+            id: string;
+            subscriptionId: string;
+            productPlanId: string;
+            teamId: string | null;
+            period: string;
+            baseAmount: unknown;
+            baseAmountDescription: string | null;
+            commissionRate: unknown;
+            commissionAmount: unknown;
+            currency: string;
+            status: "DRAFT" | "PAID" | "INVOICED" | "WAIVED";
+            invoiceId: string | null;
+            notes: string | null;
+            createdBy: string;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
+        meta: object;
+    }>;
+    /** Update a commission entry status (DRAFT → INVOICED → PAID / WAIVED) */
+    updateCommissionEntry: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            id: string;
+            status: "DRAFT" | "PAID" | "INVOICED" | "WAIVED";
+            invoiceId?: string | undefined;
+            notes?: string | undefined;
+        };
+        output: {
+            id: string;
+            subscriptionId: string;
+            productPlanId: string;
+            teamId: string | null;
+            period: string;
+            baseAmount: unknown;
+            baseAmountDescription: string | null;
+            commissionRate: unknown;
+            commissionAmount: unknown;
+            currency: string;
+            status: "DRAFT" | "PAID" | "INVOICED" | "WAIVED";
+            invoiceId: string | null;
+            notes: string | null;
+            createdBy: string;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        meta: object;
+    }>;
+    /** List domain subscriptions for a user/team (product.serviceType === "domain_registration"). Used for domain dropdown in Nisc orders. */
+    getDomainSubscriptions: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            userId?: string | undefined;
+            teamId?: string | undefined;
+        };
+        output: {
+            id: string;
+            name: string | null;
+            primaryDomain: string | null;
+        }[];
+        meta: object;
+    }>;
+}>>;
