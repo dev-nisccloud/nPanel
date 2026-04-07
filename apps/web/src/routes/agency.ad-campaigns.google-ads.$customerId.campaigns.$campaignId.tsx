@@ -699,7 +699,7 @@ function AdGroupAccordionItem({ adGroup, customerId, currency }: { adGroup: any,
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <MetricBox
                                 label="CPC BID"
-                                value={adGroup.cpc_bid ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(adGroup.cpc_bid)) : "—"}
+                                value={adGroup.cpc_bid ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(adGroup.cpc_bid)) : "- "}
                             />
                             <MetricBox
                                 label="Impressions"

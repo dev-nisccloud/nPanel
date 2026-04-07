@@ -222,12 +222,12 @@ export function HostingDataTable() {
                 <TableCell>
                   {subscription.subscriptionDate
                     ? new Date(subscription.subscriptionDate).toLocaleDateString()
-                    : "—"}
+                    : "- "}
                 </TableCell>
                 <TableCell>
                   {subscription.expiryDate
                     ? new Date(subscription.expiryDate).toLocaleDateString()
-                    : "—"}
+                    : "- "}
                 </TableCell>
               </TableRow>
             ))

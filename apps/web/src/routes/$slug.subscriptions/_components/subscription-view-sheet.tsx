@@ -15,7 +15,7 @@ import { Package, Building2, User } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
-	if (!cycle) return "—";
+	if (!cycle) return "- ";
 	const m: Record<string, string> = {
 		MONTHLY: "Monthly",
 		YEARLY: "Yearly",
@@ -26,9 +26,9 @@ function getBillingCycleDisplayName(cycle: string | null): string {
 }
 
 function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "—";
+	if (!v) return "- ";
 	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "- " : d.toLocaleDateString();
 }
 
 function getStatusBadgeClass(status: string): string {
@@ -74,7 +74,7 @@ export function CustomerSubscriptionViewSheet({
 	const productPlanName = sub?.productPlan?.name ?? null;
 	const teamName = sub?.team?.name ?? null;
 	const userName = sub?.userName ?? null;
-	const displayOwner = userName ?? teamName ?? "—";
+	const displayOwner = userName ?? teamName ?? "- ";
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -165,7 +165,7 @@ export function CustomerSubscriptionViewSheet({
 										<div className="flex justify-between items-center gap-2">
 											<span className="text-muted-foreground">Agreed price</span>
 											<span className="font-medium">
-												{sub.agreedPrice != null ? sub.agreedPrice : "—"}{" "}
+												{sub.agreedPrice != null ? sub.agreedPrice : "- "}{" "}
 												{sub.agreedCurrency ?? ""}
 											</span>
 										</div>

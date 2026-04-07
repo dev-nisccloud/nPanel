@@ -25,6 +25,7 @@ export * from "./social-media-marketing";
 export * from "./domain-transfer-requests";
 export * from "./email-builder-design";
 export * from "./email-marketing";
+export * from "./nisc-email-marketing";
 export * from "./etims";
 export * from "./google-ads";
 export * from "./image-generator";

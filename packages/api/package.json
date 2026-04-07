@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.41",
+    "@aws-sdk/client-ses": "^3.1022.0",
     "@npanel/auth": "workspace:*",
     "@npanel/db": "workspace:*",
     "@npanel/env": "workspace:*",

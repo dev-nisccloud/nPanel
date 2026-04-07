@@ -33,7 +33,7 @@ export function getPricingModelDisplayName(model: string): string {
 }
 
 export function getBillingCycleDisplayName(cycle: string | null | undefined): string {
-    if (!cycle) return "—";
+    if (!cycle) return "- ";
     const map: Record<string, string> = {
         MONTHLY: "Monthly",
         YEARLY: "Yearly",

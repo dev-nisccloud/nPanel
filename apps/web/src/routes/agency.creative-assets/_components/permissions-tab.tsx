@@ -112,7 +112,7 @@ function PermissionCard({ permission, getUserName }: PermissionCardProps) {
                 {hasPermission ? (
                   <CheckCircle className="h-4 w-4 text-primary" />
                 ) : (
-                  <span className="text-muted-foreground">—</span>
+                  <span className="text-muted-foreground">- </span>
                 )}
               </div>
             );

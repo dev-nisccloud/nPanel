@@ -1,0 +1,1 @@
+ALTER TABLE "nisc_em_email_event" ADD COLUMN "raw_sns_body" text;

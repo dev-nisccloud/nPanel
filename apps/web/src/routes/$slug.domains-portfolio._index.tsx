@@ -39,7 +39,7 @@ function toDisplayItem(
     status: sub.status as DomainPortfolio["status"],
     registrationDate: sub.subscriptionDate ? new Date(sub.subscriptionDate) : new Date(),
     expiryDate: sub.expiryDate ? new Date(sub.expiryDate) : new Date(),
-    clientName: "—",
+    clientName: "- ",
     clientEmail: undefined,
     tld: "",
     autoRenewal: false,

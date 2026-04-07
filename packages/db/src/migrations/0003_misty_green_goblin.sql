@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "nisc_em_domain_userId_domainName_idx" ON "nisc_em_domain" USING btree ("user_id","domain_name");

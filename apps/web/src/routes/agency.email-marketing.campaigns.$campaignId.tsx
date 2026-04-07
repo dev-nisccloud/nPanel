@@ -598,7 +598,7 @@ export default function CampaignDetailPage() {
 												<TooltipContent side="top" className="max-w-xs text-sm">
 													<p className="font-medium mb-1">How engagement is calculated</p>
 													<p>
-														Opened and Clicked show <strong>unique recipients</strong> (one count per person), so rates never exceed 100%. &quot;Total opens&quot; and &quot;Total clicks&quot; are total event counts—e.g. one person can open multiple times or click multiple links, so those numbers can be higher than unique.
+														Opened and Clicked show <strong>unique recipients</strong> (one count per person), so rates never exceed 100%. &quot;Total opens&quot; and &quot;Total clicks&quot; are total event counts- e.g. one person can open multiple times or click multiple links, so those numbers can be higher than unique.
 													</p>
 												</TooltipContent>
 											</Tooltip>

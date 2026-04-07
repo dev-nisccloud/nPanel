@@ -532,7 +532,7 @@ Instructions:
 - Follow the Universal Formula: [FORMAT + ORIENTATION] + [DESIGN TYPE] + [SUBJECT/CONTENT] + [STYLE/AESTHETIC] + [COMPOSITION] + [COLOR PALETTE] + [TYPOGRAPHY] + [LIGHTING] + [TEXTURE/FINISH] + [MOOD] + [AUDIENCE].
 - Ensure all 7 Pillars are addressed where relevant: Intent & Purpose, Audience, Format & Dimensions, Style/Aesthetic, Composition, Color Palette, Mood.
 - Be specific: name colors, describe composition, specify typography and lighting.
-- Return only the refined prompt—nothing else.`;
+- Return only the refined prompt- nothing else.`;
 
     const formatInfo =
       aspectRatio || outputFormat || resolution

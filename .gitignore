@@ -50,6 +50,6 @@ coverage
 tmp
 temp
 
-/logic_inspo
+# /logic_inspo
 Get-AWSSESCampaignData.ps1
 

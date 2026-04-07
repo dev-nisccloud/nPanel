@@ -82,7 +82,7 @@ export default function EmailBuilderLandingPage() {
             </h1>
             <p className="text-xs md:text-sm mb-4 max-w-lg">
               Design, personalise, and reuse beautiful email campaigns with an AI-powered builder,
-              smart image tools, and your own asset library—built right into npanel.
+              smart image tools, and your own asset library- built right into npanel.
             </p>
             <Button
               onClick={handleCreate}

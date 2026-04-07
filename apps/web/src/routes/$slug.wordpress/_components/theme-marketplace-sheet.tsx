@@ -194,7 +194,7 @@ export function ThemeMarketplaceSheet({
   const handleCancelInstall = () => {
     installTheme.reset();
     setThemeToInstall(null);
-    toast.info("Installation cancelled. The theme may still be installing on the server—check your themes list.");
+    toast.info("Installation cancelled. The theme may still be installing on the server- check your themes list.");
   };
 
   const handleActivate = async (theme: MarketplaceTheme) => {

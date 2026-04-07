@@ -44,9 +44,9 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 type AudienceContactList = RouterOutputs["emailMarketing"]["audiences"]["listContacts"];
 
 const formatDateTime = (value: Date | string | null | undefined) => {
-	if (!value) return "—";
+	if (!value) return "- ";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+	return Number.isNaN(d.getTime()) ? "- " : d.toLocaleString();
 };
 
 export default function AudienceDetailPage() {
