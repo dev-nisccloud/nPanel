@@ -147,7 +147,7 @@ export function VersionsTab({
 												{version.changesSummary ? (
 													<span className="line-clamp-2">{version.changesSummary}</span>
 												) : (
-													"—"
+													"- "
 												)}
 											</TableCell>
 											<TableCell className="text-muted-foreground text-sm">

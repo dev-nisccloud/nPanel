@@ -267,6 +267,17 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
+        title: "Nisc Email Marketing",
+        url: "/agency/nisc-email-marketing",
+        icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Campaigns", url: "/agency/nisc-email-marketing/campaigns", },
+          { title: "Audiences", url: "/agency/nisc-email-marketing/audiences", },
+          { title: "Email Builder", url: "/agency/nisc-email-marketing/email-builder", },
+          { title: "Domains", url: "/agency/nisc-email-marketing/domain-configuration", },
+        ],
+      },
+      {
         title: "Email Marketing",
         url: "/agency/email-marketing",
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),

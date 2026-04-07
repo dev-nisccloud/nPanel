@@ -1,6 +1,6 @@
 /**
  * Route classification for client-side auth gating.
- * No DB calls — session presence is checked via better-auth client (getSession).
+ * No DB calls -  session presence is checked via better-auth client (getSession).
  */
 
 /** Normalize pathname: trim, collapse slashes, ensure leading slash. */

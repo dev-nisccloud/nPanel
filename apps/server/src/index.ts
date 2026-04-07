@@ -16,6 +16,7 @@ import { handleProcessNiscOrder } from "./api/workers/process-nisc-order";
 import { handleSendCampaignEmails } from "./api/workers/send-campaign-emails";
 import { handlePublishContent } from "./api/workers/publish-content";
 import { handlePublishLinkedInContent } from "./api/workers/publish-linkedin-content";
+import { handleNiscEmDispatch } from "./api/workers/nisc-em-dispatch";
 
 import { handleHealth } from "./api/health";
 import { handleManifest } from "./api/manifest";
@@ -25,6 +26,7 @@ import { handleTestKenicConnection } from "./api/test-kenic-connection";
 import { handleMpesaWebhook } from "./api/webhooks/mpesa";
 import { handleReplicateWebhook } from "./api/webhooks/replicate-image-generator";
 import { handleResendWebhook } from "./api/webhooks/resend";
+import { handleSnsWebhook } from "./api/webhooks/sns";
 
 const app = new Hono();
 
@@ -80,6 +82,7 @@ app.get("/api/kenic/test-connection", handleTestKenicConnection);
 app.on(["POST"], "/api/webhooks/mpesa", handleMpesaWebhook);
 app.on(["POST"], "/api/webhooks/replicate", handleReplicateWebhook);
 app.on(["POST"], "/api/webhooks/resend", handleResendWebhook);
+app.on(["POST"], "/api/webhooks/sns", handleSnsWebhook);
 
 app.get("/", (c) => {
   return c.text("OK");
@@ -98,6 +101,7 @@ app.on(["POST"], "/api/workers/image-generator*", handleImageGenerator);
 app.on(["POST"], "/api/workers/background-remover*", handleBackgroundRemover);
 app.on(["POST"], "/api/workers/process-nisc-order*", handleProcessNiscOrder);
 app.on(["POST"], "/api/workers/send-campaign-emails*", handleSendCampaignEmails);
+app.on(["POST"], "/api/workers/nisc-em-dispatch*", handleNiscEmDispatch);
 app.on(["POST"], "/api/workers/publish-content*", handlePublishContent);
 app.on(["POST"], "/api/workers/publish-linkedin-content*", handlePublishLinkedInContent);
 

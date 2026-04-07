@@ -31,9 +31,9 @@ import { AssetStatusBadge } from "./asset-status-badge";
 type CreativeAsset = z.infer<typeof creativeAssetSchema>;
 
 function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "—";
+	if (!v) return "- ";
 	const d = typeof v === "string" ? new Date(v) : v;
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "- " : d.toLocaleDateString();
 }
 
 export interface CreativeAssetsTableProps {
@@ -93,7 +93,7 @@ export function CreativeAssetsTable({
 								</TableCell>
 								<TableCell>
 									<Badge variant="outline" className="text-xs font-normal">
-										{asset.category ?? "—"}
+										{asset.category ?? "- "}
 									</Badge>
 								</TableCell>
 								<TableCell>
@@ -117,12 +117,12 @@ export function CreativeAssetsTable({
 								<TableCell className="text-muted-foreground text-sm">
 									{asset.currentInternalVersion != null
 										? `v${asset.currentInternalVersion}`
-										: "—"}
+										: "- "}
 								</TableCell>
 								<TableCell className="text-muted-foreground text-sm">
 									{asset.currentPublicVersion != null
 										? `v${asset.currentPublicVersion}`
-										: "—"}
+										: "- "}
 								</TableCell>
 								<TableCell className="text-muted-foreground text-sm">
 									{formatDate(asset.updatedAt)}

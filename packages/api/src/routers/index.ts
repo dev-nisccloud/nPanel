@@ -78,6 +78,7 @@ import { paymentTransactionsRouter } from "./payment-transactions";
 import { pagespeedInsightsRouter } from "./pagespeed-insights";
 import { seoReportsRouter } from "./seo-reports";
 import { emailMarketingRouter } from "./email-marketing";
+import { niscEmailMarketingRouter } from "./nisc-email-marketing";
 import { webDesignQuotesRouter } from "./web-design-quotes";
 import { userRouter } from "./user";
 import { emailBuilderRouter } from "./email-builder";
@@ -231,6 +232,8 @@ export const appRouter = router({
 	seoReports: seoReportsRouter,
 	// Email Marketing (Resend Integration)
 	emailMarketing: emailMarketingRouter,
+	// nisc Email Marketing (SES Integration - new, parallel)
+	niscEmailMarketing: niscEmailMarketingRouter,
 	// Web Design Quote Requests (domain portfolio dialog)
 	webDesignQuotes: webDesignQuotesRouter,
 	// User preferences and profile

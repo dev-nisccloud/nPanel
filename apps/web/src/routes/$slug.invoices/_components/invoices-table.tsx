@@ -37,15 +37,15 @@ import { registerFonts, convertInvoiceToPdfData } from "./invoices-list";
 import type { InvoiceSummary } from "@/routes/agency.invoices/create/api/schemas";
 
 const formatCurrency = (amount: string | null | undefined, currency: string) => {
-	if (!amount) return "—";
+	if (!amount) return "- ";
 	const n = Number(amount);
 	return Number.isFinite(n) ? new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n) : amount;
 };
 
 const formatDate = (value: string | Date | null | undefined) => {
-	if (!value) return "—";
+	if (!value) return "- ";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "- " : d.toLocaleDateString();
 };
 
 interface InvoiceRowActionsProps {
@@ -170,12 +170,12 @@ export function InvoicesTable({ invoices, onRefetch }: InvoicesTableProps) {
 							>
 								<div className="flex items-center gap-2">
 									<FileText className="h-4 w-4 text-muted-foreground" />
-									{inv.invoiceNumber ?? "—"}
+									{inv.invoiceNumber ?? "- "}
 								</div>
 							</TableCell>
 							<TableCell>
 								<div className="flex flex-col">
-									<span>{inv.customerName ?? "—"}</span>
+									<span>{inv.customerName ?? "- "}</span>
 									{inv.customerEmail && <span className="text-muted-foreground text-sm">{inv.customerEmail}</span>}
 								</div>
 							</TableCell>

@@ -88,13 +88,13 @@ const getStatusBadge = (status: string) => {
 };
 
 const formatDate = (value: Date | string | null | undefined) => {
-	if (!value) return "—";
+	if (!value) return "- ";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "- " : d.toLocaleDateString();
 };
 
 const formatNumber = (value: number | null | undefined) => {
-	if (value === null || value === undefined) return "—";
+	if (value === null || value === undefined) return "- ";
 	return value.toLocaleString();
 };
 

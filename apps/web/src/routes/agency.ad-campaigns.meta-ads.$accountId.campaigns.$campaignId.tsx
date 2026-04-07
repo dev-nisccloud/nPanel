@@ -992,7 +992,7 @@ function MetricsDisplay({
         // Add lead metrics for lead generation campaigns
         ...(leadCount !== null ? [
             { label: 'Leads', value: formatNumber(leadCount), color: 'emerald' },
-            { label: 'Cost per Lead', value: costPerLead !== null ? formatCurrency(costPerLead) : '—', color: 'orange' },
+            { label: 'Cost per Lead', value: costPerLead !== null ? formatCurrency(costPerLead) : '- ', color: 'orange' },
         ] : []),
         { label: 'Budget', value: formatBudgetDisplay(budget), color: 'purple' },
         { label: 'Amount Spent', value: formatCurrency(insights.spend), color: 'emerald' },
@@ -1009,7 +1009,7 @@ function MetricsDisplay({
         { label: 'Conversion Ranking', value: formatRanking(insights.conversion_rate_ranking), color: 'orange' },
         { label: 'Clicks (all)', value: formatNumber(insights.clicks), color: 'green' },
         { label: 'CTR (all)', value: formatPercentage(ctrAll !== null ? ctrAll : insights.ctr), color: 'indigo' }, // Fallback to ctr if calculation fails? actually dialog calc used ctrAll
-        { label: 'CPC (all)', value: cpcAll !== null ? formatCurrency(cpcAll) : '—', color: 'orange' },
+        { label: 'CPC (all)', value: cpcAll !== null ? formatCurrency(cpcAll) : '- ', color: 'orange' },
     ];
 
     const colorClasses: Record<string, { bg: string; border: string; label: string; value: string }> = {
