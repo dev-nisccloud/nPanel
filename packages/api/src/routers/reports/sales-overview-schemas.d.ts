@@ -1,0 +1,612 @@
+import { z } from "zod";
+export declare const salesReportOverviewInputSchema: z.ZodObject<{
+    from: z.ZodOptional<z.ZodCoercedDate<unknown>>;
+    to: z.ZodOptional<z.ZodCoercedDate<unknown>>;
+    monthsTrend: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+    topTeamsLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+}, z.core.$strip>;
+export declare const executiveSummarySchema: z.ZodObject<{
+    mrr: z.ZodNumber;
+    mrrPreviousMonth: z.ZodNumber;
+    mrrChangePercent: z.ZodNumber;
+    mrrChangeAmount: z.ZodNumber;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const mrrByCategoryItemSchema: z.ZodObject<{
+    category: z.ZodEnum<{
+        AI: "AI";
+        CUSTOM: "CUSTOM";
+        CLOUD: "CLOUD";
+        MARKETING: "MARKETING";
+        CONSULTING: "CONSULTING";
+    }>;
+    label: z.ZodString;
+    mrr: z.ZodNumber;
+    subscriptionCount: z.ZodNumber;
+}, z.core.$strip>;
+export declare const mrrMovementSchema: z.ZodObject<{
+    newMrr: z.ZodNumber;
+    lostMrr: z.ZodNumber;
+    existingMrr: z.ZodNumber;
+    netChange: z.ZodNumber;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const revenueTrendMonthSchema: z.ZodObject<{
+    month: z.ZodString;
+    year: z.ZodNumber;
+    paidRevenue: z.ZodNumber;
+    invoicedAmount: z.ZodNumber;
+    invoiceCount: z.ZodNumber;
+    paidInvoiceCount: z.ZodNumber;
+}, z.core.$strip>;
+export declare const customerMetricsSchema: z.ZodObject<{
+    arpc: z.ZodNumber;
+    customerCount: z.ZodNumber;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const revenueByTeamItemSchema: z.ZodObject<{
+    teamId: z.ZodString;
+    teamName: z.ZodString;
+    amount: z.ZodNumber;
+    currency: z.ZodString;
+    percentOfTotal: z.ZodOptional<z.ZodNumber>;
+}, z.core.$strip>;
+export declare const commissionSummarySchema: z.ZodObject<{
+    commissionSubscriptionCount: z.ZodNumber;
+    estimatedFeesAmount: z.ZodNumber;
+    currency: z.ZodString;
+    hasBaseData: z.ZodBoolean;
+}, z.core.$strip>;
+export declare const activeSubscriptionsSchema: z.ZodObject<{
+    webHosting: z.ZodNumber;
+    emailHosting: z.ZodNumber;
+    byCategory: z.ZodRecord<z.ZodEnum<{
+        AI: "AI";
+        CUSTOM: "CUSTOM";
+        CLOUD: "CLOUD";
+        MARKETING: "MARKETING";
+        CONSULTING: "CONSULTING";
+    }>, z.ZodNumber>;
+    totalActive: z.ZodNumber;
+}, z.core.$strip>;
+export declare const domainRenewalRateSchema: z.ZodObject<{
+    renewedCount: z.ZodNumber;
+    dueCount: z.ZodNumber;
+    ratePercent: z.ZodNumber;
+    periodLabel: z.ZodString;
+}, z.core.$strip>;
+export declare const invoicingHealthSchema: z.ZodObject<{
+    invoicedThisMonth: z.ZodNumber;
+    paidThisMonth: z.ZodNumber;
+    overdueCount: z.ZodNumber;
+    outstandingAmount: z.ZodNumber;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const revenueByProductItemSchema: z.ZodObject<{
+    productId: z.ZodString;
+    productName: z.ZodString;
+    category: z.ZodEnum<{
+        AI: "AI";
+        CUSTOM: "CUSTOM";
+        CLOUD: "CLOUD";
+        MARKETING: "MARKETING";
+        CONSULTING: "CONSULTING";
+    }>;
+    mrr: z.ZodNumber;
+    subscriptionCount: z.ZodNumber;
+}, z.core.$strip>;
+export declare const revenueByPlanItemSchema: z.ZodObject<{
+    planId: z.ZodString;
+    planName: z.ZodString;
+    productName: z.ZodString;
+    mrr: z.ZodNumber;
+    subscriptionCount: z.ZodNumber;
+}, z.core.$strip>;
+export declare const billingMixItemSchema: z.ZodObject<{
+    billingCycle: z.ZodString;
+    mrr: z.ZodNumber;
+    subscriptionCount: z.ZodNumber;
+    percentOfMrr: z.ZodNumber;
+}, z.core.$strip>;
+export declare const revenueConcentrationSchema: z.ZodObject<{
+    top5Percent: z.ZodNumber;
+    top10Percent: z.ZodNumber;
+    top5Amount: z.ZodNumber;
+    top10Amount: z.ZodNumber;
+    totalAmount: z.ZodNumber;
+}, z.core.$strip>;
+export declare const churnRateSchema: z.ZodObject<{
+    churnedCount: z.ZodNumber;
+    activeAtStartCount: z.ZodNumber;
+    ratePercent: z.ZodNumber;
+    lostMrr: z.ZodNumber;
+    periodLabel: z.ZodString;
+}, z.core.$strip>;
+export declare const tenureBucketSchema: z.ZodObject<{
+    label: z.ZodString;
+    monthsMin: z.ZodNumber;
+    monthsMax: z.ZodNullable<z.ZodNumber>;
+    subscriptionCount: z.ZodNumber;
+}, z.core.$strip>;
+export declare const upgradesDowngradesSchema: z.ZodObject<{
+    upgradesCount: z.ZodNumber;
+    downgradesCount: z.ZodNumber;
+    upgradesMrrImpact: z.ZodNumber;
+    downgradesMrrImpact: z.ZodNumber;
+    periodLabel: z.ZodString;
+}, z.core.$strip>;
+export declare const renewalsDueSchema: z.ZodObject<{
+    days30: z.ZodObject<{
+        count: z.ZodNumber;
+        mrr: z.ZodNumber;
+    }, z.core.$strip>;
+    days60: z.ZodObject<{
+        count: z.ZodNumber;
+        mrr: z.ZodNumber;
+    }, z.core.$strip>;
+    days90: z.ZodObject<{
+        count: z.ZodNumber;
+        mrr: z.ZodNumber;
+    }, z.core.$strip>;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const expiringSoonSchema: z.ZodObject<{
+    count: z.ZodNumber;
+    mrr: z.ZodNumber;
+    withinDays: z.ZodNumber;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const paymentVelocitySchema: z.ZodObject<{
+    avgDaysToPay: z.ZodNumber;
+    medianDaysToPay: z.ZodNumber;
+    invoiceCount: z.ZodNumber;
+}, z.core.$strip>;
+export declare const overdueAgingSchema: z.ZodObject<{
+    bucket0_30: z.ZodObject<{
+        count: z.ZodNumber;
+        amount: z.ZodNumber;
+    }, z.core.$strip>;
+    bucket31_60: z.ZodObject<{
+        count: z.ZodNumber;
+        amount: z.ZodNumber;
+    }, z.core.$strip>;
+    bucket61_90: z.ZodObject<{
+        count: z.ZodNumber;
+        amount: z.ZodNumber;
+    }, z.core.$strip>;
+    bucket90Plus: z.ZodObject<{
+        count: z.ZodNumber;
+        amount: z.ZodNumber;
+    }, z.core.$strip>;
+    totalCount: z.ZodNumber;
+    totalAmount: z.ZodNumber;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const invoiceStatusMixSchema: z.ZodObject<{
+    DRAFT: z.ZodNumber;
+    SENT: z.ZodNumber;
+    PARTIALLY_PAID: z.ZodNumber;
+    PAID: z.ZodNumber;
+    OVERDUE: z.ZodNumber;
+    CANCELLED: z.ZodNumber;
+    WRITTEN_OFF: z.ZodNumber;
+    totalCount: z.ZodNumber;
+}, z.core.$strip>;
+export declare const taxAndCreditsSchema: z.ZodObject<{
+    taxCollectedThisMonth: z.ZodNumber;
+    taxCollectedPeriod: z.ZodNumber;
+    discountsThisMonth: z.ZodNumber;
+    creditNotesIssuedPeriod: z.ZodNumber;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const revenueByPaymentMethodSchema: z.ZodObject<{
+    method: z.ZodString;
+    amount: z.ZodNumber;
+    count: z.ZodNumber;
+    percentOfTotal: z.ZodNumber;
+}, z.core.$strip>;
+export declare const newCustomersSchema: z.ZodObject<{
+    thisMonth: z.ZodNumber;
+    previousMonth: z.ZodNumber;
+    periodLabel: z.ZodString;
+}, z.core.$strip>;
+export declare const newSubscriptionsByProductSchema: z.ZodObject<{
+    productId: z.ZodString;
+    productName: z.ZodString;
+    category: z.ZodEnum<{
+        AI: "AI";
+        CUSTOM: "CUSTOM";
+        CLOUD: "CLOUD";
+        MARKETING: "MARKETING";
+        CONSULTING: "CONSULTING";
+    }>;
+    count: z.ZodNumber;
+}, z.core.$strip>;
+export declare const orderPipelineSchema: z.ZodObject<{
+    PENDING: z.ZodObject<{
+        count: z.ZodNumber;
+        value: z.ZodNumber;
+    }, z.core.$strip>;
+    PROCESSING: z.ZodObject<{
+        count: z.ZodNumber;
+        value: z.ZodNumber;
+    }, z.core.$strip>;
+    COMPLETED: z.ZodObject<{
+        count: z.ZodNumber;
+        value: z.ZodNumber;
+    }, z.core.$strip>;
+    FAILED: z.ZodObject<{
+        count: z.ZodNumber;
+        value: z.ZodNumber;
+    }, z.core.$strip>;
+    PARTIAL: z.ZodObject<{
+        count: z.ZodNumber;
+        value: z.ZodNumber;
+    }, z.core.$strip>;
+    totalValue: z.ZodNumber;
+    conversionPercent: z.ZodNumber;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const promoEffectivenessSchema: z.ZodObject<{
+    redemptionsThisPeriod: z.ZodNumber;
+    ordersWithPromo: z.ZodNumber;
+    revenueWithPromo: z.ZodNumber;
+    revenueWithoutPromo: z.ZodNumber;
+    topPromos: z.ZodArray<z.ZodObject<{
+        promoCode: z.ZodString;
+        redemptions: z.ZodNumber;
+    }, z.core.$strip>>;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const marginByCategorySchema: z.ZodObject<{
+    category: z.ZodEnum<{
+        AI: "AI";
+        CUSTOM: "CUSTOM";
+        CLOUD: "CLOUD";
+        MARKETING: "MARKETING";
+        CONSULTING: "CONSULTING";
+    }>;
+    revenue: z.ZodNumber;
+    cost: z.ZodNumber;
+    marginPercent: z.ZodNumber;
+    subscriptionCount: z.ZodNumber;
+}, z.core.$strip>;
+export declare const multiProductCustomersSchema: z.ZodObject<{
+    multiProductCount: z.ZodNumber;
+    singleProductCount: z.ZodNumber;
+    totalWithSubs: z.ZodNumber;
+    multiProductPercent: z.ZodNumber;
+}, z.core.$strip>;
+export declare const topCustomersTrendSchema: z.ZodObject<{
+    teamId: z.ZodString;
+    teamName: z.ZodString;
+    mrrCurrent: z.ZodNumber;
+    mrrPrevious: z.ZodNumber;
+    changePercent: z.ZodNumber;
+    changeAmount: z.ZodNumber;
+}, z.core.$strip>;
+export declare const atRiskCustomersSchema: z.ZodObject<{
+    count: z.ZodNumber;
+    daysWithoutPayment: z.ZodNumber;
+    description: z.ZodString;
+}, z.core.$strip>;
+export declare const timeComparisonSchema: z.ZodObject<{
+    mrrMonthOverMonthPercent: z.ZodNumber;
+    paidRevenueMonthOverMonthPercent: z.ZodNumber;
+    paidRevenueYearOverYearPercent: z.ZodNullable<z.ZodNumber>;
+    annualRunRate: z.ZodNumber;
+    currency: z.ZodString;
+}, z.core.$strip>;
+export declare const autoRenewRateSchema: z.ZodObject<{
+    withAutoRenew: z.ZodNumber;
+    withoutAutoRenew: z.ZodNumber;
+    ratePercent: z.ZodNumber;
+    totalActive: z.ZodNumber;
+}, z.core.$strip>;
+export declare const salesReportOverviewSchema: z.ZodObject<{
+    executive: z.ZodObject<{
+        mrr: z.ZodNumber;
+        mrrPreviousMonth: z.ZodNumber;
+        mrrChangePercent: z.ZodNumber;
+        mrrChangeAmount: z.ZodNumber;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    mrrByCategory: z.ZodArray<z.ZodObject<{
+        category: z.ZodEnum<{
+            AI: "AI";
+            CUSTOM: "CUSTOM";
+            CLOUD: "CLOUD";
+            MARKETING: "MARKETING";
+            CONSULTING: "CONSULTING";
+        }>;
+        label: z.ZodString;
+        mrr: z.ZodNumber;
+        subscriptionCount: z.ZodNumber;
+    }, z.core.$strip>>;
+    mrrMovement: z.ZodObject<{
+        newMrr: z.ZodNumber;
+        lostMrr: z.ZodNumber;
+        existingMrr: z.ZodNumber;
+        netChange: z.ZodNumber;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    revenueTrend: z.ZodArray<z.ZodObject<{
+        month: z.ZodString;
+        year: z.ZodNumber;
+        paidRevenue: z.ZodNumber;
+        invoicedAmount: z.ZodNumber;
+        invoiceCount: z.ZodNumber;
+        paidInvoiceCount: z.ZodNumber;
+    }, z.core.$strip>>;
+    customer: z.ZodObject<{
+        arpc: z.ZodNumber;
+        customerCount: z.ZodNumber;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    revenueByTeam: z.ZodArray<z.ZodObject<{
+        teamId: z.ZodString;
+        teamName: z.ZodString;
+        amount: z.ZodNumber;
+        currency: z.ZodString;
+        percentOfTotal: z.ZodOptional<z.ZodNumber>;
+    }, z.core.$strip>>;
+    commission: z.ZodObject<{
+        commissionSubscriptionCount: z.ZodNumber;
+        estimatedFeesAmount: z.ZodNumber;
+        currency: z.ZodString;
+        hasBaseData: z.ZodBoolean;
+    }, z.core.$strip>;
+    activeSubscriptions: z.ZodObject<{
+        webHosting: z.ZodNumber;
+        emailHosting: z.ZodNumber;
+        byCategory: z.ZodRecord<z.ZodEnum<{
+            AI: "AI";
+            CUSTOM: "CUSTOM";
+            CLOUD: "CLOUD";
+            MARKETING: "MARKETING";
+            CONSULTING: "CONSULTING";
+        }>, z.ZodNumber>;
+        totalActive: z.ZodNumber;
+    }, z.core.$strip>;
+    domainRenewalRate: z.ZodObject<{
+        renewedCount: z.ZodNumber;
+        dueCount: z.ZodNumber;
+        ratePercent: z.ZodNumber;
+        periodLabel: z.ZodString;
+    }, z.core.$strip>;
+    invoicing: z.ZodObject<{
+        invoicedThisMonth: z.ZodNumber;
+        paidThisMonth: z.ZodNumber;
+        overdueCount: z.ZodNumber;
+        outstandingAmount: z.ZodNumber;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    revenueByProduct: z.ZodArray<z.ZodObject<{
+        productId: z.ZodString;
+        productName: z.ZodString;
+        category: z.ZodEnum<{
+            AI: "AI";
+            CUSTOM: "CUSTOM";
+            CLOUD: "CLOUD";
+            MARKETING: "MARKETING";
+            CONSULTING: "CONSULTING";
+        }>;
+        mrr: z.ZodNumber;
+        subscriptionCount: z.ZodNumber;
+    }, z.core.$strip>>;
+    revenueByPlan: z.ZodArray<z.ZodObject<{
+        planId: z.ZodString;
+        planName: z.ZodString;
+        productName: z.ZodString;
+        mrr: z.ZodNumber;
+        subscriptionCount: z.ZodNumber;
+    }, z.core.$strip>>;
+    billingMix: z.ZodArray<z.ZodObject<{
+        billingCycle: z.ZodString;
+        mrr: z.ZodNumber;
+        subscriptionCount: z.ZodNumber;
+        percentOfMrr: z.ZodNumber;
+    }, z.core.$strip>>;
+    averageDealSize: z.ZodObject<{
+        mean: z.ZodNumber;
+        median: z.ZodNumber;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    revenueConcentration: z.ZodObject<{
+        top5Percent: z.ZodNumber;
+        top10Percent: z.ZodNumber;
+        top5Amount: z.ZodNumber;
+        top10Amount: z.ZodNumber;
+        totalAmount: z.ZodNumber;
+    }, z.core.$strip>;
+    churnRate: z.ZodObject<{
+        churnedCount: z.ZodNumber;
+        activeAtStartCount: z.ZodNumber;
+        ratePercent: z.ZodNumber;
+        lostMrr: z.ZodNumber;
+        periodLabel: z.ZodString;
+    }, z.core.$strip>;
+    subscriptionTenure: z.ZodArray<z.ZodObject<{
+        label: z.ZodString;
+        monthsMin: z.ZodNumber;
+        monthsMax: z.ZodNullable<z.ZodNumber>;
+        subscriptionCount: z.ZodNumber;
+    }, z.core.$strip>>;
+    upgradesDowngrades: z.ZodObject<{
+        upgradesCount: z.ZodNumber;
+        downgradesCount: z.ZodNumber;
+        upgradesMrrImpact: z.ZodNumber;
+        downgradesMrrImpact: z.ZodNumber;
+        periodLabel: z.ZodString;
+    }, z.core.$strip>;
+    autoRenewRate: z.ZodObject<{
+        withAutoRenew: z.ZodNumber;
+        withoutAutoRenew: z.ZodNumber;
+        ratePercent: z.ZodNumber;
+        totalActive: z.ZodNumber;
+    }, z.core.$strip>;
+    renewalsDue: z.ZodObject<{
+        days30: z.ZodObject<{
+            count: z.ZodNumber;
+            mrr: z.ZodNumber;
+        }, z.core.$strip>;
+        days60: z.ZodObject<{
+            count: z.ZodNumber;
+            mrr: z.ZodNumber;
+        }, z.core.$strip>;
+        days90: z.ZodObject<{
+            count: z.ZodNumber;
+            mrr: z.ZodNumber;
+        }, z.core.$strip>;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    expiringSoon: z.ZodObject<{
+        count: z.ZodNumber;
+        mrr: z.ZodNumber;
+        withinDays: z.ZodNumber;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    paymentVelocity: z.ZodObject<{
+        avgDaysToPay: z.ZodNumber;
+        medianDaysToPay: z.ZodNumber;
+        invoiceCount: z.ZodNumber;
+    }, z.core.$strip>;
+    overdueAging: z.ZodObject<{
+        bucket0_30: z.ZodObject<{
+            count: z.ZodNumber;
+            amount: z.ZodNumber;
+        }, z.core.$strip>;
+        bucket31_60: z.ZodObject<{
+            count: z.ZodNumber;
+            amount: z.ZodNumber;
+        }, z.core.$strip>;
+        bucket61_90: z.ZodObject<{
+            count: z.ZodNumber;
+            amount: z.ZodNumber;
+        }, z.core.$strip>;
+        bucket90Plus: z.ZodObject<{
+            count: z.ZodNumber;
+            amount: z.ZodNumber;
+        }, z.core.$strip>;
+        totalCount: z.ZodNumber;
+        totalAmount: z.ZodNumber;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    invoiceStatusMix: z.ZodObject<{
+        DRAFT: z.ZodNumber;
+        SENT: z.ZodNumber;
+        PARTIALLY_PAID: z.ZodNumber;
+        PAID: z.ZodNumber;
+        OVERDUE: z.ZodNumber;
+        CANCELLED: z.ZodNumber;
+        WRITTEN_OFF: z.ZodNumber;
+        totalCount: z.ZodNumber;
+    }, z.core.$strip>;
+    taxAndCredits: z.ZodObject<{
+        taxCollectedThisMonth: z.ZodNumber;
+        taxCollectedPeriod: z.ZodNumber;
+        discountsThisMonth: z.ZodNumber;
+        creditNotesIssuedPeriod: z.ZodNumber;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    revenueByPaymentMethod: z.ZodArray<z.ZodObject<{
+        method: z.ZodString;
+        amount: z.ZodNumber;
+        count: z.ZodNumber;
+        percentOfTotal: z.ZodNumber;
+    }, z.core.$strip>>;
+    newCustomers: z.ZodObject<{
+        thisMonth: z.ZodNumber;
+        previousMonth: z.ZodNumber;
+        periodLabel: z.ZodString;
+    }, z.core.$strip>;
+    newSubscriptionsByProduct: z.ZodArray<z.ZodObject<{
+        productId: z.ZodString;
+        productName: z.ZodString;
+        category: z.ZodEnum<{
+            AI: "AI";
+            CUSTOM: "CUSTOM";
+            CLOUD: "CLOUD";
+            MARKETING: "MARKETING";
+            CONSULTING: "CONSULTING";
+        }>;
+        count: z.ZodNumber;
+    }, z.core.$strip>>;
+    orderPipeline: z.ZodObject<{
+        PENDING: z.ZodObject<{
+            count: z.ZodNumber;
+            value: z.ZodNumber;
+        }, z.core.$strip>;
+        PROCESSING: z.ZodObject<{
+            count: z.ZodNumber;
+            value: z.ZodNumber;
+        }, z.core.$strip>;
+        COMPLETED: z.ZodObject<{
+            count: z.ZodNumber;
+            value: z.ZodNumber;
+        }, z.core.$strip>;
+        FAILED: z.ZodObject<{
+            count: z.ZodNumber;
+            value: z.ZodNumber;
+        }, z.core.$strip>;
+        PARTIAL: z.ZodObject<{
+            count: z.ZodNumber;
+            value: z.ZodNumber;
+        }, z.core.$strip>;
+        totalValue: z.ZodNumber;
+        conversionPercent: z.ZodNumber;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    promoEffectiveness: z.ZodObject<{
+        redemptionsThisPeriod: z.ZodNumber;
+        ordersWithPromo: z.ZodNumber;
+        revenueWithPromo: z.ZodNumber;
+        revenueWithoutPromo: z.ZodNumber;
+        topPromos: z.ZodArray<z.ZodObject<{
+            promoCode: z.ZodString;
+            redemptions: z.ZodNumber;
+        }, z.core.$strip>>;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+    marginByCategory: z.ZodArray<z.ZodObject<{
+        category: z.ZodEnum<{
+            AI: "AI";
+            CUSTOM: "CUSTOM";
+            CLOUD: "CLOUD";
+            MARKETING: "MARKETING";
+            CONSULTING: "CONSULTING";
+        }>;
+        revenue: z.ZodNumber;
+        cost: z.ZodNumber;
+        marginPercent: z.ZodNumber;
+        subscriptionCount: z.ZodNumber;
+    }, z.core.$strip>>;
+    multiProductCustomers: z.ZodObject<{
+        multiProductCount: z.ZodNumber;
+        singleProductCount: z.ZodNumber;
+        totalWithSubs: z.ZodNumber;
+        multiProductPercent: z.ZodNumber;
+    }, z.core.$strip>;
+    topCustomersTrend: z.ZodArray<z.ZodObject<{
+        teamId: z.ZodString;
+        teamName: z.ZodString;
+        mrrCurrent: z.ZodNumber;
+        mrrPrevious: z.ZodNumber;
+        changePercent: z.ZodNumber;
+        changeAmount: z.ZodNumber;
+    }, z.core.$strip>>;
+    atRiskCustomers: z.ZodObject<{
+        count: z.ZodNumber;
+        daysWithoutPayment: z.ZodNumber;
+        description: z.ZodString;
+    }, z.core.$strip>;
+    timeComparison: z.ZodObject<{
+        mrrMonthOverMonthPercent: z.ZodNumber;
+        paidRevenueMonthOverMonthPercent: z.ZodNumber;
+        paidRevenueYearOverYearPercent: z.ZodNullable<z.ZodNumber>;
+        annualRunRate: z.ZodNumber;
+        currency: z.ZodString;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export type SalesReportOverviewInput = z.infer<typeof salesReportOverviewInputSchema>;
+export type SalesReportOverview = z.infer<typeof salesReportOverviewSchema>;
