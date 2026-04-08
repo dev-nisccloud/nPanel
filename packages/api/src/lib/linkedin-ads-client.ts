@@ -54,6 +54,12 @@ export class LinkedInAdsClient {
 		return `List(${values.join(',')})`;
 	}
 
+	private toLinkedInListEncoded(values: string[]): string {
+		// Keep List(...) syntax, but encode each item (URNs contain ":" which often must be encoded in query params).
+		// Example: List(urn%3Ali%3AsponsoredCreative%3A123,urn%3Ali%3AsponsoredCreative%3A456)
+		return `List(${values.map((v) => encodeURIComponent(v)).join(',')})`;
+	}
+
 	private toQueryValue(value: unknown): string {
 		if (Array.isArray(value)) return value.join(',');
 		if (typeof value === 'object' && value !== null) return JSON.stringify(value);
@@ -70,6 +76,11 @@ export class LinkedInAdsClient {
 			if (key === 'fields' && typeof value === 'string') {
 				// LinkedIn projections require raw comma-separated field names.
 				// Encoding commas makes the entire list look like a single invalid field.
+				return `${encodeURIComponent(key)}=${value}`;
+			}
+			if (typeof value === 'string' && value.startsWith('List(')) {
+				// Rest.li array parameters must keep List(...) syntax unencoded.
+				// Encoding commas/parens causes LinkedIn to fail deserializing the list.
 				return `${encodeURIComponent(key)}=${value}`;
 			}
 			return `${encodeURIComponent(key)}=${encodeURIComponent(this.toQueryValue(value))}`;
@@ -184,6 +195,12 @@ export class LinkedInAdsClient {
 				'X-Restli-Protocol-Version': '2.0.0',
 			},
 		};
+
+		// Rest.li "actions" require an explicit header.
+		// Without this, LinkedIn can respond with 501 Not Implemented for action-based endpoints.
+		if (method === 'POST' && params?.action) {
+			requestOptions.headers['X-RestLi-Method'] = 'action';
+		}
 
 		this.debugLog('request', {
 			requestId,
@@ -802,7 +819,7 @@ export class LinkedInAdsClient {
 			content?: { reference?: string; [key: string]: any } | null;
 			inlineContent?: Record<string, any> | null;
 		}
-	): Promise<{ elements: Array<{ preview?: string; placement?: any }>; paging?: any }> {
+	): Promise<{ elements: Array<{ preview?: string; placement?: any }>; paging?: any; notImplemented?: boolean }> {
 		const payloadCreative: any = {
 			campaign: this.ensureUrn(creative.campaign, 'CAMPAIGN'),
 			intendedStatus: creative.intendedStatus || 'ACTIVE',
@@ -815,26 +832,52 @@ export class LinkedInAdsClient {
 		}
 
 		if (payloadCreative.content) {
-			const response = await this.makeRequest<any>(
-				'POST',
-				'/rest/adPreviews',
-				{ action: 'livePreviewForCreative' },
-				{ creative: payloadCreative }
-			);
-			const elements = this.normalizeElements(response);
-			if (elements.length > 0) {
-				return { ...response, elements };
+			try {
+				const response = await this.makeRequest<any>(
+					'POST',
+					'/rest/adPreviews',
+					{ action: 'livePreviewForCreative' },
+					{ creative: payloadCreative }
+				);
+				const elements = this.normalizeElements(response);
+				if (elements.length > 0) {
+					return { ...response, elements };
+				}
+			} catch (e: any) {
+				const status = e?.status ?? e?.statusCode ?? e?.cause?.status ?? e?.cause?.statusCode;
+				if (status === 501) {
+					this.debugLog('adPreview-live-not-implemented', {
+						action: 'livePreviewForCreative',
+						status,
+						error: this.safeSerialize(e),
+					});
+					return { elements: [], paging: undefined, notImplemented: true };
+				}
+				throw e;
 			}
 		}
 
 		if (payloadCreative.inlineContent) {
-			const response = await this.makeRequest<any>(
-				'POST',
-				'/rest/adPreviews',
-				{ action: 'livePreviewForCreativeInline' },
-				{ creative: payloadCreative }
-			);
-			return { ...response, elements: this.normalizeElements(response) };
+			try {
+				const response = await this.makeRequest<any>(
+					'POST',
+					'/rest/adPreviews',
+					{ action: 'livePreviewForCreativeInline' },
+					{ creative: payloadCreative }
+				);
+				return { ...response, elements: this.normalizeElements(response) };
+			} catch (e: any) {
+				const status = e?.status ?? e?.statusCode ?? e?.cause?.status ?? e?.cause?.statusCode;
+				if (status === 501) {
+					this.debugLog('adPreview-live-not-implemented', {
+						action: 'livePreviewForCreativeInline',
+						status,
+						error: this.safeSerialize(e),
+					});
+					return { elements: [], paging: undefined, notImplemented: true };
+				}
+				throw e;
+			}
 		}
 
 		return { elements: [], paging: undefined };
@@ -931,22 +974,22 @@ export class LinkedInAdsClient {
 
 		if (options.accounts && options.accounts.length > 0) {
 			const urns = options.accounts.map((v) => this.ensureUrn(v, 'ACCOUNT'));
-			baseParams.accounts = this.toLinkedInList(urns);
+			baseParams.accounts = this.toLinkedInListEncoded(urns);
 		}
 
 		if (options.campaignGroups && options.campaignGroups.length > 0) {
 			const urns = options.campaignGroups.map((v) => this.ensureUrn(v, 'CAMPAIGN_GROUP'));
-			baseParams.campaignGroups = this.toLinkedInList(urns);
+			baseParams.campaignGroups = this.toLinkedInListEncoded(urns);
 		}
 
 		if (options.campaigns && options.campaigns.length > 0) {
 			const urns = options.campaigns.map((v) => this.ensureUrn(v, 'CAMPAIGN'));
-			baseParams.campaigns = this.toLinkedInList(urns);
+			baseParams.campaigns = this.toLinkedInListEncoded(urns);
 		}
 
 		if (options.creatives && options.creatives.length > 0) {
 			const urns = options.creatives.map((v) => this.ensureUrn(v, 'CREATIVE'));
-			baseParams.creatives = this.toLinkedInList(urns);
+			baseParams.creatives = this.toLinkedInListEncoded(urns);
 		}
 
 		if (options.pivots && options.pivots.length > 0) {

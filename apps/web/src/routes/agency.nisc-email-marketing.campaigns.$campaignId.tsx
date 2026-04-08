@@ -76,6 +76,16 @@ function getEventTypeLabel(type: string): string {
 	return labels[type] ?? type;
 }
 
+function normalizeExternalHref(raw: string): string {
+	const value = raw.trim();
+	if (!value) return value;
+	// absolute URLs or special schemes should be left as-is
+	if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)) return value; // e.g. https:, mailto:, tel:
+	if (value.startsWith("//")) return `https:${value}`;
+	// otherwise treat as a hostname/path and make it absolute so it doesn't become app-relative
+	return `https://${value.replace(/^\/+/, "")}`;
+}
+
 function getStatusBadge(status: string) {
 	switch (status) {
 		case "COMPLETED":
@@ -187,6 +197,11 @@ export default function CampaignDetailPage() {
 		{ enabled: Boolean(campaignId) }
 	);
 
+	const { data: bounceBreakdown } = trpc.niscEmailMarketing.emailEvents.getBounceBreakdown.useQuery(
+		{ campaignId: campaignId ?? "" },
+		{ enabled: Boolean(campaignId) }
+	);
+
 	const [isRefreshing, setIsRefreshing] = React.useState(false);
 	const handleRefresh = async () => {
 		if (!campaignId || isRefreshing) return;
@@ -294,7 +309,6 @@ export default function CampaignDetailPage() {
 	const totalRecipients = summary?.totalRecipients ?? 0;
 	const delivered = summary?.delivered ?? 0;
 	const bounced = summary?.bounced ?? 0;
-	const suppressed = summary?.suppressed ?? 0;
 	const opened = summary?.opened ?? 0;
 	const openedTotal = summary?.openedTotal ?? 0;
 	const clicked = summary?.clicked ?? 0;
@@ -537,18 +551,44 @@ export default function CampaignDetailPage() {
 							</CardContent>
 						</Card>
 					) : (
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<>
-							<Card className="overflow-hidden">
-								<CardHeader className="pb-1">
-									<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-										Deliverability
-									</CardTitle>
+						<div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+							<Card className="overflow-hidden border-border/60 shadow-sm transition-shadow hover:shadow-md bg-gradient-to-br from-muted/20 to-background">
+								<CardHeader className="pb-3">
+									<div className="flex items-center justify-between gap-3">
+										<div className="flex items-center gap-2 min-w-0">
+											<div className="rounded-md border border-primary/15 bg-primary/10 p-1.5">
+												<Mail className="h-4 w-4 text-primary" aria-hidden />
+											</div>
+											<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+												Deliverability
+											</CardTitle>
+										</div>
+									</div>
 								</CardHeader>
 								<CardContent className="pt-0">
-									<p className="text-2xl font-bold text-foreground">{deliverabilityPct}%</p>
-									<ul className="mt-3 divide-y divide-border text-sm">
-										<li className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
+									<div className="flex items-end justify-between gap-3">
+										<div>
+											<p className="text-2xl font-bold tracking-tight text-foreground">{deliverabilityPct}%</p>
+											<p className="text-xs text-muted-foreground mt-1">Delivered rate</p>
+										</div>
+									</div>
+									<div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
+										<div
+											className="h-full rounded-full bg-primary"
+											style={{ width: `${Math.min(100, Math.max(0, deliverabilityPct))}%` }}
+										/>
+									</div>
+									<ul className="mt-3 divide-y divide-border/70 text-sm border border-border/50 rounded-lg overflow-hidden bg-background/30">
+										<li className="flex items-center justify-between gap-3 py-2.5 px-3 first:pt-0 hover:bg-muted/30">
+											<div className="flex items-center gap-2 min-w-0">
+												<span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground" aria-hidden />
+												<span className="text-foreground">Requests</span>
+											</div>
+											<span className="shrink-0 tabular-nums text-muted-foreground">
+												{totalRecipients.toLocaleString()}
+											</span>
+										</li>
+										<li className="flex items-center justify-between gap-3 py-2.5 px-3 first:pt-0 hover:bg-muted/30">
 											<div className="flex items-center gap-2 min-w-0">
 												<span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden />
 												<span className="text-foreground">Delivered</span>
@@ -557,33 +597,49 @@ export default function CampaignDetailPage() {
 												{delivered.toLocaleString()} {totalRecipients > 0 ? `${Math.round((delivered / totalRecipients) * 100)}%` : "0%"}
 											</span>
 										</li>
-										<li className="flex items-center justify-between gap-3 py-2.5">
-											<div className="flex items-center gap-2 min-w-0">
-												<span className="h-2 w-2 shrink-0 rounded-full bg-destructive" aria-hidden />
-												<span className="text-foreground">Bounced</span>
+										<li className="flex flex-col gap-0.5 py-2.5 px-3 hover:bg-muted/30">
+											<div className="flex items-center justify-between gap-3">
+												<div className="flex items-center gap-2 min-w-0">
+													<span className="h-2 w-2 shrink-0 rounded-full bg-destructive" aria-hidden />
+													<span className="text-foreground">Bounced</span>
+												</div>
+												<span className="shrink-0 tabular-nums text-muted-foreground">
+													{bounced.toLocaleString()} {totalRecipients > 0 ? `${Math.round((bounced / totalRecipients) * 100)}%` : "0%"}
+												</span>
 											</div>
-											<span className="shrink-0 tabular-nums text-muted-foreground">
-												{bounced.toLocaleString()} {totalRecipients > 0 ? `${Math.round((bounced / totalRecipients) * 100)}%` : "0%"}
-											</span>
-										</li>
-										<li className="flex items-center justify-between gap-3 py-2.5">
-											<div className="flex items-center gap-2 min-w-0">
-												<span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground" aria-hidden />
-												<span className="text-foreground">Suppressed</span>
-											</div>
-											<span className="shrink-0 tabular-nums text-muted-foreground">
-												{suppressed.toLocaleString()} {totalRecipients > 0 ? `${Math.round((suppressed / totalRecipients) * 100)}%` : "0%"}
-											</span>
+											{(() => {
+												const byType = bounceBreakdown?.byType ?? {};
+												const transient = byType.Transient ?? byType.transient ?? 0;
+												const permanent = byType.Permanent ?? byType.permanent ?? 0;
+												const unknown =
+													(byType.Unknown ?? byType.unknown ?? 0) +
+													(byType[""] ?? 0) +
+													(Object.prototype.hasOwnProperty.call(byType, "null") ? (byType as any).null : 0);
+
+												const parts = [
+													transient > 0 ? `Transient: ${transient.toLocaleString()}` : null,
+													permanent > 0 ? `Permanent: ${permanent.toLocaleString()}` : null,
+													unknown > 0 ? `Other: ${unknown.toLocaleString()}` : null,
+												].filter(Boolean);
+
+												if (parts.length === 0) return null;
+												return (
+													<p className="text-xs text-muted-foreground pl-4">
+														{parts.join(" • ")}
+													</p>
+												);
+											})()}
 										</li>
 									</ul>
 								</CardContent>
 							</Card>
-							<Card className="overflow-hidden">
-								<CardHeader className="pb-1">
-									<div className="flex items-center gap-1.5">
-										<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-											Engagement
-										</CardTitle>
+							<Card className="overflow-hidden border-border/60 shadow-sm transition-shadow hover:shadow-md bg-gradient-to-br from-muted/20 to-background">
+								<CardHeader className="pb-3">
+									<div className="flex items-center justify-between gap-3">
+										<div className="flex items-center gap-1.5 min-w-0">
+											<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+												Engagement
+											</CardTitle>
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
@@ -598,17 +654,32 @@ export default function CampaignDetailPage() {
 												<TooltipContent side="top" className="max-w-xs text-sm">
 													<p className="font-medium mb-1">How engagement is calculated</p>
 													<p>
-														Opened and Clicked show <strong>unique recipients</strong> (one count per person), so rates never exceed 100%. &quot;Total opens&quot; and &quot;Total clicks&quot; are total event counts—e.g. one person can open multiple times or click multiple links, so those numbers can be higher than unique.
+														Opened and Clicked show <strong>unique recipients</strong> (one count per person), so rates never exceed 100%. &quot;Total opens&quot; and &quot;Total clicks&quot; are total event counts — e.g. one person can open multiple times or click multiple links, so those numbers can be higher than unique.
 													</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
+										</div>
+										<div className="rounded-md border border-primary/15 bg-chart-1/10 p-1.5">
+											<Eye className="h-4 w-4 text-chart-1" aria-hidden />
+										</div>
 									</div>
 								</CardHeader>
 								<CardContent className="pt-0">
-									<p className="text-2xl font-bold text-foreground">{engagementPct}%</p>
-									<ul className="mt-3 divide-y divide-border text-sm">
-										<li className="flex flex-col gap-0.5 py-2.5 first:pt-0">
+									<div className="flex items-end justify-between gap-3">
+										<div>
+											<p className="text-2xl font-bold tracking-tight text-foreground">{engagementPct}%</p>
+											<p className="text-xs text-muted-foreground mt-1">Engagement rate</p>
+										</div>
+									</div>
+									<div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
+										<div
+											className="h-full rounded-full bg-chart-1"
+											style={{ width: `${Math.min(100, Math.max(0, engagementPct))}%` }}
+										/>
+									</div>
+									<ul className="mt-3 divide-y divide-border/70 text-sm border border-border/50 rounded-lg overflow-hidden bg-background/30">
+										<li className="flex flex-col gap-0.5 py-2.5 px-3 first:pt-0 hover:bg-muted/30">
 											<div className="flex items-center justify-between gap-3">
 												<div className="flex items-center gap-2 min-w-0">
 													<span className="h-2 w-2 shrink-0 rounded-full bg-chart-1" aria-hidden />
@@ -624,7 +695,7 @@ export default function CampaignDetailPage() {
 												</p>
 											)}
 										</li>
-										<li className="flex flex-col gap-0.5 py-2.5">
+										<li className="flex flex-col gap-0.5 py-2.5 px-3 hover:bg-muted/30">
 											<div className="flex items-center justify-between gap-3">
 												<div className="flex items-center gap-2 min-w-0">
 													<span className="h-2 w-2 shrink-0 rounded-full bg-chart-2" aria-hidden />
@@ -643,16 +714,34 @@ export default function CampaignDetailPage() {
 									</ul>
 								</CardContent>
 							</Card>
-							<Card className="overflow-hidden">
-								<CardHeader className="pb-1">
-									<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-										Opt-Out
-									</CardTitle>
+							<Card className="overflow-hidden border-border/60 shadow-sm transition-shadow hover:shadow-md bg-gradient-to-br from-muted/20 to-background">
+								<CardHeader className="pb-3">
+									<div className="flex items-center justify-between gap-3">
+										<div className="flex items-center gap-2 min-w-0">
+											<div className="rounded-md border border-destructive/15 bg-destructive/10 p-1.5">
+												<Ban className="h-4 w-4 text-destructive" aria-hidden />
+											</div>
+											<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+												Opt-Out
+											</CardTitle>
+										</div>
+									</div>
 								</CardHeader>
 								<CardContent className="pt-0">
-									<p className="text-2xl font-bold text-foreground">{optOutPct}%</p>
-									<ul className="mt-3 divide-y divide-border text-sm">
-										<li className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
+									<div className="flex items-end justify-between gap-3">
+										<div>
+											<p className="text-2xl font-bold tracking-tight text-foreground">{optOutPct}%</p>
+											<p className="text-xs text-muted-foreground mt-1">Opt-out rate</p>
+										</div>
+									</div>
+									<div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
+										<div
+											className="h-full rounded-full bg-destructive"
+											style={{ width: `${Math.min(100, Math.max(0, optOutPct))}%` }}
+										/>
+									</div>
+									<ul className="mt-3 divide-y divide-border/70 text-sm border border-border/50 rounded-lg overflow-hidden bg-background/30">
+										<li className="flex items-center justify-between gap-3 py-2.5 px-3 first:pt-0 hover:bg-muted/30">
 											<div className="flex items-center gap-2 min-w-0">
 												<span className="h-2 w-2 shrink-0 rounded-full bg-destructive" aria-hidden />
 												<span className="text-foreground">Unsubscribed</span>
@@ -661,7 +750,7 @@ export default function CampaignDetailPage() {
 												{unsubscribed.toLocaleString()} {totalRecipients > 0 ? `${Math.round((unsubscribed / totalRecipients) * 100)}%` : "0%"}
 											</span>
 										</li>
-										<li className="flex items-center justify-between gap-3 py-2.5">
+										<li className="flex items-center justify-between gap-3 py-2.5 px-3 hover:bg-muted/30">
 											<div className="flex items-center gap-2 min-w-0">
 												<span className="h-2 w-2 shrink-0 rounded-full bg-chart-3" aria-hidden />
 												<span className="text-foreground">Complained</span>
@@ -673,7 +762,6 @@ export default function CampaignDetailPage() {
 									</ul>
 								</CardContent>
 							</Card>
-						</>
 						</div>
 					)}
 				</div>
@@ -717,6 +805,24 @@ export default function CampaignDetailPage() {
 																{ev.recipientEmail}
 															</p>
 														)}
+														{ev.type === "email_clicked" && (
+															<p className="text-xs text-muted-foreground mt-1 truncate">
+																{ev.link ? (
+																	<a
+																		href={normalizeExternalHref(ev.link)}
+																		target="_blank"
+																		rel="noopener noreferrer"
+																		className="inline-flex items-center gap-1.5 text-primary hover:underline"
+																		title={ev.link}
+																	>
+																		<span className="truncate">{ev.link}</span>
+																		<ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+																	</a>
+																) : (
+																	<span>Link: —</span>
+																)}
+															</p>
+														)}
 													</li>
 												))}
 											</ul>
@@ -754,7 +860,7 @@ export default function CampaignDetailPage() {
 										{topClickedLinks.map((item, i) => (
 											<li key={`${item.url}-${i}`} className="py-2.5 first:pt-0 px-2 flex items-center justify-between gap-3">
 												<a
-													href={item.url}
+													href={normalizeExternalHref(item.url)}
 													target="_blank"
 													rel="noopener noreferrer"
 													className="inline-flex items-center gap-1.5 text-primary hover:underline truncate min-w-0"
@@ -784,6 +890,73 @@ export default function CampaignDetailPage() {
 									className="min-h-[200px]"
 								/>
 							)}
+						</CardContent>
+					</Card>
+				</div>
+
+				{/* Email content */}
+				<div className="mt-6">
+					<Card className="overflow-hidden">
+						<CardHeader>
+							<CardTitle className="text-base">Email content</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<Tabs defaultValue="preview" className="w-full">
+								<TabsList>
+									<TabsTrigger value="preview">Preview</TabsTrigger>
+									<TabsTrigger value="text">Plain text</TabsTrigger>
+									<TabsTrigger value="html">HTML</TabsTrigger>
+								</TabsList>
+								<TabsContent value="preview" className="mt-4">
+									{campaign.htmlContent ? (
+										<div className="rounded-lg border border-border overflow-hidden bg-background">
+											<iframe
+												title="Email preview"
+												className="w-full h-[520px] bg-white"
+												sandbox=""
+												srcDoc={campaign.htmlContent}
+											/>
+										</div>
+									) : (
+										<CardEmptyState
+											icon={Eye}
+											title="No HTML content"
+											description="This campaign doesn’t have an HTML version."
+											className="min-h-[220px]"
+										/>
+									)}
+								</TabsContent>
+								<TabsContent value="text" className="mt-4">
+									{campaign.textContent ? (
+										<div className="rounded-lg border border-border bg-muted/20 p-4 whitespace-pre-wrap text-sm leading-relaxed">
+											{campaign.textContent}
+										</div>
+									) : (
+										<CardEmptyState
+											icon={FileText}
+											title="No plain-text content"
+											description="This campaign doesn’t have a plain-text version."
+											className="min-h-[220px]"
+										/>
+									)}
+								</TabsContent>
+								<TabsContent value="html" className="mt-4">
+									{campaign.htmlContent ? (
+										<div className="rounded-lg border border-border bg-muted/20 p-4">
+											<pre className="text-xs leading-relaxed overflow-auto">
+												<code>{campaign.htmlContent}</code>
+											</pre>
+										</div>
+									) : (
+										<CardEmptyState
+											icon={Code2}
+											title="No HTML source"
+											description="This campaign doesn’t have an HTML version."
+											className="min-h-[220px]"
+										/>
+									)}
+								</TabsContent>
+							</Tabs>
 						</CardContent>
 					</Card>
 				</div>

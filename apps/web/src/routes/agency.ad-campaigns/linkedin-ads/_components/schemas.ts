@@ -83,7 +83,7 @@ export const linkedInAdsCampaignGroupSchema = z.object({
 
 export type LinkedInAdsCampaignGroup = z.infer<typeof linkedInAdsCampaignGroupSchema>;
 
-// Campaign Schema (Ad Sets in UI)
+// Campaign Schema (Campaigns in UI)
 export const linkedInAdsCampaignSchema = z.object({
 	id: z.string(),
 	name: z.string().nullable().optional(),

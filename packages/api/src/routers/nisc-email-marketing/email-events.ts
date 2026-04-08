@@ -96,6 +96,60 @@ export const niscEmailMarketingEmailEventsRouter = router({
       });
     }),
 
+  getBounceBreakdown: protectedProcedure
+    .input(z.object({ campaignId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+
+      await assertCampaignAccess(input.campaignId, userId);
+
+      // Bounce reason lives on the denormalized email row (fast aggregation).
+      const byTypeRes = await db.execute<{ bounce_type: string | null; count: number }>(sql`
+        select
+          m.bounce_type as bounce_type,
+          count(*)::int as count
+        from ${niscEmEmail} m
+        where m.campaign_id = ${input.campaignId}
+          and m.bounced_at is not null
+        group by m.bounce_type
+      `);
+
+      const bySubTypeRes = await db.execute<{ bounce_sub_type: string | null; count: number }>(sql`
+        select
+          m.bounce_sub_type as bounce_sub_type,
+          count(*)::int as count
+        from ${niscEmEmail} m
+        where m.campaign_id = ${input.campaignId}
+          and m.bounced_at is not null
+        group by m.bounce_sub_type
+        order by count desc
+        limit 6
+      `);
+
+      const byTypeRows = (byTypeRes as unknown as { rows?: Array<{ bounce_type: string | null; count: number }> }).rows ?? [];
+      const bySubTypeRows =
+        (bySubTypeRes as unknown as { rows?: Array<{ bounce_sub_type: string | null; count: number }> }).rows ?? [];
+
+      const byType = byTypeRows.reduce(
+        (acc, r) => {
+          const key = r.bounce_type ?? "Unknown";
+          acc[key] = (acc[key] ?? 0) + Number(r.count ?? 0);
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
+      return {
+        campaignId: input.campaignId,
+        byType,
+        topSubTypes: bySubTypeRows.map((r) => ({
+          bounceSubType: r.bounce_sub_type ?? "Unknown",
+          count: Number(r.count ?? 0),
+        })),
+      };
+    }),
+
   list: protectedProcedure.input(emailEventListFiltersSchema).query(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
@@ -126,6 +180,7 @@ export const niscEmailMarketingEmailEventsRouter = router({
           data: niscEmEmailEvent.rawPayload,
           createdAt: niscEmEmailEvent.createdAt,
           recipientEmail: niscEmEmailEvent.recipientEmail,
+          link: niscEmEmailEvent.link,
         })
         .from(niscEmEmailEvent)
         .leftJoin(niscEmEmail, eq(niscEmEmailEvent.emailId, niscEmEmail.id))
@@ -142,6 +197,7 @@ export const niscEmailMarketingEmailEventsRouter = router({
         type: toLegacyEventType(r.type) as any,
         resendEmailId: null,
         recipientEmail: r.recipientEmail ?? null,
+        link: r.link ?? null,
         data: r.data,
       })),
       total: Number(totalRow?.[0]?.value ?? 0),

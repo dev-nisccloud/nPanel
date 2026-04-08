@@ -46,6 +46,7 @@
     "db:migrate": "turbo -F @npanel/db db:migrate"
   },
   "dependencies": {
+    "@intercom/messenger-js-sdk": "^0.0.19",
     "@npanel/env": "workspace:*",
     "dotenv": "catalog:",
     "zod": "catalog:"

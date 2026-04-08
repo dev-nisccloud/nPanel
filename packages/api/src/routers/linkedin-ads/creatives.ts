@@ -122,6 +122,100 @@ export const linkedInAdsCreativesRouter = router({
 			}
 		}),
 
+	getCreativeInsights: protectedProcedure
+		.input(
+			z.object({
+				accountId: z.string().min(1, 'Account ID is required'),
+				creativeIds: z.array(z.string().min(1)).min(1).max(100),
+				timeRange: z.object({
+					since: z.string().min(1),
+					until: z.string().min(1),
+				}),
+			})
+		)
+		.query(async ({ input, ctx }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+
+			const { accessToken } = await getUserIntegration(userId);
+			const client = new LinkedInAdsClient({ accessToken });
+
+			const startDate = new Date(input.timeRange.since);
+			const endDate = new Date(input.timeRange.until);
+
+			// One bulk adAnalytics request pivoted by CREATIVE (per LinkedIn docs).
+			const analytics = await client.getAnalytics({
+				dateRange: { start: formatDateForLinkedIn(startDate), end: formatDateForLinkedIn(endDate) },
+				accounts: [input.accountId],
+				creatives: input.creativeIds,
+				fields: [
+					// Critical: pivotValues must be requested to map results back to each creative.
+					'pivotValues',
+					'impressions',
+					'clicks',
+					'costInLocalCurrency',
+					'externalWebsiteConversions',
+					'oneClickLeads',
+					'videoViews',
+					'videoCompletions',
+				],
+			});
+
+			const insightsByCreativeId: Record<string, any> = {};
+
+			for (const elem of analytics.elements || []) {
+				const pivotUrn = Array.isArray((elem as any).pivotValues) ? (elem as any).pivotValues[0] : undefined;
+				const pivotUrnStr = pivotUrn ? String(pivotUrn) : '';
+				const creativeId = pivotUrnStr ? pivotUrnStr.split(':').pop() : null;
+				if (!creativeId) continue;
+
+				const acc = insightsByCreativeId[creativeId] || {
+					impressions: 0,
+					clicks: 0,
+					costInLocalCurrency: 0,
+					externalWebsiteConversions: 0,
+					oneClickLeads: 0,
+					videoViews: 0,
+					videoCompletions: 0,
+				};
+
+				acc.impressions += Number((elem as any).impressions || 0);
+				acc.clicks += Number((elem as any).clicks || 0);
+				acc.costInLocalCurrency += Number((elem as any).costInLocalCurrency || 0);
+				acc.externalWebsiteConversions += Number((elem as any).externalWebsiteConversions || 0);
+				acc.oneClickLeads += Number((elem as any).oneClickLeads || 0);
+				acc.videoViews += Number((elem as any).videoViews || 0);
+				acc.videoCompletions += Number((elem as any).videoCompletions || 0);
+
+				// Store under BOTH keys so the UI can lookup by URN or numeric id.
+				insightsByCreativeId[creativeId] = acc;
+				if (pivotUrnStr) insightsByCreativeId[pivotUrnStr] = acc;
+			}
+
+			// Derived metrics
+			for (const [id, acc] of Object.entries(insightsByCreativeId)) {
+				const clicks = Number((acc as any).clicks || 0);
+				const impressions = Number((acc as any).impressions || 0);
+				const spend = Number((acc as any).costInLocalCurrency || 0);
+				(insightsByCreativeId as any)[id] = {
+					...acc,
+					spend,
+					cpc: clicks > 0 ? String(spend / clicks) : null,
+					ctr: impressions > 0 ? String((clicks / impressions) * 100) : null,
+				};
+			}
+
+			return {
+				success: true,
+				data: insightsByCreativeId,
+				meta: {
+					retrieved_at: new Date().toISOString(),
+					requested_creatives: input.creativeIds.length,
+					resolved_creatives: Object.keys(insightsByCreativeId).length,
+				},
+			};
+		}),
+
 	getCreativePreview: protectedProcedure
 		.input(
 			z.object({
@@ -155,7 +249,6 @@ export const linkedInAdsCreativesRouter = router({
 
 				if (
 					(response.elements || []).length === 0 &&
-					!accuratePreviewUnsupported &&
 					input.livePreviewCreative?.campaign &&
 					(input.livePreviewCreative.contentReference || input.livePreviewCreative.inlineContent)
 				) {
@@ -171,6 +264,9 @@ export const linkedInAdsCreativesRouter = router({
 						if ((liveResponse.elements || []).length > 0) {
 							response = liveResponse as any;
 							previewSource = 'live_action';
+						}
+						if ((liveResponse as any).notImplemented) {
+							previewSource = 'none';
 						}
 					} catch {
 						// Keep accurate-preview response if live fallback fails.
@@ -191,6 +287,10 @@ export const linkedInAdsCreativesRouter = router({
 						total_previews: data.length,
 						previewSource,
 						unsupportedCreativeType: accuratePreviewUnsupported,
+						message:
+							accuratePreviewUnsupported && (data.length === 0)
+								? 'Preview is not supported for this creative type (accurate preview unsupported; live preview may be unavailable for this content).'
+								: undefined,
 					},
 				};
 			} catch (error: any) {
