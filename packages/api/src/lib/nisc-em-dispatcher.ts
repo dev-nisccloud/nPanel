@@ -1,4 +1,4 @@
-import { db, eq, sql } from "@npanel/db";
+import { db, eq, inArray, sql } from "@npanel/db";
 import { niscEmCampaign, niscEmEmail } from "@npanel/db/schema";
 import { getSesClient, sendSesRawEmail } from "./ses-client";
 import { getQuotaStatus } from "./quota-reservation";
@@ -352,25 +352,18 @@ export async function dispatchNiscEmEmailQueue(params?: {
     // Update campaign status + sent counts so UI doesn't get stuck on SCHEDULED/SENDING.
     if (touchedCampaignIds.size > 0) {
       const ids = Array.from(touchedCampaignIds);
-      const res = await db.execute<{
-        campaignId: string;
-        queuedCount: number;
-        sendingCount: number;
-        sentCount: number;
-        failedCount: number;
-      }>(sql`
-        select
-          e.campaign_id as "campaignId",
-          count(*) filter (where e.status = 'QUEUED')::int as "queuedCount",
-          count(*) filter (where e.status = 'SENDING')::int as "sendingCount",
-          count(*) filter (where e.status = 'SENT')::int as "sentCount",
-          count(*) filter (where e.status = 'FAILED')::int as "failedCount"
-        from ${niscEmEmail} e
-        where e.campaign_id = any(${ids}::text[])
-        group by e.campaign_id
-      `);
+      const rows = await db
+        .select({
+          campaignId: niscEmEmail.campaignId,
+          queuedCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'QUEUED')`,
+          sendingCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'SENDING')`,
+          sentCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'SENT')`,
+          failedCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'FAILED')`,
+        })
+        .from(niscEmEmail)
+        .where(inArray(niscEmEmail.campaignId, ids))
+        .groupBy(niscEmEmail.campaignId);
 
-      const rows = (res as unknown as { rows?: any[] }).rows ?? [];
       const now = new Date();
       for (const r of rows) {
         const queuedCount = Number(r.queuedCount ?? 0);
@@ -385,7 +378,8 @@ export async function dispatchNiscEmEmailQueue(params?: {
           .set({
             status: finalStatus as any,
             totalSent: sentCount,
-            sentAt: sentCount > 0 ? now : null,
+            // Keep the first-send timestamp stable once it is set.
+            sentAt: sentCount > 0 ? sql`coalesce(${niscEmCampaign.sentAt}, ${now})` : null,
             completedAt: stillInFlight ? null : now,
             updatedAt: now,
           })
@@ -620,25 +614,18 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
     // Keep campaign UI in sync (same as main dispatcher).
     if (touchedCampaignIds.size > 0) {
       const ids = Array.from(touchedCampaignIds);
-      const res = await db.execute<{
-        campaignId: string;
-        queuedCount: number;
-        sendingCount: number;
-        sentCount: number;
-        failedCount: number;
-      }>(sql`
-        select
-          e.campaign_id as "campaignId",
-          count(*) filter (where e.status = 'QUEUED')::int as "queuedCount",
-          count(*) filter (where e.status = 'SENDING')::int as "sendingCount",
-          count(*) filter (where e.status = 'SENT')::int as "sentCount",
-          count(*) filter (where e.status = 'FAILED')::int as "failedCount"
-        from ${niscEmEmail} e
-        where e.campaign_id = any(${ids}::text[])
-        group by e.campaign_id
-      `);
+      const rows = await db
+        .select({
+          campaignId: niscEmEmail.campaignId,
+          queuedCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'QUEUED')`,
+          sendingCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'SENDING')`,
+          sentCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'SENT')`,
+          failedCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'FAILED')`,
+        })
+        .from(niscEmEmail)
+        .where(inArray(niscEmEmail.campaignId, ids))
+        .groupBy(niscEmEmail.campaignId);
 
-      const rows = (res as unknown as { rows?: any[] }).rows ?? [];
       const now = new Date();
       for (const r of rows) {
         const queuedCount = Number(r.queuedCount ?? 0);
@@ -653,7 +640,7 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
           .set({
             status: finalStatus as any,
             totalSent: sentCount,
-            sentAt: sentCount > 0 ? now : null,
+            sentAt: sentCount > 0 ? sql`coalesce(${niscEmCampaign.sentAt}, ${now})` : null,
             completedAt: stillInFlight ? null : now,
             updatedAt: now,
           })

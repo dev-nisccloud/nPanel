@@ -199,6 +199,7 @@ export const auth = betterAuth<BetterAuthOptions>({
             status: user.status,
             role: user.role,
             lastAccessedTeamId: user.lastAccessedTeamId,
+            createdAt: user.createdAt,
           })
           .from(user)
           .where(eq(user.id, sessionUser.id))
@@ -231,6 +232,7 @@ export const auth = betterAuth<BetterAuthOptions>({
             role: normalizedRole,
             lastAccessedTeamId:
               userWithStatusRole.lastAccessedTeamId ?? sessionUser.lastAccessedTeamId,
+            createdAt: userWithStatusRole.createdAt,
           };
 
           ctx.context.session.user = enrichedUser;

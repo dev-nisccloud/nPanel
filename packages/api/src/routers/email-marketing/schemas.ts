@@ -435,6 +435,8 @@ export type EmailEventSummary = z.infer<typeof emailEventSummarySchema>;
 /** Event in list response; may include recipientEmail when listing by campaignId */
 export const emailEventInListSchema = emailEventSummarySchema.extend({
 	recipientEmail: z.string().nullable().optional(),
+	/** Click event link when available (NISC/SES stores it separately). */
+	link: z.string().nullable().optional(),
 });
 export type EmailEventInList = z.infer<typeof emailEventInListSchema>;
 

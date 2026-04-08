@@ -79,6 +79,67 @@ function multiLocaleName(entity) {
         return '';
     return loc.en_US ?? loc[Object.keys(loc)[0]] ?? '';
 }
+function adTargetingEntityName(entity) {
+    // LinkedIn REST resources vary by version; sometimes `name` is a string, sometimes multi-locale.
+    if (!entity)
+        return '';
+    if (typeof entity.name === 'string')
+        return entity.name;
+    const ml = multiLocaleName(entity);
+    if (ml)
+        return ml;
+    // Some responses nest `name` differently.
+    if (typeof entity?.localizedName === 'string')
+        return entity.localizedName;
+    return '';
+}
+async function fetchAdTargetingEntitiesByUrns(accessToken, urnsListRawParam) {
+    // Docs (li-lms-2026-03): URN-to-name resolver uses REST endpoint:
+    // GET /rest/adTargetingEntities?q=urns&queryVersion=QUERY_USES_URNS&urns=List(<encoded URNs>)&locale=(language:en,country:US)
+    const baseUrl = new URL(`${LI_V2_BASE}/rest/adTargetingEntities`);
+    baseUrl.searchParams.set('q', 'urns');
+    baseUrl.searchParams.set('queryVersion', 'QUERY_USES_URNS');
+    // Important: keep List() syntax, but URL-encode EACH URN inside the list.
+    // LinkedIn docs show e.g. urn%3Ali%3Ageo%3A102095887 inside List(...).
+    const urlStr = baseUrl.toString() + `&${urnsListRawParam}` + `&locale=(language:en,country:US)`;
+    try {
+        const { statusCode, body } = await request(urlStr, { method: 'GET', headers: liHeaders(accessToken) });
+        const text = await body.text();
+        return { url: urlStr, statusCode, text };
+    }
+    catch (e) {
+        return { url: urlStr, statusCode: 0, text: String(e?.message || e) };
+    }
+}
+
+async function batchGetGeoNames(accessToken, geoIds) {
+    // Docs (standardized-data/locations/geo): BATCH GET
+    // GET https://api.linkedin.com/v2/geo?ids=List(12345,23456)&locale=(language:en,country:US)
+    const emptyDebug = (url, statusCode, rawResponse) => ({ url, statusCode, rawResponse, resolvedCount: 0 });
+    if (geoIds.length === 0)
+        return { names: {}, debug: emptyDebug('/v2/geo', 0, 'no ids') };
+    const base = new URL(`${LI_V2_BASE}/v2/geo`);
+    // Append ids=List(...) raw (do NOT encode parentheses/commas)
+    const rawIds = `ids=List(${geoIds.slice(0, 100).join(',')})`;
+    const urlStr = base.toString() + `?${rawIds}&locale=(language:en,country:US)`;
+    try {
+        const { statusCode, body } = await request(urlStr, { method: 'GET', headers: liHeaders(accessToken) });
+        const text = await body.text();
+        if (statusCode >= 400)
+            return { names: {}, debug: emptyDebug(urlStr, statusCode, text) };
+        const data = JSON.parse(text);
+        const names = {};
+        for (const [id, entity] of Object.entries(data?.results || {})) {
+            const val = entity?.defaultLocalizedName?.value;
+            if (val)
+                names[String(id)] = String(val);
+        }
+        return { names, debug: { url: urlStr, statusCode, rawResponse: text, resolvedCount: Object.keys(names).length } };
+    }
+    catch (e) {
+        return { names: {}, debug: emptyDebug(urlStr, 0, String(e?.message || e)) };
+    }
+}
 /** Facets whose values can be decoded purely from the URN — no API needed */
 function parseInlineFacet(facetKey, urns) {
     return urns.map(urn => {
@@ -446,29 +507,40 @@ export const linkedInAdsCampaignsRouter = router({
                 apiFacets.push({
                     facetKey, ids,
                     resolve: async () => {
-                        // /v2/geos does not exist — use Marketing API adTargetingEntities with q=urnLookup
-                        // urns=List(urn:li:geo:x,urn:li:geo:y,...) — appended raw so colons/parens stay literal
-                        const rawUrns = `urns=List(${geoUrns.join(',')})`;
-                        const baseUrl = `${LI_V2_BASE}/v2/adTargetingEntities?q=urnLookup`;
-                        const urlStr = `${baseUrl}&${rawUrns}`;
                         try {
-                            const { statusCode, body } = await request(urlStr, { method: 'GET', headers: liHeaders(accessToken) });
-                            const text = await body.text();
-                            if (statusCode >= 400)
-                                return { names: {}, debug: { url: urlStr, statusCode, rawResponse: text, resolvedCount: 0 } };
-                            const data = JSON.parse(text);
-                            const names = {};
-                            for (const el of (data?.elements || [])) {
-                                const urn = el?.urn ?? '';
-                                const numId = urn.split(':').pop() || '';
-                                const name = el?.name ?? '';
-                                if (numId && name)
-                                    names[numId] = name;
+                            // Docs: URN-to-name resolver (REST) expects URNs inside List() to be URL-encoded.
+                            const encodedUrns = geoUrns.map(u => encodeURIComponent(u));
+                            const rawUrns = `urns=List(${encodedUrns.join(',')})`;
+                            const { url: urlStr, statusCode, text } = await fetchAdTargetingEntitiesByUrns(accessToken, rawUrns);
+                            if (statusCode < 400) {
+                                const data = JSON.parse(text);
+                                const names = {};
+                                for (const el of (data?.elements || data?.results || [])) {
+                                    const urn = el?.urn ?? el?.$URN ?? '';
+                                    const numId = urn.split(':').pop() || '';
+                                    const name = adTargetingEntityName(el);
+                                    if (numId && name)
+                                        names[numId] = name;
+                                }
+                                return { names, debug: { url: urlStr, statusCode, rawResponse: text, resolvedCount: Object.keys(names).length } };
                             }
-                            return { names, debug: { url: urlStr, statusCode, rawResponse: text, resolvedCount: Object.keys(names).length } };
+                            // Fallback: resolve directly via standardized Geo API (/v2/geo batch-get)
+                            const geo = await batchGetGeoNames(accessToken, ids);
+                            return {
+                                names: geo.names,
+                                debug: {
+                                    url: geo.debug.url,
+                                    statusCode: geo.debug.statusCode,
+                                    resolvedCount: geo.debug.resolvedCount,
+                                    rawResponse: JSON.stringify({
+                                        primary: { url: urlStr, statusCode, rawResponse: text },
+                                        fallback: geo.debug,
+                                    }),
+                                },
+                            };
                         }
                         catch (e) {
-                            return { names: {}, debug: { url: urlStr, statusCode: 0, rawResponse: String(e?.message || e), resolvedCount: 0 } };
+                            return { names: {}, debug: { url: '(exception)', statusCode: 0, rawResponse: String(e?.message || e), resolvedCount: 0 } };
                         }
                     },
                 });

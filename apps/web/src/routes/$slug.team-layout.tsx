@@ -19,6 +19,7 @@ import {
 } from "@/types/preferences/layout";
 
 import { TeamSidebarLayout } from "@/routes/$slug/_components/team-sidebar-layout";
+import { IntercomSupport } from "@/components/intercom-support";
 
 function readSidebarDefaultOpen(): boolean {
   if (typeof document === "undefined") return true;
@@ -141,6 +142,7 @@ export default function TeamLayout({ children }: Readonly<{ children: ReactNode 
 
   return (
     <NavigationLoadingProvider>
+      <IntercomSupport user={session.user} />
       <SwitchingTeamProvider>
         <TeamSidebarLayout
           defaultOpen={defaultOpen}

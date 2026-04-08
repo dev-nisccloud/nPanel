@@ -134,7 +134,6 @@ export const linkedInAdsCreativesRouter = router({
             const accuratePreviewUnsupported = Boolean(response.unsupportedCreativeType);
             let previewSource = response.elements?.length ? 'accurate' : 'none';
             if ((response.elements || []).length === 0 &&
-                !accuratePreviewUnsupported &&
                 input.livePreviewCreative?.campaign &&
                 (input.livePreviewCreative.contentReference || input.livePreviewCreative.inlineContent)) {
                 try {
@@ -149,6 +148,9 @@ export const linkedInAdsCreativesRouter = router({
                     if ((liveResponse.elements || []).length > 0) {
                         response = liveResponse;
                         previewSource = 'live_action';
+                    }
+                    if (liveResponse.notImplemented) {
+                        previewSource = 'none';
                     }
                 }
                 catch {
@@ -168,6 +170,9 @@ export const linkedInAdsCreativesRouter = router({
                     total_previews: data.length,
                     previewSource,
                     unsupportedCreativeType: accuratePreviewUnsupported,
+                    message: accuratePreviewUnsupported && (data.length === 0)
+                        ? 'Preview is not supported for this creative type (accurate preview unsupported; live preview may be unavailable for this content).'
+                        : undefined,
                 },
             };
         }
@@ -197,6 +202,90 @@ export const linkedInAdsCreativesRouter = router({
                 message: error instanceof Error ? error.message : 'Failed to fetch creative preview',
             });
         }
+    }),
+    getCreativeInsights: protectedProcedure
+        .input(z.object({
+        accountId: z.string().min(1, 'Account ID is required'),
+        creativeIds: z.array(z.string().min(1)).min(1).max(100),
+        timeRange: z.object({
+            since: z.string().min(1),
+            until: z.string().min(1),
+        }),
+    }))
+        .query(async ({ input, ctx }) => {
+        const userId = ctx.session?.user?.id;
+        if (!userId)
+            throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+        const { accessToken } = await getUserIntegration(userId);
+        const client = new LinkedInAdsClient({ accessToken });
+        const startDate = new Date(input.timeRange.since);
+        const endDate = new Date(input.timeRange.until);
+        // One bulk adAnalytics request pivoted by CREATIVE (per LinkedIn docs).
+        const analytics = await client.getAnalytics({
+            dateRange: { start: formatDateForLinkedIn(startDate), end: formatDateForLinkedIn(endDate) },
+            accounts: [input.accountId],
+            creatives: input.creativeIds,
+            fields: [
+                // Critical: pivotValues must be requested to map results back to each creative.
+                'pivotValues',
+                'impressions',
+                'clicks',
+                'costInLocalCurrency',
+                'externalWebsiteConversions',
+                'oneClickLeads',
+                'videoViews',
+                'videoCompletions',
+            ],
+        });
+        const insightsByCreativeId = {};
+        for (const elem of analytics.elements || []) {
+            const pivotUrn = Array.isArray(elem.pivotValues) ? elem.pivotValues[0] : undefined;
+            const pivotUrnStr = pivotUrn ? String(pivotUrn) : '';
+            const creativeId = pivotUrnStr ? pivotUrnStr.split(':').pop() : null;
+            if (!creativeId)
+                continue;
+            const acc = insightsByCreativeId[creativeId] || {
+                impressions: 0,
+                clicks: 0,
+                costInLocalCurrency: 0,
+                externalWebsiteConversions: 0,
+                oneClickLeads: 0,
+                videoViews: 0,
+                videoCompletions: 0,
+            };
+            acc.impressions += Number(elem.impressions || 0);
+            acc.clicks += Number(elem.clicks || 0);
+            acc.costInLocalCurrency += Number(elem.costInLocalCurrency || 0);
+            acc.externalWebsiteConversions += Number(elem.externalWebsiteConversions || 0);
+            acc.oneClickLeads += Number(elem.oneClickLeads || 0);
+            acc.videoViews += Number(elem.videoViews || 0);
+            acc.videoCompletions += Number(elem.videoCompletions || 0);
+            // Store under BOTH keys so the UI can lookup by URN or numeric id.
+            insightsByCreativeId[creativeId] = acc;
+            if (pivotUrnStr)
+                insightsByCreativeId[pivotUrnStr] = acc;
+        }
+        // Derived metrics
+        for (const [id, acc] of Object.entries(insightsByCreativeId)) {
+            const clicks = Number(acc.clicks || 0);
+            const impressions = Number(acc.impressions || 0);
+            const spend = Number(acc.costInLocalCurrency || 0);
+            insightsByCreativeId[id] = {
+                ...acc,
+                spend,
+                cpc: clicks > 0 ? String(spend / clicks) : null,
+                ctr: impressions > 0 ? String((clicks / impressions) * 100) : null,
+            };
+        }
+        return {
+            success: true,
+            data: insightsByCreativeId,
+            meta: {
+                retrieved_at: new Date().toISOString(),
+                requested_creatives: input.creativeIds.length,
+                resolved_creatives: Object.keys(insightsByCreativeId).length,
+            },
+        };
     }),
     /**
      * List creatives (ads) for a campaign

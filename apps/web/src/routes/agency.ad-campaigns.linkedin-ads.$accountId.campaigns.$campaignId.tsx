@@ -475,6 +475,25 @@ export default function LinkedInCampaignDetailsPage() {
     }
   );
 
+  const allCreativeIds = React.useMemo(() => {
+    const accountCreatives = accountCreativesData?.data || [];
+    return accountCreatives
+      .map((c: any) => c?.id)
+      .filter((id: any) => id !== null && id !== undefined)
+      .map((id: any) => String(id));
+  }, [accountCreativesData]);
+
+  const {
+    data: creativeInsightsData,
+    isFetching: isFetchingCreativeInsights,
+    error: creativeInsightsError,
+  } = trpc.linkedInAds.creatives.getCreativeInsights.useQuery(
+    { accountId, creativeIds: allCreativeIds, timeRange },
+    { enabled: !!accountId && allCreativeIds.length > 0, refetchOnWindowFocus: false, retry: 1, staleTime: 0, refetchOnMount: "always" }
+  );
+
+  const creativeInsightsById = creativeInsightsData?.data || {};
+
   const [previewCreative, setPreviewCreative] = React.useState<any | null>(null);
   const previewCreativeId = previewCreative ? String(previewCreative.id) : null;
   const {
@@ -495,18 +514,6 @@ export default function LinkedInCampaignDetailsPage() {
     },
     { enabled: !!accountId && !!previewCreativeId, refetchOnWindowFocus: false, retry: 1 }
   );
-
-  const creativesByCampaign = React.useMemo(() => {
-    const map: Record<string, any[]> = {};
-    const accountCreatives = accountCreativesData?.data || [];
-    campaigns.forEach((campaign: any) => {
-      const campaignUrn = String(campaign?.id || "").startsWith("urn:li:sponsoredCampaign:")
-        ? String(campaign.id)
-        : `urn:li:sponsoredCampaign:${String(campaign.id)}`;
-      map[String(campaign.id)] = accountCreatives.filter((creative: any) => String(creative.campaign || "") === campaignUrn);
-    });
-    return map;
-  }, [campaigns, accountCreativesData]);
 
   const isFetchingCreatives = isFetchingAccountCreatives;
 
@@ -556,7 +563,7 @@ export default function LinkedInCampaignDetailsPage() {
     [campaigns]
   );
 
-  const isRefreshing = isFetchingAccount || isFetchingCampaignGroups || isFetchingCampaigns || isFetchingCreatives;
+  const isRefreshing = isFetchingAccount || isFetchingCampaignGroups || isFetchingCampaigns || isFetchingCreatives || isFetchingCreativeInsights;
 
   React.useEffect(() => {
     if (campaignGroupError) {
@@ -689,7 +696,7 @@ export default function LinkedInCampaignDetailsPage() {
           </Card>
 
           <div className="space-y-4">
-            <h3 className="text-base font-semibold">Campaigns</h3>
+            <h3 className="text-base font-semibold">Ad sets</h3>
             {isLoadingCampaigns ? (
               <div className="space-y-3">
                 <Skeleton className="h-24 w-full" />
@@ -699,13 +706,12 @@ export default function LinkedInCampaignDetailsPage() {
               <Card className="bg-card shadow-sm">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Layers className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-                  <p className="text-sm text-muted-foreground">No campaigns found for this campaign group.</p>
+                  <p className="text-sm text-muted-foreground">No ad sets found for this campaign group.</p>
                 </CardContent>
               </Card>
             ) : (
               <Accordion type="multiple" className="w-full space-y-3">
                 {campaigns.map((campaign: any) => {
-                  const creatives = creativesByCampaign[String(campaign.id)] || [];
                   return (
                     <AccordionItem key={campaign.id} value={String(campaign.id)} className="border rounded-lg bg-card px-4">
                       <AccordionTrigger className="py-4 hover:no-underline">
@@ -716,7 +722,7 @@ export default function LinkedInCampaignDetailsPage() {
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <Badge variant="outline" className="text-[10px]">
-                              Ads {creatives.length}
+                              Ads
                             </Badge>
                             <Badge variant={statusStyles(campaign.status).variant} className={statusStyles(campaign.status).className}>
                                       {humanizeLabel(campaign.status)}
@@ -751,89 +757,18 @@ export default function LinkedInCampaignDetailsPage() {
                           targetingCriteria={campaign?.targetingCriteria}
                         />
                         <Separator />
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <p className="text-sm font-medium">Creatives ({creatives.length})</p>
-                          </div>
-                          {isLoadingAccountCreatives ? (
-                            <p className="text-xs text-muted-foreground">Loading creatives...</p>
-                          ) : creatives.length === 0 ? (
-                            <p className="text-xs text-muted-foreground">No creatives found for this campaign.</p>
-                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                              {creatives.map((creative: any) => (
-                                <div key={creative.id} className="rounded-md border p-3">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                      <p className="text-sm font-medium truncate">{creative.name || `Creative ${creative.id}`}</p>
-                                    </div>
-                                    <Badge variant={statusStyles(creative.intendedStatus).variant} className={statusStyles(creative.intendedStatus).className}>
-                                      {humanizeLabel(creative.intendedStatus)}
-                                    </Badge>
-                                  </div>
-                                  <div className="mt-2 flex flex-wrap gap-1">
-                                    {creative.reviewStatus && (
-                                      <Badge variant="outline" className="text-[10px]">{creative.reviewStatus}</Badge>
-                                    )}
-                                    {creative.isServing ? (
-                                      <Badge variant="outline" className="text-[10px]">SERVING</Badge>
-                                    ) : (
-                                      <Badge variant="secondary" className="text-[10px]">NOT SERVING</Badge>
-                                    )}
-                                    {(creative.servingHoldReasons || []).slice(0, 2).map((reason: string, idx: number) => (
-                                      <Badge key={`${creative.id}-reason-${idx}`} variant="secondary" className="text-[10px]">
-                                        {humanizeLabel(reason)}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                  <div className="mt-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 text-[11px]"
-                                      onClick={() =>
-                                        setPreviewCreative((current: any) =>
-                                          current && String(current.id) === String(creative.id) ? null : creative
-                                        )
-                                      }
-                                    >
-                                      {previewCreativeId === String(creative.id) ? "Hide Preview" : "Show Preview"}
-                                    </Button>
-                                  </div>
-                                  {previewCreativeId === String(creative.id) && (
-                                    <div className="mt-3 rounded-md border p-2 bg-muted/20">
-                                      {isLoadingCreativePreview ? (
-                                        <p className="text-xs text-muted-foreground">Loading preview...</p>
-                                      ) : (creativePreviewData?.data || []).length === 0 ? (
-                                        <p className="text-xs text-muted-foreground">
-                                          {creativePreviewData?.meta?.unsupportedCreativeType
-                                            ? "Preview is not supported for this creative type in LinkedIn Ad Preview API."
-                                            : "No preview available for this creative."}
-                                        </p>
-                                      ) : (
-                                        <div className="space-y-2">
-                                          {(creativePreviewData?.data || []).map((previewItem: any, previewIdx: number) => (
-                                            <div key={`${creative.id}-preview-${previewIdx}`} className="overflow-auto">
-                                              {previewItem?.preview ? (
-                                                <div
-                                                  className="min-w-[320px]"
-                                                  dangerouslySetInnerHTML={{ __html: previewItem.preview }}
-                                                />
-                                              ) : (
-                                                <p className="text-xs text-muted-foreground">Preview payload missing HTML.</p>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <CampaignAdsAccordion
+                          accountId={accountId}
+                          campaignId={String(campaign.id)}
+                          currency={currency}
+                          timeRange={timeRange}
+                          previewCreativeId={previewCreativeId}
+                          setPreviewCreative={setPreviewCreative}
+                          isLoadingCreativePreview={isLoadingCreativePreview}
+                          creativePreviewData={creativePreviewData}
+                          statusStyles={statusStyles}
+                          humanizeLabel={humanizeLabel}
+                        />
                       </AccordionContent>
                     </AccordionItem>
                   );
@@ -844,6 +779,157 @@ export default function LinkedInCampaignDetailsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function CampaignAdsAccordion({
+  accountId,
+  campaignId,
+  currency,
+  timeRange,
+  previewCreativeId,
+  setPreviewCreative,
+  isLoadingCreativePreview,
+  creativePreviewData,
+  statusStyles,
+  humanizeLabel,
+}: {
+  accountId: string;
+  campaignId: string;
+  currency: string;
+  timeRange: { since: string; until: string };
+  previewCreativeId: string | null;
+  setPreviewCreative: React.Dispatch<React.SetStateAction<any | null>>;
+  isLoadingCreativePreview: boolean;
+  creativePreviewData: any;
+  statusStyles: (status?: string | null) => { variant: "outline" | "secondary" | "destructive"; className?: string };
+  humanizeLabel: (value?: string | null) => string;
+}) {
+  const [open, setOpen] = React.useState<string>("");
+
+  const enabled = open === "ads";
+  const { data: adsData, isLoading: isLoadingAds } = trpc.linkedInAds.creatives.listAccountCreatives.useQuery(
+    { accountId, pageSize: 100, campaignIds: [campaignId] },
+    { enabled: enabled && !!accountId && !!campaignId, refetchOnWindowFocus: false, retry: 1, staleTime: 0 }
+  );
+
+  const ads = adsData?.data || [];
+  const creativeIds = React.useMemo(() => ads.map((a: any) => String(a.id)).filter(Boolean), [ads]);
+
+  const { data: insightsData, isFetching: isFetchingInsights, error: insightsError } =
+    trpc.linkedInAds.creatives.getCreativeInsights.useQuery(
+      { accountId, creativeIds, timeRange },
+      { enabled: enabled && !!accountId && creativeIds.length > 0, refetchOnWindowFocus: false, retry: 1, staleTime: 0 }
+    );
+
+  const insightsById = insightsData?.data || {};
+
+  return (
+    <Accordion type="single" collapsible value={open} onValueChange={(v) => setOpen(v)} className="w-full">
+      <AccordionItem value="ads" className="border rounded-lg bg-muted/10 px-3">
+        <AccordionTrigger className="py-3 hover:no-underline">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <div className="text-left">
+              <p className="text-sm font-medium">Ads</p>
+              <p className="text-[11px] text-muted-foreground">Open to load ad metrics and previews.</p>
+            </div>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="pb-3 space-y-3">
+          {isLoadingAds ? (
+            <div className="space-y-2">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ) : ads.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No ads found for this campaign.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {ads.map((creative: any) => (
+                <div key={creative.id} className="rounded-md border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{creative.name || `Ad ${creative.id}`}</p>
+                    </div>
+                    <Badge variant={statusStyles(creative.intendedStatus).variant} className={statusStyles(creative.intendedStatus).className}>
+                      {humanizeLabel(creative.intendedStatus)}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-3">
+                    <AdMetrics
+                      creativeId={String(creative.id)}
+                      insights={insightsById[String(creative.id)]}
+                      currency={currency}
+                      isLoading={isFetchingInsights}
+                      errorMessage={insightsError?.message || null}
+                    />
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {creative.reviewStatus && (
+                      <Badge variant="outline" className="text-[10px]">{creative.reviewStatus}</Badge>
+                    )}
+                    {creative.isServing ? (
+                      <Badge variant="outline" className="text-[10px]">SERVING</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">NOT SERVING</Badge>
+                    )}
+                    {(creative.servingHoldReasons || []).slice(0, 2).map((reason: string, idx: number) => (
+                      <Badge key={`${creative.id}-reason-${idx}`} variant="secondary" className="text-[10px]">
+                        {humanizeLabel(reason)}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  <div className="mt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[11px]"
+                      onClick={() =>
+                        setPreviewCreative((current: any) =>
+                          current && String(current.id) === String(creative.id) ? null : creative
+                        )
+                      }
+                    >
+                      {previewCreativeId === String(creative.id) ? "Hide Ad Preview" : "Show Ad Preview"}
+                    </Button>
+                  </div>
+
+                  {previewCreativeId === String(creative.id) && (
+                    <div className="mt-3 rounded-md border p-2 bg-muted/20">
+                      {isLoadingCreativePreview ? (
+                        <p className="text-xs text-muted-foreground">Loading preview...</p>
+                      ) : (creativePreviewData?.data || []).length === 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          {creativePreviewData?.meta?.unsupportedCreativeType
+                            ? "Preview is not supported for this ad type in LinkedIn Ad Preview API."
+                            : "No preview available for this ad."}
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {(creativePreviewData?.data || []).map((previewItem: any, previewIdx: number) => (
+                            <div key={`${creative.id}-preview-${previewIdx}`} className="overflow-auto">
+                              {previewItem?.preview ? (
+                                <div className="min-w-[320px]" dangerouslySetInnerHTML={{ __html: previewItem.preview }} />
+                              ) : (
+                                <p className="text-xs text-muted-foreground">Preview payload missing HTML.</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }
 
@@ -904,6 +990,100 @@ function MetricMini({ label, value, tone = "blue" }: { label: string; value: str
     <div className={`rounded-md border p-2 ${colors.bg} ${colors.border}`}>
       <p className={`text-[10px] uppercase tracking-wide ${colors.label}`}>{label}</p>
       <p className={`text-xs font-semibold mt-1 ${colors.value}`}>{value}</p>
+    </div>
+  );
+}
+
+function AdMetrics({
+  creativeId,
+  insights,
+  currency,
+  isLoading,
+  errorMessage,
+}: {
+  creativeId: string;
+  insights: Record<string, any> | null | undefined;
+  currency: string;
+  isLoading: boolean;
+  errorMessage?: string | null;
+}) {
+  const [showAll, setShowAll] = React.useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        {Array.from({ length: 8 }).map((_, idx) => (
+          <div key={`${creativeId}-metric-skel-${idx}`} className="rounded-md border p-2 bg-muted/20">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-4 w-16 mt-2" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+        <p className="text-xs text-destructive font-medium">Failed to load ad metrics</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 break-words">{errorMessage}</p>
+      </div>
+    );
+  }
+
+  if (!insights) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        Ad metrics are unavailable for this selection (no activity yet, reporting permission missing, or API returned an empty reporting response).
+      </p>
+    );
+  }
+
+  const cards = getDynamicInsightMetricCards(insights, currency);
+  const primary = cards.slice(0, 8);
+  const rest = cards.slice(8);
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        {primary.map((metric) => (
+          <MetricMini
+            key={`${creativeId}-ad-metric-${metric.label}`}
+            label={metric.label}
+            value={metric.value}
+            tone={metric.tone}
+          />
+        ))}
+      </div>
+      {rest.length > 0 && (
+        <div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-auto p-0 text-primary hover:bg-primary/10 text-xs font-medium"
+            onClick={() => setShowAll((v) => !v)}
+          >
+            {showAll ? (
+              <><ChevronUp className="h-3.5 w-3.5 mr-0.5" />Hide all metrics</>
+            ) : (
+              <><ChevronDown className="h-3.5 w-3.5 mr-0.5" />Show all metrics</>
+            )}
+          </Button>
+          {showAll && (
+            <div className="mt-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {rest.map((metric) => (
+                <MetricMini
+                  key={`${creativeId}-ad-metric-all-${metric.label}`}
+                  label={metric.label}
+                  value={metric.value}
+                  tone={metric.tone}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

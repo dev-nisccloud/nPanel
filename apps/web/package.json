@@ -17,6 +17,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
+    "@intercom/messenger-js-sdk": "^0.0.19",
     "@npanel/api": "workspace:*",
     "@npanel/auth": "workspace:*",
     "@npanel/env": "workspace:*",
