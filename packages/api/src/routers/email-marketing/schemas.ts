@@ -413,6 +413,8 @@ export type AudienceContactListResponse = z.infer<
 export const emailEventListFiltersSchema = z.object({
 	campaignRecipientId: optStr(),
 	campaignId: optStr(),
+	/** Filter by recipient email (substring match). */
+	recipientEmail: optStr(),
 	type: emailEventTypeSchema.optional(),
 	limit: z.number().int().min(1).max(100).optional().default(50),
 	offset: z.number().int().min(0).optional().default(0),
@@ -435,7 +437,7 @@ export type EmailEventSummary = z.infer<typeof emailEventSummarySchema>;
 /** Event in list response; may include recipientEmail when listing by campaignId */
 export const emailEventInListSchema = emailEventSummarySchema.extend({
 	recipientEmail: z.string().nullable().optional(),
-	/** Click event link when available (NISC/SES stores it separately). */
+	/** Click event link when available (Nisc/SES stores it separately). */
 	link: z.string().nullable().optional(),
 });
 export type EmailEventInList = z.infer<typeof emailEventInListSchema>;

@@ -30,6 +30,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -58,6 +66,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { format } from "date-fns";
+import { DownloadNiscEmReportButton } from "./agency.nisc-email-marketing/campaigns/_components/report/download-button";
 
 function getEventTypeLabel(type: string): string {
 	const labels: Record<string, string> = {
@@ -84,6 +93,27 @@ function normalizeExternalHref(raw: string): string {
 	if (value.startsWith("//")) return `https:${value}`;
 	// otherwise treat as a hostname/path and make it absolute so it doesn't become app-relative
 	return `https://${value.replace(/^\/+/, "")}`;
+}
+
+function getEventAccent(type: string): { dot: string; text: string; label: string } {
+	switch (type) {
+		case "email_sent":
+			return { dot: "bg-muted-foreground", text: "text-muted-foreground", label: "Sent" };
+		case "email_delivered":
+			return { dot: "bg-emerald-500", text: "text-emerald-600", label: "Delivered" };
+		case "email_opened":
+			return { dot: "bg-emerald-600", text: "text-emerald-700", label: "Opened" };
+		case "email_clicked":
+			return { dot: "bg-primary", text: "text-primary", label: "Clicked" };
+		case "email_bounced":
+			return { dot: "bg-destructive", text: "text-destructive", label: "Bounced" };
+		case "email_complained":
+			return { dot: "bg-orange-500", text: "text-orange-600", label: "Complained" };
+		case "email_failed":
+			return { dot: "bg-slate-600", text: "text-slate-600", label: "Unknown" };
+		default:
+			return { dot: "bg-muted-foreground", text: "text-muted-foreground", label: getEventTypeLabel(type) };
+	}
 }
 
 function getStatusBadge(status: string) {
@@ -187,13 +217,38 @@ export default function CampaignDetailPage() {
 		{ enabled: Boolean(campaignId) }
 	);
 
-	const { data: recentEventsData, isLoading: recentEventsLoading, refetch: refetchRecentEvents } = trpc.niscEmailMarketing.emailEvents.list.useQuery(
-		{ campaignId: campaignId ?? "", limit: 20 },
+	const [eventSearch, setEventSearch] = React.useState("");
+	const [eventType, setEventType] = React.useState<
+		"all" | "email_sent" | "email_delivered" | "email_opened" | "email_clicked" | "email_bounced" | "email_failed"
+	>("all");
+	const [debouncedSearch, setDebouncedSearch] = React.useState("");
+	React.useEffect(() => {
+		const t = setTimeout(() => setDebouncedSearch(eventSearch.trim()), 250);
+		return () => clearTimeout(t);
+	}, [eventSearch]);
+
+	const {
+		data: recentEventsData,
+		isLoading: recentEventsLoading,
+		isFetching: recentEventsFetching,
+		refetch: refetchRecentEvents,
+	} = trpc.niscEmailMarketing.emailEvents.list.useQuery(
+		{
+			campaignId: campaignId ?? "",
+			limit: debouncedSearch ? 50 : 20,
+			type: eventType === "all" ? undefined : eventType,
+			recipientEmail: debouncedSearch || undefined,
+		},
 		{ enabled: Boolean(campaignId) }
 	);
 
 	const { data: topClickedLinks, isLoading: topClickedLinksLoading, refetch: refetchTopClickedLinks } = trpc.niscEmailMarketing.emailEvents.getTopClickedLinks.useQuery(
 		{ campaignId: campaignId ?? "", limit: 10 },
+		{ enabled: Boolean(campaignId) }
+	);
+
+	const { data: reportData, isLoading: reportLoading } = trpc.niscEmailMarketing.emailEvents.getCampaignReport.useQuery(
+		{ campaignId: campaignId ?? "" },
 		{ enabled: Boolean(campaignId) }
 	);
 
@@ -393,6 +448,25 @@ export default function CampaignDetailPage() {
 					</div>
 					<div className="flex items-center gap-2">
 						{getStatusBadge(campaign.status)}
+						{summary && bounceBreakdown && topClickedLinks && reportData ? (
+							<DownloadNiscEmReportButton
+								campaign={reportData.campaign}
+								summary={summary}
+								bounceBreakdown={bounceBreakdown}
+								topClickedLinks={topClickedLinks}
+								report={reportData}
+							/>
+						) : (
+							<Button
+								variant="default"
+								size="sm"
+								disabled
+								className="rounded-full h-8 gap-2 text-primary-foreground"
+							>
+								{reportLoading ? <Spinner className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+								Export Report
+							</Button>
+						)}
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button variant="ghost" size="icon" className="h-8 w-8">
@@ -773,74 +847,153 @@ export default function CampaignDetailPage() {
 							<CardTitle className="text-base">User Interactions</CardTitle>
 						</CardHeader>
 						<CardContent>
-							{recentEventsLoading ? (
-								<div className="space-y-2">
-									<Skeleton className="h-5 w-32" />
-									{[1, 2, 3, 4, 5].map((i) => (
-										<Skeleton key={i} className="h-10 w-full" />
-									))}
-								</div>
-							) : (
-								<>
-									{(recentEventsData?.events.length ?? 0) > 0 || opened > 0 || clicked > 0 ? (
-										<p className="text-sm text-muted-foreground mb-3">
-											Total: {opened} opens, {clicked} clicks
-										</p>
-									) : null}
-									{recentEventsData?.events.length ? (
-										<ScrollArea className="h-[280px] rounded-md border border-border">
-											<ul className="divide-y divide-border text-sm p-1">
-												{recentEventsData.events.map((ev) => (
-													<li key={ev.id} className="py-2.5 first:pt-0 px-2">
-														<div className="flex items-center justify-between gap-2">
-															<span className="font-medium text-foreground">
-																{getEventTypeLabel(ev.type)}
+							{(() => {
+								const listIsLoading = recentEventsLoading || recentEventsFetching;
+								return (
+									<>
+										<div className="flex flex-col gap-3 mb-3">
+											<div className="flex items-center justify-between gap-3">
+												<p className="text-sm text-muted-foreground">
+													Total: {opened} opens, {clicked} clicks
+												</p>
+												<p className="text-xs text-muted-foreground">
+													{(recentEventsData?.events.length ?? 0).toLocaleString()} events
+												</p>
+											</div>
+											<div className="flex flex-col sm:flex-row gap-2">
+												<div className="flex-1 min-w-0">
+													<Input
+														value={eventSearch}
+														onChange={(e) => setEventSearch(e.target.value)}
+														placeholder="Search by recipient email (e.g. user@domain.com)"
+														aria-label="Search events by recipient email"
+														disabled={listIsLoading}
+													/>
+												</div>
+												<Select
+													value={eventType}
+													onValueChange={(v) => setEventType(v as any)}
+													disabled={listIsLoading}
+												>
+													<SelectTrigger className="w-full sm:w-[200px]" aria-label="Filter events by type">
+														<SelectValue placeholder="Filter" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="all">
+															<span className="inline-flex items-center gap-2">
+																<span className="h-2 w-2 rounded-full bg-muted-foreground" aria-hidden />
+																All events
 															</span>
-															<span className="text-muted-foreground tabular-nums shrink-0">
-																{format(new Date(ev.eventCreatedAt), "MMM d, h:mm a")}
+														</SelectItem>
+														<SelectItem value="email_sent">
+															<span className="inline-flex items-center gap-2">
+																<span className="h-2 w-2 rounded-full bg-muted-foreground" aria-hidden />
+																Sent
 															</span>
-														</div>
-														{ev.recipientEmail && (
-															<p className="text-xs text-muted-foreground mt-0.5 truncate">
-																{ev.recipientEmail}
-															</p>
-														)}
-														{ev.type === "email_clicked" && (
-															<p className="text-xs text-muted-foreground mt-1 truncate">
-																{ev.link ? (
-																	<a
-																		href={normalizeExternalHref(ev.link)}
-																		target="_blank"
-																		rel="noopener noreferrer"
-																		className="inline-flex items-center gap-1.5 text-primary hover:underline"
-																		title={ev.link}
-																	>
-																		<span className="truncate">{ev.link}</span>
-																		<ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-																	</a>
-																) : (
-																	<span>Link: —</span>
-																)}
-															</p>
-														)}
-													</li>
+														</SelectItem>
+														<SelectItem value="email_delivered">
+															<span className="inline-flex items-center gap-2">
+																<span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
+																Delivered
+															</span>
+														</SelectItem>
+														<SelectItem value="email_opened">
+															<span className="inline-flex items-center gap-2">
+																<span className="h-2 w-2 rounded-full bg-emerald-600" aria-hidden />
+																Opened
+															</span>
+														</SelectItem>
+														<SelectItem value="email_clicked">
+															<span className="inline-flex items-center gap-2">
+																<span className="h-2 w-2 rounded-full bg-primary" aria-hidden />
+																Clicked
+															</span>
+														</SelectItem>
+														<SelectItem value="email_bounced">
+															<span className="inline-flex items-center gap-2">
+																<span className="h-2 w-2 rounded-full bg-destructive" aria-hidden />
+																Bounced
+															</span>
+														</SelectItem>
+														<SelectItem value="email_failed">
+															<span className="inline-flex items-center gap-2">
+																<span className="h-2 w-2 rounded-full bg-destructive" aria-hidden />
+																Failed
+															</span>
+														</SelectItem>
+													</SelectContent>
+												</Select>
+											</div>
+										</div>
+
+										{listIsLoading ? (
+											<div className="space-y-2">
+												<Skeleton className="h-10 w-full" />
+												{[1, 2, 3, 4, 5].map((i) => (
+													<Skeleton key={i} className="h-10 w-full" />
 												))}
-											</ul>
-										</ScrollArea>
-									) : (
-										<CardEmptyState
-											icon={isAwaitingSend ? Clock : Inbox}
-											title={isAwaitingSend ? "Campaign not sent yet" : "No interactions yet"}
-											description={
-												isAwaitingSend
-													? "Opens and clicks will appear here once the campaign is sent and recipients start engaging."
-											: "Opens and clicks will appear here once recipients engage with the email."
-											}
-											className="min-h-[200px]"
-										/>
-									)}
-								</>
-							)}
+											</div>
+										) : recentEventsData?.events.length ? (
+											<ScrollArea className="h-[280px] rounded-md border border-border">
+												<ul className="divide-y divide-border text-sm p-1">
+													{recentEventsData.events.map((ev) => (
+														<li key={ev.id} className="py-2.5 first:pt-0 px-2">
+															<div className="flex items-center justify-between gap-2">
+																{(() => {
+																	const accent = getEventAccent(ev.type);
+																	return (
+																		<span className={cn("font-medium inline-flex items-center gap-2", accent.text)}>
+																			<span className={cn("h-2 w-2 shrink-0 rounded-full", accent.dot)} aria-hidden />
+																			{accent.label}
+																		</span>
+																	);
+																})()}
+																<span className="text-muted-foreground tabular-nums shrink-0">
+																	{format(new Date(ev.eventCreatedAt), "MMM d, h:mm a")}
+																</span>
+															</div>
+															<p className="text-xs text-muted-foreground mt-0.5 truncate">
+																{ev.recipientEmail ?? "Unknown recipient"}
+															</p>
+															{ev.type === "email_clicked" && (
+																<p className="text-xs text-muted-foreground mt-1 truncate">
+																	{ev.link ? (
+																		<a
+																			href={normalizeExternalHref(ev.link)}
+																			target="_blank"
+																			rel="noopener noreferrer"
+																			className="inline-flex items-center gap-1.5 text-primary hover:underline"
+																			title={ev.link}
+																		>
+																			<span className="truncate">{ev.link}</span>
+																			<ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+																		</a>
+																	) : (
+																		<span>Link: —</span>
+																	)}
+																</p>
+															)}
+														</li>
+													))}
+												</ul>
+											</ScrollArea>
+										) : (
+											<CardEmptyState
+												icon={isAwaitingSend ? Clock : Inbox}
+												title={isAwaitingSend ? "Campaign not sent yet" : debouncedSearch ? "No matching events" : "No interactions yet"}
+												description={
+													isAwaitingSend
+														? "Opens and clicks will appear here once the campaign is sent and recipients start engaging."
+														: debouncedSearch
+															? "Try a different email address or clear the filters."
+															: "Opens and clicks will appear here once recipients engage with the email."
+												}
+												className="min-h-[200px]"
+											/>
+										)}
+									</>
+								);
+							})()}
 						</CardContent>
 					</Card>
 					<Card>

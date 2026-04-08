@@ -275,7 +275,7 @@ export const niscEmailMarketingDomainsRouter = router({
     const userId = ctx.session?.user?.id;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
     // Reuse remove's logic directly by calling the same code path (duplicated here for clarity).
-    // (We keep the existing `remove` procedure for the new NISC UI as well.)
+    // (We keep the existing `remove` procedure for the new Nisc UI as well.)
     const domain = await assertDomainAccess(input.id, userId);
 
     if (domain.teamId) {

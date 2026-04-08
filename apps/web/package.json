@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "react-router dev",
+    "dev": "react-router dev --host",
     "start": "bunx serve -s build/client",
     "typecheck": "react-router typegen && tsc",
     "generate-pwa-assets": "pwa-assets-generator"

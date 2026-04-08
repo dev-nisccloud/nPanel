@@ -234,6 +234,20 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Hosting, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
+        title: "Dedicated Servers",
+        url: "/agency/dedicated-servers",
+        icon: (props: any) => React.createElement(Icons.DedicatedServers, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+      {
+        title: "VPS & VDS",
+        url: "/agency/vps",
+        icon: (props: any) => React.createElement(Icons.VPS, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "VPS", url: "/agency/vps", },
+          { title: "VDS", url: "/agency/vds", },
+        ],
+      },
+      {
         title: "WordPress",
         url: "/agency/wordpress",
         icon: (props: any) => React.createElement(Icons.Wordpress, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
@@ -277,21 +291,21 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Domains", url: "/agency/nisc-email-marketing/domain-configuration", },
         ],
       },
-      {
-        title: "Email Marketing",
-        url: "/agency/email-marketing",
-        icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          // { title: "Metrics", url: "/agency/email-marketing/metrics", },
-          { title: "Campaigns", url: "/agency/email-marketing/campaigns", },
-          // { title: "Emails", url: "/agency/email-marketing/emails", },
-          { title: "Domains", url: "/agency/email-marketing/domain-configuration", },
-          { title: "Audiences", url: "/agency/email-marketing/audiences", },
-          // { title: "Segments", url: "/agency/segments", },
-          // { title: "Templates", url: "/agency/email-marketing/templates", },
-          { title: "Email Builder", url: "/agency/email-marketing/email-builder", },
-        ],
-      },
+      // {
+      //   title: "Email Marketing",
+      //   url: "/agency/email-marketing",
+      //   icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     // { title: "Metrics", url: "/agency/email-marketing/metrics", },
+      //     { title: "Campaigns", url: "/agency/email-marketing/campaigns", },
+      //     // { title: "Emails", url: "/agency/email-marketing/emails", },
+      //     { title: "Domains", url: "/agency/email-marketing/domain-configuration", },
+      //     { title: "Audiences", url: "/agency/email-marketing/audiences", },
+      //     // { title: "Segments", url: "/agency/segments", },
+      //     // { title: "Templates", url: "/agency/email-marketing/templates", },
+      //     { title: "Email Builder", url: "/agency/email-marketing/email-builder", },
+      //   ],
+      // },
       {
         title: "SEO",
         url: "/agency/seo",

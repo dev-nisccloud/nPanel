@@ -27,14 +27,14 @@ function isLoopbackUrl(url: string): boolean {
 }
 
 /**
- * Enqueue a global NISC email marketing dispatcher run.
+ * Enqueue a global Nisc email marketing dispatcher run.
  * This worker is designed to be safe to call many times; a global advisory lock ensures only one run is active.
  */
 export async function enqueueNiscEmDispatch(scheduledFor?: Date | null): Promise<NiscEmDispatchJobResult> {
   const url = getWorkerEndpoint();
   if (!url) {
     throw new Error(
-      "NISC EM dispatch worker URL not configured. Set QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT, VITE_PUBLIC_APP_URL, or VERCEL_URL.",
+      "Nisc EM dispatch worker URL not configured. Set QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT, VITE_PUBLIC_APP_URL, or VERCEL_URL.",
     );
   }
   if (isLoopbackUrl(url)) {
