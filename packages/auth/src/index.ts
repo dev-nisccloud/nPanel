@@ -744,12 +744,37 @@ export const auth = betterAuth<BetterAuthOptions>({
       // in cross-origin fetch() calls — breaking getSession() entirely from the SPA.
       // sameSite:"none" allows cross-site fetch with credentials (requires secure:true,
       // which is already enforced in production below).
-      sameSite:
-        (process.env.BETTER_AUTH_COOKIE_SAMESITE as "lax" | "strict" | "none") ||
-        (env.NODE_ENV === "production" ? "none" : "lax"),
-      secure:
-        env.NODE_ENV === "production" ||
-        process.env.BETTER_AUTH_SECURE_COOKIES === "true",
+      // Cookies must be Secure when sameSite is "none". When running on plain HTTP
+      // (common on LAN dev), Secure cookies will never be set/sent → getSession() stays null.
+      // We auto-downgrade to lax + non-secure on HTTP to keep local/LAN dev working.
+      sameSite: (() => {
+        const explicit = process.env.BETTER_AUTH_COOKIE_SAMESITE as
+          | "lax"
+          | "strict"
+          | "none"
+          | undefined;
+        if (explicit) return explicit;
+
+        const url =
+          process.env.APP_URL ||
+          process.env.CORS_ORIGIN ||
+          process.env.BETTER_AUTH_URL ||
+          env.CORS_ORIGIN ||
+          "";
+        const isHttps = url.startsWith("https://");
+        return env.NODE_ENV === "production" && isHttps ? "none" : "lax";
+      })(),
+      secure: (() => {
+        if (process.env.BETTER_AUTH_SECURE_COOKIES === "true") return true;
+        const url =
+          process.env.APP_URL ||
+          process.env.CORS_ORIGIN ||
+          process.env.BETTER_AUTH_URL ||
+          env.CORS_ORIGIN ||
+          "";
+        const isHttps = url.startsWith("https://");
+        return env.NODE_ENV === "production" && isHttps;
+      })(),
       httpOnly: true,
     },
   },

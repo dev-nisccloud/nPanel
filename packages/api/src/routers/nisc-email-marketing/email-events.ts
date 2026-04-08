@@ -1,8 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq, sql } from "@npanel/db";
+import { and, count, desc, eq, ilike, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { niscEmCampaign, niscEmEmail, niscEmEmailEvent } from "@npanel/db/schema";
 import { teamMember } from "@npanel/db/schema/teams";
+import { team } from "@npanel/db/schema/teams";
+import { user } from "@npanel/db/schema/auth";
 import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc";
 import {
@@ -10,6 +12,8 @@ import {
   campaignEventSummarySchema,
   emailEventListFiltersSchema,
   emailEventListResponseSchema,
+  emailGlobalEventsInputSchema,
+  emailGlobalEventsResponseSchema,
   topClickedLinksInputSchema,
   topClickedLinksResponseSchema,
 } from "../email-marketing/schemas";
@@ -43,6 +47,8 @@ function toLegacyEventType(eventType: string): string {
   switch (eventType) {
     case "Delivery":
       return "email_delivered";
+    case "DeliveryDelay":
+      return "email_delivery_delayed";
     case "Open":
       return "email_opened";
     case "Click":
@@ -53,12 +59,56 @@ function toLegacyEventType(eventType: string): string {
       return "email_complained";
     case "Send":
       return "email_sent";
+    case "Reject":
+    case "RenderingFailure":
+    case "Unknown":
+      return "email_failed";
     default:
-      return `email_${eventType.toLowerCase()}`;
+      // Keep response Zod-safe: if we don't know the event type, treat it as failed
+      // so consumers never crash on unexpected SES eventType values.
+      return "email_failed";
   }
 }
 
 export const niscEmailMarketingEmailEventsRouter = router({
+  getGlobalEvents: protectedProcedure
+    .input(emailGlobalEventsInputSchema)
+    .query(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+      }
+
+      const userRole = session.user.role;
+      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to view global email events",
+        });
+      }
+
+      const conditions = [];
+      if (input.from) conditions.push(sql`${niscEmEmailEvent.occurredAt} >= ${input.from}`);
+      if (input.to) conditions.push(sql`${niscEmEmailEvent.occurredAt} <= ${input.to}`);
+      const whereClause = conditions.length > 0 ? and(...conditions) : sql`true`;
+
+      const rows = await db
+        .select({
+          type: niscEmEmailEvent.eventType,
+          eventCreatedAt: niscEmEmailEvent.occurredAt,
+        })
+        .from(niscEmEmailEvent)
+        .where(whereClause)
+        .orderBy(niscEmEmailEvent.occurredAt);
+
+      return emailGlobalEventsResponseSchema.parse(
+        rows.map((r) => ({
+          type: toLegacyEventType(r.type) as any,
+          eventCreatedAt: r.eventCreatedAt,
+        })),
+      );
+    }),
+
   getCampaignSummary: protectedProcedure
     .input(campaignEventSummaryInputSchema)
     .query(async ({ ctx, input }) => {
@@ -94,6 +144,83 @@ export const niscEmailMarketingEmailEventsRouter = router({
         unsubscribed: 0,
         complained: Number(agg?.complained ?? 0),
       });
+    }),
+
+  getCampaignReport: protectedProcedure
+    .input(z.object({ campaignId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+
+      await assertCampaignAccess(input.campaignId, userId);
+
+      const [campaign] = await db
+        .select({
+          id: niscEmCampaign.id,
+          userId: niscEmCampaign.userId,
+          teamId: niscEmCampaign.teamId,
+          name: niscEmCampaign.name,
+          subject: niscEmCampaign.subject,
+          fromEmail: niscEmCampaign.fromEmail,
+          fromName: niscEmCampaign.fromName,
+          replyTo: niscEmCampaign.replyTo,
+          status: niscEmCampaign.status,
+          totalRecipients: niscEmCampaign.totalRecipients,
+          scheduledAt: niscEmCampaign.scheduledAt,
+          sentAt: niscEmCampaign.sentAt,
+          completedAt: niscEmCampaign.completedAt,
+          createdAt: niscEmCampaign.createdAt,
+          updatedAt: niscEmCampaign.updatedAt,
+        })
+        .from(niscEmCampaign)
+        .where(eq(niscEmCampaign.id, input.campaignId))
+        .limit(1);
+
+      if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+
+      const [creatorRow, teamRow] = await Promise.all([
+        db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, campaign.userId)).limit(1),
+        campaign.teamId
+          ? db.select({ name: team.name }).from(team).where(eq(team.id, campaign.teamId)).limit(1)
+          : Promise.resolve([] as Array<{ name: string }>),
+      ]);
+
+      // Average time-to-event (ms) from per-email sentAt to each event timestamp.
+      const avgRes = await db.execute<{
+        avgDeliveryMs: number | null;
+        avgOpenMs: number | null;
+        avgClickMs: number | null;
+      }>(sql`
+        select
+          avg(extract(epoch from (m.delivered_at - m.sent_at)) * 1000) filter (where m.delivered_at is not null and m.sent_at is not null) as "avgDeliveryMs",
+          avg(extract(epoch from (m.opened_at - m.sent_at)) * 1000) filter (where m.opened_at is not null and m.sent_at is not null) as "avgOpenMs",
+          avg(extract(epoch from (m.clicked_at - m.sent_at)) * 1000) filter (where m.clicked_at is not null and m.sent_at is not null) as "avgClickMs"
+        from ${niscEmEmail} m
+        where m.campaign_id = ${input.campaignId}
+      `);
+      const avgRow = (avgRes as unknown as { rows?: any[] }).rows?.[0] ?? {};
+
+      const sendDurationMs =
+        campaign.sentAt && campaign.completedAt
+          ? new Date(campaign.completedAt).getTime() - new Date(campaign.sentAt).getTime()
+          : null;
+
+      return {
+        campaign: {
+          ...campaign,
+          creator: {
+            name: creatorRow?.[0]?.name ?? null,
+            email: creatorRow?.[0]?.email ?? null,
+          },
+          companyName: teamRow?.[0]?.name ?? null,
+        },
+        timing: {
+          avgDeliveryMs: avgRow.avgDeliveryMs != null ? Number(avgRow.avgDeliveryMs) : null,
+          avgOpenMs: avgRow.avgOpenMs != null ? Number(avgRow.avgOpenMs) : null,
+          avgClickMs: avgRow.avgClickMs != null ? Number(avgRow.avgClickMs) : null,
+          sendDurationMs,
+        },
+      };
     }),
 
   getBounceBreakdown: protectedProcedure
@@ -162,9 +289,25 @@ export const niscEmailMarketingEmailEventsRouter = router({
 
     const conditions = [eq(niscEmEmail.campaignId, input.campaignId)];
     if (input.type) {
-      // input.type is legacy (email_opened, etc). Best-effort map.
-      const wanted = input.type.toLowerCase().replace(/^email_/, "");
-      conditions.push(sql`lower(${niscEmEmailEvent.eventType}) = ${wanted}`);
+      // input.type is legacy (email_opened, etc). Map to SES SNS eventType values.
+      const map: Record<string, string> = {
+        email_sent: "Send",
+        email_delivered: "Delivery",
+        email_opened: "Open",
+        email_clicked: "Click",
+        email_bounced: "Bounce",
+        email_complained: "Complaint",
+        email_delivery_delayed: "DeliveryDelay",
+        // Closest SES failure-type event that appears in eventType.
+        email_failed: "RenderingFailure",
+      };
+      const wantedEventType = map[input.type] ?? "";
+      if (wantedEventType) {
+        conditions.push(eq(niscEmEmailEvent.eventType, wantedEventType));
+      }
+    }
+    if (input.recipientEmail) {
+      conditions.push(ilike(niscEmEmailEvent.recipientEmail, `%${input.recipientEmail}%`));
     }
 
     const whereClause = and(...conditions);
@@ -173,7 +316,7 @@ export const niscEmailMarketingEmailEventsRouter = router({
       db
         .select({
           id: niscEmEmailEvent.id,
-          campaignRecipientId: sql<string>`coalesce(${niscEmEmailEvent.emailId}, 'missing')`,
+          campaignRecipientId: sql<string>`coalesce(${niscEmEmail.id}, coalesce(${niscEmEmailEvent.emailId}, 'missing'))`,
           type: niscEmEmailEvent.eventType,
           eventCreatedAt: niscEmEmailEvent.occurredAt,
           resendEmailId: sql<string | null>`null`,
@@ -183,12 +326,17 @@ export const niscEmailMarketingEmailEventsRouter = router({
           link: niscEmEmailEvent.link,
         })
         .from(niscEmEmailEvent)
-        .leftJoin(niscEmEmail, eq(niscEmEmailEvent.emailId, niscEmEmail.id))
+        // Join by SES message id to remain robust even when emailId is missing in the event row.
+        .leftJoin(niscEmEmail, eq(niscEmEmailEvent.sesMessageId, niscEmEmail.sesMessageId))
         .where(whereClause)
         .orderBy(desc(niscEmEmailEvent.occurredAt))
         .limit(input.limit)
         .offset(input.offset),
-      db.select({ value: count() }).from(niscEmEmailEvent).leftJoin(niscEmEmail, eq(niscEmEmailEvent.emailId, niscEmEmail.id)).where(whereClause),
+      db
+        .select({ value: count() })
+        .from(niscEmEmailEvent)
+        .leftJoin(niscEmEmail, eq(niscEmEmailEvent.sesMessageId, niscEmEmail.sesMessageId))
+        .where(whereClause),
     ]);
 
     return emailEventListResponseSchema.parse({

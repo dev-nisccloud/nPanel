@@ -53,18 +53,35 @@ const visitorsChartConfig = {
   },
 } satisfies ChartConfig;
 
-const emailChartConfig = {
+const emailChartConfigBase = {
   sent: {
     label: "Sent",
-    color: "var(--chart-1)",
+    color: "#64748b",
+  },
+  delivered: {
+    label: "Delivered",
+    color: "#10b981",
   },
   opened: {
     label: "Opened",
-    color: "var(--chart-2)",
+    color: "#059669",
   },
+  // clicked color is injected dynamically from computed theme
   clicked: {
     label: "Clicked",
-    color: "var(--chart-3)",
+    color: "#0f172a",
+  },
+  bounced: {
+    label: "Bounced",
+    color: "#ef4444",
+  },
+  complained: {
+    label: "Complained",
+    color: "#f97316",
+  },
+  unknown: {
+    label: "Unknown",
+    color: "#334155",
   },
 } satisfies ChartConfig;
 
@@ -179,24 +196,52 @@ function VisitorsChart() {
 function EmailMarketingChart() {
   const isMobile = useIsMobile();
   const [timeRange, setTimeRange] = React.useState("30d");
+  const [clickedColor, setClickedColor] = React.useState<string>("#0f172a");
+
+  React.useEffect(() => {
+    // Avoid nested CSS vars inside SVG stopColor by computing a concrete color string.
+    const raw = getComputedStyle(document.documentElement).getPropertyValue("--primary").trim();
+    if (!raw) return;
+    setClickedColor(raw.startsWith("#") ? raw : `hsl(${raw})`);
+  }, []);
+
+  const emailChartConfig = React.useMemo(
+    () => ({
+      ...emailChartConfigBase,
+      clicked: { ...emailChartConfigBase.clicked, color: clickedColor },
+    }),
+    [clickedColor],
+  );
 
   const fromDate = React.useMemo(() => {
     const days = timeRange === "7d" ? 7 : 30;
     return subDays(new Date(), days);
   }, [timeRange]);
 
-  const { data: events = [], isLoading } = trpc.emailMarketing.emailEvents.getGlobalEvents.useQuery({
+  const { data: events = [], isLoading } = trpc.niscEmailMarketing.emailEvents.getGlobalEvents.useQuery({
     from: fromDate,
   });
 
   const chartData = React.useMemo(() => {
     const days = timeRange === "7d" ? 7 : 30;
-    const data: Record<string, { date: string; sent: number; opened: number; clicked: number }> = {};
+    const data: Record<
+      string,
+      {
+        date: string;
+        sent: number;
+        delivered: number;
+        opened: number;
+        clicked: number;
+        bounced: number;
+        complained: number;
+        unknown: number;
+      }
+    > = {};
 
     // Initialize with all dates in range
     for (let i = 0; i <= days; i++) {
       const date = format(subDays(new Date(), i), "yyyy-MM-dd");
-      data[date] = { date, sent: 0, opened: 0, clicked: 0 };
+      data[date] = { date, sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, complained: 0, unknown: 0 };
     }
 
     // Populate with real data
@@ -204,8 +249,12 @@ function EmailMarketingChart() {
       const dateStr = format(event.eventCreatedAt, "yyyy-MM-dd");
       if (data[dateStr]) {
         if (event.type === "email_sent") data[dateStr].sent++;
+        if (event.type === "email_delivered") data[dateStr].delivered++;
         if (event.type === "email_opened") data[dateStr].opened++;
         if (event.type === "email_clicked") data[dateStr].clicked++;
+        if (event.type === "email_bounced") data[dateStr].bounced++;
+        if (event.type === "email_complained") data[dateStr].complained++;
+        if (event.type === "email_failed") data[dateStr].unknown++;
       }
     });
 
@@ -269,6 +318,10 @@ function EmailMarketingChart() {
                 <stop offset="5%" stopColor="var(--color-sent)" stopOpacity={1.0} />
                 <stop offset="95%" stopColor="var(--color-sent)" stopOpacity={0.1} />
               </linearGradient>
+              <linearGradient id="fillDelivered" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-delivered)" stopOpacity={0.9} />
+                <stop offset="95%" stopColor="var(--color-delivered)" stopOpacity={0.1} />
+              </linearGradient>
               <linearGradient id="fillOpened" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="var(--color-opened)" stopOpacity={0.8} />
                 <stop offset="95%" stopColor="var(--color-opened)" stopOpacity={0.1} />
@@ -276,6 +329,18 @@ function EmailMarketingChart() {
               <linearGradient id="fillClicked" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="var(--color-clicked)" stopOpacity={0.8} />
                 <stop offset="95%" stopColor="var(--color-clicked)" stopOpacity={0.1} />
+              </linearGradient>
+              <linearGradient id="fillBounced" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-bounced)" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="var(--color-bounced)" stopOpacity={0.1} />
+              </linearGradient>
+              <linearGradient id="fillComplained" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-complained)" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="var(--color-complained)" stopOpacity={0.1} />
+              </linearGradient>
+              <linearGradient id="fillUnknown" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-unknown)" stopOpacity={0.75} />
+                <stop offset="95%" stopColor="var(--color-unknown)" stopOpacity={0.1} />
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} />
@@ -308,8 +373,12 @@ function EmailMarketingChart() {
                 />
               }
             />
-            <Area dataKey="clicked" type="natural" fill="url(#fillClicked)" stroke="var(--color-clicked)" stackId="a" />
+            <Area dataKey="bounced" type="natural" fill="url(#fillBounced)" stroke="var(--color-bounced)" stackId="a" />
+            <Area dataKey="complained" type="natural" fill="url(#fillComplained)" stroke="var(--color-complained)" stackId="a" />
+            <Area dataKey="unknown" type="natural" fill="url(#fillUnknown)" stroke="var(--color-unknown)" stackId="a" />
+            <Area dataKey="clicked" type="natural" fill="url(#fillClicked)" stroke="var(--color-clicked)" stackId="a" strokeWidth={2} />
             <Area dataKey="opened" type="natural" fill="url(#fillOpened)" stroke="var(--color-opened)" stackId="a" />
+            <Area dataKey="delivered" type="natural" fill="url(#fillDelivered)" stroke="var(--color-delivered)" stackId="a" />
             <Area dataKey="sent" type="natural" fill="url(#fillSent)" stroke="var(--color-sent)" stackId="a" />
           </AreaChart>
         </ChartContainer>
