@@ -243,8 +243,8 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/vps",
         icon: (props: any) => React.createElement(Icons.VPS, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "VPS", url: "/agency/vps", },
-          { title: "VDS", url: "/agency/vds", },
+          { title: "VPS Hosting", url: "/agency/vps", },
+          { title: "VDS Hosting", url: "/agency/vds", },
         ],
       },
       {
