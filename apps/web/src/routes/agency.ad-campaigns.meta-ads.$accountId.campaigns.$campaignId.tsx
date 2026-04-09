@@ -1274,6 +1274,14 @@ function AdSetItem({
                         <span className="sr-only">Toggle details</span>
                     </Button>
                 </div>
+                <div className="mt-3 flex items-center justify-between">
+                    <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider opacity-70">
+                        Click to view full details
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground/60 font-medium">
+                        Expand for ads, targeting, and performance
+                    </span>
+                </div>
             </CardHeader>
 
             <div className={cn("grid transition-all", isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>

@@ -13,12 +13,179 @@ import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ArrowLeft, RefreshCw, AlertCircle, Layers, FileText, Crosshair, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DownloadLinkedInAdsReportButton } from "./agency.ad-campaigns/linkedin-ads/_components/report/download-button";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 function formatNumber(value: number | string | null | undefined): string {
   if (value === null || value === undefined || value === "") return "—";
   const num = typeof value === "string" ? parseFloat(value) : Number(value);
   if (Number.isNaN(num)) return "0";
   return num.toLocaleString("en-US", { maximumFractionDigits: num % 1 === 0 ? 0 : 2 });
+}
+
+function formatCompactNumber(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "—";
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
+  if (Number.isNaN(num)) return "0";
+  try {
+    return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(num);
+  } catch {
+    return formatNumber(num);
+  }
+}
+
+function buildSmartTicks(maxValue: number): number[] | undefined {
+  if (!Number.isFinite(maxValue) || maxValue <= 0) return undefined;
+  if (maxValue <= 5_000) {
+    return Array.from({ length: 11 }, (_, i) => i * 500); // 0..5000 step 500
+  }
+  // After 5k, prefer 5k increments (5k/10k/15k/...)
+  const preferredStep = 5_000;
+  const preferredTop = Math.ceil(maxValue / preferredStep) * preferredStep;
+  const preferredCount = preferredTop / preferredStep + 1;
+  if (preferredCount <= 12) {
+    return Array.from({ length: preferredCount }, (_, i) => i * preferredStep);
+  }
+
+  // If values are very large, keep tick count reasonable by widening the step.
+  const fallbackSteps = [10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000];
+  for (const step of fallbackSteps) {
+    const top = Math.ceil(maxValue / step) * step;
+    const count = top / step + 1;
+    if (count <= 12) return Array.from({ length: count }, (_, i) => i * step);
+  }
+
+  const step = 2_000_000;
+  const top = Math.ceil(maxValue / step) * step;
+  return Array.from({ length: Math.min(12, top / step + 1) }, (_, i) => i * step);
+}
+
+function getSmartYAxisDomainMax(maxValue: number): number | "auto" {
+  const ticks = buildSmartTicks(maxValue);
+  const last = ticks?.[ticks.length - 1];
+  return typeof last === "number" && Number.isFinite(last) && last > 0 ? last : "auto";
+}
+
+function wrapXAxisLabel(input: string, opts?: { maxCharsPerLine?: number; maxLines?: number }): string[] {
+  const maxCharsPerLine = Math.max(6, Math.floor(opts?.maxCharsPerLine ?? 18));
+  const maxLines = Math.max(1, Math.floor(opts?.maxLines ?? 3));
+
+  const s = String(input ?? "").trim();
+  if (!s) return ["—"];
+
+  // Prefer word-wrapping; fall back to hard-splitting long tokens.
+  const words = s.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+
+  const pushCurrent = () => {
+    if (current.trim()) lines.push(current.trim());
+    current = "";
+  };
+
+  for (const w of words) {
+    // If the word itself is too long, split it.
+    if (w.length > maxCharsPerLine) {
+      if (current) pushCurrent();
+      for (let i = 0; i < w.length; i += maxCharsPerLine) {
+        lines.push(w.slice(i, i + maxCharsPerLine));
+        if (lines.length >= maxLines) break;
+      }
+      if (lines.length >= maxLines) break;
+      continue;
+    }
+
+    const next = current ? `${current} ${w}` : w;
+    if (next.length <= maxCharsPerLine) {
+      current = next;
+    } else {
+      pushCurrent();
+      current = w;
+      if (lines.length >= maxLines) break;
+    }
+  }
+  pushCurrent();
+
+  // Clamp and add ellipsis if we had to truncate.
+  const combined = lines.join(" ").replace(/\s+/g, " ").trim();
+  const wasTruncated = combined.length < s.replace(/\s+/g, " ").trim().length || lines.length > maxLines;
+  const clamped = lines.slice(0, maxLines);
+  if (wasTruncated && clamped.length > 0) {
+    const i = clamped.length - 1;
+    const base = clamped[i].replace(/…$/g, "").trim();
+    clamped[i] = base.length >= maxCharsPerLine ? `${base.slice(0, Math.max(0, maxCharsPerLine - 1))}…` : `${base}…`;
+  }
+  return clamped.length > 0 ? clamped : ["—"];
+}
+
+function MultiLineXAxisTick(props: any) {
+  const { x, y, payload } = props;
+  const value = String(payload?.value ?? "");
+  const lines = wrapXAxisLabel(value, { maxCharsPerLine: 18, maxLines: 3 });
+
+  // Recharts positions ticks at the baseline; shift down a bit and use tspans.
+  return (
+    <text x={x} y={y} textAnchor="middle" fill="currentColor" fontSize={9}>
+      {lines.map((line, idx) => (
+        <tspan key={idx} x={x} dy={idx === 0 ? 10 : 12}>
+          {line}
+        </tspan>
+      ))}
+    </text>
+  );
+}
+
+function VerticalXAxisTick(props: any) {
+  const { x, y, payload } = props;
+  const value = String(payload?.value ?? "");
+  // Rotate around the tick point so the label runs vertically downward.
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor="end"
+      fill="currentColor"
+      fontSize={9}
+      transform={`rotate(-90, ${x}, ${y})`}
+    >
+      {value}
+    </text>
+  );
+}
+
+function calcVerticalTickHeight(labels: Array<string | null | undefined>, fontSize = 9): number {
+  const longest = Math.max(0, ...labels.map((s) => String(s ?? "").length));
+  // Rough width estimate per character at this font size.
+  const charPx = Math.max(5, Math.round(fontSize * 0.62));
+  const needed = longest * charPx + 18; // + padding so descenders don't clip
+  return Math.min(260, Math.max(70, needed));
+}
+
+function truncateLabel(label: string, max = 16): string {
+  const s = String(label || "");
+  if (s.length <= max) return s;
+  return `${s.slice(0, Math.max(0, max - 1))}…`;
 }
 
 function formatCurrency(value: number | string | null | undefined, currency: string): string {
@@ -62,6 +229,71 @@ function statusStyles(status?: string | null): { variant: "outline" | "secondary
 function humanizeLabel(value?: string | null): string {
   if (!value) return "N/A";
   return value.replace(/_/g, " ");
+}
+
+function toTopNBreakdownRows(
+  rows: any[] | null | undefined,
+  key: "impressions" | "clicks" | "spend" | "conversions" | "leads" = "impressions",
+  n = 10
+): Array<{ name: string; value: number }> {
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+  return [...rows]
+    .map((r) => ({ name: String(r?.pivot ?? "Unknown"), value: Number(r?.[key] ?? 0) }))
+    .filter((r) => r.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, n);
+}
+
+function toTopNBreakdownRowsMulti(rows: any[] | null | undefined, n = 10): Array<{
+  name: string;
+  impressions: number;
+  clicks: number;
+  spend: number;
+  leads: number;
+  videoViews: number;
+}> {
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+  return [...rows]
+    .map((r) => ({
+      name: String(r?.pivot ?? "Unknown"),
+      impressions: Number(r?.impressions ?? 0),
+      clicks: Number(r?.clicks ?? 0),
+      spend: Number(r?.spend ?? 0),
+      leads: Number(r?.leads ?? 0),
+      videoViews: Number(r?.videoViews ?? 0),
+    }))
+    .filter((r) => r.impressions > 0 || r.clicks > 0 || r.spend > 0 || r.leads > 0 || r.videoViews > 0)
+    .sort((a, b) => (b.impressions + b.clicks) - (a.impressions + a.clicks))
+    .slice(0, n);
+}
+
+function toSafeCssKey(input: string): string {
+  const base = (input || "unknown")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return base || "unknown";
+}
+
+function buildCategoryChartConfig(
+  rows: Array<{ name: string; value: number }>,
+  paletteSize = 5
+): { config: ChartConfig; nameToKey: Record<string, string> } {
+  const cfg: Record<string, { label: string; color: string }> = {};
+  const nameToKey: Record<string, string> = {};
+
+  rows.forEach((r, idx) => {
+    const label = String(r.name || "Unknown");
+    let key = toSafeCssKey(label);
+    // ensure unique keys
+    if (cfg[key]) key = `${key}_${idx}`;
+    nameToKey[label] = key;
+    cfg[key] = { label, color: `var(--chart-${(idx % paletteSize) + 1})` };
+  });
+
+  cfg.unknown = cfg.unknown || { label: "Unknown", color: "var(--chart-5)" };
+  return { config: cfg satisfies ChartConfig, nameToKey };
 }
 
 /**
@@ -195,11 +427,7 @@ function parseLinkedInTargeting(targetingCriteria: any): Array<{ label: string; 
       facetKey.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\b\w/g, (m) => m.toUpperCase());
 
     let names: string[];
-    if (facetKey === "titles" && urns.length > 20) {
-      names = [`${urns.length} job titles`];
-    } else {
-      names = urns.map((urn) => resolveLinkedInUrn(facetKey, urn));
-    }
+    names = urns.map((urn) => resolveLinkedInUrn(facetKey, urn));
 
     if (names.length > 0) {
       results.push({ label, content: names.join(", ") });
@@ -213,6 +441,13 @@ function toTitleFromKey(key: string): string {
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function extractLinkedInNumericId(input: any): string {
+  const s = String(input ?? "");
+  if (!s) return "";
+  if (s.startsWith("urn:li:")) return s.split(":").pop() || "";
+  return s.replace(/[^0-9]/g, "");
 }
 
 function CampaignTargeting({ campaignId, targetingCriteria }: { campaignId: string | number; targetingCriteria: any }) {
@@ -459,6 +694,60 @@ export default function LinkedInCampaignDetailsPage() {
   const currency = accountData?.data?.currency || "USD";
   const campaignIds = React.useMemo(() => campaigns.map((campaign: any) => String(campaign.id)), [campaigns]);
 
+  // ---------------------------------------------------------------------------
+  // Reporting (LinkedIn adAnalytics) for charts (Google Ads-style blocks)
+  // ---------------------------------------------------------------------------
+
+  const insightsEnabled = !!accountId && !!campaignGroupId && !!campaignGroup;
+
+  const { data: dailyPerformanceData, isLoading: isLoadingDailyPerformance } =
+    trpc.linkedInAds.insights.getDailyPerformance.useQuery(
+      { accountId, campaignGroupId, timeRange },
+      { enabled: insightsEnabled, refetchOnWindowFocus: false, retry: 1, staleTime: 2 * 60 * 1000 }
+    );
+
+  const { data: deviceBreakdownData, isLoading: isLoadingDeviceBreakdown } =
+    trpc.linkedInAds.insights.getBreakdown.useQuery(
+      { accountId, campaignGroupId, timeRange, pivot: "IMPRESSION_DEVICE_TYPE" },
+      { enabled: insightsEnabled, refetchOnWindowFocus: false, retry: 1, staleTime: 5 * 60 * 1000 }
+    );
+
+  const { data: placementBreakdownData, isLoading: isLoadingPlacementBreakdown } =
+    trpc.linkedInAds.insights.getBreakdown.useQuery(
+      { accountId, campaignGroupId, timeRange, pivot: "PLACEMENT_NAME" },
+      { enabled: insightsEnabled, refetchOnWindowFocus: false, retry: 1, staleTime: 5 * 60 * 1000 }
+    );
+
+  const { data: servingLocationBreakdownData, isLoading: isLoadingServingLocationBreakdown } =
+    trpc.linkedInAds.insights.getBreakdown.useQuery(
+      { accountId, campaignGroupId, timeRange, pivot: "SERVING_LOCATION" },
+      { enabled: insightsEnabled, refetchOnWindowFocus: false, retry: 1, staleTime: 5 * 60 * 1000 }
+    );
+
+  const { data: companySizeBreakdownData, isLoading: isLoadingCompanySizeBreakdown } =
+    trpc.linkedInAds.insights.getBreakdown.useQuery(
+      { accountId, campaignGroupId, timeRange, pivot: "MEMBER_COMPANY_SIZE" },
+      { enabled: insightsEnabled, refetchOnWindowFocus: false, retry: 1, staleTime: 10 * 60 * 1000 }
+    );
+
+  const { data: seniorityBreakdownData, isLoading: isLoadingSeniorityBreakdown } =
+    trpc.linkedInAds.insights.getBreakdown.useQuery(
+      { accountId, campaignGroupId, timeRange, pivot: "MEMBER_SENIORITY" },
+      { enabled: insightsEnabled, refetchOnWindowFocus: false, retry: 1, staleTime: 10 * 60 * 1000 }
+    );
+
+  const { data: jobFunctionBreakdownData, isLoading: isLoadingJobFunctionBreakdown } =
+    trpc.linkedInAds.insights.getBreakdown.useQuery(
+      { accountId, campaignGroupId, timeRange, pivot: "MEMBER_JOB_FUNCTION" },
+      { enabled: insightsEnabled, refetchOnWindowFocus: false, retry: 1, staleTime: 10 * 60 * 1000 }
+    );
+
+  const { data: industryBreakdownData, isLoading: isLoadingIndustryBreakdown } =
+    trpc.linkedInAds.insights.getBreakdown.useQuery(
+      { accountId, campaignGroupId, timeRange, pivot: "MEMBER_INDUSTRY" },
+      { enabled: insightsEnabled, refetchOnWindowFocus: false, retry: 1, staleTime: 10 * 60 * 1000 }
+    );
+
   const {
     data: accountCreativesData,
     isLoading: isLoadingAccountCreatives,
@@ -493,6 +782,44 @@ export default function LinkedInCampaignDetailsPage() {
   );
 
   const creativeInsightsById = creativeInsightsData?.data || {};
+
+  const adsByAdSetId = React.useMemo(() => {
+    const creatives = accountCreativesData?.data || [];
+    const out: Record<string, any[]> = {};
+    for (const c of creatives) {
+      const adSetId = extractLinkedInNumericId(c?.campaign);
+      if (!adSetId) continue;
+      const creativeId = String(c?.id ?? "");
+      if (!creativeId) continue;
+      const insights = creativeInsightsById?.[creativeId] || null;
+      if (!out[adSetId]) out[adSetId] = [];
+      out[adSetId].push({
+        ...c,
+        id: creativeId,
+        name: c?.name || `Ad ${creativeId}`,
+        insights,
+      });
+    }
+    for (const [k, arr] of Object.entries(out)) {
+      out[k] = (arr || [])
+        .slice()
+        .sort((a: any, b: any) => Number(b?.insights?.impressions || 0) - Number(a?.insights?.impressions || 0));
+    }
+    return out;
+  }, [accountCreativesData, creativeInsightsById]);
+
+  const bulkTargetingItems = React.useMemo(() => {
+    return (campaigns || [])
+      .filter((c: any) => !!c?.targetingCriteria)
+      .map((c: any) => ({ campaignId: String(c.id), targetingCriteria: c.targetingCriteria }));
+  }, [campaigns]);
+
+  const { data: targetingBulkData } = trpc.linkedInAds.campaigns.resolveTargetingCriteriaBulk.useQuery(
+    { items: bulkTargetingItems },
+    { enabled: bulkTargetingItems.length > 0, refetchOnWindowFocus: false, retry: 1, staleTime: 10 * 60 * 1000 }
+  );
+
+  const targetingByAdSetId = targetingBulkData?.data || {};
 
   const [previewCreative, setPreviewCreative] = React.useState<any | null>(null);
   const previewCreativeId = previewCreative ? String(previewCreative.id) : null;
@@ -628,10 +955,44 @@ export default function LinkedInCampaignDetailsPage() {
               <p className="text-xs text-muted-foreground">LinkedIn Ads campaign group details</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="rounded-full h-8 gap-2">
-            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="rounded-full h-8 gap-2">
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+              Refresh
+            </Button>
+            <DownloadLinkedInAdsReportButton
+              campaignGroup={campaignGroup}
+              accountName={accountData?.data?.name || accountData?.data?.accountName || accountId}
+              currency={currency}
+              timeRange={timeRange}
+              totals={{
+                impressions: metrics.totalImpressions,
+                clicks: metrics.totalClicks,
+                spend: metrics.totalSpend,
+                conversions: metrics.totalConversions,
+                avgCpc: metrics.avgCPC,
+                avgCtr: metrics.avgCTR,
+              }}
+              dailyPerformance={dailyPerformanceData?.data || []}
+              breakdowns={{
+                device: deviceBreakdownData?.data || [],
+                placement: placementBreakdownData?.data || [],
+                servingLocation: servingLocationBreakdownData?.data || [],
+                companySize: companySizeBreakdownData?.data || [],
+                seniority: seniorityBreakdownData?.data || [],
+                jobFunction: jobFunctionBreakdownData?.data || [],
+                industry: industryBreakdownData?.data || [],
+              }}
+              adsByAdSetId={adsByAdSetId}
+              adSets={(campaigns || []).map((c: any) => ({
+                id: String(c.id),
+                name: c.name || `Campaign ${c.id}`,
+                status: c.status,
+                insights: c.insights,
+                targetingSummary: targetingByAdSetId?.[String(c.id)] || parseLinkedInTargeting(c?.targetingCriteria),
+              }))}
+            />
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -721,6 +1082,9 @@ export default function LinkedInCampaignDetailsPage() {
                             <p className="text-xs text-muted-foreground">ID: {campaign.id}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider opacity-70">
+                              Click for full details
+                            </Badge>
                             <Badge variant="outline" className="text-[10px]">
                               Ads
                             </Badge>
@@ -775,6 +1139,552 @@ export default function LinkedInCampaignDetailsPage() {
                 })}
               </Accordion>
             )}
+          </div>
+
+          {/* Performance Trends (Google Ads-style) */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <h2 className="text-lg font-semibold">Performance Trends</h2>
+            </div>
+
+            <Card className="border-muted/60 shadow-none overflow-hidden bg-muted/5">
+              <CardHeader className="border-b border-muted/60 py-5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-base font-semibold">Daily Activity</CardTitle>
+                    <p className="text-xs text-muted-foreground">Impressions, clicks, and spend over time</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {isLoadingDailyPerformance ? (
+                  <Skeleton className="h-[320px] w-full" />
+                ) : (dailyPerformanceData?.data || []).length > 0 ? (
+                  <ChartContainer
+                    config={
+                      {
+                        impressions: { label: "Impressions", color: "var(--chart-2)" },
+                        clicks: { label: "Clicks", color: "var(--chart-1)" },
+                        spend: { label: "Spend", color: "var(--chart-3)" },
+                      } satisfies ChartConfig
+                    }
+                    className="h-[320px] w-full"
+                  >
+                    {(() => {
+                      const rows = dailyPerformanceData?.data || [];
+                      const max = Math.max(
+                        0,
+                        ...rows.flatMap((r: any) => [
+                          Number(r?.impressions ?? 0),
+                          Number(r?.clicks ?? 0),
+                          Number(r?.spend ?? 0),
+                        ])
+                      );
+                      const ticks = buildSmartTicks(max);
+                      const domainMax = getSmartYAxisDomainMax(max);
+                      return (
+                        <LineChart data={rows}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                          <XAxis
+                            dataKey="date"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10 }}
+                            tickFormatter={(val) => (val ? format(new Date(val), "MMM dd") : "")}
+                          />
+                          <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10 }}
+                            tickFormatter={formatCompactNumber}
+                            ticks={ticks}
+                            domain={[0, domainMax]}
+                            allowDataOverflow
+                            interval={0}
+                          />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <ChartLegend content={<ChartLegendContent />} />
+                          <Line type="monotone" dataKey="impressions" stroke="var(--chart-2)" strokeWidth={2.5} dot={false} />
+                          <Line type="monotone" dataKey="clicks" stroke="var(--chart-1)" strokeWidth={2.5} dot={false} />
+                          <Line type="monotone" dataKey="spend" stroke="var(--chart-3)" strokeWidth={2.5} dot={false} />
+                        </LineChart>
+                      );
+                    })()}
+                  </ChartContainer>
+                ) : (
+                  <div className="h-[320px] flex items-center justify-center text-muted-foreground italic text-sm border border-dashed rounded-lg bg-background">
+                    No daily performance data available for this range
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="flex flex-wrap gap-6">
+              <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col flex-1 min-w-[260px]">
+                <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Daily Spend</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[240px] pt-6">
+                  {isLoadingDailyPerformance ? (
+                    <Skeleton className="h-full w-full" />
+                  ) : (dailyPerformanceData?.data || []).length > 0 ? (
+                    <ChartContainer
+                      config={
+                        {
+                          spend: { label: "Spend", color: "var(--chart-3)" },
+                        } satisfies ChartConfig
+                      }
+                      className="h-full w-full"
+                    >
+                      <AreaChart data={dailyPerformanceData?.data || []}>
+                        <defs>
+                          <linearGradient id="liFillSpend" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={0.18} />
+                            <stop offset="95%" stopColor="var(--chart-3)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <XAxis
+                          dataKey="date"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 9 }}
+                          tickFormatter={(val) => (val ? format(new Date(val), "MMM dd") : "")}
+                        />
+                        <YAxis hide />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Area type="monotone" dataKey="spend" stroke="var(--chart-3)" fill="url(#liFillSpend)" strokeWidth={2} />
+                      </AreaChart>
+                    </ChartContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground uppercase opacity-40 font-bold">
+                      No Data
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col flex-1 min-w-[260px]">
+                <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Device Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[240px] pt-6">
+                  {isLoadingDeviceBreakdown ? (
+                    <Skeleton className="h-full w-full" />
+                  ) : (deviceBreakdownData?.data || []).length > 0 ? (
+                    (() => {
+                      const rows = toTopNBreakdownRows(deviceBreakdownData?.data, "impressions", 6);
+                      const { config: cfg, nameToKey } = buildCategoryChartConfig(rows);
+                      const pieData = rows.map((d) => ({
+                        name: nameToKey[String(d.name || "Unknown")] || "unknown",
+                        value: d.value,
+                        fill: `var(--color-${nameToKey[String(d.name || "Unknown")] || "unknown"})`,
+                      }));
+                      return (
+                        <ChartContainer config={cfg} className="h-full w-full">
+                          <PieChart>
+                            <Pie
+                              data={pieData}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={70}
+                              innerRadius={40}
+                              paddingAngle={2}
+                            >
+                              {pieData.map((d, idx) => (
+                                <Cell key={idx} fill={d.fill} />
+                              ))}
+                            </Pie>
+                            <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="name" />} />
+                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                          </PieChart>
+                        </ChartContainer>
+                      );
+                    })()
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground uppercase opacity-40 font-bold">
+                      No Data
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col flex-1 min-w-[260px]">
+                <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Placement Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[240px] pt-6">
+                  {isLoadingPlacementBreakdown ? (
+                    <Skeleton className="h-full w-full" />
+                  ) : (placementBreakdownData?.data || []).length > 0 ? (
+                    <ChartContainer
+                      config={
+                        {
+                          impressions: { label: "Impressions", color: "var(--chart-1)" },
+                          clicks: { label: "Clicks", color: "var(--chart-2)" },
+                        } satisfies ChartConfig
+                      }
+                      className="h-full w-full"
+                    >
+                      <BarChart
+                        data={toTopNBreakdownRowsMulti(placementBreakdownData?.data, 8)}
+                        layout="vertical"
+                        margin={{ left: 10, right: 10 }}
+                      >
+                        <XAxis type="number" hide />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700 }} width={95} />
+                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                        <Bar dataKey="impressions" fill="var(--color-impressions)" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="clicks" fill="var(--color-clicks)" radius={[0, 4, 4, 0]} barSize={10} />
+                      </BarChart>
+                    </ChartContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground uppercase opacity-40 font-bold">
+                      No Data
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col flex-1 min-w-[260px]">
+                <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Serving Location</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[240px] pt-6">
+                  {isLoadingServingLocationBreakdown ? (
+                    <Skeleton className="h-full w-full" />
+                  ) : (servingLocationBreakdownData?.data || []).length > 0 ? (
+                    (() => {
+                      const rows = toTopNBreakdownRows(servingLocationBreakdownData?.data, "impressions", 6);
+                      const { config: cfg, nameToKey } = buildCategoryChartConfig(rows);
+                      const pieData = rows.map((d) => ({
+                        name: nameToKey[String(d.name || "Unknown")] || "unknown",
+                        value: d.value,
+                        fill: `var(--color-${nameToKey[String(d.name || "Unknown")] || "unknown"})`,
+                      }));
+                      return (
+                        <ChartContainer config={cfg} className="h-full w-full">
+                          <PieChart>
+                            <Pie
+                              data={pieData}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={70}
+                              innerRadius={40}
+                              paddingAngle={2}
+                            />
+                            <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="name" />} />
+                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                          </PieChart>
+                        </ChartContainer>
+                      );
+                    })()
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground uppercase opacity-40 font-bold">
+                      No Data
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card className="border-muted/60 shadow-none overflow-hidden w-full">
+                <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Company Size</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[520px] pt-6">
+                  {isLoadingCompanySizeBreakdown ? (
+                    <Skeleton className="h-full w-full" />
+                  ) : (companySizeBreakdownData?.data || []).length > 0 ? (
+                    <ChartContainer
+                      config={
+                        {
+                          impressions: { label: "Impressions", color: "var(--chart-2)" },
+                          clicks: { label: "Clicks", color: "var(--chart-1)" },
+                          videoViews: { label: "Video Views", color: "var(--chart-5)" },
+                          leads: { label: "Leads", color: "var(--chart-4)" },
+                          spend: { label: "Spend", color: "var(--chart-3)" },
+                        } satisfies ChartConfig
+                      }
+                      className="h-full w-full"
+                    >
+                      {(() => {
+                        const rows = toTopNBreakdownRowsMulti(companySizeBreakdownData?.data, 12);
+                        const max = Math.max(
+                          0,
+                          ...rows.flatMap((r) => [r.impressions, r.clicks, r.videoViews, r.leads, r.spend])
+                        );
+                        const ticks = buildSmartTicks(max);
+                        const domainMax = getSmartYAxisDomainMax(max);
+                        const axisH = calcVerticalTickHeight(rows.map((r) => r?.name), 9);
+                        return (
+                      <LineChart data={rows} margin={{ left: 24, right: 24, bottom: axisH }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <XAxis
+                          dataKey="name"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={<VerticalXAxisTick />}
+                          tickMargin={12}
+                          height={axisH}
+                          interval={0}
+                          minTickGap={0}
+                          padding={{ left: 12, right: 12 }}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={formatCompactNumber}
+                          ticks={ticks}
+                          domain={[0, domainMax]}
+                          allowDataOverflow
+                          interval={0}
+                        />
+                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Line type="monotone" dataKey="impressions" stroke="var(--color-impressions)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="clicks" stroke="var(--color-clicks)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="videoViews" stroke="var(--color-videoViews)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="leads" stroke="var(--color-leads)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="spend" stroke="var(--color-spend)" strokeWidth={2} dot={false} />
+                      </LineChart>
+                        );
+                      })()}
+                    </ChartContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground uppercase opacity-40 font-bold">
+                      No Data
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-muted/60 shadow-none overflow-hidden w-full">
+                <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Seniority</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[520px] pt-6">
+                  {isLoadingSeniorityBreakdown ? (
+                    <Skeleton className="h-full w-full" />
+                  ) : (seniorityBreakdownData?.data || []).length > 0 ? (
+                    <ChartContainer
+                      config={
+                        {
+                          impressions: { label: "Impressions", color: "var(--chart-2)" },
+                          clicks: { label: "Clicks", color: "var(--chart-1)" },
+                          videoViews: { label: "Video Views", color: "var(--chart-5)" },
+                          leads: { label: "Leads", color: "var(--chart-4)" },
+                          spend: { label: "Spend", color: "var(--chart-3)" },
+                        } satisfies ChartConfig
+                      }
+                      className="h-full w-full"
+                    >
+                      {(() => {
+                        const rows = toTopNBreakdownRowsMulti(seniorityBreakdownData?.data, 12);
+                        const max = Math.max(
+                          0,
+                          ...rows.flatMap((r) => [r.impressions, r.clicks, r.videoViews, r.leads, r.spend])
+                        );
+                        const ticks = buildSmartTicks(max);
+                        const domainMax = getSmartYAxisDomainMax(max);
+                        const axisH = calcVerticalTickHeight(rows.map((r) => r?.name), 9);
+                        return (
+                      <LineChart data={rows} margin={{ left: 24, right: 24, bottom: axisH }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <XAxis
+                          dataKey="name"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={<VerticalXAxisTick />}
+                          tickMargin={12}
+                          height={axisH}
+                          interval={0}
+                          minTickGap={0}
+                          padding={{ left: 12, right: 12 }}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={formatCompactNumber}
+                          ticks={ticks}
+                          domain={[0, domainMax]}
+                          allowDataOverflow
+                          interval={0}
+                        />
+                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Line type="monotone" dataKey="impressions" stroke="var(--color-impressions)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="clicks" stroke="var(--color-clicks)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="videoViews" stroke="var(--color-videoViews)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="leads" stroke="var(--color-leads)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="spend" stroke="var(--color-spend)" strokeWidth={2} dot={false} />
+                      </LineChart>
+                        );
+                      })()}
+                    </ChartContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground uppercase opacity-40 font-bold">
+                      No Data
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-muted/60 shadow-none overflow-hidden w-full">
+                <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Job Function</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {isLoadingJobFunctionBreakdown ? (
+                    <Skeleton className="h-[520px] w-full" />
+                  ) : (jobFunctionBreakdownData?.data || []).length > 0 ? (
+                    <ChartContainer
+                      config={
+                        {
+                          impressions: { label: "Impressions", color: "var(--chart-2)" },
+                          clicks: { label: "Clicks", color: "var(--chart-1)" },
+                          videoViews: { label: "Video Views", color: "var(--chart-5)" },
+                          leads: { label: "Leads", color: "var(--chart-4)" },
+                          spend: { label: "Spend", color: "var(--chart-3)" },
+                        } satisfies ChartConfig
+                      }
+                      className="w-full"
+                    >
+                      {(() => {
+                        const rows = toTopNBreakdownRowsMulti(jobFunctionBreakdownData?.data, 12);
+                        const axisH = calcVerticalTickHeight(rows.map((r) => r?.name), 9);
+                        const plotH = 320;
+                        const chartH = axisH + plotH;
+                        const max = Math.max(
+                          0,
+                          ...rows.flatMap((r) => [r.impressions, r.clicks, r.videoViews, r.leads, r.spend])
+                        );
+                        const ticks = buildSmartTicks(max);
+                        const domainMax = getSmartYAxisDomainMax(max);
+                        return (
+                      <LineChart height={chartH} data={rows} margin={{ left: 24, right: 24, bottom: axisH }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <XAxis
+                          dataKey="name"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={<VerticalXAxisTick />}
+                          tickMargin={12}
+                          height={axisH}
+                          interval={0}
+                          minTickGap={0}
+                          padding={{ left: 12, right: 12 }}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={formatCompactNumber}
+                          ticks={ticks}
+                          domain={[0, domainMax]}
+                          allowDataOverflow
+                          interval={0}
+                        />
+                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Line type="monotone" dataKey="impressions" stroke="var(--color-impressions)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="clicks" stroke="var(--color-clicks)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="videoViews" stroke="var(--color-videoViews)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="leads" stroke="var(--color-leads)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="spend" stroke="var(--color-spend)" strokeWidth={2} dot={false} />
+                      </LineChart>
+                        );
+                      })()}
+                    </ChartContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground uppercase opacity-40 font-bold">
+                      No Data
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-muted/60 shadow-none overflow-hidden w-full">
+                <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Industry</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {isLoadingIndustryBreakdown ? (
+                    <Skeleton className="h-[520px] w-full" />
+                  ) : (industryBreakdownData?.data || []).length > 0 ? (
+                    <ChartContainer
+                      config={
+                        {
+                          impressions: { label: "Impressions", color: "var(--chart-2)" },
+                          clicks: { label: "Clicks", color: "var(--chart-1)" },
+                          videoViews: { label: "Video Views", color: "var(--chart-5)" },
+                          leads: { label: "Leads", color: "var(--chart-4)" },
+                          spend: { label: "Spend", color: "var(--chart-3)" },
+                        } satisfies ChartConfig
+                      }
+                      className="w-full"
+                    >
+                      {(() => {
+                        const rows = toTopNBreakdownRowsMulti(industryBreakdownData?.data, 12);
+                        const axisH = calcVerticalTickHeight(rows.map((r) => r?.name), 9);
+                        const plotH = 320;
+                        const chartH = axisH + plotH;
+                        const max = Math.max(
+                          0,
+                          ...rows.flatMap((r) => [r.impressions, r.clicks, r.videoViews, r.leads, r.spend])
+                        );
+                        const ticks = buildSmartTicks(max);
+                        const domainMax = getSmartYAxisDomainMax(max);
+                        return (
+                      <LineChart height={chartH} data={rows} margin={{ left: 24, right: 24, bottom: axisH }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <XAxis
+                          dataKey="name"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={<VerticalXAxisTick />}
+                          tickMargin={12}
+                          height={axisH}
+                          interval={0}
+                          minTickGap={0}
+                          padding={{ left: 12, right: 12 }}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={formatCompactNumber}
+                          ticks={ticks}
+                          domain={[0, domainMax]}
+                          allowDataOverflow
+                          interval={0}
+                        />
+                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Line type="monotone" dataKey="impressions" stroke="var(--color-impressions)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="clicks" stroke="var(--color-clicks)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="videoViews" stroke="var(--color-videoViews)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="leads" stroke="var(--color-leads)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="spend" stroke="var(--color-spend)" strokeWidth={2} dot={false} />
+                      </LineChart>
+                        );
+                      })()}
+                    </ChartContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground uppercase opacity-40 font-bold">
+                      No Data
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
@@ -834,6 +1744,9 @@ function CampaignAdsAccordion({
               <p className="text-sm font-medium">Ads</p>
               <p className="text-[11px] text-muted-foreground">Open to load ad metrics and previews.</p>
             </div>
+            <Badge variant="secondary" className="ml-auto text-[10px] font-bold uppercase tracking-wider opacity-70">
+              Click for full report
+            </Badge>
           </div>
         </AccordionTrigger>
         <AccordionContent className="pb-3 space-y-3">

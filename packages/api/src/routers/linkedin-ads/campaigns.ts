@@ -626,6 +626,147 @@ export const linkedInAdsCampaignsRouter = router({
 		}),
 
 	/**
+	 * Bulk version of resolveTargetingCriteria for PDFs/exports.
+	 * Accepts multiple campaign targetingCriteria blobs and resolves all names with
+	 * de-duped LinkedIn API calls.
+	 */
+	resolveTargetingCriteriaBulk: protectedProcedure
+		.input(z.object({
+			items: z.array(z.object({
+				campaignId: z.string().min(1),
+				targetingCriteria: z.any(),
+			})).min(1).max(60),
+		}))
+		.query(async ({ input, ctx }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+			const { accessToken } = await getUserIntegration(userId);
+
+			const extractId = (urn: string) => {
+				const colonIdx = urn.indexOf(':(');
+				return colonIdx !== -1 ? urn.slice(colonIdx + 1) : String(urn).split(':').pop() || urn;
+			};
+
+			const facetLabel = (k: string) =>
+				TARGETING_FACET_LABELS[k] || k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, m => m.toUpperCase());
+
+			// Build per-campaign facet maps and a global facet->ids/urns union.
+			const perCampaign: Record<string, Map<string, string[]>> = {};
+			const globalIdsByFacet = new Map<string, Set<string>>();
+			const globalUrnsByFacet = new Map<string, Set<string>>();
+
+			for (const item of input.items) {
+				const facetMap = new Map<string, string[]>();
+				const andBlocks = item.targetingCriteria?.include?.and;
+				if (Array.isArray(andBlocks)) {
+					for (const block of andBlocks) {
+						const orData = block?.or;
+						if (!orData || typeof orData !== 'object') continue;
+						for (const [facetUrn, values] of Object.entries(orData)) {
+							if (!Array.isArray(values) || values.length === 0) continue;
+							const facetKey = String(facetUrn).split(':').pop() || facetUrn;
+							if (!facetMap.has(facetKey)) facetMap.set(facetKey, []);
+							facetMap.get(facetKey)!.push(...(values as string[]));
+						}
+					}
+				}
+				perCampaign[item.campaignId] = facetMap;
+
+				for (const [facetKey, urns] of facetMap.entries()) {
+					if (!globalUrnsByFacet.has(facetKey)) globalUrnsByFacet.set(facetKey, new Set());
+					const urnSet = globalUrnsByFacet.get(facetKey)!;
+					for (const u of urns) urnSet.add(u);
+
+					if (!globalIdsByFacet.has(facetKey)) globalIdsByFacet.set(facetKey, new Set());
+					const idSet = globalIdsByFacet.get(facetKey)!;
+					for (const u of urns) idSet.add(extractId(u));
+				}
+			}
+
+			// Resolve names per facet (one call per facet type).
+			const resolvedByFacet: Record<string, Record<string, string>> = {};
+
+			const tasks: Array<Promise<{ facetKey: string; names: Record<string, string> }>> = [];
+
+			for (const facetKey of globalIdsByFacet.keys()) {
+				const ids = Array.from(globalIdsByFacet.get(facetKey) || []);
+				const urns = Array.from(globalUrnsByFacet.get(facetKey) || []);
+
+				if (PARSEABLE_FACETS.has(facetKey)) {
+					// No API resolution needed; handled per-campaign via parseInlineFacet.
+					continue;
+				}
+
+				if (BATCH_GET_CONFIG[facetKey]) {
+					const cfg = BATCH_GET_CONFIG[facetKey];
+					tasks.push(
+						batchGetNames(accessToken, cfg.endpoint, ids, cfg.nameExtractor, cfg.extraParams)
+							.then(r => ({ facetKey, names: r.names }))
+					);
+					continue;
+				}
+
+				if (GET_ALL_CONFIG[facetKey]) {
+					const cfg = GET_ALL_CONFIG[facetKey];
+					tasks.push(
+						getAllNames(accessToken, cfg.endpoint, multiLocaleName, cfg.extraParams)
+							.then(r => ({ facetKey, names: r.names }))
+					);
+					continue;
+				}
+
+				if (facetKey === 'locations' || facetKey === 'profileLocations') {
+					const geoUrns = urns;
+					const geoIds = ids;
+					tasks.push((async () => {
+						const encodedUrns = geoUrns.map(u => encodeURIComponent(u));
+						const rawUrns = `urns=List(${encodedUrns.join(',')})`;
+						const { url: urlStr, statusCode, text } = await fetchAdTargetingEntitiesByUrns(accessToken, rawUrns);
+						if (statusCode < 400) {
+							const data = JSON.parse(text);
+							const names: Record<string, string> = {};
+							for (const el of (data?.elements || data?.results || [])) {
+								const urn: string = (el as any)?.urn ?? (el as any)?.$URN ?? '';
+								const numId = urn.split(':').pop() || '';
+								const name: string = adTargetingEntityName(el);
+								if (numId && name) names[numId] = name;
+							}
+							return { facetKey, names };
+						}
+						const geo = await batchGetGeoNames(accessToken, geoIds);
+						return { facetKey, names: geo.names };
+					})());
+					continue;
+				}
+
+				// Unknown facet, no resolution.
+			}
+
+			const resolved = await Promise.all(tasks);
+			for (const r of resolved) resolvedByFacet[r.facetKey] = r.names;
+
+			// Build per-campaign outputs.
+			const out: Record<string, Array<{ label: string; content: string }>> = {};
+			for (const [campaignId, facetMap] of Object.entries(perCampaign)) {
+				const results: Array<{ label: string; content: string }> = [];
+				for (const [facetKey, urns] of facetMap.entries()) {
+					if (PARSEABLE_FACETS.has(facetKey)) {
+						const names = parseInlineFacet(facetKey, urns);
+						if (names.length) results.push({ label: facetLabel(facetKey), content: names.join(', ') });
+						continue;
+					}
+					const ids = urns.map(extractId);
+					const map = resolvedByFacet[facetKey] || {};
+					const names = ids.map(id => map[id] || id);
+					if (names.length) results.push({ label: facetLabel(facetKey), content: names.join(', ') });
+				}
+				out[campaignId] = results;
+			}
+
+			return { data: out };
+		}),
+
+	/**
 	 * Get campaign details
 	 */
 	getCampaignDetails: protectedProcedure
