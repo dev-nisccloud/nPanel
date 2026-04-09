@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+import { DownloadGoogleAdsReportButton } from "./agency.ad-campaigns/google-ads/_components/report/download-button";
 import { Separator } from "@/components/ui/separator";
 import {
     Tooltip,
@@ -73,6 +74,117 @@ function formatCustomerIdDisplay(customerId: string): string {
     return raw.length === 10
         ? `${raw.slice(0, 3)}-${raw.slice(3, 6)}-${raw.slice(6)}`
         : customerId;
+}
+
+type TargetingRow = { label: string; content: string };
+
+function TargetingField({ label, content }: { label: string; content: string }) {
+    const [expanded, setExpanded] = React.useState(false);
+    const ref = React.useRef<HTMLDivElement>(null);
+    const [showToggle, setShowToggle] = React.useState(false);
+
+    React.useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        if (!expanded && el.scrollHeight > el.clientHeight) setShowToggle(true);
+    }, [content, expanded]);
+
+    const hasContent = (content || "").trim().length > 0;
+
+    return (
+        <div className="space-y-1">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                {label}
+            </div>
+            <div
+                ref={ref}
+                className={cn(
+                    "text-sm font-medium leading-relaxed break-words",
+                    !expanded && "line-clamp-3",
+                    !hasContent && "text-muted-foreground italic"
+                )}
+            >
+                {hasContent ? content : "—"}
+            </div>
+            {showToggle && hasContent && (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 text-primary hover:bg-primary/10 text-xs font-medium"
+                    onClick={() => setExpanded((e) => !e)}
+                >
+                    {expanded ? (
+                        <>
+                            <ChevronUp className="h-3.5 w-3.5 mr-0.5" />
+                            Show less
+                        </>
+                    ) : (
+                        <>
+                            <ChevronDown className="h-3.5 w-3.5 mr-0.5" />
+                            Show more
+                        </>
+                    )}
+                </Button>
+            )}
+        </div>
+    );
+}
+
+function TargetingSection({
+    title,
+    rows,
+    isLoading,
+    emptyLabel = "No targeting available",
+}: {
+    title: string;
+    rows: TargetingRow[] | null | undefined;
+    isLoading: boolean;
+    emptyLabel?: string;
+}) {
+    return (
+        <Card className="border-muted/60 shadow-none overflow-hidden bg-muted/5">
+            <CardHeader className="border-b border-muted/60 py-3 bg-muted/10">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-md bg-primary/10">
+                            <Target className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-sm font-bold">{title}</CardTitle>
+                            <CardDescription className="text-[10px] opacity-60">Criteria-based targeting from Google Ads</CardDescription>
+                        </div>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="p-4">
+                {isLoading ? (
+                    <div className="space-y-3">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-4/5" />
+                    </div>
+                ) : (rows?.length ?? 0) > 0 ? (
+                    <div className="space-y-4">
+                        {rows!.map((row) => (
+                            <TargetingField
+                                key={`${title}-${row.label}`}
+                                label={row.label}
+                                content={row.content || ""}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="py-8 text-center border border-dashed rounded-xl bg-background">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest opacity-40 italic font-bold">
+                            {emptyLabel}
+                        </p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
 }
 
 export default function GoogleAdsCampaignPage() {
@@ -134,6 +246,29 @@ export default function GoogleAdsCampaignPage() {
     );
 
     const adGroups = adGroupsData?.data || [];
+
+    const {
+        data: campaignTargetingData,
+        isLoading: isLoadingCampaignTargeting,
+    } = trpc.googleAds.campaigns.getCampaignTargeting.useQuery(
+        { customerId, campaignId },
+        { enabled: !!customerId && !!campaignId, refetchOnWindowFocus: false }
+    );
+
+    const adGroupIds = React.useMemo(() => (adGroups || []).map((g: any) => String(g.id)).filter(Boolean), [adGroups]);
+
+    const {
+        data: bulkAdGroupTargetingData,
+        isLoading: isLoadingBulkAdGroupTargeting,
+    } = trpc.googleAds.campaigns.getBulkAdGroupTargeting.useQuery(
+        { customerId, adGroupIds },
+        { enabled: !!customerId && adGroupIds.length > 0, refetchOnWindowFocus: false }
+    );
+
+    const { data: bulkAdsData } = trpc.googleAds.ads.listAdsBulk.useQuery(
+        { customerId, adGroupIds, timeRange },
+        { enabled: !!customerId && adGroupIds.length > 0, refetchOnWindowFocus: false }
+    );
 
     // Fetch trends and breakdowns
     const { data: dailyPerformance, isLoading: isLoadingDaily } = trpc.googleAds.insights.getDailyPerformance.useQuery(
@@ -310,6 +445,31 @@ export default function GoogleAdsCampaignPage() {
                         <p className="text-xs text-muted-foreground mt-0.5">Google Ads campaign details</p>
                     </div>
 
+                    <div className="shrink-0">
+                        <DownloadGoogleAdsReportButton
+                            customerId={customerId}
+                            campaign={campaign}
+                            accountName={accountDetails?.data?.accountName}
+                            currency={currency}
+                            timeRange={timeRange}
+                            campaignTargeting={campaignTargetingData?.data || []}
+                            adGroups={adGroups || []}
+                            dailyPerformance={dailyPerformance?.data || []}
+                            breakdowns={{
+                                gender: genderBreakdown,
+                                device: deviceBreakdown,
+                                region: regionBreakdown,
+                                age_range: ageRangeBreakdown,
+                                search_terms: searchTermsBreakdown,
+                            }}
+                            keywordsPerformance={keywordsPerformance}
+                            networkBreakdown={networkBreakdown}
+                            timeOfDayBreakdown={timeOfDayBreakdown}
+                            adGroupTargetingById={bulkAdGroupTargetingData?.data || {}}
+                            adsByAdGroupId={bulkAdsData?.data || {}}
+                        />
+                    </div>
+
                     <div className="hidden md:flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1.5 font-medium">
                             <Building2 className="h-3.5 w-3.5 opacity-60" />
@@ -369,6 +529,13 @@ export default function GoogleAdsCampaignPage() {
                             color="blue"
                         />
                     </div>
+
+                    <TargetingSection
+                        title="Campaign Targeting"
+                        rows={campaignTargetingData?.data}
+                        isLoading={isLoadingCampaignTargeting}
+                        emptyLabel="No campaign-level targeting criteria found"
+                    />
                 </div>
 
                 {/* Section: Ad Groups (Accordion Style) - Moved up */}
@@ -380,6 +547,14 @@ export default function GoogleAdsCampaignPage() {
                         <Badge variant="outline" className="text-[10px] font-bold opacity-40 border-dashed rounded-full px-3">
                             {adGroups.length} AD GROUPS
                         </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider opacity-70">
+                            Click an ad group to view full report
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground/60 font-medium">
+                            Expand for targeting, metrics, and ads
+                        </span>
                     </div>
 
                     {isLoadingAdGroups ? (
@@ -404,6 +579,8 @@ export default function GoogleAdsCampaignPage() {
                                     adGroup={adGroup}
                                     customerId={customerId}
                                     currency={currency}
+                                    targetingRows={bulkAdGroupTargetingData?.data?.[String(adGroup.id)]?.data}
+                                    isLoadingTargeting={isLoadingBulkAdGroupTargeting}
                                 />
                             ))}
                         </div>
@@ -469,8 +646,8 @@ export default function GoogleAdsCampaignPage() {
                         </CardContent>
                     </Card>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col">
+                    <div className="flex flex-wrap gap-6">
+                        <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col flex-1 min-w-[260px]">
                             <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
                                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Daily Spend</CardTitle>
                             </CardHeader>
@@ -512,7 +689,7 @@ export default function GoogleAdsCampaignPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col">
+                        <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col flex-1 min-w-[260px]">
                             <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
                                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Gender</CardTitle>
                             </CardHeader>
@@ -567,7 +744,7 @@ export default function GoogleAdsCampaignPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col">
+                        <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col flex-1 min-w-[260px]">
                             <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
                                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Devices</CardTitle>
                             </CardHeader>
@@ -598,7 +775,7 @@ export default function GoogleAdsCampaignPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col">
+                        <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col flex-1 min-w-[260px]">
                             <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
                                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Age Groups</CardTitle>
                             </CardHeader>
@@ -628,7 +805,7 @@ export default function GoogleAdsCampaignPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col">
+                        <Card className="border-muted/60 shadow-none overflow-hidden flex flex-col flex-1 min-w-[260px]">
                             <CardHeader className="pb-2 bg-muted/5 border-b border-muted/60 py-3">
                                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest opacity-60">Network Breakdown</CardTitle>
                             </CardHeader>
@@ -945,7 +1122,19 @@ export default function GoogleAdsCampaignPage() {
 /**
  * Accordion-style Ad Group Item (Matches Meta Ads Flow)
  */
-function AdGroupAccordionItem({ adGroup, customerId, currency }: { adGroup: any, customerId: string, currency: string }) {
+function AdGroupAccordionItem({
+    adGroup,
+    customerId,
+    currency,
+    targetingRows,
+    isLoadingTargeting,
+}: {
+    adGroup: any;
+    customerId: string;
+    currency: string;
+    targetingRows?: TargetingRow[] | null;
+    isLoadingTargeting: boolean;
+}) {
     const [isExpanded, setIsExpanded] = React.useState(false);
     const { data: adsData, isLoading: isLoadingAds } = trpc.googleAds.ads.listAds.useQuery(
         { customerId, adGroupId: adGroup.id },
@@ -997,6 +1186,9 @@ function AdGroupAccordionItem({ adGroup, customerId, currency }: { adGroup: any,
                 </div>
 
                 <div className="flex items-center gap-6 shrink-0">
+                    <Badge variant="secondary" className="hidden md:inline-flex text-[9px] font-bold uppercase tracking-wider opacity-70">
+                        Click for details
+                    </Badge>
                     <div className="hidden sm:grid grid-cols-2 gap-x-8 gap-y-1">
                         <div className="text-right">
                             <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Clicks</p>
@@ -1039,7 +1231,24 @@ function AdGroupAccordionItem({ adGroup, customerId, currency }: { adGroup: any,
                                 label="Conversions"
                                 value={parseInt(adGroup.insights?.conversions || "0").toLocaleString()}
                             />
+                            <MetricBox
+                                label="Interactions"
+                                value={parseInt(adGroup.insights?.interactions || "0").toLocaleString()}
+                            />
+                            <MetricBox
+                                label="Conv. Value"
+                                value={new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(parseFloat(adGroup.insights?.conversions_value || "0"))}
+                            />
                         </div>
+
+                        <Separator className="opacity-50" />
+
+                        <TargetingSection
+                            title="Ad Group Targeting"
+                            rows={targetingRows}
+                            isLoading={isLoadingTargeting}
+                            emptyLabel="No ad group-level targeting criteria found"
+                        />
 
                         <Separator className="opacity-50" />
 
@@ -1115,6 +1324,9 @@ function AdAccordionItem({ ad }: { ad: any }) {
                         </div>
                     </div>
                 </div>
+                <Badge variant="secondary" className="hidden md:inline-flex text-[9px] font-bold uppercase tracking-wider opacity-70">
+                    Click for details
+                </Badge>
                 <div className={cn(
                     "p-1 rounded-full bg-muted/30 transition-transform duration-300",
                     isExpanded && "rotate-180 bg-primary/10 text-primary"
@@ -1125,11 +1337,13 @@ function AdAccordionItem({ ad }: { ad: any }) {
 
             {isExpanded && ad.insights && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-1 duration-200 fade-in border-t border-muted/30 bg-muted/5">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-4">
                         <MetricBoxSmall label="Clicks" value={parseInt(ad.insights.clicks || "0").toLocaleString()} icon={<MousePointer2 className="h-3 w-3" />} />
                         <MetricBoxSmall label="Impressions" value={parseInt(ad.insights.impressions || "0").toLocaleString()} icon={<Target className="h-3 w-3" />} />
                         <MetricBoxSmall label="CTR" value={`${parseFloat(ad.insights.ctr || "0").toFixed(2)}%`} icon={<TrendingUp className="h-3 w-3" />} />
                         <MetricBoxSmall label="Conversions" value={parseInt(ad.insights.conversions || "0").toLocaleString()} icon={<Activity className="h-3 w-3" />} />
+                        <MetricBoxSmall label="Interactions" value={parseInt(ad.insights.interactions || "0").toLocaleString()} icon={<Zap className="h-3 w-3" />} />
+                        <MetricBoxSmall label="Conv. Value" value={`$${parseFloat(ad.insights.conversions_value || "0").toFixed(2)}`} icon={<DollarSign className="h-3 w-3" />} />
                     </div>
                 </div>
             )}

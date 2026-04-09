@@ -107,10 +107,15 @@ export const googleAdsAdGroupsRouter = router({
 						ad_group.campaign,
 						metrics.impressions,
 						metrics.clicks,
+						metrics.interactions,
+						metrics.interaction_rate,
 						metrics.cost_micros,
 						metrics.ctr,
 						metrics.average_cpc,
 						metrics.conversions,
+						metrics.conversions_value,
+						metrics.all_conversions,
+						metrics.all_conversions_value,
 						metrics.cost_per_conversion,
 						segments.date
 					FROM ad_group
@@ -139,10 +144,15 @@ export const googleAdsAdGroupsRouter = router({
 						metrics: {
 							impressions: number;
 							clicks: number;
+							interactions?: number;
+							interaction_rate?: number;
 							cost_micros: number;
 							ctr?: number;
 							average_cpc_micros?: number;
 							conversions?: number;
+							conversions_value?: number;
+							all_conversions?: number;
+							all_conversions_value?: number;
 							cost_per_conversion_micros?: number;
 						};
 					}
@@ -182,10 +192,15 @@ export const googleAdsAdGroupsRouter = router({
 							metrics: {
 								impressions: 0,
 								clicks: 0,
+								interactions: 0,
+								interaction_rate: 0,
 								cost_micros: 0,
 								ctr: 0,
 								average_cpc_micros: 0,
 								conversions: 0,
+								conversions_value: 0,
+								all_conversions: 0,
+								all_conversions_value: 0,
 								cost_per_conversion_micros: 0,
 							},
 						});
@@ -197,6 +212,11 @@ export const googleAdsAdGroupsRouter = router({
 					if (row.metrics) {
 						adGroup.metrics.impressions += Number(row.metrics.impressions || 0);
 						adGroup.metrics.clicks += Number(row.metrics.clicks || 0);
+						adGroup.metrics.interactions = (adGroup.metrics.interactions || 0) + Number(row.metrics.interactions || 0);
+						// rate fields can't be summed; we'll compute from totals or keep latest non-zero
+						if (row.metrics.interaction_rate !== undefined && Number(row.metrics.interaction_rate || 0) > 0) {
+							adGroup.metrics.interaction_rate = Number(row.metrics.interaction_rate || 0);
+						}
 						adGroup.metrics.cost_micros += Number(row.metrics.cost_micros || 0);
 						if (row.metrics.conversions !== undefined && row.metrics.conversions !== null) {
 							// Ensure conversions is initialized
@@ -204,6 +224,15 @@ export const googleAdsAdGroupsRouter = router({
 								adGroup.metrics.conversions = 0;
 							}
 							adGroup.metrics.conversions += Number(row.metrics.conversions || 0);
+						}
+						if (row.metrics.conversions_value !== undefined && row.metrics.conversions_value !== null) {
+							adGroup.metrics.conversions_value = (adGroup.metrics.conversions_value || 0) + Number(row.metrics.conversions_value || 0);
+						}
+						if (row.metrics.all_conversions !== undefined && row.metrics.all_conversions !== null) {
+							adGroup.metrics.all_conversions = (adGroup.metrics.all_conversions || 0) + Number(row.metrics.all_conversions || 0);
+						}
+						if (row.metrics.all_conversions_value !== undefined && row.metrics.all_conversions_value !== null) {
+							adGroup.metrics.all_conversions_value = (adGroup.metrics.all_conversions_value || 0) + Number(row.metrics.all_conversions_value || 0);
 						}
 						if (row.metrics.average_cpc !== undefined && Number(row.metrics.average_cpc || 0) > 0) {
 							adGroup.metrics.average_cpc_micros = Number(row.metrics.average_cpc || 0);
@@ -244,6 +273,9 @@ export const googleAdsAdGroupsRouter = router({
 					const ctr = adGroup.metrics.impressions > 0
 						? (adGroup.metrics.clicks / adGroup.metrics.impressions) * 100
 						: 0;
+					const interactionRate = adGroup.metrics.impressions > 0
+						? ((adGroup.metrics.interactions || 0) / adGroup.metrics.impressions) * 100
+						: 0;
 
 					return {
 						id: adGroup.id,
@@ -257,11 +289,20 @@ export const googleAdsAdGroupsRouter = router({
 						insights: {
 							impressions: adGroup.metrics.impressions > 0 ? String(adGroup.metrics.impressions) : null,
 							clicks: adGroup.metrics.clicks > 0 ? String(adGroup.metrics.clicks) : null,
+							interactions: (adGroup.metrics.interactions || 0) > 0 ? String(adGroup.metrics.interactions) : null,
 							cost: cost > 0 ? String(cost.toFixed(2)) : null,
 							ctr: ctr > 0 ? String(ctr.toFixed(2)) : null,
+							interaction_rate: interactionRate > 0 ? String(interactionRate.toFixed(2)) : null,
 							cpc: averageCpc > 0 ? String(averageCpc.toFixed(2)) : null,
 							conversions: adGroup.metrics.conversions && adGroup.metrics.conversions > 0
 								? String(adGroup.metrics.conversions)
+								: null,
+							conversions_value: (adGroup.metrics.conversions_value || 0) > 0
+								? String((adGroup.metrics.conversions_value || 0).toFixed(2))
+								: null,
+							all_conversions: (adGroup.metrics.all_conversions || 0) > 0 ? String(adGroup.metrics.all_conversions) : null,
+							all_conversions_value: (adGroup.metrics.all_conversions_value || 0) > 0
+								? String((adGroup.metrics.all_conversions_value || 0).toFixed(2))
 								: null,
 							cost_per_conversion: costPerConversion > 0 ? String(costPerConversion.toFixed(2)) : null,
 						},
