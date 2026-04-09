@@ -92,6 +92,7 @@ import { subscriptionUsageRouter } from "./subscription-usage";
 import { niscServiceOrdersRouter } from "./nisc-service-orders";
 import { publicPricingRouter } from "./public-pricing";
 import { agencyRbacRouter } from "./agency-rbac";
+import { hivelocityRouter } from "./hivelocity";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -260,5 +261,7 @@ export const appRouter = router({
 	publicPricing: publicPricingRouter,
 	// Agency RBAC – roles and menu access
 	agencyRbac: agencyRbacRouter,
+	// Hivelocity integration (dedicated servers / VPS / VDS reseller)
+	hivelocity: hivelocityRouter,
 });
 export type AppRouter = typeof appRouter;
