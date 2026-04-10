@@ -9,7 +9,13 @@ const FALLBACK_REDIRECT = "/auth/login";
  */
 export async function GET(request: Request) {
   try {
-    const target = await getRootRedirectTargetFromHeaders(request.headers);
+    const url = new URL(request.url);
+    const requestedRedirect =
+      url.searchParams.get("redirect") ?? url.searchParams.get("returnUrl");
+    const target = await getRootRedirectTargetFromHeaders(
+      request.headers,
+      requestedRedirect,
+    );
     const redirect =
       typeof target === "string" && target ? target : FALLBACK_REDIRECT;
     return Response.json({ redirect });
