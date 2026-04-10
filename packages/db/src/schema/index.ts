@@ -31,4 +31,5 @@ export * from "./google-ads";
 export * from "./image-generator";
 export * from "./imagegen-studio";
 export * from "./meta-ads";
+export * from "./cron-workflow-runs";
 export {};
