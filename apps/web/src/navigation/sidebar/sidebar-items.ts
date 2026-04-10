@@ -421,7 +421,7 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "CRON Jobs",
+        title: "Workflow Jobs",
         url: "/agency/cronjobs",
         icon: (props: any) => React.createElement(Icons.CRONJOB, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },

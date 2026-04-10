@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useNavigate } from "react-router";
+import debounce from "lodash.debounce";
 import {
   Background,
   BackgroundVariant,
@@ -76,11 +78,13 @@ import {
   mediaBuyingEomNodeTypes,
 } from "./media-buying-eom/resizable-flow-node";
 import { MediaBuyingEomFlowEdge } from "./media-buying-eom/flow-edge";
-
-type SelectedByParent = Record<
-  string,
-  Record<string, { id: string; name: string; spend: number; currency: string }>
->;
+import type { InvoiceDefaults } from "./media-buying-eom/persist-types";
+import {
+  buildMediaBuyingGraphPayload,
+  hydrateMediaBuyingFromGraph,
+  type SelectedByParent,
+} from "./media-buying-eom/persist";
+import { toast } from "@/components/ui/sonner";
 
 const EDGE_TYPE: Edge["type"] = "smoothstep";
 type FlowStatus = "loading" | "success" | "error";
@@ -186,44 +190,6 @@ function pickAccountCurrency(input: any): string {
   return s || "KES";
 }
 
-type InvoiceDefaults = {
-  // From (your) details
-  yourName: string;
-  yourEmail: string;
-  yourAddress: string;
-  yourCity: string;
-  yourState: string;
-  yourCountry: string;
-  yourTaxId: string;
-  yourZip: string;
-
-  // Invoice terms
-  invoiceNo: string;
-  issueDate: string; // yyyy-mm-dd
-  dueDate: string; // yyyy-mm-dd
-
-  // Invoice math
-  discount: string;
-  tax: string; // percent (e.g. "16")
-  note: string;
-
-  // Payment details
-  paymentMethod: "bank" | "mpesa" | "cheque";
-  bankName: string;
-  accountNumber: string;
-  accountName: string;
-  branchName: string;
-  branchCode: string;
-  swiftCode: string;
-  mpesaPaybillNumber: string;
-  mpesaAccountNumber: string;
-  mpesaInstructions: string;
-  chequeDeliveryAddress: string;
-  chequeInstructions: string;
-
-  qrCodeValue: string;
-};
-
 function defaultLast30DaysRange(): DateRange {
   return {
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
@@ -317,7 +283,26 @@ function base64ToBlob(base64: string, mime = "application/pdf"): Blob {
   return new Blob([byteArray], { type: mime });
 }
 
-export function MediaBuyingEomTotalSpendInvoicesFlow() {
+export type MediaBuyingEomFlowProps = {
+  workflowRunId?: string | null;
+  /** When false, wait before hydrating from `initialGraphState` (e.g. while getById is loading). */
+  hydrationReady?: boolean;
+  initialGraphState?: Record<string, unknown> | null;
+  initialVersion?: number;
+  initialInvoiceIds?: Partial<Record<"meta" | "google" | "linkedin", string>>;
+  /** Fires when graph autosave to the server starts / finishes (for UI spinners). */
+  onAutosaveStatusChange?: (state: { isSaving: boolean }) => void;
+};
+
+export function MediaBuyingEomTotalSpendInvoicesFlow({
+  workflowRunId = null,
+  hydrationReady = true,
+  initialGraphState = null,
+  initialVersion = 1,
+  initialInvoiceIds = undefined,
+  onAutosaveStatusChange,
+}: MediaBuyingEomFlowProps = {}) {
+  const navigate = useNavigate();
   const utils = trpc.useUtils();
   const [selectedPlanId, setSelectedPlanId] = React.useState<string | null>(null);
   const [selectedMetaAccountIds, setSelectedMetaAccountIds] = React.useState<
@@ -381,6 +366,35 @@ export function MediaBuyingEomTotalSpendInvoicesFlow() {
   const [generatedByPlatform, setGeneratedByPlatform] = React.useState<
     Partial<Record<"meta" | "google" | "linkedin", { pdfBase64: string }>>
   >({});
+  const [generatedInvoiceIds, setGeneratedInvoiceIds] = React.useState<
+    Partial<Record<"meta" | "google" | "linkedin", string>>
+  >({});
+
+  const [persistVersion, setPersistVersion] = React.useState(initialVersion);
+  /** Source of truth for optimistic concurrency — updated before/after each save (not debounce closures). */
+  const persistVersionRef = React.useRef(initialVersion);
+  React.useEffect(() => {
+    persistVersionRef.current = initialVersion;
+    setPersistVersion(initialVersion);
+  }, [initialVersion]);
+
+  const persistUtils = trpc.useUtils();
+  const persistUtilsRef = React.useRef(persistUtils);
+  persistUtilsRef.current = persistUtils;
+
+  const saveGraphMutation = trpc.cronWorkflowRun.saveGraph.useMutation({
+    onSuccess: (d) => {
+      persistVersionRef.current = d.version;
+      setPersistVersion(d.version);
+    },
+  });
+
+  React.useEffect(() => {
+    onAutosaveStatusChange?.({ isSaving: saveGraphMutation.isPending });
+  }, [saveGraphMutation.isPending, onAutosaveStatusChange]);
+  const recordEdgeSnapshotMutation =
+    trpc.cronWorkflowRun.recordEdgeSnapshot.useMutation();
+  const linkInvoiceMutation = trpc.cronWorkflowRun.linkInvoice.useMutation();
 
   const [showBillingIncompleteDialog, setShowBillingIncompleteDialog] =
     React.useState(false);
@@ -1895,7 +1909,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow() {
                       reader.readAsDataURL(blob);
                     });
 
-                    await submitInvoiceMutation.mutateAsync({
+                    const saved = await submitInvoiceMutation.mutateAsync({
                       invoiceNumber: invoiceNumber || undefined,
                       customerName: customerDetails.name || undefined,
                       customerEmail: customerDetails.email,
@@ -1914,6 +1928,23 @@ export function MediaBuyingEomTotalSpendInvoicesFlow() {
                       pdfBase64,
                       billingEmail: customerDetails.email,
                     });
+
+                    const invoiceId = saved?.id;
+                    if (workflowRunId && invoiceId) {
+                      try {
+                        await linkInvoiceMutation.mutateAsync({
+                          runId: workflowRunId,
+                          platform,
+                          invoiceId,
+                        });
+                      } catch {
+                        /* non-fatal */
+                      }
+                      setGeneratedInvoiceIds((prev) => ({
+                        ...prev,
+                        [platform]: invoiceId,
+                      }));
+                    }
 
                     setGeneratedByPlatform((prev) => ({
                       ...prev,
@@ -1979,17 +2010,22 @@ export function MediaBuyingEomTotalSpendInvoicesFlow() {
                   type="button"
                   size="sm"
                   className="nodrag h-7 text-xs justify-start"
-                  disabled={!generatedByPlatform.meta}
+                  disabled={!generatedByPlatform.meta && !generatedInvoiceIds.meta}
                   onClick={() => {
                     const b64 = generatedByPlatform.meta?.pdfBase64;
-                    if (!b64) return;
-                    const blob = base64ToBlob(b64);
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = "meta-invoice.pdf";
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    if (b64) {
+                      const blob = base64ToBlob(b64);
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = "meta-invoice.pdf";
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      return;
+                    }
+                    if (generatedInvoiceIds.meta) {
+                      navigate(`/agency/invoices/${generatedInvoiceIds.meta}`);
+                    }
                   }}
                 >
                   Download Meta
@@ -1998,17 +2034,22 @@ export function MediaBuyingEomTotalSpendInvoicesFlow() {
                   type="button"
                   size="sm"
                   className="nodrag h-7 text-xs justify-start"
-                  disabled={!generatedByPlatform.google}
+                  disabled={!generatedByPlatform.google && !generatedInvoiceIds.google}
                   onClick={() => {
                     const b64 = generatedByPlatform.google?.pdfBase64;
-                    if (!b64) return;
-                    const blob = base64ToBlob(b64);
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = "google-ads-invoice.pdf";
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    if (b64) {
+                      const blob = base64ToBlob(b64);
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = "google-ads-invoice.pdf";
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      return;
+                    }
+                    if (generatedInvoiceIds.google) {
+                      navigate(`/agency/invoices/${generatedInvoiceIds.google}`);
+                    }
                   }}
                 >
                   Download Google Ads
@@ -2017,17 +2058,22 @@ export function MediaBuyingEomTotalSpendInvoicesFlow() {
                   type="button"
                   size="sm"
                   className="nodrag h-7 text-xs justify-start"
-                  disabled={!generatedByPlatform.linkedin}
+                  disabled={!generatedByPlatform.linkedin && !generatedInvoiceIds.linkedin}
                   onClick={() => {
                     const b64 = generatedByPlatform.linkedin?.pdfBase64;
-                    if (!b64) return;
-                    const blob = base64ToBlob(b64);
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = "linkedin-invoice.pdf";
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    if (b64) {
+                      const blob = base64ToBlob(b64);
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = "linkedin-invoice.pdf";
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      return;
+                    }
+                    if (generatedInvoiceIds.linkedin) {
+                      navigate(`/agency/invoices/${generatedInvoiceIds.linkedin}`);
+                    }
                   }}
                 >
                   Download LinkedIn
@@ -2109,6 +2155,11 @@ export function MediaBuyingEomTotalSpendInvoicesFlow() {
     hasLinkedIn,
     hasAny,
     grandTotal,
+    generatedByPlatform,
+    generatedInvoiceIds,
+    navigate,
+    workflowRunId,
+    linkInvoiceMutation,
   ]);
 
   const topologyKey = React.useMemo(
@@ -2133,6 +2184,58 @@ export function MediaBuyingEomTotalSpendInvoicesFlow() {
   const [selectedEdgeIds, setSelectedEdgeIds] = React.useState<Set<string>>(
     () => new Set()
   );
+
+  const hydratedRef = React.useRef(false);
+
+  React.useLayoutEffect(() => {
+    if (!workflowRunId) {
+      hydratedRef.current = true;
+      return;
+    }
+    hydratedRef.current = false;
+  }, [workflowRunId]);
+
+  React.useLayoutEffect(() => {
+    if (!workflowRunId) return;
+    if (!hydrationReady) return;
+    if (initialGraphState == null) {
+      hydratedRef.current = true;
+      return;
+    }
+    if (hydratedRef.current) return;
+    const h = hydrateMediaBuyingFromGraph(initialGraphState, initialInvoiceIds);
+    if (!h) {
+      hydratedRef.current = true;
+      return;
+    }
+    setSelectedPlanId(h.selectedPlanId);
+    setSelectedMetaAccountIds(h.selectedMetaAccountIds);
+    setSelectedGoogleCustomerIds(h.selectedGoogleCustomerIds);
+    setSelectedLinkedInAccountIds(h.selectedLinkedInAccountIds);
+    setSelectedMetaByAccount(h.selectedMetaByAccount);
+    setSelectedGoogleByCustomer(h.selectedGoogleByCustomer);
+    setSelectedLinkedInByAccount(h.selectedLinkedInByAccount);
+    setMetaFeeInput(h.metaFeeInput);
+    setGoogleFeeInput(h.googleFeeInput);
+    setLinkedInFeeInput(h.linkedInFeeInput);
+    setMetaFeeCurrency(h.metaFeeCurrency);
+    setGoogleFeeCurrency(h.googleFeeCurrency);
+    setLinkedInFeeCurrency(h.linkedInFeeCurrency);
+    setInvoiceDefaults(h.invoiceDefaults);
+    setSelectedBillToTeamId(h.selectedBillToTeamId);
+    setQrStepDone(h.qrStepDone);
+    setInvoiceGenStatus(h.invoiceGenStatus);
+    setGeneratedInvoiceIds(h.generatedInvoiceIds);
+    setMetaDateRangeByAccount(h.metaDateRangeByAccount);
+    setGoogleDateRangeByCustomer(h.googleDateRangeByCustomer);
+    setLinkedInDateRangeByAccount(h.linkedInDateRangeByAccount);
+    setKesPerUnitOverride(h.kesPerUnitOverride);
+    setNodeDims(h.nodeDims);
+    setNodePositions(h.nodePositions);
+    setSelectedEdgeIds(new Set(h.selectedEdgeIds));
+    setFlowSelectedIds(new Set(h.flowSelectedIds));
+    hydratedRef.current = true;
+  }, [workflowRunId, hydrationReady, initialGraphState, initialInvoiceIds]);
 
   React.useEffect(() => {
     const t = templateNodesRef.current;
@@ -2671,6 +2774,147 @@ export function MediaBuyingEomTotalSpendInvoicesFlow() {
     hasLinkedIn,
     hasAny,
   ]);
+
+  const persistSnapshotJson = React.useMemo(
+    () =>
+      JSON.stringify(
+        buildMediaBuyingGraphPayload({
+          selectedPlanId,
+          selectedMetaAccountIds,
+          selectedGoogleCustomerIds,
+          selectedLinkedInAccountIds,
+          selectedMetaByAccount,
+          selectedGoogleByCustomer,
+          selectedLinkedInByAccount,
+          metaFeeInput,
+          googleFeeInput,
+          linkedInFeeInput,
+          metaFeeCurrency,
+          googleFeeCurrency,
+          linkedInFeeCurrency,
+          invoiceDefaults,
+          selectedBillToTeamId,
+          qrStepDone,
+          invoiceGenStatus,
+          generatedInvoiceIds,
+          metaDateRangeByAccount,
+          googleDateRangeByCustomer,
+          linkedInDateRangeByAccount,
+          kesPerUnitOverride,
+          nodeDims,
+          nodePositions,
+          selectedEdgeIds: [...selectedEdgeIds],
+          flowSelectedIds: [...flowSelectedIds],
+        })
+      ),
+    [
+      selectedPlanId,
+      selectedMetaAccountIds,
+      selectedGoogleCustomerIds,
+      selectedLinkedInAccountIds,
+      selectedMetaByAccount,
+      selectedGoogleByCustomer,
+      selectedLinkedInByAccount,
+      metaFeeInput,
+      googleFeeInput,
+      linkedInFeeInput,
+      metaFeeCurrency,
+      googleFeeCurrency,
+      linkedInFeeCurrency,
+      invoiceDefaults,
+      selectedBillToTeamId,
+      qrStepDone,
+      invoiceGenStatus,
+      generatedInvoiceIds,
+      metaDateRangeByAccount,
+      googleDateRangeByCustomer,
+      linkedInDateRangeByAccount,
+      kesPerUnitOverride,
+      nodeDims,
+      nodePositions,
+      selectedEdgeIds,
+      flowSelectedIds,
+    ]
+  );
+
+  const saveGraphMutRef = React.useRef(saveGraphMutation);
+  saveGraphMutRef.current = saveGraphMutation;
+
+  /** Serialize graph saves so two debounced flushes never send the same version concurrently. */
+  const graphSaveChainRef = React.useRef(Promise.resolve());
+
+  const debouncedSaveGraph = React.useMemo(
+    () =>
+      debounce((runId: string, json: string) => {
+        const graphStateJson = JSON.parse(json) as Record<string, unknown>;
+        graphSaveChainRef.current = graphSaveChainRef.current
+          .then(async () => {
+            let version = persistVersionRef.current;
+            try {
+              const out = await saveGraphMutRef.current.mutateAsync({
+                id: runId,
+                version,
+                graphStateJson,
+              });
+              persistVersionRef.current = out.version;
+              setPersistVersion(out.version);
+            } catch (err: unknown) {
+              const code = (err as { data?: { code?: string } })?.data?.code;
+              if (code === "CONFLICT" && runId) {
+                try {
+                  const fresh = await persistUtilsRef.current.cronWorkflowRun.getById.fetch({
+                    id: runId,
+                  });
+                  version = fresh.version;
+                  persistVersionRef.current = version;
+                  setPersistVersion(version);
+                  const out = await saveGraphMutRef.current.mutateAsync({
+                    id: runId,
+                    version,
+                    graphStateJson,
+                  });
+                  persistVersionRef.current = out.version;
+                  setPersistVersion(out.version);
+                } catch {
+                  toast.error("Could not save workflow. Reload the page.");
+                }
+              }
+            }
+          })
+          .catch(() => {});
+      }, 1000),
+    []
+  );
+
+  React.useEffect(() => {
+    if (!workflowRunId || !hydratedRef.current) return;
+    debouncedSaveGraph(workflowRunId, persistSnapshotJson);
+    return () => debouncedSaveGraph.cancel();
+  }, [workflowRunId, persistSnapshotJson, debouncedSaveGraph]);
+
+  const seenEdgeIdsRef = React.useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    seenEdgeIdsRef.current = new Set();
+  }, [workflowRunId]);
+
+  React.useEffect(() => {
+    if (!workflowRunId || !hydratedRef.current) return;
+    for (const e of edges) {
+      if (seenEdgeIdsRef.current.has(e.id)) continue;
+      seenEdgeIdsRef.current.add(e.id);
+      recordEdgeSnapshotMutation.mutate({
+        runId: workflowRunId,
+        edgeId: e.id,
+        sourceNodeId: String(e.source),
+        targetNodeId: String(e.target),
+        payload: {
+          edgeId: e.id,
+          source: e.source,
+          target: e.target,
+        },
+      });
+    }
+  }, [workflowRunId, edges, recordEdgeSnapshotMutation]);
 
   const edgeTypes = React.useMemo(
     () => ({

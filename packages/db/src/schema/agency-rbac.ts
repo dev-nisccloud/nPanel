@@ -12,7 +12,6 @@ export const agencyRole = pgTable(
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
   },
-  (table) => [index("agency_role_name_idx").on(table.name)],
 );
 
 export const agencyPermission = pgTable(
@@ -24,7 +23,6 @@ export const agencyPermission = pgTable(
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
   },
-  (table) => [index("agency_permission_key_idx").on(table.key)],
 );
 
 export const agencyRolePermission = pgTable(
@@ -44,8 +42,9 @@ export const agencyRolePermission = pgTable(
       table.roleId,
       table.permissionId,
     ),
-    index("agency_role_permission_roleId_idx").on(table.roleId),
-    index("agency_role_permission_permissionId_idx").on(table.permissionId),
+    index("agency_role_permission_permission_id_lookup_idx").on(
+      table.permissionId,
+    ),
   ],
 );
 

@@ -93,6 +93,7 @@ import { niscServiceOrdersRouter } from "./nisc-service-orders";
 import { publicPricingRouter } from "./public-pricing";
 import { agencyRbacRouter } from "./agency-rbac";
 import { hivelocityRouter } from "./hivelocity";
+import { cronWorkflowRunRouter } from "./cron-workflow-run";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -263,5 +264,7 @@ export const appRouter = router({
 	agencyRbac: agencyRbacRouter,
 	// Hivelocity integration (dedicated servers / VPS / VDS reseller)
 	hivelocity: hivelocityRouter,
+	// Cron / workflow runs (node editor persistence)
+	cronWorkflowRun: cronWorkflowRunRouter,
 });
 export type AppRouter = typeof appRouter;
