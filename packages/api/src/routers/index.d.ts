@@ -2708,7 +2708,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     type: "master" | "slave";
                     records?: {
                         name: string;
-                        type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                        type: "A" | "MX" | "NS" | "AAAA" | "CNAME" | "SRV" | "TXT" | "TLSA" | "SSHFP" | "CAA";
                         value: string;
                         prio?: number | undefined;
                         ttl?: number | undefined;
@@ -2813,21 +2813,21 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     records?: {
                         add?: {
                             name: string;
-                            type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                            type: "A" | "MX" | "NS" | "AAAA" | "CNAME" | "SRV" | "TXT" | "TLSA" | "SSHFP" | "CAA";
                             value: string;
                             prio?: number | undefined;
                             ttl?: number | undefined;
                         }[] | undefined;
                         update?: {
                             name: string;
-                            type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                            type: "A" | "MX" | "NS" | "AAAA" | "CNAME" | "SRV" | "TXT" | "TLSA" | "SSHFP" | "CAA";
                             value: string;
                             prio?: number | undefined;
                             ttl?: number | undefined;
                         }[] | undefined;
                         remove?: {
                             name: string;
-                            type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                            type: "A" | "MX" | "NS" | "AAAA" | "CNAME" | "SRV" | "TXT" | "TLSA" | "SSHFP" | "CAA";
                             value: string;
                             prio?: number | undefined;
                             ttl?: number | undefined;
@@ -2869,7 +2869,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     zoneName: string;
                     records: {
                         name: string;
-                        type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                        type: "A" | "MX" | "NS" | "AAAA" | "CNAME" | "SRV" | "TXT" | "TLSA" | "SSHFP" | "CAA";
                         value: string;
                         prio?: number | undefined;
                         ttl?: number | undefined;
@@ -2893,7 +2893,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     zoneName: string;
                     records: {
                         name: string;
-                        type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                        type: "A" | "MX" | "NS" | "AAAA" | "CNAME" | "SRV" | "TXT" | "TLSA" | "SSHFP" | "CAA";
                         value: string;
                         prio?: number | undefined;
                         ttl?: number | undefined;
@@ -2917,7 +2917,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     zoneName: string;
                     records: {
                         name: string;
-                        type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                        type: "A" | "MX" | "NS" | "AAAA" | "CNAME" | "SRV" | "TXT" | "TLSA" | "SSHFP" | "CAA";
                         value: string;
                         prio?: number | undefined;
                         ttl?: number | undefined;
@@ -4296,7 +4296,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     id: string;
                     email: string;
                     role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-                    status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                    status: "PENDING" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED";
                     expiresAt: Date;
                     team: {
                         id: string;
@@ -4403,7 +4403,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 email: string;
                 role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-                status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                status: "PENDING" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED";
                 invitedById: string;
                 expiresAt: Date;
                 acceptedAt: Date | null;
@@ -4450,7 +4450,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 email: string;
                 role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-                status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                status: "PENDING" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED";
                 invitedById: string;
                 expiresAt: Date;
                 acceptedAt: Date | null;
@@ -4467,7 +4467,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 hostingPlanId: string;
                 primaryDomain: string | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
                 autoRenew: boolean;
@@ -4616,7 +4616,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
         getUserById: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 userId: string;
-                fields?: ("id" | "name" | "createdAt" | "updatedAt" | "email" | "emailVerified" | "role" | "status" | "lastLoginAt" | "image" | "profile")[] | undefined;
+                fields?: ("id" | "name" | "email" | "emailVerified" | "role" | "status" | "lastLoginAt" | "image" | "createdAt" | "updatedAt" | "profile")[] | undefined;
             };
             output: Record<string, unknown>;
             meta: object;
@@ -4624,7 +4624,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
         getUsersByIds: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 userIds: string[];
-                fields?: ("id" | "name" | "createdAt" | "updatedAt" | "email" | "emailVerified" | "role" | "status" | "lastLoginAt" | "image" | "profile")[] | undefined;
+                fields?: ("id" | "name" | "email" | "emailVerified" | "role" | "status" | "lastLoginAt" | "image" | "createdAt" | "updatedAt" | "profile")[] | undefined;
             };
             output: Record<string, any>;
             meta: object;
@@ -6512,7 +6512,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     teamId: string | null;
                     hostingPlanId: string;
                     primaryDomain: string | null;
-                    billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                    billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                     nextRenewalDate: Date | null;
                     expiryDate: Date | null;
                     notes: string | null;
@@ -6522,9 +6522,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 serviceSubscription: {
                     id: string;
                     subscriptionDate: string | null;
-                    billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                    billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                     nextRenewalDate: string | null;
-                    status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED";
+                    status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED";
                     autoRenew: boolean;
                 } | null;
             };
@@ -6539,7 +6539,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 teamId: string | null;
                 hostingPlanId: string;
                 primaryDomain: string | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
                 notes: string | null;
@@ -6565,7 +6565,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 pleskFilterId: string;
                 hostingPlanId?: string | undefined;
                 hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
-                billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+                billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
                 nextRenewalDate?: unknown;
                 expiryDate?: unknown;
                 primaryDomain?: string | undefined;
@@ -6591,7 +6591,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             input: {
                 subscriptionId: string;
                 hostingPlanId?: string | undefined;
-                billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+                billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
                 nextRenewalDate?: unknown;
                 expiryDate?: unknown;
                 primaryDomain?: string | undefined;
@@ -6629,7 +6629,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 isRecommended: boolean;
                 niscPrice: string | null;
                 niscCurrency: string;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 setupFee: string | null;
                 isActive: boolean;
                 isDefault: boolean;
@@ -6657,7 +6657,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 isRecommended: boolean;
                 niscPrice: string | null;
                 niscCurrency: string;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 setupFee: string | null;
                 isActive: boolean;
                 isDefault: boolean;
@@ -6681,7 +6681,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 isRecommended?: boolean | undefined;
                 niscPrice?: string | undefined;
                 niscCurrency?: string | undefined;
-                billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+                billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
                 setupFee?: string | undefined;
                 isActive?: boolean | undefined;
                 isDefault?: boolean | undefined;
@@ -6701,7 +6701,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 isRecommended: boolean;
                 niscPrice: string | null;
                 niscCurrency: string;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 setupFee: string | null;
                 isActive: boolean;
                 isDefault: boolean;
@@ -6726,7 +6726,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 isRecommended?: boolean | undefined;
                 niscPrice?: string | undefined;
                 niscCurrency?: string | undefined;
-                billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+                billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
                 setupFee?: string | undefined;
                 isActive?: boolean | undefined;
                 isDefault?: boolean | undefined;
@@ -6746,7 +6746,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 isRecommended: boolean;
                 niscPrice: string | null;
                 niscCurrency: string;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 setupFee: string | null;
                 isActive: boolean;
                 isDefault: boolean;
@@ -7204,7 +7204,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
         getAll: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 teamId?: string | undefined;
-                status?: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "COMPLETED" | "REFUNDED" | "PARTIAL" | undefined;
+                status?: "PENDING" | "PROCESSING" | "FAILED" | "COMPLETED" | "CANCELLED" | "REFUNDED" | "PARTIAL" | undefined;
                 type?: "CUSTOM_SERVICE" | "EMAIL_HOSTING" | "DOMAIN_REGISTRATION" | "DOMAIN_RENEWAL" | "DOMAIN_TRANSFER" | "HOSTING_SUBSCRIPTION" | "HOSTING_RENEWAL" | "HOSTING_UPGRADE" | "SSL_CERTIFICATE" | "BACKUP_SERVICE" | undefined;
                 limit?: number | undefined;
                 offset?: number | undefined;
@@ -7216,7 +7216,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     teamId: string | null;
                     createdBy: string | null;
                     type: "CUSTOM_SERVICE" | "EMAIL_HOSTING" | "DOMAIN_REGISTRATION" | "DOMAIN_RENEWAL" | "DOMAIN_TRANSFER" | "HOSTING_SUBSCRIPTION" | "HOSTING_RENEWAL" | "HOSTING_UPGRADE" | "SSL_CERTIFICATE" | "BACKUP_SERVICE";
-                    status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "COMPLETED" | "REFUNDED" | "PARTIAL";
+                    status: "PENDING" | "PROCESSING" | "FAILED" | "COMPLETED" | "CANCELLED" | "REFUNDED" | "PARTIAL";
                     description: string | null;
                     domainId: string | null;
                     hostingSubscriptionId: string | null;
@@ -7252,7 +7252,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         id: string;
                         orderId: string;
                         niscServicePlanId: string;
-                        billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                        billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                         itemPrice: string;
                         itemSubtotal: string;
                         itemCurrency: string;
@@ -7317,7 +7317,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 teamId: string | null;
                 createdBy: string | null;
                 type: "CUSTOM_SERVICE" | "EMAIL_HOSTING" | "DOMAIN_REGISTRATION" | "DOMAIN_RENEWAL" | "DOMAIN_TRANSFER" | "HOSTING_SUBSCRIPTION" | "HOSTING_RENEWAL" | "HOSTING_UPGRADE" | "SSL_CERTIFICATE" | "BACKUP_SERVICE";
-                status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "COMPLETED" | "REFUNDED" | "PARTIAL";
+                status: "PENDING" | "PROCESSING" | "FAILED" | "COMPLETED" | "CANCELLED" | "REFUNDED" | "PARTIAL";
                 description: string | null;
                 domainId: string | null;
                 hostingSubscriptionId: string | null;
@@ -7353,7 +7353,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     id: string;
                     orderId: string;
                     niscServicePlanId: string;
-                    billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                    billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                     itemPrice: string;
                     itemSubtotal: string;
                     itemCurrency: string;
@@ -7399,7 +7399,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 hostingPlanId: string;
                 teamId: string;
                 domainName: string;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 description?: string | undefined;
                 adminDescription?: string | undefined;
                 notes?: string | undefined;
@@ -7412,7 +7412,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     teamId: string | null;
                     createdBy: string | null;
                     type: "CUSTOM_SERVICE" | "EMAIL_HOSTING" | "DOMAIN_REGISTRATION" | "DOMAIN_RENEWAL" | "DOMAIN_TRANSFER" | "HOSTING_SUBSCRIPTION" | "HOSTING_RENEWAL" | "HOSTING_UPGRADE" | "SSL_CERTIFICATE" | "BACKUP_SERVICE";
-                    status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "COMPLETED" | "REFUNDED" | "PARTIAL";
+                    status: "PENDING" | "PROCESSING" | "FAILED" | "COMPLETED" | "CANCELLED" | "REFUNDED" | "PARTIAL";
                     description: string | null;
                     domainId: string | null;
                     hostingSubscriptionId: string | null;
@@ -7448,7 +7448,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         id: string;
                         orderId: string;
                         niscServicePlanId: string;
-                        billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                        billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                         itemPrice: string;
                         itemSubtotal: string;
                         itemCurrency: string;
@@ -7515,7 +7515,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 teamId: string;
                 items: {
                     niscServicePlanId: string;
-                    billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                    billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                     domainName?: string | undefined;
                     description?: string | undefined;
                     adminDescription?: string | undefined;
@@ -7536,7 +7536,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     teamId: string | null;
                     createdBy: string | null;
                     type: "CUSTOM_SERVICE" | "EMAIL_HOSTING" | "DOMAIN_REGISTRATION" | "DOMAIN_RENEWAL" | "DOMAIN_TRANSFER" | "HOSTING_SUBSCRIPTION" | "HOSTING_RENEWAL" | "HOSTING_UPGRADE" | "SSL_CERTIFICATE" | "BACKUP_SERVICE";
-                    status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "COMPLETED" | "REFUNDED" | "PARTIAL";
+                    status: "PENDING" | "PROCESSING" | "FAILED" | "COMPLETED" | "CANCELLED" | "REFUNDED" | "PARTIAL";
                     description: string | null;
                     domainId: string | null;
                     hostingSubscriptionId: string | null;
@@ -7572,7 +7572,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         id: string;
                         orderId: string;
                         niscServicePlanId: string;
-                        billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                        billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                         itemPrice: string;
                         itemSubtotal: string;
                         itemCurrency: string;
@@ -9353,7 +9353,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
     }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         list: import("@trpc/server").TRPCQueryProcedure<{
             input: {
-                status?: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED" | undefined;
+                status?: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED" | undefined;
                 search?: string | undefined;
                 limit?: number | undefined;
                 offset?: number | undefined;
@@ -9361,7 +9361,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 quotations: {
                     id: string;
-                    status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                    status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED";
                     currency: string;
                     createdAt: Date;
                     updatedAt: Date;
@@ -9381,7 +9381,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             output: {
                 id: string;
-                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED";
                 currency: string;
                 createdAt: Date;
                 updatedAt: Date;
@@ -9450,7 +9450,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 template?: Record<string, unknown> | unknown[] | null | undefined;
                 topBlock?: Record<string, unknown> | unknown[] | null | undefined;
                 bottomBlock?: Record<string, unknown> | unknown[] | null | undefined;
-                status?: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED" | undefined;
+                status?: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED" | undefined;
                 token?: string | undefined;
                 lineItems?: {
                     id?: string | undefined;
@@ -9481,7 +9481,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             output: {
                 id: string;
-                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED";
                 currency: string;
                 createdAt: Date;
                 updatedAt: Date;
@@ -9559,7 +9559,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 customerName?: string | null | undefined;
                 customerEmail?: string | null | undefined;
                 token?: string | null | undefined;
-                status?: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED" | undefined;
+                status?: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED" | undefined;
                 amount?: string | null | undefined;
                 subtotal?: string | null | undefined;
                 tax?: string | null | undefined;
@@ -9573,7 +9573,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             output: {
                 id: string;
-                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED";
                 currency: string;
                 createdAt: Date;
                 updatedAt: Date;
@@ -9626,12 +9626,12 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
         updateStatus: import("@trpc/server").TRPCMutationProcedure<{
             input: {
                 id: string;
-                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED";
                 note?: string | undefined;
             };
             output: {
                 id: string;
-                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "CANCELLED" | "DECLINED";
                 currency: string;
                 createdAt: Date;
                 updatedAt: Date;
@@ -9838,12 +9838,12 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 niscServicePlanId: string;
                 teamId: string;
                 hostingPlanId: string;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
                 subscriptionDate?: unknown;
                 expiryDate?: unknown;
                 primaryDomain?: string | undefined;
-                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | undefined;
+                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | undefined;
                 autoRenew?: boolean | undefined;
                 notes?: string | undefined;
             };
@@ -9853,9 +9853,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 teamId: string | null;
                 orderId: string | null;
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 nextRenewalDate: Date | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED";
                 autoRenew: boolean;
                 hostingSubscriptionId: string | null;
                 notes: string | null;
@@ -9877,9 +9877,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 teamName: string | null;
                 orderId: string | null;
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 nextRenewalDate: Date | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED";
                 autoRenew: boolean;
                 hostingSubscriptionId: string | null;
                 notes: string | null;
@@ -9896,7 +9896,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 teamId?: string | undefined;
                 planType?: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING" | undefined;
                 hostingSubType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
-                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | undefined;
+                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | undefined;
             } | undefined;
             output: {
                 id: string;
@@ -9905,9 +9905,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 teamName: string | null;
                 orderId: string | null;
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY";
                 nextRenewalDate: Date | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED";
                 autoRenew: boolean;
                 hostingSubscriptionId: string | null;
                 notes: string | null;
@@ -10147,11 +10147,11 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         pageId: string;
                         accessToken?: string | undefined;
                         fields?: string[] | undefined;
-                        limit?: number | undefined;
                         since?: string | undefined;
+                        until?: string | undefined;
+                        limit?: number | undefined;
                         apiVersion?: string | undefined;
                         useStoredToken?: boolean | undefined;
-                        until?: string | undefined;
                         contentType?: "posts" | undefined;
                     };
                     output: {
@@ -10175,11 +10175,11 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         pageId: string;
                         accessToken?: string | undefined;
                         fields?: string[] | undefined;
-                        limit?: number | undefined;
                         since?: string | undefined;
+                        until?: string | undefined;
+                        limit?: number | undefined;
                         apiVersion?: string | undefined;
                         useStoredToken?: boolean | undefined;
-                        until?: string | undefined;
                         contentType?: "photos" | undefined;
                     };
                     output: {
@@ -10203,11 +10203,11 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         pageId: string;
                         accessToken?: string | undefined;
                         fields?: string[] | undefined;
-                        limit?: number | undefined;
                         since?: string | undefined;
+                        until?: string | undefined;
+                        limit?: number | undefined;
                         apiVersion?: string | undefined;
                         useStoredToken?: boolean | undefined;
-                        until?: string | undefined;
                         contentType?: "videos" | undefined;
                     };
                     output: {
@@ -10231,11 +10231,11 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         pageId: string;
                         accessToken?: string | undefined;
                         fields?: string[] | undefined;
-                        limit?: number | undefined;
                         since?: string | undefined;
+                        until?: string | undefined;
+                        limit?: number | undefined;
                         apiVersion?: string | undefined;
                         useStoredToken?: boolean | undefined;
-                        until?: string | undefined;
                         contentType?: "events" | undefined;
                     };
                     output: {
@@ -10313,7 +10313,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         pageName: string | null;
                         message: string | null;
                         scheduledPublishTime: Date;
-                        status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
+                        status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
                         published: boolean;
                         publishedAt: Date | null;
                         publishedPostId: string | null;
@@ -10350,7 +10350,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 getAll: import("@trpc/server").TRPCQueryProcedure<{
                     input: {
                         pageTokenId?: string | undefined;
-                        status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED" | undefined;
+                        status?: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED" | undefined;
                         limit?: number | undefined;
                         offset?: number | undefined;
                     };
@@ -10361,7 +10361,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                             pageName: string | null;
                             message: string | null;
                             scheduledPublishTime: Date;
-                            status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
+                            status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
                             published: boolean;
                             publishedAt: Date | null;
                             publishedPostId: string | null;
@@ -10407,7 +10407,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         pageName: string | null;
                         message: string | null;
                         scheduledPublishTime: Date;
-                        status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
+                        status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
                         published: boolean;
                         publishedAt: Date | null;
                         publishedPostId: string | null;
@@ -10446,7 +10446,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         id: string;
                         message?: string | undefined;
                         scheduledPublishTime?: unknown;
-                        status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED" | undefined;
+                        status?: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED" | undefined;
                         mediaItems?: {
                             mediaType: "PHOTO" | "VIDEO";
                             url: string;
@@ -10463,7 +10463,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         pageName: string | null;
                         message: string | null;
                         scheduledPublishTime: Date;
-                        status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
+                        status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
                         published: boolean;
                         publishedAt: Date | null;
                         publishedPostId: string | null;
@@ -10824,7 +10824,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         pageName: string | null;
                         message: string | null;
                         scheduledPublishTime: Date;
-                        status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
+                        status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
                         published: boolean;
                         publishedAt: Date | null;
                         publishedPostId: string | null;
@@ -10861,7 +10861,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 getAll: import("@trpc/server").TRPCQueryProcedure<{
                     input: {
                         pageTokenId?: string | undefined;
-                        status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED" | undefined;
+                        status?: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED" | undefined;
                         limit?: number | undefined;
                         offset?: number | undefined;
                     };
@@ -10872,7 +10872,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                             pageName: string | null;
                             message: string | null;
                             scheduledPublishTime: Date;
-                            status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
+                            status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
                             published: boolean;
                             publishedAt: Date | null;
                             publishedPostId: string | null;
@@ -10918,7 +10918,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         pageName: string | null;
                         message: string | null;
                         scheduledPublishTime: Date;
-                        status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
+                        status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
                         published: boolean;
                         publishedAt: Date | null;
                         publishedPostId: string | null;
@@ -10957,7 +10957,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         id: string;
                         message?: string | undefined;
                         scheduledPublishTime?: unknown;
-                        status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED" | undefined;
+                        status?: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED" | undefined;
                         mediaItems?: {
                             mediaType: "PHOTO" | "VIDEO";
                             url: string;
@@ -10974,7 +10974,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         pageName: string | null;
                         message: string | null;
                         scheduledPublishTime: Date;
-                        status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
+                        status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
                         published: boolean;
                         publishedAt: Date | null;
                         publishedPostId: string | null;
@@ -11280,6 +11280,60 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 };
                 meta: object;
             }>;
+            getCampaignTargeting: import("@trpc/server").TRPCQueryProcedure<{
+                input: {
+                    customerId: string;
+                    campaignId: string;
+                };
+                output: {
+                    success: boolean;
+                    data: {
+                        label: string;
+                        content: string;
+                    }[];
+                    debug: {
+                        criterionId: string | null;
+                        type: string | null;
+                        negative: boolean;
+                        displayName: string | null;
+                        keywordText: string | null;
+                        matchType: string | null;
+                        location: string | null;
+                        language: string | null;
+                        ageRange: string | null;
+                        gender: string | null;
+                        userInterest: string | null;
+                        userList: string | null;
+                        topic: string | null;
+                        placementUrl: string | null;
+                    }[];
+                    meta: {
+                        total_criteria: number;
+                    };
+                };
+                meta: object;
+            }>;
+            getBulkAdGroupTargeting: import("@trpc/server").TRPCQueryProcedure<{
+                input: {
+                    customerId: string;
+                    adGroupIds: string[];
+                };
+                output: {
+                    success: boolean;
+                    data: Record<string, {
+                        data: {
+                            label: string;
+                            content: string;
+                        }[];
+                        debug: any[];
+                    }>;
+                    meta: {
+                        total_ad_groups: number;
+                        total_criteria: number;
+                    };
+                };
+                meta: object;
+            }>;
         }>>;
         adGroups: import("@trpc/server").TRPCBuiltRouter<{
             ctx: import("..").Context;
@@ -11310,10 +11364,15 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         insights: {
                             impressions: string | null;
                             clicks: string | null;
+                            interactions: string | null;
                             cost: string | null;
                             ctr: string | null;
+                            interaction_rate: string | null;
                             cpc: string | null;
                             conversions: string | null;
+                            conversions_value: string | null;
+                            all_conversions: string | null;
+                            all_conversions_value: string | null;
                             cost_per_conversion: string | null;
                         };
                     }[];
@@ -11357,16 +11416,40 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         insights: {
                             impressions: string | null;
                             clicks: string | null;
+                            interactions: string | null;
                             cost: string | null;
                             ctr: string | null;
+                            interaction_rate: string | null;
                             cpc: string | null;
                             conversions: string | null;
+                            conversions_value: string | null;
+                            all_conversions: string | null;
+                            all_conversions_value: string | null;
                             cost_per_conversion: string | null;
                         };
                     }[];
                     meta: {
                         retrieved_at: string;
                         total_ads: number;
+                    };
+                };
+                meta: object;
+            }>;
+            listAdsBulk: import("@trpc/server").TRPCQueryProcedure<{
+                input: {
+                    customerId: string;
+                    adGroupIds: string[];
+                    timeRange?: {
+                        since: string;
+                        until: string;
+                    } | undefined;
+                };
+                output: {
+                    success: boolean;
+                    data: Record<string, any[]>;
+                    meta: {
+                        retrieved_at: string;
+                        total_ad_groups: number;
                     };
                 };
                 meta: object;
@@ -12165,6 +12248,21 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 };
                 meta: object;
             }>;
+            resolveTargetingCriteriaBulk: import("@trpc/server").TRPCQueryProcedure<{
+                input: {
+                    items: {
+                        campaignId: string;
+                        targetingCriteria: any;
+                    }[];
+                };
+                output: {
+                    data: Record<string, {
+                        label: string;
+                        content: string;
+                    }[]>;
+                };
+                meta: object;
+            }>;
             getCampaignDetails: import("@trpc/server").TRPCQueryProcedure<{
                 input: {
                     campaignGroupId: string;
@@ -12218,6 +12316,26 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 };
                 meta: object;
             }>;
+            getCreativeInsights: import("@trpc/server").TRPCQueryProcedure<{
+                input: {
+                    accountId: string;
+                    creativeIds: string[];
+                    timeRange: {
+                        since: string;
+                        until: string;
+                    };
+                };
+                output: {
+                    success: boolean;
+                    data: Record<string, any>;
+                    meta: {
+                        retrieved_at: string;
+                        requested_creatives: number;
+                        resolved_creatives: number;
+                    };
+                };
+                meta: object;
+            }>;
             getCreativePreview: import("@trpc/server").TRPCQueryProcedure<{
                 input: {
                     accountId: string;
@@ -12241,7 +12359,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         total_previews: number;
                         previewSource: "none" | "accurate" | "live_action";
                         unsupportedCreativeType: boolean;
-                        message?: undefined;
+                        message: string | undefined;
                     };
                 } | {
                     success: boolean;
@@ -12291,6 +12409,87 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 output: {
                     success: boolean;
                     data: any;
+                };
+                meta: object;
+            }>;
+        }>>;
+        insights: import("@trpc/server").TRPCBuiltRouter<{
+            ctx: import("..").Context;
+            meta: object;
+            errorShape: import("@trpc/server").TRPCDefaultErrorShape;
+            transformer: false;
+        }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+            getDailyPerformance: import("@trpc/server").TRPCQueryProcedure<{
+                input: {
+                    accountId: string;
+                    campaignGroupId: string;
+                    timeRange: {
+                        since: string;
+                        until: string;
+                    };
+                };
+                output: {
+                    success: boolean;
+                    data: {
+                        date: string;
+                        impressions: number;
+                        clicks: number;
+                        spend: number;
+                        conversions: number;
+                        leads: number;
+                        landingPageClicks: number;
+                        engagements: number;
+                        videoViews: number;
+                        videoCompletions: number;
+                    }[];
+                    meta: {
+                        retrieved_at: string;
+                        points: number;
+                    };
+                };
+                meta: object;
+            }>;
+            getBreakdown: import("@trpc/server").TRPCQueryProcedure<{
+                input: {
+                    accountId: string;
+                    campaignGroupId: string;
+                    timeRange: {
+                        since: string;
+                        until: string;
+                    };
+                    pivot: "IMPRESSION_DEVICE_TYPE" | "PLACEMENT_NAME" | "SERVING_LOCATION" | "CAMPAIGN" | "CREATIVE" | "OBJECTIVE_TYPE" | "MEMBER_COMPANY_SIZE" | "MEMBER_INDUSTRY" | "MEMBER_SENIORITY" | "MEMBER_JOB_TITLE" | "MEMBER_JOB_FUNCTION" | "MEMBER_COUNTRY_V2" | "MEMBER_REGION_V2" | "MEMBER_COMPANY";
+                };
+                output: {
+                    success: boolean;
+                    data: {
+                        pivot: string;
+                        impressions: number;
+                        clicks: number;
+                        spend: number;
+                    }[];
+                    meta: {
+                        retrieved_at: string;
+                        pivot: "OBJECTIVE_TYPE";
+                        fallbackUsed?: undefined;
+                    };
+                } | {
+                    success: boolean;
+                    data: {
+                        pivot: string;
+                        rawPivot: string;
+                        pivotId: string;
+                        impressions: number;
+                        clicks: number;
+                        spend: number;
+                        conversions: number;
+                        leads: number;
+                        videoViews: number;
+                    }[];
+                    meta: {
+                        retrieved_at: string;
+                        pivot: "IMPRESSION_DEVICE_TYPE" | "PLACEMENT_NAME" | "SERVING_LOCATION" | "CAMPAIGN" | "CREATIVE" | "MEMBER_COMPANY_SIZE" | "MEMBER_INDUSTRY" | "MEMBER_SENIORITY" | "MEMBER_JOB_TITLE" | "MEMBER_JOB_FUNCTION" | "MEMBER_COUNTRY_V2" | "MEMBER_REGION_V2" | "MEMBER_COMPANY";
+                        fallbackUsed: boolean;
+                    };
                 };
                 meta: object;
             }>;
@@ -13202,7 +13401,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             input: {
                 limit?: number | undefined;
                 offset?: number | undefined;
-                status?: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED" | undefined;
+                status?: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED" | undefined;
                 gateway?: "MPESA" | "OTHER" | "STRIPE" | "PAYPAL" | "FLUTTERWAVE" | undefined;
             };
             output: {
@@ -13212,7 +13411,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     teamId: string | null;
                     userName: string | null;
                     gateway: "MPESA" | "OTHER" | "STRIPE" | "PAYPAL" | "FLUTTERWAVE";
-                    status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED";
+                    status: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED";
                     amount: string;
                     currency: string;
                     accountReference: string | null;
@@ -13251,7 +13450,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 accountReference: string | null;
                 transactionDesc: string | null;
                 phoneNumber: string | null;
-                status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED";
+                status: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED";
                 rawResponse: unknown;
                 rawError: unknown;
                 initiatedAt: Date;
@@ -13738,7 +13937,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 output: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                     resendDomainId: string | null;
                     userId: string;
                     teamId: string | null;
@@ -13758,7 +13957,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 output: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                     resendDomainId: string | null;
                     userId: string;
                     teamId: string | null;
@@ -13774,7 +13973,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             list: import("@trpc/server").TRPCQueryProcedure<{
                 input: {
                     teamId?: string | null | undefined;
-                    status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
+                    status?: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED" | undefined;
                     search?: string | undefined;
                     limit?: number | undefined;
                     offset?: number | undefined;
@@ -13783,7 +13982,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     domains: {
                         id: string;
                         domainName: string;
-                        status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                        status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                         resendDomainId: string | null;
                         userId: string;
                         teamId: string | null;
@@ -13802,12 +14001,12 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     verificationStatus?: string | null | undefined;
                     verificationData?: unknown;
                     dnsRecords?: unknown;
-                    status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
+                    status?: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED" | undefined;
                 };
                 output: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                     resendDomainId: string | null;
                     userId: string;
                     teamId: string | null;
@@ -13836,7 +14035,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 output: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                     resendDomainId: string | null;
                     userId: string;
                     teamId: string | null;
@@ -13875,7 +14074,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     name: string;
                     subject: string;
                     fromEmail: string;
-                    status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
+                    status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
                     recipientCount: number;
                     userId: string;
                     teamId: string | null;
@@ -13909,7 +14108,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     name: string;
                     subject: string;
                     fromEmail: string;
-                    status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
+                    status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
                     recipientCount: number;
                     userId: string;
                     teamId: string | null;
@@ -13937,7 +14136,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             list: import("@trpc/server").TRPCQueryProcedure<{
                 input: {
                     teamId?: string | null | undefined;
-                    status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED" | undefined;
+                    status?: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED" | undefined;
                     search?: string | undefined;
                     limit?: number | undefined;
                     offset?: number | undefined;
@@ -13948,7 +14147,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         name: string;
                         subject: string;
                         fromEmail: string;
-                        status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
+                        status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
                         recipientCount: number;
                         userId: string;
                         teamId: string | null;
@@ -13980,7 +14179,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     name: string;
                     subject: string;
                     fromEmail: string;
-                    status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
+                    status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
                     recipientCount: number;
                     userId: string;
                     teamId: string | null;
@@ -14106,6 +14305,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 input: {
                     campaignRecipientId?: string | undefined;
                     campaignId?: string | undefined;
+                    recipientEmail?: string | undefined;
                     type?: "email_bounced" | "email_clicked" | "email_complained" | "email_delivered" | "email_delivery_delayed" | "email_failed" | "email_opened" | "email_received" | "email_scheduled" | "email_sent" | "email_suppressed" | undefined;
                     limit?: number | undefined;
                     offset?: number | undefined;
@@ -14120,6 +14320,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         data: unknown;
                         createdAt: Date;
                         recipientEmail?: string | null | undefined;
+                        link?: string | null | undefined;
                     }[];
                     total: number;
                 };
@@ -14509,7 +14710,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             list: import("@trpc/server").TRPCQueryProcedure<{
                 input: {
                     teamId?: string | null | undefined;
-                    status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED" | undefined;
+                    status?: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED" | undefined;
                     search?: string | undefined;
                     limit?: number | undefined;
                     offset?: number | undefined;
@@ -14520,7 +14721,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         name: string;
                         subject: string;
                         fromEmail: string;
-                        status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
+                        status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
                         recipientCount: number;
                         userId: string;
                         teamId: string | null;
@@ -14542,7 +14743,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     name: string;
                     subject: string;
                     fromEmail: string;
-                    status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
+                    status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
                     recipientCount: number;
                     userId: string;
                     teamId: string | null;
@@ -14645,7 +14846,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 output: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                     resendDomainId: string | null;
                     userId: string;
                     teamId: string | null;
@@ -14665,7 +14866,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 output: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                     resendDomainId: string | null;
                     userId: string;
                     teamId: string | null;
@@ -14685,7 +14886,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 output: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                     resendDomainId: string | null;
                     userId: string;
                     teamId: string | null;
@@ -14710,7 +14911,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             listLegacy: import("@trpc/server").TRPCQueryProcedure<{
                 input: {
                     teamId?: string | null | undefined;
-                    status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
+                    status?: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED" | undefined;
                     search?: string | undefined;
                     limit?: number | undefined;
                     offset?: number | undefined;
@@ -14719,7 +14920,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     domains: {
                         id: string;
                         domainName: string;
-                        status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                        status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                         resendDomainId: string | null;
                         userId: string;
                         teamId: string | null;
@@ -14739,7 +14940,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 output: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
                     dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
                     mailFromMode: "DEFAULT" | "CUSTOM";
                     userId: string;
@@ -14762,7 +14963,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 output: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
                     dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
                     mailFromMode: "DEFAULT" | "CUSTOM";
                     userId: string;
@@ -14781,7 +14982,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             list: import("@trpc/server").TRPCQueryProcedure<{
                 input: {
                     teamId?: string | null | undefined;
-                    status?: "PENDING" | "FAILED" | "VERIFIED" | "DELETING" | undefined;
+                    status?: "PENDING" | "VERIFIED" | "FAILED" | "DELETING" | undefined;
                     search?: string | null | undefined;
                     limit?: number | undefined;
                     offset?: number | undefined;
@@ -14790,7 +14991,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     domains: {
                         id: string;
                         domainName: string;
-                        status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
+                        status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
                         dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
                         mailFromMode: "DEFAULT" | "CUSTOM";
                         userId: string;
@@ -14820,6 +15021,17 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             errorShape: import("@trpc/server").TRPCDefaultErrorShape;
             transformer: false;
         }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+            getGlobalEvents: import("@trpc/server").TRPCQueryProcedure<{
+                input: {
+                    from?: unknown;
+                    to?: unknown;
+                };
+                output: {
+                    type: "email_bounced" | "email_clicked" | "email_complained" | "email_delivered" | "email_delivery_delayed" | "email_failed" | "email_opened" | "email_received" | "email_scheduled" | "email_sent" | "email_suppressed";
+                    eventCreatedAt: Date;
+                }[];
+                meta: object;
+            }>;
             getCampaignSummary: import("@trpc/server").TRPCQueryProcedure<{
                 input: {
                     campaignId: string;
@@ -14838,10 +15050,61 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 };
                 meta: object;
             }>;
+            getCampaignReport: import("@trpc/server").TRPCQueryProcedure<{
+                input: {
+                    campaignId: string;
+                };
+                output: {
+                    campaign: {
+                        creator: {
+                            name: string | null;
+                            email: string | null;
+                        };
+                        companyName: string | null;
+                        id: string;
+                        userId: string;
+                        teamId: string | null;
+                        name: string;
+                        subject: string;
+                        fromEmail: string;
+                        fromName: string | null;
+                        replyTo: string | null;
+                        status: string;
+                        totalRecipients: number;
+                        scheduledAt: Date | null;
+                        sentAt: Date | null;
+                        completedAt: Date | null;
+                        createdAt: Date;
+                        updatedAt: Date;
+                    };
+                    timing: {
+                        avgDeliveryMs: number | null;
+                        avgOpenMs: number | null;
+                        avgClickMs: number | null;
+                        sendDurationMs: number | null;
+                    };
+                };
+                meta: object;
+            }>;
+            getBounceBreakdown: import("@trpc/server").TRPCQueryProcedure<{
+                input: {
+                    campaignId: string;
+                };
+                output: {
+                    campaignId: string;
+                    byType: Record<string, number>;
+                    topSubTypes: {
+                        bounceSubType: string;
+                        count: number;
+                    }[];
+                };
+                meta: object;
+            }>;
             list: import("@trpc/server").TRPCQueryProcedure<{
                 input: {
                     campaignRecipientId?: string | undefined;
                     campaignId?: string | undefined;
+                    recipientEmail?: string | undefined;
                     type?: "email_bounced" | "email_clicked" | "email_complained" | "email_delivered" | "email_delivery_delayed" | "email_failed" | "email_opened" | "email_received" | "email_scheduled" | "email_sent" | "email_suppressed" | undefined;
                     limit?: number | undefined;
                     offset?: number | undefined;
@@ -14856,6 +15119,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         data: unknown;
                         createdAt: Date;
                         recipientEmail?: string | null | undefined;
+                        link?: string | null | undefined;
                     }[];
                     total: number;
                 };
@@ -15098,10 +15362,10 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     json: string;
                     id: string;
                     name: string;
-                    description: string | null;
                     createdAt: Date;
                     updatedAt: Date;
                     userId: string;
+                    description: string | null;
                     teamId: string | null;
                     isPublic: boolean;
                     thumbnailUrl: string | null;
@@ -15118,10 +15382,10 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     json: string;
                     id: string;
                     name: string;
-                    description: string | null;
                     createdAt: Date;
                     updatedAt: Date;
                     userId: string;
+                    description: string | null;
                     teamId: string | null;
                     isPublic: boolean;
                     thumbnailUrl: string | null;
@@ -15196,10 +15460,10 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     json: string;
                     id: string;
                     name: string;
-                    description: string | null;
                     createdAt: Date;
                     updatedAt: Date;
                     userId: string;
+                    description: string | null;
                     teamId: string | null;
                     isPublic: boolean;
                     thumbnailUrl: string | null;
@@ -16547,7 +16811,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 name: string;
                 description: string | null;
                 pricingModel: "FIXED" | "COMMISSION";
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                 price: string | null;
                 currency: string | null;
                 setupFee: string | null;
@@ -16577,7 +16841,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 name: string;
                 pricingModel: "FIXED" | "COMMISSION";
                 description?: string | undefined;
-                billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+                billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
                 price?: string | undefined;
                 currency?: string | undefined;
                 setupFee?: string | undefined;
@@ -16607,7 +16871,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 name: string;
                 description: string | null;
                 pricingModel: "FIXED" | "COMMISSION";
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                 price: string | null;
                 currency: string | null;
                 setupFee: string | null;
@@ -16638,7 +16902,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 name?: string | undefined;
                 description?: string | undefined;
                 pricingModel?: "FIXED" | "COMMISSION" | undefined;
-                billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+                billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
                 price?: string | undefined;
                 currency?: string | undefined;
                 setupFee?: string | undefined;
@@ -16668,7 +16932,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 name: string;
                 description: string | null;
                 pricingModel: "FIXED" | "COMMISSION";
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                 price: string | null;
                 currency: string | null;
                 setupFee: string | null;
@@ -16815,7 +17079,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 productId?: string | undefined;
                 productPlanId?: string | undefined;
                 pricingModel?: "FIXED" | "COMMISSION" | undefined;
-                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
+                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED" | undefined;
                 fromDate?: unknown;
                 toDate?: unknown;
                 limit?: number | undefined;
@@ -16830,9 +17094,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 orderId: string | null;
                 subscribedBy: string | null;
                 recordedBy: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
                 autoRenew: boolean;
@@ -16875,9 +17139,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 orderId: string | null;
                 subscribedBy: string | null;
                 recordedBy: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
                 autoRenew: boolean;
@@ -16917,7 +17181,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 pleskSubscriptionId: string | null;
                 subscriptionName: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                 productName: string;
                 productPlanName: string | null;
                 subscriptionDate: Date | null;
@@ -16934,7 +17198,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 pleskSubscriptionId: string | null;
                 subscriptionName: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                 productName: string;
                 productPlanName: string | null;
                 subscriptionDate: Date | null;
@@ -16951,7 +17215,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 pleskSubscriptionId: string | null;
                 subscriptionName: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                 productName: string;
                 productPlanName: string | null;
                 subscriptionDate: Date | null;
@@ -16971,7 +17235,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 subscriptionDate: Date | null;
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
             }[];
             meta: object;
         }>;
@@ -17003,9 +17267,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 }[] | undefined;
                 renewals?: {
                     id: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    status: string;
                     notes: string | null;
                     billingCycle: string | null;
                     orderId: string | null;
@@ -17023,9 +17287,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 product: {
                     id: string;
                     name: string;
-                    description: string | null;
                     createdAt: Date;
                     updatedAt: Date;
+                    description: string | null;
                     isActive: boolean;
                     metadata: unknown;
                     category: string;
@@ -17038,9 +17302,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 productPlan: {
                     id: string;
                     name: string;
-                    description: string | null;
                     createdAt: Date;
                     updatedAt: Date;
+                    description: string | null;
                     isActive: boolean;
                     metadata: unknown;
                     currency: string | null;
@@ -17085,9 +17349,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 orderId: string | null;
                 subscribedBy: string | null;
                 recordedBy: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
                 autoRenew: boolean;
@@ -17140,9 +17404,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 orderId: string | null;
                 subscribedBy: string | null;
                 recordedBy: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
                 autoRenew: boolean;
@@ -17203,9 +17467,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 orderId?: string | undefined;
                 subscribedBy?: string | undefined;
                 recordedBy?: string | undefined;
-                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
+                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED" | undefined;
                 subscriptionDate?: unknown;
-                billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+                billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
                 nextRenewalDate?: unknown;
                 expiryDate?: unknown;
                 autoRenew?: boolean | undefined;
@@ -17241,9 +17505,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 orderId: string | null;
                 subscribedBy: string | null;
                 recordedBy: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
                 autoRenew: boolean;
@@ -17273,9 +17537,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
         update: import("@trpc/server").TRPCMutationProcedure<{
             input: {
                 id: string;
-                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
+                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED" | undefined;
                 subscriptionDate?: unknown;
-                billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+                billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
                 nextRenewalDate?: unknown;
                 expiryDate?: unknown;
                 autoRenew?: boolean | undefined;
@@ -17306,9 +17570,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 orderId: string | null;
                 subscribedBy: string | null;
                 recordedBy: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
                 autoRenew: boolean;
@@ -17349,9 +17613,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 orderId: string | null;
                 subscribedBy: string | null;
                 recordedBy: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
                 autoRenew: boolean;
@@ -17400,8 +17664,8 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 renewedBy?: string | undefined;
                 newExpiryDate?: unknown;
                 newNextRenewalDate?: unknown;
-                billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
-                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
+                billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
+                status?: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED" | undefined;
                 renewalPrice?: string | undefined;
                 renewalCurrency?: string | undefined;
                 externalRenewalId?: string | undefined;
@@ -17420,9 +17684,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     orderId: string | null;
                     subscribedBy: string | null;
                     recordedBy: string | null;
-                    status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
+                    status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "UPGRADED" | "DOWNGRADED";
                     subscriptionDate: Date | null;
-                    billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                    billingCycle: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | null;
                     nextRenewalDate: Date | null;
                     expiryDate: Date | null;
                     autoRenew: boolean;
@@ -17726,9 +17990,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             output: {
                 id: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                status: string;
                 userId: string | null;
                 teamId: string | null;
                 metadata: unknown;
@@ -17749,8 +18013,6 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 user: {
                     id: string;
                     name: string;
-                    createdAt: Date;
-                    updatedAt: Date;
                     email: string;
                     emailVerified: boolean;
                     role: string;
@@ -17764,6 +18026,8 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     notificationSoundVolume: number | null;
                     browserNotificationPermission: string | null;
                     notificationPreferencesUpdatedAt: Date | null;
+                    createdAt: Date;
+                    updatedAt: Date;
                 } | null;
                 team: {
                     id: string;
@@ -17779,9 +18043,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 niscProductPromo: {
                     id: string;
                     name: string;
-                    description: string | null;
                     createdAt: Date;
                     updatedAt: Date;
+                    description: string | null;
                     isActive: boolean;
                     code: string;
                     productId: string | null;
@@ -17797,10 +18061,10 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 } | null;
                 orderItems: {
                     id: string;
-                    description: string | null;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    status: string;
+                    description: string | null;
                     metadata: unknown;
                     productId: string;
                     billingCycle: string | null;
@@ -17814,59 +18078,14 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     provisioningErrorDetails: unknown;
                     niscClientSubscriptionId: string | null;
                     domainSubscriptionId: string | null;
-                    product: {
-                        id: string;
-                        name: string;
-                        description: string | null;
-                        createdAt: Date;
-                        updatedAt: Date;
-                        isActive: boolean;
-                        metadata: unknown;
-                        category: string;
-                        serviceType: string;
-                        sortOrder: number;
-                        features: unknown;
-                        highlights: unknown;
-                        isAddOn: boolean;
-                    };
-                    productPlan: {
-                        id: string;
-                        name: string;
-                        description: string | null;
-                        createdAt: Date;
-                        updatedAt: Date;
-                        isActive: boolean;
-                        metadata: unknown;
-                        currency: string | null;
-                        price: string | null;
-                        sortOrder: number;
-                        highlights: unknown;
-                        productId: string;
-                        pricingModel: string;
-                        billingCycle: string | null;
-                        setupFee: string | null;
-                        cost: string | null;
-                        costCurrency: string | null;
-                        commissionRate: string | null;
-                        commissionBase: string | null;
-                        commissionBaseDescription: string | null;
-                        planFeatures: unknown;
-                        isPopular: boolean;
-                        isRecommended: boolean;
-                        isDefault: boolean;
-                        pleskServicePlanId: string | null;
-                        pleskFilterId: string | null;
-                        pleskIpAddress: string | null;
-                        hostingType: string | null;
-                    } | null;
                     niscClientSubscription: {
                         id: string;
                         name: string | null;
-                        description: string | null;
+                        status: string;
                         createdAt: Date;
                         updatedAt: Date;
-                        status: string;
                         userId: string | null;
+                        description: string | null;
                         teamId: string | null;
                         metadata: unknown;
                         notes: string | null;
@@ -17907,14 +18126,59 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         serviceRefs: unknown;
                         hostingSubscriptionId: string | null;
                     } | null;
+                    product: {
+                        id: string;
+                        name: string;
+                        createdAt: Date;
+                        updatedAt: Date;
+                        description: string | null;
+                        isActive: boolean;
+                        metadata: unknown;
+                        category: string;
+                        serviceType: string;
+                        sortOrder: number;
+                        features: unknown;
+                        highlights: unknown;
+                        isAddOn: boolean;
+                    };
+                    productPlan: {
+                        id: string;
+                        name: string;
+                        createdAt: Date;
+                        updatedAt: Date;
+                        description: string | null;
+                        isActive: boolean;
+                        metadata: unknown;
+                        currency: string | null;
+                        price: string | null;
+                        sortOrder: number;
+                        highlights: unknown;
+                        productId: string;
+                        pricingModel: string;
+                        billingCycle: string | null;
+                        setupFee: string | null;
+                        cost: string | null;
+                        costCurrency: string | null;
+                        commissionRate: string | null;
+                        commissionBase: string | null;
+                        commissionBaseDescription: string | null;
+                        planFeatures: unknown;
+                        isPopular: boolean;
+                        isRecommended: boolean;
+                        isDefault: boolean;
+                        pleskServicePlanId: string | null;
+                        pleskFilterId: string | null;
+                        pleskIpAddress: string | null;
+                        hostingType: string | null;
+                    } | null;
                     domainSubscription: {
                         id: string;
                         name: string | null;
-                        description: string | null;
+                        status: string;
                         createdAt: Date;
                         updatedAt: Date;
-                        status: string;
                         userId: string | null;
+                        description: string | null;
                         teamId: string | null;
                         metadata: unknown;
                         notes: string | null;
@@ -17971,7 +18235,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 items: {
                     productId: string;
                     productPlanId: string;
-                    billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+                    billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
                     primaryDomain?: string | undefined;
                     domainSubscriptionId?: string | undefined;
                     metadata?: {
@@ -17989,9 +18253,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             output: {
                 id: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                status: string;
                 userId: string | null;
                 teamId: string | null;
                 metadata: unknown;
@@ -18020,10 +18284,10 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 } | null;
                 orderItems: {
                     id: string;
-                    description: string | null;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    status: string;
+                    description: string | null;
                     metadata: unknown;
                     productId: string;
                     billingCycle: string | null;
@@ -18058,7 +18322,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                     itemPrice: string;
                     itemSubtotal: string;
                     productPlanId?: string | null | undefined;
-                    billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+                    billingCycle?: "MONTHLY" | "CUSTOM" | "YEARLY" | "BIENNIALLY" | undefined;
                     primaryDomain?: string | undefined;
                     description?: string | undefined;
                     domainSubscriptionId?: string | undefined;
@@ -18075,9 +18339,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             output: {
                 id: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                status: string;
                 userId: string | null;
                 teamId: string | null;
                 metadata: unknown;
@@ -18106,10 +18370,10 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 } | null;
                 orderItems: {
                     id: string;
-                    description: string | null;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    status: string;
+                    description: string | null;
                     metadata: unknown;
                     productId: string;
                     billingCycle: string | null;
@@ -18211,7 +18475,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
     }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         permissionCatalog: import("@trpc/server").TRPCQueryProcedure<{
             input: void;
-            output: ("/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[];
+            output: ("/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/clients" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/billing" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[];
             meta: object;
         }>;
         rolesList: import("@trpc/server").TRPCQueryProcedure<{
@@ -18237,7 +18501,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                 isSystem: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                permissionKeys: ("/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[];
+                permissionKeys: ("/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/clients" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/billing" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[];
             };
             meta: object;
         }>;
@@ -18285,7 +18549,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             input: void;
             output: {
                 id: string;
-                key: "/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative";
+                key: "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/clients" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/billing" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative";
                 description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -18294,12 +18558,12 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
         }>;
         permissionUpsert: import("@trpc/server").TRPCMutationProcedure<{
             input: {
-                key: "/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative";
+                key: "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/clients" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/billing" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative";
                 description?: string | undefined;
             };
             output: {
                 id: string;
-                key: "/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative";
+                key: "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/clients" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/billing" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative";
                 description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -18309,7 +18573,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
         rolePermissionsSet: import("@trpc/server").TRPCMutationProcedure<{
             input: {
                 roleId: string;
-                permissionKeys?: ("/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[] | undefined;
+                permissionKeys?: ("/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/clients" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/billing" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[] | undefined;
             };
             output: {
                 success: boolean;
@@ -18331,7 +18595,333 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 roleId: string | null;
                 roleName: string | null;
-                allowedKeys: ("/agency/clients" | "/agency/billing" | "/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[];
+                allowedKeys: ("/agency/dashboard" | "/agency/domains" | "/agency/tlds" | "/agency/domain-transfer" | "/agency/domains-portfolio" | "/agency/hosting" | "/agency/wordpress" | "/agency/social-media-marketing" | "/agency/social-media-marketing/facebook" | "/agency/social-media-marketing/linkedin" | "/agency/ad-campaigns" | "/agency/ad-campaigns/meta-ads" | "/agency/ad-campaigns/google-ads" | "/agency/ad-campaigns/linkedin-ads" | "/agency/email-marketing" | "/agency/email-marketing/campaigns" | "/agency/email-marketing/domain-configuration" | "/agency/email-marketing/audiences" | "/agency/email-marketing/email-builder" | "/agency/seo" | "/agency/seo-reports" | "/agency/creative-assets" | "/agency/gen-ai/image-gen-studio" | "/agency/gen-ai/image-generator" | "/agency/gen-ai/background-remover" | "/agency/nisc-services" | "/agency/nisc-service-orders" | "/agency/clients" | "/agency/manage-teams" | "/agency/manage-users" | "/agency/billing" | "/agency/transactions" | "/agency/invoices" | "/agency/subscriptions" | "/agency/quotations" | "/agency/kra-etims/sales" | "/agency/kra-etims/purchases" | "/agency/kra-etims/products" | "/agency/kra-etims/branches" | "/agency/kra-etims/settings" | "/agency/reports/sales" | "/agency/reports/creative")[];
+            };
+            meta: object;
+        }>;
+    }>>;
+    hivelocity: import("@trpc/server").TRPCBuiltRouter<{
+        ctx: import("..").Context;
+        meta: object;
+        errorShape: import("@trpc/server").TRPCDefaultErrorShape;
+        transformer: false;
+    }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        healthCheck: import("@trpc/server").TRPCQueryProcedure<{
+            input: void;
+            output: {
+                hasApiKey: boolean;
+                baseUrl: string;
+                status: string;
+            };
+            meta: object;
+        }>;
+        getFacilities: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                vpsLocations?: string | undefined;
+            } | undefined;
+            output: {
+                success: boolean;
+                data: {
+                    id: number;
+                    title: string;
+                    code: string;
+                    edge: boolean;
+                    core: boolean;
+                    location_option_ids: number[];
+                    location: {
+                        city: string;
+                        state: string;
+                        country: string;
+                    };
+                }[];
+            };
+            meta: object;
+        }>;
+        getProducts: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                location?: "MAIN" | "CUSTOM_DISPLAY" | "MASSIVESTORAGE" | "GPU" | "OUTLET" | "LANDING" | undefined;
+                include_custom?: boolean | undefined;
+                bonding_support?: string | null | undefined;
+                group_by?: string | undefined;
+            } | undefined;
+            output: {
+                success: boolean;
+                data: import("../types/hivelocity").HivelocityInventoryResponse;
+            };
+            meta: object;
+        }>;
+        getDedicatedServerPlans: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                location?: "MAIN" | "CUSTOM_DISPLAY" | "MASSIVESTORAGE" | "GPU" | "OUTLET" | "LANDING" | undefined;
+                include_custom?: boolean | undefined;
+                bonding_support?: string | null | undefined;
+                facility_code?: string | undefined;
+                search?: string | undefined;
+                limit?: number | undefined;
+                cursor?: number | undefined;
+            } | undefined;
+            output: {
+                success: boolean;
+                data: {
+                    items: {
+                        [x: string]: unknown;
+                        product_id: number;
+                        product_name: string;
+                        stock: "available" | "limited" | "unavailable";
+                        data_center: string;
+                        location_option_id: number;
+                        edge: boolean;
+                        core: boolean;
+                        is_disk_upgradable: boolean;
+                        is_sps: boolean;
+                        is_vps: boolean;
+                        is_vds: boolean;
+                        product_cpu?: string | undefined;
+                        product_cpu_cores?: string | undefined;
+                        product_memory?: string | undefined;
+                        product_drive?: string | undefined;
+                        product_bandwidth?: string | undefined;
+                        product_gpu?: string | undefined;
+                        processor_info?: unknown;
+                        product_drive_info?: unknown;
+                        product_defaults?: unknown;
+                        product_hourly_price?: number | undefined;
+                        product_monthly_price?: number | undefined;
+                        product_quarterly_price?: number | undefined;
+                        product_semi_annually_price?: number | undefined;
+                        product_annually_price?: number | undefined;
+                        product_biennial_price?: number | undefined;
+                        product_triennial_price?: number | undefined;
+                        product_on_sale?: boolean | undefined;
+                        product_original_price?: number | undefined;
+                        product_new?: boolean | undefined;
+                        hourly_location_premium?: number | undefined;
+                        monthly_location_premium?: number | undefined;
+                        quarterly_location_premium?: number | undefined;
+                        semi_annually_location_premium?: number | undefined;
+                        annually_location_premium?: number | undefined;
+                        biennial_location_premium?: number | undefined;
+                        triennial_location_premium?: number | undefined;
+                        product_disabled_billing_periods?: string[] | undefined;
+                        product_display_price?: number | undefined;
+                    }[];
+                    total: number;
+                    nextCursor: number | null;
+                };
+            };
+            meta: object;
+        }>;
+        getVpsPlans: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                location?: "MAIN" | "CUSTOM_DISPLAY" | "MASSIVESTORAGE" | "GPU" | "OUTLET" | "LANDING" | undefined;
+                include_custom?: boolean | undefined;
+                bonding_support?: string | null | undefined;
+                facility_code?: string | undefined;
+                search?: string | undefined;
+                limit?: number | undefined;
+                cursor?: number | undefined;
+            } | undefined;
+            output: {
+                success: boolean;
+                data: {
+                    items: {
+                        [x: string]: unknown;
+                        product_id: number;
+                        product_name: string;
+                        stock: "available" | "limited" | "unavailable";
+                        data_center: string;
+                        location_option_id: number;
+                        edge: boolean;
+                        core: boolean;
+                        is_disk_upgradable: boolean;
+                        is_sps: boolean;
+                        is_vps: boolean;
+                        is_vds: boolean;
+                        product_cpu?: string | undefined;
+                        product_cpu_cores?: string | undefined;
+                        product_memory?: string | undefined;
+                        product_drive?: string | undefined;
+                        product_bandwidth?: string | undefined;
+                        product_gpu?: string | undefined;
+                        processor_info?: unknown;
+                        product_drive_info?: unknown;
+                        product_defaults?: unknown;
+                        product_hourly_price?: number | undefined;
+                        product_monthly_price?: number | undefined;
+                        product_quarterly_price?: number | undefined;
+                        product_semi_annually_price?: number | undefined;
+                        product_annually_price?: number | undefined;
+                        product_biennial_price?: number | undefined;
+                        product_triennial_price?: number | undefined;
+                        product_on_sale?: boolean | undefined;
+                        product_original_price?: number | undefined;
+                        product_new?: boolean | undefined;
+                        hourly_location_premium?: number | undefined;
+                        monthly_location_premium?: number | undefined;
+                        quarterly_location_premium?: number | undefined;
+                        semi_annually_location_premium?: number | undefined;
+                        annually_location_premium?: number | undefined;
+                        biennial_location_premium?: number | undefined;
+                        triennial_location_premium?: number | undefined;
+                        product_disabled_billing_periods?: string[] | undefined;
+                        product_display_price?: number | undefined;
+                    }[];
+                    total: number;
+                    nextCursor: number | null;
+                };
+            };
+            meta: object;
+        }>;
+        getVdsPlans: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                location?: "MAIN" | "CUSTOM_DISPLAY" | "MASSIVESTORAGE" | "GPU" | "OUTLET" | "LANDING" | undefined;
+                include_custom?: boolean | undefined;
+                bonding_support?: string | null | undefined;
+                facility_code?: string | undefined;
+                search?: string | undefined;
+                limit?: number | undefined;
+                cursor?: number | undefined;
+            } | undefined;
+            output: {
+                success: boolean;
+                data: {
+                    items: {
+                        [x: string]: unknown;
+                        product_id: number;
+                        product_name: string;
+                        stock: "available" | "limited" | "unavailable";
+                        data_center: string;
+                        location_option_id: number;
+                        edge: boolean;
+                        core: boolean;
+                        is_disk_upgradable: boolean;
+                        is_sps: boolean;
+                        is_vps: boolean;
+                        is_vds: boolean;
+                        product_cpu?: string | undefined;
+                        product_cpu_cores?: string | undefined;
+                        product_memory?: string | undefined;
+                        product_drive?: string | undefined;
+                        product_bandwidth?: string | undefined;
+                        product_gpu?: string | undefined;
+                        processor_info?: unknown;
+                        product_drive_info?: unknown;
+                        product_defaults?: unknown;
+                        product_hourly_price?: number | undefined;
+                        product_monthly_price?: number | undefined;
+                        product_quarterly_price?: number | undefined;
+                        product_semi_annually_price?: number | undefined;
+                        product_annually_price?: number | undefined;
+                        product_biennial_price?: number | undefined;
+                        product_triennial_price?: number | undefined;
+                        product_on_sale?: boolean | undefined;
+                        product_original_price?: number | undefined;
+                        product_new?: boolean | undefined;
+                        hourly_location_premium?: number | undefined;
+                        monthly_location_premium?: number | undefined;
+                        quarterly_location_premium?: number | undefined;
+                        semi_annually_location_premium?: number | undefined;
+                        annually_location_premium?: number | undefined;
+                        biennial_location_premium?: number | undefined;
+                        triennial_location_premium?: number | undefined;
+                        product_disabled_billing_periods?: string[] | undefined;
+                        product_display_price?: number | undefined;
+                    }[];
+                    total: number;
+                    nextCursor: number | null;
+                };
+            };
+            meta: object;
+        }>;
+        getProduct: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                productId: number;
+            };
+            output: {
+                success: boolean;
+                data: import("../types/hivelocity").HivelocityInventoryResponse | {
+                    [x: string]: unknown;
+                    product_id: number;
+                    product_name: string;
+                    stock: "available" | "limited" | "unavailable";
+                    data_center: string;
+                    location_option_id: number;
+                    edge: boolean;
+                    core: boolean;
+                    is_disk_upgradable: boolean;
+                    is_sps: boolean;
+                    is_vps: boolean;
+                    is_vds: boolean;
+                    product_cpu?: string | undefined;
+                    product_cpu_cores?: string | undefined;
+                    product_memory?: string | undefined;
+                    product_drive?: string | undefined;
+                    product_bandwidth?: string | undefined;
+                    product_gpu?: string | undefined;
+                    processor_info?: unknown;
+                    product_drive_info?: unknown;
+                    product_defaults?: unknown;
+                    product_hourly_price?: number | undefined;
+                    product_monthly_price?: number | undefined;
+                    product_quarterly_price?: number | undefined;
+                    product_semi_annually_price?: number | undefined;
+                    product_annually_price?: number | undefined;
+                    product_biennial_price?: number | undefined;
+                    product_triennial_price?: number | undefined;
+                    product_on_sale?: boolean | undefined;
+                    product_original_price?: number | undefined;
+                    product_new?: boolean | undefined;
+                    hourly_location_premium?: number | undefined;
+                    monthly_location_premium?: number | undefined;
+                    quarterly_location_premium?: number | undefined;
+                    semi_annually_location_premium?: number | undefined;
+                    annually_location_premium?: number | undefined;
+                    biennial_location_premium?: number | undefined;
+                    triennial_location_premium?: number | undefined;
+                    product_disabled_billing_periods?: string[] | undefined;
+                    product_display_price?: number | undefined;
+                } | {
+                    [x: string]: unknown;
+                    product_id: number;
+                    product_name: string;
+                    stock: "available" | "limited" | "unavailable";
+                    data_center: string;
+                    location_option_id: number;
+                    edge: boolean;
+                    core: boolean;
+                    is_disk_upgradable: boolean;
+                    is_sps: boolean;
+                    is_vps: boolean;
+                    is_vds: boolean;
+                    product_cpu?: string | undefined;
+                    product_cpu_cores?: string | undefined;
+                    product_memory?: string | undefined;
+                    product_drive?: string | undefined;
+                    product_bandwidth?: string | undefined;
+                    product_gpu?: string | undefined;
+                    processor_info?: unknown;
+                    product_drive_info?: unknown;
+                    product_defaults?: unknown;
+                    product_hourly_price?: number | undefined;
+                    product_monthly_price?: number | undefined;
+                    product_quarterly_price?: number | undefined;
+                    product_semi_annually_price?: number | undefined;
+                    product_annually_price?: number | undefined;
+                    product_biennial_price?: number | undefined;
+                    product_triennial_price?: number | undefined;
+                    product_on_sale?: boolean | undefined;
+                    product_original_price?: number | undefined;
+                    product_new?: boolean | undefined;
+                    hourly_location_premium?: number | undefined;
+                    monthly_location_premium?: number | undefined;
+                    quarterly_location_premium?: number | undefined;
+                    semi_annually_location_premium?: number | undefined;
+                    annually_location_premium?: number | undefined;
+                    biennial_location_premium?: number | undefined;
+                    triennial_location_premium?: number | undefined;
+                    product_disabled_billing_periods?: string[] | undefined;
+                    product_display_price?: number | undefined;
+                }[];
             };
             meta: object;
         }>;

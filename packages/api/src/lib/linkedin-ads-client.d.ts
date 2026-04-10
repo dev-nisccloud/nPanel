@@ -13,6 +13,7 @@ export declare class LinkedInAdsClient {
     private normalizeElements;
     private isUnsupportedCreativePreviewError;
     private toLinkedInList;
+    private toLinkedInListEncoded;
     private toQueryValue;
     private buildAdAnalyticsQuery;
     private formatAnalyticsDateRange;
@@ -173,6 +174,7 @@ export declare class LinkedInAdsClient {
             placement?: any;
         }>;
         paging?: any;
+        notImplemented?: boolean;
     }>;
     /**
      * Get creative details

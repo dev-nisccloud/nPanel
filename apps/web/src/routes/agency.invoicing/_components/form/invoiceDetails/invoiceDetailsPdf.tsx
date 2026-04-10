@@ -15,10 +15,23 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
   const currencyDetails = currencyList.find(
     (currency) => currency.value.toLowerCase() === currencyType.toLowerCase()
   )?.details;
-  const subtotal = calculateTotalAmount(items);
-  const discountAmount = subtotal - (discount ? +discount : 0);
-  const taxAmount = discountAmount * ((taxRate ? +taxRate : 0) / 100);
-  const totalAmount = discountAmount + taxAmount;
+  const itemsNormalized: Item[] = items.map((item) => ({
+    ...item,
+    amount:
+      item.amount !== undefined &&
+      item.amount !== null &&
+      `${item.amount}` !== ""
+        ? roundMoney2(Number(item.amount))
+        : item.amount,
+  }));
+  const subtotal = roundMoney2(calculateTotalAmount(itemsNormalized));
+  const discountAmount = roundMoney2(
+    subtotal - (discount ? +discount : 0)
+  );
+  const taxAmount = roundMoney2(
+    discountAmount * ((taxRate ? +taxRate : 0) / 100)
+  );
+  const totalAmount = roundMoney2(discountAmount + taxAmount);
 
   return (
     <View>
@@ -45,7 +58,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           </View>
         </View>
       </View>
-      {items.map(({ itemDescription, amount, qty }, index) => {
+      {itemsNormalized.map(({ itemDescription, amount, qty }, index) => {
         const containerStyle = {
           marginHorizontal: 40,
           paddingVertical: 14,
@@ -62,7 +75,15 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               ...borderStyle,
             }}
           >
-            <Text style={{ flex: 1, ...pdfTypography.itemDescription }}>
+            <Text
+              style={{
+                flex: 1,
+                ...pdfTypography.itemDescription,
+                // Ensure long descriptions wrap cleanly instead of overflowing.
+                flexWrap: "wrap",
+                paddingRight: 12,
+              }}
+            >
               {itemDescription}
             </Text>
             <View
@@ -75,18 +96,29 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               <Text style={{ flex: 1, ...pdfTypography.itemDescription }}>
                 {qty ? qty : "-"}
               </Text>
-              <Text style={{ flex: 1, ...pdfTypography.itemDescription }}>
-                {amount ? addCommasToNumber(amount) : ""}
+              <Text
+                style={{
+                  flex: 1,
+                  ...pdfTypography.itemDescription,
+                  flexWrap: "wrap",
+                  maxWidth: 80,
+                }}
+              >
+                {amount ? formatPdfMoney(Number(amount)) : ""}
               </Text>
               <Text
                 style={{
                   flex: 1,
                   ...pdfTypography.itemDescription,
                   textAlign: "right",
+                  flexWrap: "wrap",
+                  maxWidth: 120,
                 }}
               >
                 {currencyDetails?.currencySymbol}
-                {amount ? addCommasToNumber((qty ? qty : 1) * amount) : ""}
+                {amount
+                  ? formatPdfMoney((qty ? +qty : 1) * Number(amount))
+                  : ""}
               </Text>
             </View>
           </View>
@@ -121,7 +153,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               }}
             >
               {currencyDetails?.currencySymbol}
-              {addCommasToNumber(subtotal)}
+              {formatPdfMoney(subtotal)}
             </Text>
           </View>
           {discount && (
@@ -144,7 +176,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 }}
               >
                 {currencyDetails?.currencySymbol}
-                {discount ? addCommasToNumber(+discount) : ""}
+                {discount ? formatPdfMoney(+discount) : ""}
               </Text>
             </View>
           )}
@@ -168,7 +200,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 }}
               >
                 {currencyDetails?.currencySymbol}
-                {addCommasToNumber(+taxAmount.toFixed(2))}
+                {formatPdfMoney(taxAmount)}
               </Text>
             </View>
           )}
@@ -183,16 +215,16 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               Amount
             </Text>
             <Text
-              wrap={false}
               style={{
                 ...pdfTypography.itemDescription,
                 flex: 1,
                 textAlign: "right",
                 fontWeight: "bold",
+                flexWrap: "wrap",
               }}
             >
               {currencyDetails?.currencySymbol}
-              {addCommasToNumber(totalAmount)}
+              {formatPdfMoney(totalAmount)}
             </Text>
           </View>
         </View>
@@ -208,10 +240,16 @@ const calculateTotalAmount = (items: Item[]): number =>
     return total + quantity * amount;
   }, 0);
 
+const roundMoney2 = (n: number): number =>
+  Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+
 const addCommasToNumber = (number: number): string => {
-  let numberString = number.toString();
+  const fixed = roundMoney2(number);
+  let numberString = fixed.toFixed(2);
   const parts = numberString.split(".");
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return parts.join(".");
 };
+
+const formatPdfMoney = (n: number): string => addCommasToNumber(n);
 

@@ -34,6 +34,7 @@ export declare const emailMarketingEmailEventsRouter: import("@trpc/server").TRP
         input: {
             campaignRecipientId?: string | undefined;
             campaignId?: string | undefined;
+            recipientEmail?: string | undefined;
             type?: "email_bounced" | "email_clicked" | "email_complained" | "email_delivered" | "email_delivery_delayed" | "email_failed" | "email_opened" | "email_received" | "email_scheduled" | "email_sent" | "email_suppressed" | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -48,6 +49,7 @@ export declare const emailMarketingEmailEventsRouter: import("@trpc/server").TRP
                 data: unknown;
                 createdAt: Date;
                 recipientEmail?: string | null | undefined;
+                link?: string | null | undefined;
             }[];
             total: number;
         };

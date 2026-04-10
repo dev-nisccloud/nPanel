@@ -39,6 +39,26 @@ export declare const linkedInAdsCreativesRouter: import("@trpc/server").TRPCBuil
         };
         meta: object;
     }>;
+    getCreativeInsights: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            accountId: string;
+            creativeIds: string[];
+            timeRange: {
+                since: string;
+                until: string;
+            };
+        };
+        output: {
+            success: boolean;
+            data: Record<string, any>;
+            meta: {
+                retrieved_at: string;
+                requested_creatives: number;
+                resolved_creatives: number;
+            };
+        };
+        meta: object;
+    }>;
     getCreativePreview: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             accountId: string;
@@ -62,7 +82,7 @@ export declare const linkedInAdsCreativesRouter: import("@trpc/server").TRPCBuil
                 total_previews: number;
                 previewSource: "none" | "accurate" | "live_action";
                 unsupportedCreativeType: boolean;
-                message?: undefined;
+                message: string | undefined;
             };
         } | {
             success: boolean;

@@ -209,6 +209,60 @@ export declare const googleAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             meta: object;
         }>;
+        getCampaignTargeting: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                customerId: string;
+                campaignId: string;
+            };
+            output: {
+                success: boolean;
+                data: {
+                    label: string;
+                    content: string;
+                }[];
+                debug: {
+                    criterionId: string | null;
+                    type: string | null;
+                    negative: boolean;
+                    displayName: string | null;
+                    keywordText: string | null;
+                    matchType: string | null;
+                    location: string | null;
+                    language: string | null;
+                    ageRange: string | null;
+                    gender: string | null;
+                    userInterest: string | null;
+                    userList: string | null;
+                    topic: string | null;
+                    placementUrl: string | null;
+                }[];
+                meta: {
+                    total_criteria: number;
+                };
+            };
+            meta: object;
+        }>;
+        getBulkAdGroupTargeting: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                customerId: string;
+                adGroupIds: string[];
+            };
+            output: {
+                success: boolean;
+                data: Record<string, {
+                    data: {
+                        label: string;
+                        content: string;
+                    }[];
+                    debug: any[];
+                }>;
+                meta: {
+                    total_ad_groups: number;
+                    total_criteria: number;
+                };
+            };
+            meta: object;
+        }>;
     }>>;
     adGroups: import("@trpc/server").TRPCBuiltRouter<{
         ctx: import("../..").Context;
@@ -239,10 +293,15 @@ export declare const googleAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     insights: {
                         impressions: string | null;
                         clicks: string | null;
+                        interactions: string | null;
                         cost: string | null;
                         ctr: string | null;
+                        interaction_rate: string | null;
                         cpc: string | null;
                         conversions: string | null;
+                        conversions_value: string | null;
+                        all_conversions: string | null;
+                        all_conversions_value: string | null;
                         cost_per_conversion: string | null;
                     };
                 }[];
@@ -286,16 +345,40 @@ export declare const googleAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     insights: {
                         impressions: string | null;
                         clicks: string | null;
+                        interactions: string | null;
                         cost: string | null;
                         ctr: string | null;
+                        interaction_rate: string | null;
                         cpc: string | null;
                         conversions: string | null;
+                        conversions_value: string | null;
+                        all_conversions: string | null;
+                        all_conversions_value: string | null;
                         cost_per_conversion: string | null;
                     };
                 }[];
                 meta: {
                     retrieved_at: string;
                     total_ads: number;
+                };
+            };
+            meta: object;
+        }>;
+        listAdsBulk: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                customerId: string;
+                adGroupIds: string[];
+                timeRange?: {
+                    since: string;
+                    until: string;
+                } | undefined;
+            };
+            output: {
+                success: boolean;
+                data: Record<string, any[]>;
+                meta: {
+                    retrieved_at: string;
+                    total_ad_groups: number;
                 };
             };
             meta: object;

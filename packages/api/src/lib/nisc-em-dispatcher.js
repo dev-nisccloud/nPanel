@@ -1,4 +1,4 @@
-import { db, eq, sql } from "@npanel/db";
+import { db, eq, inArray, sql } from "@npanel/db";
 import { niscEmCampaign, niscEmEmail } from "@npanel/db/schema";
 import { getSesClient, sendSesRawEmail } from "./ses-client";
 import { getQuotaStatus } from "./quota-reservation";
@@ -159,6 +159,7 @@ export async function dispatchNiscEmEmailQueue(params) {
     let sent = 0;
     let failed = 0;
     let throttled = 0;
+    const touchedCampaignIds = new Set();
     try {
         const quota = await getQuotaStatus(new Date());
         const envRate = envInt("NISC_EM_MAX_SEND_RATE");
@@ -173,6 +174,8 @@ export async function dispatchNiscEmEmailQueue(params) {
             if (batch.length === 0)
                 break;
             claimed += batch.length;
+            for (const b of batch)
+                touchedCampaignIds.add(b.campaignId);
             // Prefetch campaigns for content and headers.
             const campaignIds = Array.from(new Set(batch.map((b) => b.campaignId)));
             const campaigns = await db.query.niscEmCampaign.findMany({
@@ -253,6 +256,41 @@ export async function dispatchNiscEmEmailQueue(params) {
                 }
             }
         }
+        // Update campaign status + sent counts so UI doesn't get stuck on SCHEDULED/SENDING.
+        if (touchedCampaignIds.size > 0) {
+            const ids = Array.from(touchedCampaignIds);
+            const rows = await db
+                .select({
+                campaignId: niscEmEmail.campaignId,
+                queuedCount: sql `count(*) filter (where ${niscEmEmail.status} = 'QUEUED')`,
+                sendingCount: sql `count(*) filter (where ${niscEmEmail.status} = 'SENDING')`,
+                sentCount: sql `count(*) filter (where ${niscEmEmail.status} = 'SENT')`,
+                failedCount: sql `count(*) filter (where ${niscEmEmail.status} = 'FAILED')`,
+            })
+                .from(niscEmEmail)
+                .where(inArray(niscEmEmail.campaignId, ids))
+                .groupBy(niscEmEmail.campaignId);
+            const now = new Date();
+            for (const r of rows) {
+                const queuedCount = Number(r.queuedCount ?? 0);
+                const sendingCount = Number(r.sendingCount ?? 0);
+                const sentCount = Number(r.sentCount ?? 0);
+                const failedCount = Number(r.failedCount ?? 0);
+                const stillInFlight = queuedCount + sendingCount > 0;
+                const finalStatus = stillInFlight ? "SENDING" : failedCount > 0 ? "FAILED" : "SENT";
+                await db
+                    .update(niscEmCampaign)
+                    .set({
+                    status: finalStatus,
+                    totalSent: sentCount,
+                    // Keep the first-send timestamp stable once it is set.
+                    sentAt: sentCount > 0 ? sql `coalesce(${niscEmCampaign.sentAt}, ${now})` : null,
+                    completedAt: stillInFlight ? null : now,
+                    updatedAt: now,
+                })
+                    .where(eq(niscEmCampaign.id, r.campaignId));
+            }
+        }
         return {
             ran: true,
             claimed,
@@ -268,6 +306,265 @@ export async function dispatchNiscEmEmailQueue(params) {
         }
         catch {
             // ignore (lock will release on connection close)
+        }
+    }
+}
+async function countEligibleQueuedEmails(now) {
+    const res = await db.execute(sql `
+    select count(*)::int as "value"
+    from ${niscEmEmail} e
+    join ${niscEmCampaign} c on c.id = e.campaign_id
+    where e.status = 'QUEUED'
+      and (
+        c.status = 'SENDING'
+        or (
+          c.status = 'SCHEDULED'
+          and (c.scheduled_at is null or c.scheduled_at <= ${now})
+        )
+      )
+  `);
+    const row = res.rows?.[0];
+    return Number(row?.value ?? 0);
+}
+async function countEligibleEmailsByStatus(now) {
+    const res = await db.execute(sql `
+    select e.status as "status", count(*)::int as "value"
+    from ${niscEmEmail} e
+    join ${niscEmCampaign} c on c.id = e.campaign_id
+    where (
+      c.status = 'SENDING'
+      or (
+        c.status = 'SCHEDULED'
+        and (c.scheduled_at is null or c.scheduled_at <= ${now})
+      )
+    )
+    group by e.status
+  `);
+    const rows = res.rows ?? [];
+    const out = {};
+    for (const r of rows)
+        out[r.status] = Number(r.value ?? 0);
+    return out;
+}
+function topErrorMessages(counts, limit = 8) {
+    return Array.from(counts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([message, count]) => ({ message, count }));
+}
+/**
+ * Same dispatcher as {@link dispatchNiscEmEmailQueue} but returns extra diagnostics
+ * that are useful to correlate with QStash job runs and Cloud Run logs.
+ */
+export async function dispatchNiscEmEmailQueueWithDebug(params) {
+    const startedAt = new Date();
+    const startedMs = Date.now();
+    const maxRuntimeMs = clamp(params?.maxRuntimeMs ?? 20_000, 1_000, 55_000);
+    const claimBatchSize = clamp(params?.claimBatchSize ?? 200, 1, 2_000);
+    const debugNow = new Date();
+    const eligibleQueuedCountAtStart = await countEligibleQueuedEmails(debugNow);
+    const eligibleByStatusAtStart = await countEligibleEmailsByStatus(debugNow);
+    const lockOk = await tryAcquireGlobalDispatchLock();
+    if (!lockOk) {
+        return {
+            result: { ran: false, reason: "LOCK_HELD" },
+            debug: {
+                startedAt: startedAt.toISOString(),
+                maxRuntimeMs,
+                claimBatchSize,
+                ratePerSecond: 0,
+                quota: {
+                    maxSendRate: 0,
+                    max24HourSend: 0,
+                    sentLast24HoursAtStart: 0,
+                    reservedEmails: 0,
+                    remainingEmails: 0,
+                },
+                queue: {
+                    eligibleQueuedCountAtStart,
+                    eligibleQueuedCountAtEnd: eligibleQueuedCountAtStart,
+                    eligibleByStatusAtStart,
+                    eligibleByStatusAtEnd: eligibleByStatusAtStart,
+                },
+                errors: { byMessage: [] },
+            },
+        };
+    }
+    const errorCounts = new Map();
+    try {
+        const quota = await getQuotaStatus(new Date());
+        const envRate = envInt("NISC_EM_MAX_SEND_RATE");
+        const configuredRate = envRate && envRate > 0 ? envRate : 14;
+        const maxRate = Math.max(1, Math.floor(quota.maxSendRate || configuredRate));
+        const ratePerSecond = clamp(Math.min(configuredRate, maxRate), 1, 1000);
+        // Run the real dispatcher logic (inlined to capture debug data without changing its public shape).
+        let claimed = 0;
+        let sent = 0;
+        let failed = 0;
+        let throttled = 0;
+        const touchedCampaignIds = new Set();
+        const limiter = new TokenBucketPerSecond(ratePerSecond);
+        const ses = getSesClient();
+        while (Date.now() - startedMs < maxRuntimeMs) {
+            const now = new Date();
+            const batch = await claimQueuedEmails({ now, limit: claimBatchSize });
+            if (batch.length === 0)
+                break;
+            claimed += batch.length;
+            for (const b of batch)
+                touchedCampaignIds.add(b.campaignId);
+            const campaignIds = Array.from(new Set(batch.map((b) => b.campaignId)));
+            const campaigns = await db.query.niscEmCampaign.findMany({
+                where: (tbl, { inArray }) => inArray(tbl.id, campaignIds),
+                columns: {
+                    id: true,
+                    subject: true,
+                    fromEmail: true,
+                    fromName: true,
+                    replyTo: true,
+                    htmlContent: true,
+                    textContent: true,
+                },
+            });
+            const campaignById = new Map(campaigns.map((c) => [c.id, c]));
+            for (const email of batch) {
+                if (Date.now() - startedMs >= maxRuntimeMs)
+                    break;
+                const campaign = campaignById.get(email.campaignId);
+                if (!campaign) {
+                    failed += 1;
+                    await db
+                        .update(niscEmEmail)
+                        .set({
+                        status: "FAILED",
+                        errorMessage: "Campaign not found for email row",
+                        updatedAt: new Date(),
+                    })
+                        .where(eq(niscEmEmail.id, email.id));
+                    continue;
+                }
+                const from = campaign.fromName?.trim()
+                    ? `${toRfc2047Utf8(campaign.fromName.trim())} <${campaign.fromEmail}>`
+                    : campaign.fromEmail;
+                const raw = buildRawMimeEmail({
+                    from,
+                    to: email.toEmail,
+                    subject: campaign.subject ?? email.subject,
+                    replyTo: campaign.replyTo,
+                    text: campaign.textContent,
+                    html: campaign.htmlContent,
+                });
+                try {
+                    await limiter.take();
+                    const res = await sendSesRawEmail(ses, {
+                        RawMessage: { Data: raw },
+                    });
+                    const messageId = res.MessageId ?? null;
+                    const completedAt = new Date();
+                    await db.update(niscEmEmail)
+                        .set({
+                        status: "SENT",
+                        sesMessageId: messageId,
+                        sentAt: completedAt,
+                        errorMessage: null,
+                        updatedAt: completedAt,
+                    })
+                        .where(eq(niscEmEmail.id, email.id));
+                    sent += 1;
+                }
+                catch (err) {
+                    const msg = err instanceof Error ? err.message : "Unknown SES send error";
+                    const retryable = isRetryableSesError(err);
+                    if (retryable)
+                        throttled += 1;
+                    failed += 1;
+                    errorCounts.set(msg, (errorCounts.get(msg) ?? 0) + 1);
+                    await db.update(niscEmEmail)
+                        .set({
+                        status: retryable ? "QUEUED" : "FAILED",
+                        errorMessage: msg.slice(0, 2000),
+                        updatedAt: new Date(),
+                    })
+                        .where(eq(niscEmEmail.id, email.id));
+                    if (retryable) {
+                        await new Promise((r) => setTimeout(r, 500));
+                    }
+                }
+            }
+        }
+        // Keep campaign UI in sync (same as main dispatcher).
+        if (touchedCampaignIds.size > 0) {
+            const ids = Array.from(touchedCampaignIds);
+            const rows = await db
+                .select({
+                campaignId: niscEmEmail.campaignId,
+                queuedCount: sql `count(*) filter (where ${niscEmEmail.status} = 'QUEUED')`,
+                sendingCount: sql `count(*) filter (where ${niscEmEmail.status} = 'SENDING')`,
+                sentCount: sql `count(*) filter (where ${niscEmEmail.status} = 'SENT')`,
+                failedCount: sql `count(*) filter (where ${niscEmEmail.status} = 'FAILED')`,
+            })
+                .from(niscEmEmail)
+                .where(inArray(niscEmEmail.campaignId, ids))
+                .groupBy(niscEmEmail.campaignId);
+            const now = new Date();
+            for (const r of rows) {
+                const queuedCount = Number(r.queuedCount ?? 0);
+                const sendingCount = Number(r.sendingCount ?? 0);
+                const sentCount = Number(r.sentCount ?? 0);
+                const failedCount = Number(r.failedCount ?? 0);
+                const stillInFlight = queuedCount + sendingCount > 0;
+                const finalStatus = stillInFlight ? "SENDING" : failedCount > 0 ? "FAILED" : "SENT";
+                await db
+                    .update(niscEmCampaign)
+                    .set({
+                    status: finalStatus,
+                    totalSent: sentCount,
+                    sentAt: sentCount > 0 ? sql `coalesce(${niscEmCampaign.sentAt}, ${now})` : null,
+                    completedAt: stillInFlight ? null : now,
+                    updatedAt: now,
+                })
+                    .where(eq(niscEmCampaign.id, r.campaignId));
+            }
+        }
+        const eligibleQueuedCountAtEnd = await countEligibleQueuedEmails(new Date());
+        const eligibleByStatusAtEnd = await countEligibleEmailsByStatus(new Date());
+        return {
+            result: {
+                ran: true,
+                claimed,
+                sent,
+                failed,
+                throttled,
+                elapsedMs: Date.now() - startedMs,
+            },
+            debug: {
+                startedAt: startedAt.toISOString(),
+                maxRuntimeMs,
+                claimBatchSize,
+                ratePerSecond,
+                quota: {
+                    maxSendRate: quota.maxSendRate,
+                    max24HourSend: quota.max24HourSend,
+                    sentLast24HoursAtStart: quota.sentLast24HoursAtStart,
+                    reservedEmails: quota.reservedEmails,
+                    remainingEmails: quota.remainingEmails,
+                },
+                queue: {
+                    eligibleQueuedCountAtStart,
+                    eligibleQueuedCountAtEnd,
+                    eligibleByStatusAtStart,
+                    eligibleByStatusAtEnd,
+                },
+                errors: { byMessage: topErrorMessages(errorCounts) },
+            },
+        };
+    }
+    finally {
+        try {
+            await releaseGlobalDispatchLock();
+        }
+        catch {
+            // ignore
         }
     }
 }

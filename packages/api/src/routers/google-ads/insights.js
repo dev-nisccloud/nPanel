@@ -212,19 +212,20 @@ export const googleAdsInsightsRouter = router({
                 case 'region':
                     query = `
                             SELECT
-                                segments.geo_target_most_specific_location,
+                                campaign.id,
+                                segments.geo_target_state,
                                 metrics.impressions,
                                 metrics.clicks,
                                 metrics.cost_micros
-                            FROM geographic_view
+                            FROM user_location_view
                             WHERE campaign.id = ${input.campaignId}
                               AND segments.date BETWEEN '${sinceDate}' AND '${untilDate}'
                         `;
                     mappingFn = (row) => {
-                        const mostSpecificLocation = row.segments?.geo_target_most_specific_location;
+                        const state = row.segments?.geo_target_state;
                         let regionName = 'Unknown';
-                        if (mostSpecificLocation) {
-                            const regionId = String(mostSpecificLocation).split('/').pop() || '';
+                        if (state) {
+                            const regionId = String(state).split('/').pop() || '';
                             regionName = US_STATE_MAPPING[regionId] || `Region ${regionId}`;
                         }
                         return {
@@ -317,11 +318,18 @@ export const googleAdsInsightsRouter = router({
             }
             catch (queryError) {
                 // Diagnostic logging to catch the real GAQL error
+                const failureObj = queryError?.toJSON ? queryError.toJSON() : undefined;
                 console.error(`[Google Ads] Breakdown query failed for ${input.breakdown}:`, {
                     campaignId: input.campaignId,
                     error: queryError?.message || queryError,
+                    requestId: queryError?.request_id,
+                    googleAdsFailure: failureObj,
                     query: query.trim()
                 });
+                if (failureObj) {
+                    // Ensure nested error details are visible in logs (avoid [Object ...]).
+                    console.error(`[Google Ads] Breakdown failure JSON for ${input.breakdown}:\n${JSON.stringify(failureObj, null, 2)}`);
+                }
                 // Return empty data instead of crashing the process
                 // This allows the UI to show "No Data" instead of a 500 Internal Error
                 return {

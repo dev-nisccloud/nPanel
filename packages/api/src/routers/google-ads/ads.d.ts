@@ -34,16 +34,44 @@ export declare const googleAdsAdsRouter: import("@trpc/server").TRPCBuiltRouter<
                 insights: {
                     impressions: string | null;
                     clicks: string | null;
+                    interactions: string | null;
                     cost: string | null;
                     ctr: string | null;
+                    interaction_rate: string | null;
                     cpc: string | null;
                     conversions: string | null;
+                    conversions_value: string | null;
+                    all_conversions: string | null;
+                    all_conversions_value: string | null;
                     cost_per_conversion: string | null;
                 };
             }[];
             meta: {
                 retrieved_at: string;
                 total_ads: number;
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Bulk list ads for multiple ad groups (for report export)
+     * Uses a single GAQL query per chunk of ad groups, then aggregates by ad group + ad.
+     */
+    listAdsBulk: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            customerId: string;
+            adGroupIds: string[];
+            timeRange?: {
+                since: string;
+                until: string;
+            } | undefined;
+        };
+        output: {
+            success: boolean;
+            data: Record<string, any[]>;
+            meta: {
+                retrieved_at: string;
+                total_ad_groups: number;
             };
         };
         meta: object;

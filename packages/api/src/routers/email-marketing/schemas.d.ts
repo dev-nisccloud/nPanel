@@ -6,17 +6,17 @@ import { z } from "zod";
  */
 export declare const emailDomainStatusSchema: z.ZodEnum<{
     PENDING: "PENDING";
-    EXPIRED: "EXPIRED";
-    FAILED: "FAILED";
     VERIFIED: "VERIFIED";
+    FAILED: "FAILED";
+    EXPIRED: "EXPIRED";
 }>;
 export type EmailDomainStatus = z.infer<typeof emailDomainStatusSchema>;
 export declare const emailCampaignStatusSchema: z.ZodEnum<{
     DRAFT: "DRAFT";
     SCHEDULED: "SCHEDULED";
-    CANCELLED: "CANCELLED";
     FAILED: "FAILED";
     COMPLETED: "COMPLETED";
+    CANCELLED: "CANCELLED";
 }>;
 export type EmailCampaignStatus = z.infer<typeof emailCampaignStatusSchema>;
 export declare const audienceContactStatusSchema: z.ZodEnum<{
@@ -53,9 +53,9 @@ export declare const emailDomainUpdateInputSchema: z.ZodObject<{
     dnsRecords: z.ZodNullable<z.ZodOptional<z.ZodUnknown>>;
     status: z.ZodOptional<z.ZodEnum<{
         PENDING: "PENDING";
-        EXPIRED: "EXPIRED";
-        FAILED: "FAILED";
         VERIFIED: "VERIFIED";
+        FAILED: "FAILED";
+        EXPIRED: "EXPIRED";
     }>>;
 }, z.core.$strip>;
 export type EmailDomainUpdateInput = z.infer<typeof emailDomainUpdateInputSchema>;
@@ -63,9 +63,9 @@ export declare const emailDomainListFiltersSchema: z.ZodObject<{
     teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     status: z.ZodOptional<z.ZodEnum<{
         PENDING: "PENDING";
-        EXPIRED: "EXPIRED";
-        FAILED: "FAILED";
         VERIFIED: "VERIFIED";
+        FAILED: "FAILED";
+        EXPIRED: "EXPIRED";
     }>>;
     search: z.ZodOptional<z.ZodString>;
     limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
@@ -77,9 +77,9 @@ export declare const emailDomainSummarySchema: z.ZodObject<{
     domainName: z.ZodString;
     status: z.ZodEnum<{
         PENDING: "PENDING";
-        EXPIRED: "EXPIRED";
-        FAILED: "FAILED";
         VERIFIED: "VERIFIED";
+        FAILED: "FAILED";
+        EXPIRED: "EXPIRED";
     }>;
     resendDomainId: z.ZodNullable<z.ZodString>;
     userId: z.ZodString;
@@ -94,9 +94,9 @@ export declare const emailDomainDetailSchema: z.ZodObject<{
     domainName: z.ZodString;
     status: z.ZodEnum<{
         PENDING: "PENDING";
-        EXPIRED: "EXPIRED";
-        FAILED: "FAILED";
         VERIFIED: "VERIFIED";
+        FAILED: "FAILED";
+        EXPIRED: "EXPIRED";
     }>;
     resendDomainId: z.ZodNullable<z.ZodString>;
     userId: z.ZodString;
@@ -115,9 +115,9 @@ export declare const emailDomainListResponseSchema: z.ZodObject<{
         domainName: z.ZodString;
         status: z.ZodEnum<{
             PENDING: "PENDING";
-            EXPIRED: "EXPIRED";
-            FAILED: "FAILED";
             VERIFIED: "VERIFIED";
+            FAILED: "FAILED";
+            EXPIRED: "EXPIRED";
         }>;
         resendDomainId: z.ZodNullable<z.ZodString>;
         userId: z.ZodString;
@@ -162,9 +162,9 @@ export declare const campaignListFiltersSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodEnum<{
         DRAFT: "DRAFT";
         SCHEDULED: "SCHEDULED";
-        CANCELLED: "CANCELLED";
         FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        CANCELLED: "CANCELLED";
     }>>;
     search: z.ZodOptional<z.ZodString>;
     limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
@@ -189,9 +189,9 @@ export declare const campaignSummarySchema: z.ZodObject<{
     status: z.ZodEnum<{
         DRAFT: "DRAFT";
         SCHEDULED: "SCHEDULED";
-        CANCELLED: "CANCELLED";
         FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        CANCELLED: "CANCELLED";
     }>;
     recipientCount: z.ZodNumber;
     userId: z.ZodString;
@@ -210,9 +210,9 @@ export declare const campaignDetailSchema: z.ZodObject<{
     status: z.ZodEnum<{
         DRAFT: "DRAFT";
         SCHEDULED: "SCHEDULED";
-        CANCELLED: "CANCELLED";
         FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        CANCELLED: "CANCELLED";
     }>;
     recipientCount: z.ZodNumber;
     userId: z.ZodString;
@@ -246,9 +246,9 @@ export declare const campaignListResponseSchema: z.ZodObject<{
         status: z.ZodEnum<{
             DRAFT: "DRAFT";
             SCHEDULED: "SCHEDULED";
-            CANCELLED: "CANCELLED";
             FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            CANCELLED: "CANCELLED";
         }>;
         recipientCount: z.ZodNumber;
         userId: z.ZodString;
@@ -457,6 +457,7 @@ export type AudienceContactListResponse = z.infer<typeof audienceContactListResp
 export declare const emailEventListFiltersSchema: z.ZodObject<{
     campaignRecipientId: z.ZodOptional<z.ZodString>;
     campaignId: z.ZodOptional<z.ZodString>;
+    recipientEmail: z.ZodOptional<z.ZodString>;
     type: z.ZodOptional<z.ZodEnum<{
         email_bounced: "email_bounced";
         email_clicked: "email_clicked";
@@ -518,6 +519,7 @@ export declare const emailEventInListSchema: z.ZodObject<{
     data: z.ZodUnknown;
     createdAt: z.ZodDate;
     recipientEmail: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    link: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, z.core.$strip>;
 export type EmailEventInList = z.infer<typeof emailEventInListSchema>;
 export declare const emailEventDetailSchema: z.ZodObject<{
@@ -564,6 +566,7 @@ export declare const emailEventListResponseSchema: z.ZodObject<{
         data: z.ZodUnknown;
         createdAt: z.ZodDate;
         recipientEmail: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        link: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     }, z.core.$strip>>;
     total: z.ZodNumber;
 }, z.core.$strip>;
