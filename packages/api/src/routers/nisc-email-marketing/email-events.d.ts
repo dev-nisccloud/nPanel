@@ -4,6 +4,17 @@ export declare const niscEmailMarketingEmailEventsRouter: import("@trpc/server")
     errorShape: import("@trpc/server").TRPCDefaultErrorShape;
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+    getGlobalEvents: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            from?: unknown;
+            to?: unknown;
+        };
+        output: {
+            type: "email_bounced" | "email_clicked" | "email_complained" | "email_delivered" | "email_delivery_delayed" | "email_failed" | "email_opened" | "email_received" | "email_scheduled" | "email_sent" | "email_suppressed";
+            eventCreatedAt: Date;
+        }[];
+        meta: object;
+    }>;
     getCampaignSummary: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             campaignId: string;
@@ -22,10 +33,61 @@ export declare const niscEmailMarketingEmailEventsRouter: import("@trpc/server")
         };
         meta: object;
     }>;
+    getCampaignReport: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            campaignId: string;
+        };
+        output: {
+            campaign: {
+                creator: {
+                    name: string | null;
+                    email: string | null;
+                };
+                companyName: string | null;
+                id: string;
+                userId: string;
+                teamId: string | null;
+                name: string;
+                subject: string;
+                fromEmail: string;
+                fromName: string | null;
+                replyTo: string | null;
+                status: string;
+                totalRecipients: number;
+                scheduledAt: Date | null;
+                sentAt: Date | null;
+                completedAt: Date | null;
+                createdAt: Date;
+                updatedAt: Date;
+            };
+            timing: {
+                avgDeliveryMs: number | null;
+                avgOpenMs: number | null;
+                avgClickMs: number | null;
+                sendDurationMs: number | null;
+            };
+        };
+        meta: object;
+    }>;
+    getBounceBreakdown: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            campaignId: string;
+        };
+        output: {
+            campaignId: string;
+            byType: Record<string, number>;
+            topSubTypes: {
+                bounceSubType: string;
+                count: number;
+            }[];
+        };
+        meta: object;
+    }>;
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             campaignRecipientId?: string | undefined;
             campaignId?: string | undefined;
+            recipientEmail?: string | undefined;
             type?: "email_bounced" | "email_clicked" | "email_complained" | "email_delivered" | "email_delivery_delayed" | "email_failed" | "email_opened" | "email_received" | "email_scheduled" | "email_sent" | "email_suppressed" | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -40,6 +102,7 @@ export declare const niscEmailMarketingEmailEventsRouter: import("@trpc/server")
                 data: unknown;
                 createdAt: Date;
                 recipientEmail?: string | null | undefined;
+                link?: string | null | undefined;
             }[];
             total: number;
         };

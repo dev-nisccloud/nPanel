@@ -1,3 +1,7 @@
+type TargetingRow = {
+    label: string;
+    content: string;
+};
 export declare const googleAdsCampaignsRouter: import("@trpc/server").TRPCBuiltRouter<{
     ctx: import("../..").Context;
     meta: object;
@@ -73,4 +77,59 @@ export declare const googleAdsCampaignsRouter: import("@trpc/server").TRPCBuiltR
         };
         meta: object;
     }>;
+    /**
+     * Get campaign-level targeting criteria (campaign_criterion).
+     */
+    getCampaignTargeting: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            customerId: string;
+            campaignId: string;
+        };
+        output: {
+            success: boolean;
+            data: TargetingRow[];
+            debug: {
+                criterionId: string | null;
+                type: string | null;
+                negative: boolean;
+                displayName: string | null;
+                keywordText: string | null;
+                matchType: string | null;
+                location: string | null;
+                language: string | null;
+                ageRange: string | null;
+                gender: string | null;
+                userInterest: string | null;
+                userList: string | null;
+                topic: string | null;
+                placementUrl: string | null;
+            }[];
+            meta: {
+                total_criteria: number;
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Get ad group-level targeting criteria in bulk (ad_group_criterion).
+     */
+    getBulkAdGroupTargeting: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            customerId: string;
+            adGroupIds: string[];
+        };
+        output: {
+            success: boolean;
+            data: Record<string, {
+                data: TargetingRow[];
+                debug: any[];
+            }>;
+            meta: {
+                total_ad_groups: number;
+                total_criteria: number;
+            };
+        };
+        meta: object;
+    }>;
 }>>;
+export {};

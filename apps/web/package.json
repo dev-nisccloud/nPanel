@@ -60,6 +60,7 @@
     "@usewaypoint/block-text": "^0.0.7",
     "@usewaypoint/document-core": "^0.0.6",
     "@usewaypoint/email-builder": "^0.0.9",
+    "@xyflow/react": "^12.10.2",
     "ai": "^6.0.134",
     "axios": "^1.13.6",
     "better-auth": "catalog:",

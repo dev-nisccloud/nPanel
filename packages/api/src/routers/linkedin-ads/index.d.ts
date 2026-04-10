@@ -247,6 +247,21 @@ export declare const linkedInAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             meta: object;
         }>;
+        resolveTargetingCriteriaBulk: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                items: {
+                    campaignId: string;
+                    targetingCriteria: any;
+                }[];
+            };
+            output: {
+                data: Record<string, {
+                    label: string;
+                    content: string;
+                }[]>;
+            };
+            meta: object;
+        }>;
         getCampaignDetails: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 campaignGroupId: string;
@@ -303,6 +318,26 @@ export declare const linkedInAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             meta: object;
         }>;
+        getCreativeInsights: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                accountId: string;
+                creativeIds: string[];
+                timeRange: {
+                    since: string;
+                    until: string;
+                };
+            };
+            output: {
+                success: boolean;
+                data: Record<string, any>;
+                meta: {
+                    retrieved_at: string;
+                    requested_creatives: number;
+                    resolved_creatives: number;
+                };
+            };
+            meta: object;
+        }>;
         getCreativePreview: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 accountId: string;
@@ -326,7 +361,7 @@ export declare const linkedInAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     total_previews: number;
                     previewSource: "none" | "accurate" | "live_action";
                     unsupportedCreativeType: boolean;
-                    message?: undefined;
+                    message: string | undefined;
                 };
             } | {
                 success: boolean;
@@ -376,6 +411,90 @@ export declare const linkedInAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 success: boolean;
                 data: any;
+            };
+            meta: object;
+        }>;
+    }>>;
+    /**
+     * Reporting endpoints (adAnalytics)
+     */
+    insights: import("@trpc/server").TRPCBuiltRouter<{
+        ctx: import("../..").Context;
+        meta: object;
+        errorShape: import("@trpc/server").TRPCDefaultErrorShape;
+        transformer: false;
+    }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        getDailyPerformance: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                accountId: string;
+                campaignGroupId: string;
+                timeRange: {
+                    since: string;
+                    until: string;
+                };
+            };
+            output: {
+                success: boolean;
+                data: {
+                    date: string;
+                    impressions: number;
+                    clicks: number;
+                    spend: number;
+                    conversions: number;
+                    leads: number;
+                    landingPageClicks: number;
+                    engagements: number;
+                    videoViews: number;
+                    videoCompletions: number;
+                }[];
+                meta: {
+                    retrieved_at: string;
+                    points: number;
+                };
+            };
+            meta: object;
+        }>;
+        getBreakdown: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                accountId: string;
+                campaignGroupId: string;
+                timeRange: {
+                    since: string;
+                    until: string;
+                };
+                pivot: "IMPRESSION_DEVICE_TYPE" | "PLACEMENT_NAME" | "SERVING_LOCATION" | "CAMPAIGN" | "CREATIVE" | "OBJECTIVE_TYPE" | "MEMBER_COMPANY_SIZE" | "MEMBER_INDUSTRY" | "MEMBER_SENIORITY" | "MEMBER_JOB_TITLE" | "MEMBER_JOB_FUNCTION" | "MEMBER_COUNTRY_V2" | "MEMBER_REGION_V2" | "MEMBER_COMPANY";
+            };
+            output: {
+                success: boolean;
+                data: {
+                    pivot: string;
+                    impressions: number;
+                    clicks: number;
+                    spend: number;
+                }[];
+                meta: {
+                    retrieved_at: string;
+                    pivot: "OBJECTIVE_TYPE";
+                    fallbackUsed?: undefined;
+                };
+            } | {
+                success: boolean;
+                data: {
+                    pivot: string;
+                    rawPivot: string;
+                    pivotId: string;
+                    impressions: number;
+                    clicks: number;
+                    spend: number;
+                    conversions: number;
+                    leads: number;
+                    videoViews: number;
+                }[];
+                meta: {
+                    retrieved_at: string;
+                    pivot: "IMPRESSION_DEVICE_TYPE" | "PLACEMENT_NAME" | "SERVING_LOCATION" | "CAMPAIGN" | "CREATIVE" | "MEMBER_COMPANY_SIZE" | "MEMBER_INDUSTRY" | "MEMBER_SENIORITY" | "MEMBER_JOB_TITLE" | "MEMBER_JOB_FUNCTION" | "MEMBER_COUNTRY_V2" | "MEMBER_REGION_V2" | "MEMBER_COMPANY";
+                    fallbackUsed: boolean;
+                };
             };
             meta: object;
         }>;

@@ -143,7 +143,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
         list: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 teamId?: string | null | undefined;
-                status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED" | undefined;
+                status?: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED" | undefined;
                 search?: string | undefined;
                 limit?: number | undefined;
                 offset?: number | undefined;
@@ -154,7 +154,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
                     name: string;
                     subject: string;
                     fromEmail: string;
-                    status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
+                    status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
                     recipientCount: number;
                     userId: string;
                     teamId: string | null;
@@ -176,7 +176,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
                 name: string;
                 subject: string;
                 fromEmail: string;
-                status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
+                status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
                 recipientCount: number;
                 userId: string;
                 teamId: string | null;
@@ -279,7 +279,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
             output: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;
@@ -299,7 +299,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
             output: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;
@@ -319,7 +319,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
             output: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;
@@ -344,7 +344,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
         listLegacy: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 teamId?: string | null | undefined;
-                status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
+                status?: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED" | undefined;
                 search?: string | undefined;
                 limit?: number | undefined;
                 offset?: number | undefined;
@@ -353,7 +353,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
                 domains: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                     resendDomainId: string | null;
                     userId: string;
                     teamId: string | null;
@@ -373,7 +373,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
             output: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
+                status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
                 dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
                 mailFromMode: "DEFAULT" | "CUSTOM";
                 userId: string;
@@ -396,7 +396,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
             output: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
+                status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
                 dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
                 mailFromMode: "DEFAULT" | "CUSTOM";
                 userId: string;
@@ -415,7 +415,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
         list: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 teamId?: string | null | undefined;
-                status?: "PENDING" | "FAILED" | "VERIFIED" | "DELETING" | undefined;
+                status?: "PENDING" | "VERIFIED" | "FAILED" | "DELETING" | undefined;
                 search?: string | null | undefined;
                 limit?: number | undefined;
                 offset?: number | undefined;
@@ -424,7 +424,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
                 domains: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
+                    status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
                     dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
                     mailFromMode: "DEFAULT" | "CUSTOM";
                     userId: string;
@@ -454,6 +454,17 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
         errorShape: import("@trpc/server").TRPCDefaultErrorShape;
         transformer: false;
     }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        getGlobalEvents: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                from?: unknown;
+                to?: unknown;
+            };
+            output: {
+                type: "email_bounced" | "email_clicked" | "email_complained" | "email_delivered" | "email_delivery_delayed" | "email_failed" | "email_opened" | "email_received" | "email_scheduled" | "email_sent" | "email_suppressed";
+                eventCreatedAt: Date;
+            }[];
+            meta: object;
+        }>;
         getCampaignSummary: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 campaignId: string;
@@ -472,10 +483,61 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
             };
             meta: object;
         }>;
+        getCampaignReport: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                campaignId: string;
+            };
+            output: {
+                campaign: {
+                    creator: {
+                        name: string | null;
+                        email: string | null;
+                    };
+                    companyName: string | null;
+                    id: string;
+                    userId: string;
+                    teamId: string | null;
+                    name: string;
+                    subject: string;
+                    fromEmail: string;
+                    fromName: string | null;
+                    replyTo: string | null;
+                    status: string;
+                    totalRecipients: number;
+                    scheduledAt: Date | null;
+                    sentAt: Date | null;
+                    completedAt: Date | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                };
+                timing: {
+                    avgDeliveryMs: number | null;
+                    avgOpenMs: number | null;
+                    avgClickMs: number | null;
+                    sendDurationMs: number | null;
+                };
+            };
+            meta: object;
+        }>;
+        getBounceBreakdown: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                campaignId: string;
+            };
+            output: {
+                campaignId: string;
+                byType: Record<string, number>;
+                topSubTypes: {
+                    bounceSubType: string;
+                    count: number;
+                }[];
+            };
+            meta: object;
+        }>;
         list: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 campaignRecipientId?: string | undefined;
                 campaignId?: string | undefined;
+                recipientEmail?: string | undefined;
                 type?: "email_bounced" | "email_clicked" | "email_complained" | "email_delivered" | "email_delivery_delayed" | "email_failed" | "email_opened" | "email_received" | "email_scheduled" | "email_sent" | "email_suppressed" | undefined;
                 limit?: number | undefined;
                 offset?: number | undefined;
@@ -490,6 +552,7 @@ export declare const niscEmailMarketingRouter: import("@trpc/server").TRPCBuiltR
                     data: unknown;
                     createdAt: Date;
                     recipientEmail?: string | null | undefined;
+                    link?: string | null | undefined;
                 }[];
                 total: number;
             };

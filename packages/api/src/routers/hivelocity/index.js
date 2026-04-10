@@ -1,0 +1,321 @@
+import { z } from "zod";
+import { protectedProcedure, router } from "../../trpc";
+import { getHivelocityEnvStatus, hivelocityRequest } from "../../lib/hivelocity-client";
+import { hivelocityFacilitiesResponseSchema, normalizeHivelocityInventory, hivelocityProductByIdResponseSchema, } from "../../types/hivelocity";
+const ProductsQuerySchema = z
+    .object({
+    location: z
+        .enum(["MAIN", "CUSTOM_DISPLAY", "MASSIVESTORAGE", "GPU", "OUTLET", "LANDING"])
+        .default("MAIN")
+        .optional(),
+    include_custom: z.boolean().default(false).optional(),
+    bonding_support: z.string().nullable().default(null).optional(),
+    group_by: z.string().default("facility").optional(),
+})
+    .optional();
+const DedicatedPlansQuerySchema = z
+    .object({
+    location: z
+        .enum(["MAIN", "CUSTOM_DISPLAY", "MASSIVESTORAGE", "GPU", "OUTLET", "LANDING"])
+        .default("MAIN")
+        .optional(),
+    include_custom: z.boolean().default(false).optional(),
+    bonding_support: z.string().nullable().default(null).optional(),
+    facility_code: z.string().optional(),
+    search: z.string().optional(),
+    limit: z.number().int().min(1).max(100).default(24).optional(),
+    cursor: z.number().int().min(0).default(0).optional(), // offset-based cursor
+})
+    .optional();
+const VpsPlansQuerySchema = DedicatedPlansQuerySchema;
+const VdsPlansQuerySchema = DedicatedPlansQuerySchema;
+let dedicatedPlansCache = new Map();
+function buildCacheKey(input) {
+    return JSON.stringify({
+        location: input?.location ?? "MAIN",
+        include_custom: input?.include_custom ?? false,
+        bonding_support: input?.bonding_support ?? null,
+    });
+}
+export const hivelocityRouter = router({
+    /**
+     * Private: quick integration check.
+     */
+    healthCheck: protectedProcedure.query(() => {
+        return {
+            status: "OK",
+            ...getHivelocityEnvStatus(),
+        };
+    }),
+    /**
+     * Private: Get all facilities (inventory locations).
+     * Docs: GET /inventory/locations (this endpoint is public per Hivelocity docs).
+     */
+    getFacilities: protectedProcedure
+        .input(z
+        .object({
+        vpsLocations: z.string().optional(),
+    })
+        .optional())
+        .query(async ({ input }) => {
+        const raw = await hivelocityRequest("/inventory/locations", {
+            query: {
+                vpsLocations: input?.vpsLocations,
+            },
+            requireApiKey: false,
+        });
+        const data = hivelocityFacilitiesResponseSchema.parse(raw);
+        return { success: true, data };
+    }),
+    /**
+     * Private: Get all products.
+     * Docs: GET /inventory/product
+     */
+    getProducts: protectedProcedure.input(ProductsQuerySchema).query(async ({ input }) => {
+        const raw = await hivelocityRequest("/inventory/product", {
+            query: {
+                location: input?.location,
+                include_custom: input?.include_custom,
+                bonding_support: input?.bonding_support,
+                group_by: input?.group_by,
+            },
+            requireApiKey: true,
+        });
+        const data = normalizeHivelocityInventory(raw);
+        return { success: true, data };
+    }),
+    /**
+     * Private: Dedicated server plans (paginated).
+     *
+     * Why this exists:
+     * - `/inventory/product` can be very large and will overwhelm the browser if rendered at once.
+     * - Hivelocity does not document native pagination for this endpoint, so we fetch once,
+     *   normalize + filter server-side, then return a slice.
+     */
+    getDedicatedServerPlans: protectedProcedure.input(DedicatedPlansQuerySchema).query(async ({ input }) => {
+        const limit = input?.limit ?? 24;
+        const cursor = input?.cursor ?? 0;
+        const facilityCode = input?.facility_code?.trim() || undefined;
+        const search = input?.search?.trim().toLowerCase() || "";
+        // Cache the raw inventory for a short TTL to prevent re-fetching on every page click.
+        const cacheKey = buildCacheKey(input);
+        const now = Date.now();
+        const TTL_MS = 60_000;
+        const cached = dedicatedPlansCache.get(cacheKey);
+        let inventory;
+        if (cached && now - cached.atMs < TTL_MS) {
+            inventory = cached.inventory;
+        }
+        else {
+            const raw = await hivelocityRequest("/inventory/product", {
+                query: {
+                    location: input?.location,
+                    include_custom: input?.include_custom,
+                    bonding_support: input?.bonding_support,
+                    group_by: "facility",
+                },
+                requireApiKey: true,
+            });
+            inventory = normalizeHivelocityInventory(raw);
+            dedicatedPlansCache.set(cacheKey, { atMs: now, inventory });
+        }
+        const all = Object.values(inventory).flat();
+        let dedicated = all.filter((p) => p.is_vps === false && p.is_vds === false);
+        if (facilityCode) {
+            dedicated = dedicated.filter((p) => p.data_center === facilityCode);
+        }
+        if (search.length > 0) {
+            dedicated = dedicated.filter((p) => {
+                const hay = [
+                    p.product_name,
+                    p.product_cpu,
+                    p.product_memory,
+                    p.product_drive,
+                    p.product_bandwidth,
+                    String(p.product_id),
+                    p.data_center,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+                return hay.includes(search);
+            });
+        }
+        // Deterministic ordering to keep paging stable and prevent duplicates.
+        const stockRank = (s) => (s === "available" ? 0 : s === "limited" ? 1 : 2);
+        dedicated.sort((a, b) => {
+            const sr = stockRank(a.stock) - stockRank(b.stock);
+            if (sr !== 0)
+                return sr;
+            const ap = a.product_monthly_price ?? Number.POSITIVE_INFINITY;
+            const bp = b.product_monthly_price ?? Number.POSITIVE_INFINITY;
+            if (ap !== bp)
+                return ap - bp;
+            if (a.product_id !== b.product_id)
+                return a.product_id - b.product_id;
+            return a.location_option_id - b.location_option_id;
+        });
+        const total = dedicated.length;
+        const items = dedicated.slice(cursor, cursor + limit);
+        const nextCursor = cursor + limit < total ? cursor + limit : null;
+        return {
+            success: true,
+            data: {
+                items,
+                total,
+                nextCursor,
+            },
+        };
+    }),
+    /**
+     * Private: VPS plans (paginated).
+     */
+    getVpsPlans: protectedProcedure.input(VpsPlansQuerySchema).query(async ({ input }) => {
+        const limit = input?.limit ?? 24;
+        const cursor = input?.cursor ?? 0;
+        const facilityCode = input?.facility_code?.trim() || undefined;
+        const search = input?.search?.trim().toLowerCase() || "";
+        const cacheKey = buildCacheKey(input);
+        const now = Date.now();
+        const TTL_MS = 60_000;
+        const cached = dedicatedPlansCache.get(cacheKey);
+        let inventory;
+        if (cached && now - cached.atMs < TTL_MS) {
+            inventory = cached.inventory;
+        }
+        else {
+            const raw = await hivelocityRequest("/inventory/product", {
+                query: {
+                    location: input?.location,
+                    include_custom: input?.include_custom,
+                    bonding_support: input?.bonding_support,
+                    group_by: "facility",
+                },
+                requireApiKey: true,
+            });
+            inventory = normalizeHivelocityInventory(raw);
+            dedicatedPlansCache.set(cacheKey, { atMs: now, inventory });
+        }
+        const all = Object.values(inventory).flat();
+        let rows = all.filter((p) => p.is_vps === true);
+        if (facilityCode)
+            rows = rows.filter((p) => p.data_center === facilityCode);
+        if (search.length > 0) {
+            rows = rows.filter((p) => {
+                const hay = [
+                    p.product_name,
+                    p.product_cpu,
+                    p.product_memory,
+                    p.product_drive,
+                    p.product_bandwidth,
+                    String(p.product_id),
+                    p.data_center,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+                return hay.includes(search);
+            });
+        }
+        const stockRank = (s) => (s === "available" ? 0 : s === "limited" ? 1 : 2);
+        rows.sort((a, b) => {
+            const sr = stockRank(a.stock) - stockRank(b.stock);
+            if (sr !== 0)
+                return sr;
+            const ap = a.product_monthly_price ?? Number.POSITIVE_INFINITY;
+            const bp = b.product_monthly_price ?? Number.POSITIVE_INFINITY;
+            if (ap !== bp)
+                return ap - bp;
+            if (a.product_id !== b.product_id)
+                return a.product_id - b.product_id;
+            return a.location_option_id - b.location_option_id;
+        });
+        const total = rows.length;
+        const items = rows.slice(cursor, cursor + limit);
+        const nextCursor = cursor + limit < total ? cursor + limit : null;
+        return { success: true, data: { items, total, nextCursor } };
+    }),
+    /**
+     * Private: VDS plans (paginated).
+     */
+    getVdsPlans: protectedProcedure.input(VdsPlansQuerySchema).query(async ({ input }) => {
+        const limit = input?.limit ?? 24;
+        const cursor = input?.cursor ?? 0;
+        const facilityCode = input?.facility_code?.trim() || undefined;
+        const search = input?.search?.trim().toLowerCase() || "";
+        const cacheKey = buildCacheKey(input);
+        const now = Date.now();
+        const TTL_MS = 60_000;
+        const cached = dedicatedPlansCache.get(cacheKey);
+        let inventory;
+        if (cached && now - cached.atMs < TTL_MS) {
+            inventory = cached.inventory;
+        }
+        else {
+            const raw = await hivelocityRequest("/inventory/product", {
+                query: {
+                    location: input?.location,
+                    include_custom: input?.include_custom,
+                    bonding_support: input?.bonding_support,
+                    group_by: "facility",
+                },
+                requireApiKey: true,
+            });
+            inventory = normalizeHivelocityInventory(raw);
+            dedicatedPlansCache.set(cacheKey, { atMs: now, inventory });
+        }
+        const all = Object.values(inventory).flat();
+        let rows = all.filter((p) => p.is_vds === true);
+        if (facilityCode)
+            rows = rows.filter((p) => p.data_center === facilityCode);
+        if (search.length > 0) {
+            rows = rows.filter((p) => {
+                const hay = [
+                    p.product_name,
+                    p.product_cpu,
+                    p.product_memory,
+                    p.product_drive,
+                    p.product_bandwidth,
+                    String(p.product_id),
+                    p.data_center,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+                return hay.includes(search);
+            });
+        }
+        const stockRank = (s) => (s === "available" ? 0 : s === "limited" ? 1 : 2);
+        rows.sort((a, b) => {
+            const sr = stockRank(a.stock) - stockRank(b.stock);
+            if (sr !== 0)
+                return sr;
+            const ap = a.product_monthly_price ?? Number.POSITIVE_INFINITY;
+            const bp = b.product_monthly_price ?? Number.POSITIVE_INFINITY;
+            if (ap !== bp)
+                return ap - bp;
+            if (a.product_id !== b.product_id)
+                return a.product_id - b.product_id;
+            return a.location_option_id - b.location_option_id;
+        });
+        const total = rows.length;
+        const items = rows.slice(cursor, cursor + limit);
+        const nextCursor = cursor + limit < total ? cursor + limit : null;
+        return { success: true, data: { items, total, nextCursor } };
+    }),
+    /**
+     * Private: Get product by productId.
+     * Docs: GET /inventory/product/{productId}
+     */
+    getProduct: protectedProcedure
+        .input(z.object({
+        productId: z.number().int().positive(),
+    }))
+        .query(async ({ input }) => {
+        const raw = await hivelocityRequest(`/inventory/product/${input.productId}`, {
+            requireApiKey: true,
+        });
+        const data = hivelocityProductByIdResponseSchema.parse(raw);
+        return { success: true, data };
+    }),
+});

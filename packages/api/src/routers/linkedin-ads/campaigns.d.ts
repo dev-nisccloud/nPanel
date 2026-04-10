@@ -68,6 +68,26 @@ export declare const linkedInAdsCampaignsRouter: import("@trpc/server").TRPCBuil
         meta: object;
     }>;
     /**
+     * Bulk version of resolveTargetingCriteria for PDFs/exports.
+     * Accepts multiple campaign targetingCriteria blobs and resolves all names with
+     * de-duped LinkedIn API calls.
+     */
+    resolveTargetingCriteriaBulk: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            items: {
+                campaignId: string;
+                targetingCriteria: any;
+            }[];
+        };
+        output: {
+            data: Record<string, {
+                label: string;
+                content: string;
+            }[]>;
+        };
+        meta: object;
+    }>;
+    /**
      * Get campaign details
      */
     getCampaignDetails: import("@trpc/server").TRPCQueryProcedure<{

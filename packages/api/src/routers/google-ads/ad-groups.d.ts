@@ -31,10 +31,15 @@ export declare const googleAdsAdGroupsRouter: import("@trpc/server").TRPCBuiltRo
                 insights: {
                     impressions: string | null;
                     clicks: string | null;
+                    interactions: string | null;
                     cost: string | null;
                     ctr: string | null;
+                    interaction_rate: string | null;
                     cpc: string | null;
                     conversions: string | null;
+                    conversions_value: string | null;
+                    all_conversions: string | null;
+                    all_conversions_value: string | null;
                     cost_per_conversion: string | null;
                 };
             }[];

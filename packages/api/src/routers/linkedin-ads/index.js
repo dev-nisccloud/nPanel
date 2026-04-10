@@ -4,6 +4,7 @@ import { linkedInAdsAccountsRouter } from './accounts';
 import { linkedInAdsCampaignGroupsRouter } from './campaign-groups';
 import { linkedInAdsCampaignsRouter } from './campaigns';
 import { linkedInAdsCreativesRouter } from './creatives';
+import { linkedInAdsInsightsRouter } from './insights';
 import { linkedInAdsStandardizedDataRouter } from './standardized-data';
 export const linkedInAdsRouter = router({
     /**
@@ -27,6 +28,10 @@ export const linkedInAdsRouter = router({
      * Creatives management endpoints (Ads in UI)
      */
     creatives: linkedInAdsCreativesRouter,
+    /**
+     * Reporting endpoints (adAnalytics)
+     */
+    insights: linkedInAdsInsightsRouter,
     /**
      * Public standardized-data endpoints (reference lists for targeting labels).
      * No session required – pass an accessToken in the input.

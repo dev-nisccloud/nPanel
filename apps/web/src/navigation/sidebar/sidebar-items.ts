@@ -420,6 +420,11 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Creative Reports", url: "/agency/reports/creative", },
         ],
       },
+      {
+        title: "CRON Jobs",
+        url: "/agency/cronjobs",
+        icon: (props: any) => React.createElement(Icons.CRONJOB, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
       // {
       //   title: "Invoicing",
       //   url: "/agency/invoicing",

@@ -26,7 +26,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+            status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -46,7 +46,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+            status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -66,7 +66,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+            status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -91,7 +91,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
     listLegacy: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | null | undefined;
-            status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
+            status?: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED" | undefined;
             search?: string | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -100,7 +100,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
             domains: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;
@@ -120,7 +120,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
+            status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
             dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
             mailFromMode: "DEFAULT" | "CUSTOM";
             userId: string;
@@ -143,7 +143,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
+            status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
             dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
             mailFromMode: "DEFAULT" | "CUSTOM";
             userId: string;
@@ -162,7 +162,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | null | undefined;
-            status?: "PENDING" | "FAILED" | "VERIFIED" | "DELETING" | undefined;
+            status?: "PENDING" | "VERIFIED" | "FAILED" | "DELETING" | undefined;
             search?: string | null | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -171,7 +171,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
             domains: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
+                status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
                 dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
                 mailFromMode: "DEFAULT" | "CUSTOM";
                 userId: string;
