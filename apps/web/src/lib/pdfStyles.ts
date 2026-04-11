@@ -33,6 +33,20 @@ export const pdfTypography = StyleSheet.create({
         fontWeight: "medium",
         flexWrap: 'wrap'
     },
+    /** Tighter table body for long descriptions (cron media-buying invoices). */
+    itemLineCompact: {
+        color: colors.gray600,
+        fontSize: 7,
+        fontWeight: "medium",
+        flexWrap: "wrap",
+    },
+    /** Column headers matching compact line items. */
+    itemLineHeaderCompact: {
+        fontSize: 7,
+        fontWeight: "bold",
+        textTransform: "uppercase",
+        color: colors.gray400,
+    },
     amount: {
         fontSize: 16,
         fontWeight: "medium",
@@ -85,8 +99,8 @@ export const pdfUtils = StyleSheet.create({
 export const pdfContainers = StyleSheet.create({
     page: {
         fontFamily: "Geist",
-        paddingTop: 40,
-        paddingBottom: 40,
+        paddingTop: 28,
+        paddingBottom: 28,
         paddingLeft: 0,
         paddingRight: 0,
     },
@@ -102,10 +116,11 @@ export const pdfContainers = StyleSheet.create({
         paddingVertical: 16,
         flex: 1
     },
+    /** Full width of column; avoid `flex: 1` here — in a column parent it can grow vertically. */
     CompanyDetails: {
         paddingHorizontal: 20,
-        paddingVertical: 16,
-        flex: 1,
+        paddingVertical: 0,
+        width: "100%",
         minWidth: 0,
     },
     imageContainer: {
@@ -117,5 +132,41 @@ export const pdfContainers = StyleSheet.create({
         marginBottom: 12,
     }
 })
+
+/**
+ * Shared with `InvoiceTermsPdf` (invoice no / dates) and `CompanyDetailsPdf` (Bill To):
+ * same label typography, value typography, row gap, and margin between rows.
+ */
+export const pdfInvoiceMeta = {
+    label: {
+        fontSize: 11,
+        textTransform: "uppercase" as const,
+        color: colors.gray500,
+    },
+    value: {
+        fontSize: 12,
+        fontWeight: "bold" as const,
+        color: "#111827",
+    },
+    /** Right column: invoice number, issued, due date */
+    rowTerms: {
+        display: "flex" as const,
+        flexDirection: "row" as const,
+        alignItems: "center" as const,
+        justifyContent: "flex-end" as const,
+        gap: 6,
+        marginBottom: 5,
+    },
+    /**
+     * Bill To body: one `Text` with `\\n`-separated lines (`PdfCompanyDetailsBlock`).
+     * `lineHeight` is a **unitless multiplier** (like CSS), not points — `13` would mean 13× fontSize.
+     */
+    valueBillTo: {
+        fontSize: 10,
+        fontWeight: "medium" as const,
+        color: "#111827",
+        lineHeight: 1.2,
+    },
+}
 
 

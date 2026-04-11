@@ -28,7 +28,12 @@ export function registerAuthCustomRoutes(app: Hono) {
         });
       }
 
-      const target = await getRootRedirectTargetFromHeaders(c.req.raw.headers).catch(err => {
+      const requestedRedirect =
+        c.req.query("redirect") ?? c.req.query("returnUrl") ?? null;
+      const target = await getRootRedirectTargetFromHeaders(
+        c.req.raw.headers,
+        requestedRedirect,
+      ).catch(err => {
         console.error("[server][redirect-target] getRootRedirectTargetFromHeaders CRASHED:", err);
         throw err;
       });

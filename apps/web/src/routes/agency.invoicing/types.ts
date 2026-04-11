@@ -13,6 +13,8 @@ export type YourDetails = {
   yourState?: string;
   yourCountry?: string;
   yourLogo?: string;
+  /** Max width in pt for PDF header logo (default 250). */
+  yourLogoWidth?: number;
   yourTaxId?: string;
   yourZip?: string;
 };
@@ -34,6 +36,8 @@ export type InvoiceItemDetails = {
   taxRate?: string;
   items: Item[];
   currency?: string;
+  /** Smaller, bold line typography (e.g. cron-generated media buying PDFs). */
+  compactLineItems?: boolean;
 };
 
 export type PaymentMethod = "bank" | "mpesa" | "cheque";

@@ -12,6 +12,7 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
   yourState,
   yourCountry,
   yourLogo,
+  yourLogoWidth = 250,
   yourTaxId,
   yourZip,
 }) => (
@@ -21,8 +22,8 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
       style={{
         display: "flex",
         flexDirection: "row",
-        paddingTop: 16,
-        paddingBottom: 16,
+        paddingTop: 10,
+        paddingBottom: 10,
         paddingLeft: 40,
         paddingRight: 40,
         justifyContent: "space-between",
@@ -33,7 +34,7 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
         {yourLogo && (
           <Image
             src={yourLogo}
-            style={{ width: 120, borderRadius: 6 }}
+            style={{ width: yourLogoWidth, borderRadius: 6 }}
           />
         )}
       </View>
@@ -71,8 +72,8 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
         alignItems: "center",
         paddingLeft: 40,
         paddingRight: 40,
-        paddingTop: 8,
-        paddingBottom: 4,
+        paddingTop: 4,
+        paddingBottom: 2,
       }}
     >
       <View

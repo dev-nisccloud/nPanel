@@ -9,6 +9,16 @@ if (typeof window !== "undefined") {
   console.debug("[auth-redirect] REDIRECT_TARGET_URL =", REDIRECT_TARGET_URL);
 }
 
+/** Post-login return path from the current page query (set by session gate on login/register). */
+function redirectTargetRequestUrl(): string {
+  if (typeof window === "undefined") return REDIRECT_TARGET_URL;
+  const params = new URLSearchParams(window.location.search);
+  const r = params.get("redirect") ?? params.get("returnUrl");
+  if (!r?.trim()) return REDIRECT_TARGET_URL;
+  const sep = REDIRECT_TARGET_URL.includes("?") ? "&" : "?";
+  return `${REDIRECT_TARGET_URL}${sep}redirect=${encodeURIComponent(r.trim())}`;
+}
+
 /**
  * Fetch redirect target (dashboard or create-team) and navigate.
  * Returns `true` if a redirect was initiated, `false` otherwise (callers
@@ -16,7 +26,8 @@ if (typeof window !== "undefined") {
  */
 export async function redirectToTarget(retryAfterMs = 0): Promise<boolean> {
   const doFetch = async (): Promise<string> => {
-    const res = await fetch(REDIRECT_TARGET_URL, {
+    const fetchUrl = redirectTargetRequestUrl();
+    const res = await fetch(fetchUrl, {
       cache: "no-store",
       credentials: "include",
     });
@@ -37,7 +48,7 @@ export async function redirectToTarget(retryAfterMs = 0): Promise<boolean> {
       console.error("[auth-redirect] redirect-target returned non-JSON", {
         contentType,
         bodyPreview: text.slice(0, 200),
-        url: REDIRECT_TARGET_URL,
+        url: fetchUrl,
       });
       return FALLBACK_REDIRECT;
     }

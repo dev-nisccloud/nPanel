@@ -222,6 +222,18 @@ async function getCachedRates(baseCurrency: string) {
 }
 
 // Helper function to cache rates
+/** Clears server-side Redis cache so the next read fetches live rates. */
+async function clearExchangeRatesCache(baseCurrency: string) {
+  try {
+    const redis = getRedisClient();
+    const ratesKey = `${CACHE_KEYS.EXCHANGE_RATES}:${baseCurrency}`;
+    const lastFetchKey = `${CACHE_KEYS.LAST_FETCH_TIME}:${baseCurrency}`;
+    await Promise.all([redis.del(ratesKey), redis.del(lastFetchKey)]);
+  } catch (error) {
+    console.error("Failed to clear exchange rates cache:", error);
+  }
+}
+
 async function cacheRates(baseCurrency: string, rates: Record<string, number>, timestamp: number) {
   try {
     const redis = getRedisClient();
@@ -301,6 +313,43 @@ export const currencyConversionRouter = router({
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to fetch exchange rates',
+        };
+      }
+    }),
+
+  /**
+   * Drops cached rates for the base currency, fetches fresh rates from the provider,
+   * rewrites cache, and returns the new payload. Use from UI “refresh” on converter nodes.
+   */
+  refreshExchangeRates: protectedProcedure
+    .input(z.object({ baseCurrency: z.string().default("USD") }))
+    .output(exchangeRatesResponseSchema)
+    .mutation(async ({ input }) => {
+      const baseCurrency = input.baseCurrency;
+      await clearExchangeRatesCache(baseCurrency);
+      try {
+        const currentUsage = await trackApiUsage();
+        if (currentUsage > API_LIMITS.CRITICAL_THRESHOLD) {
+          return {
+            success: false,
+            error: "API usage limit exceeded. Please try again later.",
+          };
+        }
+
+        const freshRates = await fetchExchangeRates(baseCurrency);
+        await cacheRates(baseCurrency, freshRates.rates, freshRates.timestamp);
+        await cleanupExpiredCache();
+
+        return {
+          success: true,
+          data: freshRates,
+        };
+      } catch (error) {
+        console.error("Failed to refresh exchange rates:", error);
+        return {
+          success: false,
+          error:
+            error instanceof Error ? error.message : "Failed to refresh exchange rates",
         };
       }
     }),

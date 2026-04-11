@@ -14,6 +14,10 @@ export declare function getCustomerTeamRedirectPath(user: UserWithStatus): Promi
 /**
  * Root "/" redirect target for authenticated users. Uses request cookies via Better Auth.
  * Safe for Hono (pass `c.req.raw.headers`) and Next (pass `await headers()`).
+ * Optional `requestedRedirect` is honored only when it is internal and role-authorized.
  */
-export declare function getRootRedirectTargetFromHeaders(headers: Headers): Promise<string>;
+export declare function getRootRedirectTargetFromHeaders(
+  headers: Headers,
+  requestedRedirect?: string | null,
+): Promise<string>;
 export {};

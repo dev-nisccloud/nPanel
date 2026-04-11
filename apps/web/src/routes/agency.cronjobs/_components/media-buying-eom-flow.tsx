@@ -1862,7 +1862,8 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                               yourState: invoiceDefaults.yourState,
                               yourCountry: invoiceDefaults.yourCountry,
                               yourLogo:
-                                "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp",
+                                "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s",
+                              yourLogoWidth: 250,
                               yourEmail: invoiceDefaults.yourEmail,
                               yourTaxId: invoiceDefaults.yourTaxId,
                               yourZip: invoiceDefaults.yourZip,
@@ -1887,6 +1888,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                                 qty: li.quantity,
                               })),
                               currency: "KES",
+                              compactLineItems: true,
                             }}
                             paymentDetails={{
                               ...(paymentDetailsJson as any),

@@ -1,9 +1,12 @@
 "use client";
 
 import * as React from "react";
+import { RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/sonner";
+import { trpc } from "@/utils/trpc";
 import {
   Select,
   SelectContent,
@@ -28,6 +31,24 @@ export function CurrencyConverterNode({
   rateOverride: string | undefined;
   setRateOverride: (v: string) => void;
 }) {
+  const utils = trpc.useUtils();
+  const refreshRatesMutation = trpc.currency.refreshExchangeRates.useMutation({
+    onSuccess: async (out) => {
+      if (!out.success) {
+        toast.error(out.error ?? "Could not refresh exchange rates.");
+        return;
+      }
+      await Promise.all([
+        utils.currency.getExchangeRates.invalidate({ baseCurrency: "USD" }),
+        utils.currency.getCacheStatus.invalidate(),
+      ]);
+      toast.success("Exchange rates updated.");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Could not refresh exchange rates.");
+    },
+  });
+
   const isValid = rateOverride == null || rateOverride.trim() === ""
     ? true
     : Number.isFinite(Number(rateOverride)) && Number(rateOverride) > 0;
@@ -36,9 +57,26 @@ export function CurrencyConverterNode({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-medium">Currency converter</div>
-        <Badge variant="outline" className="text-[10px]">
-          {fromCurrency} → {toCurrency}
-        </Badge>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="nodrag h-7 w-7 px-0"
+            title="Refresh exchange rates from server"
+            disabled={refreshRatesMutation.isPending}
+            onClick={() => refreshRatesMutation.mutate({ baseCurrency: "USD" })}
+          >
+            <RefreshCw
+              className={
+                refreshRatesMutation.isPending ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"
+              }
+            />
+          </Button>
+          <Badge variant="outline" className="text-[10px]">
+            {fromCurrency} → {toCurrency}
+          </Badge>
+        </div>
       </div>
 
       <div className="text-[11px] text-muted-foreground max-w-[360px]">

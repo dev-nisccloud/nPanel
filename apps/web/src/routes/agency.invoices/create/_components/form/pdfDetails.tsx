@@ -35,10 +35,11 @@ export const PdfDetails = ({
       style={{
         display: "flex",
         flexDirection: "row",
+        alignItems: "flex-start",
         borderBottomWidth: 1,
         borderBottomStyle: "dashed",
         borderBottomColor: "#e5e7eb",
-        width: '100%',
+        width: "100%",
       }}
     >
       <View 
