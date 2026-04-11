@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, View } from "@react-pdf/renderer";
 import { format } from "date-fns";
-import { pdfTypography } from "@/lib/pdfStyles";
+import { pdfInvoiceMeta } from "@/lib/pdfStyles";
 import type { InvoiceTerms } from "@/routes/agency.invoicing/types";
 
 export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
@@ -11,8 +11,8 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
 }) => (
   <View
     style={{
-      paddingTop: 16,
-      paddingBottom: 16,
+      paddingTop: 8,
+      paddingBottom: 8,
     }}
   >
     <View
@@ -23,17 +23,17 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
         alignItems: "flex-start" as const,
       }}
     >
-      <View style={{ flex: 1 }} /> {/* Spacer for left side */}
+      <View style={{ flex: 1 }} />
       <View style={{ flex: 1, alignItems: "flex-end" as const }}>
-        <View style={lineStyle}>
-          <Text style={labelStyle}>INVOICE NO</Text>
-          <Text wrap={false} style={valueStyle}>
+        <View style={pdfInvoiceMeta.rowTerms}>
+          <Text style={pdfInvoiceMeta.label}>INVOICE NO</Text>
+          <Text wrap={false} style={pdfInvoiceMeta.value}>
             {invoiceNumber || "-"}
           </Text>
         </View>
-        <View style={lineStyle}>
-          <Text style={labelStyle}>ISSUED</Text>
-          <Text wrap={false} style={valueStyle}>
+        <View style={pdfInvoiceMeta.rowTerms}>
+          <Text style={pdfInvoiceMeta.label}>ISSUED</Text>
+          <Text wrap={false} style={pdfInvoiceMeta.value}>
             {issueDate
               ? format(
                   typeof issueDate === "string" ? new Date(issueDate) : issueDate,
@@ -42,9 +42,9 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
               : "-"}
           </Text>
         </View>
-        <View style={lineStyle}>
-          <Text style={labelStyle}>DUE DATE</Text>
-          <Text wrap={false} style={valueStyle}>
+        <View style={pdfInvoiceMeta.rowTerms}>
+          <Text style={pdfInvoiceMeta.label}>DUE DATE</Text>
+          <Text wrap={false} style={pdfInvoiceMeta.value}>
             {dueDate
               ? format(
                   typeof dueDate === "string" ? new Date(dueDate) : dueDate,
@@ -57,26 +57,3 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
     </View>
   </View>
 );
-
-const lineStyle = {
-  display: "flex" as const,
-  flexDirection: "row" as const,
-  alignItems: "center" as const,
-  justifyContent: "flex-end" as const,
-  gap: 6,
-  marginBottom: 8,
-};
-
-const labelStyle = {
-  ...pdfTypography.description,
-  fontSize: 11,
-  textTransform: "uppercase" as const,
-  color: "#6b7280",
-};
-
-const valueStyle = {
-  fontSize: 12,
-  fontWeight: "bold" as const,
-  color: "#111827",
-};
-

@@ -10,7 +10,18 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
   taxRate,
   items,
   currency = "KES",
+  compactLineItems = false,
 }) => {
+  const lineText = compactLineItems
+    ? pdfTypography.itemLineCompact
+    : pdfTypography.itemDescription;
+  const headerText = compactLineItems
+    ? pdfTypography.itemLineHeaderCompact
+    : pdfTypography.title;
+  const totalsText = compactLineItems
+    ? { ...pdfTypography.itemDescription, fontSize: 8, fontWeight: "medium" as const }
+    : pdfTypography.itemDescription;
+
   const currencyType = currency;
   const currencyDetails = currencyList.find(
     (currency) => currency.value.toLowerCase() === currencyType.toLowerCase()
@@ -36,32 +47,38 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
   return (
     <View>
       <View style={pdfUtils.flexRowItemCenter}>
-        <View style={{ flex: 1, paddingHorizontal: 40, paddingVertical: 16 }}>
-          <Text style={pdfTypography.title}>Description</Text>
+        <View
+          style={{
+            flex: 1,
+            paddingHorizontal: 40,
+            paddingVertical: compactLineItems ? 6 : 16,
+          }}
+        >
+          <Text style={headerText}>Description</Text>
         </View>
         <View
           style={{
             flex: 1,
             ...pdfUtils.flexRowItemCenter,
             paddingHorizontal: 40,
-            paddingVertical: 16,
+            paddingVertical: compactLineItems ? 6 : 16,
           }}
         >
           <View style={{ flex: 1 }}>
-            <Text style={pdfTypography.title}>QTY</Text>
+            <Text style={headerText}>QTY</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={pdfTypography.title}>Price</Text>
+            <Text style={headerText}>Price</Text>
           </View>
           <View style={{ flex: 1, textAlign: "right" }}>
-            <Text style={pdfTypography.title}>Amount</Text>
+            <Text style={headerText}>Amount</Text>
           </View>
         </View>
       </View>
       {itemsNormalized.map(({ itemDescription, amount, qty }, index) => {
         const containerStyle = {
           marginHorizontal: 40,
-          paddingVertical: 14,
+          paddingVertical: compactLineItems ? 5 : 14,
           ...pdfUtils.borderBottom,
           ...pdfUtils.flexRowItemCenter,
         };
@@ -78,7 +95,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
             <Text
               style={{
                 flex: 1,
-                ...pdfTypography.itemDescription,
+                ...lineText,
                 // Ensure long descriptions wrap cleanly instead of overflowing.
                 flexWrap: "wrap",
                 paddingRight: 12,
@@ -90,16 +107,16 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               style={{
                 flex: 1,
                 ...pdfUtils.flexRowItemCenter,
-                paddingLeft: 80,
+                paddingLeft: compactLineItems ? 48 : 80,
               }}
             >
-              <Text style={{ flex: 1, ...pdfTypography.itemDescription }}>
+              <Text style={{ flex: 1, ...lineText }}>
                 {qty ? qty : "-"}
               </Text>
               <Text
                 style={{
                   flex: 1,
-                  ...pdfTypography.itemDescription,
+                  ...lineText,
                   flexWrap: "wrap",
                   maxWidth: 80,
                 }}
@@ -109,7 +126,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               <Text
                 style={{
                   flex: 1,
-                  ...pdfTypography.itemDescription,
+                  ...lineText,
                   textAlign: "right",
                   flexWrap: "wrap",
                   maxWidth: 120,
@@ -128,8 +145,8 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
         <View style={{ flex: 1, paddingTop: 24 }}>
           {note && (
             <View style={{ paddingHorizontal: 40 }}>
-              <Text style={pdfTypography.title}>Note</Text>
-              <Text style={pdfTypography.itemDescription}>{note}</Text>
+              <Text style={headerText}>Note</Text>
+              <Text style={lineText}>{note}</Text>
             </View>
           )}
         </View>
@@ -137,17 +154,17 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           <View
             style={{
               marginHorizontal: 40,
-              paddingVertical: 14,
+              paddingVertical: compactLineItems ? 5 : 14,
               ...pdfUtils.flexRowItemCenter,
               ...pdfUtils.borderBottom,
             }}
           >
-            <Text style={{ ...pdfTypography.itemDescription, flex: 1 }}>
+            <Text style={{ ...totalsText, flex: 1 }}>
               Subtotal
             </Text>
             <Text
               style={{
-                ...pdfTypography.itemDescription,
+                ...totalsText,
                 flex: 1,
                 textAlign: "right",
               }}
@@ -160,17 +177,17 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
             <View
               style={{
                 marginHorizontal: 40,
-                paddingVertical: 14,
+                paddingVertical: compactLineItems ? 5 : 14,
                 ...pdfUtils.flexRowItemCenter,
                 ...pdfUtils.borderBottom,
               }}
             >
-              <Text style={{ ...pdfTypography.itemDescription, flex: 1 }}>
+              <Text style={{ ...totalsText, flex: 1 }}>
                 Discount
               </Text>
               <Text
                 style={{
-                  ...pdfTypography.itemDescription,
+                  ...totalsText,
                   flex: 1,
                   textAlign: "right",
                 }}
@@ -184,17 +201,17 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
             <View
               style={{
                 marginHorizontal: 40,
-                paddingVertical: 14,
+                paddingVertical: compactLineItems ? 5 : 14,
                 ...pdfUtils.flexRowItemCenter,
                 ...pdfUtils.borderBottom,
               }}
             >
-              <Text style={{ ...pdfTypography.itemDescription, flex: 1 }}>
+              <Text style={{ ...totalsText, flex: 1 }}>
                 Tax ({taxRate})%
               </Text>
               <Text
                 style={{
-                  ...pdfTypography.itemDescription,
+                  ...totalsText,
                   flex: 1,
                   textAlign: "right",
                 }}
@@ -207,16 +224,16 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           <View
             style={{
               marginHorizontal: 40,
-              paddingVertical: 14,
+              paddingVertical: compactLineItems ? 5 : 14,
               ...pdfUtils.flexRowItemCenter,
             }}
           >
-            <Text style={{ ...pdfTypography.itemDescription, flex: 1 }}>
+            <Text style={{ ...totalsText, flex: 1 }}>
               Amount
             </Text>
             <Text
               style={{
-                ...pdfTypography.itemDescription,
+                ...totalsText,
                 flex: 1,
                 textAlign: "right",
                 fontWeight: "bold",
