@@ -60,7 +60,9 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           style={{
             flex: 1,
             ...pdfUtils.flexRowItemCenter,
-            paddingHorizontal: 40,
+            // Match body rows: numeric block uses the same left inset so QTY lines up.
+            paddingLeft: compactLineItems ? 48 : 80,
+            paddingRight: 40,
             paddingVertical: compactLineItems ? 6 : 16,
           }}
         >

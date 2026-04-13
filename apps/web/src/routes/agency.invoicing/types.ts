@@ -13,7 +13,7 @@ export type YourDetails = {
   yourState?: string;
   yourCountry?: string;
   yourLogo?: string;
-  /** Max width in pt for PDF header logo (default 250). */
+  /** Optional logo frame width in pt (height scales with auth 3:1 box). Default matches `pdfBrandingLogoBox`. */
   yourLogoWidth?: number;
   yourTaxId?: string;
   yourZip?: string;

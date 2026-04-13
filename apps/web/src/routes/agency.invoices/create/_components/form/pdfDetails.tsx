@@ -74,6 +74,7 @@ export const PdfDetails = ({
       <View>
         <PaymentDetailsPdf
           {...paymentDetails}
+          compactLineItems={invoiceDetails.compactLineItems}
         />
       </View>
     </View>

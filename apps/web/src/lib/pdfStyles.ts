@@ -52,12 +52,6 @@ export const pdfTypography = StyleSheet.create({
         fontWeight: "medium",
         flexWrap: 'wrap'
     },
-    paymentTitle: {
-        fontSize: 12,
-        fontWeight: "medium",
-        flexWrap: 'wrap',
-        color: colors.gray500
-    }
 
 })
 
@@ -132,6 +126,17 @@ export const pdfContainers = StyleSheet.create({
         marginBottom: 12,
     }
 })
+
+/**
+ * Invoice/quotation header logo frame — matches web branding:
+ * - Auth layout (`auth.tsx`): `width={180} height={60}` with `h-15 w-auto` (60px tall).
+ * - Sidebar expanded (`app-sidebar.tsx`): `h-12` (48px) is slightly smaller; PDF uses the auth size.
+ * CSS px @ 96dpi → PDF pt: 180×60 → 135×45 (3:1).
+ */
+export const pdfBrandingLogoBox = {
+    width: 135,
+    height: 45,
+} as const
 
 /**
  * Shared with `InvoiceTermsPdf` (invoice no / dates) and `CompanyDetailsPdf` (Bill To):

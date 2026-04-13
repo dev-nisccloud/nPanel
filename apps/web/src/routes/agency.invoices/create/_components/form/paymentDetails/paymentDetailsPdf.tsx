@@ -1,11 +1,43 @@
 /* eslint-disable jsx-a11y/alt-text */
 import React from "react";
 import { Image, Text, View } from "@react-pdf/renderer";
-import { pdfTypography, pdfUtils } from "@/lib/pdfStyles";
+import { pdfTypography } from "@/lib/pdfStyles";
 import type { PaymentDetails } from "@/routes/agency.invoices/create/types";
 
 interface PaymentDetailsPdfProps extends PaymentDetails {
   qrCodeDataUrl?: string;
+  /** Match `InvoiceDetailsPdf` line / header typography (e.g. cron compact invoices). */
+  compactLineItems?: boolean;
+}
+
+function PaymentFieldRow({
+  label,
+  labelWidth,
+  lineStyle,
+  value,
+}: {
+  label: string;
+  labelWidth: number;
+  lineStyle: typeof pdfTypography.itemDescription | typeof pdfTypography.itemLineCompact;
+  value: string | number;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+      }}
+    >
+      <View style={{ width: labelWidth, paddingRight: 8 }}>
+        <Text style={{ ...lineStyle, fontWeight: "bold" }}>{label}</Text>
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={lineStyle} wrap>
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
 }
 
 export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
@@ -23,90 +55,62 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
   chequeInstructions,
   qrCodeValue,
   qrCodeDataUrl,
+  compactLineItems = false,
 }) => {
+  const lineText = compactLineItems
+    ? pdfTypography.itemLineCompact
+    : pdfTypography.itemDescription;
+  const sectionTitleText = compactLineItems
+    ? pdfTypography.itemLineHeaderCompact
+    : pdfTypography.title;
+  const labelColWidth = compactLineItems ? 88 : 128;
 
   const renderPaymentDetails = () => {
     if (paymentMethod === "bank") {
       return (
         <View style={{ flexDirection: "column", gap: 5 }}>
-          <View style={pdfUtils.flexRowItemCenter}>
-            <Text style={pdfTypography.paymentTitle}>Bank Name</Text>
-            <Text
-              style={{
-                flex: 1,
-                ...pdfTypography.itemDescription,
-                paddingLeft: 44.5,
-              }}
-            >
-              {bankName ? bankName : "-"}
-            </Text>
-          </View>
-          <View style={pdfUtils.flexRowItemCenter}>
-            <Text style={pdfTypography.paymentTitle}>Account Number</Text>
-            <Text
-              style={{
-                flex: 1,
-                ...pdfTypography.itemDescription,
-                paddingLeft: 14,
-              }}
-            >
-              {accountNumber ? accountNumber : "-"}
-            </Text>
-          </View>
-          <View style={pdfUtils.flexRowItemCenter}>
-            <Text style={pdfTypography.paymentTitle}>Account Name</Text>
-            <Text
-              style={{
-                flex: 1,
-                ...pdfTypography.itemDescription,
-                paddingLeft: 26,
-              }}
-            >
-              {accountName ? accountName : "-"}
-            </Text>
-          </View>
-          {branchName && (
-            <View style={pdfUtils.flexRowItemCenter}>
-              <Text style={pdfTypography.paymentTitle}>Branch Name</Text>
-              <Text
-                style={{
-                  flex: 1,
-                  ...pdfTypography.itemDescription,
-                  paddingLeft: 35,
-                }}
-              >
-                {branchName}
-              </Text>
-            </View>
-          )}
-          {branchCode && (
-            <View style={pdfUtils.flexRowItemCenter}>
-              <Text style={pdfTypography.paymentTitle}>Branch Code</Text>
-              <Text
-                style={{
-                  flex: 1,
-                  ...pdfTypography.itemDescription,
-                  paddingLeft: 38,
-                }}
-              >
-                {branchCode}
-              </Text>
-            </View>
-          )}
-          {swiftCode && (
-            <View style={pdfUtils.flexRowItemCenter}>
-              <Text style={pdfTypography.paymentTitle}>Swift Code</Text>
-              <Text
-                style={{
-                  flex: 1,
-                  ...pdfTypography.itemDescription,
-                  paddingLeft: 45,
-                }}
-              >
-                {swiftCode}
-              </Text>
-            </View>
-          )}
+          <PaymentFieldRow
+            label="Bank Name"
+            labelWidth={labelColWidth}
+            lineStyle={lineText}
+            value={bankName ? bankName : "-"}
+          />
+          <PaymentFieldRow
+            label="Account Number"
+            labelWidth={labelColWidth}
+            lineStyle={lineText}
+            value={accountNumber ? accountNumber : "-"}
+          />
+          <PaymentFieldRow
+            label="Account Name"
+            labelWidth={labelColWidth}
+            lineStyle={lineText}
+            value={accountName ? accountName : "-"}
+          />
+          {branchName ? (
+            <PaymentFieldRow
+              label="Branch Name"
+              labelWidth={labelColWidth}
+              lineStyle={lineText}
+              value={branchName}
+            />
+          ) : null}
+          {branchCode ? (
+            <PaymentFieldRow
+              label="Branch Code"
+              labelWidth={labelColWidth}
+              lineStyle={lineText}
+              value={branchCode}
+            />
+          ) : null}
+          {swiftCode ? (
+            <PaymentFieldRow
+              label="Swift Code"
+              labelWidth={labelColWidth}
+              lineStyle={lineText}
+              value={swiftCode}
+            />
+          ) : null}
         </View>
       );
     }
@@ -114,45 +118,28 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
     if (paymentMethod === "mpesa") {
       return (
         <View style={{ flexDirection: "column", gap: 5 }}>
-          <View style={pdfUtils.flexRowItemCenter}>
-            <Text style={pdfTypography.paymentTitle}>Paybill Number</Text>
-            <Text
-              style={{
-                flex: 1,
-                ...pdfTypography.itemDescription,
-                paddingLeft: 20,
-              }}
-            >
-              {mpesaPaybillNumber ? mpesaPaybillNumber : "-"}
-            </Text>
-          </View>
-          {mpesaAccountNumber && (
-            <View style={pdfUtils.flexRowItemCenter}>
-              <Text style={pdfTypography.paymentTitle}>Account Number</Text>
-              <Text
-                style={{
-                  flex: 1,
-                  ...pdfTypography.itemDescription,
-                  paddingLeft: 20,
-                }}
-              >
-                {mpesaAccountNumber}
-              </Text>
-            </View>
-          )}
-          {mpesaInstructions && (
-            <View style={{ flexDirection: "column", gap: 2 }}>
-              <Text style={pdfTypography.paymentTitle}>Instructions</Text>
-              <Text
-                style={{
-                  ...pdfTypography.itemDescription,
-                  paddingLeft: 0,
-                }}
-              >
-                {mpesaInstructions}
-              </Text>
-            </View>
-          )}
+          <PaymentFieldRow
+            label="Paybill Number"
+            labelWidth={labelColWidth}
+            lineStyle={lineText}
+            value={mpesaPaybillNumber ? mpesaPaybillNumber : "-"}
+          />
+          {mpesaAccountNumber ? (
+            <PaymentFieldRow
+              label="Account Number"
+              labelWidth={labelColWidth}
+              lineStyle={lineText}
+              value={mpesaAccountNumber}
+            />
+          ) : null}
+          {mpesaInstructions ? (
+            <PaymentFieldRow
+              label="Instructions"
+              labelWidth={labelColWidth}
+              lineStyle={lineText}
+              value={mpesaInstructions}
+            />
+          ) : null}
         </View>
       );
     }
@@ -160,32 +147,22 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
     if (paymentMethod === "cheque") {
       return (
         <View style={{ flexDirection: "column", gap: 5 }}>
-          {chequeDeliveryAddress && (
-            <View style={{ flexDirection: "column", gap: 2 }}>
-              <Text style={pdfTypography.paymentTitle}>Delivery Address</Text>
-              <Text
-                style={{
-                  ...pdfTypography.itemDescription,
-                  paddingLeft: 0,
-                }}
-              >
-                {chequeDeliveryAddress}
-              </Text>
-            </View>
-          )}
-          {chequeInstructions && (
-            <View style={{ flexDirection: "column", gap: 2 }}>
-              <Text style={pdfTypography.paymentTitle}>Instructions</Text>
-              <Text
-                style={{
-                  ...pdfTypography.itemDescription,
-                  paddingLeft: 0,
-                }}
-              >
-                {chequeInstructions}
-              </Text>
-            </View>
-          )}
+          {chequeDeliveryAddress ? (
+            <PaymentFieldRow
+              label="Delivery Address"
+              labelWidth={labelColWidth}
+              lineStyle={lineText}
+              value={chequeDeliveryAddress}
+            />
+          ) : null}
+          {chequeInstructions ? (
+            <PaymentFieldRow
+              label="Instructions"
+              labelWidth={labelColWidth}
+              lineStyle={lineText}
+              value={chequeInstructions}
+            />
+          ) : null}
         </View>
       );
     }
@@ -222,7 +199,7 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
           flexDirection: "column",
         }}
       >
-        <Text style={{ paddingBottom: 12, ...pdfTypography.title }}>
+        <Text style={{ paddingBottom: 12, ...sectionTitleText }}>
           {getPaymentTitle()}
         </Text>
         {renderPaymentDetails()}
@@ -257,11 +234,10 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
               justifyContent: "center",
             }}
           >
-            <Text style={{ fontSize: 10, color: "#9ca3af" }}>QR Code</Text>
+            <Text style={{ ...lineText, color: "#9ca3af" }}>QR Code</Text>
           </View>
         )}
       </View>
     </View>
   );
 };
-
