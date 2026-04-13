@@ -19,7 +19,7 @@ export function transformInvoiceToPreviewData(
 } {
 	// Extract fromDetails (your details)
 	const fromDetails = invoice.fromDetails as Record<string, unknown> | null;
-	const defaultLogoUrl = "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp";
+	const defaultLogoUrl = "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
 	const yourDetails: YourDetails = {
 		yourName: fromDetails?.name as string | undefined,
 		yourEmail: fromDetails?.email as string | undefined,

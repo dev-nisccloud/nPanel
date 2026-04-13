@@ -36,7 +36,11 @@ export const InvoiceHeaderPreview: React.FC<
       {/* Logo on left */}
       <div className="flex items-start">
         {yourLogo ? (
-          <img src={yourLogo} alt="Company Logo" className="h-12 rounded-md" />
+          <img
+            src={yourLogo}
+            alt="Company Logo"
+            className="h-12 w-auto max-w-[160px] object-contain rounded-md"
+          />
         ) : (
           <div className="rounded-md bg-neutral-100 h-12 w-24 animate-pulse" />
         )}

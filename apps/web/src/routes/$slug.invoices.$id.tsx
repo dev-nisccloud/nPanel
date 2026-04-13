@@ -96,7 +96,7 @@ const registerFonts = async (): Promise<boolean> => {
 };
 
 // Hardcoded company logo URL
-const COMPANY_LOGO_URL = "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp";
+const COMPANY_LOGO_URL = "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
 
 // Helper function to convert InvoiceDetail to PDF data format
 function convertInvoiceToPdfData(invoice: InvoiceDetail) {

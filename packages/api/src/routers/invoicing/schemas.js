@@ -194,6 +194,9 @@ export const invoiceUpdateInputSchema = invoiceCreateInputSchema
 })
     .partial({
     lineItems: true,
+    createdBy: true,
+    updatedBy: true,
+    token: true,
 });
 export const invoiceSummarySchema = z.object({
     id: z.string().uuid(),

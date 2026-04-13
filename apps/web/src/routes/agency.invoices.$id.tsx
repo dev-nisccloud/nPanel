@@ -6,6 +6,14 @@ import { ArrowLeft, Ban, Download, DollarSign, Send } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import {
 	AlertDialog,
 	AlertDialogAction,
 	AlertDialogCancel,
@@ -21,6 +29,12 @@ import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form
 import { transformInvoiceToPreviewData } from "./agency.invoices/$id/_utils/transformInvoiceData";
 import { UpdatePaymentDialog } from "./agency.invoices/$id/_components/update-payment-dialog";
 import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas";
+import { FormProvider, useForm } from "react-hook-form";
+import { YourDetailsForm } from "@/routes/agency.invoices/create/_components/form/yourDetails/yourDetailsForm";
+import { CompanyDetailsForm } from "@/routes/agency.invoices/create/_components/form/companyDetails/companyDetailsForm";
+import { InvoiceDetailsForm } from "@/routes/agency.invoices/create/_components/form/invoiceDetails/invoiceDetailsForm";
+import { PaymentDetailsForm } from "@/routes/agency.invoices/create/_components/form/paymentDetails/paymentDetailsForm";
+import { InvoiceTermsForm } from "@/routes/agency.invoices/create/_components/form/invoiceTerms/invoiceTermsForm";
 import type {
 	YourDetails,
 	CompanyDetails,
@@ -107,7 +121,7 @@ const registerFonts = async (): Promise<boolean> => {
 };
 
 // Hardcoded company logo URL
-const COMPANY_LOGO_URL = "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp";
+const COMPANY_LOGO_URL = "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
 
 // Helper function to convert InvoiceDetail to PDF data format
 function convertInvoiceToPdfData(invoice: InvoiceDetail) {
@@ -210,6 +224,123 @@ function convertInvoiceToPdfData(invoice: InvoiceDetail) {
 	};
 }
 
+type InvoiceEditStep = "1" | "2" | "3" | "4" | "5";
+
+type InvoiceEditorFormValues = {
+	step: string;
+	teamId?: string;
+
+	yourEmail: string;
+	yourName: string;
+	yourAddress: string;
+	yourCity: string;
+	yourState: string;
+	yourCountry: string;
+	yourLogo: string;
+	yourTaxId: string;
+	yourZip: string;
+
+	email: string;
+	companyName: string;
+	companyAddress: string;
+	companyCity: string;
+	companyState: string;
+	companyCountry: string;
+	companyTaxId: string;
+	companyZip: string;
+
+	note: string;
+	discount: string;
+	taxPercentage: number;
+	items: Array<{ itemDescription: string; amount?: number; qty?: number }>;
+	currency: string;
+
+	paymentMethod: "bank" | "mpesa" | "cheque";
+	bankName: string;
+	accountNumber: string;
+	accountName: string;
+	branchName: string;
+	branchCode: string;
+	swiftCode: string;
+	mpesaPaybillNumber: string;
+	mpesaAccountNumber: string;
+	mpesaInstructions: string;
+	chequeDeliveryAddress: string;
+	chequeInstructions: string;
+	qrCodeValue: string;
+
+	invoiceNo: string;
+	issueDate: string;
+	dueDate: string;
+};
+
+function toDateInputValue(value: string | Date | null | undefined) {
+	if (!value) return "";
+	const d = value instanceof Date ? value : new Date(value);
+	if (Number.isNaN(d.getTime())) return "";
+	return d.toISOString().slice(0, 10);
+}
+
+function buildInvoiceEditorDefaults(invoice: InvoiceDetail): InvoiceEditorFormValues {
+	const fromDetails = (invoice.fromDetails as any) ?? {};
+	const customerDetails = (invoice.customerDetails as any) ?? {};
+	const paymentDetails = (invoice.paymentDetails as any) ?? {};
+
+	const items = (invoice.lineItems ?? []).map((li) => ({
+		itemDescription: li.description || li.name || "",
+		amount: li.price != null ? Number(li.price) : undefined,
+		qty: li.quantity ?? undefined,
+	}));
+
+	return {
+		step: "1",
+		teamId: invoice.teamId ?? undefined,
+
+		yourEmail: String(fromDetails.email ?? ""),
+		yourName: String(fromDetails.name ?? ""),
+		yourAddress: String(fromDetails.address ?? ""),
+		yourCity: String(fromDetails.city ?? ""),
+		yourState: String(fromDetails.state ?? ""),
+		yourCountry: String(fromDetails.country ?? ""),
+		yourLogo: String(fromDetails.logoUrl ?? ""),
+		yourTaxId: String(fromDetails.taxId ?? ""),
+		yourZip: String(fromDetails.zip ?? ""),
+
+		email: String(customerDetails.email ?? invoice.customerEmail ?? ""),
+		companyName: String(customerDetails.name ?? invoice.customerName ?? ""),
+		companyAddress: String(customerDetails.address ?? ""),
+		companyCity: String(customerDetails.city ?? ""),
+		companyState: String(customerDetails.state ?? ""),
+		companyCountry: String(customerDetails.country ?? ""),
+		companyTaxId: String(customerDetails.taxId ?? ""),
+		companyZip: String(customerDetails.zip ?? ""),
+
+		note: String(invoice.note ?? ""),
+		discount: String(invoice.discount ?? ""),
+		taxPercentage: invoice.taxPercentage ?? 0,
+		items: items.length > 0 ? items : [{ itemDescription: "" }],
+		currency: invoice.currency ?? "KES",
+
+		paymentMethod: (paymentDetails.paymentMethod as "bank" | "mpesa" | "cheque") ?? "bank",
+		bankName: String(paymentDetails.bankName ?? ""),
+		accountNumber: String(paymentDetails.accountNumber ?? ""),
+		accountName: String(paymentDetails.accountName ?? ""),
+		branchName: String(paymentDetails.branchName ?? ""),
+		branchCode: String(paymentDetails.branchCode ?? ""),
+		swiftCode: String(paymentDetails.swiftCode ?? ""),
+		mpesaPaybillNumber: String(paymentDetails.mpesaPaybillNumber ?? ""),
+		mpesaAccountNumber: String(paymentDetails.mpesaAccountNumber ?? ""),
+		mpesaInstructions: String(paymentDetails.mpesaInstructions ?? ""),
+		chequeDeliveryAddress: String(paymentDetails.chequeDeliveryAddress ?? ""),
+		chequeInstructions: String(paymentDetails.chequeInstructions ?? ""),
+		qrCodeValue: String(paymentDetails.qrCodeValue ?? ""),
+
+		invoiceNo: String(invoice.invoiceNumber ?? ""),
+		issueDate: toDateInputValue(invoice.issueDate),
+		dueDate: toDateInputValue(invoice.dueDate),
+	};
+}
+
 export default function InvoiceViewPage() {
 	const params = useParams();
 	const navigate = useNavigate();
@@ -226,8 +357,74 @@ export default function InvoiceViewPage() {
 	const [isSending, setIsSending] = React.useState(false);
 	const [updatePaymentOpen, setUpdatePaymentOpen] = React.useState(false);
 	const [markUnpaidConfirmOpen, setMarkUnpaidConfirmOpen] = React.useState(false);
+	const [editDialogOpen, setEditDialogOpen] = React.useState(false);
+	const [editStep, setEditStep] = React.useState<InvoiceEditStep>("1");
 
 	const utils = trpc.useUtils();
+
+	// IMPORTANT: hooks must run on every render (even while loading).
+	// We initialize the editor with empty defaults, then `reset()` once the invoice loads.
+	const form = useForm<InvoiceEditorFormValues>({
+		defaultValues: {
+			step: "1",
+			teamId: undefined,
+
+			yourEmail: "",
+			yourName: "",
+			yourAddress: "",
+			yourCity: "",
+			yourState: "",
+			yourCountry: "",
+			yourLogo: "",
+			yourTaxId: "",
+			yourZip: "",
+
+			email: "",
+			companyName: "",
+			companyAddress: "",
+			companyCity: "",
+			companyState: "",
+			companyCountry: "",
+			companyTaxId: "",
+			companyZip: "",
+
+			note: "",
+			discount: "",
+			taxPercentage: 0,
+			items: [{ itemDescription: "" }],
+			currency: "KES",
+
+			paymentMethod: "bank",
+			bankName: "",
+			accountNumber: "",
+			accountName: "",
+			branchName: "",
+			branchCode: "",
+			swiftCode: "",
+			mpesaPaybillNumber: "",
+			mpesaAccountNumber: "",
+			mpesaInstructions: "",
+			chequeDeliveryAddress: "",
+			chequeInstructions: "",
+			qrCodeValue: "",
+
+			invoiceNo: "",
+			issueDate: "",
+			dueDate: "",
+		},
+	});
+
+	const updateInvoiceMutation = trpc.invoicing.update.useMutation({
+		onSuccess: () => {
+			toast.success("Invoice updated", { description: "Your changes have been saved." });
+			utils.invoicing.getById.invalidate({ id: invoiceId });
+			utils.invoicing.list.invalidate();
+			setEditDialogOpen(false);
+		},
+		onError: (error) => {
+			toast.error("Failed to update invoice", { description: error.message ?? "An error occurred." });
+		},
+	});
 
 	const resendEmailMutation = trpc.invoicing.resendEmailReminder.useMutation({
 		onSuccess: () => {
@@ -425,6 +622,11 @@ export default function InvoiceViewPage() {
 		}
 	};
 
+	React.useEffect(() => {
+		if (!invoice) return;
+		form.reset(buildInvoiceEditorDefaults(invoice));
+	}, [invoice, form]);
+
 	if (isLoading) {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 min-h-screen items-center justify-center">
@@ -451,6 +653,124 @@ export default function InvoiceViewPage() {
 	}
 
 	const previewData = transformInvoiceToPreviewData(invoice);
+
+	const handleOpenEdit = (step: string) => {
+		const s = step as InvoiceEditStep;
+		setEditStep(s);
+		form.setValue("step", s, { shouldDirty: false });
+		setEditDialogOpen(true);
+	};
+
+	const handleSaveSection = async () => {
+		const values = form.getValues();
+
+		const roundTotalIfExceeds = (amount: number): number => {
+			const decimalPlaces = (amount.toString().split(".")[1] || "").length;
+			return decimalPlaces > 2 ? Math.round(amount * 100) / 100 : amount;
+		};
+
+		const fromDetails = {
+			name: values.yourName,
+			email: values.yourEmail,
+			address: values.yourAddress,
+			city: values.yourCity,
+			state: values.yourState,
+			country: values.yourCountry,
+			zip: values.yourZip,
+			taxId: values.yourTaxId,
+		};
+
+		const customerDetails = {
+			name: values.companyName,
+			email: values.email,
+			address: values.companyAddress,
+			city: values.companyCity,
+			state: values.companyState,
+			country: values.companyCountry,
+			zip: values.companyZip,
+			taxId: values.companyTaxId,
+		};
+
+		const paymentDetailsJson: Record<string, unknown> = {
+			paymentMethod: values.paymentMethod,
+			currency: values.currency || "KES",
+		};
+		if (values.paymentMethod === "bank") {
+			paymentDetailsJson.bankName = values.bankName;
+			paymentDetailsJson.accountNumber = values.accountNumber;
+			paymentDetailsJson.accountName = values.accountName;
+			paymentDetailsJson.branchName = values.branchName;
+			paymentDetailsJson.branchCode = values.branchCode;
+			paymentDetailsJson.swiftCode = values.swiftCode;
+		} else if (values.paymentMethod === "mpesa") {
+			paymentDetailsJson.mpesaPaybillNumber = values.mpesaPaybillNumber;
+			paymentDetailsJson.mpesaAccountNumber = values.mpesaAccountNumber;
+			paymentDetailsJson.mpesaInstructions = values.mpesaInstructions;
+		} else if (values.paymentMethod === "cheque") {
+			paymentDetailsJson.chequeDeliveryAddress = values.chequeDeliveryAddress;
+			paymentDetailsJson.chequeInstructions = values.chequeInstructions;
+		}
+		if (values.qrCodeValue) {
+			paymentDetailsJson.qrCodeValue = values.qrCodeValue;
+		}
+
+		const items = values.items ?? [];
+		const subtotal = items.reduce((sum, item) => {
+			const amount = item.amount || 0;
+			const qty = item.qty || 1;
+			return sum + amount * qty;
+		}, 0);
+		const discountValue = Number.parseFloat(values.discount || "0") || 0;
+		const taxPercentage = values.taxPercentage || 0;
+		const taxAmount = (subtotal - discountValue) * (taxPercentage / 100);
+		const totalAmount = roundTotalIfExceeds(subtotal - discountValue + taxAmount);
+
+		const lineItems = items.map((item, index) => ({
+			position: index,
+			name: item.itemDescription || "Service",
+			description: null,
+			quantity: item.qty || 1,
+			unit: null,
+			price: String(item.amount || 0),
+			discount: null,
+			total: String((item.amount || 0) * (item.qty || 1)),
+			metadata: null,
+		}));
+
+		const payloadBase: Record<string, unknown> = { id: invoice.id };
+
+		if (editStep === "1") {
+			Object.assign(payloadBase, { fromDetails: fromDetails as any });
+		} else if (editStep === "2") {
+			Object.assign(payloadBase, {
+				teamId: values.teamId ?? null,
+				customerName: values.companyName || null,
+				customerEmail: values.email || null,
+				customerDetails: customerDetails as any,
+			});
+		} else if (editStep === "3") {
+			Object.assign(payloadBase, {
+				currency: values.currency || "KES",
+				note: values.note || null,
+				discount: values.discount || null,
+				taxPercentage: values.taxPercentage ?? null,
+				subtotal: String(subtotal),
+				tax: String(taxAmount),
+				amount: String(totalAmount),
+				lineItems,
+			});
+		} else if (editStep === "4") {
+			Object.assign(payloadBase, { paymentDetails: paymentDetailsJson as any });
+		} else if (editStep === "5") {
+			Object.assign(payloadBase, {
+				invoiceNumber: values.invoiceNo || null,
+				issueDate: values.issueDate ? new Date(values.issueDate).toISOString() : null,
+				dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : null,
+			});
+		}
+
+		await updateInvoiceMutation.mutateAsync(payloadBase as any);
+	};
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 py-6">
@@ -570,9 +890,58 @@ export default function InvoiceViewPage() {
 					invoiceDetails={previewData.invoiceDetails}
 					paymentDetails={previewData.paymentDetails}
 					invoiceTerms={previewData.invoiceTerms}
-					// No onClick handler - makes sections non-clickable
+					onClick={handleOpenEdit}
 				/>
 			</div>
+
+			<Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+				<DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle>
+							{editStep === "1"
+								? "Edit your details"
+								: editStep === "2"
+									? "Edit billing (Bill To)"
+									: editStep === "3"
+										? "Edit invoice details"
+										: editStep === "4"
+											? "Edit payment details"
+											: "Edit invoice terms"}
+						</DialogTitle>
+						<DialogDescription>Changes are saved to this invoice only.</DialogDescription>
+					</DialogHeader>
+
+					<FormProvider {...form}>
+						<div className="pt-2">
+							{editStep === "1" && <YourDetailsForm />}
+							{editStep === "2" && <CompanyDetailsForm />}
+							{editStep === "3" && <InvoiceDetailsForm />}
+							{editStep === "4" && <PaymentDetailsForm />}
+							{editStep === "5" && <InvoiceTermsForm />}
+						</div>
+					</FormProvider>
+
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setEditDialogOpen(false)}
+							disabled={updateInvoiceMutation.isPending}
+						>
+							Cancel
+						</Button>
+						<Button onClick={handleSaveSection} disabled={updateInvoiceMutation.isPending}>
+							{updateInvoiceMutation.isPending ? (
+								<>
+									<Spinner className="mr-2 h-4 w-4" />
+									Saving…
+								</>
+							) : (
+								"Save changes"
+							)}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

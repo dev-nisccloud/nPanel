@@ -15,6 +15,9 @@ import {
 	invoiceTransaction,
 	invoiceTransactionActivityLog,
 } from "@npanel/db/schema/invoicing";
+import { order } from "@npanel/db/schema/orders";
+import { niscOrder } from "@npanel/db/schema/nisc-orders";
+import { cronWorkflowRunInvoice } from "@npanel/db/schema/cron-workflow-runs";
 import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router, type Context } from "../../trpc";
 import {
@@ -163,6 +166,46 @@ async function ensureInvoiceAccess(_db: DbLike, userId: string, role: string, in
 	}
 
 	return invAcc;
+}
+
+async function deleteInvoices(tx: DbLike, invoiceIds: string[]) {
+	if (invoiceIds.length === 0) return;
+
+	// Remove or detach external references that may be RESTRICTed.
+	await tx.delete(cronWorkflowRunInvoice).where(inArray(cronWorkflowRunInvoice.invoiceId, invoiceIds));
+
+	// These should be SET NULL in DB, but we null them explicitly for safety.
+	await tx.update(order).set({ invoiceId: null }).where(inArray(order.invoiceId, invoiceIds));
+	await tx.update(niscOrder).set({ invoiceId: null }).where(inArray(niscOrder.invoiceId, invoiceIds));
+
+	// Delete children explicitly (some DBs/migrations may not have cascades applied).
+	const transactionIds = await tx
+		.select({ id: invoiceTransaction.id })
+		.from(invoiceTransaction)
+		.where(inArray(invoiceTransaction.invoiceId, invoiceIds));
+	const transactionIdList = transactionIds.map((t) => t.id);
+	if (transactionIdList.length > 0) {
+		await tx
+			.delete(invoiceTransactionActivityLog)
+			.where(inArray(invoiceTransactionActivityLog.invoiceTransactionId, transactionIdList));
+	}
+
+	const creditNoteIds = await tx
+		.select({ id: creditNote.id })
+		.from(creditNote)
+		.where(inArray(creditNote.invoiceId, invoiceIds));
+	const creditNoteIdList = creditNoteIds.map((c) => c.id);
+	if (creditNoteIdList.length > 0) {
+		await tx
+			.delete(creditNoteActivityLog)
+			.where(inArray(creditNoteActivityLog.creditNoteId, creditNoteIdList));
+	}
+
+	await tx.delete(invoiceLineItem).where(inArray(invoiceLineItem.invoiceId, invoiceIds));
+	await tx.delete(invoiceTransaction).where(inArray(invoiceTransaction.invoiceId, invoiceIds));
+	await tx.delete(invoiceActivityLog).where(inArray(invoiceActivityLog.invoiceId, invoiceIds));
+	await tx.delete(creditNote).where(inArray(creditNote.invoiceId, invoiceIds));
+	await tx.delete(invoice).where(inArray(invoice.id, invoiceIds));
 }
 
 function buildInvoiceData(input: z.infer<typeof invoiceCreateInputSchema>) {
@@ -1535,7 +1578,7 @@ export const invoicingRouter = router({
 					invoiceNumber = generatedNumber;
 				}
 
-				const companyLogoUrl = "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp";
+				const companyLogoUrl = "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
 
 				const templateData = input.template
 					? {
@@ -1641,20 +1684,32 @@ export const invoicingRouter = router({
 					},
 				});
 
-				await tx
-					.delete(invoiceTransaction)
-					.where(eq(invoiceTransaction.invoiceId, input.invoiceId));
-
-				await tx
-					.delete(invoiceActivityLog)
-					.where(eq(invoiceActivityLog.invoiceId, input.invoiceId));
-
-				await tx.delete(creditNote).where(eq(creditNote.invoiceId, input.invoiceId));
-
-				await tx.delete(invoice).where(eq(invoice.id, input.invoiceId));
+				await deleteInvoices(tx, [input.invoiceId]);
 			});
 
 			return { success: true };
+		}),
+
+	bulkDeleteInvoices: protectedProcedure
+		.input(
+			z.object({
+				invoiceIds: z.array(z.string().uuid()).min(1),
+			}),
+		)
+		.output(z.object({ success: z.boolean(), deletedCount: z.number().int().nonnegative() }))
+		.mutation(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+
+			// Enforce access per-invoice (agency users can delete any; others must have access).
+			for (const invoiceId of input.invoiceIds) {
+				await ensureInvoiceAccess(db, user.id, user.role, invoiceId);
+			}
+
+			await db.transaction(async (tx) => {
+				await deleteInvoices(tx, input.invoiceIds);
+			});
+
+			return { success: true, deletedCount: input.invoiceIds.length };
 		}),
 
 	resendEmailReminder: protectedProcedure

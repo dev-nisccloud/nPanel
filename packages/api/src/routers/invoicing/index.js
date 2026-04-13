@@ -1274,7 +1274,7 @@ export const invoicingRouter = router({
             else {
                 invoiceNumber = generatedNumber;
             }
-            const companyLogoUrl = "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp";
+            const companyLogoUrl = "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
             const templateData = input.template
                 ? {
                     ...input.template,
