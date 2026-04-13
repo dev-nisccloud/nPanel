@@ -222,6 +222,9 @@ export const invoiceUpdateInputSchema = invoiceCreateInputSchema
 	})
 	.partial({
 		lineItems: true,
+		createdBy: true,
+		updatedBy: true,
+		token: true,
 	});
 export type InvoiceUpdateInput = z.infer<typeof invoiceUpdateInputSchema>;
 

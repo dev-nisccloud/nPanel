@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { FileText, EllipsisVertical, Download, Send, Trash2, Loader2, Eye } from "lucide-react";
+import { FileText, EllipsisVertical, Download, Send, Trash2, Eye } from "lucide-react";
 import {
 	Table,
 	TableBody,
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -49,7 +51,14 @@ import type { InvoiceSummary } from "@/routes/agency.invoices/create/api/schemas
 const formatCurrency = (amount: string | null | undefined, currency: string) => {
 	if (!amount) return "- ";
 	const n = Number(amount);
-	return Number.isFinite(n) ? new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n) : amount;
+	return Number.isFinite(n)
+		? new Intl.NumberFormat("en-US", {
+				style: "currency",
+				currency,
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			}).format(n)
+		: amount;
 };
 
 const formatDate = (value: string | Date | null | undefined) => {
@@ -218,11 +227,11 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 								</DropdownMenuItem>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem onClick={handleDownload} disabled={busy}>
-									{isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+									{isDownloading ? <Spinner className="mr-2 h-4 w-4" /> : <Download className="mr-2 h-4 w-4" />}
 									{isDownloading ? "Downloading..." : "Download Invoice"}
 								</DropdownMenuItem>
 								<DropdownMenuItem onClick={handleResend} disabled={busy || !invoice.customerEmail}>
-									{isResending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+									{isResending ? <Spinner className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
 									{isResending ? "Sending..." : "Resend Email Reminder"}
 								</DropdownMenuItem>
 								<DropdownMenuSeparator />
@@ -252,7 +261,7 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 							disabled={isDeleting}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							{isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete Invoice"}
+							{isDeleting ? <Spinner className="mr-2 h-4 w-4" /> : "Delete Invoice"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -268,12 +277,79 @@ export interface InvoicesTableProps {
 
 export function InvoicesTable({ invoices, onRefetch }: InvoicesTableProps) {
 	const navigate = useNavigate();
+	const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set());
+	const [isBulkDeleteOpen, setIsBulkDeleteOpen] = React.useState(false);
+
+	const utils = trpc.useUtils();
+	const bulkDeleteMutation = trpc.invoicing.bulkDeleteInvoices.useMutation({
+		onSuccess: (res) => {
+			toast.success("Invoices deleted", {
+				description: res.deletedCount === 1 ? "1 invoice deleted." : `${res.deletedCount} invoices deleted.`,
+			});
+			setSelectedIds(new Set());
+			utils.invoicing.list.invalidate();
+			onRefetch?.();
+			setIsBulkDeleteOpen(false);
+		},
+		onError: (e) => toast.error("Failed to delete invoices", { description: e.message }),
+	});
+
+	const allOnPageSelected = invoices.length > 0 && invoices.every((i) => selectedIds.has(i.id));
+	const someOnPageSelected = invoices.some((i) => selectedIds.has(i.id));
+
+	const toggleAllOnPage = (checked: boolean) => {
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			if (checked) {
+				for (const inv of invoices) next.add(inv.id);
+			} else {
+				for (const inv of invoices) next.delete(inv.id);
+			}
+			return next;
+		});
+	};
+
+	const toggleOne = (invoiceId: string, checked: boolean) => {
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			if (checked) next.add(invoiceId);
+			else next.delete(invoiceId);
+			return next;
+		});
+	};
+
+	const selectedCount = selectedIds.size;
+	const busy = bulkDeleteMutation.isPending;
 
 	return (
 		<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+			{selectedCount > 0 && (
+				<div className="flex items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3">
+					<div className="text-sm text-muted-foreground">
+						<strong className="text-foreground">{selectedCount}</strong>{" "}
+						{selectedCount === 1 ? "invoice selected" : "invoices selected"}
+					</div>
+					<Button
+						variant="destructive"
+						size="sm"
+						onClick={() => setIsBulkDeleteOpen(true)}
+						disabled={busy}
+					>
+						{busy ? <Spinner className="mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
+						Delete selected
+					</Button>
+				</div>
+			)}
 			<Table>
 				<TableHeader>
 					<TableRow>
+						<TableHead className="w-10 pl-4">
+							<Checkbox
+								checked={allOnPageSelected ? true : (someOnPageSelected ? "indeterminate" : false)}
+								onCheckedChange={(v) => toggleAllOnPage(Boolean(v))}
+								aria-label="Select all invoices on this page"
+							/>
+						</TableHead>
 						<TableHead className="pl-6">Invoice #</TableHead>
 						<TableHead>Customer</TableHead>
 						<TableHead>Amount</TableHead>
@@ -285,6 +361,13 @@ export function InvoicesTable({ invoices, onRefetch }: InvoicesTableProps) {
 				<TableBody>
 					{invoices.map((inv) => (
 						<TableRow key={inv.id}>
+							<TableCell className="pl-4" onClick={(e) => e.stopPropagation()}>
+								<Checkbox
+									checked={selectedIds.has(inv.id)}
+									onCheckedChange={(v) => toggleOne(inv.id, Boolean(v))}
+									aria-label={`Select invoice ${inv.invoiceNumber ?? inv.id}`}
+								/>
+							</TableCell>
 							<TableCell
 								className="pl-6 cursor-pointer font-medium"
 								onClick={() => navigate(`/agency/invoices/${inv.id}`)}
@@ -325,6 +408,30 @@ export function InvoicesTable({ invoices, onRefetch }: InvoicesTableProps) {
 					))}
 				</TableBody>
 			</Table>
+
+			<AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete selected invoices</AlertDialogTitle>
+						<AlertDialogDescription>
+							You are about to permanently delete{" "}
+							<strong>{selectedCount}</strong> {selectedCount === 1 ? "invoice" : "invoices"}. This action cannot be undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={async () => {
+								await bulkDeleteMutation.mutateAsync({ invoiceIds: Array.from(selectedIds) });
+							}}
+							disabled={busy}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{busy ? <Spinner className="mr-2 h-4 w-4" /> : "Delete"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

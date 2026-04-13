@@ -74,7 +74,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 {qty ? qty : "-"}
               </Text>
               <Text style={{ flex: 1, ...pdfTypography.itemDescription }}>
-                {amount ? addCommasToNumber(amount) : ""}
+                {amount != null ? formatMoney(amount) : ""}
               </Text>
               <Text
                 style={{
@@ -84,7 +84,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 }}
               >
                 {currencyDetails?.currencySymbol}
-                {amount ? addCommasToNumber((qty ? qty : 1) * amount) : ""}
+                {amount != null ? formatMoney((qty ? qty : 1) * amount) : ""}
               </Text>
             </View>
           </View>
@@ -119,7 +119,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               }}
             >
               {currencyDetails?.currencySymbol}
-              {addCommasToNumber(subtotal)}
+              {formatMoney(subtotal)}
             </Text>
           </View>
           {discount && (
@@ -142,7 +142,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 }}
               >
                 {currencyDetails?.currencySymbol}
-                {discount ? addCommasToNumber(+discount) : ""}
+                {discount ? formatMoney(+discount) : ""}
               </Text>
             </View>
           )}
@@ -166,7 +166,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 }}
               >
                 {currencyDetails?.currencySymbol}
-                {addCommasToNumber(+taxAmount.toFixed(2))}
+                {formatMoney(taxAmount)}
               </Text>
             </View>
           )}
@@ -190,7 +190,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               }}
             >
               {currencyDetails?.currencySymbol}
-              {addCommasToNumber(totalAmount)}
+              {formatMoney(totalAmount)}
             </Text>
           </View>
         </View>
@@ -206,11 +206,13 @@ const calculateTotalAmount = (items: Item[]): number =>
     return total + quantity * amount;
   }, 0);
 
-const addCommasToNumber = (number: number): string => {
-  let numberString = number.toString();
-  const parts = numberString.split(".");
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return parts.join(".");
+const formatMoney = (value: number): string => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "";
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
 };
 
 /**
