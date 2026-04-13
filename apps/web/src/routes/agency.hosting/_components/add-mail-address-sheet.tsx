@@ -94,12 +94,13 @@ interface AddMailAddressSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   siteId: number;
+  domainName?: string;
   onSuccess?: () => void;
   initialValues?: Partial<z.infer<typeof FormSchema>>;
   mode?: 'create' | 'edit';
 }
 
-export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, initialValues, mode = 'create' }: AddMailAddressSheetProps) {
+export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, onSuccess, initialValues, mode = 'create' }: AddMailAddressSheetProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
 
@@ -161,7 +162,7 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
       mailboxEnabled: initialValues?.mailboxEnabled ?? true,
       quota: (initialValues?.quota !== undefined && initialValues.quota >= 0) 
         ? initialValues.quota 
-        : 53687091200, // 50GB default (50 * 1024 * 1024 * 1024) - ensure always valid
+        : 214748364800, // 200GB default (200 * 1024 * 1024 * 1024) - ensure always valid
       forwardingEnabled: initialValues?.forwardingEnabled ?? false,
       forwardingAddresses: initialValues?.forwardingAddresses || "",
       aliases: initialValues?.aliases || "",
@@ -185,7 +186,7 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
         password: "",
         description: "",
         mailboxEnabled: true,
-        quota: 53687091200,
+        quota: 214748364800,
         forwardingEnabled: false,
         forwardingAddresses: "",
         aliases: "",
@@ -216,7 +217,7 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
       mailboxEnabled: initialValues.mailboxEnabled ?? current.mailboxEnabled ?? true,
       quota: (initialValues.quota !== undefined && initialValues.quota >= 0) 
         ? initialValues.quota 
-        : ((current.quota !== undefined && current.quota >= 0) ? current.quota : 53687091200), // Use initial, current, or default 50GB
+        : ((current.quota !== undefined && current.quota >= 0) ? current.quota : 214748364800), // Use initial, current, or default 200GB
       forwardingEnabled: initialValues.forwardingEnabled ?? current.forwardingEnabled ?? false,
       aliases: initialValues.aliases ?? current.aliases ?? "",
       forwardingAddresses: initialValues.forwardingAddresses ?? current.forwardingAddresses ?? "",
@@ -234,10 +235,17 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
     
     try {
       form.clearErrors();
+      const rawName = (data.name ?? "").trim();
+      const localPart = rawName.includes("@") ? rawName.split("@")[0].trim() : rawName;
+      if (!localPart) {
+        form.setError("name", { type: "manual", message: "Email name is required." });
+        return;
+      }
+
       // Prepare the data for the API call
       const apiData = {
         siteId,
-        name: data.name,
+        name: localPart,
         password: data.password || "", // Handle optional password in edit mode
         passwordType: 'plain' as const,
         mailbox: {
@@ -371,7 +379,7 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const quotaValue = form.watch("quota") ?? 53687091200; // Default to 50GB if undefined
+  const quotaValue = form.watch("quota") ?? 214748364800; // Default to 200GB if undefined
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -427,11 +435,41 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
                       <FormItem>
                         <FormLabel>Email Name</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="username" 
-                            {...field} 
-                          />
+                          <div className="relative">
+                            <Input
+                              placeholder="example"
+                              autoCapitalize="none"
+                              autoCorrect="off"
+                              spellCheck={false}
+                              className={domainName ? "pr-40" : undefined}
+                              value={field.value}
+                              onChange={(e) => {
+                                const next = e.target.value;
+                                if (next.includes("@")) {
+                                  const local = next.split("@")[0]?.trim() ?? "";
+                                  field.onChange(local);
+                                  return;
+                                }
+                                field.onChange(next);
+                              }}
+                              onBlur={(e) => {
+                                const next = e.target.value?.trim() ?? "";
+                                field.onChange(next.includes("@") ? (next.split("@")[0]?.trim() ?? "") : next);
+                                field.onBlur();
+                              }}
+                            />
+                            {domainName ? (
+                              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <span className="text-sm font-semibold text-foreground/90">@{domainName}</span>
+                              </div>
+                            ) : null}
+                          </div>
                         </FormControl>
+                        {domainName ? (
+                          <div className="text-xs text-muted-foreground">
+                            Enter only the email name (before @). We’ll add <span className="font-mono">@{domainName}</span> automatically.
+                          </div>
+                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -541,14 +579,14 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
                               <Slider
                                 value={[quotaValue]}
                                 onValueChange={(value) => field.onChange(value[0])}
-                                max={53687091200} // 50GB
+                                max={1099511627776} // 1TB
                                 min={10485760} // 10MB
-                                step={10485760} // 10MB steps
+                                step={1073741824} // 1GB steps
                                 className="w-full"
                               />
                               <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>10 MB</span>
-                                <span>50 GB</span>
+                                <span>1 TB</span>
                               </div>
                             </div>
                           )}

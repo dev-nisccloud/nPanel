@@ -495,6 +495,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
           }
         }}
         siteId={siteId}
+        domainName={domainName}
         initialValues={sheetInitial || undefined}
         mode={sheetMode}
         onSuccess={() => {

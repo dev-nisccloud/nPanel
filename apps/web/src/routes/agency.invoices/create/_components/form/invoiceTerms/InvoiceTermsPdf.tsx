@@ -27,7 +27,7 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
       <View style={{ flex: 1, alignItems: "flex-end" as const }}>
         <View style={lineStyle}>
           <Text style={labelStyle}>INVOICE NO</Text>
-          <Text wrap={false} style={valueStyle}>
+          <Text style={[valueStyle, { maxWidth: 160, textAlign: "right" }]} wrap>
             {invoiceNumber || "-"}
           </Text>
         </View>

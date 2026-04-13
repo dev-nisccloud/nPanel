@@ -30,7 +30,8 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           style={{
             flex: 1,
             ...pdfUtils.flexRowItemCenter,
-            paddingHorizontal: 40,
+            paddingLeft: 80,
+            paddingRight: 40,
             paddingVertical: 16,
           }}
         >

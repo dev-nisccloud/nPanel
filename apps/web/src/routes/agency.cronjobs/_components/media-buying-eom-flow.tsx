@@ -1863,7 +1863,6 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                               yourCountry: invoiceDefaults.yourCountry,
                               yourLogo:
                                 "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s",
-                              yourLogoWidth: 250,
                               yourEmail: invoiceDefaults.yourEmail,
                               yourTaxId: invoiceDefaults.yourTaxId,
                               yourZip: invoiceDefaults.yourZip,

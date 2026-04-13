@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import React from "react";
 import { Image, Text, View } from "@react-pdf/renderer";
-import { pdfTypography } from "@/lib/pdfStyles";
+import { pdfBrandingLogoBox, pdfTypography } from "@/lib/pdfStyles";
 import type { YourDetails } from "@/routes/agency.invoices/create/types";
 
 export const InvoiceHeaderPdf: React.FC<YourDetails & { title?: string }> = ({
@@ -15,7 +15,10 @@ export const InvoiceHeaderPdf: React.FC<YourDetails & { title?: string }> = ({
   yourTaxId,
   yourZip,
   title = "Invoice",
-}) => (
+}) => {
+  const logoFrameW = pdfBrandingLogoBox.width;
+  const logoFrameH = pdfBrandingLogoBox.height;
+  return (
   <View>
     {/* Top row: Logo on left, From on right */}
     <View
@@ -32,10 +35,17 @@ export const InvoiceHeaderPdf: React.FC<YourDetails & { title?: string }> = ({
       {/* Logo on left */}
       <View style={{ justifyContent: "flex-start", alignItems: "flex-start" }}>
         {yourLogo && (
-          <Image
-            src={yourLogo}
-            style={{ width: 120, borderRadius: 6 }}
-          />
+          <View style={{ width: logoFrameW, height: logoFrameH }}>
+            <Image
+              src={yourLogo}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                borderRadius: 6,
+              }}
+            />
+          </View>
         )}
       </View>
       {/* From details on right */}
@@ -106,6 +116,7 @@ export const InvoiceHeaderPdf: React.FC<YourDetails & { title?: string }> = ({
       />
     </View>
   </View>
-);
+  );
+};
 
 
