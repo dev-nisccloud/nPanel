@@ -146,13 +146,7 @@ export function NotificationSwitcher() {
         return wasUnseen ? { count: Math.max(0, old.count - 1) } : old;
       });
 
-      // KEY FIX: Always update local state to prevent glitching from stale server data
-      const currentCount = sseUnseenCount ?? previousUnseenCount?.count ?? 0;
-      if (wasUnseen) {
-        setSseUnseenCount(Math.max(0, currentCount - 1));
-      }
-
-      return { previousNotifications, previousUnseenCount, previousSseUnseenCount };
+      return { previousNotifications, previousUnseenCount };
     },
     onSuccess: () => {
       setUpdatingNotificationId(null);
@@ -165,14 +159,12 @@ export function NotificationSwitcher() {
       if (context?.previousUnseenCount) {
         utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
       }
-      // Restore previous local state
-      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
 
       setUpdatingNotificationId(null);
     },
     onSettled: () => {
-      // Only invalidate list, NOT count
       utils.notifications.getAll.invalidate();
+      utils.notifications.getUnseenCount.invalidate();
     },
   });
 
@@ -186,7 +178,6 @@ export function NotificationSwitcher() {
 
       const previousNotifications = utils.notifications.getAll.getData({ limit: 50, offset: 0 });
       const previousUnseenCount = utils.notifications.getUnseenCount.getData();
-      const previousSseUnseenCount = sseUnseenCount;
 
       utils.notifications.getAll.setData({ limit: 50, offset: 0 }, (old) => {
         if (!old) return [];
@@ -214,12 +205,12 @@ export function NotificationSwitcher() {
       if (context?.previousUnseenCount) {
         utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
       }
-      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
 
       setUpdatingNotificationId(null);
     },
     onSettled: () => {
       utils.notifications.getAll.invalidate();
+      utils.notifications.getUnseenCount.invalidate();
     },
   });
 
@@ -262,12 +253,12 @@ export function NotificationSwitcher() {
       if (context?.previousUnseenCount) {
         utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
       }
-      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
 
       setUpdatingNotificationId(null);
     },
     onSettled: () => {
       utils.notifications.getAll.invalidate();
+      utils.notifications.getUnseenCount.invalidate();
     },
   });
 
@@ -297,10 +288,10 @@ export function NotificationSwitcher() {
       if (context?.previousUnseenCount) {
         utils.notifications.getUnseenCount.setData(undefined, context.previousUnseenCount);
       }
-      setSseUnseenCount(context?.previousSseUnseenCount ?? null);
     },
     onSettled: () => {
       utils.notifications.getAll.invalidate();
+      utils.notifications.getUnseenCount.invalidate();
     },
   });
 
