@@ -23,9 +23,9 @@ import {
   SheetTitle,
 } from "@/components/npanel-ui/sheet";
 
-import type { HivelocityProductType } from "@/hooks/use-hivelocity-pricing";
+import type { HivelocityProductType, MarginType } from "@/hooks/use-hivelocity-pricing";
 
-const formSchema = z
+const marginBlockSchema = z
   .object({
     marginType: z.enum(["PERCENTAGE", "FIXED"]).optional().nullable(),
     percentageMargin: z.string().optional().nullable(),
@@ -33,17 +33,140 @@ const formSchema = z
     roundOff: z.string().optional().nullable(),
   })
   .superRefine((data, ctx) => {
-    if (data.marginType === "PERCENTAGE") {
-      if (!data.percentageMargin?.trim()) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ["percentageMargin"] });
-      }
+    if (data.marginType === "PERCENTAGE" && !data.percentageMargin?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ["percentageMargin"] });
     }
-    if (data.marginType === "FIXED") {
-      if (!data.fixedMargin?.trim()) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ["fixedMargin"] });
-      }
+    if (data.marginType === "FIXED" && !data.fixedMargin?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ["fixedMargin"] });
     }
   });
+
+const formSchema = z.object({
+  base: marginBlockSchema,
+  os: marginBlockSchema,
+  addons: marginBlockSchema,
+});
+
+type MarginFormBlock = z.infer<typeof marginBlockSchema>;
+type FormState = z.infer<typeof formSchema>;
+
+function getDisplayValue(block: { marginType: string | null; percentageMargin: string | null; fixedMargin: string | null }) {
+  if (block.marginType === "PERCENTAGE") return `${block.percentageMargin ?? "—"}%`;
+  if (block.marginType === "FIXED") return `$${block.fixedMargin ?? "—"}`;
+  return "—";
+}
+
+function defaultBlockFromCurrent(current: any, prefix: "" | "os" | "addons"): MarginFormBlock {
+  const cap = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1) : s);
+  if (!prefix) {
+    return {
+      marginType: (current?.marginType ?? "PERCENTAGE") as MarginType,
+      percentageMargin: current?.percentageMargin ?? "",
+      fixedMargin: current?.fixedMargin ?? "",
+      roundOff: current?.roundOff ?? "0.01",
+    };
+  }
+  const key = cap(prefix);
+  return {
+    marginType: (current?.[`${prefix}MarginType`] ?? current?.[`${prefix}MarginType`] ?? "PERCENTAGE") as MarginType,
+    percentageMargin: current?.[`${prefix}PercentageMargin`] ?? "",
+    fixedMargin: current?.[`${prefix}FixedMargin`] ?? "",
+    roundOff: current?.[`${prefix}RoundOff`] ?? "0.01",
+  };
+}
+
+function parseErrors(parsed: z.SafeParseReturnType<FormState, FormState>) {
+  if (parsed.success) return {};
+  const next: Record<string, string> = {};
+  for (const issue of parsed.error.issues) {
+    const path = issue.path.map(String).join(".");
+    next[path || "form"] = issue.message;
+  }
+  return next;
+}
+
+function blockKey(prefix: "base" | "os" | "addons", field: keyof MarginFormBlock) {
+  return `${prefix}.${String(field)}`;
+}
+
+function MarginSection({
+  title,
+  description,
+  value,
+  errors,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  value: MarginFormBlock;
+  errors: Record<string, string>;
+  onChange: (next: MarginFormBlock) => void;
+}) {
+  const err = (k: keyof MarginFormBlock) => errors[k as string];
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Margin type</Label>
+            <Select value={value.marginType ?? "PERCENTAGE"} onValueChange={(v) => onChange({ ...value, marginType: v as any })}>
+              <SelectTrigger className={err("marginType") ? "border-destructive" : ""}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PERCENTAGE">Percentage</SelectItem>
+                <SelectItem value="FIXED">Fixed (USD)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Round off</Label>
+            <Select value={value.roundOff ?? "0.01"} onValueChange={(v) => onChange({ ...value, roundOff: v })}>
+              <SelectTrigger className={err("roundOff") ? "border-destructive" : ""}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0.01">0.01</SelectItem>
+                <SelectItem value="0.05">0.05</SelectItem>
+                <SelectItem value="0.10">0.10</SelectItem>
+                <SelectItem value="1.00">1.00</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {value.marginType === "PERCENTAGE" ? (
+          <div className="space-y-2">
+            <Label>Percentage margin</Label>
+            <Input
+              placeholder="25"
+              value={value.percentageMargin ?? ""}
+              onChange={(e) => onChange({ ...value, percentageMargin: e.target.value })}
+              className={err("percentageMargin") ? "border-destructive" : ""}
+            />
+            {err("percentageMargin") ? <p className="text-sm text-destructive">{err("percentageMargin")}</p> : null}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>Fixed margin (USD)</Label>
+            <Input
+              placeholder="5.00"
+              value={value.fixedMargin ?? ""}
+              onChange={(e) => onChange({ ...value, fixedMargin: e.target.value })}
+              className={err("fixedMargin") ? "border-destructive" : ""}
+            />
+            {err("fixedMargin") ? <p className="text-sm text-destructive">{err("fixedMargin")}</p> : null}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function HivelocityPricingMarginCard({
   productType,
@@ -80,43 +203,48 @@ export function HivelocityPricingMarginCard({
 
   const [open, setOpen] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [form, setForm] = React.useState({
-    marginType: (current as any)?.marginType ?? ("PERCENTAGE" as "PERCENTAGE" | "FIXED"),
-    percentageMargin: (current as any)?.percentageMargin ?? "",
-    fixedMargin: (current as any)?.fixedMargin ?? "",
-    roundOff: (current as any)?.roundOff ?? "0.01",
-  });
+  const [form, setForm] = React.useState<FormState>(() => ({
+    base: defaultBlockFromCurrent(current as any, ""),
+    os: defaultBlockFromCurrent(current as any, "os"),
+    addons: defaultBlockFromCurrent(current as any, "addons"),
+  }));
 
   React.useEffect(() => {
     if (!open) return;
     setErrors({});
     setForm({
-      marginType: (current as any)?.marginType ?? ("PERCENTAGE" as "PERCENTAGE" | "FIXED"),
-      percentageMargin: (current as any)?.percentageMargin ?? "",
-      fixedMargin: (current as any)?.fixedMargin ?? "",
-      roundOff: (current as any)?.roundOff ?? "0.01",
+      base: defaultBlockFromCurrent(current as any, ""),
+      os: defaultBlockFromCurrent(current as any, "os"),
+      addons: defaultBlockFromCurrent(current as any, "addons"),
     });
   }, [open, current]);
 
   const onSave = async () => {
     const parsed = formSchema.safeParse(form);
     if (!parsed.success) {
-      const next: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
-        const key = String(issue.path[0] ?? "form");
-        next[key] = issue.message;
-      }
-      setErrors(next);
+      setErrors(parseErrors(parsed));
       return;
     }
 
     setErrors({});
     await upsertMutation.mutateAsync({
       productType,
-      marginType: parsed.data.marginType ?? undefined,
-      percentageMargin: parsed.data.marginType === "PERCENTAGE" ? parsed.data.percentageMargin ?? undefined : undefined,
-      fixedMargin: parsed.data.marginType === "FIXED" ? parsed.data.fixedMargin ?? undefined : undefined,
-      roundOff: parsed.data.roundOff ?? undefined,
+      marginType: parsed.data.base.marginType ?? undefined,
+      percentageMargin:
+        parsed.data.base.marginType === "PERCENTAGE" ? parsed.data.base.percentageMargin ?? undefined : undefined,
+      fixedMargin: parsed.data.base.marginType === "FIXED" ? parsed.data.base.fixedMargin ?? undefined : undefined,
+      roundOff: parsed.data.base.roundOff ?? undefined,
+
+      osMarginType: parsed.data.os.marginType ?? undefined,
+      osPercentageMargin: parsed.data.os.marginType === "PERCENTAGE" ? parsed.data.os.percentageMargin ?? undefined : undefined,
+      osFixedMargin: parsed.data.os.marginType === "FIXED" ? parsed.data.os.fixedMargin ?? undefined : undefined,
+      osRoundOff: parsed.data.os.roundOff ?? undefined,
+
+      addonsMarginType: parsed.data.addons.marginType ?? undefined,
+      addonsPercentageMargin:
+        parsed.data.addons.marginType === "PERCENTAGE" ? parsed.data.addons.percentageMargin ?? undefined : undefined,
+      addonsFixedMargin: parsed.data.addons.marginType === "FIXED" ? parsed.data.addons.fixedMargin ?? undefined : undefined,
+      addonsRoundOff: parsed.data.addons.roundOff ?? undefined,
     });
   };
 
@@ -187,23 +315,45 @@ export function HivelocityPricingMarginCard({
         <CardContent className="space-y-3">
           {current ? (
             <div className="grid gap-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Margin type</span>
-                <span className="font-medium">{(current as any).marginType ?? "—"}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Value</span>
-                <span className="font-medium">
-                  {(current as any).marginType === "PERCENTAGE"
-                    ? `${(current as any).percentageMargin ?? "—"}%`
-                    : (current as any).marginType === "FIXED"
-                      ? `$${(current as any).fixedMargin ?? "—"}`
-                      : "—"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Round off</span>
-                <span className="font-medium">{(current as any).roundOff ?? "—"}</span>
+              <div className="grid gap-3">
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Base plan</span>
+                    <span className="text-muted-foreground">
+                      {(current as any).marginType ?? "—"} · {getDisplayValue(current as any)} · RO {(current as any).roundOff ?? "—"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Operating System</span>
+                    <span className="text-muted-foreground">
+                      {(current as any).osMarginType ?? "—"} ·{" "}
+                      {getDisplayValue({
+                        marginType: (current as any).osMarginType ?? null,
+                        percentageMargin: (current as any).osPercentageMargin ?? null,
+                        fixedMargin: (current as any).osFixedMargin ?? null,
+                      })}{" "}
+                      · RO {(current as any).osRoundOff ?? "—"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Add-ons</span>
+                    <span className="text-muted-foreground">
+                      {(current as any).addonsMarginType ?? "—"} ·{" "}
+                      {getDisplayValue({
+                        marginType: (current as any).addonsMarginType ?? null,
+                        percentageMargin: (current as any).addonsPercentageMargin ?? null,
+                        fixedMargin: (current as any).addonsFixedMargin ?? null,
+                      })}{" "}
+                      · RO {(current as any).addonsRoundOff ?? "—"}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
@@ -225,70 +375,44 @@ export function HivelocityPricingMarginCard({
           </SheetHeader>
 
           <div className="space-y-5">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Margin configuration</CardTitle>
-                <CardDescription>Applied to base USD prices before conversion to KES.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Margin type</Label>
-                    <Select
-                      value={form.marginType ?? "PERCENTAGE"}
-                      onValueChange={(v) => setForm((p) => ({ ...p, marginType: v as any }))}
-                    >
-                      <SelectTrigger className={errors.marginType ? "border-destructive" : ""}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PERCENTAGE">Percentage</SelectItem>
-                        <SelectItem value="FIXED">Fixed (USD)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <MarginSection
+              title="Base plan markup"
+              description="Applied to the product base USD prices before conversion to KES."
+              value={form.base}
+              errors={{
+                marginType: errors[blockKey("base", "marginType")] ?? "",
+                percentageMargin: errors[blockKey("base", "percentageMargin")] ?? "",
+                fixedMargin: errors[blockKey("base", "fixedMargin")] ?? "",
+                roundOff: errors[blockKey("base", "roundOff")] ?? "",
+              }}
+              onChange={(next) => setForm((p) => ({ ...p, base: next }))}
+            />
 
-                  <div className="space-y-2">
-                    <Label>Round off</Label>
-                    <Select value={form.roundOff ?? "0.01"} onValueChange={(v) => setForm((p) => ({ ...p, roundOff: v }))}>
-                      <SelectTrigger className={errors.roundOff ? "border-destructive" : ""}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0.01">0.01</SelectItem>
-                        <SelectItem value="0.05">0.05</SelectItem>
-                        <SelectItem value="0.10">0.10</SelectItem>
-                        <SelectItem value="1.00">1.00</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+            <MarginSection
+              title="Operating System markup"
+              description="Applied to OS license price (USD) before conversion to KES."
+              value={form.os}
+              errors={{
+                marginType: errors[blockKey("os", "marginType")] ?? "",
+                percentageMargin: errors[blockKey("os", "percentageMargin")] ?? "",
+                fixedMargin: errors[blockKey("os", "fixedMargin")] ?? "",
+                roundOff: errors[blockKey("os", "roundOff")] ?? "",
+              }}
+              onChange={(next) => setForm((p) => ({ ...p, os: next }))}
+            />
 
-                {form.marginType === "PERCENTAGE" ? (
-                  <div className="space-y-2">
-                    <Label>Percentage margin</Label>
-                    <Input
-                      placeholder="25"
-                      value={form.percentageMargin ?? ""}
-                      onChange={(e) => setForm((p) => ({ ...p, percentageMargin: e.target.value }))}
-                      className={errors.percentageMargin ? "border-destructive" : ""}
-                    />
-                    {errors.percentageMargin ? <p className="text-sm text-destructive">{errors.percentageMargin}</p> : null}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label>Fixed margin (USD)</Label>
-                    <Input
-                      placeholder="5.00"
-                      value={form.fixedMargin ?? ""}
-                      onChange={(e) => setForm((p) => ({ ...p, fixedMargin: e.target.value }))}
-                      className={errors.fixedMargin ? "border-destructive" : ""}
-                    />
-                    {errors.fixedMargin ? <p className="text-sm text-destructive">{errors.fixedMargin}</p> : null}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <MarginSection
+              title="Add-ons markup"
+              description="Applied to each selected add-on price (USD) before conversion to KES."
+              value={form.addons}
+              errors={{
+                marginType: errors[blockKey("addons", "marginType")] ?? "",
+                percentageMargin: errors[blockKey("addons", "percentageMargin")] ?? "",
+                fixedMargin: errors[blockKey("addons", "fixedMargin")] ?? "",
+                roundOff: errors[blockKey("addons", "roundOff")] ?? "",
+              }}
+              onChange={(next) => setForm((p) => ({ ...p, addons: next }))}
+            />
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setOpen(false)}>

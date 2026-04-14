@@ -12,29 +12,68 @@ import { protectedProcedure, router } from "../trpc";
 const productTypeSchema = z.enum(["DEDICATED_SERVERS", "VPS", "VDS"]);
 const marginTypeSchema = z.enum(["PERCENTAGE", "FIXED"]);
 
+function refineMargin(
+  data: { marginType?: "PERCENTAGE" | "FIXED" | null; percentageMargin?: string | null; fixedMargin?: string | null },
+  ctx: z.RefinementCtx,
+  pathPrefix: string[],
+) {
+  if (data.marginType === "PERCENTAGE" && !data.percentageMargin) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Percentage margin is required when margin type is PERCENTAGE",
+      path: [...pathPrefix, "percentageMargin"],
+    });
+  }
+  if (data.marginType === "FIXED" && !data.fixedMargin) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Fixed margin is required when margin type is FIXED",
+      path: [...pathPrefix, "fixedMargin"],
+    });
+  }
+}
+
 const upsertSchema = z
   .object({
     productType: productTypeSchema,
+    // Base plan margin
     marginType: marginTypeSchema.optional().nullable(),
     percentageMargin: z.string().optional().nullable(),
     fixedMargin: z.string().optional().nullable(),
     roundOff: z.string().optional().nullable(),
+
+    // OS margin
+    osMarginType: marginTypeSchema.optional().nullable(),
+    osPercentageMargin: z.string().optional().nullable(),
+    osFixedMargin: z.string().optional().nullable(),
+    osRoundOff: z.string().optional().nullable(),
+
+    // Add-ons margin
+    addonsMarginType: marginTypeSchema.optional().nullable(),
+    addonsPercentageMargin: z.string().optional().nullable(),
+    addonsFixedMargin: z.string().optional().nullable(),
+    addonsRoundOff: z.string().optional().nullable(),
   })
   .superRefine((data, ctx) => {
-    if (data.marginType === "PERCENTAGE" && !data.percentageMargin) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Percentage margin is required when margin type is PERCENTAGE",
-        path: ["percentageMargin"],
-      });
-    }
-    if (data.marginType === "FIXED" && !data.fixedMargin) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Fixed margin is required when margin type is FIXED",
-        path: ["fixedMargin"],
-      });
-    }
+    refineMargin(
+      { marginType: data.marginType ?? null, percentageMargin: data.percentageMargin ?? null, fixedMargin: data.fixedMargin ?? null },
+      ctx,
+      [],
+    );
+    refineMargin(
+      { marginType: data.osMarginType ?? null, percentageMargin: data.osPercentageMargin ?? null, fixedMargin: data.osFixedMargin ?? null },
+      ctx,
+      ["os"],
+    );
+    refineMargin(
+      {
+        marginType: data.addonsMarginType ?? null,
+        percentageMargin: data.addonsPercentageMargin ?? null,
+        fixedMargin: data.addonsFixedMargin ?? null,
+      },
+      ctx,
+      ["addons"],
+    );
   });
 
 const getSchema = z.object({ productType: productTypeSchema });
@@ -48,6 +87,17 @@ const settingsResponseSchema = z.object({
   percentageMargin: z.string().nullable(),
   fixedMargin: z.string().nullable(),
   roundOff: z.string().nullable(),
+
+  osMarginType: z.string().nullable(),
+  osPercentageMargin: z.string().nullable(),
+  osFixedMargin: z.string().nullable(),
+  osRoundOff: z.string().nullable(),
+
+  addonsMarginType: z.string().nullable(),
+  addonsPercentageMargin: z.string().nullable(),
+  addonsFixedMargin: z.string().nullable(),
+  addonsRoundOff: z.string().nullable(),
+
   isDefault: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -109,6 +159,16 @@ export const hivelocityPricingSettingsRouter = router({
               percentageMargin: input.marginType === "PERCENTAGE" ? input.percentageMargin ?? null : null,
               fixedMargin: input.marginType === "FIXED" ? input.fixedMargin ?? null : null,
               roundOff: input.roundOff ?? null,
+
+              osMarginType: input.osMarginType ?? null,
+              osPercentageMargin: input.osMarginType === "PERCENTAGE" ? input.osPercentageMargin ?? null : null,
+              osFixedMargin: input.osMarginType === "FIXED" ? input.osFixedMargin ?? null : null,
+              osRoundOff: input.osRoundOff ?? null,
+
+              addonsMarginType: input.addonsMarginType ?? null,
+              addonsPercentageMargin: input.addonsMarginType === "PERCENTAGE" ? input.addonsPercentageMargin ?? null : null,
+              addonsFixedMargin: input.addonsMarginType === "FIXED" ? input.addonsFixedMargin ?? null : null,
+              addonsRoundOff: input.addonsRoundOff ?? null,
               isDefault: true,
               createdAt: now,
               updatedAt: now,
@@ -136,6 +196,16 @@ export const hivelocityPricingSettingsRouter = router({
               percentageMargin: input.marginType === "PERCENTAGE" ? input.percentageMargin ?? null : null,
               fixedMargin: input.marginType === "FIXED" ? input.fixedMargin ?? null : null,
               roundOff: input.roundOff ?? null,
+
+              osMarginType: input.osMarginType ?? null,
+              osPercentageMargin: input.osMarginType === "PERCENTAGE" ? input.osPercentageMargin ?? null : null,
+              osFixedMargin: input.osMarginType === "FIXED" ? input.osFixedMargin ?? null : null,
+              osRoundOff: input.osRoundOff ?? null,
+
+              addonsMarginType: input.addonsMarginType ?? null,
+              addonsPercentageMargin: input.addonsMarginType === "PERCENTAGE" ? input.addonsPercentageMargin ?? null : null,
+              addonsFixedMargin: input.addonsMarginType === "FIXED" ? input.addonsFixedMargin ?? null : null,
+              addonsRoundOff: input.addonsRoundOff ?? null,
               updatedAt: now,
             })
             .where(eq(hivelocityPricingSettings.id, existing.id));

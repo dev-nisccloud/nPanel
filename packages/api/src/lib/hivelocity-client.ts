@@ -5,6 +5,8 @@ const HIVELOCITY_BASE_URL = "https://core.hivelocity.net/api/v2";
 type HivelocityRequestOptions = {
 	method?: "GET" | "POST" | "PUT" | "DELETE";
 	query?: Record<string, string | number | boolean | null | undefined>;
+	/** JSON request body (for POST/PUT). */
+	body?: unknown;
 	headers?: Record<string, string | undefined>;
 	/** If true, throws when `HIVELOCITY_API_KEY` is missing. */
 	requireApiKey?: boolean;
@@ -38,13 +40,16 @@ export async function hivelocityRequest<T>(path: string, options: HivelocityRequ
 		});
 	}
 
+	const hasBody = options.body !== undefined;
 	const resp = await fetch(buildUrl(path, options.query), {
 		method: options.method ?? "GET",
 		headers: {
 			Accept: "application/json",
+			...(hasBody ? { "Content-Type": "application/json" } : {}),
 			...(apiKey ? { "X-API-KEY": apiKey } : {}),
 			...options.headers,
 		},
+		...(hasBody ? { body: JSON.stringify(options.body) } : {}),
 	});
 
 	// Hivelocity responses are JSON; still guard for non-JSON error pages.

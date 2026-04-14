@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Trash2, Globe, Server, Wrench } from "lucide-react";
+import { Trash2, Globe, Server, Wrench, Layers } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useCartStore, type CartItem, type DomainCartItem } from "@/stores/cart-store";
+import { useCartStore, type CartItem, type DomainCartItem, type HivelocityCartItem } from "@/stores/cart-store";
 
 interface CartItemCardProps {
   item: CartItem;
@@ -23,6 +23,8 @@ const getServiceIcon = (type: string) => {
       return <Server className="h-4 w-4" />;
     case 'service':
       return <Wrench className="h-4 w-4" />;
+    case "hivelocity":
+      return <Layers className="h-4 w-4" />;
     default:
       return <Globe className="h-4 w-4" />;
   }
@@ -37,6 +39,8 @@ const getServiceTypeLabel = (type: string) => {
       return 'Hosting';
     case 'service':
       return 'Service';
+    case "hivelocity":
+      return "Hivelocity";
     default:
       return 'Service';
   }
@@ -44,7 +48,8 @@ const getServiceTypeLabel = (type: string) => {
 
 // Helper function to format price
 const formatPrice = (price?: number, currency?: string) => {
-  if (!price) return 'Price not available';
+  if (price === undefined || price === null || Number.isNaN(price)) return 'Price not available';
+  if (price === 0) return "Free";
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency || 'USD',
@@ -81,6 +86,8 @@ const getBillingCycleLabel = (item: CartItem): string => {
         return cycleMap[serviceItem.billingCycle] || 'One-time';
       }
       return 'One-time';
+    case "hivelocity":
+      return (item as any).billingCycle || "Monthly";
     default:
       return 'One-time';
   }
@@ -95,6 +102,8 @@ const getServiceName = (item: CartItem) => {
       return (item as any).plan || 'Hosting Plan';
     case 'service':
       return (item as any).name || 'Service';
+    case "hivelocity":
+      return (item as HivelocityCartItem).planName;
     default:
       return 'Unknown Service';
   }
@@ -125,6 +134,8 @@ const getServicePrice = (item: CartItem) => {
       return { price: (item as any).price, currency: (item as any).currency };
     case 'service':
       return { price: (item as any).price, currency: (item as any).currency };
+    case "hivelocity":
+      return { price: (item as HivelocityCartItem).totalPrice, currency: (item as HivelocityCartItem).currency };
     default:
       return { price: undefined, currency: undefined };
   }
@@ -135,6 +146,7 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
   const servicePrice = getServicePrice(item);
   const billingCycle = getBillingCycleLabel(item);
   const serviceType = getServiceTypeLabel(item.type);
+  const { removeHivelocityAddon } = useCartStore();
 
   return (
     <div className="group border rounded-lg bg-card hover:shadow-sm transition-shadow">
@@ -161,6 +173,62 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
               <h3 className="font-medium text-sm leading-tight truncate" title={serviceName}>
                 {serviceName}
               </h3>
+
+              {item.type === "hivelocity" ? (
+                <div className="mt-2 space-y-2">
+                  <div className="text-xs text-muted-foreground">
+                    {(item as HivelocityCartItem).planType ? (item as HivelocityCartItem).planType : null}
+                  </div>
+                  <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Hostname</span>
+                      <span className="font-medium text-foreground break-all">{(item as HivelocityCartItem).hostname}</span>
+                    </div>
+                    {(item as HivelocityCartItem).os ? (
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-muted-foreground">OS</span>
+                        <span className="font-medium text-foreground">{(item as HivelocityCartItem).os!.name}</span>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {(item as HivelocityCartItem).addons?.length ? (
+                    <div className="rounded-md border bg-background/60">
+                      <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground border-b">
+                        Add-ons
+                      </div>
+                      <div className="px-3 py-2 space-y-2">
+                        {(item as HivelocityCartItem).addons.map((a) => (
+                          <div key={a.id} className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="text-xs font-medium text-foreground line-clamp-1">{a.name}</div>
+                              {a.group ? (
+                                <div className="text-[11px] text-muted-foreground line-clamp-1">{a.group}</div>
+                              ) : null}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="text-xs font-semibold text-primary">
+                                {formatPrice(a.price, (item as HivelocityCartItem).currency)}
+                              </div>
+                              {!hideRemoveButton ? (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => removeHivelocityAddon(item.id, a.id)}
+                                  aria-label={`Remove ${a.name}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              ) : null}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
           
@@ -183,7 +251,7 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Price</span>
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-base">
+            <span className="font-semibold text-base text-primary">
               {formatPrice(servicePrice.price, servicePrice.currency)}
             </span>
             {servicePrice.currency && (

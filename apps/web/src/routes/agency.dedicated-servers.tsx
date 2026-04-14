@@ -17,6 +17,8 @@ import { PlanCard } from "./agency.dedicated-servers/_components/plan-card";
 import { PlanCardSkeleton } from "./agency.dedicated-servers/_components/plan-card-skeleton";
 import { HivelocityPricingMarginCard } from "./_components/hivelocity-pricing-margin-card";
 import { useHivelocityPricing } from "@/hooks/use-hivelocity-pricing";
+import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
+import { toast } from "@/components/ui/sonner";
 
 export default function DedicatedServersPage() {
 	const limit = 24;
@@ -27,6 +29,9 @@ export default function DedicatedServersPage() {
 
 	const [searchDraft, setSearchDraft] = React.useState("");
 	const [search, setSearch] = React.useState("");
+	const [buyNowOpen, setBuyNowOpen] = React.useState(false);
+	const [selectedPlan, setSelectedPlan] = React.useState<ServicePlanDetails | null>(null);
+	const [dialogIntent, setDialogIntent] = React.useState<"buy_now" | "add_to_cart">("buy_now");
 
 	const facilitiesQuery = trpc.hivelocity.getFacilities.useQuery(undefined);
 
@@ -53,7 +58,7 @@ export default function DedicatedServersPage() {
 	const pricing = useHivelocityPricing("DEDICATED_SERVERS");
 
 	const displayCurrency: "KES" | "USD" = pricing.usdToKesRate ? "KES" : "USD";
-	const showOriginalUsd = Boolean(pricing.settings?.marginType);
+	const showOriginalUsd = Boolean(pricing.settings?.base.marginType);
 
 	const displayPlans = React.useMemo(() => {
 		return plans.map((p) => {
@@ -70,6 +75,7 @@ export default function DedicatedServersPage() {
 			if (displayCurrency === "KES") {
 				return {
 					...p,
+					__baseUsd: baseUsd,
 					...(showOriginalUsd ? { __originalUsd: baseUsd } : {}),
 					product_monthly_price: pricing.toKes(monthly.final) ?? p.product_monthly_price,
 					product_hourly_price: pricing.toKes(hourly.final) ?? p.product_hourly_price,
@@ -82,6 +88,7 @@ export default function DedicatedServersPage() {
 			// USD fallback: apply margin but keep USD
 			return {
 				...p,
+				__baseUsd: baseUsd,
 				...(showOriginalUsd ? { __originalUsd: baseUsd } : {}),
 				product_monthly_price: monthly.final,
 				product_hourly_price: hourly.final,
@@ -104,6 +111,48 @@ export default function DedicatedServersPage() {
 	const handleSearch = () => {
 		setSearch(searchDraft.trim());
 	};
+
+	const openBuyNow = React.useCallback((p: any) => {
+		setDialogIntent("buy_now");
+		const base = (p as any).__baseUsd ?? { monthly: p.product_monthly_price, hourly: p.product_hourly_price };
+		setSelectedPlan({
+			planId: String(p.product_id),
+			planName: p.product_name,
+			planType: "Dedicated Servers Hosting",
+			price: Number(p.product_monthly_price ?? 0),
+			currency: displayCurrency,
+			billingCycle: "MONTHLY",
+			hivelocity: {
+				productType: "DEDICATED_SERVERS",
+				hivelocityProductId: Number(p.product_id),
+				locationName: p.data_center,
+				baseMonthlyUsd: Number(base.monthly ?? 0),
+				baseHourlyUsd: Number(base.hourly ?? 0),
+			},
+		});
+		setBuyNowOpen(true);
+	}, [displayCurrency]);
+
+	const openCartFlow = React.useCallback((p: any) => {
+		setDialogIntent("add_to_cart");
+		const base = (p as any).__baseUsd ?? { monthly: p.product_monthly_price, hourly: p.product_hourly_price };
+		setSelectedPlan({
+			planId: String(p.product_id),
+			planName: p.product_name,
+			planType: "Dedicated Servers Hosting",
+			price: Number(p.product_monthly_price ?? 0),
+			currency: displayCurrency,
+			billingCycle: "MONTHLY",
+			hivelocity: {
+				productType: "DEDICATED_SERVERS",
+				hivelocityProductId: Number(p.product_id),
+				locationName: p.data_center,
+				baseMonthlyUsd: Number(base.monthly ?? 0),
+				baseHourlyUsd: Number(base.hourly ?? 0),
+			},
+		});
+		setBuyNowOpen(true);
+	}, [displayCurrency]);
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
@@ -226,6 +275,8 @@ export default function DedicatedServersPage() {
 												locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center}
 												displayCurrency={displayCurrency}
 												originalUsd={(p as any).__originalUsd}
+												onBuyNow={openBuyNow}
+												onAddToCart={openCartFlow}
 											/>
 										))}
 										{plansQuery.isFetchingNextPage &&
@@ -263,6 +314,15 @@ export default function DedicatedServersPage() {
 					</Tabs>
 				</div>
 			</div>
+			{selectedPlan ? (
+				<BuyNowDialog
+					open={buyNowOpen}
+					onOpenChange={setBuyNowOpen}
+					plan={selectedPlan}
+					requireDomainStep={false}
+					intent={dialogIntent}
+				/>
+			) : null}
 		</div>
 	);
 }

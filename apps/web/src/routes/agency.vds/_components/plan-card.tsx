@@ -4,7 +4,6 @@ import * as React from "react";
 import { Cpu, CreditCard, HardDrive, HelpCircle, MemoryStick, Network, ShoppingCart } from "lucide-react";
 
 import type { VdsPlan } from "../schema";
-import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,26 +52,26 @@ export function PlanCard({
 	locationName,
 	displayCurrency = "KES",
 	originalUsd,
+	onAddToCart,
+	onBuyNow,
 }: {
 	plan: VdsPlan;
 	locationName: string;
 	displayCurrency?: "KES" | "USD";
 	originalUsd?: { monthly: number; hourly: number; monthlyKes?: number | null; hourlyKes?: number | null };
+	onAddToCart?: (plan: VdsPlan) => void;
+	onBuyNow?: (plan: VdsPlan) => void;
 }) {
-	const onAddToCart = (e: React.MouseEvent) => {
+	const handleAddToCart = (e: React.MouseEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
-		toast.message("Cart is coming soon", {
-			description: "We’ll enable ordering flow once the VDS checkout is wired.",
-		});
+		onAddToCart?.(plan);
 	};
 
-	const onBuyNow = (e: React.MouseEvent) => {
+	const handleBuyNow = (e: React.MouseEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
-		toast.message("Buy now is coming soon", {
-			description: "We’ll enable purchase once the provisioning + payment flow is implemented.",
-		});
+		onBuyNow?.(plan);
 	};
 
 	return (
@@ -223,11 +222,11 @@ export function PlanCard({
 				</div>
 
 				<div className="flex justify-center gap-2 pt-1">
-					<Button variant="outline" size="sm" onClick={onAddToCart} className="w-auto">
+					<Button variant="outline" size="sm" onClick={handleAddToCart} className="w-auto">
 						<ShoppingCart className="h-4 w-4 mr-2" />
 						Add to cart
 					</Button>
-					<Button size="sm" onClick={onBuyNow} className="w-auto bg-primary text-primary-foreground">
+					<Button size="sm" onClick={handleBuyNow} className="w-auto bg-primary text-primary-foreground">
 						<CreditCard className="h-4 w-4 mr-2" />
 						Buy now
 					</Button>
