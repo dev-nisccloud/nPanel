@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { inventoryToPlans } from "./agency.vds/schema";
 import { PlanCard } from "./agency.vds/_components/plan-card";
 import { PlanCardSkeleton } from "./agency.vds/_components/plan-card-skeleton";
+import { HivelocityPricingMarginCard } from "./_components/hivelocity-pricing-margin-card";
+import { useHivelocityPricing } from "@/hooks/use-hivelocity-pricing";
 
 export default function VdsPage() {
 	const limit = 24;
@@ -32,6 +34,44 @@ export default function VdsPage() {
 		const items = plansQuery.data?.pages.flatMap((p) => p.data?.items ?? []) ?? [];
 		return inventoryToPlans({ FLAT: items });
 	}, [plansQuery.data]);
+
+	const pricing = useHivelocityPricing("VDS");
+	const displayCurrency: "KES" | "USD" = pricing.usdToKesRate ? "KES" : "USD";
+	const showOriginalUsd = Boolean(pricing.settings?.marginType);
+
+	const displayPlans = React.useMemo(() => {
+		return plans.map((p) => {
+			const baseUsd = {
+				monthly: p.product_monthly_price,
+				hourly: p.product_hourly_price,
+				monthlyKes: pricing.toKes(p.product_monthly_price),
+				hourlyKes: pricing.toKes(p.product_hourly_price),
+			};
+			const monthly = pricing.applyMargin(p.product_monthly_price);
+			const hourly = pricing.applyMargin(p.product_hourly_price);
+			const original = p.product_original_price ? pricing.applyMargin(p.product_original_price) : null;
+
+			if (displayCurrency === "KES") {
+				return {
+					...p,
+					...(showOriginalUsd ? { __originalUsd: baseUsd } : {}),
+					product_monthly_price: pricing.toKes(monthly.final) ?? p.product_monthly_price,
+					product_hourly_price: pricing.toKes(hourly.final) ?? p.product_hourly_price,
+					product_original_price: p.product_original_price
+						? pricing.toKes(original?.final ?? p.product_original_price) ?? p.product_original_price
+						: p.product_original_price,
+				};
+			}
+
+			return {
+				...p,
+				...(showOriginalUsd ? { __originalUsd: baseUsd } : {}),
+				product_monthly_price: monthly.final,
+				product_hourly_price: hourly.final,
+				product_original_price: p.product_original_price ? original?.final ?? p.product_original_price : p.product_original_price,
+			};
+		});
+	}, [plans, pricing, displayCurrency, showOriginalUsd]);
 
 	const facilityOptions = React.useMemo(() => {
 		const list = facilitiesQuery.data?.data ?? [];
@@ -80,11 +120,13 @@ export default function VdsPage() {
 							) : (
 								<div className="space-y-6">
 									<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-										{plans.map((p) => (
+										{displayPlans.map((p) => (
 											<PlanCard
 												key={`${p.data_center}-${p.product_id}-${p.location_option_id}`}
 												plan={p}
 												locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center}
+												displayCurrency={displayCurrency}
+												originalUsd={(p as any).__originalUsd}
 											/>
 										))}
 										{plansQuery.isFetchingNextPage &&
@@ -115,8 +157,8 @@ export default function VdsPage() {
 						</TabsContent>
 
 						<TabsContent value="settings" className="mt-0">
-							<div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
-								<p className="text-muted-foreground">Settings tab coming soon...</p>
+							<div className="space-y-4">
+								<HivelocityPricingMarginCard productType="VDS" />
 							</div>
 						</TabsContent>
 					</Tabs>

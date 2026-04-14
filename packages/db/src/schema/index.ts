@@ -10,6 +10,7 @@ export * from "./auth-extras";
 export * from "./nameservers";
 export * from "./domains";
 export * from "./hosting";
+export * from "./hivelocity-pricing-settings";
 export * from "./promos";
 export * from "./creative-assets";
 export * from "./creative-briefs";

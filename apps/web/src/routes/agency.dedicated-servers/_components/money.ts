@@ -9,3 +9,16 @@ export function formatMoneyUsd(amount?: number) {
 	}
 }
 
+export function formatMoneyKes(amount?: number) {
+	if (amount === undefined || amount === null || !isFinite(amount)) return "N/A";
+	try {
+		return new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES" }).format(amount);
+	} catch {
+		return `KSh ${amount.toFixed(2)}`;
+	}
+}
+
+export function formatMoney(amount?: number, currency: "KES" | "USD" = "KES") {
+	return currency === "KES" ? formatMoneyKes(amount) : formatMoneyUsd(amount);
+}
+

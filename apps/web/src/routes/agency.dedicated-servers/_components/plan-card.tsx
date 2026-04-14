@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StockBadge } from "./stock-badge";
-import { formatMoneyUsd } from "./money";
+import { formatMoney, formatMoneyUsd } from "./money";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 function stripHtmlToText(input?: string) {
@@ -41,7 +41,17 @@ function getDriveDescription(plan: DedicatedPlan) {
 	return plan.product_drive || "—";
 }
 
-export function PlanCard({ plan, locationName }: { plan: DedicatedPlan; locationName: string }) {
+export function PlanCard({
+	plan,
+	locationName,
+	displayCurrency = "KES",
+	originalUsd,
+}: {
+	plan: DedicatedPlan;
+	locationName: string;
+	displayCurrency?: "KES" | "USD";
+	originalUsd?: { monthly: number; hourly: number; monthlyKes?: number | null; hourlyKes?: number | null };
+}) {
 	const onAddToCart = (e: React.MouseEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
@@ -170,15 +180,30 @@ export function PlanCard({ plan, locationName }: { plan: DedicatedPlan; location
 					<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Price</p>
 					<div className="mt-1 flex flex-col gap-0.5">
 						{plan.product_on_sale && plan.product_original_price ? (
-							<p className="text-xs text-muted-foreground line-through">{formatMoneyUsd(plan.product_original_price)}</p>
+							<p className="text-xs text-muted-foreground line-through">
+								{formatMoney(plan.product_original_price, displayCurrency)}
+							</p>
 						) : null}
 						<p className="text-xl font-bold leading-tight text-primary">
-							{formatMoneyUsd(plan.product_monthly_price)}
+							{formatMoney(plan.product_monthly_price, displayCurrency)}
 							<span className="align-super text-xs font-semibold text-muted-foreground ml-1">/mo</span>
 						</p>
 						<p className="text-xs text-muted-foreground">
-							{formatMoneyUsd(plan.product_hourly_price)} <span className="align-super text-[10px]">/hr</span>
+							{formatMoney(plan.product_hourly_price, displayCurrency)}{" "}
+							<span className="align-super text-[10px]">/hr</span>
 						</p>
+						{originalUsd ? (
+							<div className="mt-1 space-y-0.5">
+								<p className="text-xs font-medium text-emerald-600">
+									Original (USD): {formatMoneyUsd(originalUsd.monthly)} /mo · {formatMoneyUsd(originalUsd.hourly)} /hr
+								</p>
+								{typeof originalUsd.monthlyKes === "number" && typeof originalUsd.hourlyKes === "number" ? (
+									<p className="text-xs font-medium text-emerald-600">
+										Original (KES): {formatMoney(originalUsd.monthlyKes, "KES")} /mo · {formatMoney(originalUsd.hourlyKes, "KES")} /hr
+									</p>
+								) : null}
+							</div>
+						) : null}
 					</div>
 				</div>
 

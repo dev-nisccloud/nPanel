@@ -1,0 +1,275 @@
+import { TRPCError } from "@trpc/server";
+import * as crypto from "crypto";
+import { and, count, desc, eq } from "@npanel/db";
+import { db } from "@npanel/db";
+import {
+  hivelocityPricingSettings,
+  hivelocityPricingSettingsActivityLog,
+} from "@npanel/db/schema/hivelocity-pricing-settings";
+import { z } from "zod";
+import { protectedProcedure, router } from "../trpc";
+
+const productTypeSchema = z.enum(["DEDICATED_SERVERS", "VPS", "VDS"]);
+const marginTypeSchema = z.enum(["PERCENTAGE", "FIXED"]);
+
+const upsertSchema = z
+  .object({
+    productType: productTypeSchema,
+    marginType: marginTypeSchema.optional().nullable(),
+    percentageMargin: z.string().optional().nullable(),
+    fixedMargin: z.string().optional().nullable(),
+    roundOff: z.string().optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.marginType === "PERCENTAGE" && !data.percentageMargin) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Percentage margin is required when margin type is PERCENTAGE",
+        path: ["percentageMargin"],
+      });
+    }
+    if (data.marginType === "FIXED" && !data.fixedMargin) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Fixed margin is required when margin type is FIXED",
+        path: ["fixedMargin"],
+      });
+    }
+  });
+
+const getSchema = z.object({ productType: productTypeSchema });
+const deleteSchema = z.object({ productType: productTypeSchema });
+
+const settingsResponseSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  productType: z.string(),
+  marginType: z.string().nullable(),
+  percentageMargin: z.string().nullable(),
+  fixedMargin: z.string().nullable(),
+  roundOff: z.string().nullable(),
+  isDefault: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  _count: z.object({
+    activityLogs: z.number(),
+  }),
+});
+
+async function fetchByUserAndType(userId: string, productType: z.infer<typeof productTypeSchema>) {
+  const [row] = await db
+    .select()
+    .from(hivelocityPricingSettings)
+    .where(and(eq(hivelocityPricingSettings.userId, userId), eq(hivelocityPricingSettings.productType, productType)))
+    .limit(1);
+
+  if (!row) return null;
+
+  const logsCountRes = await db
+    .select({ value: count() })
+    .from(hivelocityPricingSettingsActivityLog)
+    .where(eq(hivelocityPricingSettingsActivityLog.hivelocityPricingSettingsId, row.id));
+
+  return {
+    ...row,
+    _count: {
+      activityLogs: Number(logsCountRes[0]?.value ?? 0),
+    },
+  };
+}
+
+export const hivelocityPricingSettingsRouter = router({
+  get: protectedProcedure
+    .input(getSchema)
+    .output(z.object({ success: z.boolean(), data: settingsResponseSchema.nullable() }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session!.user!.id;
+      const data = await fetchByUserAndType(userId, input.productType);
+      return { success: true, data };
+    }),
+
+  upsert: protectedProcedure
+    .input(upsertSchema)
+    .output(z.object({ success: z.boolean(), data: settingsResponseSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session!.user!.id;
+      const now = new Date();
+
+      try {
+        const existing = await fetchByUserAndType(userId, input.productType);
+
+        const createdOrUpdatedId = await db.transaction(async (tx) => {
+          if (!existing) {
+            const id = crypto.randomUUID();
+            await tx.insert(hivelocityPricingSettings).values({
+              id,
+              userId,
+              productType: input.productType,
+              marginType: input.marginType ?? null,
+              percentageMargin: input.marginType === "PERCENTAGE" ? input.percentageMargin ?? null : null,
+              fixedMargin: input.marginType === "FIXED" ? input.fixedMargin ?? null : null,
+              roundOff: input.roundOff ?? null,
+              isDefault: true,
+              createdAt: now,
+              updatedAt: now,
+            });
+
+            await tx.insert(hivelocityPricingSettingsActivityLog).values({
+              id: crypto.randomUUID(),
+              userId,
+              hivelocityPricingSettingsId: id,
+              action: "CREATE",
+              description: `Created pricing margin settings for ${input.productType}`,
+              metadata: null,
+              ipAddress: null,
+              userAgent: null,
+              createdAt: now,
+            });
+
+            return id;
+          }
+
+          await tx
+            .update(hivelocityPricingSettings)
+            .set({
+              marginType: input.marginType ?? null,
+              percentageMargin: input.marginType === "PERCENTAGE" ? input.percentageMargin ?? null : null,
+              fixedMargin: input.marginType === "FIXED" ? input.fixedMargin ?? null : null,
+              roundOff: input.roundOff ?? null,
+              updatedAt: now,
+            })
+            .where(eq(hivelocityPricingSettings.id, existing.id));
+
+          await tx.insert(hivelocityPricingSettingsActivityLog).values({
+            id: crypto.randomUUID(),
+            userId,
+            hivelocityPricingSettingsId: existing.id,
+            action: "UPDATE",
+            description: `Updated pricing margin settings for ${input.productType}`,
+            metadata: null,
+            ipAddress: null,
+            userAgent: null,
+            createdAt: now,
+          });
+
+          return existing.id;
+        });
+
+        const data = await fetchByUserAndType(userId, input.productType);
+        if (!data || data.id !== createdOrUpdatedId) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Pricing settings could not be fetched after upsert",
+          });
+        }
+
+        return { success: true, data };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        console.error("Failed to upsert hivelocity pricing settings:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to save pricing settings",
+        });
+      }
+    }),
+
+  delete: protectedProcedure
+    .input(deleteSchema)
+    .output(z.object({ success: z.boolean(), message: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session!.user!.id;
+      const existing = await fetchByUserAndType(userId, input.productType);
+
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Pricing settings not found" });
+      }
+
+      const now = new Date();
+
+      await db.transaction(async (tx) => {
+        await tx.insert(hivelocityPricingSettingsActivityLog).values({
+          id: crypto.randomUUID(),
+          userId,
+          hivelocityPricingSettingsId: existing.id,
+          action: "DELETE",
+          description: `Deleted pricing margin settings for ${input.productType}`,
+          metadata: null,
+          ipAddress: null,
+          userAgent: null,
+          createdAt: now,
+        });
+
+        await tx
+          .delete(hivelocityPricingSettings)
+          .where(and(eq(hivelocityPricingSettings.id, existing.id), eq(hivelocityPricingSettings.userId, userId)));
+      });
+
+      return { success: true, message: "Pricing settings deleted" };
+    }),
+
+  getActivityLogs: protectedProcedure
+    .input(z.object({ productType: productTypeSchema, limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
+    .output(
+      z.object({
+        success: z.boolean(),
+        data: z.array(
+          z.object({
+            id: z.string(),
+            userId: z.string(),
+            hivelocityPricingSettingsId: z.string(),
+            action: z.string(),
+            description: z.string().nullable(),
+            metadata: z.any().nullable(),
+            ipAddress: z.string().nullable(),
+            userAgent: z.string().nullable(),
+            createdAt: z.date(),
+          }),
+        ),
+        pagination: z.object({
+          total: z.number(),
+          limit: z.number(),
+          offset: z.number(),
+          hasMore: z.boolean(),
+        }),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session!.user!.id;
+      const settings = await fetchByUserAndType(userId, input.productType);
+      if (!settings) {
+        return {
+          success: true,
+          data: [],
+          pagination: { total: 0, limit: input.limit, offset: input.offset, hasMore: false },
+        };
+      }
+
+      const [rows, totalRes] = await Promise.all([
+        db
+          .select()
+          .from(hivelocityPricingSettingsActivityLog)
+          .where(eq(hivelocityPricingSettingsActivityLog.hivelocityPricingSettingsId, settings.id))
+          .orderBy(desc(hivelocityPricingSettingsActivityLog.createdAt))
+          .limit(input.limit)
+          .offset(input.offset),
+        db
+          .select({ value: count() })
+          .from(hivelocityPricingSettingsActivityLog)
+          .where(eq(hivelocityPricingSettingsActivityLog.hivelocityPricingSettingsId, settings.id)),
+      ]);
+
+      const total = Number(totalRes[0]?.value ?? 0);
+      return {
+        success: true,
+        data: rows,
+        pagination: {
+          total,
+          limit: input.limit,
+          offset: input.offset,
+          hasMore: input.offset + input.limit < total,
+        },
+      };
+    }),
+});
+
